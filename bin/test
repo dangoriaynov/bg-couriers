@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Run PHPUnit inside the wp-env tests container (PHP + WP + WC + MySQL).
+exec npx @wordpress/env run tests-cli --env-cwd=wp-content/plugins/bg-couriers -- ./vendor/bin/phpunit "$@"
