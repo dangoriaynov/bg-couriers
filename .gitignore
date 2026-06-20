@@ -22,3 +22,7 @@ composer.phar
 # Local env / secrets
 .env
 *.local
+
+# SDD scratch (briefs/reports/diffs/ledger)
+.superpowers/
+.phpunit.result.cache
