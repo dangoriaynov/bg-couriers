@@ -16,6 +16,12 @@ define('BGC_URL', plugin_dir_url(__FILE__));
 require_once BGC_PATH . 'includes/class-bgc-autoloader.php';
 BGC_Autoloader::register();
 
+register_activation_hook(__FILE__, function () {
+    require_once BGC_PATH . 'includes/class-bgc-autoloader.php';
+    BGC_Autoloader::register();
+    BGC_Schema::create();
+});
+
 add_action('before_woocommerce_init', function () {
     if (class_exists('\Automattic\WooCommerce\Utilities\FeaturesUtil')) {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
