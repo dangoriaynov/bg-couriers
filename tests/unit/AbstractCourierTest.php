@@ -29,6 +29,24 @@ final class AbstractCourierTest extends TestCase {
         $this->expectException(BGC_Api_Exception::class);
         (new BGC_Test_Courier())->call('https://x', []);
     }
+
+    public function test_post_json_retries_twice_on_500(): void {
+        Functions\expect('wp_remote_post')->twice()->andReturn(['x']);
+        Functions\when('is_wp_error')->justReturn(false);
+        Functions\when('wp_remote_retrieve_response_code')->justReturn(500);
+        Functions\when('wp_remote_retrieve_body')->justReturn('err');
+        Functions\when('wp_json_encode')->alias('json_encode');
+        $this->expectException(BGC_Api_Exception::class);
+        (new BGC_Test_Courier())->call('https://x', []);
+    }
+
+    public function test_post_json_retries_twice_on_transport_error(): void {
+        Functions\expect('wp_remote_post')->twice()->andReturn(['x']);
+        Functions\when('is_wp_error')->justReturn(true);
+        Functions\when('wp_json_encode')->alias('json_encode');
+        $this->expectException(BGC_Api_Exception::class);
+        (new BGC_Test_Courier())->call('https://x', []);
+    }
 }
 
 class BGC_Test_Courier extends BGC_Abstract_Courier {
