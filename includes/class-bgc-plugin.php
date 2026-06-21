@@ -19,5 +19,10 @@ class BGC_Plugin {
         });
         new BGC_Checkout();
         new BGC_Ajax();
+        if (is_admin()) {
+            new BGC_Labels();
+            new BGC_Order_Metabox();
+            new BGC_Order_Columns();
+        }
     }
 }
