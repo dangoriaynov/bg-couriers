@@ -5,6 +5,33 @@ class BGC_Checkout {
     public function __construct() {
         add_action('woocommerce_after_shipping_rate', [$this, 'render_fields'], 10, 2);
         add_action('wp_enqueue_scripts', [$this, 'assets']);
+        add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
+        add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
+    }
+
+    public function chosen_is_speedy(): bool {
+        $chosen = WC()->session ? (array) WC()->session->get('chosen_shipping_methods') : [];
+        foreach ($chosen as $m) { if (strpos((string) $m, 'bgc_speedy') === 0) { return true; } }
+        return false;
+    }
+
+    public function validate($data, $errors): void {
+        if (!$this->chosen_is_speedy()) { return; }
+        $site = (int) WC()->session->get('bgc_site_id', 0);
+        $method = (string) WC()->session->get('bgc_method', 'office');
+        $office = (int) WC()->session->get('bgc_office_id', 0);
+        if (!$site) { $errors->add('bgc', __('Please choose a city for Speedy delivery.', 'bg-couriers')); }
+        if ($method !== 'address' && !$office) { $errors->add('bgc', __('Please choose a Speedy office/automat.', 'bg-couriers')); }
+    }
+
+    public function persist(\WC_Order $order): void {
+        if (!$this->chosen_is_speedy()) { return; }
+        $s = WC()->session;
+        $order->update_meta_data('_bgc_courier', 'speedy');
+        $order->update_meta_data('_bgc_method', (string) $s->get('bgc_method', 'office'));
+        $order->update_meta_data('_bgc_site_id', (int) $s->get('bgc_site_id', 0));
+        $order->update_meta_data('_bgc_office_id', (int) $s->get('bgc_office_id', 0));
+        $order->update_meta_data('_bgc_post_code', (string) $s->get('bgc_post_code', ''));
     }
     public function assets(): void {
         if (!function_exists('is_checkout') || !is_checkout()) { return; }
