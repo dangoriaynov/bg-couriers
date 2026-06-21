@@ -20,9 +20,10 @@ class BGC_Labels {
         $up = wp_upload_dir();
         $dir = trailingslashit($up['basedir']) . 'bgc-labels';
         wp_mkdir_p($dir);
-        $file = $dir . '/speedy-' . $label->waybill . '.pdf';
+        $safe_waybill = preg_replace('/[^A-Za-z0-9\-]/', '', (string) $label->waybill);
+        $file = $dir . '/speedy-' . $safe_waybill . '.pdf';
         file_put_contents($file, $pdf);
-        $url = trailingslashit($up['baseurl']) . 'bgc-labels/speedy-' . $label->waybill . '.pdf';
+        $url = trailingslashit($up['baseurl']) . 'bgc-labels/speedy-' . $safe_waybill . '.pdf';
         $order->update_meta_data('_bgc_label_url', $url);
         $order->add_order_note(sprintf(__('Speedy label generated: %s', 'bg-couriers'), $label->waybill));
         $order->save();
@@ -30,8 +31,9 @@ class BGC_Labels {
     }
     public function handle_generate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        check_admin_referer('bgc_generate_label');
         $id = (int) ($_GET['order_id'] ?? 0);
+        check_admin_referer('bgc_generate_label_' . $id);
+        if (!wc_get_order($id)) { wp_die(esc_html__('Order not found.', 'bg-couriers')); }
         try { self::generate($id); }
         catch (\Exception $e) { set_transient('bgc_admin_error_' . $id, $e->getMessage(), 60); }
         wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
@@ -39,11 +41,14 @@ class BGC_Labels {
     }
     public function handle_track(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        check_admin_referer('bgc_track');
-        $order = wc_get_order((int) ($_GET['order_id'] ?? 0));
+        $id = (int) ($_GET['order_id'] ?? 0);
+        check_admin_referer('bgc_track_' . $id);
+        $order = wc_get_order($id);
         $waybill = $order ? (string) $order->get_meta('_bgc_waybill') : '';
-        $courier = new BGC_Speedy(['env' => 'demo']);
-        wp_redirect($courier->tracking_url($waybill));
+        if ($waybill === '') { wp_die(esc_html__('No waybill found.', 'bg-couriers')); }
+        $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy([]);
+        add_filter('allowed_redirect_hosts', function ($h) { $h[] = 'www.speedy.bg'; $h[] = 'speedy.bg'; return $h; });
+        wp_safe_redirect($courier->tracking_url($waybill));
         exit;
     }
 }
