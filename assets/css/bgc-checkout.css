@@ -1,0 +1,4 @@
+.bgc-fields { margin: 8px 0; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; }
+.bgc-types label { display: inline-block; margin-right: 12px; }
+.bgc-row label { display: block; font-weight: 600; margin-bottom: 2px; }
+.bgc-row input, .bgc-office { width: 100%; }

@@ -17,5 +17,7 @@ class BGC_Plugin {
             $methods['bgc_speedy'] = 'BGC_Method_Speedy';
             return $methods;
         });
+        new BGC_Checkout();
+        new BGC_Ajax();
     }
 }
