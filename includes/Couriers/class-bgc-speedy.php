@@ -108,9 +108,67 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         return new BGC_Quote($base, $vat, (string) ($p['currency'] ?? $currency), 'live');
     }
 
-    public function create_label(\WC_Order $order): BGC_Label { throw new BGC_Api_Exception('not implemented'); }
-    public function get_label_pdf(string $waybill): string { throw new BGC_Api_Exception('not implemented'); }
+    public function create_label(\WC_Order $order): BGC_Label {
+        $body = $this->auth($this->build_shipment_body($order));
+        $resp = $this->post_json($this->base . '/shipment', $body);
+        return new BGC_Label(self::parse_shipment_id($resp));
+    }
+
+    private function build_shipment_body(\WC_Order $order): array {
+        $method  = (string) $order->get_meta('_bgc_method') ?: 'address';
+        $site_id = (int) $order->get_meta('_bgc_site_id');
+        $office  = (int) $order->get_meta('_bgc_office_id');
+        $recipient = [
+            'privatePerson' => true,
+            'clientName'    => $order->get_formatted_shipping_full_name() ?: $order->get_formatted_billing_full_name(),
+            'phone1'        => ['number' => $order->get_billing_phone()],
+            'email'         => $order->get_billing_email(),
+        ];
+        if ($method === 'address') {
+            $recipient['address'] = ['countryId' => self::BG_COUNTRY_ID, 'siteId' => $site_id,
+                'streetId' => (int) $order->get_meta('_bgc_street_id'), 'streetNo' => (string) $order->get_meta('_bgc_street_no')];
+        } else {
+            $recipient['pickupOfficeId'] = $office;
+        }
+        return [
+            'recipient' => $recipient,
+            'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => 505],
+            'content'   => ['parcelsCount' => 1, 'contents' => 'Goods', 'package' => 'BOX',
+                            'totalWeight' => (float) ($order->get_meta('_bgc_weight_kg') ?: 2.0)],
+            'payment'   => ['courierServicePayer' => 'RECIPIENT'],
+            'ref1'      => 'ORDER ' . $order->get_order_number(),
+        ];
+    }
+
+    public static function parse_shipment_id(array $resp): string {
+        return (string) ($resp['id'] ?? ($resp['parcels'][0]['id'] ?? ''));
+    }
+
+    public function get_label_pdf(string $waybill): string {
+        $res = $this->http_post($this->base . '/print', $this->auth([
+            'paperSize' => 'A6', 'parcels' => [['parcel' => ['id' => $waybill]]], 'additionalWaybillSenderCopy' => 'NONE',
+        ]));
+        if (is_wp_error($res) || (int) wp_remote_retrieve_response_code($res) !== 200) {
+            throw new BGC_Api_Exception('Speedy print failed');
+        }
+        return (string) wp_remote_retrieve_body($res); // binary PDF
+    }
+
+    public function track(string $waybill): BGC_Tracking {
+        $resp = $this->post_json($this->base . '/track', $this->auth(['parcels' => [['id' => $waybill]], 'lastOperationOnly' => false]));
+        return self::parse_tracking($resp);
+    }
+
+    public static function parse_tracking(array $resp): BGC_Tracking {
+        $parcel = $resp['parcels'][0] ?? [];
+        $ops = $parcel['operations'] ?? [];
+        $events = array_map(static fn($o) => [
+            'code' => (string) ($o['operationCode'] ?? ''), 'name' => (string) ($o['name'] ?? ''), 'date' => (string) ($o['date'] ?? ''),
+        ], $ops);
+        $status = $events ? end($events)['code'] : 'UNKNOWN';
+        return new BGC_Tracking((string) ($parcel['id'] ?? ''), $status, $events);
+    }
+
     public function cancel_label(string $waybill): bool { return false; }
-    public function track(string $waybill): BGC_Tracking { throw new BGC_Api_Exception('not implemented'); }
     public function tracking_url(string $waybill): string { return 'https://www.speedy.bg/en/track-shipment?shipmentNumber=' . rawurlencode($waybill); }
 }
