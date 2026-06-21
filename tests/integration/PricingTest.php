@@ -34,4 +34,26 @@ final class PricingTest extends WP_UnitTestCase {
         $this->assertSame('standard', $q->source);
         $this->assertEqualsWithDelta(7.5, $q->total(), 0.001);
     }
+    public function test_no_live_quote_capability_uses_cache(): void {
+        BGC_Rates::set('speedy', 'office', 9.0, 'BGN');
+        $fake = new class implements BGC_Courier_Interface {
+            public function id(): string { return 'speedy'; }
+            public function label(): string { return 'Speedy'; }
+            public function capabilities(): array { return ['office']; }
+            public function check_credentials(): bool { return true; }
+            public function fetch_cities(): array { return []; }
+            public function fetch_offices(int $c): array { return []; }
+            public function quote(array $s): BGC_Quote {
+                throw new \RuntimeException('quote() must not be called when live_quote capability is absent');
+            }
+            public function create_label(\WC_Order $o): BGC_Label { return new BGC_Label(''); }
+            public function get_label_pdf(string $w): string { return ''; }
+            public function cancel_label(string $w): bool { return true; }
+            public function track(string $w): BGC_Tracking { return new BGC_Tracking('','',[]); }
+            public function tracking_url(string $w): string { return ''; }
+        };
+        $q = BGC_Pricing::quote($fake, ['method' => 'office']);
+        $this->assertSame('standard', $q->source);
+        $this->assertEqualsWithDelta(9.0, $q->price, 0.001);
+    }
 }

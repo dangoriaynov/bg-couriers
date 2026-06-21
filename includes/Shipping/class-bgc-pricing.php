@@ -10,7 +10,7 @@ class BGC_Pricing {
         }
         $cached = BGC_Rates::get($courier->id(), $method);
         if ($cached !== null) { return new BGC_Quote($cached, 0.0, 'BGN', 'standard'); }
-        $flat = (float) BGC_Settings::get('speedy', 'flat_fallback', 6.99);
+        $flat = (float) BGC_Settings::get($courier->id(), 'flat_fallback', 6.99);
         return new BGC_Quote($flat, 0.0, 'BGN', 'flat');
     }
 }
