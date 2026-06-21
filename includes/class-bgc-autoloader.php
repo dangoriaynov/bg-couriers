@@ -7,19 +7,19 @@ class BGC_Autoloader {
     }
     public static function load(string $class): void {
         if (strpos($class, 'BGC_') !== 0) { return; }
-        $slug = 'class-' . str_replace('_', '-', strtolower($class)) . '.php';
+        $base = str_replace('_', '-', strtolower($class));
+        $candidates = ['class-' . $base . '.php'];
+        if (substr($class, -10) === '_Interface') {
+            $candidates[] = 'interface-' . str_replace('_', '-', strtolower(substr($class, 0, -10))) . '.php';
+        }
+        if (strpos($class, 'BGC_Abstract_') === 0) {
+            $candidates[] = 'abstract-bgc-' . str_replace('_', '-', strtolower(substr($class, strlen('BGC_Abstract_')))) . '.php';
+        }
         foreach (['', 'Support/', 'Couriers/', 'Cache/', 'Shipping/', 'Checkout/', 'Admin/'] as $dir) {
-            $path = BGC_PATH . 'includes/' . $dir . $slug;
-            if (is_readable($path)) { require_once $path; return; }
-            $iface = BGC_PATH . 'includes/' . $dir . str_replace('class-', 'interface-', $slug);
-            if (is_readable($iface)) { require_once $iface; return; }
-            // Also try abstract- prefix (e.g. abstract-bgc-courier.php for BGC_Abstract_Courier).
-            $abstract = BGC_PATH . 'includes/' . $dir . preg_replace('/^class-bgc-abstract-/', 'abstract-bgc-', $slug);
-            if ($abstract !== $slug && is_readable($abstract)) { require_once $abstract; return; }
-            // Also try interface- without trailing "-interface" suffix
-            // (e.g. interface-bgc-courier.php for BGC_Courier_Interface).
-            $iface_short = BGC_PATH . 'includes/' . $dir . preg_replace('/^class-(.+)-interface\.php$/', 'interface-$1.php', $slug);
-            if ($iface_short !== $slug && is_readable($iface_short)) { require_once $iface_short; return; }
+            foreach ($candidates as $file) {
+                $path = BGC_PATH . 'includes/' . $dir . $file;
+                if (is_readable($path)) { require_once $path; return; }
+            }
         }
     }
 }

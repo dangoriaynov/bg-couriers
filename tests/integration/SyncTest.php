@@ -23,6 +23,7 @@ final class SyncTest extends WP_UnitTestCase {
         };
         $r1 = BGC_Sync::run($courier);
         $this->assertSame(2, $r1['cities']);
+        $this->assertSame(2, $r1['offices']); // one office per city
         $this->assertSame(3, $r1['rates']); // address/office/automat
         $this->assertEqualsWithDelta(6.0, BGC_Rates::get('speedy','office'), 0.001);
 
@@ -30,6 +31,7 @@ final class SyncTest extends WP_UnitTestCase {
         $courier->cities = [['city_id'=>1,'name'=>'Sofia','name_lat'=>'Sofia','post_code'=>'1000','region'=>'Sofia']];
         $r2 = BGC_Sync::run($courier);
         $this->assertSame(1, BGC_Nomenclature::count('speedy'));
+        $this->assertGreaterThan(0, $r2['pruned']);
 
         // Empty fetch -> NO prune (guard).
         $courier->cities = [];
