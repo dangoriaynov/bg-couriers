@@ -14,10 +14,19 @@ final class SpeedyQuoteTest extends TestCase {
             'method' => 'office', 'site_id' => 68134, 'office_id' => 307,
             'weight_kg' => 0.6, 'cod_amount' => 0.0, 'currency' => 'BGN',
         ]);
-        $this->assertSame(100, $body['recipient']['addressLocation']['countryId'] ?? 100);
         $this->assertSame(307, $body['recipient']['pickupOfficeId']);
         $this->assertSame(0.6, $body['content']['totalWeight']);
         $this->assertSame(1, $body['content']['parcelsCount']);
+        $this->assertArrayNotHasKey('addressLocation', $body['recipient']);
+    }
+    public function test_build_calculate_body_for_address(): void {
+        $body = BGC_Speedy::build_calculate_body([
+            'method' => 'address', 'site_id' => 68134,
+            'weight_kg' => 0.6, 'cod_amount' => 0.0, 'currency' => 'BGN',
+        ]);
+        $this->assertSame(100, $body['recipient']['addressLocation']['countryId']);
+        $this->assertSame(68134, $body['recipient']['addressLocation']['siteId']);
+        $this->assertArrayNotHasKey('pickupOfficeId', $body['recipient']);
     }
     public function test_parse_price_picks_total(): void {
         $resp = json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/speedy/calculate.json'), true);
