@@ -10,6 +10,11 @@ if (getenv('BGC_SUITE') === 'integration' || in_array('--testsuite', $_SERVER['a
     }
     require $wp_tests . '/includes/functions.php';
     tests_add_filter('muplugins_loaded', function () {
+        // Load WooCommerce before our plugin so WC_Shipping_Method is available.
+        $wc_plugin = WP_CONTENT_DIR . '/plugins/woocommerce/woocommerce.php';
+        if (file_exists($wc_plugin)) {
+            require_once $wc_plugin;
+        }
         require dirname(__DIR__) . '/bg-couriers.php';
     });
     require $wp_tests . '/includes/bootstrap.php';
