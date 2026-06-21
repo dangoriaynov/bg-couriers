@@ -1,9 +1,10 @@
 (function ($) {
+  function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
   function caps() { return ['address', 'office', 'automat']; } // Speedy supports all three
   function renderTypes($wrap) {
     if ($wrap.find('.bgc-types input').length) return;
     var html = caps().map(function (t, i) {
-      return '<label><input type="radio" name="bgc_method" value="' + t + '"' + (i === 1 ? ' checked' : '') + '> ' + BGC.i18n[t] + '</label>';
+      return '<label><input type="radio" name="bgc_method" value="' + t + '"' + (i === 1 ? ' checked' : '') + '> ' + esc(BGC.i18n[t]) + '</label>';
     }).join(' ');
     $wrap.find('.bgc-types').html(html);
   }
@@ -15,7 +16,7 @@
     var type = $wrap.find('input[name=bgc_method]:checked').val();
     if (!cityId || type === 'address') { $wrap.find('.bgc-office-row').hide(); return; }
     $.get(BGC.ajax, { action: 'bgc_offices', courier: 'speedy', city_id: cityId, type: type }, function (rows) {
-      var opts = rows.map(function (o) { return '<option value="' + o.office_id + '">' + o.name + ' — ' + o.address + '</option>'; }).join('');
+      var opts = rows.map(function (o) { return '<option value="' + parseInt(o.office_id, 10) + '">' + esc(o.name) + ' — ' + esc(o.address) + '</option>'; }).join('');
       $wrap.find('.bgc-office').html(opts); $wrap.find('.bgc-office-row').show();
     });
   }

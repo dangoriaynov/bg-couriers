@@ -13,7 +13,7 @@ class BGC_Checkout {
         wp_localize_script('bgc-checkout', 'BGC', [
             'ajax'  => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('bgc_checkout'),
-            'dual'  => BGC_Settings::get('global', 'dual_currency', 'yes') === 'yes',
+            'dual'  => class_exists('BGC_Settings') ? (BGC_Settings::get('global', 'dual_currency', 'yes') === 'yes') : true,
             'currency' => get_woocommerce_currency(),
             'i18n'  => ['address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To automat','bg-couriers')],
         ]);
