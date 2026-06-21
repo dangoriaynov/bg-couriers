@@ -30,6 +30,11 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
         }
         $quote = BGC_Pricing::quote($courier, $shipment);
 
+        if (WC()->session) {
+            WC()->session->set('bgc_quote_price', $quote->price);
+            WC()->session->set('bgc_quote_source', $quote->source);
+        }
+
         $this->add_rate([
             'id'    => $this->get_rate_id(),
             'label' => $this->title,

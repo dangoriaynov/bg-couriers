@@ -26,12 +26,14 @@ class BGC_Checkout {
 
     public function persist(\WC_Order $order): void {
         if (!$this->chosen_is_speedy()) { return; }
-        $s = WC()->session;
+        $s = WC()->session; if (!$s) { return; }
         $order->update_meta_data('_bgc_courier', 'speedy');
         $order->update_meta_data('_bgc_method', (string) $s->get('bgc_method', 'office'));
         $order->update_meta_data('_bgc_site_id', (int) $s->get('bgc_site_id', 0));
         $order->update_meta_data('_bgc_office_id', (int) $s->get('bgc_office_id', 0));
         $order->update_meta_data('_bgc_post_code', (string) $s->get('bgc_post_code', ''));
+        $order->update_meta_data('_bgc_quote_price', (float) $s->get('bgc_quote_price', 0));
+        $order->update_meta_data('_bgc_quote_source', (string) $s->get('bgc_quote_source', ''));
     }
     public function assets(): void {
         if (!function_exists('is_checkout') || !is_checkout()) { return; }
