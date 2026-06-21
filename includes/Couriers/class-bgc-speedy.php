@@ -73,7 +73,41 @@ class BGC_Speedy extends BGC_Abstract_Courier {
     }
 
     // Filled in Tasks 6–7:
-    public function quote(array $shipment): BGC_Quote { throw new BGC_Api_Exception('not implemented'); }
+    public function quote(array $shipment): BGC_Quote {
+        $resp = $this->post_json($this->base . '/calculate', $this->auth(self::build_calculate_body($shipment)));
+        return self::parse_price($resp, (string) ($shipment['currency'] ?? 'BGN'));
+    }
+
+    public static function build_calculate_body(array $s): array {
+        $recipient = ['privatePerson' => true];
+        if (($s['method'] ?? 'address') === 'address') {
+            $recipient['addressLocation'] = ['countryId' => self::BG_COUNTRY_ID, 'siteId' => (int) $s['site_id']];
+        } else { // office or automat
+            $recipient['pickupOfficeId'] = (int) $s['office_id'];
+        }
+        $service = ['autoAdjustPickupDate' => true, 'serviceIds' => [505]];
+        if (!empty($s['cod_amount'])) {
+            $service['additionalServices']['cod'] = ['amount' => (float) $s['cod_amount'], 'processingType' => 'CASH'];
+        }
+        return [
+            'sender'    => [], // sender clientId added by quote() caller config if needed
+            'recipient' => $recipient,
+            'service'   => $service,
+            'content'   => ['parcelsCount' => 1, 'totalWeight' => (float) ($s['weight_kg'] ?? 2.0)],
+            'payment'   => ['courierServicePayer' => 'RECIPIENT'],
+        ];
+    }
+
+    public static function parse_price(array $resp, string $currency): BGC_Quote {
+        $calc = $resp['calculations'][0] ?? null;
+        if (!$calc || empty($calc['price'])) { throw new BGC_Api_Exception('No price in Speedy response'); }
+        $p = $calc['price'];
+        $total = (float) ($p['total'] ?? $p['amount'] ?? 0);
+        $vat   = (float) ($p['vat'] ?? 0);
+        $base  = isset($p['amount']) ? (float) $p['amount'] : max(0.0, $total - $vat);
+        return new BGC_Quote($base, $vat, (string) ($p['currency'] ?? $currency), 'live');
+    }
+
     public function create_label(\WC_Order $order): BGC_Label { throw new BGC_Api_Exception('not implemented'); }
     public function get_label_pdf(string $waybill): string { throw new BGC_Api_Exception('not implemented'); }
     public function cancel_label(string $waybill): bool { return false; }
