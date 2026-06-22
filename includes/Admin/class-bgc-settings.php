@@ -8,13 +8,17 @@ class BGC_Settings {
     public function __construct() {
         add_action('admin_menu', [$this, 'menu']);
         add_action('admin_init', [$this, 'register']);
-        add_action('admin_post_bgc_sync_now', [$this, 'sync_now']);
-        add_action('admin_post_bgc_validate_creds', [$this, 'validate_creds']);
+        add_action('wp_ajax_bgc_validate_creds', [$this, 'ajax_validate']);
+        add_action('wp_ajax_bgc_sync_now', [$this, 'ajax_sync']);
+        add_filter('plugin_action_links_' . plugin_basename(BGC_FILE), [$this, 'action_links']);
+        add_filter('plugin_row_meta', [$this, 'row_meta'], 10, 2);
     }
+
     public static function get(string $group, string $key, $default = '') {
         $opt = get_option($group === 'global' ? self::GLOBAL_OPT : self::OPT, []);
         return $opt[$key] ?? $default;
     }
+
     public static function courier_config(string $courier): ?array {
         if ($courier !== 'speedy') { return null; }
         $o = get_option(self::OPT, []);
@@ -26,18 +30,28 @@ class BGC_Settings {
             'client_id' => (int) ($o['client_id'] ?? 0),
         ];
     }
+
+    /** True when an enabled Speedy config has both a username and a stored (encrypted) password. */
+    private static function creds_present(): bool {
+        $o = get_option(self::OPT, []);
+        return ($o['enabled'] ?? '') === 'yes' && !empty($o['username']) && !empty($o['password']);
+    }
+
     public function menu(): void {
         add_submenu_page('woocommerce', 'BG Couriers', 'BG Couriers', 'manage_woocommerce', 'bg-couriers', [$this, 'page']);
     }
+
     public function register(): void {
         register_setting('bgc', self::OPT, ['sanitize_callback' => [$this, 'sanitize_speedy']]);
         register_setting('bgc', self::GLOBAL_OPT, ['sanitize_callback' => [$this, 'sanitize_global']]);
     }
+
     public function sanitize_global($input): array {
         return [
             'dual_currency' => (is_array($input) && isset($input['dual_currency']) && $input['dual_currency'] === 'yes') ? 'yes' : 'no',
         ];
     }
+
     public function sanitize_speedy($input): array {
         $out = is_array($input) ? $input : [];
         if (!empty($out['password'])) { $out['password'] = BGC_Encryption::encrypt($out['password']); }
@@ -45,6 +59,7 @@ class BGC_Settings {
         $out['enabled'] = (isset($out['enabled']) && $out['enabled'] === 'yes') ? 'yes' : 'no';
         return $out;
     }
+
     public function page(): void {
         $o = get_option(self::OPT, []); $g = get_option(self::GLOBAL_OPT, []);
         echo '<div class="wrap"><h1>BG Couriers</h1><form method="post" action="options.php">';
@@ -67,25 +82,84 @@ class BGC_Settings {
         echo '</table>';
         submit_button();
         echo '</form>';
-        $sync = wp_nonce_url(admin_url('admin-post.php?action=bgc_sync_now'), 'bgc_sync_now');
-        $val  = wp_nonce_url(admin_url('admin-post.php?action=bgc_validate_creds'), 'bgc_validate_creds');
-        echo '<a class="button" href="' . esc_url($val) . '">' . esc_html__('Validate credentials','bg-couriers') . '</a> ';
-        echo '<a class="button" href="' . esc_url($sync) . '">' . esc_html__('Sync now','bg-couriers') . '</a>';
+
+        if (self::creds_present()) {
+            $nonce = esc_js(wp_create_nonce('bgc_admin'));
+            $ajax  = esc_js(admin_url('admin-ajax.php'));
+            echo '<p>';
+            echo '<button type="button" class="button" id="bgc-validate">' . esc_html__('Validate credentials','bg-couriers') . '</button> ';
+            echo '<button type="button" class="button" id="bgc-sync">' . esc_html__('Sync now','bg-couriers') . '</button> ';
+            echo '<span id="bgc-status" style="margin-left:10px;vertical-align:middle;"></span>';
+            echo '</p>';
+            $t_validating = esc_js(__('Validating…','bg-couriers'));
+            $t_syncing    = esc_js(__('Syncing… this can take a moment','bg-couriers'));
+            $t_valid      = esc_js(__('Credentials valid','bg-couriers'));
+            $t_invalid    = esc_js(__('Invalid credentials','bg-couriers'));
+            $t_cities     = esc_js(__('cities','bg-couriers'));
+            $t_offices    = esc_js(__('offices','bg-couriers'));
+            $t_rates      = esc_js(__('rates','bg-couriers'));
+            $t_fail       = esc_js(__('Request failed','bg-couriers'));
+            echo <<<JS
+<script>
+(function($){
+    var ajaxurl='{$ajax}', nonce='{$nonce}';
+    function busy(t){ $('#bgc-validate,#bgc-sync').prop('disabled',true);
+        $('#bgc-status').html('<span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>'+t); }
+    function done(){ $('#bgc-validate,#bgc-sync').prop('disabled',false); }
+    function err(m){ $('#bgc-status').html('<span style="color:#b32d2e;">✗ '+m+'</span>'); }
+    function ok(m){ $('#bgc-status').html('<span style="color:#1a7f37;">✓ '+m+'</span>'); }
+    $('#bgc-validate').on('click',function(){
+        busy('{$t_validating}');
+        $.post(ajaxurl,{action:'bgc_validate_creds',nonce:nonce}).done(function(r){
+            if(r&&r.success){ r.data&&r.data.ok ? ok('{$t_valid}') : err('{$t_invalid}'); }
+            else { err((r&&r.data&&r.data.msg)||'{$t_invalid}'); }
+        }).fail(function(){ err('{$t_fail}'); }).always(done);
+    });
+    $('#bgc-sync').on('click',function(){
+        busy('{$t_syncing}');
+        $.post(ajaxurl,{action:'bgc_sync_now',nonce:nonce}).done(function(r){
+            if(r&&r.success){ var d=r.data||{}; ok((d.cities||0)+' {$t_cities}, '+(d.offices||0)+' {$t_offices}, '+(d.rates||0)+' {$t_rates}'); }
+            else { err((r&&r.data&&r.data.msg)||'{$t_fail}'); }
+        }).fail(function(){ err('{$t_fail}'); }).always(done);
+    });
+})(jQuery);
+</script>
+JS;
+        } else {
+            echo '<p class="description">' . esc_html__('Enter and save your API username and password, then Validate / Sync will appear here.','bg-couriers') . '</p>';
+        }
         echo '</div>';
     }
-    public function sync_now(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        check_admin_referer('bgc_sync_now');
+
+    public function ajax_validate(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        check_ajax_referer('bgc_admin', 'nonce');
         $cfg = self::courier_config('speedy');
-        if ($cfg) { BGC_Sync::run(new BGC_Speedy($cfg)); }
-        wp_safe_redirect(admin_url('admin.php?page=bg-couriers')); exit;
+        if (!$cfg) { wp_send_json_error(['msg' => __('No credentials saved','bg-couriers')]); }
+        $ok = (new BGC_Speedy($cfg))->check_credentials();
+        wp_send_json_success(['ok' => (bool) $ok]);
     }
-    public function validate_creds(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        check_admin_referer('bgc_validate_creds');
+
+    public function ajax_sync(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        check_ajax_referer('bgc_admin', 'nonce');
         $cfg = self::courier_config('speedy');
-        $ok = $cfg ? (new BGC_Speedy($cfg))->check_credentials() : false;
-        set_transient('bgc_creds_ok', $ok ? '1' : '0', 60);
-        wp_safe_redirect(admin_url('admin.php?page=bg-couriers')); exit;
+        if (!$cfg) { wp_send_json_error(['msg' => __('No credentials saved','bg-couriers')]); }
+        @set_time_limit(180);
+        $r = BGC_Sync::run(new BGC_Speedy($cfg));
+        wp_send_json_success($r);
+    }
+
+    public function action_links($links): array {
+        $settings = '<a href="' . esc_url(admin_url('admin.php?page=bg-couriers')) . '">' . esc_html__('Settings','bg-couriers') . '</a>';
+        array_unshift($links, $settings);
+        return $links;
+    }
+
+    public function row_meta($links, $file): array {
+        if ($file === plugin_basename(BGC_FILE)) {
+            $links[] = '<a href="https://github.com/dangoriaynov" target="_blank" rel="noopener">GitHub</a>';
+        }
+        return $links;
     }
 }
