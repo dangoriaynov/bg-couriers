@@ -26,3 +26,4 @@ composer.phar
 # SDD scratch (briefs/reports/diffs/ledger)
 .superpowers/
 .phpunit.result.cache
+.claude/

@@ -9,8 +9,9 @@ case "$TARGET" in
   *) echo "usage: deploy.sh dev|prod"; exit 1;;
 esac
 rsync -az --delete \
-  --exclude '.git' --exclude '.gitignore' --exclude '.superpowers' --exclude 'tests' \
-  --exclude 'node_modules' --exclude 'vendor' --exclude 'docs' --exclude 'bin' \
+  --exclude '.git' --exclude '.gitignore' --exclude '.superpowers' --exclude '.claude' \
+  --exclude '.phpunit.result.cache' --exclude 'tests' --exclude 'node_modules' \
+  --exclude 'vendor' --exclude 'docs' --exclude 'bin' \
   --exclude '.wp-env.json' --exclude 'composer.*' --exclude 'phpunit.xml.dist' \
   -e "ssh -p ${PORT}" ./ "${HOST}:${DEST}"
 echo "Synced to ${TARGET}. Activate via wp-admin (wp-cli is blocked over SSH)."
