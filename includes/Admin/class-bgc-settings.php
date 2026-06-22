@@ -31,12 +31,18 @@ class BGC_Settings {
     }
     public function register(): void {
         register_setting('bgc', self::OPT, ['sanitize_callback' => [$this, 'sanitize_speedy']]);
-        register_setting('bgc', self::GLOBAL_OPT);
+        register_setting('bgc', self::GLOBAL_OPT, ['sanitize_callback' => [$this, 'sanitize_global']]);
+    }
+    public function sanitize_global($input): array {
+        return [
+            'dual_currency' => (is_array($input) && isset($input['dual_currency']) && $input['dual_currency'] === 'yes') ? 'yes' : 'no',
+        ];
     }
     public function sanitize_speedy($input): array {
         $out = is_array($input) ? $input : [];
         if (!empty($out['password'])) { $out['password'] = BGC_Encryption::encrypt($out['password']); }
         else { $existing = get_option(self::OPT, []); $out['password'] = $existing['password'] ?? ''; }
+        $out['enabled'] = (isset($out['enabled']) && $out['enabled'] === 'yes') ? 'yes' : 'no';
         return $out;
     }
     public function page(): void {

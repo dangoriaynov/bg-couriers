@@ -14,4 +14,11 @@ final class SettingsMigratorTest extends TestCase {
         BGC_Settings_Migrator::migrate();
         $this->assertSame(BGC_Settings_Migrator::VERSION, $saved);
     }
+
+    public function test_migrate_skips_when_version_current(): void {
+        Functions\when('get_option')->justReturn(BGC_Settings_Migrator::VERSION);
+        Functions\expect('update_option')->never();
+        BGC_Settings_Migrator::migrate();
+        $this->assertTrue(true); // Brain Monkey expectation enforced above; explicit assertion avoids risky flag.
+    }
 }
