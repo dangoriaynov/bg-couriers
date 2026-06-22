@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+TARGET="${1:-dev}"   # dev | prod
+HOST="root@REDACTED-HOST"; PORT=REDACTED
+case "$TARGET" in
+  dev)  DEST="/home/dobavki/dev.dobavki.club/wp-content/plugins/bg-couriers/";;
+  prod) DEST="/home/dobavki/public_html/wp-content/plugins/bg-couriers/";
+        read -p "Deploy to PROD dobavki.club? type yes: " c; [ "$c" = yes ] || exit 1;;
+  *) echo "usage: deploy.sh dev|prod"; exit 1;;
+esac
+rsync -az --delete \
+  --exclude '.git' --exclude '.gitignore' --exclude '.superpowers' --exclude 'tests' \
+  --exclude 'node_modules' --exclude 'vendor' --exclude 'docs' --exclude 'bin' \
+  --exclude '.wp-env.json' --exclude 'composer.*' --exclude 'phpunit.xml.dist' \
+  -e "ssh -p ${PORT}" ./ "${HOST}:${DEST}"
+echo "Synced to ${TARGET}. Activate via wp-admin (wp-cli is blocked over SSH)."
