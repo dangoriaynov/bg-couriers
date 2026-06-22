@@ -25,7 +25,8 @@
       action: 'bgc_set_selection', nonce: BGC.nonce,
       method: $wrap.find('input[name=bgc_method]:checked').val(),
       site_id: $wrap.find('.bgc-city-id').val() || 0,
-      office_id: $wrap.find('.bgc-office').val() || 0
+      office_id: $wrap.find('.bgc-office').val() || 0,
+      post_code: $wrap.find('.bgc-postcode').val() || ''
     }, function () { $(document.body).trigger('update_checkout'); });
   }
   $(document.body).on('updated_checkout', function () {

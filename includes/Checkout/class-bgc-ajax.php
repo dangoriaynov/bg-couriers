@@ -23,9 +23,11 @@ class BGC_Ajax {
     public function set_selection(): void {
         check_ajax_referer('bgc_checkout', 'nonce');
         $method = sanitize_key($_POST['method'] ?? 'office');
+        if (!in_array($method, ['address', 'office', 'automat'], true)) { $method = 'office'; }
         WC()->session->set('bgc_method', $method);
         WC()->session->set('bgc_site_id', (int) ($_POST['site_id'] ?? 0));
         WC()->session->set('bgc_office_id', (int) ($_POST['office_id'] ?? 0));
+        WC()->session->set('bgc_post_code', sanitize_text_field($_POST['post_code'] ?? ''));
         wp_send_json_success(['ok' => true]);
     }
 }
