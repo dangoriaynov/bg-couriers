@@ -34,6 +34,15 @@ final class PricingTest extends WP_UnitTestCase {
         $this->assertSame('standard', $q->source);
         $this->assertEqualsWithDelta(7.5, $q->total(), 0.001);
     }
+    public function test_falls_back_to_configured_per_method_price(): void {
+        update_option('woocommerce_currency', 'BGN');
+        update_option('bgc_speedy_address_price', '5.50');
+        update_option('bgc_speedy_address_currency', 'BGN');
+        // live throws, no cached 'address' rate -> configured per-method default price.
+        $q = BGC_Pricing::quote($this->courier(true), ['method' => 'address']);
+        $this->assertSame('flat', $q->source);
+        $this->assertEqualsWithDelta(5.50, $q->price, 0.001);
+    }
     public function test_no_live_quote_capability_uses_cache(): void {
         BGC_Rates::set('speedy', 'office', 9.0, 'BGN');
         $fake = new class implements BGC_Courier_Interface {

@@ -10,7 +10,11 @@ class BGC_Pricing {
         }
         $cached = BGC_Rates::get($courier->id(), $method);
         if ($cached !== null) { return new BGC_Quote($cached, 0.0, 'BGN', 'standard'); }
-        $flat = (float) BGC_Settings::get($courier->id(), 'flat_fallback', 6.99);
-        return new BGC_Quote($flat, 0.0, 'BGN', 'flat');
+        // Configured per-method default price (this method's currency -> store currency).
+        $mc = BGC_Settings::method_config($courier->id(), $method);
+        $store = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'BGN';
+        $amount = $mc['price'] > 0 ? $mc['price'] : 6.99;
+        $amount = BGC_Currency::convert($amount, $mc['currency'] ?: 'BGN', $store);
+        return new BGC_Quote(round($amount, 2), 0.0, $store, 'flat');
     }
 }

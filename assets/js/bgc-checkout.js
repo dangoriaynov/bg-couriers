@@ -1,10 +1,15 @@
 (function ($) {
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
-  function caps() { return ['address', 'office', 'automat']; } // Speedy supports all three
+  function caps() {
+    // Only the delivery methods enabled in settings (default to all three if unset).
+    var m = (BGC && BGC.methods && BGC.methods.length) ? BGC.methods : ['office', 'address', 'automat'];
+    return ['address', 'office', 'automat'].filter(function (t) { return m.indexOf(t) !== -1; });
+  }
   function renderTypes($wrap) {
     if ($wrap.find('.bgc-types input').length) return;
-    var html = caps().map(function (t, i) {
-      return '<label><input type="radio" name="bgc_method" value="' + t + '"' + (i === 1 ? ' checked' : '') + '> ' + esc(BGC.i18n[t]) + '</label>';
+    var types = caps();
+    var html = types.map(function (t, i) {
+      return '<label><input type="radio" name="bgc_method" value="' + t + '"' + (i === 0 ? ' checked' : '') + '> ' + esc(BGC.i18n[t]) + '</label>';
     }).join(' ');
     $wrap.find('.bgc-types').html(html);
   }

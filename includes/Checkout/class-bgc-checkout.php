@@ -42,8 +42,9 @@ class BGC_Checkout {
         wp_localize_script('bgc-checkout', 'BGC', [
             'ajax'  => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('bgc_checkout'),
-            'dual'  => class_exists('BGC_Settings') ? (BGC_Settings::get('global', 'dual_currency', 'yes') === 'yes') : true,
+            'dual'  => BGC_Settings::dual_currency_enabled(),
             'currency' => get_woocommerce_currency(),
+            'methods' => BGC_Settings::enabled_methods('speedy'),
             'i18n'  => ['address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To automat','bg-couriers')],
         ]);
     }

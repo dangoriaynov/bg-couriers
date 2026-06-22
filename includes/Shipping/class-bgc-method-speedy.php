@@ -29,17 +29,25 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
             $courier = new BGC_Speedy($cfg ?: ['env' => 'demo']);
         }
         $quote = BGC_Pricing::quote($courier, $shipment);
+        $cost  = $quote->price;
+
+        // Free shipping over a configured per-method threshold (cart subtotal).
+        $mc = BGC_Settings::method_config('speedy', $method);
+        if (!empty($mc['free_enabled']) && $mc['free_threshold'] > 0 && WC()->cart) {
+            $subtotal = (float) WC()->cart->get_subtotal();
+            if ($subtotal >= $mc['free_threshold']) { $cost = 0.0; }
+        }
 
         if (WC()->session) {
-            WC()->session->set('bgc_quote_price', $quote->price);
+            WC()->session->set('bgc_quote_price', $cost);
             WC()->session->set('bgc_quote_source', $quote->source);
         }
 
         $this->add_rate([
             'id'    => $this->get_rate_id(),
             'label' => $this->title,
-            'cost'  => $quote->price,
-            'taxes' => '', // taxes handled by WC tax settings on the rate
+            'cost'  => $cost,
+            'taxes' => '', // '' = let WC calculate shipping tax; only false disables it
             'meta_data' => ['bgc_source' => $quote->source, 'bgc_method' => $method],
         ]);
     }
