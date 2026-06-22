@@ -5,47 +5,105 @@ if (!class_exists('WC_Settings_Page')) { return; }
 
 /**
  * WooCommerce → Settings → "BG Couriers" tab.
- * Section per courier (General + Speedy); within a courier: courier-level params
- * + a config block per delivery method (office / address / automat).
+ * Level 1 (WP nav-tabs): courier sections (General + Speedy).
+ * Level 2 (WP nav-tabs, JS-switched, no reload): per delivery method (office/address/automat).
  * See feedback-settings-architecture — every future courier follows this shape.
  */
 class BGC_WC_Settings extends WC_Settings_Page {
 
+    private static $method_labels = [];
+
     public function __construct() {
         $this->id    = 'bg_couriers';
         $this->label = __('BG Couriers', 'bg-couriers');
+        self::$method_labels = [
+            'office'  => __('To office', 'bg-couriers'),
+            'address' => __('To address', 'bg-couriers'),
+            'automat' => __('To automat (APS)', 'bg-couriers'),
+        ];
         parent::__construct();
     }
 
-    /** WC 5.5+ */
-    protected function get_own_sections() {
-        return $this->sections();
-    }
-
-    /** Back-compat */
-    public function get_sections() {
-        return apply_filters('woocommerce_get_sections_' . $this->id, $this->sections());
-    }
+    protected function get_own_sections() { return $this->sections(); }
+    public function get_sections() { return apply_filters('woocommerce_get_sections_' . $this->id, $this->sections()); }
 
     private function sections(): array {
-        return [
-            ''       => __('General', 'bg-couriers'),
-            'speedy' => __('Speedy', 'bg-couriers'),
-        ];
+        return ['' => __('General', 'bg-couriers'), 'speedy' => __('Speedy', 'bg-couriers')];
     }
 
-    /** Used by save() (save_settings_for_current_section). */
+    /** Full field set for the section — used by save() (save_settings_for_current_section). */
     public function get_settings($section = '') {
-        return $this->fields_for($section);
+        if ($section === 'speedy') {
+            $f = $this->speedy_courier_fields();
+            foreach (self::$method_labels as $m => $label) {
+                $f = array_merge($f, $this->method_fields('speedy', $m, $label));
+            }
+            return $f;
+        }
+        return $this->general_fields();
     }
 
-    /** Used by output() in WC 5.5+. */
-    protected function get_settings_for_section_core($section_id) {
-        return $this->fields_for($section_id);
+    protected function get_settings_for_section_core($section_id) { return $this->get_settings($section_id); }
+
+    /** Custom output: WP nav-tab section nav + (for Speedy) per-method sub-tabs. */
+    public function output() {
+        global $current_section;
+        $this->section_nav((string) $current_section);
+
+        if ($current_section === 'speedy') {
+            $this->output_speedy();
+        } else {
+            WC_Admin_Settings::output_fields($this->general_fields());
+        }
     }
 
-    private function fields_for(string $section): array {
-        return $section === 'speedy' ? $this->speedy_fields() : $this->general_fields();
+    private function section_nav(string $current): void {
+        echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper" style="margin:0 0 1em;">';
+        foreach ($this->sections() as $id => $label) {
+            $url = admin_url('admin.php?page=wc-settings&tab=bg_couriers' . ($id ? '&section=' . $id : ''));
+            $active = $current === $id ? ' nav-tab-active' : '';
+            echo '<a class="nav-tab' . $active . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
+        }
+        echo '</nav>';
+    }
+
+    private function output_speedy(): void {
+        WC_Admin_Settings::output_fields($this->speedy_courier_fields());
+
+        // Level-2 nav-tabs for delivery methods (JS-switched panels; all inputs stay in the form so all save).
+        echo '<h2 class="nav-tab-wrapper bgc-method-nav" style="margin-top:1.5em;">';
+        $first = true;
+        foreach (self::$method_labels as $m => $label) {
+            echo '<a href="#" class="nav-tab' . ($first ? ' nav-tab-active' : '') . '" data-bgc-tab="' . esc_attr($m) . '">' . esc_html($label) . '</a>';
+            $first = false;
+        }
+        echo '</h2>';
+
+        $first = true;
+        foreach (self::$method_labels as $m => $label) {
+            echo '<div class="bgc-method-panel" data-bgc-panel="' . esc_attr($m) . '"' . ($first ? '' : ' style="display:none;"') . '>';
+            WC_Admin_Settings::output_fields($this->method_fields('speedy', $m, $label));
+            echo '</div>';
+            $first = false;
+        }
+        ?>
+<style>
+.bgc-method-nav{padding-bottom:0;}
+.bgc-method-panel table.form-table{margin-top:.5em;}
+.bgc-method-panel h2{display:none;} /* method name lives in the tab, hide the empty group title */
+</style>
+<script>
+(function($){
+    $('.bgc-method-nav').on('click','.nav-tab',function(e){
+        e.preventDefault();
+        var t=$(this).data('bgc-tab');
+        $('.bgc-method-nav .nav-tab').removeClass('nav-tab-active');
+        $(this).addClass('nav-tab-active');
+        $('.bgc-method-panel').hide().filter('[data-bgc-panel="'+t+'"]').show();
+    });
+})(jQuery);
+</script>
+        <?php
     }
 
     private function general_fields(): array {
@@ -62,8 +120,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
         ];
     }
 
-    private function speedy_fields(): array {
-        $fields = [
+    private function speedy_courier_fields(): array {
+        return [
             ['type' => 'title', 'id' => 'bgc_speedy', 'title' => __('Speedy — courier settings', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_speedy_enabled', 'title' => __('Enable Speedy', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'select', 'id' => 'bgc_speedy_environment', 'title' => __('Environment', 'bg-couriers'),
@@ -75,21 +133,12 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'bgc_actions', 'id' => 'bgc_speedy_actions'],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
         ];
-        $labels = [
-            'office'  => __('To office', 'bg-couriers'),
-            'address' => __('To address', 'bg-couriers'),
-            'automat' => __('To automat (APS)', 'bg-couriers'),
-        ];
-        foreach ($labels as $m => $label) {
-            $fields = array_merge($fields, $this->method_fields('speedy', $m, $label));
-        }
-        return $fields;
     }
 
     private function method_fields(string $courier, string $m, string $label): array {
         $p = "bgc_{$courier}_{$m}_";
         return [
-            ['type' => 'title', 'id' => $p . 'grp', 'title' => sprintf(__('Speedy — %s', 'bg-couriers'), $label)],
+            ['type' => 'title', 'id' => $p . 'grp', 'title' => ''],
             ['type' => 'checkbox', 'id' => $p . 'enabled', 'title' => sprintf(__('Enable “%s”', 'bg-couriers'), $label), 'default' => 'yes'],
             ['type' => 'text', 'id' => $p . 'price', 'title' => __('Default price (API fallback)', 'bg-couriers'),
                 'desc' => __('Used when the courier API is unavailable.', 'bg-couriers'), 'default' => ''],
