@@ -6,13 +6,24 @@ class BGC_Speedy extends BGC_Abstract_Courier {
     const LIVE = 'https://api.speedy.bg/v1';
     const DEMO = 'https://api.speedy.bg/v1'; // Speedy has no separate demo host; demo = test account creds
 
-    private string $user; private string $pass; private string $base; private int $client_id;
+    private string $user; private string $pass; private string $base; private int $client_id; private array $sender;
 
     public function __construct(array $config) {
         $this->user = (string) ($config['username'] ?? '');
         $this->pass = (string) ($config['password'] ?? '');
         $this->client_id = (int) ($config['client_id'] ?? 0);
+        $this->sender = (array) ($config['sender'] ?? []);
         $this->base = ($config['env'] ?? 'demo') === 'live' ? self::LIVE : self::DEMO;
+    }
+
+    private function sender_block(): array {
+        $sender = [];
+        if ($this->client_id) { $sender['clientId'] = $this->client_id; }
+        $s = $this->sender;
+        if (!empty($s['name']))  { $sender['contactName'] = $s['name']; }
+        if (!empty($s['phone'])) { $sender['phone1'] = ['number' => $s['phone']]; }
+        if (!empty($s['email'])) { $sender['email'] = $s['email']; }
+        return $sender;
     }
 
     public function id(): string { return 'speedy'; }
@@ -130,7 +141,7 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         } else {
             $recipient['pickupOfficeId'] = $office;
         }
-        return [
+        $body = [
             'recipient' => $recipient,
             'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => 505],
             'content'   => ['parcelsCount' => 1, 'contents' => 'Goods', 'package' => 'BOX',
@@ -138,6 +149,9 @@ class BGC_Speedy extends BGC_Abstract_Courier {
             'payment'   => ['courierServicePayer' => 'RECIPIENT'],
             'ref1'      => 'ORDER ' . $order->get_order_number(),
         ];
+        $sender = $this->sender_block();
+        if ($sender) { $body['sender'] = $sender; }
+        return $body;
     }
 
     public static function parse_shipment_id(array $resp): string {

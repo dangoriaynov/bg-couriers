@@ -107,16 +107,35 @@ class BGC_WC_Settings extends WC_Settings_Page {
     }
 
     private function general_fields(): array {
+        $statuses = function_exists('wc_get_order_statuses') ? wc_get_order_statuses() : ['wc-processing' => 'Processing'];
         return [
-            ['type' => 'title', 'id' => 'bgc_general', 'title' => __('General', 'bg-couriers')],
-            [
-                'type'    => 'checkbox',
-                'id'      => 'bgc_dual_currency',
-                'title'   => __('Dual currency display (BGN / EUR)', 'bg-couriers'),
-                'desc'    => __('Show prices in both currencies during the euro transition. Display-only; does not change stored order totals.', 'bg-couriers'),
-                'default' => 'yes',
-            ],
+            ['type' => 'title', 'id' => 'bgc_general', 'title' => __('General', 'bg-couriers'),
+                'desc' => __('Settings that apply to all couriers. Prices are always shown in the store currency.', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_free_shipping_label', 'title' => __('Free shipping label', 'bg-couriers'),
+                'desc' => __('Text shown for the shipping price when a method is free (e.g. “Free shipping”).', 'bg-couriers'), 'default' => ''],
+            ['type' => 'textarea', 'id' => 'bgc_hidden_fields', 'title' => __('Hidden checkout fields (CSS selectors)', 'bg-couriers'),
+                'desc' => __('Comma-separated CSS selectors to hide on checkout (e.g. #billing_company_field, .cart-subtotal).', 'bg-couriers'),
+                'css' => 'min-width:400px;height:90px;', 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_general'],
+
+            ['type' => 'title', 'id' => 'bgc_sender', 'title' => __('Sender address (for labels)', 'bg-couriers'),
+                'desc' => __('Used as the sender on generated shipping labels.', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_sender_name', 'title' => __('Company / sender name', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_sender_phone', 'title' => __('Phone', 'bg-couriers')],
+            ['type' => 'email', 'id' => 'bgc_sender_email', 'title' => __('Email', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_sender_city', 'title' => __('City', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_sender_region', 'title' => __('Region', 'bg-couriers')],
+            ['type' => 'textarea', 'id' => 'bgc_sender_street', 'title' => __('Street address', 'bg-couriers'), 'css' => 'min-width:400px;height:70px;'],
+            ['type' => 'text', 'id' => 'bgc_sender_postcode', 'title' => __('Post code', 'bg-couriers')],
+            ['type' => 'sectionend', 'id' => 'bgc_sender'],
+
+            ['type' => 'title', 'id' => 'bgc_labels', 'title' => __('Label generation', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgc_autolabel_enabled',
+                'title' => __('Auto-generate labels', 'bg-couriers'),
+                'desc' => __('Automatically generate a shipping label when an order reaches the status below.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'select', 'id' => 'bgc_autolabel_status', 'title' => __('Trigger status', 'bg-couriers'),
+                'options' => $statuses, 'default' => 'wc-processing'],
+            ['type' => 'sectionend', 'id' => 'bgc_labels'],
         ];
     }
 
@@ -130,6 +149,10 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'password', 'id' => 'bgc_speedy_password', 'title' => __('API password', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
             ['type' => 'number', 'id' => 'bgc_speedy_client_id', 'title' => __('Sender client id', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgc_speedy_dynamic_pricing',
+                'title' => __('Use dynamic pricing', 'bg-couriers'),
+                'desc' => __('Calculate shipping cost live via the Speedy API. When off, the per-method default prices below are used.', 'bg-couriers'),
+                'default' => 'yes'],
             ['type' => 'bgc_actions', 'id' => 'bgc_speedy_actions'],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
         ];
@@ -141,9 +164,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'title', 'id' => $p . 'grp', 'title' => ''],
             ['type' => 'checkbox', 'id' => $p . 'enabled', 'title' => sprintf(__('Enable “%s”', 'bg-couriers'), $label), 'default' => 'yes'],
             ['type' => 'text', 'id' => $p . 'price', 'title' => __('Default price (API fallback)', 'bg-couriers'),
-                'desc' => __('Used when the courier API is unavailable.', 'bg-couriers'), 'default' => ''],
-            ['type' => 'select', 'id' => $p . 'currency', 'title' => __('Default price currency', 'bg-couriers'),
-                'options' => ['BGN' => 'BGN (лв.)', 'EUR' => 'EUR (€)'], 'default' => 'BGN'],
+                'desc' => __('In the store currency. Used when the courier API is unavailable or dynamic pricing is off.', 'bg-couriers'), 'default' => ''],
             ['type' => 'checkbox', 'id' => $p . 'free_enabled', 'title' => __('Free shipping over a threshold', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => $p . 'free_threshold', 'title' => __('Free-shipping order amount', 'bg-couriers'),
                 'desc' => __('Order subtotal at/above which this method is free.', 'bg-couriers'), 'default' => ''],

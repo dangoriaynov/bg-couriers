@@ -5,6 +5,20 @@ class BGC_Labels {
     public function __construct() {
         add_action('admin_post_bgc_generate_label', [$this, 'handle_generate']);
         add_action('admin_post_bgc_track', [$this, 'handle_track']);
+        add_action('woocommerce_order_status_changed', [$this, 'maybe_auto_generate'], 20, 4);
+    }
+
+    /** Auto-generate a label when an order reaches the configured status. */
+    public function maybe_auto_generate($order_id, $old_status, $new_status, $order): void {
+        $cfg = BGC_Settings::autolabel();
+        if (!$cfg['enabled']) { return; }
+        if ('wc-' . $new_status !== $cfg['status']) { return; }
+        if (!$order || $order->get_meta('_bgc_courier') !== 'speedy') { return; }
+        if ($order->get_meta('_bgc_waybill') !== '') { return; }
+        try { self::generate((int) $order_id); }
+        catch (\Exception $e) {
+            $order->add_order_note(sprintf(__('BG Couriers auto-label failed: %s', 'bg-couriers'), $e->getMessage()));
+        }
     }
     public static function generate(int $order_id): BGC_Label {
         $order = wc_get_order($order_id);

@@ -42,11 +42,19 @@ class BGC_Checkout {
         wp_localize_script('bgc-checkout', 'BGC', [
             'ajax'  => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('bgc_checkout'),
-            'dual'  => BGC_Settings::dual_currency_enabled(),
             'currency' => get_woocommerce_currency(),
             'methods' => BGC_Settings::enabled_methods('speedy'),
             'i18n'  => ['address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To automat','bg-couriers')],
         ]);
+
+        // Hide configured checkout fields (CSS selectors from settings).
+        $hidden = trim(BGC_Settings::hidden_fields());
+        if ($hidden !== '') {
+            $selectors = implode(',', array_filter(array_map('trim', explode(',', $hidden))));
+            if ($selectors !== '') {
+                wp_add_inline_style('bgc-checkout', $selectors . '{display:none !important;}');
+            }
+        }
     }
     public function render_fields($method, $index): void {
         if ($method->get_method_id() !== 'bgc_speedy') { return; }

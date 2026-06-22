@@ -19,10 +19,10 @@ class BGC_Plugin {
         });
         new BGC_Checkout();
         new BGC_Ajax();
+        new BGC_Labels(); // status-change hook must fire on front-end order transitions too
         if (is_admin()) {
             new BGC_Settings();
             BGC_Settings_Migrator::migrate();
-            new BGC_Labels();
             new BGC_Order_Metabox();
             new BGC_Order_Columns();
         }

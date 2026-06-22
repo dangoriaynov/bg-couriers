@@ -43,9 +43,13 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
             WC()->session->set('bgc_quote_source', $quote->source);
         }
 
+        $label = $this->title;
+        $free  = BGC_Settings::free_shipping_label();
+        if ($cost <= 0 && $free !== '') { $label = $free; }
+
         $this->add_rate([
             'id'    => $this->get_rate_id(),
-            'label' => $this->title,
+            'label' => $label,
             'cost'  => $cost,
             'taxes' => '', // '' = let WC calculate shipping tax; only false disables it
             'meta_data' => ['bgc_source' => $quote->source, 'bgc_method' => $method],
