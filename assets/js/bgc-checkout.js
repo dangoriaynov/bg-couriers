@@ -1,9 +1,10 @@
 (function ($) {
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
   function caps() {
-    // Only the delivery methods enabled in settings (default to all three if unset).
-    var m = (BGC && BGC.methods && BGC.methods.length) ? BGC.methods : ['office', 'address', 'automat'];
-    return ['address', 'office', 'automat'].filter(function (t) { return m.indexOf(t) !== -1; });
+    // Enabled methods, in the configured order (defaults to office/address/automat).
+    var enabled = (BGC && BGC.methods && BGC.methods.length) ? BGC.methods : ['office', 'address', 'automat'];
+    var order = (BGC && BGC.order && BGC.order.length) ? BGC.order : ['office', 'address', 'automat'];
+    return order.filter(function (t) { return enabled.indexOf(t) !== -1; });
   }
   function renderTypes($wrap) {
     if ($wrap.find('.bgc-types input').length) return;
@@ -53,4 +54,31 @@
   $(document.body).on('change', 'input[name=bgc_method], .bgc-office', function () {
     var $wrap = $(this).closest('.bgc-fields'); loadOffices($wrap); pushSelection($wrap);
   });
+
+  // Emergency help: after repeated checkout failures, show a one-time help box with a phone link.
+  (function () {
+    var e = (window.BGC && BGC.emergency) || {};
+    if (!e.phone) { return; }
+    var THRESH = 2, SHOWN = 'bgc_emerg_shown', CNT = 'bgc_fail_count';
+    $(document.body).on('checkout_error', function () {
+      try { if (localStorage.getItem(SHOWN)) { return; } } catch (x) {}
+      var n = (parseInt(sessionStorage.getItem(CNT) || '0', 10) || 0) + 1;
+      try { sessionStorage.setItem(CNT, n); } catch (x) {}
+      if (n >= THRESH) { showEmergency(); try { localStorage.setItem(SHOWN, '1'); } catch (x) {} }
+    });
+    function showEmergency() {
+      if ($('#bgc-emergency').length) { return; }
+      var msg = e.message || (BGC.i18n && BGC.i18n.emerg_default) || '';
+      var tel = String(e.phone).replace(/[^\d+]/g, '');
+      $('body').append(
+        '<div id="bgc-emergency" class="bgc-emerg-overlay"><div class="bgc-emerg-box">' +
+        '<button type="button" class="bgc-emerg-close" aria-label="' + esc(BGC.i18n && BGC.i18n.close) + '">×</button>' +
+        '<p class="bgc-emerg-msg">' + esc(msg) + '</p>' +
+        '<a class="bgc-emerg-tel" href="tel:' + esc(tel) + '">' + esc(e.phone) + '</a>' +
+        '</div></div>'
+      );
+      $('#bgc-emergency').on('click', function (ev) { if (ev.target === this) { $(this).remove(); } });
+      $('#bgc-emergency .bgc-emerg-close').on('click', function () { $('#bgc-emergency').remove(); });
+    }
+  })();
 })(jQuery);

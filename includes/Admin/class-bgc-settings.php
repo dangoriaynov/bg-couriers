@@ -13,6 +13,7 @@ class BGC_Settings {
     public function __construct() {
         add_filter('woocommerce_get_settings_pages', [$this, 'register_page']);
         add_action('woocommerce_admin_field_bgc_actions', [$this, 'render_actions']);
+        add_action('woocommerce_admin_field_bgc_sortable', [$this, 'render_sortable']);
         add_filter('woocommerce_admin_settings_sanitize_option_bgc_speedy_password', [$this, 'sanitize_password'], 10, 3);
         add_action('wp_ajax_bgc_validate_creds', [$this, 'ajax_validate']);
         add_action('wp_ajax_bgc_sync_now', [$this, 'ajax_sync']);
@@ -95,6 +96,45 @@ class BGC_Settings {
 
     public static function hidden_fields(): string {
         return (string) get_option('bgc_hidden_fields', '');
+    }
+
+    /** Emergency help shown after repeated checkout failures. */
+    public static function emergency(): array {
+        return [
+            'phone'   => (string) get_option('bgc_emergency_phone', ''),
+            'message' => (string) get_option('bgc_emergency_message', ''),
+        ];
+    }
+
+    /** Configured order of delivery methods at checkout (all methods, default order). */
+    public static function method_order(string $courier): array {
+        $raw = (string) get_option('bgc_' . $courier . '_method_order', '');
+        $order = $raw !== '' ? array_values(array_filter(array_map('trim', explode(',', $raw)))) : [];
+        foreach (self::METHODS as $m) { if (!in_array($m, $order, true)) { $order[] = $m; } }
+        return array_values(array_intersect($order, self::METHODS));
+    }
+
+    /** Custom WC field: drag-sortable order of the delivery methods. */
+    public function render_sortable($field): void {
+        $id = $field['id'];
+        $labels = [
+            'office'  => __('To office', 'bg-couriers'),
+            'address' => __('To address', 'bg-couriers'),
+            'automat' => __('To automat (APS)', 'bg-couriers'),
+        ];
+        wp_enqueue_script('jquery-ui-sortable');
+        echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html($field['title'] ?? '') . '</th><td class="forminp">';
+        echo '<ul id="bgc-sort-' . esc_attr($id) . '" class="bgc-sortable" style="margin:0;max-width:320px;">';
+        foreach (self::method_order('speedy') as $m) {
+            if (!isset($labels[$m])) { continue; }
+            echo '<li data-m="' . esc_attr($m) . '" style="padding:8px 12px;margin:4px 0;border:1px solid #c3c4c7;border-radius:4px;background:#fff;cursor:move;">⠿ ' . esc_html($labels[$m]) . '</li>';
+        }
+        echo '</ul>';
+        echo '<input type="hidden" name="' . esc_attr($id) . '" id="' . esc_attr($id) . '" value="' . esc_attr(implode(',', self::method_order('speedy'))) . '">';
+        echo '<p class="description">' . esc_html__('Drag to set the order delivery options appear at checkout.', 'bg-couriers') . '</p>';
+        $sid = esc_js($id);
+        echo "<script>jQuery(function($){ $('#bgc-sort-{$sid}').sortable({update:function(){ $('#{$sid}').val($(this).children().map(function(){return $(this).data('m');}).get().join(',')); }}); });</script>";
+        echo '</td></tr>';
     }
 
     public static function creds_present(): bool {

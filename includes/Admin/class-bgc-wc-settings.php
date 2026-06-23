@@ -136,6 +136,15 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'select', 'id' => 'bgc_autolabel_status', 'title' => __('Trigger status', 'bg-couriers'),
                 'options' => $statuses, 'default' => 'wc-processing'],
             ['type' => 'sectionend', 'id' => 'bgc_labels'],
+
+            ['type' => 'title', 'id' => 'bgc_emergency', 'title' => __('Emergency contact', 'bg-couriers'),
+                'desc' => __('If a customer fails to place an order several times in a row at checkout, a one-time help box appears with a clickable phone link. Leave the phone empty to disable.', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_emergency_phone', 'title' => __('Help phone number', 'bg-couriers'),
+                'custom_attributes' => ['placeholder' => '+359888123456']],
+            ['type' => 'textarea', 'id' => 'bgc_emergency_message', 'title' => __('Help message', 'bg-couriers'),
+                'desc' => __('Shown above the phone link. Leave empty for a default message.', 'bg-couriers'),
+                'css' => 'min-width:400px;height:70px;'],
+            ['type' => 'sectionend', 'id' => 'bgc_emergency'],
         ];
     }
 
@@ -153,6 +162,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'title' => __('Use dynamic pricing', 'bg-couriers'),
                 'desc' => __('Calculate shipping cost live via the Speedy API. When off, the per-method default prices below are used.', 'bg-couriers'),
                 'default' => 'yes'],
+            ['type' => 'bgc_sortable', 'id' => 'bgc_speedy_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'bgc_actions', 'id' => 'bgc_speedy_actions'],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
         ];

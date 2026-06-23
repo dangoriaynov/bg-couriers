@@ -44,7 +44,13 @@ class BGC_Checkout {
             'nonce' => wp_create_nonce('bgc_checkout'),
             'currency' => get_woocommerce_currency(),
             'methods' => BGC_Settings::enabled_methods('speedy'),
-            'i18n'  => ['address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To automat','bg-couriers')],
+            'order'   => BGC_Settings::method_order('speedy'),
+            'emergency' => BGC_Settings::emergency(),
+            'i18n'  => [
+                'address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To automat','bg-couriers'),
+                'emerg_default'=>__('Having trouble placing your order? We can help — call us:','bg-couriers'),
+                'close'=>__('Close','bg-couriers'),
+            ],
         ]);
 
         // Hide configured checkout fields (CSS selectors from settings).

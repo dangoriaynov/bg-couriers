@@ -2,3 +2,11 @@
 .bgc-types label { display: inline-block; margin-right: 12px; }
 .bgc-row label { display: block; font-weight: 600; margin-bottom: 2px; }
 .bgc-row input, .bgc-office { width: 100%; }
+
+/* Emergency help modal */
+.bgc-emerg-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.bgc-emerg-box { position: relative; background: #fff; border-radius: 12px; max-width: 420px; width: 100%; padding: 28px 26px; box-shadow: 0 12px 40px rgba(0,0,0,.25); text-align: center; }
+.bgc-emerg-close { position: absolute; top: 8px; right: 12px; border: 0; background: none; font-size: 26px; line-height: 1; color: #888; cursor: pointer; }
+.bgc-emerg-msg { font-size: 16px; line-height: 1.5; margin: 4px 0 18px; color: #222; }
+.bgc-emerg-tel { display: inline-block; font-size: 22px; font-weight: 700; text-decoration: none; padding: 12px 22px; border-radius: 10px; background: #2271b1; color: #fff !important; }
+.bgc-emerg-tel:hover { background: #135e96; }
