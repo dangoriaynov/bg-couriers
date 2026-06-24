@@ -47,7 +47,7 @@ class BGC_Speedy extends BGC_Abstract_Courier {
 
     public function fetch_cities(): array {
         // The CSV export returns ALL sites; plain /location/site returns only a small default set.
-        $res = $this->http_post($this->base . '/location/site/csv/' . self::BG_COUNTRY_ID, $this->auth([]));
+        $res = $this->http_post($this->base . '/location/site/csv/' . self::BG_COUNTRY_ID, $this->auth(['language' => 'BG']));
         if (is_wp_error($res) || (int) wp_remote_retrieve_response_code($res) !== 200) { return []; }
         return self::parse_sites_csv((string) wp_remote_retrieve_body($res));
     }
@@ -78,7 +78,7 @@ class BGC_Speedy extends BGC_Abstract_Courier {
     }
 
     public function fetch_offices(int $city_id): array {
-        $body = ['countryId' => self::BG_COUNTRY_ID];
+        $body = ['countryId' => self::BG_COUNTRY_ID, 'language' => 'BG'];
         if ($city_id > 0) { $body['siteId'] = $city_id; }
         $r = $this->post_json($this->base . '/location/office', $this->auth($body));
         return self::parse_offices($r);
