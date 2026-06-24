@@ -147,6 +147,11 @@ class BGC_Settings {
         if ($raw_value === '' || $raw_value === null) {
             return get_option('bgc_speedy_password', '');
         }
+        // The WC password field can re-render the stored (already-encrypted) value;
+        // if it comes back unchanged, keep it — re-encrypting would double-encrypt it.
+        if ($raw_value === get_option('bgc_speedy_password', '')) {
+            return $raw_value;
+        }
         return BGC_Encryption::encrypt($raw_value);
     }
 
