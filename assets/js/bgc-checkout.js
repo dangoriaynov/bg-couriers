@@ -51,6 +51,9 @@
     var $office = $wrap.find('.bgc-office');
     if (!cityId || type === 'address') { $wrap.find('.bgc-office-row').hide(); return; }
     $.get(BGC.ajax, { action: 'bgc_offices', courier: 'speedy', city_id: cityId, type: type }, function (rows) {
+      if ($office.hasClass('select2-hidden-accessible')) {
+        ($.fn.selectWoo ? $office.selectWoo('destroy') : $office.select2('destroy'));
+      }
       $office.empty();
       rows.forEach(function (o) { $office.append(new Option(o.name + ' — ' + o.address, o.office_id, false, false)); });
       sel2($office, { width: '100%' });
