@@ -27,3 +27,4 @@ composer.phar
 .superpowers/
 .phpunit.result.cache
 .claude/
+e2e/node_modules/
