@@ -14,43 +14,75 @@
     }).join(' ');
     $wrap.find('.bgc-types').html(html);
   }
-  function searchCities(term, cb) {
-    $.get(BGC.ajax, { action: 'bgc_search_cities', courier: 'speedy', term: term }, cb);
-  }
-  function loadOffices($wrap) {
-    var cityId = $wrap.find('.bgc-city-id').val();
-    var type = $wrap.find('input[name=bgc_method]:checked').val();
-    if (!cityId || type === 'address') { $wrap.find('.bgc-office-row').hide(); return; }
-    $.get(BGC.ajax, { action: 'bgc_offices', courier: 'speedy', city_id: cityId, type: type }, function (rows) {
-      var opts = rows.map(function (o) { return '<option value="' + parseInt(o.office_id, 10) + '">' + esc(o.name) + ' — ' + esc(o.address) + '</option>'; }).join('');
-      $wrap.find('.bgc-office').html(opts); $wrap.find('.bgc-office-row').show();
+
+  function sel2($el, opts) { return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts)); }
+
+  function initCity($wrap) {
+    var $city = $wrap.find('.bgc-city');
+    if ($city.data('bgc-init')) { return; }
+    $city.data('bgc-init', 1);
+    $city.append(new Option('', '', true, true)); // empty default
+    sel2($city, {
+      width: '100%', allowClear: true, placeholder: (BGC.i18n && BGC.i18n.city_ph) || '',
+      minimumInputLength: 2,
+      ajax: {
+        url: BGC.ajax, dataType: 'json', delay: 250,
+        data: function (params) { return { action: 'bgc_search_cities', courier: 'speedy', term: params.term || '' }; },
+        processResults: function (rows) {
+          var counts = {};
+          rows.forEach(function (r) { counts[r.name] = (counts[r.name] || 0) + 1; });
+          return { results: rows.map(function (r) {
+            var text = r.name;
+            if (counts[r.name] > 1) { text += ' — ' + (r.region || r.post_code || ''); }
+            return { id: r.city_id, text: text, post_code: r.post_code };
+          }) };
+        }
+      }
+    });
+    $city.on('select2:select', function (e) {
+      var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
+      loadOffices($wrap); pushSelection($wrap);
     });
   }
+
+  function loadOffices($wrap) {
+    var cityId = $wrap.find('.bgc-city').val();
+    var type = $wrap.find('input[name=bgc_method]:checked').val();
+    var $office = $wrap.find('.bgc-office');
+    if (!cityId || type === 'address') { $wrap.find('.bgc-office-row').hide(); return; }
+    $.get(BGC.ajax, { action: 'bgc_offices', courier: 'speedy', city_id: cityId, type: type }, function (rows) {
+      $office.empty();
+      rows.forEach(function (o) { $office.append(new Option(o.name + ' — ' + o.address, o.office_id, false, false)); });
+      sel2($office, { width: '100%' });
+      $wrap.find('.bgc-office-row').toggle(rows.length > 0);
+      pushSelection($wrap);
+    });
+  }
+
   function pushSelection($wrap) {
     $.post(BGC.ajax, {
       action: 'bgc_set_selection', nonce: BGC.nonce,
       method: $wrap.find('input[name=bgc_method]:checked').val(),
-      site_id: $wrap.find('.bgc-city-id').val() || 0,
+      site_id: $wrap.find('.bgc-city').val() || 0,
       office_id: $wrap.find('.bgc-office').val() || 0,
       post_code: $wrap.find('.bgc-postcode').val() || ''
     }, function () { $(document.body).trigger('update_checkout'); });
   }
+
   $(document.body).on('updated_checkout', function () {
-    var $wrap = $('.bgc-fields'); if (!$wrap.length) return; renderTypes($wrap);
+    var $wrap = $('.bgc-fields'); if (!$wrap.length) return; renderTypes($wrap); initCity($wrap);
   });
+
   $(document.body).on('input', '.bgc-postcode', function () {
-    var $wrap = $(this).closest('.bgc-fields'), code = this.value.trim();
-    if (code.length < 4) return;
-    searchCities(code, function (rows) {
-      if (rows[0]) { $wrap.find('.bgc-city').val(rows[0].name); $wrap.find('.bgc-city-id').val(rows[0].city_id); loadOffices($wrap); }
+    var $wrap = $(this).closest('.bgc-fields'), code = this.value.trim(); if (code.length < 4) { return; }
+    $.get(BGC.ajax, { action: 'bgc_search_cities', courier: 'speedy', term: code }, function (rows) {
+      if (rows && rows.length === 1) {
+        var $city = $wrap.find('.bgc-city'); var r = rows[0];
+        $city.append(new Option(r.name, r.city_id, true, true)).trigger('change'); loadOffices($wrap); pushSelection($wrap);
+      }
     });
   });
-  $(document.body).on('input', '.bgc-city', function () {
-    var $wrap = $(this).closest('.bgc-fields');
-    searchCities(this.value, function (rows) {
-      if (rows[0]) { $wrap.find('.bgc-city-id').val(rows[0].city_id); $wrap.find('.bgc-postcode').val(rows[0].post_code); }
-    });
-  });
+
   $(document.body).on('change', 'input[name=bgc_method], .bgc-office', function () {
     var $wrap = $(this).closest('.bgc-fields'); loadOffices($wrap); pushSelection($wrap);
   });

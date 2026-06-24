@@ -2,6 +2,8 @@
 .bgc-types label { display: inline-block; margin-right: 12px; }
 .bgc-row label { display: block; font-weight: 600; margin-bottom: 2px; }
 .bgc-row input, .bgc-office { width: 100%; }
+.bgc-fields .select2-container { width: 100% !important; }
+.bgc-fields .select2-selection { min-height: 34px; }
 
 /* Emergency help modal */
 .bgc-emerg-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; }
