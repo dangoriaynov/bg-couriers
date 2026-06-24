@@ -46,10 +46,35 @@ class BGC_Speedy extends BGC_Abstract_Courier {
     }
 
     public function fetch_cities(): array {
-        // /location/site/csv/{countryId} returns all sites; for the slice we page by name is impractical,
-        // so use the CSV export and parse it. The HTTP path is integration-tested; parse_sites covers JSON shape.
-        $r = $this->post_json($this->base . '/location/site', $this->auth(['countryId' => self::BG_COUNTRY_ID]));
-        return self::parse_sites($r);
+        // The CSV export returns ALL sites; plain /location/site returns only a small default set.
+        $res = $this->http_post($this->base . '/location/site/csv/' . self::BG_COUNTRY_ID, $this->auth([]));
+        if (is_wp_error($res) || (int) wp_remote_retrieve_response_code($res) !== 200) { return []; }
+        return self::parse_sites_csv((string) wp_remote_retrieve_body($res));
+    }
+
+    public static function parse_sites_csv(string $csv): array {
+        $lines = preg_split('/\r\n|\r|\n/', trim($csv));
+        if (!$lines || count($lines) < 2) { return []; }
+        $header = str_getcsv((string) array_shift($lines));
+        $idx = array_flip($header);
+        $get = function (array $row, string $name) use ($idx) {
+            return isset($idx[$name], $row[$idx[$name]]) ? (string) $row[$idx[$name]] : '';
+        };
+        $out = [];
+        foreach ($lines as $line) {
+            if ($line === '') { continue; }
+            $row = str_getcsv($line);
+            $id = (int) $get($row, 'id');
+            if (!$id) { continue; }
+            $out[] = [
+                'city_id'   => $id,
+                'name'      => $get($row, 'name'),
+                'name_lat'  => $get($row, 'nameEn'),
+                'post_code' => $get($row, 'postCode'),
+                'region'    => $get($row, 'region'),
+            ];
+        }
+        return $out;
     }
 
     public function fetch_offices(int $city_id): array {
