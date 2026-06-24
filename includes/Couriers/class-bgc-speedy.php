@@ -26,6 +26,10 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         return $sender;
     }
 
+    public static function cod_amount(float $total, float $shipping_total, float $shipping_tax): float {
+        return max(0.0, round($total - $shipping_total - $shipping_tax, 2));
+    }
+
     public function id(): string { return 'speedy'; }
     public function label(): string { return 'Speedy'; }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
@@ -151,6 +155,14 @@ class BGC_Speedy extends BGC_Abstract_Courier {
             'payment'   => ['courierServicePayer' => 'RECIPIENT'],
             'ref1'      => 'ORDER ' . $order->get_order_number(),
         ];
+        $cod = self::cod_amount(
+            (float) $order->get_total(),
+            (float) $order->get_shipping_total(),
+            (float) $order->get_shipping_tax()
+        );
+        if ($cod > 0) {
+            $body['service']['additionalServices']['cod'] = ['amount' => $cod, 'processingType' => 'CASH'];
+        }
         $sender = $this->sender_block();
         if ($sender) { $body['sender'] = $sender; }
         return $body;
