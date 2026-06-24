@@ -22,10 +22,8 @@ class BGC_Sync {
         }
         $out['cities'] = BGC_Nomenclature::upsert_cities($id, $cities, $run);
 
-        foreach ($cities as $c) {
-            $offices = $courier->fetch_offices((int) $c['city_id']);
-            if ($offices) { $out['offices'] += BGC_Nomenclature::upsert_offices($id, $offices, $run); }
-        }
+        $offices = $courier->fetch_offices(0); // 0 = all offices in one call (country-wide)
+        if ($offices) { $out['offices'] = BGC_Nomenclature::upsert_offices($id, $offices, $run); }
         $out['pruned'] = BGC_Nomenclature::prune($id, $run);
 
         foreach (['address', 'office', 'automat'] as $method) {

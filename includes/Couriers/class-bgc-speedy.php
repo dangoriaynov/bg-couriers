@@ -49,7 +49,9 @@ class BGC_Speedy extends BGC_Abstract_Courier {
     }
 
     public function fetch_offices(int $city_id): array {
-        $r = $this->post_json($this->base . '/location/office', $this->auth(['countryId' => self::BG_COUNTRY_ID, 'siteId' => $city_id]));
+        $body = ['countryId' => self::BG_COUNTRY_ID];
+        if ($city_id > 0) { $body['siteId'] = $city_id; }
+        $r = $this->post_json($this->base . '/location/office', $this->auth($body));
         return self::parse_offices($r);
     }
 

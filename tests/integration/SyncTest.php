@@ -13,7 +13,12 @@ final class SyncTest extends WP_UnitTestCase {
             public function capabilities(): array { return ['address','office','automat','live_quote']; }
             public function check_credentials(): bool { return true; }
             public function fetch_cities(): array { return $this->cities; }
-            public function fetch_offices(int $c): array { return [['office_id'=>10,'city_id'=>$c,'type'=>'office','name'=>'O','address'=>'A']]; }
+            public function fetch_offices(int $c): array {
+                return [
+                    ['office_id'=>10,'city_id'=>1,'type'=>'office','name'=>'O1','address'=>'A1'],
+                    ['office_id'=>11,'city_id'=>2,'type'=>'office','name'=>'O2','address'=>'A2'],
+                ];
+            }
             public function quote(array $s): BGC_Quote { return new BGC_Quote(5.0, 1.0, 'BGN', 'live'); }
             public function create_label(\WC_Order $o): BGC_Label { return new BGC_Label(''); }
             public function get_label_pdf(string $w): string { return ''; }
@@ -23,7 +28,7 @@ final class SyncTest extends WP_UnitTestCase {
         };
         $r1 = BGC_Sync::run($courier);
         $this->assertSame(2, $r1['cities']);
-        $this->assertSame(2, $r1['offices']); // one office per city
+        $this->assertSame(2, $r1['offices']); // now from one bulk call
         $this->assertSame(3, $r1['rates']); // address/office/automat
         $this->assertEqualsWithDelta(6.0, BGC_Rates::get('speedy','office'), 0.001);
 
