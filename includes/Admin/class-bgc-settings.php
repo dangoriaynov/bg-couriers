@@ -90,6 +90,12 @@ class BGC_Settings {
         ];
     }
 
+    /** Label paper size setting (A6 or A4). */
+    public static function label_paper_size(): string {
+        $v = (string) get_option('bgc_speedy_label_paper_size', 'A6');
+        return in_array($v, ['A6', 'A4'], true) ? $v : 'A6';
+    }
+
     public static function free_shipping_label(): string {
         return (string) get_option('bgc_free_shipping_label', '');
     }
