@@ -17,8 +17,9 @@ class BGC_Speedy extends BGC_Abstract_Courier {
     }
 
     private function sender_block(): array {
+        // No clientId: Speedy derives the sender from the authenticated API user's own client.
+        // Sending an explicit (often inactive) clientId triggers "Sender client not found".
         $sender = [];
-        if ($this->client_id) { $sender['clientId'] = $this->client_id; }
         $s = $this->sender;
         if (!empty($s['name']))  { $sender['contactName'] = $s['name']; }
         if (!empty($s['phone'])) { $sender['phone1'] = ['number' => $s['phone']]; }
