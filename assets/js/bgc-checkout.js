@@ -77,8 +77,8 @@
     else { $wrap.find('.bgc-office-row').show(); }
   }
 
-  function pushSelection($wrap) {
-    $.post(BGC.ajax, {
+  function selectionData($wrap) {
+    return {
       action: 'bgc_set_selection', nonce: BGC.nonce,
       method: $wrap.find('input[name=bgc_method]:checked').val(),
       site_id: $wrap.find('.bgc-city').val() || 0,
@@ -92,8 +92,16 @@
       floor:       $wrap.find('.bgc-floor').val() || '',
       apartment:   $wrap.find('.bgc-apartment').val() || '',
       address_note: $wrap.find('.bgc-note').val() || ''
-    }, function () { $(document.body).trigger('update_checkout'); });
+    };
   }
+  // Save + recalc shipping (method/city/office change the price).
+  function pushSelection($wrap) {
+    $.post(BGC.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); });
+  }
+  // Save only — no recalc/re-render. Address detail fields don't change the (city-level)
+  // price, so saving them must NOT trigger update_checkout, which would re-render and wipe
+  // the fields the customer is still typing.
+  function saveSelection($wrap) { $.post(BGC.ajax, selectionData($wrap)); }
 
   $(document.body).on('updated_checkout', function () {
     var $wrap = $('.bgc-fields'); if (!$wrap.length) return;
@@ -117,7 +125,7 @@
   var addrT;
   $(document.body).on('input', '.bgc-address-rows input', function () {
     var $wrap = $(this).closest('.bgc-fields');
-    clearTimeout(addrT); addrT = setTimeout(function () { pushSelection($wrap); }, 600);
+    clearTimeout(addrT); addrT = setTimeout(function () { saveSelection($wrap); }, 600);
   });
   $(document.body).on('change', '.bgc-office', function () {
     var $wrap = $(this).closest('.bgc-fields'); pushSelection($wrap);
