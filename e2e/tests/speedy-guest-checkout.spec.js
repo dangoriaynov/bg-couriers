@@ -42,8 +42,10 @@ test('speedy guest checkout to office, COD', async ({ page }) => {
     .poll(async () => await fields.locator('.bgc-office').inputValue(), { timeout: 20000 })
     .not.toBe('');
 
-  // Let update_checkout recalculate shipping with the chosen office.
-  await page.waitForTimeout(2000);
+  // Wait for the order review to finish recalculating so we read the settled (live) shipping,
+  // not an intermediate value from the office_id=0 first pass.
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(2500);
 
   // Assert shipping row shows a monetary amount.
   const shippingRow = page.locator('tr.shipping, .woocommerce-shipping-totals');
