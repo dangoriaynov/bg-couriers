@@ -36,6 +36,13 @@ class BGC_Checkout {
         $office = (int) WC()->session->get('bgc_office_id', 0);
         if (!$site) { $errors->add('bgc', __('Please choose a city for Speedy delivery.', 'bg-couriers')); }
         if ($method !== 'address' && !$office) { $errors->add('bgc', __('Please choose a Speedy office/automat.', 'bg-couriers')); }
+        if ($method === 'address') {
+            $street = (string) WC()->session->get('bgc_addr_street_name', '');
+            $no     = (string) WC()->session->get('bgc_addr_street_no', '');
+            if ($street === '' || $no === '') {
+                $errors->add('bgc', __('Please enter a street and number for Speedy address delivery.', 'bg-couriers'));
+            }
+        }
     }
 
     public function persist(\WC_Order $order): void {
@@ -48,6 +55,14 @@ class BGC_Checkout {
         $order->update_meta_data('_bgc_post_code', (string) $s->get('bgc_post_code', ''));
         $order->update_meta_data('_bgc_quote_price', (float) $s->get('bgc_quote_price', 0));
         $order->update_meta_data('_bgc_quote_source', (string) $s->get('bgc_quote_source', ''));
+        $order->update_meta_data('_bgc_street_name', (string) $s->get('bgc_addr_street_name', ''));
+        $order->update_meta_data('_bgc_street_no',   (string) $s->get('bgc_addr_street_no', ''));
+        $order->update_meta_data('_bgc_complex',     (string) $s->get('bgc_addr_complex', ''));
+        $order->update_meta_data('_bgc_block',       (string) $s->get('bgc_addr_block', ''));
+        $order->update_meta_data('_bgc_entrance',    (string) $s->get('bgc_addr_entrance', ''));
+        $order->update_meta_data('_bgc_floor',       (string) $s->get('bgc_addr_floor', ''));
+        $order->update_meta_data('_bgc_apartment',   (string) $s->get('bgc_addr_apartment', ''));
+        $order->update_meta_data('_bgc_address_note',(string) $s->get('bgc_addr_address_note', ''));
     }
     public function assets(): void {
         if (!function_exists('is_checkout') || !is_checkout()) { return; }
