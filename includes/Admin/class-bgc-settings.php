@@ -58,8 +58,9 @@ class BGC_Settings {
 
     /** How many results to show in checkout city/office dropdowns (shared across couriers). */
     public static function dropdown_limit(): int {
-        $n = (int) get_option('bgc_dropdown_limit', 5);
-        return $n > 0 ? $n : 5;
+        $raw = get_option('bgc_dropdown_limit', 5);
+        if ($raw === '' || (int) $raw <= 0) { return 1000; } // empty / 0 = show all
+        return (int) $raw;
     }
 
     /** Speedy method-level free shipping (the merchant absorbs it) over a goods-total threshold. */

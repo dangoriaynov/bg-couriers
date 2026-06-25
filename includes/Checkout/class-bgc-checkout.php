@@ -8,6 +8,23 @@ class BGC_Checkout {
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
+        add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
+    }
+
+    /**
+     * The plugin collects the delivery address in its own fields, so the standard WC address
+     * fields are redundant. The documented way to drop checkout fields is to unset() them from
+     * the woocommerce_checkout_fields filter (classic checkout) — they are then never rendered
+     * and never validated (no flicker, no hidden DOM). persist() sets the order's address from
+     * our selection, and billing_country is kept so the Bulgaria shipping zone still matches.
+     */
+    public function simplify_fields($fields) {
+        foreach (['billing', 'shipping'] as $g) {
+            foreach (['address_1', 'address_2', 'city', 'state', 'postcode'] as $f) {
+                unset($fields[$g][$g . '_' . $f]);
+            }
+        }
+        return $fields;
     }
 
     /**
@@ -63,6 +80,32 @@ class BGC_Checkout {
         $order->update_meta_data('_bgc_floor',       (string) $s->get('bgc_addr_floor', ''));
         $order->update_meta_data('_bgc_apartment',   (string) $s->get('bgc_addr_apartment', ''));
         $order->update_meta_data('_bgc_address_note',(string) $s->get('bgc_addr_address_note', ''));
+
+        // Fill the WC order address from our selection (the standard WC address fields are
+        // hidden/optional on checkout); the shipping label still uses the _bgc_* meta above.
+        $method = (string) $s->get('bgc_method', 'office');
+        $city   = (int) $s->get('bgc_site_id', 0) ? BGC_Nomenclature::city_by_id('speedy', (int) $s->get('bgc_site_id', 0)) : null;
+        $name   = (string) ($city['name'] ?? '');
+        $post   = (string) $s->get('bgc_post_code', '') ?: (string) ($city['post_code'] ?? '');
+        $region = (string) ($city['region'] ?? '');
+        if ($method === 'address') {
+            $line1 = trim((string) $s->get('bgc_addr_street_name', '') . ' ' . (string) $s->get('bgc_addr_street_no', ''));
+            $line2 = trim((string) $s->get('bgc_addr_complex', ''));
+        } else {
+            $o = (int) $s->get('bgc_office_id', 0) ? BGC_Nomenclature::office_by_id('speedy', (int) $s->get('bgc_office_id', 0)) : null;
+            $line1 = (string) ($o['name'] ?? '');
+            $line2 = (string) ($o['address'] ?? '');
+        }
+        foreach (['billing', 'shipping'] as $g) {
+            $order->{"set_{$g}_country"}('BG');
+            $order->{"set_{$g}_city"}($name);
+            $order->{"set_{$g}_state"}($region);
+            $order->{"set_{$g}_postcode"}($post);
+            $order->{"set_{$g}_address_1"}($line1);
+            $order->{"set_{$g}_address_2"}($line2);
+        }
+        $order->set_shipping_first_name($order->get_billing_first_name());
+        $order->set_shipping_last_name($order->get_billing_last_name());
     }
     public function assets(): void {
         if (!function_exists('is_checkout') || !is_checkout()) { return; }

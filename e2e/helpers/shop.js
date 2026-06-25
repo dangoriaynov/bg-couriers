@@ -38,14 +38,16 @@ async function gotoCheckout(page) {
 }
 
 async function fillGuestBilling(page, d) {
-  const set = async (sel, val) => { const el = page.locator(sel); if (await el.count()) { await el.first().fill(val); } };
+  // Only name/phone/email — the WC address fields are hidden + optional when Speedy is active
+  // (the plugin's own fields drive the address). Filling visible fields only.
+  const set = async (sel, val) => {
+    const el = page.locator(sel).first();
+    if (await el.count() && await el.isVisible().catch(() => false)) { await el.fill(val); }
+  };
   await set('#billing_first_name', d.first);
   await set('#billing_last_name', d.last);
   await set('#billing_email', d.email);
   await set('#billing_phone', d.phone);
-  await set('#billing_city', d.city || 'София');
-  await set('#billing_address_1', d.address || 'ул. Тест 1');
-  await set('#billing_postcode', d.postcode || '1000');
 }
 
 // Click a Speedy delivery-type tab (office | address | automat).
