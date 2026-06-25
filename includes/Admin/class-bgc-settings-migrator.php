@@ -17,7 +17,6 @@ class BGC_Settings_Migrator {
         if (is_array($old) && $old) {
             $map = [
                 'enabled'   => 'bgc_speedy_enabled',
-                'env'       => 'bgc_speedy_environment',
                 'username'  => 'bgc_speedy_username',
                 'password'  => 'bgc_speedy_password',
             ];

@@ -152,11 +152,10 @@ class BGC_WC_Settings extends WC_Settings_Page {
         return [
             ['type' => 'title', 'id' => 'bgc_speedy', 'title' => __('Speedy — courier settings', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_speedy_enabled', 'title' => __('Enable Speedy', 'bg-couriers'), 'default' => 'no'],
-            ['type' => 'select', 'id' => 'bgc_speedy_environment', 'title' => __('Environment', 'bg-couriers'),
-                'options' => ['demo' => 'demo', 'live' => 'live'], 'default' => 'demo'],
             ['type' => 'text', 'id' => 'bgc_speedy_username', 'title' => __('API username', 'bg-couriers'), 'autoload' => false],
             ['type' => 'password', 'id' => 'bgc_speedy_password', 'title' => __('API password', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
+            ['type' => 'bgc_actions', 'id' => 'bgc_speedy_actions'],
             ['type' => 'select', 'id' => 'bgc_speedy_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
                 'default' => 'A6'],
@@ -165,7 +164,6 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Calculate shipping cost live via the Speedy API. When off, the per-method default prices below are used.', 'bg-couriers'),
                 'default' => 'yes'],
             ['type' => 'bgc_sortable', 'id' => 'bgc_speedy_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
-            ['type' => 'bgc_actions', 'id' => 'bgc_speedy_actions'],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
         ];
     }

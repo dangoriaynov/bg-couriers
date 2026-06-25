@@ -3,8 +3,7 @@ defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
 
 class BGC_Speedy extends BGC_Abstract_Courier {
     const BG_COUNTRY_ID = 100;
-    const LIVE = 'https://api.speedy.bg/v1';
-    const DEMO = 'https://api.speedy.bg/v1'; // Speedy has no separate demo host; demo = test account creds
+    const BASE = 'https://api.speedy.bg/v1'; // Speedy has no separate demo/sandbox host
 
     private string $user; private string $pass; private string $base; private array $sender;
 
@@ -12,7 +11,7 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         $this->user = (string) ($config['username'] ?? '');
         $this->pass = (string) ($config['password'] ?? '');
         $this->sender = (array) ($config['sender'] ?? []);
-        $this->base = ($config['env'] ?? 'demo') === 'live' ? self::LIVE : self::DEMO;
+        $this->base = self::BASE;
     }
 
     private function sender_block(): array {

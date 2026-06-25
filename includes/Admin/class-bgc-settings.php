@@ -36,7 +36,6 @@ class BGC_Settings {
         if ($courier !== 'speedy') { return null; }
         if (get_option('bgc_speedy_enabled', 'no') !== 'yes') { return null; }
         return [
-            'env'       => get_option('bgc_speedy_environment', 'demo'),
             'username'  => get_option('bgc_speedy_username', ''),
             'password'  => BGC_Encryption::decrypt(get_option('bgc_speedy_password', '')),
             'sender'    => self::sender(),

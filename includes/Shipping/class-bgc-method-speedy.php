@@ -13,6 +13,13 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
         $this->init_instance_settings();
     }
 
+    /** Free shipping when enabled and the goods total (w/o shipping) reaches the threshold. */
+    public static function is_free(float $goods_total, array $mc): bool {
+        return !empty($mc['free_enabled'])
+            && (float) ($mc['free_threshold'] ?? 0) > 0
+            && $goods_total >= (float) $mc['free_threshold'];
+    }
+
     public function calculate_shipping($package = []) {
         $method  = WC()->session ? (string) WC()->session->get('bgc_method', 'office') : 'office';
         $site_id = WC()->session ? (int) WC()->session->get('bgc_site_id', 0) : 0;
@@ -26,17 +33,15 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
         $courier = apply_filters('bgc_courier', null, 'speedy');
         if (!$courier) {
             $cfg = BGC_Settings::courier_config('speedy');
-            $courier = new BGC_Speedy($cfg ?: ['env' => 'demo']);
+            $courier = new BGC_Speedy($cfg ?: []);
         }
         $quote = BGC_Pricing::quote($courier, $shipment);
         $cost  = $quote->price;
 
-        // Free shipping over a configured per-method threshold (cart subtotal).
+        // Free shipping (the merchant absorbs it) when the order goods total (w/o shipping,
+        // store currency, no conversion) reaches the configured per-method threshold.
         $mc = BGC_Settings::method_config('speedy', $method);
-        if (!empty($mc['free_enabled']) && $mc['free_threshold'] > 0 && WC()->cart) {
-            $subtotal = (float) WC()->cart->get_subtotal();
-            if ($subtotal >= $mc['free_threshold']) { $cost = 0.0; }
-        }
+        if (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), $mc)) { $cost = 0.0; }
 
         if (WC()->session) {
             WC()->session->set('bgc_quote_price', $cost);

@@ -20,7 +20,7 @@ final class SpeedyLabelTrackTest extends TestCase {
         $this->assertNotEmpty($t->events);
     }
     public function test_tracking_url_contains_waybill(): void {
-        $c = new BGC_Speedy(['env' => 'demo']);
+        $c = new BGC_Speedy([]);
         $this->assertStringContainsString('299999990', $c->tracking_url('299999990'));
     }
 }

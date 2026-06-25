@@ -27,7 +27,7 @@ class BGC_Labels {
         $existing = (string) $order->get_meta('_bgc_waybill');
         if ($existing !== '') { return new BGC_Label($existing, (string) $order->get_meta('_bgc_label_url')); }
 
-        $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: ['env' => 'demo']);
+        $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: []);
         $label = $courier->create_label($order);
         $order->update_meta_data('_bgc_waybill', $label->waybill);
 
@@ -87,7 +87,7 @@ class BGC_Labels {
         $order_ids = array_filter(array_map('intval', $order_ids));
         $parcels = self::batch_parcel_ids($order_ids);
         if (!$parcels) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
-        $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: ['env' => 'demo']);
+        $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: []);
         try { $pdf = $courier->print_labels($parcels, BGC_Settings::label_paper_size()); }
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         nocache_headers();
