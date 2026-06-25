@@ -1,21 +1,42 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use Brain\Monkey;
+use Brain\Monkey\Functions;
 
 // BGC_Method_Speedy extends WC_Shipping_Method; stub it so the file loads without WooCommerce.
 if (!class_exists('WC_Shipping_Method')) { class WC_Shipping_Method {} }
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgc-method-speedy.php';
+require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgc-settings.php';
 
 final class FreeShippingTest extends TestCase {
-    public function test_free_at_or_above_threshold(): void {
-        $mc = ['free_enabled' => true, 'free_threshold' => 50.0];
-        $this->assertTrue(BGC_Method_Speedy::is_free(50.0, $mc));   // exactly at threshold
-        $this->assertTrue(BGC_Method_Speedy::is_free(75.0, $mc));   // above
+    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
+    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+
+    public function test_is_free_at_or_above_threshold(): void {
+        $cfg = ['enabled' => true, 'threshold' => 50.0];
+        $this->assertTrue(BGC_Method_Speedy::is_free(50.0, $cfg));   // exactly at threshold
+        $this->assertTrue(BGC_Method_Speedy::is_free(75.0, $cfg));   // above
     }
-    public function test_not_free_below_threshold(): void {
-        $this->assertFalse(BGC_Method_Speedy::is_free(49.99, ['free_enabled' => true, 'free_threshold' => 50.0]));
+    public function test_is_free_below_threshold(): void {
+        $this->assertFalse(BGC_Method_Speedy::is_free(49.99, ['enabled' => true, 'threshold' => 50.0]));
     }
-    public function test_not_free_when_disabled_or_zero_threshold(): void {
-        $this->assertFalse(BGC_Method_Speedy::is_free(100.0, ['free_enabled' => false, 'free_threshold' => 50.0]));
-        $this->assertFalse(BGC_Method_Speedy::is_free(100.0, ['free_enabled' => true, 'free_threshold' => 0.0]));
+    public function test_is_free_disabled_or_zero_threshold(): void {
+        $this->assertFalse(BGC_Method_Speedy::is_free(100.0, ['enabled' => false, 'threshold' => 50.0]));
+        $this->assertFalse(BGC_Method_Speedy::is_free(100.0, ['enabled' => true, 'threshold' => 0.0]));
+    }
+
+    public function test_free_shipping_accessor_reads_method_level_options(): void {
+        Functions\when('get_option')->alias(function ($name, $default = false) {
+            return ['bgc_speedy_free_enabled' => 'yes', 'bgc_speedy_free_threshold' => '60'][$name] ?? $default;
+        });
+        $f = BGC_Settings::free_shipping('speedy');
+        $this->assertTrue($f['enabled']);
+        $this->assertSame(60.0, $f['threshold']);
+    }
+    public function test_free_shipping_accessor_defaults_to_off(): void {
+        Functions\when('get_option')->alias(function ($name, $default = false) { return $default; });
+        $f = BGC_Settings::free_shipping('speedy');
+        $this->assertFalse($f['enabled']);
+        $this->assertSame(0.0, $f['threshold']);
     }
 }

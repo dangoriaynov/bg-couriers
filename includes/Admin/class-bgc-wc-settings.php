@@ -163,6 +163,10 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'title' => __('Use dynamic pricing', 'bg-couriers'),
                 'desc' => __('Calculate shipping cost live via the Speedy API. When off, the per-method default prices below are used.', 'bg-couriers'),
                 'default' => 'yes'],
+            ['type' => 'checkbox', 'id' => 'bgc_speedy_free_enabled', 'title' => __('Free shipping over a threshold', 'bg-couriers'),
+                'desc' => __('Speedy ships free (you absorb the cost) when the order goods total reaches the amount below — for all delivery types.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping order amount', 'bg-couriers'),
+                'desc' => __('Order goods total (without shipping) at/above which Speedy is free. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_speedy_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
         ];
@@ -175,9 +179,6 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'checkbox', 'id' => $p . 'enabled', 'title' => sprintf(__('Enable “%s”', 'bg-couriers'), $label), 'default' => 'yes'],
             ['type' => 'text', 'id' => $p . 'price', 'title' => __('Default price (API fallback)', 'bg-couriers'),
                 'desc' => __('In the store currency. Used when the courier API is unavailable or dynamic pricing is off.', 'bg-couriers'), 'default' => ''],
-            ['type' => 'checkbox', 'id' => $p . 'free_enabled', 'title' => __('Free shipping over a threshold', 'bg-couriers'), 'default' => 'no'],
-            ['type' => 'text', 'id' => $p . 'free_threshold', 'title' => __('Free-shipping order amount', 'bg-couriers'),
-                'desc' => __('Order subtotal at/above which this method is free.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => $p . 'grp'],
         ];
     }

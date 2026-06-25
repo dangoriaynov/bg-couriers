@@ -51,10 +51,16 @@ class BGC_Settings {
     public static function method_config(string $courier, string $method): array {
         $p = 'bgc_' . $courier . '_' . $method . '_';
         return [
-            'enabled'        => get_option($p . 'enabled', 'yes') === 'yes',
-            'price'          => (float) get_option($p . 'price', 0),
-            'free_enabled'   => get_option($p . 'free_enabled', 'no') === 'yes',
-            'free_threshold' => (float) get_option($p . 'free_threshold', 0),
+            'enabled' => get_option($p . 'enabled', 'yes') === 'yes',
+            'price'   => (float) get_option($p . 'price', 0),
+        ];
+    }
+
+    /** Speedy method-level free shipping (the merchant absorbs it) over a goods-total threshold. */
+    public static function free_shipping(string $courier): array {
+        return [
+            'enabled'   => get_option('bgc_' . $courier . '_free_enabled', 'no') === 'yes',
+            'threshold' => (float) get_option('bgc_' . $courier . '_free_threshold', 0),
         ];
     }
 
