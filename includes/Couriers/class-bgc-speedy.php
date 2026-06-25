@@ -199,14 +199,24 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         return (string) ($resp['id'] ?? ($resp['parcels'][0]['id'] ?? ''));
     }
 
-    public function get_label_pdf(string $waybill): string {
-        $res = $this->http_post($this->base . '/print', $this->auth([
-            'paperSize' => 'A6', 'parcels' => [['parcel' => ['id' => $waybill]]], 'additionalWaybillSenderCopy' => 'NONE',
-        ]));
+    public static function build_print_body(array $parcel_ids, string $paper_size): array {
+        return [
+            'paperSize' => in_array($paper_size, ['A6', 'A4'], true) ? $paper_size : 'A6',
+            'parcels'   => array_values(array_map(static fn($id) => ['parcel' => ['id' => (string) $id]], $parcel_ids)),
+            'additionalWaybillSenderCopy' => 'NONE',
+        ];
+    }
+
+    public function print_labels(array $parcel_ids, string $paper_size): string {
+        $res = $this->http_post($this->base . '/print', $this->auth(self::build_print_body($parcel_ids, $paper_size)));
         if (is_wp_error($res) || (int) wp_remote_retrieve_response_code($res) !== 200) {
             throw new BGC_Api_Exception('Speedy print failed');
         }
         return (string) wp_remote_retrieve_body($res); // binary PDF
+    }
+
+    public function get_label_pdf(string $waybill): string {
+        return $this->print_labels([$waybill], 'A6');
     }
 
     public function track(string $waybill): BGC_Tracking {
