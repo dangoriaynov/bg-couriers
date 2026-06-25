@@ -67,8 +67,11 @@ class BGC_Checkout {
     public function assets(): void {
         if (!function_exists('is_checkout') || !is_checkout()) { return; }
         wp_enqueue_style('select2');
-        wp_enqueue_style('bgc-checkout', BGC_URL . 'assets/css/bgc-checkout.css', [], BGC_VERSION);
-        wp_enqueue_script('bgc-checkout', BGC_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo'], BGC_VERSION, true);
+        // Version by file mtime so every asset change busts the browser cache automatically.
+        $css = BGC_PATH . 'assets/css/bgc-checkout.css';
+        $js  = BGC_PATH . 'assets/js/bgc-checkout.js';
+        wp_enqueue_style('bgc-checkout', BGC_URL . 'assets/css/bgc-checkout.css', [], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
+        wp_enqueue_script('bgc-checkout', BGC_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo'], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
         wp_localize_script('bgc-checkout', 'BGC', [
             'ajax'  => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('bgc_checkout'),
@@ -78,9 +81,10 @@ class BGC_Checkout {
             'emergency' => BGC_Settings::emergency(),
             'i18n'  => [
                 'address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To automat','bg-couriers'),
+                'office_label'=>__('Office','bg-couriers'),'automat_label'=>__('Automat (locker)','bg-couriers'),
                 'emerg_default'=>__('Having trouble placing your order? We can help — call us:','bg-couriers'),
                 'close'=>__('Close','bg-couriers'),
-                'city_ph' => __('Type a city…','bg-couriers'),
+                'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),
             ],
         ]);
 
@@ -116,25 +120,42 @@ class BGC_Checkout {
                 $office_option = '<option value="' . esc_attr($office_id) . '" selected>' . esc_html($office['name'] . ' — ' . $office['address']) . '</option>';
             }
         }
-        $office_style = $office_option ? '' : ' style="display:none;"';
+        // Office/automat picker shows for office+automat methods, hides for address.
+        $office_style = ($sel_method === 'address') ? ' style="display:none;"' : '';
 
         $av = function ($k) use ($s) { return $s ? esc_attr((string) $s->get('bgc_addr_' . $k, '')) : ''; };
         $addr_style = ($sel_method === 'address') ? '' : ' style="display:none;"';
 
+        $office_label = ($sel_method === 'automat')
+            ? esc_html__('Automat (locker)', 'bg-couriers')
+            : esc_html__('Office', 'bg-couriers');
+
         echo '<div class="bgc-fields" data-courier="speedy" data-method="' . esc_attr($sel_method) . '">'
-           . '<div class="bgc-types"></div>'
-           . '<p class="bgc-row bgc-postcode-row"><label>' . esc_html__('Postal code (optional)','bg-couriers') . '</label><input type="text" class="bgc-postcode" autocomplete="off" value="' . esc_attr($post_code) . '"></p>'
-           . '<p class="bgc-row"><label>' . esc_html__('City','bg-couriers') . '</label><select class="bgc-city" style="width:100%"><option value=""></option>' . $city_option . '</select></p>'
-           . '<p class="bgc-row bgc-office-row"' . $office_style . '><label>' . esc_html__('Office / Automat','bg-couriers') . '</label><select class="bgc-office" style="width:100%">' . $office_option . '</select></p>'
+           . '<div class="bgc-loader" aria-hidden="true"><span class="bgc-spinner"></span></div>'
+           . '<div class="bgc-tabs" role="tablist"></div>'
+           . '<div class="bgc-panel">'
+           . '<div class="bgc-grid">'
+           . '<div class="bgc-field bgc-city-field"><label>' . esc_html__('City', 'bg-couriers') . '</label>'
+           . '<select class="bgc-city"><option value=""></option>' . $city_option . '</select></div>'
+           . '<div class="bgc-field bgc-postcode-field"><label>' . esc_html__('Postcode', 'bg-couriers') . '</label>'
+           . '<input type="text" class="bgc-postcode" autocomplete="off" inputmode="numeric" maxlength="4" placeholder="' . esc_attr__('opt.', 'bg-couriers') . '" value="' . esc_attr($post_code) . '"></div>'
+           . '</div>'
+           . '<div class="bgc-field bgc-office-row"' . $office_style . '><label class="bgc-office-label">' . $office_label . '</label>'
+           . '<select class="bgc-office">' . $office_option . '</select></div>'
            . '<div class="bgc-address-rows"' . $addr_style . '>'
-           . '<p class="bgc-row"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><input type="text" class="bgc-street" autocomplete="off" value="' . $av('street_name') . '"></p>'
-           . '<p class="bgc-row"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></p>'
-           . '<p class="bgc-row"><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label><input type="text" class="bgc-complex" autocomplete="off" value="' . $av('complex') . '"></p>'
-           . '<p class="bgc-row bgc-addr-inline"><span><label>' . esc_html__('Block', 'bg-couriers') . '</label><input type="text" class="bgc-block" value="' . $av('block') . '"></span>'
-           . '<span><label>' . esc_html__('Entrance', 'bg-couriers') . '</label><input type="text" class="bgc-entrance" value="' . $av('entrance') . '"></span>'
-           . '<span><label>' . esc_html__('Floor', 'bg-couriers') . '</label><input type="text" class="bgc-floor" value="' . $av('floor') . '"></span>'
-           . '<span><label>' . esc_html__('Apt.', 'bg-couriers') . '</label><input type="text" class="bgc-apartment" value="' . $av('apartment') . '"></span></p>'
-           . '<p class="bgc-row"><label>' . esc_html__('Note', 'bg-couriers') . '</label><input type="text" class="bgc-note" autocomplete="off" value="' . $av('address_note') . '"></p>'
+           . '<div class="bgc-grid">'
+           . '<div class="bgc-field bgc-street-field"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><input type="text" class="bgc-street" autocomplete="off" value="' . $av('street_name') . '"></div>'
+           . '<div class="bgc-field bgc-streetno-field"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></div>'
+           . '</div>'
+           . '<div class="bgc-field"><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label><input type="text" class="bgc-complex" autocomplete="off" value="' . $av('complex') . '"></div>'
+           . '<div class="bgc-grid bgc-grid-4">'
+           . '<div class="bgc-field"><label>' . esc_html__('Block', 'bg-couriers') . '</label><input type="text" class="bgc-block" value="' . $av('block') . '"></div>'
+           . '<div class="bgc-field"><label>' . esc_html__('Entr.', 'bg-couriers') . '</label><input type="text" class="bgc-entrance" value="' . $av('entrance') . '"></div>'
+           . '<div class="bgc-field"><label>' . esc_html__('Floor', 'bg-couriers') . '</label><input type="text" class="bgc-floor" value="' . $av('floor') . '"></div>'
+           . '<div class="bgc-field"><label>' . esc_html__('Apt.', 'bg-couriers') . '</label><input type="text" class="bgc-apartment" value="' . $av('apartment') . '"></div>'
+           . '</div>'
+           . '<div class="bgc-field"><label>' . esc_html__('Note', 'bg-couriers') . '</label><input type="text" class="bgc-note" autocomplete="off" value="' . $av('address_note') . '"></div>'
+           . '</div>'
            . '</div>'
            . '</div>';
     }

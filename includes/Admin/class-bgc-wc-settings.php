@@ -116,6 +116,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'textarea', 'id' => 'bgc_hidden_fields', 'title' => __('Hidden checkout fields (CSS selectors)', 'bg-couriers'),
                 'desc' => __('Comma-separated CSS selectors to hide on checkout (e.g. #billing_company_field, .cart-subtotal).', 'bg-couriers'),
                 'css' => 'min-width:400px;height:90px;', 'default' => ''],
+            ['type' => 'number', 'id' => 'bgc_dropdown_limit', 'title' => __('Checkout dropdown results', 'bg-couriers'),
+                'desc' => __('How many city / office results to show in checkout dropdowns (search shows the same max). Default 5.', 'bg-couriers'),
+                'default' => 5, 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'sectionend', 'id' => 'bgc_general'],
 
             ['type' => 'title', 'id' => 'bgc_sender', 'title' => __('Sender address (for labels)', 'bg-couriers'),

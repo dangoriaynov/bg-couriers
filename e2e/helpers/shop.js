@@ -48,4 +48,30 @@ async function fillGuestBilling(page, d) {
   await set('#billing_postcode', d.postcode || '1000');
 }
 
-module.exports = { addAnyProductToCart, gotoCheckout, fillGuestBilling, dismissStoreBanner };
+// Click a Speedy delivery-type tab (office | address | automat).
+async function selectSpeedyTab(page, fields, methodName) {
+  await fields.locator(`.bgc-tab[data-method="${methodName}"]`).click();
+  await expect(fields.locator(`.bgc-tab[data-method="${methodName}"].active`)).toBeVisible({ timeout: 10000 });
+}
+
+// Open the city selectWoo, type a term, pick the first result.
+async function selectCity(page, fields, term) {
+  await fields.locator('.bgc-city-field .select2-selection').click();
+  const search = page.locator('.select2-search__field');
+  await expect(search).toBeVisible({ timeout: 10000 });
+  await search.fill(term);
+  const first = page.locator('.select2-results__option[role="option"]').first();
+  await expect(first).toBeVisible({ timeout: 15000 });
+  await first.click();
+}
+
+// Open the office/automat selectWoo (AJAX, live per-city) and pick the first office.
+async function pickFirstOffice(page, fields) {
+  await fields.locator('.bgc-office-row .select2-selection').click();
+  const opt = page.locator('.select2-results__option[role="option"]').first();
+  await expect(opt).toBeVisible({ timeout: 20000 }); // waits past the "Searching…" transient
+  await page.waitForTimeout(600);
+  await opt.click();
+}
+
+module.exports = { addAnyProductToCart, gotoCheckout, fillGuestBilling, dismissStoreBanner, selectSpeedyTab, selectCity, pickFirstOffice };

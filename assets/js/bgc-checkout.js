@@ -1,29 +1,58 @@
 (function ($) {
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
+  function sel2($el, opts) { return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts)); }
+
   function caps() {
-    // Enabled methods, in the configured order (defaults to office/address/automat).
     var enabled = (BGC && BGC.methods && BGC.methods.length) ? BGC.methods : ['office', 'address', 'automat'];
     var order = (BGC && BGC.order && BGC.order.length) ? BGC.order : ['office', 'address', 'automat'];
     return order.filter(function (t) { return enabled.indexOf(t) !== -1; });
   }
-  function renderTypes($wrap) {
-    if ($wrap.find('.bgc-types input').length) return;
+  function method($wrap) { return $wrap.attr('data-method') || caps()[0] || 'office'; }
+  function showLoader($wrap) { $wrap.addClass('bgc-loading'); }
+  function hideLoader($wrap) { $wrap.removeClass('bgc-loading'); }
+  function officeLabel(m) { return m === 'automat' ? (BGC.i18n.automat_label || 'Automat') : (BGC.i18n.office_label || 'Office'); }
+
+  // Delivery-type tabs ------------------------------------------------------
+  function renderTabs($wrap) {
     var types = caps();
-    var sel = $wrap.data('method') || types[0]; // preserve the session-selected method across recalcs
+    if (!$wrap.attr('data-method')) { $wrap.attr('data-method', types[0]); }
+    var sel = method($wrap);
+    if ($wrap.find('.bgc-tab').length) { syncMethodUI($wrap); return; }
     var html = types.map(function (t) {
-      return '<label><input type="radio" name="bgc_method" value="' + t + '"' + (t === sel ? ' checked' : '') + '> ' + esc(BGC.i18n[t]) + '</label>';
-    }).join(' ');
-    $wrap.find('.bgc-types').html(html);
+      return '<button type="button" class="bgc-tab' + (t === sel ? ' active' : '') + '" data-method="' + t + '">' + esc(BGC.i18n[t]) + '</button>';
+    }).join('');
+    $wrap.find('.bgc-tabs').html(html);
   }
 
-  function sel2($el, opts) { return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts)); }
+  // Keep the visible panel (tabs / office label / address rows) in sync with the method.
+  function syncMethodUI($wrap) {
+    var m = method($wrap), isAddr = m === 'address';
+    $wrap.find('.bgc-tab').each(function () { $(this).toggleClass('active', $(this).data('method') === m); });
+    $wrap.find('.bgc-address-rows').toggle(isAddr);
+    $wrap.find('.bgc-office-row').toggle(!isAddr);
+    if (!isAddr) { $wrap.find('.bgc-office-label').text(officeLabel(m)); }
+  }
 
+  function resetOffice($wrap) {
+    var $o = $wrap.find('.bgc-office');
+    if ($o.hasClass('select2-hidden-accessible')) { $o.val(null).trigger('change.select2'); }
+    $o.empty();
+  }
+
+  function setMethod($wrap, m) {
+    $wrap.attr('data-method', m);
+    syncMethodUI($wrap);
+    if (m !== 'address') { resetOffice($wrap); }
+    showLoader($wrap);
+    pushSelection($wrap); // saves method + recalc; loader cleared on updated_checkout
+  }
+
+  // City (searchable, server-limited) --------------------------------------
   function initCity($wrap) {
     var $city = $wrap.find('.bgc-city');
-    if ($city.hasClass('select2-hidden-accessible')) { return; } // already initialised (empty <option> is server-rendered)
+    if ($city.hasClass('select2-hidden-accessible')) { return; }
     sel2($city, {
-      width: '100%', allowClear: true, placeholder: (BGC.i18n && BGC.i18n.city_ph) || '',
-      minimumInputLength: 2,
+      width: '100%', allowClear: true, placeholder: (BGC.i18n && BGC.i18n.city_ph) || '', minimumInputLength: 0,
       ajax: {
         url: BGC.ajax, dataType: 'json', delay: 250,
         data: function (params) { return { action: 'bgc_search_cities', courier: 'speedy', term: params.term || '' }; },
@@ -40,72 +69,54 @@
     });
     $city.on('select2:select', function (e) {
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
-      loadOffices($wrap); // loadOffices pushes the selection once offices are known (avoids a double-push race)
+      resetOffice($wrap); showLoader($wrap); pushSelection($wrap);
     });
   }
 
+  // Office / automat (searchable, live per-city, server-limited) ------------
   function initOffice($wrap) {
     var $office = $wrap.find('.bgc-office');
-    if (!$office.length || $office.hasClass('select2-hidden-accessible')) { return; }
-    var hasOpt = $office.find('option').filter(function () { return this.value !== ''; }).length > 0;
-    if (!hasOpt) { return; } // nothing selected yet
-    sel2($office, { width: '100%' });
-    $wrap.find('.bgc-office-row').show();
-  }
-
-  function loadOffices($wrap) {
-    var cityId = $wrap.find('.bgc-city').val();
-    var type = $wrap.find('input[name=bgc_method]:checked').val();
-    var $office = $wrap.find('.bgc-office');
-    if (!cityId || type === 'address') { $wrap.find('.bgc-office-row').hide(); pushSelection($wrap); return; }
-    $.get(BGC.ajax, { action: 'bgc_offices', courier: 'speedy', city_id: cityId, type: type }, function (rows) {
-      if ($office.hasClass('select2-hidden-accessible')) {
-        ($.fn.selectWoo ? $office.selectWoo('destroy') : $office.select2('destroy'));
+    if ($office.hasClass('select2-hidden-accessible')) { return; }
+    sel2($office, {
+      width: '100%', minimumInputLength: 0, placeholder: (BGC.i18n && BGC.i18n.office_ph) || '',
+      ajax: {
+        url: BGC.ajax, dataType: 'json', delay: 250,
+        data: function (params) {
+          return { action: 'bgc_offices', courier: 'speedy', city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
+        },
+        processResults: function (rows) {
+          return { results: rows.map(function (o) { return { id: o.office_id, text: o.name + ' — ' + o.address }; }) };
+        }
       }
-      $office.empty();
-      rows.forEach(function (o) { $office.append(new Option(o.name + ' — ' + o.address, o.office_id, false, false)); });
-      sel2($office, { width: '100%' });
-      $wrap.find('.bgc-office-row').toggle(rows.length > 0);
-      pushSelection($wrap);
     });
+    $office.on('select2:select', function () { pushSelection($wrap); });
   }
 
-  function toggleAddress($wrap) {
-    var addr = $wrap.find('input[name=bgc_method]:checked').val() === 'address';
-    $wrap.find('.bgc-address-rows').toggle(addr);
-    if (addr) { $wrap.find('.bgc-office-row').hide(); }
-    else { $wrap.find('.bgc-office-row').show(); }
-  }
-
+  // Save the selection ------------------------------------------------------
   function selectionData($wrap) {
     return {
-      action: 'bgc_set_selection', nonce: BGC.nonce,
-      method: $wrap.find('input[name=bgc_method]:checked').val(),
+      action: 'bgc_set_selection', nonce: BGC.nonce, method: method($wrap),
       site_id: $wrap.find('.bgc-city').val() || 0,
       office_id: $wrap.find('.bgc-office').val() || 0,
       post_code: $wrap.find('.bgc-postcode').val() || '',
-      street_name: $wrap.find('.bgc-street').val() || '',
-      street_no:   $wrap.find('.bgc-street-no').val() || '',
-      complex:     $wrap.find('.bgc-complex').val() || '',
-      block:       $wrap.find('.bgc-block').val() || '',
-      entrance:    $wrap.find('.bgc-entrance').val() || '',
-      floor:       $wrap.find('.bgc-floor').val() || '',
-      apartment:   $wrap.find('.bgc-apartment').val() || '',
-      address_note: $wrap.find('.bgc-note').val() || ''
+      street_name: $wrap.find('.bgc-street').val() || '', street_no: $wrap.find('.bgc-street-no').val() || '',
+      complex: $wrap.find('.bgc-complex').val() || '', block: $wrap.find('.bgc-block').val() || '',
+      entrance: $wrap.find('.bgc-entrance').val() || '', floor: $wrap.find('.bgc-floor').val() || '',
+      apartment: $wrap.find('.bgc-apartment').val() || '', address_note: $wrap.find('.bgc-note').val() || ''
     };
   }
-  // Save + recalc shipping (method/city/office change the price).
-  function pushSelection($wrap) {
-    $.post(BGC.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); });
-  }
-  // Save only — no recalc/re-render. Address detail fields don't change the (city-level)
-  // price, so saving them must NOT trigger update_checkout, which would re-render and wipe
-  // the fields the customer is still typing.
-  function saveSelection($wrap) { $.post(BGC.ajax, selectionData($wrap)); }
+  function pushSelection($wrap) { $.post(BGC.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
+  function saveSelection($wrap) { $.post(BGC.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
 
+  // Wiring ------------------------------------------------------------------
   $(document.body).on('updated_checkout', function () {
     var $wrap = $('.bgc-fields'); if (!$wrap.length) return;
-    renderTypes($wrap); initCity($wrap); initOffice($wrap); toggleAddress($wrap);
+    renderTabs($wrap); initCity($wrap); initOffice($wrap); syncMethodUI($wrap); hideLoader($wrap);
+  });
+
+  $(document.body).on('click', '.bgc-tab', function (e) {
+    e.preventDefault();
+    setMethod($(this).closest('.bgc-fields'), $(this).data('method'));
   });
 
   $(document.body).on('input', '.bgc-postcode', function () {
@@ -113,22 +124,16 @@
     $.get(BGC.ajax, { action: 'bgc_search_cities', courier: 'speedy', term: code }, function (rows) {
       if (rows && rows.length === 1) {
         var $city = $wrap.find('.bgc-city'); var r = rows[0];
-        $city.append(new Option(r.name, r.city_id, true, true)).trigger('change'); loadOffices($wrap);
+        $city.append(new Option(r.name, r.city_id, true, true)).trigger('change');
+        resetOffice($wrap); showLoader($wrap); pushSelection($wrap);
       }
     });
-  });
-
-  $(document.body).on('change', 'input[name=bgc_method]', function () {
-    var $wrap = $(this).closest('.bgc-fields'); toggleAddress($wrap); loadOffices($wrap);
   });
 
   var addrT;
   $(document.body).on('input', '.bgc-address-rows input', function () {
     var $wrap = $(this).closest('.bgc-fields');
     clearTimeout(addrT); addrT = setTimeout(function () { saveSelection($wrap); }, 600);
-  });
-  $(document.body).on('change', '.bgc-office', function () {
-    var $wrap = $(this).closest('.bgc-fields'); pushSelection($wrap);
   });
 
   // Emergency help: after repeated checkout failures, show a one-time help box with a phone link.

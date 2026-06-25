@@ -1,31 +1,22 @@
 const { test, expect } = require('@playwright/test');
-const { addAnyProductToCart, gotoCheckout, fillGuestBilling } = require('../helpers/shop');
+const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectSpeedyTab, selectCity, pickFirstOffice } = require('../helpers/shop');
 
-function amount(text) {
-  const m = (text || '').match(/[\d]+[,.][\d]+/);
-  return m ? parseFloat(m[0].replace(',', '.')) : 0;
-}
+function amount(text) { const m = (text || '').match(/[\d]+[,.][\d]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
 test('speedy guest checkout to AUTOMAT (locker), COD', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
-
   const fields = page.locator('.bgc-fields');
   await expect(fields).toBeVisible({ timeout: 15000 });
 
-  // Choose "to automat" — a separate option; the picker lists the cached lockers.
-  await fields.locator('input[name="bgc_method"][value="automat"]').check();
+  await selectSpeedyTab(page, fields, 'automat');
   await expect(fields.locator('.bgc-address-rows')).toBeHidden();
 
-  // City → loads automats for that city.
-  await fields.locator('.bgc-row').filter({ has: page.locator('.bgc-city') }).locator('.select2-selection').click();
-  await page.locator('.select2-search__field').fill('София');
-  await expect(page.locator('.select2-results__option').first()).toBeVisible({ timeout: 15000 });
-  await page.locator('.select2-results__option').first().click();
-
-  // A locker is auto-selected.
-  await expect(fields.locator('.bgc-office-row')).toBeVisible({ timeout: 20000 });
-  await expect.poll(async () => await fields.locator('.bgc-office').inputValue(), { timeout: 20000 }).not.toBe('');
+  await selectCity(page, fields, 'София');
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(1500);
+  await expect(fields.locator('.bgc-office-row')).toBeVisible({ timeout: 15000 });
+  await pickFirstOffice(page, fields); // automats are filtered by the tab type
   await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(2500);
 
