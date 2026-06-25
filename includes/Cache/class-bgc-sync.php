@@ -26,14 +26,21 @@ class BGC_Sync {
         if ($offices) { $out['offices'] = BGC_Nomenclature::upsert_offices($id, $offices, $run); }
         $out['pruned'] = BGC_Nomenclature::prune($id, $run);
 
-        foreach (['address', 'office', 'automat'] as $method) {
-            if (!in_array($method, $courier->capabilities(), true)) { continue; }
+        $caps = $courier->capabilities();
+        $methods = array_values(array_filter(['address', 'office', 'automat'],
+            function ($m) use ($caps) { return in_array($m, $caps, true); }));
+        if ($methods) {
             try {
-                $q = $courier->quote(self::standard_shipment($method));
-                BGC_Rates::set($id, $method, $q->total(), $q->currency);
-                $out['rates']++;
+                // One representative quote (address to a major city) seeds the standard-rate
+                // fallback for every enabled method. Office/automat need no live office id here,
+                // and quoting them with office_id=0 would fail — so we use the address shape once.
+                $q = $courier->quote(self::standard_shipment('address'));
+                foreach ($methods as $method) {
+                    BGC_Rates::set($id, $method, $q->total(), $q->currency);
+                    $out['rates']++;
+                }
             } catch (\Exception $e) {
-                BGC_Logger::debug('sync: rate quote failed', ['courier' => $id, 'method' => $method]);
+                BGC_Logger::debug('sync: standard rate quote failed', ['courier' => $id]);
             }
         }
         return $out;

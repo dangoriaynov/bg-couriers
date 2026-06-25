@@ -132,7 +132,8 @@ class BGC_Speedy extends BGC_Abstract_Courier {
             $service['additionalServices']['cod'] = ['amount' => (float) $s['cod_amount'], 'processingType' => 'CASH'];
         }
         return [
-            'sender'    => [], // sender clientId added by quote() caller config if needed
+            // No 'sender' on a price calc: Speedy expects an object, and PHP's [] serialises to a
+            // JSON array, which Speedy rejects ("Cannot deserialize CalculationSender from Array").
             'recipient' => $recipient,
             'service'   => $service,
             'content'   => ['parcelsCount' => 1, 'totalWeight' => (float) ($s['weight_kg'] ?? 2.0)],

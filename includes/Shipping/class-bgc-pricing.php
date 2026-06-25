@@ -8,11 +8,11 @@ class BGC_Pricing {
             try { return $courier->quote($shipment); }
             catch (\Exception $e) { BGC_Logger::debug('live quote failed -> fallback', ['courier' => $courier->id()]); }
         }
-        $cached = BGC_Rates::get($courier->id(), $method);
-        if ($cached !== null) { return new BGC_Quote($cached, 0.0, 'BGN', 'standard'); }
-        // Configured per-method default price (already in the store currency).
-        $mc = BGC_Settings::method_config($courier->id(), $method);
+        // Cached standard rate and configured default are both already in the store currency.
         $store = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'BGN';
+        $cached = BGC_Rates::get($courier->id(), $method);
+        if ($cached !== null) { return new BGC_Quote($cached, 0.0, $store, 'standard'); }
+        $mc = BGC_Settings::method_config($courier->id(), $method);
         $amount = $mc['price'] > 0 ? $mc['price'] : 6.99;
         return new BGC_Quote(round($amount, 2), 0.0, $store, 'flat');
     }

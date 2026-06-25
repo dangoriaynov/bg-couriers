@@ -7,6 +7,20 @@ class BGC_Checkout {
         add_action('wp_enqueue_scripts', [$this, 'assets']);
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
+        add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
+    }
+
+    /**
+     * Our shipping cost depends on the session selection (method/city/office), which is NOT part
+     * of the package WC hashes to cache shipping rates. Inject it so the cache busts when the
+     * customer changes courier office/city — otherwise WC serves a stale rate from the first calc.
+     */
+    public function package_hash($packages) {
+        $s = WC()->session;
+        if (!$s) { return $packages; }
+        $key = (string) $s->get('bgc_method', '') . ':' . (int) $s->get('bgc_site_id', 0) . ':' . (int) $s->get('bgc_office_id', 0);
+        foreach ($packages as $i => $pkg) { $packages[$i]['bgc_selection'] = $key; }
+        return $packages;
     }
 
     public function chosen_is_speedy(): bool {
