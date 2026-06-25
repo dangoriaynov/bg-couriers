@@ -20,7 +20,6 @@ class BGC_Settings_Migrator {
                 'env'       => 'bgc_speedy_environment',
                 'username'  => 'bgc_speedy_username',
                 'password'  => 'bgc_speedy_password',
-                'client_id' => 'bgc_speedy_client_id',
             ];
             foreach ($map as $k => $opt) {
                 if (isset($old[$k])) { update_option($opt, $old[$k]); }

@@ -6,12 +6,11 @@ class BGC_Speedy extends BGC_Abstract_Courier {
     const LIVE = 'https://api.speedy.bg/v1';
     const DEMO = 'https://api.speedy.bg/v1'; // Speedy has no separate demo host; demo = test account creds
 
-    private string $user; private string $pass; private string $base; private int $client_id; private array $sender;
+    private string $user; private string $pass; private string $base; private array $sender;
 
     public function __construct(array $config) {
         $this->user = (string) ($config['username'] ?? '');
         $this->pass = (string) ($config['password'] ?? '');
-        $this->client_id = (int) ($config['client_id'] ?? 0);
         $this->sender = (array) ($config['sender'] ?? []);
         $this->base = ($config['env'] ?? 'demo') === 'live' ? self::LIVE : self::DEMO;
     }

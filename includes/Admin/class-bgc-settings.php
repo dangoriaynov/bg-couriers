@@ -39,7 +39,6 @@ class BGC_Settings {
             'env'       => get_option('bgc_speedy_environment', 'demo'),
             'username'  => get_option('bgc_speedy_username', ''),
             'password'  => BGC_Encryption::decrypt(get_option('bgc_speedy_password', '')),
-            'client_id' => (int) get_option('bgc_speedy_client_id', 0),
             'sender'    => self::sender(),
         ];
     }
