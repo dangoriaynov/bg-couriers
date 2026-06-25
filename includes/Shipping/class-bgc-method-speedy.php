@@ -27,6 +27,13 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
         $weight  = (float) ($package['contents_weight'] ?? 0);
         $packed  = BGC_Packer::from_weight($weight);
 
+        // Office/automat price is the same for any office in a city, so quote with a representative
+        // office of the chosen city when the customer hasn't picked a specific one yet — otherwise
+        // the live quote can't run (no pickupOfficeId) and falls back to a higher flat rate.
+        if ($office <= 0 && $site_id > 0 && in_array($method, ['office', 'automat'], true)) {
+            $rep = BGC_Nomenclature::offices('speedy', $site_id, $method);
+            if (!empty($rep[0]['office_id'])) { $office = (int) $rep[0]['office_id']; }
+        }
         $shipment = array_merge($packed, [
             'method' => $method, 'site_id' => $site_id, 'office_id' => $office, 'cod_amount' => 0.0, 'currency' => get_woocommerce_currency(),
         ]);
