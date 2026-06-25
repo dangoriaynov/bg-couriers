@@ -5,6 +5,7 @@ class BGC_Labels {
     public function __construct() {
         add_action('admin_post_bgc_generate_label', [$this, 'handle_generate']);
         add_action('admin_post_bgc_track', [$this, 'handle_track']);
+        add_action('admin_post_bgc_print_batch', [$this, 'handle_print_batch']);
         add_action('woocommerce_order_status_changed', [$this, 'maybe_auto_generate'], 20, 4);
     }
 
@@ -43,6 +44,18 @@ class BGC_Labels {
         $order->save();
         return new BGC_Label($label->waybill, $url);
     }
+    public static function batch_parcel_ids(array $order_ids, ?callable $resolver = null): array {
+        $resolver = $resolver ?: static function ($id) {
+            $o = wc_get_order((int) $id);
+            return $o ? (string) $o->get_meta('_bgc_waybill') : '';
+        };
+        $ids = [];
+        foreach ($order_ids as $oid) {
+            $w = (string) $resolver($oid);
+            if ($w !== '') { $ids[] = $w; }
+        }
+        return $ids;
+    }
     public function handle_generate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
         $id = (int) ($_GET['order_id'] ?? 0);
@@ -63,6 +76,24 @@ class BGC_Labels {
         $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy([]);
         add_filter('allowed_redirect_hosts', function ($h) { $h[] = 'www.speedy.bg'; $h[] = 'speedy.bg'; return $h; });
         wp_safe_redirect($courier->tracking_url($waybill));
+        exit;
+    }
+    public function handle_print_batch(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        check_admin_referer('bgc_print_batch');
+        $order_ids = isset($_GET['order_id'])
+            ? [(int) $_GET['order_id']]
+            : (array) get_transient('bgc_print_batch_' . get_current_user_id());
+        $order_ids = array_filter(array_map('intval', $order_ids));
+        $parcels = self::batch_parcel_ids($order_ids);
+        if (!$parcels) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
+        $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: ['env' => 'demo']);
+        try { $pdf = $courier->print_labels($parcels, BGC_Settings::label_paper_size()); }
+        catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
+        nocache_headers();
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="speedy-labels.pdf"');
+        echo $pdf; // phpcs:ignore WordPress.Security.EscapeOutput -- binary PDF
         exit;
     }
 }
