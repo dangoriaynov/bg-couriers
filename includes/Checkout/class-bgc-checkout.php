@@ -9,6 +9,36 @@ class BGC_Checkout {
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
+        // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
+        // recalculation via WC's fragment mechanism (server computes the remaining; no DOM parsing).
+        add_action('woocommerce_before_checkout_form', [$this, 'render_free_notice'], 5);
+        add_filter('woocommerce_update_order_review_fragments', [$this, 'free_notice_fragment']);
+    }
+
+    public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
+    public function free_notice_fragment($fragments) { $fragments['.bgc-free-notice'] = self::free_notice_html(); return $fragments; }
+
+    /** Amount still needed to reach the Speedy free-shipping threshold (0 if disabled or already met). */
+    public static function free_remaining(float $subtotal, array $cfg): float {
+        if (empty($cfg['enabled']) || (float) ($cfg['threshold'] ?? 0) <= 0) { return 0.0; }
+        return max(0.0, (float) $cfg['threshold'] - $subtotal);
+    }
+
+    /** The progress notice HTML (always the .bgc-free-notice element so the fragment can swap it). */
+    public static function free_notice_html(): string {
+        $cfg = BGC_Settings::free_shipping('speedy');
+        $subtotal = (function_exists('WC') && WC()->cart) ? (float) WC()->cart->get_subtotal() : 0.0;
+        if (empty($cfg['enabled']) || (float) ($cfg['threshold'] ?? 0) <= 0) {
+            return '<div class="bgc-free-notice"></div>';
+        }
+        $remaining = self::free_remaining($subtotal, $cfg);
+        if ($remaining <= 0) {
+            $msg = esc_html__('You have free Speedy delivery! 🎉', 'bg-couriers');
+        } else {
+            /* translators: %s is a formatted price. */
+            $msg = sprintf(esc_html__('Add %s more for free Speedy delivery', 'bg-couriers'), wc_price($remaining));
+        }
+        return '<div class="bgc-free-notice woocommerce-info" style="margin-bottom:1em;">' . $msg . '</div>';
     }
 
     /**
