@@ -5,6 +5,7 @@ module.exports = defineConfig({
   timeout: 90000,
   expect: { timeout: 15000 },
   retries: 1,
+  workers: 1, // serial: every spec drives the same shared dev site + one Speedy account
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
     baseURL: process.env.BASE_URL || 'https://dev.dobavki.club',
