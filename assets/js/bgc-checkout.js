@@ -74,6 +74,7 @@
     var addr = $wrap.find('input[name=bgc_method]:checked').val() === 'address';
     $wrap.find('.bgc-address-rows').toggle(addr);
     if (addr) { $wrap.find('.bgc-office-row').hide(); }
+    else { $wrap.find('.bgc-office-row').show(); }
   }
 
   function pushSelection($wrap) {
