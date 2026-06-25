@@ -5,6 +5,10 @@
 .bgc-fields .select2-container { width: 100% !important; }
 .bgc-fields .select2-selection { min-height: 34px; }
 
+.bgc-addr-inline { display: flex; gap: 8px; }
+.bgc-addr-inline span { flex: 1; }
+.bgc-addr-inline input { width: 100%; }
+
 /* Emergency help modal */
 .bgc-emerg-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .bgc-emerg-box { position: relative; background: #fff; border-radius: 12px; max-width: 420px; width: 100%; padding: 28px 26px; box-shadow: 0 12px 40px rgba(0,0,0,.25); text-align: center; }

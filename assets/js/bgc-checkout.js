@@ -70,19 +70,33 @@
     });
   }
 
+  function toggleAddress($wrap) {
+    var addr = $wrap.find('input[name=bgc_method]:checked').val() === 'address';
+    $wrap.find('.bgc-address-rows').toggle(addr);
+    if (addr) { $wrap.find('.bgc-office-row').hide(); }
+  }
+
   function pushSelection($wrap) {
     $.post(BGC.ajax, {
       action: 'bgc_set_selection', nonce: BGC.nonce,
       method: $wrap.find('input[name=bgc_method]:checked').val(),
       site_id: $wrap.find('.bgc-city').val() || 0,
       office_id: $wrap.find('.bgc-office').val() || 0,
-      post_code: $wrap.find('.bgc-postcode').val() || ''
+      post_code: $wrap.find('.bgc-postcode').val() || '',
+      street_name: $wrap.find('.bgc-street').val() || '',
+      street_no:   $wrap.find('.bgc-street-no').val() || '',
+      complex:     $wrap.find('.bgc-complex').val() || '',
+      block:       $wrap.find('.bgc-block').val() || '',
+      entrance:    $wrap.find('.bgc-entrance').val() || '',
+      floor:       $wrap.find('.bgc-floor').val() || '',
+      apartment:   $wrap.find('.bgc-apartment').val() || '',
+      address_note: $wrap.find('.bgc-note').val() || ''
     }, function () { $(document.body).trigger('update_checkout'); });
   }
 
   $(document.body).on('updated_checkout', function () {
     var $wrap = $('.bgc-fields'); if (!$wrap.length) return;
-    renderTypes($wrap); initCity($wrap); initOffice($wrap);
+    renderTypes($wrap); initCity($wrap); initOffice($wrap); toggleAddress($wrap);
   });
 
   $(document.body).on('input', '.bgc-postcode', function () {
@@ -96,7 +110,13 @@
   });
 
   $(document.body).on('change', 'input[name=bgc_method]', function () {
-    var $wrap = $(this).closest('.bgc-fields'); loadOffices($wrap);
+    var $wrap = $(this).closest('.bgc-fields'); toggleAddress($wrap); loadOffices($wrap);
+  });
+
+  var addrT;
+  $(document.body).on('input', '.bgc-address-rows input', function () {
+    var $wrap = $(this).closest('.bgc-fields');
+    clearTimeout(addrT); addrT = setTimeout(function () { pushSelection($wrap); }, 600);
   });
   $(document.body).on('change', '.bgc-office', function () {
     var $wrap = $(this).closest('.bgc-fields'); pushSelection($wrap);
