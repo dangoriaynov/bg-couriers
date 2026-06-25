@@ -25,6 +25,7 @@ class BGC_Plugin {
             BGC_Settings_Migrator::migrate();
             new BGC_Order_Metabox();
             new BGC_Order_Columns();
+            new BGC_Bulk_Labels();
         }
     }
 }

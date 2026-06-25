@@ -25,9 +25,8 @@ class BGC_Order_Metabox {
             echo '<a class="button button-primary" href="' . esc_url($url) . '">' . esc_html__('Generate label', 'bg-couriers') . '</a>';
         } else {
             echo '<p><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> ' . esc_html($waybill) . '</p>';
-            if ($order->get_meta('_bgc_label_url')) {
-                echo '<a class="button" target="_blank" href="' . esc_url($order->get_meta('_bgc_label_url')) . '">' . esc_html__('Print', 'bg-couriers') . '</a> ';
-            }
+            $print = wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $order->get_id(), 'bgc_print_batch');
+            echo '<a class="button" target="_blank" href="' . esc_url($print) . '">' . esc_html__('Print', 'bg-couriers') . '</a> ';
             $track = wp_nonce_url($base . '?action=bgc_track&order_id=' . $order->get_id(), 'bgc_track_' . $order->get_id());
             echo '<a class="button" target="_blank" href="' . esc_url($track) . '">' . esc_html__('Track', 'bg-couriers') . '</a>';
         }
