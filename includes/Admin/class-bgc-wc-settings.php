@@ -46,15 +46,30 @@ class BGC_WC_Settings extends WC_Settings_Page {
     protected function get_settings_for_section_core($section_id) { return $this->get_settings($section_id); }
 
     /** Custom output: WP nav-tab section nav + (for Speedy) per-method sub-tabs. */
+    // Suppress WooCommerce's default section nav (the "subsubsub" link row) — we render our own
+    // nicer nav-tabs in output(); otherwise the General/Speedy row shows twice.
+    public function output_sections() {}
+
     public function output() {
         global $current_section;
+        echo '<style>
+        #wpbody .bgc-settings table.form-table th { padding: 9px 12px 9px 0; width: 210px; }
+        #wpbody .bgc-settings table.form-table td { padding: 7px 0; }
+        #wpbody .bgc-settings table.form-table { margin: 0; }
+        #wpbody .bgc-settings .bgc-group { border: 1px solid #e2e6ea; border-radius: 10px; padding: 6px 16px 12px; margin: 0 0 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+        #wpbody .bgc-settings .bgc-group > h2 { font-size: 1.02em; margin: 12px 0 4px; }
+        #wpbody .bgc-settings .bgc-group > p.description { margin-top: 0; }
+        </style>';
+        echo '<div class="bgc-settings">';
         $this->section_nav((string) $current_section);
 
+        echo '<div class="bgc-group">';
         if ($current_section === 'speedy') {
             $this->output_speedy();
         } else {
             WC_Admin_Settings::output_fields($this->general_fields());
         }
+        echo '</div></div>';
     }
 
     private function section_nav(string $current): void {
