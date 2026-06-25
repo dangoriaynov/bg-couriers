@@ -3,7 +3,7 @@ defined('ABSPATH') || exit;
 
 class BGC_Ajax {
     public function __construct() {
-        foreach (['search_cities','offices','set_selection'] as $a) {
+        foreach (['search_cities','offices','streets','set_selection'] as $a) {
             add_action("wp_ajax_bgc_{$a}", [$this, $a]);
             add_action("wp_ajax_nopriv_bgc_{$a}", [$this, $a]);
         }
@@ -56,6 +56,21 @@ class BGC_Ajax {
         $rows = array_values($rows);
         usort($rows, static function ($a, $b) { return ((int) ($a['office_id'] ?? 0)) <=> ((int) ($b['office_id'] ?? 0)); });
         return array_slice($rows, 0, max(1, $limit));
+    }
+    public function streets(): void {
+        $courier_id = sanitize_key($_GET['courier'] ?? 'speedy');
+        $city = (int) ($_GET['city_id'] ?? 0);
+        $term = sanitize_text_field($_GET['term'] ?? '');
+        $out = [];
+        if ($city > 0 && $term !== '') {
+            try {
+                $courier = apply_filters('bgc_courier', null, $courier_id) ?: new BGC_Speedy(BGC_Settings::courier_config($courier_id) ?: []);
+                if (method_exists($courier, 'search_streets')) {
+                    $out = array_slice($courier->search_streets($city, $term), 0, BGC_Settings::dropdown_limit());
+                }
+            } catch (\Exception $e) { $out = []; }
+        }
+        wp_send_json($out);
     }
     public function set_selection(): void {
         check_ajax_referer('bgc_checkout', 'nonce');

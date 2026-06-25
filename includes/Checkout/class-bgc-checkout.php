@@ -127,7 +127,7 @@ class BGC_Checkout {
                 'office_label'=>__('Office','bg-couriers'),'automat_label'=>__('Automat (locker)','bg-couriers'),
                 'emerg_default'=>__('Having trouble placing your order? We can help — call us:','bg-couriers'),
                 'close'=>__('Close','bg-couriers'),
-                'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),
+                'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),'street_ph'=>__('Type a street…','bg-couriers'),
             ],
         ]);
 
@@ -167,6 +167,8 @@ class BGC_Checkout {
         $office_style = ($sel_method === 'address') ? ' style="display:none;"' : '';
 
         $av = function ($k) use ($s) { return $s ? esc_attr((string) $s->get('bgc_addr_' . $k, '')) : ''; };
+        $sn = $s ? (string) $s->get('bgc_addr_street_name', '') : '';
+        $street_option = $sn !== '' ? '<option value="' . esc_attr($sn) . '" selected>' . esc_html($sn) . '</option>' : '';
         $addr_style = ($sel_method === 'address') ? '' : ' style="display:none;"';
 
         $office_label = ($sel_method === 'automat')
@@ -187,7 +189,7 @@ class BGC_Checkout {
            . '<select class="bgc-office">' . $office_option . '</select></div>'
            . '<div class="bgc-address-rows"' . $addr_style . '>'
            . '<div class="bgc-grid">'
-           . '<div class="bgc-field bgc-street-field"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><input type="text" class="bgc-street" autocomplete="off" value="' . $av('street_name') . '"></div>'
+           . '<div class="bgc-field bgc-street-field"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select></div>'
            . '<div class="bgc-field bgc-streetno-field"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></div>'
            . '</div>'
            . '<div class="bgc-field"><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label><input type="text" class="bgc-complex" autocomplete="off" value="' . $av('complex') . '"></div>'

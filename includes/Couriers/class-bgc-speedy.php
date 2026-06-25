@@ -95,6 +95,24 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         return self::parse_offices($r);
     }
 
+    public function search_streets(int $site_id, string $term): array {
+        $r = $this->post_json($this->base . '/location/street', $this->auth([
+            'countryId' => self::BG_COUNTRY_ID, 'language' => 'BG', 'siteId' => $site_id, 'name' => $term,
+        ]));
+        return self::parse_streets($r);
+    }
+
+    public static function parse_streets(array $resp): array {
+        $out = [];
+        foreach (($resp['streets'] ?? []) as $s) {
+            $name = (string) ($s['name'] ?? '');
+            if ($name === '') { continue; }
+            $type = (string) ($s['type'] ?? '');
+            $out[] = ['id' => (int) ($s['id'] ?? 0), 'name' => $name, 'type' => $type, 'label' => trim($type . ' ' . $name)];
+        }
+        return $out;
+    }
+
     public static function parse_sites(array $resp): array {
         $out = [];
         foreach (($resp['sites'] ?? []) as $s) {

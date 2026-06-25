@@ -76,4 +76,15 @@ async function pickFirstOffice(page, fields) {
   await opt.click();
 }
 
-module.exports = { addAnyProductToCart, gotoCheckout, fillGuestBilling, dismissStoreBanner, selectSpeedyTab, selectCity, pickFirstOffice };
+// Open the street autocomplete (selectWoo), type a term, pick the first suggestion.
+async function fillStreet(page, fields, term) {
+  await fields.locator('.bgc-street-field .select2-selection').click();
+  const search = page.locator('.select2-search__field');
+  await expect(search).toBeVisible({ timeout: 10000 });
+  await search.fill(term);
+  const opt = page.locator('.select2-results__option[role="option"]').first();
+  await expect(opt).toBeVisible({ timeout: 15000 });
+  await opt.click();
+}
+
+module.exports = { addAnyProductToCart, gotoCheckout, fillGuestBilling, dismissStoreBanner, selectSpeedyTab, selectCity, pickFirstOffice, fillStreet };

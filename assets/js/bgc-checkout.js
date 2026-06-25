@@ -92,6 +92,22 @@
     $office.on('select2:select', function () { pushSelection($wrap); });
   }
 
+  // Street (autocomplete via /location/street; tags:true keeps free-typed streets working).
+  function initStreet($wrap) {
+    var $street = $wrap.find('.bgc-street');
+    if (!$street.length || $street[0].tagName !== 'SELECT' || $street.hasClass('select2-hidden-accessible')) { return; }
+    sel2($street, {
+      width: '100%', tags: true, minimumInputLength: 2, placeholder: (BGC.i18n && BGC.i18n.street_ph) || '',
+      ajax: {
+        url: BGC.ajax, dataType: 'json', delay: 250,
+        data: function (params) { return { action: 'bgc_streets', courier: 'speedy', city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
+        processResults: function (rows) { return { results: rows.map(function (s) { return { id: s.name, text: s.label || s.name }; }) }; }
+      },
+      createTag: function (params) { var t = (params.term || '').trim(); return t ? { id: t, text: t } : null; }
+    });
+    $street.on('select2:select', function () { saveSelection($wrap); });
+  }
+
   // Save the selection ------------------------------------------------------
   function selectionData($wrap) {
     return {
@@ -111,7 +127,7 @@
   // Wiring ------------------------------------------------------------------
   $(document.body).on('updated_checkout', function () {
     var $wrap = $('.bgc-fields'); if (!$wrap.length) return;
-    renderTabs($wrap); initCity($wrap); initOffice($wrap); syncMethodUI($wrap); hideLoader($wrap);
+    renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); hideLoader($wrap);
   });
 
   $(document.body).on('click', '.bgc-tab', function (e) {

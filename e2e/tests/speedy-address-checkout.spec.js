@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectSpeedyTab, selectCity } = require('../helpers/shop');
+const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectSpeedyTab, selectCity, fillStreet } = require('../helpers/shop');
 
 function amount(text) { const m = (text || '').match(/[\d]+[,.][\d]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
@@ -18,11 +18,11 @@ test('speedy guest checkout to ADDRESS, COD', async ({ page }) => {
   await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(2000);
 
-  await fields.locator('.bgc-street').fill('Витоша');
+  await fillStreet(page, fields, 'Вит'); // type + pick a street from the autocomplete
   await fields.locator('.bgc-street-no').fill('5');
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(1000);
   await page.waitForLoadState('networkidle').catch(() => {});
-  await expect(fields.locator('.bgc-street')).toHaveValue('Витоша', { timeout: 15000 });
+  await expect.poll(async () => await fields.locator('.bgc-street').inputValue(), { timeout: 15000 }).not.toBe('');
   await expect(fields.locator('.bgc-street-no')).toHaveValue('5', { timeout: 15000 });
   await page.waitForTimeout(1500);
 
