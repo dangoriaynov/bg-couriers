@@ -7,6 +7,7 @@ class BGC_Order_Columns {
         add_filter('manage_edit-shop_order_columns', [$this, 'col']);
         add_action('manage_woocommerce_page_wc-orders_custom_column', [$this, 'render'], 10, 2);
         add_action('manage_shop_order_posts_custom_column', [$this, 'render_legacy'], 10, 2);
+        add_action('admin_footer', [$this, 'copy_script']);
     }
     public function col($cols) { $cols['bgc_shipping'] = __('Speedy', 'bg-couriers'); return $cols; }
 
@@ -14,9 +15,31 @@ class BGC_Order_Columns {
         if ($waybill === '') {
             return '<a class="button button-small" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a>';
         }
-        return '<strong>' . esc_html($waybill) . '</strong><br>'
+        // The copy link reads the waybill from the adjacent .bgc-wb-num so no data-* attribute is
+        // needed (which wp_kses_post would strip); it stops propagation so the row click is suppressed.
+        return '<strong class="bgc-wb-num">' . esc_html($waybill) . '</strong> '
+            . '<a href="#" class="bgc-copy" title="' . esc_attr__('Copy waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Copy waybill', 'bg-couriers') . '">⧉</a><br>'
             . '<a target="_blank" href="' . esc_url($print_url) . '">' . esc_html__('Print', 'bg-couriers') . '</a> | '
             . '<a target="_blank" href="' . esc_url($track_url) . '">' . esc_html__('Track', 'bg-couriers') . '</a>';
+    }
+
+    /** Clipboard copy for the waybill button on the Orders list (avoids opening the order on click). */
+    public function copy_script(): void {
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        if (!$screen || !in_array($screen->id, ['woocommerce_page_wc-orders', 'edit-shop_order'], true)) { return; }
+        ?>
+<script>
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('.bgc-copy'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  var num = b.parentNode.querySelector('.bgc-wb-num');
+  var wb = num ? num.textContent.trim() : '';
+  if (wb && navigator.clipboard) {
+    navigator.clipboard.writeText(wb).then(function () { var o = b.textContent; b.textContent = '✓'; setTimeout(function () { b.textContent = o; }, 1200); });
+  }
+});
+</script>
+        <?php
     }
 
     public function render($column, $order): void {

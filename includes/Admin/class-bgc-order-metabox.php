@@ -1,34 +1,33 @@
 <?php
 defined('ABSPATH') || exit;
 
+/** Renders the Speedy shipment panel (waybill + generate/print/track) at the TOP of the order. */
 class BGC_Order_Metabox {
-    public function __construct() { add_action('add_meta_boxes', [$this, 'add']); }
-    public function add(): void {
-        $screen = class_exists('\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController')
-            && wc_get_container()->get(\Automattic\WooCommerce\Internal\DataStores\Orders\CustomOrdersTableController::class)->custom_orders_table_usage_is_enabled()
-            ? wc_get_page_screen_id('shop-order') : 'shop_order';
-        add_meta_box('bgc_shipping', __('BG Couriers', 'bg-couriers'), [$this, 'render'], $screen, 'side');
+    public function __construct() {
+        // The order-data panel (after the shipping address) — visible at the top, both HPOS + legacy.
+        add_action('woocommerce_admin_order_data_after_shipping_address', [$this, 'render'], 10, 1);
     }
-    public function render($post_or_order): void {
-        $order = $post_or_order instanceof WC_Order ? $post_or_order : wc_get_order($post_or_order->ID);
-        if (!$order || $order->get_meta('_bgc_courier') !== 'speedy') { echo esc_html__('No Speedy shipment.', 'bg-couriers'); return; }
+
+    public function render($order): void {
+        if (!$order instanceof WC_Order || $order->get_meta('_bgc_courier') !== 'speedy') { return; }
+        $id      = $order->get_id();
         $waybill = (string) $order->get_meta('_bgc_waybill');
-        $base = admin_url('admin-post.php');
-        echo '<p><strong>' . esc_html__('Method', 'bg-couriers') . ':</strong> ' . esc_html($order->get_meta('_bgc_method')) . '</p>';
-        echo '<p><strong>' . esc_html__('Office', 'bg-couriers') . ':</strong> ' . esc_html($order->get_meta('_bgc_office_id')) . '</p>';
-        $qp = $order->get_meta('_bgc_quote_price');
-        if ($qp !== '' && $qp !== null) {
-            echo '<p><strong>' . esc_html__('Quoted price', 'bg-couriers') . ':</strong> ' . esc_html(number_format((float) $qp, 2) . ' ' . $order->get_currency()) . ' <em>(' . esc_html((string) $order->get_meta('_bgc_quote_source')) . ')</em></p>';
-        }
+        $method  = (string) $order->get_meta('_bgc_method');
+        $base    = admin_url('admin-post.php');
+
+        echo '<div class="bgc-order-panel" style="margin-top:12px;padding:12px 14px;border:1px solid #e2e6ea;border-radius:8px;background:#fff;">';
+        echo '<p style="margin:0 0 8px;"><strong>Speedy</strong> — ' . esc_html(ucfirst($method ?: 'office')) . '</p>';
+
         if ($waybill === '') {
-            $url = wp_nonce_url($base . '?action=bgc_generate_label&order_id=' . $order->get_id(), 'bgc_generate_label_' . $order->get_id());
-            echo '<a class="button button-primary" href="' . esc_url($url) . '">' . esc_html__('Generate label', 'bg-couriers') . '</a>';
+            $gen = wp_nonce_url($base . '?action=bgc_generate_label&order_id=' . $id, 'bgc_generate_label_' . $id);
+            echo '<a class="button button-primary" href="' . esc_url($gen) . '">' . esc_html__('Generate label', 'bg-couriers') . '</a>';
         } else {
-            echo '<p><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> ' . esc_html($waybill) . '</p>';
-            $print = wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $order->get_id(), 'bgc_print_batch');
-            echo '<a class="button" target="_blank" href="' . esc_url($print) . '">' . esc_html__('Print', 'bg-couriers') . '</a> ';
-            $track = wp_nonce_url($base . '?action=bgc_track&order_id=' . $order->get_id(), 'bgc_track_' . $order->get_id());
+            $print = wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id, 'bgc_print_batch');
+            $track = wp_nonce_url($base . '?action=bgc_track&order_id=' . $id, 'bgc_track_' . $id);
+            echo '<p style="margin:0 0 8px;"><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> <code>' . esc_html($waybill) . '</code></p>';
+            echo '<a class="button button-primary" target="_blank" href="' . esc_url($print) . '">' . esc_html__('Print label', 'bg-couriers') . '</a> ';
             echo '<a class="button" target="_blank" href="' . esc_url($track) . '">' . esc_html__('Track', 'bg-couriers') . '</a>';
         }
+        echo '</div>';
     }
 }
