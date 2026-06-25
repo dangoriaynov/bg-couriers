@@ -30,6 +30,18 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         return max(0.0, round($total - $shipping_total - $shipping_tax, 2));
     }
 
+    public static function build_address(int $site_id, array $fields): array {
+        $addr = ['countryId' => self::BG_COUNTRY_ID, 'siteId' => $site_id];
+        $map = ['complex' => 'complexName', 'street' => 'streetName', 'street_no' => 'streetNo',
+                'block' => 'blockNo', 'entrance' => 'entranceNo', 'floor' => 'floorNo',
+                'apartment' => 'apartmentNo', 'note' => 'addressNote'];
+        foreach ($map as $k => $api) {
+            $v = trim((string) ($fields[$k] ?? ''));
+            if ($v !== '') { $addr[$api] = $v; }
+        }
+        return $addr;
+    }
+
     public function id(): string { return 'speedy'; }
     public function label(): string { return 'Speedy'; }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
@@ -168,8 +180,16 @@ class BGC_Speedy extends BGC_Abstract_Courier {
             'email'         => $order->get_billing_email(),
         ];
         if ($method === 'address') {
-            $recipient['address'] = ['countryId' => self::BG_COUNTRY_ID, 'siteId' => $site_id,
-                'streetId' => (int) $order->get_meta('_bgc_street_id'), 'streetNo' => (string) $order->get_meta('_bgc_street_no')];
+            $recipient['address'] = self::build_address($site_id, [
+                'complex'   => $order->get_meta('_bgc_complex'),
+                'street'    => $order->get_meta('_bgc_street_name'),
+                'street_no' => $order->get_meta('_bgc_street_no'),
+                'block'     => $order->get_meta('_bgc_block'),
+                'entrance'  => $order->get_meta('_bgc_entrance'),
+                'floor'     => $order->get_meta('_bgc_floor'),
+                'apartment' => $order->get_meta('_bgc_apartment'),
+                'note'      => $order->get_meta('_bgc_address_note'),
+            ]);
         } else {
             $recipient['pickupOfficeId'] = $office;
         }
