@@ -9,8 +9,9 @@
   function renderTypes($wrap) {
     if ($wrap.find('.bgc-types input').length) return;
     var types = caps();
-    var html = types.map(function (t, i) {
-      return '<label><input type="radio" name="bgc_method" value="' + t + '"' + (i === 0 ? ' checked' : '') + '> ' + esc(BGC.i18n[t]) + '</label>';
+    var sel = $wrap.data('method') || types[0]; // preserve the session-selected method across recalcs
+    var html = types.map(function (t) {
+      return '<label><input type="radio" name="bgc_method" value="' + t + '"' + (t === sel ? ' checked' : '') + '> ' + esc(BGC.i18n[t]) + '</label>';
     }).join(' ');
     $wrap.find('.bgc-types').html(html);
   }
@@ -19,9 +20,7 @@
 
   function initCity($wrap) {
     var $city = $wrap.find('.bgc-city');
-    if ($city.data('bgc-init')) { return; }
-    $city.data('bgc-init', 1);
-    $city.append(new Option('', '', true, true)); // empty default
+    if ($city.hasClass('select2-hidden-accessible')) { return; } // already initialised (empty <option> is server-rendered)
     sel2($city, {
       width: '100%', allowClear: true, placeholder: (BGC.i18n && BGC.i18n.city_ph) || '',
       minimumInputLength: 2,
@@ -41,15 +40,24 @@
     });
     $city.on('select2:select', function (e) {
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
-      loadOffices($wrap); pushSelection($wrap);
+      loadOffices($wrap); // loadOffices pushes the selection once offices are known (avoids a double-push race)
     });
+  }
+
+  function initOffice($wrap) {
+    var $office = $wrap.find('.bgc-office');
+    if (!$office.length || $office.hasClass('select2-hidden-accessible')) { return; }
+    var hasOpt = $office.find('option').filter(function () { return this.value !== ''; }).length > 0;
+    if (!hasOpt) { return; } // nothing selected yet
+    sel2($office, { width: '100%' });
+    $wrap.find('.bgc-office-row').show();
   }
 
   function loadOffices($wrap) {
     var cityId = $wrap.find('.bgc-city').val();
     var type = $wrap.find('input[name=bgc_method]:checked').val();
     var $office = $wrap.find('.bgc-office');
-    if (!cityId || type === 'address') { $wrap.find('.bgc-office-row').hide(); return; }
+    if (!cityId || type === 'address') { $wrap.find('.bgc-office-row').hide(); pushSelection($wrap); return; }
     $.get(BGC.ajax, { action: 'bgc_offices', courier: 'speedy', city_id: cityId, type: type }, function (rows) {
       if ($office.hasClass('select2-hidden-accessible')) {
         ($.fn.selectWoo ? $office.selectWoo('destroy') : $office.select2('destroy'));
@@ -73,7 +81,8 @@
   }
 
   $(document.body).on('updated_checkout', function () {
-    var $wrap = $('.bgc-fields'); if (!$wrap.length) return; renderTypes($wrap); initCity($wrap);
+    var $wrap = $('.bgc-fields'); if (!$wrap.length) return;
+    renderTypes($wrap); initCity($wrap); initOffice($wrap);
   });
 
   $(document.body).on('input', '.bgc-postcode', function () {
@@ -81,13 +90,16 @@
     $.get(BGC.ajax, { action: 'bgc_search_cities', courier: 'speedy', term: code }, function (rows) {
       if (rows && rows.length === 1) {
         var $city = $wrap.find('.bgc-city'); var r = rows[0];
-        $city.append(new Option(r.name, r.city_id, true, true)).trigger('change'); loadOffices($wrap); pushSelection($wrap);
+        $city.append(new Option(r.name, r.city_id, true, true)).trigger('change'); loadOffices($wrap);
       }
     });
   });
 
-  $(document.body).on('change', 'input[name=bgc_method], .bgc-office', function () {
-    var $wrap = $(this).closest('.bgc-fields'); loadOffices($wrap); pushSelection($wrap);
+  $(document.body).on('change', 'input[name=bgc_method]', function () {
+    var $wrap = $(this).closest('.bgc-fields'); loadOffices($wrap);
+  });
+  $(document.body).on('change', '.bgc-office', function () {
+    var $wrap = $(this).closest('.bgc-fields'); pushSelection($wrap);
   });
 
   // Emergency help: after repeated checkout failures, show a one-time help box with a phone link.

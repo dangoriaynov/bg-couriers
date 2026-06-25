@@ -66,11 +66,34 @@ class BGC_Checkout {
     }
     public function render_fields($method, $index): void {
         if ($method->get_method_id() !== 'bgc_speedy') { return; }
-        echo '<div class="bgc-fields" data-courier="speedy">'
+        // Stateful: re-render the session selection so update_checkout recalcs don't wipe the fields.
+        $s = WC()->session;
+        $sel_method = $s ? (string) $s->get('bgc_method', '') : '';
+        $site_id    = $s ? (int) $s->get('bgc_site_id', 0) : 0;
+        $office_id  = $s ? (int) $s->get('bgc_office_id', 0) : 0;
+        $post_code  = $s ? (string) $s->get('bgc_post_code', '') : '';
+
+        $city_option = '';
+        if ($site_id) {
+            $city = BGC_Nomenclature::city_by_id('speedy', $site_id);
+            if ($city) {
+                $city_option = '<option value="' . esc_attr($site_id) . '" selected>' . esc_html($city['name']) . '</option>';
+            }
+        }
+        $office_option = '';
+        if ($office_id) {
+            $office = BGC_Nomenclature::office_by_id('speedy', $office_id);
+            if ($office) {
+                $office_option = '<option value="' . esc_attr($office_id) . '" selected>' . esc_html($office['name'] . ' — ' . $office['address']) . '</option>';
+            }
+        }
+        $office_style = $office_option ? '' : ' style="display:none;"';
+
+        echo '<div class="bgc-fields" data-courier="speedy" data-method="' . esc_attr($sel_method) . '">'
            . '<div class="bgc-types"></div>'
-           . '<p class="bgc-row bgc-postcode-row"><label>' . esc_html__('Postal code (optional)','bg-couriers') . '</label><input type="text" class="bgc-postcode" autocomplete="off"></p>'
-           . '<p class="bgc-row"><label>' . esc_html__('City','bg-couriers') . '</label><select class="bgc-city" style="width:100%"></select></p>'
-           . '<p class="bgc-row bgc-office-row"><label>' . esc_html__('Office / Automat','bg-couriers') . '</label><select class="bgc-office" style="width:100%"></select></p>'
+           . '<p class="bgc-row bgc-postcode-row"><label>' . esc_html__('Postal code (optional)','bg-couriers') . '</label><input type="text" class="bgc-postcode" autocomplete="off" value="' . esc_attr($post_code) . '"></p>'
+           . '<p class="bgc-row"><label>' . esc_html__('City','bg-couriers') . '</label><select class="bgc-city" style="width:100%"><option value=""></option>' . $city_option . '</select></p>'
+           . '<p class="bgc-row bgc-office-row"' . $office_style . '><label>' . esc_html__('Office / Automat','bg-couriers') . '</label><select class="bgc-office" style="width:100%">' . $office_option . '</select></p>'
            . '</div>';
     }
 }

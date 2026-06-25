@@ -55,6 +55,20 @@ class BGC_Nomenclature {
             $courier, $code), ARRAY_A);
         return $row ?: null;
     }
+    public static function city_by_id(string $courier, int $city_id): ?array {
+        global $wpdb;
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT city_id,name,name_lat,post_code,region FROM {$wpdb->prefix}bgc_cities WHERE courier=%s AND city_id=%d LIMIT 1",
+            $courier, $city_id), ARRAY_A);
+        return $row ?: null;
+    }
+    public static function office_by_id(string $courier, int $office_id): ?array {
+        global $wpdb;
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT office_id,city_id,type,name,address FROM {$wpdb->prefix}bgc_offices WHERE courier=%s AND office_id=%d LIMIT 1",
+            $courier, $office_id), ARRAY_A);
+        return $row ?: null;
+    }
     public static function offices(string $courier, int $city_id, string $type = ''): array {
         global $wpdb; $t = $wpdb->prefix . 'bgc_offices';
         $sql = "SELECT office_id,city_id,type,name,address FROM {$t} WHERE courier=%s AND city_id=%d";
