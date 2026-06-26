@@ -1,6 +1,7 @@
 <?php
 final class ShippingMethodTest extends WP_UnitTestCase {
     public function set_up() { parent::set_up(); BGC_Schema::create(); BGC_Rates::set('speedy','office',5.55,'BGN'); }
+    public function tear_down() { BGC_Couriers::reset(); parent::tear_down(); }
 
     private function throwing_courier(): BGC_Courier_Interface {
         return new class implements BGC_Courier_Interface {
@@ -21,7 +22,8 @@ final class ShippingMethodTest extends WP_UnitTestCase {
 
     public function test_calculate_shipping_uses_cached_rate_when_api_down(): void {
         $fake = $this->throwing_courier();
-        add_filter('bgc_courier', function ($c, $id) use ($fake) { return $id === 'speedy' ? $fake : $c; }, 10, 2);
+        BGC_Couriers::reset();
+        BGC_Couriers::register('speedy', 'Speedy', static function () use ($fake) { return $fake; });
         WC()->session = WC()->session ?: new WC_Session_Handler();
         WC()->session->set('bgc_method', 'office');
 

@@ -38,8 +38,8 @@ class BGC_Ajax {
         $rows = [];
         if ($city > 0) {
             try {
-                $courier = apply_filters('bgc_courier', null, $courier_id)
-                    ?: new BGC_Speedy(BGC_Settings::courier_config($courier_id) ?: []);
+                $courier = BGC_Couriers::get($courier_id);
+                if (!$courier) { wp_send_json([]); }
                 $rows = $courier->fetch_offices($city);
             } catch (\Exception $e) { $rows = BGC_Nomenclature::offices($courier_id, $city); }
         }
@@ -64,7 +64,8 @@ class BGC_Ajax {
         $out = [];
         if ($city > 0 && $term !== '') {
             try {
-                $courier = apply_filters('bgc_courier', null, $courier_id) ?: new BGC_Speedy(BGC_Settings::courier_config($courier_id) ?: []);
+                $courier = BGC_Couriers::get($courier_id);
+                if (!$courier) { wp_send_json([]); }
                 if (method_exists($courier, 'search_streets')) {
                     $out = array_slice($courier->search_streets($city, $term), 0, BGC_Settings::dropdown_limit());
                 }

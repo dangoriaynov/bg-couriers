@@ -37,11 +37,7 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
         $shipment = array_merge($packed, [
             'method' => $method, 'site_id' => $site_id, 'office_id' => $office, 'cod_amount' => 0.0, 'currency' => get_woocommerce_currency(),
         ]);
-        $courier = apply_filters('bgc_courier', null, 'speedy');
-        if (!$courier) {
-            $cfg = BGC_Settings::courier_config('speedy');
-            $courier = new BGC_Speedy($cfg ?: []);
-        }
+        $courier = BGC_Couriers::get('speedy');
         $quote = BGC_Pricing::quote($courier, $shipment);
         $cost  = $quote->price;
 

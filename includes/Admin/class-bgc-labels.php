@@ -2,6 +2,11 @@
 defined('ABSPATH') || exit;
 
 class BGC_Labels {
+    private function courier_for(\WC_Order $order): ?BGC_Courier_Interface {
+        $id = (string) $order->get_meta('_bgc_courier');
+        return $id ? BGC_Couriers::get($id) : null;
+    }
+
     public function __construct() {
         add_action('admin_post_bgc_generate_label', [$this, 'handle_generate']);
         add_action('admin_post_bgc_track', [$this, 'handle_track']);
@@ -27,7 +32,9 @@ class BGC_Labels {
         $existing = (string) $order->get_meta('_bgc_waybill');
         if ($existing !== '') { return new BGC_Label($existing, (string) $order->get_meta('_bgc_label_url')); }
 
-        $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: []);
+        $courier_id = (string) $order->get_meta('_bgc_courier');
+        $courier = $courier_id ? BGC_Couriers::get($courier_id) : null;
+        if (!$courier) { throw new BGC_Api_Exception(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
         $label = $courier->create_label($order);
         $order->update_meta_data('_bgc_waybill', $label->waybill);
 
@@ -73,7 +80,8 @@ class BGC_Labels {
         $order = wc_get_order($id);
         $waybill = $order ? (string) $order->get_meta('_bgc_waybill') : '';
         if ($waybill === '') { wp_die(esc_html__('No waybill found.', 'bg-couriers')); }
-        $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy([]);
+        $courier = $this->courier_for($order);
+        if (!$courier) { wp_die(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
         add_filter('allowed_redirect_hosts', function ($h) { $h[] = 'www.speedy.bg'; $h[] = 'speedy.bg'; return $h; });
         wp_safe_redirect($courier->tracking_url($waybill));
         exit;
@@ -87,7 +95,9 @@ class BGC_Labels {
         $order_ids = array_filter(array_map('intval', $order_ids));
         $parcels = self::batch_parcel_ids($order_ids);
         if (!$parcels) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
-        $courier = apply_filters('bgc_courier', null, 'speedy') ?: new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: []);
+        $first_order = wc_get_order((int) $order_ids[0]);
+        $courier = $first_order ? $this->courier_for($first_order) : null;
+        if (!$courier) { wp_die(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
         try { $pdf = $courier->print_labels($parcels, BGC_Settings::label_paper_size()); }
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         nocache_headers();
