@@ -2,19 +2,20 @@
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
   function sel2($el, opts) { return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts)); }
 
-  function caps() {
-    var enabled = (BGC && BGC.methods && BGC.methods.length) ? BGC.methods : ['office', 'address', 'automat'];
-    var order = (BGC && BGC.order && BGC.order.length) ? BGC.order : ['office', 'address', 'automat'];
+  function courier($wrap) { return $wrap.attr('data-courier') || 'speedy'; }
+  function caps($wrap) {
+    var enabled = ($wrap.attr('data-methods') || 'office,address,automat').split(',');
+    var order   = ($wrap.attr('data-order')   || 'office,address,automat').split(',');
     return order.filter(function (t) { return enabled.indexOf(t) !== -1; });
   }
-  function method($wrap) { return $wrap.attr('data-method') || caps()[0] || 'office'; }
+  function method($wrap) { return $wrap.attr('data-method') || caps($wrap)[0] || 'office'; }
   function showLoader($wrap) { $wrap.addClass('bgc-loading'); }
   function hideLoader($wrap) { $wrap.removeClass('bgc-loading'); }
   function officeLabel(m) { return m === 'automat' ? (BGC.i18n.automat_label || 'Automat') : (BGC.i18n.office_label || 'Office'); }
 
   // Delivery-type tabs ------------------------------------------------------
   function renderTabs($wrap) {
-    var types = caps();
+    var types = caps($wrap);
     if (!$wrap.attr('data-method')) { $wrap.attr('data-method', types[0]); }
     var sel = method($wrap);
     if ($wrap.find('.bgc-tab').length) { syncMethodUI($wrap); return; }
@@ -55,7 +56,7 @@
       width: '100%', allowClear: true, placeholder: (BGC.i18n && BGC.i18n.city_ph) || '', minimumInputLength: 0,
       ajax: {
         url: BGC.ajax, dataType: 'json', delay: 250,
-        data: function (params) { return { action: 'bgc_search_cities', courier: 'speedy', term: params.term || '' }; },
+        data: function (params) { return { action: 'bgc_search_cities', courier: courier($wrap), term: params.term || '' }; },
         processResults: function (rows) {
           var counts = {};
           rows.forEach(function (r) { counts[r.name] = (counts[r.name] || 0) + 1; });
@@ -82,7 +83,7 @@
       ajax: {
         url: BGC.ajax, dataType: 'json', delay: 250,
         data: function (params) {
-          return { action: 'bgc_offices', courier: 'speedy', city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
+          return { action: 'bgc_offices', courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
         },
         processResults: function (rows) {
           return { results: rows.map(function (o) { return { id: o.office_id, text: o.name + ' — ' + o.address }; }) };
@@ -100,7 +101,7 @@
       width: '100%', tags: true, minimumInputLength: 2, placeholder: (BGC.i18n && BGC.i18n.street_ph) || '',
       ajax: {
         url: BGC.ajax, dataType: 'json', delay: 250,
-        data: function (params) { return { action: 'bgc_streets', courier: 'speedy', city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
+        data: function (params) { return { action: 'bgc_streets', courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
         processResults: function (rows) { return { results: rows.map(function (s) { return { id: s.name, text: s.label || s.name }; }) }; }
       },
       createTag: function (params) { var t = (params.term || '').trim(); return t ? { id: t, text: t } : null; }
@@ -111,7 +112,7 @@
   // Save the selection ------------------------------------------------------
   function selectionData($wrap) {
     return {
-      action: 'bgc_set_selection', nonce: BGC.nonce, method: method($wrap),
+      action: 'bgc_set_selection', nonce: BGC.nonce, courier: courier($wrap), method: method($wrap),
       site_id: $wrap.find('.bgc-city').val() || 0,
       office_id: $wrap.find('.bgc-office').val() || 0,
       post_code: $wrap.find('.bgc-postcode').val() || '',
@@ -137,7 +138,7 @@
 
   $(document.body).on('input', '.bgc-postcode', function () {
     var $wrap = $(this).closest('.bgc-fields'), code = this.value.trim(); if (code.length < 4) { return; }
-    $.get(BGC.ajax, { action: 'bgc_search_cities', courier: 'speedy', term: code }, function (rows) {
+    $.get(BGC.ajax, { action: 'bgc_search_cities', courier: courier($wrap), term: code }, function (rows) {
       if (rows && rows.length === 1) {
         var $city = $wrap.find('.bgc-city'); var r = rows[0];
         $city.append(new Option(r.name, r.city_id, true, true)).trigger('change');

@@ -70,14 +70,21 @@ class BGC_Checkout {
         return $packages;
     }
 
-    public function chosen_is_speedy(): bool {
+    /** The courier id of the chosen bgc_<id> shipping method, or null. */
+    public function chosen_courier(): ?string {
         $chosen = WC()->session ? (array) WC()->session->get('chosen_shipping_methods') : [];
-        foreach ($chosen as $m) { if (strpos((string) $m, 'bgc_speedy') === 0) { return true; } }
-        return false;
+        foreach ($chosen as $m) {
+            if (preg_match('/^bgc_([a-z0-9]+)/', (string) $m, $mm)) { return $mm[1]; }
+        }
+        return null;
+    }
+
+    public function chosen_is_speedy(): bool {
+        return $this->chosen_courier() !== null;
     }
 
     public function validate($data, $errors): void {
-        if (!$this->chosen_is_speedy()) { return; }
+        if (!$this->chosen_courier()) { return; }
         $site = (int) WC()->session->get('bgc_site_id', 0);
         $method = (string) WC()->session->get('bgc_method', 'office');
         $office = (int) WC()->session->get('bgc_office_id', 0);
@@ -93,9 +100,9 @@ class BGC_Checkout {
     }
 
     public function persist(\WC_Order $order): void {
-        if (!$this->chosen_is_speedy()) { return; }
+        $courier = $this->chosen_courier(); if (!$courier) { return; }
         $s = WC()->session; if (!$s) { return; }
-        $order->update_meta_data('_bgc_courier', 'speedy');
+        $order->update_meta_data('_bgc_courier', $courier);
         $order->update_meta_data('_bgc_method', (string) $s->get('bgc_method', 'office'));
         $order->update_meta_data('_bgc_site_id', (int) $s->get('bgc_site_id', 0));
         $order->update_meta_data('_bgc_office_id', (int) $s->get('bgc_office_id', 0));
@@ -114,7 +121,7 @@ class BGC_Checkout {
         // Fill the WC order address from our selection (the standard WC address fields are
         // hidden/optional on checkout); the shipping label still uses the _bgc_* meta above.
         $method = (string) $s->get('bgc_method', 'office');
-        $city   = (int) $s->get('bgc_site_id', 0) ? BGC_Nomenclature::city_by_id('speedy', (int) $s->get('bgc_site_id', 0)) : null;
+        $city   = (int) $s->get('bgc_site_id', 0) ? BGC_Nomenclature::city_by_id($courier, (int) $s->get('bgc_site_id', 0)) : null;
         $name   = (string) ($city['name'] ?? '');
         $post   = (string) $s->get('bgc_post_code', '') ?: (string) ($city['post_code'] ?? '');
         $region = (string) ($city['region'] ?? '');
@@ -122,7 +129,7 @@ class BGC_Checkout {
             $line1 = trim((string) $s->get('bgc_addr_street_name', '') . ' ' . (string) $s->get('bgc_addr_street_no', ''));
             $line2 = trim((string) $s->get('bgc_addr_complex', ''));
         } else {
-            $o = (int) $s->get('bgc_office_id', 0) ? BGC_Nomenclature::office_by_id('speedy', (int) $s->get('bgc_office_id', 0)) : null;
+            $o = (int) $s->get('bgc_office_id', 0) ? BGC_Nomenclature::office_by_id($courier, (int) $s->get('bgc_office_id', 0)) : null;
             $line1 = (string) ($o['name'] ?? '');
             $line2 = (string) ($o['address'] ?? '');
         }
@@ -149,8 +156,6 @@ class BGC_Checkout {
             'ajax'  => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('bgc_checkout'),
             'currency' => get_woocommerce_currency(),
-            'methods' => BGC_Settings::enabled_methods('speedy'),
-            'order'   => BGC_Settings::method_order('speedy'),
             'emergency' => BGC_Settings::emergency(),
             'i18n'  => [
                 'address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To automat','bg-couriers'),
@@ -171,7 +176,9 @@ class BGC_Checkout {
         }
     }
     public function render_fields($method, $index): void {
-        if ($method->get_method_id() !== 'bgc_speedy') { return; }
+        if (strpos((string) $method->get_method_id(), 'bgc_') !== 0) { return; }
+        $courier = substr((string) $method->get_method_id(), 4); // 'bgc_speedy' -> 'speedy'
+        if (!BGC_Couriers::get($courier)) { return; }
         // Stateful: re-render the session selection so update_checkout recalcs don't wipe the fields.
         $s = WC()->session;
         $sel_method = $s ? (string) $s->get('bgc_method', '') : '';
@@ -181,14 +188,14 @@ class BGC_Checkout {
 
         $city_option = '';
         if ($site_id) {
-            $city = BGC_Nomenclature::city_by_id('speedy', $site_id);
+            $city = BGC_Nomenclature::city_by_id($courier, $site_id);
             if ($city) {
                 $city_option = '<option value="' . esc_attr($site_id) . '" selected>' . esc_html($city['name']) . '</option>';
             }
         }
         $office_option = '';
         if ($office_id) {
-            $office = BGC_Nomenclature::office_by_id('speedy', $office_id);
+            $office = BGC_Nomenclature::office_by_id($courier, $office_id);
             if ($office) {
                 $office_option = '<option value="' . esc_attr($office_id) . '" selected>' . esc_html($office['name'] . ' — ' . $office['address']) . '</option>';
             }
@@ -205,7 +212,9 @@ class BGC_Checkout {
             ? esc_html__('Automat (locker)', 'bg-couriers')
             : esc_html__('Office', 'bg-couriers');
 
-        echo '<div class="bgc-fields" data-courier="speedy" data-method="' . esc_attr($sel_method) . '">'
+        echo '<div class="bgc-fields" data-courier="' . esc_attr($courier) . '" data-method="' . esc_attr($sel_method) . '"'
+           . ' data-methods="' . esc_attr(implode(',', BGC_Settings::enabled_methods($courier))) . '"'
+           . ' data-order="' . esc_attr(implode(',', BGC_Settings::method_order($courier))) . '">'
            . '<div class="bgc-loader" aria-hidden="true"><span class="bgc-spinner"></span></div>'
            . '<div class="bgc-tabs" role="tablist"></div>'
            . '<div class="bgc-panel">'
