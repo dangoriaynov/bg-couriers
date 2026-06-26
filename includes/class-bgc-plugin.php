@@ -7,6 +7,10 @@ class BGC_Plugin {
         return self::$instance ??= new self();
     }
     private function __construct() {
+        BGC_Couriers::register('speedy', __('Speedy', 'bg-couriers'), static function () {
+            return new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: []);
+        });
+        BGC_Couriers::boot();
         add_filter('cron_schedules', function ($s) {
             $s['weekly'] = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
             return $s;
