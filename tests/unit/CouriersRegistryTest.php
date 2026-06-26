@@ -7,8 +7,9 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-couriers.php';
 final class CouriersRegistryTest extends TestCase {
     protected function setUp(): void { BGC_Couriers::reset(); }
 
-    public function test_register_get_all(): void {
-        $stub = new class implements BGC_Courier_Interface {
+    /** A throwaway courier that satisfies the interface (BGC_Couriers::get() return type). */
+    private static function makeStub(): BGC_Courier_Interface {
+        return new class implements BGC_Courier_Interface {
             public function id(): string { return 'demo'; }
             public function label(): string { return 'Demo'; }
             public function capabilities(): array { return ['office']; }
@@ -22,6 +23,10 @@ final class CouriersRegistryTest extends TestCase {
             public function track(string $waybill): BGC_Tracking { throw new RuntimeException('n/a'); }
             public function tracking_url(string $waybill): string { return ''; }
         };
+    }
+
+    public function test_register_get_all(): void {
+        $stub = self::makeStub();
         BGC_Couriers::register('demo', 'Demo', static function () use ($stub) { return $stub; });
         $this->assertSame($stub, BGC_Couriers::get('demo'));
         $this->assertSame(['demo' => 'Demo'], BGC_Couriers::all());
@@ -30,7 +35,7 @@ final class CouriersRegistryTest extends TestCase {
 
     public function test_factory_is_lazy_and_cached(): void {
         $calls = 0;
-        BGC_Couriers::register('demo', 'Demo', static function () use (&$calls) { $calls++; return new stdClass(); });
+        BGC_Couriers::register('demo', 'Demo', static function () use (&$calls) { $calls++; return self::makeStub(); });
         $this->assertSame(0, $calls);            // not built until requested
         $a = BGC_Couriers::get('demo');
         $b = BGC_Couriers::get('demo');

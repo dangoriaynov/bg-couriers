@@ -8,16 +8,18 @@ final class BGC_Couriers {
     private static $defs = [];
     /** @var array<string,BGC_Courier_Interface> */
     private static $built = [];
+    private static $booted = false;
 
+    /** Register a courier. Re-registering the same id overrides it (last wins) — intentional, so a
+     *  site can swap in its own implementation of a courier. */
     public static function register(string $id, string $label, callable $factory): void {
         self::$defs[$id] = ['label' => $label, 'factory' => $factory];
     }
 
-    /** @return BGC_Courier_Interface|null */
-    public static function get(string $id) {
+    public static function get(string $id): ?BGC_Courier_Interface {
         if (isset(self::$built[$id])) { return self::$built[$id]; }
         if (!isset(self::$defs[$id])) { return null; }
-        return self::$built[$id] = call_user_func(self::$defs[$id]['factory']);
+        return self::$built[$id] = (self::$defs[$id]['factory'])();
     }
 
     /** @return array<string,string> id => label */
@@ -25,10 +27,12 @@ final class BGC_Couriers {
         return array_map(static function ($d) { return $d['label']; }, self::$defs);
     }
 
-    public static function reset(): void { self::$defs = []; self::$built = []; }
+    public static function reset(): void { self::$defs = []; self::$built = []; self::$booted = false; }
 
-    /** Wire the resolver hook once, at boot. */
+    /** Wire the resolver hook once, at boot (idempotent — safe to call more than once). */
     public static function boot(): void {
+        if (self::$booted) { return; }
+        self::$booted = true;
         add_filter('bgc_courier', static function ($courier, $id) {
             return $courier ?: self::get((string) $id);
         }, 10, 2);
