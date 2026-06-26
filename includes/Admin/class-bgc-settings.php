@@ -33,14 +33,17 @@ class BGC_Settings {
     }
 
     public static function courier_config(string $courier): ?array {
-        if ($courier !== 'speedy') { return null; }
-        if (get_option('bgc_speedy_enabled', 'no') !== 'yes') { return null; }
+        if (!array_key_exists($courier, BGC_Couriers::all())) { return null; }
+        if (get_option('bgc_' . $courier . '_enabled', 'no') !== 'yes') { return null; }
         return [
-            'username'  => get_option('bgc_speedy_username', ''),
-            'password'  => BGC_Encryption::decrypt(get_option('bgc_speedy_password', '')),
-            'sender'    => self::sender(),
+            'username' => get_option('bgc_' . $courier . '_username', ''),
+            'password' => BGC_Encryption::decrypt(get_option('bgc_' . $courier . '_password', '')),
+            'sender'   => self::sender(),
         ];
     }
+
+    /** @return array<string,string> id => label of registered couriers. */
+    public static function couriers(): array { return BGC_Couriers::all(); }
 
     /** Whether to compute live prices from the courier API (vs. configured defaults). */
     public static function dynamic_pricing(string $courier): bool {
