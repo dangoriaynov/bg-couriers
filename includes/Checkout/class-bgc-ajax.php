@@ -39,7 +39,7 @@ class BGC_Ajax {
         if ($city > 0) {
             try {
                 $courier = BGC_Couriers::get($courier_id);
-                if (!$courier) { wp_send_json([]); }
+                if (!$courier) { return []; } // honor the array return type; the AJAX handler sends the empty JSON
                 $rows = $courier->fetch_offices($city);
             } catch (\Exception $e) { $rows = BGC_Nomenclature::offices($courier_id, $city); }
         }
