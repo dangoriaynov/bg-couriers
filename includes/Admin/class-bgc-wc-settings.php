@@ -28,7 +28,11 @@ class BGC_WC_Settings extends WC_Settings_Page {
     public function get_sections() { return apply_filters('woocommerce_get_sections_' . $this->id, $this->sections()); }
 
     private function sections(): array {
-        return ['' => __('General', 'bg-couriers'), 'speedy' => __('Speedy', 'bg-couriers')];
+        return [
+            ''       => __('General', 'bg-couriers'),
+            'speedy' => __('Speedy', 'bg-couriers'),
+            'econt'  => __('Econt', 'bg-couriers'),
+        ];
     }
 
     /** Full field set for the section — used by save() (save_settings_for_current_section). */
@@ -37,6 +41,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
             $f = $this->speedy_courier_fields();
             foreach (self::$method_labels as $m => $label) {
                 $f = array_merge($f, $this->method_fields('speedy', $m, $label));
+            }
+            return $f;
+        }
+        if ($section === 'econt') {
+            $f = $this->econt_courier_fields();
+            foreach (self::$method_labels as $m => $label) {
+                $f = array_merge($f, $this->method_fields('econt', $m, $label));
             }
             return $f;
         }
@@ -65,7 +76,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
 
         echo '<div class="bgc-group">';
         if ($current_section === 'speedy') {
-            $this->output_speedy();
+            $this->output_courier('speedy');
+        } elseif ($current_section === 'econt') {
+            $this->output_courier('econt');
         } else {
             WC_Admin_Settings::output_fields($this->general_fields());
         }
@@ -82,8 +95,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
         echo '</nav>';
     }
 
-    private function output_speedy(): void {
-        WC_Admin_Settings::output_fields($this->speedy_courier_fields());
+    /**
+     * Render the courier settings section (courier fields + per-method sub-tabs).
+     * Works for any courier id (speedy, econt, …).
+     */
+    private function output_courier(string $courier_id): void {
+        $fields_method = $courier_id . '_courier_fields';
+        WC_Admin_Settings::output_fields($this->$fields_method());
 
         // Level-2 nav-tabs for delivery methods (JS-switched panels; all inputs stay in the form so all save).
         echo '<h2 class="nav-tab-wrapper bgc-method-nav" style="margin-top:1.5em;">';
@@ -97,7 +115,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         $first = true;
         foreach (self::$method_labels as $m => $label) {
             echo '<div class="bgc-method-panel" data-bgc-panel="' . esc_attr($m) . '"' . ($first ? '' : ' style="display:none;"') . '>';
-            WC_Admin_Settings::output_fields($this->method_fields('speedy', $m, $label));
+            WC_Admin_Settings::output_fields($this->method_fields($courier_id, $m, $label));
             echo '</div>';
             $first = false;
         }
@@ -187,6 +205,30 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Order goods total (without shipping) at/above which Speedy is free. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_speedy_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
+        ];
+    }
+
+    private function econt_courier_fields(): array {
+        return [
+            ['type' => 'title', 'id' => 'bgc_econt', 'title' => __('Econt — courier settings', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgc_econt_enabled', 'title' => __('Enable Econt', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_econt_username', 'title' => __('API username', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'password', 'id' => 'bgc_econt_password', 'title' => __('API password', 'bg-couriers'),
+                'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
+            ['type' => 'bgc_actions', 'id' => 'bgc_econt_actions'],
+            ['type' => 'select', 'id' => 'bgc_econt_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
+                'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
+                'default' => 'A6'],
+            ['type' => 'checkbox', 'id' => 'bgc_econt_dynamic_pricing',
+                'title' => __('Use dynamic pricing', 'bg-couriers'),
+                'desc' => __('Calculate shipping cost live via the Econt API. When off, the per-method default prices below are used.', 'bg-couriers'),
+                'default' => 'yes'],
+            ['type' => 'checkbox', 'id' => 'bgc_econt_free_enabled', 'title' => __('Free shipping over a threshold', 'bg-couriers'),
+                'desc' => __('Econt ships free (you absorb the cost) when the order goods total reaches the amount below — for all delivery types.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_econt_free_threshold', 'title' => __('Free-shipping order amount', 'bg-couriers'),
+                'desc' => __('Order goods total (without shipping) at/above which Econt is free. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'bgc_sortable', 'id' => 'bgc_econt_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
+            ['type' => 'sectionend', 'id' => 'bgc_econt'],
         ];
     }
 
