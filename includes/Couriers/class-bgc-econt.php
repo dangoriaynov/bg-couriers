@@ -78,4 +78,118 @@ class BGC_Econt extends BGC_Abstract_Courier {
         }
         return $out;
     }
+
+    // ── Quote (calculate mode) ──────────────────────────────────────────────
+
+    /**
+     * Fetch the sender profile from Econt's ProfileService and cache it for one day.
+     * A sender is REQUIRED by Econt's createLabel API ("подател" error otherwise).
+     *
+     * @return array{client:array,address:array}
+     */
+    private function sender_profile(): array {
+        $cached = get_transient('bgc_econt_sender');
+        if (is_array($cached) && isset($cached['client'], $cached['address'])) {
+            return $cached;
+        }
+        $resp     = $this->post_json($this->base . '/Profile/ProfileService.getClientProfiles.json', []);
+        $profile  = $resp['profiles'][0] ?? [];
+        $client   = $profile['client'] ?? [];
+        $address  = $profile['addresses'][0] ?? [];
+        $sender   = ['client' => $client, 'address' => $address];
+        set_transient('bgc_econt_sender', $sender, DAY_IN_SECONDS);
+        return $sender;
+    }
+
+    /**
+     * Resolve the Econt office string code (e.g. "1000") from a numeric office_id.
+     * Uses BGC_Nomenclature::office_by_id which returns a row with a 'code' key
+     * (populated if the schema has been extended; returns '' otherwise).
+     */
+    private function office_code(int $site_id, int $office_id): string {
+        if ($office_id <= 0) { return ''; }
+        if (class_exists('BGC_Nomenclature')) {
+            $row = BGC_Nomenclature::office_by_id('econt', $office_id);
+            if ($row && isset($row['code'])) { return (string) $row['code']; }
+        }
+        return '';
+    }
+
+    /**
+     * Build the request body for createLabel in calculate mode.
+     *
+     * @param array $s      Shipment descriptor (method, site_id, office_code, weight_kg, street_name, street_no …)
+     * @param array $sender Sender profile as returned by sender_profile(): {client, address}
+     */
+    public static function build_calculate_body(array $s, array $sender): array {
+        $label = [
+            'senderClient'  => [
+                'name'   => (string) ($sender['client']['name'] ?? ''),
+                'phones' => array_slice($sender['client']['phones'] ?? [], 0, 1),
+            ],
+            'senderAddress' => [
+                'city'  => ['id' => (int) ($sender['address']['city']['id'] ?? 0)],
+                'street' => (string) ($sender['address']['street'] ?? ''),
+                'num'    => (string) ($sender['address']['num'] ?? ''),
+                'other'  => (string) ($sender['address']['other'] ?? ''),
+            ],
+            'receiverClient' => [
+                'name'   => 'Получател',
+                'phones' => ['0000000000'],
+            ],
+            'packCount'           => 1,
+            'weight'              => max(0.1, (float) ($s['weight_kg'] ?? 1.0)),
+            'shipmentType'        => 'pack',
+            'shipmentDescription' => 'Goods',
+        ];
+
+        if (($s['method'] ?? 'address') === 'address') {
+            $label['receiverAddress'] = [
+                'city'   => ['id' => (int) ($s['site_id'] ?? 0)],
+                'street' => (string) ($s['street_name'] ?? ''),
+                'num'    => (string) ($s['street_no'] ?? ''),
+            ];
+        } else {
+            $label['receiverOfficeCode'] = (string) ($s['office_code'] ?? '');
+        }
+
+        return ['mode' => 'calculate', 'label' => $label];
+    }
+
+    /**
+     * Parse the createLabel calculate response into a BGC_Quote.
+     *
+     * NOTE on VAT split: The fixture shows totalPrice === totalPriceWithVAT (both 4.68 EUR).
+     * This means either VAT is already included in totalPrice, or VAT is zero-rated.
+     * The tax field is set to max(0, totalPriceWithVAT - totalPrice) which will be 0.0 in
+     * this fixture case. Verify at Task 7 with a live response to confirm the intended split.
+     */
+    public static function parse_price(array $resp, string $currency): BGC_Quote {
+        $total    = (float) ($resp['label']['totalPrice'] ?? 0);
+        $withVat  = (float) ($resp['label']['totalPriceWithVAT'] ?? $total);
+        if ($total <= 0) { throw new BGC_Api_Exception('No price in Econt response'); }
+        return new BGC_Quote($total, max(0.0, $withVat - $total),
+            (string) ($resp['label']['currency'] ?? $currency), 'live');
+    }
+
+    /**
+     * Fetch a live shipping quote via Econt's createLabel in calculate mode.
+     */
+    public function quote(array $shipment): BGC_Quote {
+        if (($shipment['method'] ?? 'address') !== 'address') {
+            $shipment['office_code'] = $this->office_code(
+                (int) ($shipment['site_id'] ?? 0),
+                (int) ($shipment['office_id'] ?? 0)
+            );
+        }
+        try {
+            $resp = $this->post_json(
+                $this->base . '/Shipments/LabelService.createLabel.json',
+                self::build_calculate_body($shipment, $this->sender_profile())
+            );
+        } catch (BGC_Api_Exception $e) {
+            throw $e;
+        }
+        return self::parse_price($resp, (string) ($shipment['currency'] ?? 'EUR'));
+    }
 }
