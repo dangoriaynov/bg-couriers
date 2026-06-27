@@ -96,6 +96,9 @@ class BGC_Econt extends BGC_Abstract_Courier {
         $profile  = $resp['profiles'][0] ?? [];
         $client   = $profile['client'] ?? [];
         $address  = $profile['addresses'][0] ?? [];
+        if (empty($client['name']) || empty($address['city']['id'])) {
+            throw new BGC_Api_Exception('Econt sender profile missing client/address — check getClientProfiles');
+        }
         $sender   = ['client' => $client, 'address' => $address];
         set_transient('bgc_econt_sender', $sender, DAY_IN_SECONDS);
         return $sender;
@@ -182,14 +185,10 @@ class BGC_Econt extends BGC_Abstract_Courier {
                 (int) ($shipment['office_id'] ?? 0)
             );
         }
-        try {
-            $resp = $this->post_json(
-                $this->base . '/Shipments/LabelService.createLabel.json',
-                self::build_calculate_body($shipment, $this->sender_profile())
-            );
-        } catch (BGC_Api_Exception $e) {
-            throw $e;
-        }
+        $resp = $this->post_json(
+            $this->base . '/Shipments/LabelService.createLabel.json',
+            self::build_calculate_body($shipment, $this->sender_profile())
+        );
         return self::parse_price($resp, (string) ($shipment['currency'] ?? 'EUR'));
     }
 }

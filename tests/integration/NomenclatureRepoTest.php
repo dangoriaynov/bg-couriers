@@ -21,4 +21,15 @@ final class NomenclatureRepoTest extends WP_UnitTestCase {
         $this->assertSame(1, BGC_Nomenclature::prune('speedy','run2'));
         $this->assertSame(1, BGC_Nomenclature::count('speedy'));
     }
+
+    public function test_offices_persist_code(): void {
+        BGC_Nomenclature::upsert_offices('econt', [
+            ['office_id'=>34024,'code'=>'8015','city_id'=>2,'type'=>'automat','name'=>'Еконтомат','address'=>'ул. Марица 2'],
+            ['office_id'=>1053,'code'=>'7538','city_id'=>2,'type'=>'office','name'=>'Айдемир','address'=>'ул. Тест 1'],
+        ], 'run1');
+        $this->assertSame('8015', BGC_Nomenclature::office_by_id('econt', 34024)['code']);
+        $codes = array_column(BGC_Nomenclature::offices('econt', 2), 'code');
+        $this->assertContains('8015', $codes);
+        $this->assertContains('7538', $codes);
+    }
 }
