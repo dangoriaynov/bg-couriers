@@ -51,11 +51,20 @@ async function fillGuestBilling(page, d) {
 }
 
 // Select a bgc_<courier> shipping method radio (so its .bgc-fields block becomes the active one).
+// WC re-renders the rate radios on every recalc, so a plain .check() races the re-render; we let
+// the initial review settle, skip if already selected, and force-click to bypass the stability wait.
 async function selectShippingMethod(page, courierId) {
-  const radio = page.locator(`input[name^="shipping_method"][value^="bgc_${courierId}"]`);
-  if (await radio.count()) { await radio.first().check(); }
   await page.waitForLoadState('networkidle').catch(() => {});
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2000); // let the initial order-review render settle
+  const sel = `input[name^="shipping_method"][value^="bgc_${courierId}"]`;
+  try {
+    const radio = page.locator(sel).first();
+    await radio.waitFor({ state: 'attached', timeout: 15000 });
+    if (await radio.isChecked()) { return; } // already the chosen method
+    await radio.check({ force: true });
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(2000);
+  } catch (e) { /* re-render race — best effort; the assert on .bgc-fields visibility follows */ }
 }
 
 // Click a delivery-type tab (office | address | automat) within a courier's fields block.
