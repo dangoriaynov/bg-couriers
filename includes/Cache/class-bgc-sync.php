@@ -11,6 +11,11 @@ class BGC_Sync {
     }
 
     public static function run(BGC_Courier_Interface $courier): array {
+        // Nomenclature sync is a heavy batch op (Econt's getCities decodes to ~130MB and thousands
+        // of rows are upserted), so lift the default web limits or it OOMs / times out mid-sync.
+        if (function_exists('set_time_limit')) { @set_time_limit(0); }
+        @ini_set('memory_limit', '512M');
+
         $id  = $courier->id();
         $run = uniqid('run', true);
         $out = ['cities' => 0, 'offices' => 0, 'pruned' => 0, 'rates' => 0];
