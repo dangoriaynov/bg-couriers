@@ -8,6 +8,9 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgc-courier.php
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-speedy.php';
 
+/**
+ * @group speedy
+ */
 final class SpeedyPrintBodyTest extends TestCase {
     public function test_build_print_body_multi_parcel(): void {
         $b = BGC_Speedy::build_print_body(['111', '222'], 'A4');

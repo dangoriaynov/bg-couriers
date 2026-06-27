@@ -1,5 +1,8 @@
 <?php
 // tests/integration/CourierConfigTest.php
+/**
+ * @group core
+ */
 final class CourierConfigTest extends WP_UnitTestCase {
     public function test_config_for_registered_enabled_courier(): void {
         update_option('bgc_speedy_enabled', 'yes');

@@ -6,6 +6,9 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-api-exception.ph
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgc-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php';
 
+/**
+ * @group core
+ */
 final class AbstractCourierTest extends TestCase {
     protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }

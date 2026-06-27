@@ -1,4 +1,7 @@
 <?php
+/**
+ * @group speedy
+ */
 final class AjaxSearchTest extends WP_UnitTestCase {
     public function set_up() {
         parent::set_up(); BGC_Schema::create();

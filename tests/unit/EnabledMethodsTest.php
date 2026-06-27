@@ -5,6 +5,9 @@ use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgc-settings.php';
 
+/**
+ * @group speedy
+ */
 final class EnabledMethodsTest extends TestCase {
     protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }

@@ -4,6 +4,9 @@ use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgc-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-couriers.php';
 
+/**
+ * @group core
+ */
 final class CouriersRegistryTest extends TestCase {
     protected function setUp(): void { BGC_Couriers::reset(); }
 

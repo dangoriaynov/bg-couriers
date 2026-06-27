@@ -2,6 +2,9 @@
 use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgc-ajax.php';
 
+/**
+ * @group speedy
+ */
 final class AddressSelectionTest extends TestCase {
     public function test_maps_and_trims_known_keys_only(): void {
         $out = BGC_Ajax::address_fields([

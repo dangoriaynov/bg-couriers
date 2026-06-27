@@ -2,6 +2,9 @@
 use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-speedy.php';
 
+/**
+ * @group speedy
+ */
 final class SpeedyCodTest extends TestCase {
     public function test_cod_is_total_minus_shipping(): void {
         // total 25.20 = goods 19.00 + shipping 6.00 + shipping tax 0.20

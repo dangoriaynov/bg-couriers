@@ -1,6 +1,9 @@
 <?php
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @group core
+ */
 final class AutoloaderTest extends TestCase {
     public function test_autoloader_constant_and_class(): void {
         if (!defined('ABSPATH')) { define('ABSPATH', __DIR__); }

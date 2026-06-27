@@ -4,6 +4,9 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgc-order-columns.php';
 
+/**
+ * @group speedy
+ */
 final class OrderColumnCellTest extends TestCase {
     protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }

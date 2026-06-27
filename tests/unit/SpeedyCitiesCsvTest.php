@@ -2,6 +2,9 @@
 use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-speedy.php';
 
+/**
+ * @group speedy
+ */
 final class SpeedyCitiesCsvTest extends TestCase {
     public function test_parse_sites_csv_by_header(): void {
         // Column order intentionally differs from production to prove header-based parsing.

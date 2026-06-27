@@ -2,6 +2,8 @@
 /**
  * The Speedy /shipment payload must carry exactly what the customer entered at checkout —
  * nothing added, nothing dropped. Exercises BGC_Speedy::build_shipment_body against a real order.
+ *
+ * @group speedy
  */
 final class LabelIntegrityTest extends WP_UnitTestCase {
     private function build(WC_Order $order): array {

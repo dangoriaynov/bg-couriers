@@ -2,6 +2,9 @@
 use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-speedy.php';
 
+/**
+ * @group speedy
+ */
 final class SpeedyStreetTest extends TestCase {
     public function test_parse_streets_builds_name_and_label_and_skips_blank(): void {
         $resp = ['streets' => [

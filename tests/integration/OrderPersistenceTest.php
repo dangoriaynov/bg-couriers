@@ -1,4 +1,7 @@
 <?php
+/**
+ * @group speedy
+ */
 final class OrderPersistenceTest extends WP_UnitTestCase {
     public function test_persist_writes_meta_via_crud(): void {
         WC()->session = WC()->session ?: new WC_Session_Handler();

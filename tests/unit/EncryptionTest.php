@@ -2,6 +2,9 @@
 use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-encryption.php';
 
+/**
+ * @group core
+ */
 final class EncryptionTest extends TestCase {
     public function test_round_trip(): void {
         $key = str_repeat('k', 32);

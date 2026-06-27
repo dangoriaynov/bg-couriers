@@ -2,6 +2,9 @@
 use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-currency.php';
 
+/**
+ * @group core
+ */
 final class CurrencyTest extends TestCase {
     public function test_bgn_to_eur_uses_peg(): void {
         $this->assertEqualsWithDelta(10.00, BGC_Currency::convert(19.5583, 'BGN', 'EUR'), 0.001);

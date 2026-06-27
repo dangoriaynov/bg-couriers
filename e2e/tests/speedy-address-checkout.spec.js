@@ -3,7 +3,7 @@ const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectSpeedyTab, se
 
 function amount(text) { const m = (text || '').match(/[\d]+[,.][\d]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
-test('speedy guest checkout to ADDRESS, COD', async ({ page }) => {
+test('speedy guest checkout to ADDRESS, COD @speedy', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
   const fields = page.locator('.bgc-fields');

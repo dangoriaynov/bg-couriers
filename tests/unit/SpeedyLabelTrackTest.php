@@ -8,6 +8,9 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgc-courier.php
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-speedy.php';
 
+/**
+ * @group speedy
+ */
 final class SpeedyLabelTrackTest extends TestCase {
     public function test_parse_shipment_id(): void {
         $resp = json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/speedy/shipment.json'), true);

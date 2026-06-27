@@ -1,4 +1,7 @@
 <?php
+/**
+ * @group speedy
+ */
 final class ShippingMethodTest extends WP_UnitTestCase {
     public function set_up() { parent::set_up(); BGC_Schema::create(); BGC_Rates::set('speedy','office',5.55,'BGN'); }
     public function tear_down() { BGC_Couriers::reset(); parent::tear_down(); }

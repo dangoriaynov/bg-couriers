@@ -1,5 +1,9 @@
 <?php
-/** The free-shipping progress notice math: how much is left to reach the threshold. */
+/**
+ * The free-shipping progress notice math: how much is left to reach the threshold.
+ *
+ * @group speedy
+ */
 final class FreeNoticeTest extends WP_UnitTestCase {
     public function test_free_remaining(): void {
         $cfg = ['enabled' => true, 'threshold' => 50.0];

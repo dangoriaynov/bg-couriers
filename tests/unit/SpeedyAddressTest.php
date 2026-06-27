@@ -3,6 +3,9 @@ use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-speedy.php';
 
+/**
+ * @group speedy
+ */
 final class SpeedyAddressTest extends TestCase {
     public function test_required_only(): void {
         $a = BGC_Speedy::build_address(68134, ['street' => 'Витоша', 'street_no' => '5']);

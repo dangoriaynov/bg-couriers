@@ -1,3 +1,28 @@
 #!/usr/bin/env bash
-# Run PHPUnit inside the wp-env tests container (PHP + WP + WC + MySQL).
-exec npx @wordpress/env run tests-cli --env-cwd=wp-content/plugins/bg-couriers -- ./vendor/bin/phpunit "$@"
+# Run PHPUnit + E2E tests inside the wp-env tests container.
+# Usage:
+#   bin/test              — full suite (unit + integration + e2e)
+#   bin/test core         — framework tests only (--group core, no e2e)
+#   bin/test speedy       — Speedy PHP tests + @speedy e2e specs
+#   bin/test <courier>    — <courier> PHP tests + @<courier> e2e specs
+set -euo pipefail
+
+COURIER="${1:-}"
+WPENV='npx @wordpress/env run tests-cli --env-cwd=wp-content/plugins/bg-couriers --'
+
+run_php() {
+  local group="$1"
+  $WPENV ./vendor/bin/phpunit --testsuite unit --group "$group"
+  BGC_SUITE=integration $WPENV ./vendor/bin/phpunit --testsuite integration --group "$group"
+}
+
+if [ -z "$COURIER" ]; then
+  $WPENV ./vendor/bin/phpunit --testsuite unit
+  BGC_SUITE=integration $WPENV ./vendor/bin/phpunit --testsuite integration
+  ( cd e2e && npx playwright test )
+elif [ "$COURIER" = "core" ]; then
+  run_php core
+else
+  run_php "$COURIER"
+  ( cd e2e && npx playwright test --grep "@$COURIER" )
+fi

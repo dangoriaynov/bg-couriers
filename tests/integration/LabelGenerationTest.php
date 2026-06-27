@@ -1,4 +1,7 @@
 <?php
+/**
+ * @group speedy
+ */
 final class LabelGenerationTest extends WP_UnitTestCase {
     public function test_generate_is_idempotent(): void {
         $order = new WC_Order();

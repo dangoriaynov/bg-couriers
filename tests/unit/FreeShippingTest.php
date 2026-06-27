@@ -8,6 +8,9 @@ if (!class_exists('WC_Shipping_Method')) { class WC_Shipping_Method {} }
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgc-method-speedy.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgc-settings.php';
 
+/**
+ * @group speedy
+ */
 final class FreeShippingTest extends TestCase {
     protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
