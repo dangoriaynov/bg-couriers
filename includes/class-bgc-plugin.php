@@ -10,6 +10,9 @@ class BGC_Plugin {
         BGC_Couriers::register('speedy', __('Speedy', 'bg-couriers'), static function () {
             return new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: []);
         });
+        BGC_Couriers::register('econt', __('Econt', 'bg-couriers'), static function () {
+            return new BGC_Econt(BGC_Settings::courier_config('econt') ?: []);
+        });
         BGC_Couriers::boot();
         add_filter('cron_schedules', function ($s) {
             $s['weekly'] = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
@@ -19,6 +22,7 @@ class BGC_Plugin {
         add_action(BGC_Sync::HOOK, ['BGC_Sync', 'cron']);
         add_filter('woocommerce_shipping_methods', function ($methods) {
             $methods['bgc_speedy'] = 'BGC_Method_Speedy';
+            $methods['bgc_econt'] = 'BGC_Method_Econt';
             return $methods;
         });
         new BGC_Checkout();
