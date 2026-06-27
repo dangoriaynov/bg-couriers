@@ -3,11 +3,11 @@ const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMetho
 
 function amount(text) { const m = (text || '').match(/[\d]+[,.][\d]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
-test('speedy guest checkout to AUTOMAT (locker), COD @speedy', async ({ page }) => {
+test('econt guest checkout to AUTOMAT (Econtomat), COD @econt', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
-  await selectShippingMethod(page, 'speedy');
-  const fields = page.locator('.bgc-fields[data-courier="speedy"]');
+  await selectShippingMethod(page, 'econt');
+  const fields = page.locator('.bgc-fields[data-courier="econt"]');
   await expect(fields).toBeVisible({ timeout: 15000 });
 
   await selectSpeedyTab(page, fields, 'automat');
@@ -17,23 +17,23 @@ test('speedy guest checkout to AUTOMAT (locker), COD @speedy', async ({ page }) 
   await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(1500);
   await expect(fields.locator('.bgc-office-row')).toBeVisible({ timeout: 15000 });
-  await pickFirstOffice(page, fields); // automats are filtered by the tab type
+  await pickFirstOffice(page, fields); // Econtomat lockers (isAPS)
   await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(2500);
 
   const sub = amount(await page.locator('.cart-subtotal .woocommerce-Price-amount').first().innerText());
   const ship = amount(await page.locator('.woocommerce-shipping-totals .woocommerce-Price-amount').first().innerText());
   const total = amount(await page.locator('.order-total .woocommerce-Price-amount').first().innerText());
-  console.log(`AUTOMAT Subtotal: ${sub}, Shipping: ${ship}, Total: ${total}`);
+  console.log(`ECONT AUTOMAT Subtotal: ${sub}, Shipping: ${ship}, Total: ${total}`);
   expect(sub).toBeGreaterThan(0);
   expect(ship).toBeGreaterThan(0);
   expect(total).toBeGreaterThanOrEqual(sub + ship - 0.05);
 
-  await fillGuestBilling(page, { first: 'Тест', last: 'Автомат', email: 'e2e-apt@example.com', phone: '0888123456' });
+  await fillGuestBilling(page, { first: 'Тест', last: 'Еконт', email: 'e2e-econt-apt@example.com', phone: '0888123456' });
   await page.locator('#place_order').click();
 
   await expect(page).toHaveURL(/order-received/i, { timeout: 30000 });
   const order = page.locator('.woocommerce-order').first();
   await expect(order).toBeVisible({ timeout: 15000 });
-  await expect(order).toContainText(/Speedy/i);
+  await expect(order).toContainText(/Econt/i);
 });

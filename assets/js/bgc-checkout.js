@@ -126,9 +126,24 @@
   function saveSelection($wrap) { $.post(BGC.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
 
   // Wiring ------------------------------------------------------------------
+  // The chosen bgc_<id> shipping method's courier id (each courier renders its own .bgc-fields).
+  function chosenCourier() {
+    var v = $('input[name^="shipping_method"]:checked').val()
+         || $('input[name^="shipping_method"][type="hidden"]').val() || '';
+    var m = String(v).match(/^bgc_([a-z0-9]+)/);
+    return m ? m[1] : '';
+  }
+
   $(document.body).on('updated_checkout', function () {
-    var $wrap = $('.bgc-fields'); if (!$wrap.length) return;
-    renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); hideLoader($wrap);
+    if (!$('.bgc-fields').length) return;
+    var chosen = chosenCourier();
+    $('.bgc-fields').each(function () {
+      var $wrap = $(this);
+      var mine = $wrap.attr('data-courier') === chosen;
+      $wrap.toggle(mine); // show only the chosen courier's fields (multiple couriers can share a zone)
+      if (!mine) return;
+      renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); hideLoader($wrap);
+    });
   });
 
   $(document.body).on('click', '.bgc-tab', function (e) {

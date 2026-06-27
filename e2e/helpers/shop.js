@@ -50,7 +50,15 @@ async function fillGuestBilling(page, d) {
   await set('#billing_phone', d.phone);
 }
 
-// Click a Speedy delivery-type tab (office | address | automat).
+// Select a bgc_<courier> shipping method radio (so its .bgc-fields block becomes the active one).
+async function selectShippingMethod(page, courierId) {
+  const radio = page.locator(`input[name^="shipping_method"][value^="bgc_${courierId}"]`);
+  if (await radio.count()) { await radio.first().check(); }
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForTimeout(1500);
+}
+
+// Click a delivery-type tab (office | address | automat) within a courier's fields block.
 async function selectSpeedyTab(page, fields, methodName) {
   await fields.locator(`.bgc-tab[data-method="${methodName}"]`).click();
   await expect(fields.locator(`.bgc-tab[data-method="${methodName}"].active`)).toBeVisible({ timeout: 10000 });
@@ -87,4 +95,4 @@ async function fillStreet(page, fields, term) {
   await opt.click();
 }
 
-module.exports = { addAnyProductToCart, gotoCheckout, fillGuestBilling, dismissStoreBanner, selectSpeedyTab, selectCity, pickFirstOffice, fillStreet };
+module.exports = { addAnyProductToCart, gotoCheckout, fillGuestBilling, dismissStoreBanner, selectShippingMethod, selectSpeedyTab, selectCity, pickFirstOffice, fillStreet };

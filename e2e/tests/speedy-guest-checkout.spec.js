@@ -1,12 +1,13 @@
 const { test, expect } = require('@playwright/test');
-const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectSpeedyTab, selectCity, pickFirstOffice } = require('../helpers/shop');
+const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMethod, selectSpeedyTab, selectCity, pickFirstOffice } = require('../helpers/shop');
 
 function amount(text) { const m = (text || '').match(/[\d]+[,.][\d]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
 test('speedy guest checkout to office, COD @speedy', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
-  const fields = page.locator('.bgc-fields');
+  await selectShippingMethod(page, 'speedy');
+  const fields = page.locator('.bgc-fields[data-courier="speedy"]');
   await expect(fields).toBeVisible({ timeout: 15000 });
 
   await selectSpeedyTab(page, fields, 'office');
