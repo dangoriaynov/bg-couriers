@@ -1,0 +1,34 @@
+{
+ "streets": [
+  {
+   "id": 3,
+   "cityID": 41,
+   "name": "бул. Ген. Скобелев",
+   "nameEn": "bul. Gen. Skobelev"
+  },
+  {
+   "id": 6,
+   "cityID": 41,
+   "name": "бул. Цар Борис III",
+   "nameEn": "bul. Tsar Boris III"
+  },
+  {
+   "id": 9,
+   "cityID": 41,
+   "name": "ул. Александър Македонски",
+   "nameEn": "ul. Aleksandyr Makedonski"
+  },
+  {
+   "id": 10,
+   "cityID": 41,
+   "name": "ул. Ами Буе",
+   "nameEn": "ul. Ami Bue"
+  },
+  {
+   "id": 20,
+   "cityID": 41,
+   "name": "ул. Даскал Манол",
+   "nameEn": "ul. Daskal Manol"
+  }
+ ]
+}

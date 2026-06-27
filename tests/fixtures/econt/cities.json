@@ -1,0 +1,1840 @@
+{
+ "cities": [
+  {
+   "id": 1,
+   "country": {
+    "id": null,
+    "code2": "BG",
+    "code3": "BGR",
+    "name": "България",
+    "nameEn": "Bulgaria",
+    "isEU": true
+   },
+   "postCode": "8500",
+   "name": "Айтос",
+   "nameEn": "Aytos",
+   "regionName": "Бургас",
+   "regionNameEn": "Burgas",
+   "phoneCode": "558",
+   "location": null,
+   "expressCityDeliveries": true,
+   "monday": true,
+   "tuesday": true,
+   "wednesday": true,
+   "thursday": true,
+   "friday": true,
+   "saturday": true,
+   "sunday": false,
+   "serviceDays": 0,
+   "zoneId": 1,
+   "zoneName": "Зона А",
+   "zoneNameEn": "Зона А",
+   "servingOffices": [
+    {
+     "officeCode": "8501",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8501",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8503",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8503",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8503",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8503",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8503",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8503",
+     "servingType": "to_office_cargo_expres"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "country": {
+    "id": null,
+    "code2": "BG",
+    "code3": "BGR",
+    "name": "България",
+    "nameEn": "Bulgaria",
+    "isEU": true
+   },
+   "postCode": "8000",
+   "name": "Бургас",
+   "nameEn": "Burgas",
+   "regionName": "Бургас",
+   "regionNameEn": "Burgas",
+   "phoneCode": "56",
+   "location": null,
+   "expressCityDeliveries": true,
+   "monday": true,
+   "tuesday": true,
+   "wednesday": true,
+   "thursday": true,
+   "friday": true,
+   "saturday": true,
+   "sunday": false,
+   "serviceDays": 0,
+   "zoneId": 1,
+   "zoneName": "Зона А",
+   "zoneNameEn": "Зона А",
+   "servingOffices": [
+    {
+     "officeCode": "8000",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "to_door_trans_pallet"
+    },
+    {
+     "officeCode": "8000",
+     "servingType": "to_office_trans_pallet"
+    },
+    {
+     "officeCode": "8002",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8002",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8002",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8002",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8002",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8002",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8004",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8004",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8004",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8004",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8004",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8004",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8007",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8007",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8007",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8007",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8007",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "8007",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8007",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8121",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "8121",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "8121",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "8121",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "8121",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "8121",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "8121",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "8012",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8012",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8012",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "8012",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8012",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8012",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8012",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8006",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8006",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8006",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8006",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8006",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8006",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8009",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8009",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8009",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8009",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8009",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8009",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8018",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8018",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8018",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8018",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8018",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8018",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8020",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8020",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8020",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8020",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8020",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8020",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8021",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "80278",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "80278",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "80278",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "80278",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "80278",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "80278",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "80278",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "80278",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "80278",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "8015",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8015",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8015",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8015",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8029",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8029",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8029",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8029",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "80078",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "80078",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "80078",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "80078",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "80078",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "80078",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "80078",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "80078",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "80078",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "to_door_trans_pallet"
+    },
+    {
+     "officeCode": "8033",
+     "servingType": "to_office_trans_pallet"
+    },
+    {
+     "officeCode": "8035",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8035",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8035",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8035",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8035",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8035",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "80308",
+     "servingType": "to_door_trans_pallet"
+    },
+    {
+     "officeCode": "81338",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "81338",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "81338",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "81338",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "81338",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "81338",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "81338",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "81338",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "81338",
+     "servingType": "to_door_trans_pallet"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_door_trans_pallet"
+    },
+    {
+     "officeCode": "8028",
+     "servingType": "to_office_trans_pallet"
+    },
+    {
+     "officeCode": "8036",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8036",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8036",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8036",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8036",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8036",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8008",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8008",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8008",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8008",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8008",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8008",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8037",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8037",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8037",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8037",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8037",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8037",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8038",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8038",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8038",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "8038",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "8038",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8038",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8038",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8038",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8038",
+     "servingType": "to_office_trans_pallet"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_door_trans_pallet"
+    },
+    {
+     "officeCode": "8043",
+     "servingType": "to_office_trans_pallet"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "country": {
+    "id": null,
+    "code2": "BG",
+    "code3": "BGR",
+    "name": "България",
+    "nameEn": "Bulgaria",
+    "isEU": true
+   },
+   "postCode": "4230",
+   "name": "Асеновград",
+   "nameEn": "Asenovgrad",
+   "regionName": "Пловдив",
+   "regionNameEn": "Plovdiv",
+   "phoneCode": "331",
+   "location": null,
+   "expressCityDeliveries": true,
+   "monday": true,
+   "tuesday": true,
+   "wednesday": true,
+   "thursday": true,
+   "friday": true,
+   "saturday": true,
+   "sunday": false,
+   "serviceDays": 0,
+   "zoneId": 1,
+   "zoneName": "Зона А",
+   "zoneNameEn": "Зона А",
+   "servingOffices": [
+    {
+     "officeCode": "4232",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "4232",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "4232",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "4232",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "4232",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "4232",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "4232",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "4232",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "4233",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "4233",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "4233",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "4233",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "4233",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "4233",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "4234",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "4234",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "4234",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "4234",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "4234",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "4234",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "4234",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "4234",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "4235",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "4235",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "4235",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "4235",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "4235",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "4235",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "4237",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "4237",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "4237",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "4237",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "4237",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "4237",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "4238",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "4238",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "4238",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "4238",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "4238",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "4238",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "42308",
+     "servingType": "to_door_trans_pallet"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "country": {
+    "id": null,
+    "code2": "BG",
+    "code3": "BGR",
+    "name": "България",
+    "nameEn": "Bulgaria",
+    "isEU": true
+   },
+   "postCode": "2700",
+   "name": "Благоевград",
+   "nameEn": "Blagoevgrad",
+   "regionName": "Благоевград",
+   "regionNameEn": "Blagoevgrad",
+   "phoneCode": "73",
+   "location": null,
+   "expressCityDeliveries": true,
+   "monday": true,
+   "tuesday": true,
+   "wednesday": true,
+   "thursday": true,
+   "friday": true,
+   "saturday": true,
+   "sunday": false,
+   "serviceDays": 0,
+   "zoneId": 1,
+   "zoneName": "Зона А",
+   "zoneNameEn": "Зона А",
+   "servingOffices": [
+    {
+     "officeCode": "2710",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2710",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2710",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2710",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2711",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2711",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2711",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2711",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2711",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2711",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2712",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2712",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2712",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2712",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2712",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2712",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "27018",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "27018",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "27018",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "27018",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "27018",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "27018",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "27018",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "27018",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "27018",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "2714",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2714",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2714",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2714",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2714",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2714",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2715",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2715",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2715",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "2715",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "2715",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2715",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2715",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2715",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2715",
+     "servingType": "to_office_trans_pallet"
+    },
+    {
+     "officeCode": "2717",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2717",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2717",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2717",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2717",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2717",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "27006",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2718",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2718",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2718",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "2718",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "2718",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2718",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2718",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2718",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2718",
+     "servingType": "to_office_trans_pallet"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "27029",
+     "servingType": "to_door_trans_pallet"
+    },
+    {
+     "officeCode": "2719",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2719",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2719",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2719",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2719",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2719",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2719",
+     "servingType": "to_office_trans_pallet"
+    },
+    {
+     "officeCode": "2720",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2720",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2720",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2720",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2720",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2720",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2706",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2706",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2706",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2706",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2706",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2706",
+     "servingType": "to_office_cargo_expres"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "country": {
+    "id": null,
+    "code2": "BG",
+    "code3": "BGR",
+    "name": "България",
+    "nameEn": "Bulgaria",
+    "isEU": true
+   },
+   "postCode": "2140",
+   "name": "Ботевград",
+   "nameEn": "Botevgrad",
+   "regionName": "София Област",
+   "regionNameEn": "Sofia region",
+   "phoneCode": "723",
+   "location": null,
+   "expressCityDeliveries": true,
+   "monday": true,
+   "tuesday": true,
+   "wednesday": true,
+   "thursday": true,
+   "friday": true,
+   "saturday": true,
+   "sunday": false,
+   "serviceDays": 0,
+   "zoneId": 1,
+   "zoneName": "Зона А",
+   "zoneNameEn": "Зона А",
+   "servingOffices": [
+    {
+     "officeCode": "2144",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2144",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2144",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2144",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2144",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2144",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2145",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2145",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2145",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "2145",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "2145",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2145",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2145",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2145",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2146",
+     "servingType": "from_office_courier"
+    },
+    {
+     "officeCode": "2146",
+     "servingType": "to_office_courier"
+    },
+    {
+     "officeCode": "2146",
+     "servingType": "from_office_cargo"
+    },
+    {
+     "officeCode": "2146",
+     "servingType": "to_office_cargo"
+    },
+    {
+     "officeCode": "2146",
+     "servingType": "from_office_post"
+    },
+    {
+     "officeCode": "2146",
+     "servingType": "to_office_post"
+    },
+    {
+     "officeCode": "2146",
+     "servingType": "from_office_cargo_expres"
+    },
+    {
+     "officeCode": "2146",
+     "servingType": "to_office_cargo_expres"
+    },
+    {
+     "officeCode": "2146",
+     "servingType": "to_office_trans_pallet"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "from_door_courier"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "to_door_courier"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "from_door_cargo"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "to_door_cargo"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "from_door_post"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "to_door_post"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "code1"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "from_door_cargo_expres"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "to_door_cargo_expres"
+    },
+    {
+     "officeCode": "21468",
+     "servingType": "to_door_trans_pallet"
+    }
+   ]
+  }
+ ]
+}

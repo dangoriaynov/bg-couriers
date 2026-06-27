@@ -1,0 +1,13 @@
+{
+ "label": {
+  "shipmentNumber": null,
+  "shipmentType": "pack",
+  "packCount": 1,
+  "weight": 1,
+  "totalPrice": 4.68,
+  "totalPriceWithVAT": 4.68,
+  "currency": "EUR"
+ },
+ "courierRequestID": null,
+ "blockingPaymentURL": null
+}

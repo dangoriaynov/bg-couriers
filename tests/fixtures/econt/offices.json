@@ -1,0 +1,395 @@
+{
+ "offices": [
+  {
+   "id": 1053,
+   "code": "7538",
+   "isMPS": false,
+   "isAPS": false,
+   "name": "Айдемир",
+   "nameEn": "Aydemir",
+   "phones": [
+    "+359 82 526 939"
+   ],
+   "emails": [
+    "aidemir@econt.com"
+   ],
+   "address": {
+    "id": null,
+    "city": {
+     "id": 80,
+     "country": {
+      "id": 1033,
+      "code2": "BG",
+      "code3": "BGR",
+      "name": "България",
+      "nameEn": "Bulgaria",
+      "isEU": true
+     },
+     "postCode": "7538",
+     "name": "Айдемир",
+     "nameEn": "Aydemir",
+     "regionName": null,
+     "regionNameEn": null,
+     "phoneCode": null,
+     "location": null,
+     "expressCityDeliveries": null,
+     "monday": null,
+     "tuesday": null,
+     "wednesday": null,
+     "thursday": null,
+     "friday": null,
+     "saturday": null,
+     "sunday": null,
+     "serviceDays": null,
+     "zoneId": null,
+     "zoneName": null,
+     "zoneNameEn": null,
+     "servingOffices": []
+    },
+    "fullAddress": " Айдемир кв. Деленките ул. София №7",
+    "fullAddressEn": " Aydemir kv. Delenkite ul. Sofiya №7",
+    "quarter": "кв. Деленките",
+    "street": "ул. София",
+    "num": "7",
+    "other": "",
+    "location": {
+     "latitude": 44.1009192550187,
+     "longitude": 27.1950400265455,
+     "confidence": 3
+    },
+    "zip": null,
+    "hezid": null
+   },
+   "info": "ТП;Сил Експрес ООД\nРаботи от 06.04.2015 г.\nЗаповед № 129 /02.04.2015 г.",
+   "currency": "EUR",
+   "language": null,
+   "normalBusinessHoursFrom": 1782540000000,
+   "normalBusinessHoursTo": 1782572400000,
+   "halfDayBusinessHoursFrom": 1782540000000,
+   "halfDayBusinessHoursTo": 1782561600000,
+   "shipmentTypes": [
+    "post",
+    "courier",
+    "cargo",
+    "pallet"
+   ],
+   "partnerCode": "",
+   "hubCode": "7000",
+   "hubName": "Русе НЛЦ Населено място",
+   "hubNameEn": "Ruse NLC Naseleno myasto",
+   "isDrive": false
+  },
+  {
+   "id": 133,
+   "code": "8501",
+   "isMPS": false,
+   "isAPS": false,
+   "name": "Айтос Автогара",
+   "nameEn": "Aytos Avtogara",
+   "phones": [
+    "+359 82 526 831"
+   ],
+   "emails": [
+    "aitos_avtogara@econt.com"
+   ],
+   "address": {
+    "id": null,
+    "city": {
+     "id": 1,
+     "country": {
+      "id": 1033,
+      "code2": "BG",
+      "code3": "BGR",
+      "name": "България",
+      "nameEn": "Bulgaria",
+      "isEU": true
+     },
+     "postCode": "8500",
+     "name": "Айтос",
+     "nameEn": "Aytos",
+     "regionName": null,
+     "regionNameEn": null,
+     "phoneCode": null,
+     "location": null,
+     "expressCityDeliveries": null,
+     "monday": null,
+     "tuesday": null,
+     "wednesday": null,
+     "thursday": null,
+     "friday": null,
+     "saturday": null,
+     "sunday": null,
+     "serviceDays": null,
+     "zoneId": null,
+     "zoneName": null,
+     "zoneNameEn": null,
+     "servingOffices": []
+    },
+    "fullAddress": " Айтос ул. Хаджи Димитър №31",
+    "fullAddressEn": " Aytos ul. Hadzhi Dimityr №31",
+    "quarter": null,
+    "street": "ул. Хаджи Димитър",
+    "num": "31",
+    "other": "",
+    "location": {
+     "latitude": 42.70673429756089,
+     "longitude": 27.250327873096573,
+     "confidence": 3
+    },
+    "zip": null,
+    "hezid": null
+   },
+   "info": "ТП; ЕЛБО - БОРИСЛАВ ГЕОРГИЕВ 11.2.2008-01.01.2010; С нова фирма ЕЛБО БГГ ЕООД от 01.01.2010; Промяна на име от Айтос Елбо на Айтос Автогара от 26.06.2014",
+   "currency": "EUR",
+   "language": null,
+   "normalBusinessHoursFrom": 1782540000000,
+   "normalBusinessHoursTo": 1782572400000,
+   "halfDayBusinessHoursFrom": 1782540000000,
+   "halfDayBusinessHoursTo": 1782561600000,
+   "shipmentTypes": [
+    "post",
+    "courier",
+    "cargo",
+    "pallet"
+   ],
+   "partnerCode": "",
+   "hubCode": "8001",
+   "hubName": "Бургас НЛЦ Населено място",
+   "hubNameEn": "Burgas NLC",
+   "isDrive": false
+  },
+  {
+   "id": 34004,
+   "code": "8503",
+   "isMPS": false,
+   "isAPS": false,
+   "name": "Айтос Орела",
+   "nameEn": "Aytos Orela",
+   "phones": [
+    "+359 82 526 828"
+   ],
+   "emails": [
+    "aitos_orela@econt.com"
+   ],
+   "address": {
+    "id": null,
+    "city": {
+     "id": 1,
+     "country": {
+      "id": 1033,
+      "code2": "BG",
+      "code3": "BGR",
+      "name": "България",
+      "nameEn": "Bulgaria",
+      "isEU": true
+     },
+     "postCode": "8500",
+     "name": "Айтос",
+     "nameEn": "Aytos",
+     "regionName": null,
+     "regionNameEn": null,
+     "phoneCode": null,
+     "location": null,
+     "expressCityDeliveries": null,
+     "monday": null,
+     "tuesday": null,
+     "wednesday": null,
+     "thursday": null,
+     "friday": null,
+     "saturday": null,
+     "sunday": null,
+     "serviceDays": null,
+     "zoneId": null,
+     "zoneName": null,
+     "zoneNameEn": null,
+     "servingOffices": []
+    },
+    "fullAddress": " Айтос ул. Васил Левски №44",
+    "fullAddressEn": " Aytos ul. Vasil Levski №44",
+    "quarter": null,
+    "street": "ул. Васил Левски",
+    "num": "44",
+    "other": "",
+    "location": {
+     "latitude": 42.69806274792844,
+     "longitude": 27.26114602276801,
+     "confidence": 3
+    },
+    "zip": null,
+    "hezid": null
+   },
+   "info": "Прехвърляне на офиса към Елбо БГГ ЕООД от 15.09.2016",
+   "currency": "EUR",
+   "language": null,
+   "normalBusinessHoursFrom": 1782540000000,
+   "normalBusinessHoursTo": 1782572400000,
+   "halfDayBusinessHoursFrom": 1782540000000,
+   "halfDayBusinessHoursTo": 1782561600000,
+   "shipmentTypes": [
+    "post",
+    "courier",
+    "cargo"
+   ],
+   "partnerCode": "",
+   "hubCode": "8001",
+   "hubName": "Бургас НЛЦ Населено място",
+   "hubNameEn": "Burgas NLC",
+   "isDrive": false
+  },
+  {
+   "id": 34261,
+   "code": "9040",
+   "isMPS": false,
+   "isAPS": false,
+   "name": "Аксаково",
+   "nameEn": "Aksakovo",
+   "phones": [
+    "+359 82 526 881"
+   ],
+   "emails": [
+    "aksakovo@econt.com"
+   ],
+   "address": {
+    "id": null,
+    "city": {
+     "id": 1284,
+     "country": {
+      "id": 1033,
+      "code2": "BG",
+      "code3": "BGR",
+      "name": "България",
+      "nameEn": "Bulgaria",
+      "isEU": true
+     },
+     "postCode": "9154",
+     "name": "Аксаково",
+     "nameEn": "Aksakovo",
+     "regionName": null,
+     "regionNameEn": null,
+     "phoneCode": null,
+     "location": null,
+     "expressCityDeliveries": null,
+     "monday": null,
+     "tuesday": null,
+     "wednesday": null,
+     "thursday": null,
+     "friday": null,
+     "saturday": null,
+     "sunday": null,
+     "serviceDays": null,
+     "zoneId": null,
+     "zoneName": null,
+     "zoneNameEn": null,
+     "servingOffices": []
+    },
+    "fullAddress": " Аксаково ул. Михаил Иванов №7",
+    "fullAddressEn": " Aksakovo ul. Mihail Ivanov №7",
+    "quarter": null,
+    "street": "ул. Михаил Иванов",
+    "num": "7",
+    "other": "",
+    "location": {
+     "latitude": 43.257141172537,
+     "longitude": 27.817915573277453,
+     "confidence": 3
+    },
+    "zip": null,
+    "hezid": null
+   },
+   "info": "Тайм Асистънт ЕООД- 25.06.2018г. \nОт 01.09. 2021г. - нова фирма Варна Скай ООД",
+   "currency": "EUR",
+   "language": null,
+   "normalBusinessHoursFrom": 1782540000000,
+   "normalBusinessHoursTo": 1782572400000,
+   "halfDayBusinessHoursFrom": 1782540000000,
+   "halfDayBusinessHoursTo": 1782561600000,
+   "shipmentTypes": [
+    "post",
+    "courier",
+    "cargo"
+   ],
+   "partnerCode": "",
+   "hubCode": "9000",
+   "hubName": "Варна НЛЦ",
+   "hubNameEn": "Varna NLC",
+   "isDrive": false
+  },
+  {
+   "id": 34024,
+   "code": "8015",
+   "isMPS": false,
+   "isAPS": true,
+   "name": "Бургас 24/7 Еконтомат- Автогара Запад",
+   "nameEn": "Burgas 24/7 Econtomat- Avtogara Zapad",
+   "phones": [
+    "0 7001 7300"
+   ],
+   "emails": [
+    "bourgas_lazur@econt.com"
+   ],
+   "address": {
+    "id": null,
+    "city": {
+     "id": 2,
+     "country": {
+      "id": 1033,
+      "code2": "BG",
+      "code3": "BGR",
+      "name": "България",
+      "nameEn": "Bulgaria",
+      "isEU": true
+     },
+     "postCode": "8000",
+     "name": "Бургас",
+     "nameEn": "Burgas",
+     "regionName": null,
+     "regionNameEn": null,
+     "phoneCode": null,
+     "location": null,
+     "expressCityDeliveries": null,
+     "monday": null,
+     "tuesday": null,
+     "wednesday": null,
+     "thursday": null,
+     "friday": null,
+     "saturday": null,
+     "sunday": null,
+     "serviceDays": null,
+     "zoneId": null,
+     "zoneName": null,
+     "zoneNameEn": null,
+     "servingOffices": []
+    },
+    "fullAddress": " Бургас ул. Марица №2",
+    "fullAddressEn": " Burgas ul. Marica №2",
+    "quarter": null,
+    "street": "ул. Марица",
+    "num": "2",
+    "other": "",
+    "location": {
+     "latitude": 42.50332609958528,
+     "longitude": 27.458139855155963,
+     "confidence": 3
+    },
+    "zip": null,
+    "hezid": null
+   },
+   "info": "Наш АПС, работи от 06.12.2016 г., съгласно Заповед 334/27.11.2016 г.",
+   "currency": "EUR",
+   "language": null,
+   "normalBusinessHoursFrom": 1782507600000,
+   "normalBusinessHoursTo": 1782593940000,
+   "halfDayBusinessHoursFrom": 1782507600000,
+   "halfDayBusinessHoursTo": 1782593940000,
+   "shipmentTypes": [
+    "post",
+    "courier"
+   ],
+   "partnerCode": "",
+   "hubCode": "8000",
+   "hubName": "Бургас НЛЦ",
+   "hubNameEn": "Burgas NLC",
+   "isDrive": false
+  }
+ ]
+}
