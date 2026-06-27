@@ -1,0 +1,29 @@
+{
+ "shipmentStatuses": [
+  {
+   "status": {
+    "shipmentNumber": "1055191332613",
+    "shipmentType": "pack",
+    "packCount": 1,
+    "weight": 1,
+    "deliveryTime": null,
+    "expectedDeliveryDate": 1782507600000,
+    "shortDeliveryStatus": "Очаква предаване към Еконт",
+    "shortDeliveryStatusEn": "Awaiting delivery to Econt",
+    "trackingEvents": [
+     {
+      "isReceipt": false,
+      "destinationType": "prepared",
+      "destinationDetails": "Очаква предаване към Еконт",
+      "destinationDetailsEn": "Awaiting delivery to Econt",
+      "officeName": null,
+      "cityName": null,
+      "time": 1782588061000
+     }
+    ],
+    "pdfURL": "http://ee.econt.com/api_export.php?exportMethod=printLoading&loading_num=1055191332613&_key=REDACTED"
+   },
+   "error": null
+  }
+ ]
+}

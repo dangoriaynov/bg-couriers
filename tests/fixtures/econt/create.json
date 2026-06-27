@@ -1,0 +1,14 @@
+{
+ "label": {
+  "shipmentNumber": "1055191332613",
+  "shipmentType": "pack",
+  "packCount": 1,
+  "weight": 1,
+  "totalPrice": 4.68,
+  "totalPriceWithVAT": 4.68,
+  "currency": "EUR",
+  "pdfURL": "http://ee.econt.com/api_export.php?exportMethod=printLoading&loading_num=1055191332613&_key=REDACTED"
+ },
+ "courierRequestID": null,
+ "blockingPaymentURL": null
+}
