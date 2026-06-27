@@ -216,7 +216,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'password', 'id' => 'bgc_econt_password', 'title' => __('API password', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
             ['type' => 'bgc_actions', 'id' => 'bgc_econt_actions'],
-            ['type' => 'select', 'id' => 'bgc_econt_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
+            ['type' => 'select', 'id' => 'bgc_econt_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
                 'default' => 'A6'],
             ['type' => 'checkbox', 'id' => 'bgc_econt_dynamic_pricing',

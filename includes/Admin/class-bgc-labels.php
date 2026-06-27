@@ -98,7 +98,7 @@ class BGC_Labels {
         $first_order = wc_get_order((int) $order_ids[0]);
         $courier = $first_order ? $this->courier_for($first_order) : null;
         if (!$courier) { wp_die(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
-        try { $pdf = $courier->print_labels($parcels, BGC_Settings::label_paper_size()); }
+        try { $pdf = $courier->print_labels($parcels, BGC_Settings::label_paper_size((string) $first_order->get_meta('_bgc_courier') ?: 'speedy')); }
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         nocache_headers();
         header('Content-Type: application/pdf');

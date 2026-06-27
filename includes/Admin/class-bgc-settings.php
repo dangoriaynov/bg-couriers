@@ -104,9 +104,9 @@ class BGC_Settings {
         ];
     }
 
-    /** Label paper size setting (A6 or A4). */
-    public static function label_paper_size(): string {
-        $v = (string) get_option('bgc_speedy_label_paper_size', 'A6');
+    /** Label paper size setting (A6 or A4), per courier. */
+    public static function label_paper_size(string $courier = 'speedy'): string {
+        $v = (string) get_option('bgc_' . $courier . '_label_paper_size', 'A6');
         return in_array($v, ['A6', 'A4'], true) ? $v : 'A6';
     }
 
