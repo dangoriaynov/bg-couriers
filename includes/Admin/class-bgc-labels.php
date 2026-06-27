@@ -93,16 +93,25 @@ class BGC_Labels {
             ? [(int) $_GET['order_id']]
             : (array) get_transient('bgc_print_batch_' . get_current_user_id());
         $order_ids = array_filter(array_map('intval', $order_ids));
-        $parcels = self::batch_parcel_ids($order_ids);
-        if (!$parcels) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
-        $first_order = wc_get_order((int) $order_ids[0]);
+        $first_order = $order_ids ? wc_get_order((int) $order_ids[0]) : null;
         $courier = $first_order ? $this->courier_for($first_order) : null;
         if (!$courier) { wp_die(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
-        try { $pdf = $courier->print_labels($parcels, BGC_Settings::label_paper_size((string) $first_order->get_meta('_bgc_courier') ?: 'speedy')); }
-        catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
+        try {
+            if (method_exists($courier, 'print_labels')) {
+                // Speedy-style multi-parcel combined print.
+                $parcels = self::batch_parcel_ids($order_ids);
+                if (!$parcels) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
+                $pdf = $courier->print_labels($parcels, BGC_Settings::label_paper_size((string) $first_order->get_meta('_bgc_courier') ?: 'speedy'));
+            } else {
+                // Courier exposes a per-waybill PDF (no batch combine) — print the first order's label.
+                $wb = (string) $first_order->get_meta('_bgc_waybill');
+                if ($wb === '') { wp_die(esc_html__('No label to print.', 'bg-couriers')); }
+                $pdf = $courier->get_label_pdf($wb);
+            }
+        } catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         nocache_headers();
         header('Content-Type: application/pdf');
-        header('Content-Disposition: inline; filename="speedy-labels.pdf"');
+        header('Content-Disposition: inline; filename="labels.pdf"');
         echo $pdf; // phpcs:ignore WordPress.Security.EscapeOutput -- binary PDF
         exit;
     }
