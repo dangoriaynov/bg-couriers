@@ -191,4 +191,168 @@ class BGC_Econt extends BGC_Abstract_Courier {
         );
         return self::parse_price($resp, (string) ($shipment['currency'] ?? 'EUR'));
     }
+
+    // ── Label creation ──────────────────────────────────────────────────────
+
+    /**
+     * Build the request body for createLabel in create mode (issues a real waybill).
+     *
+     * Uses the order's billing name/phone for receiverClient and the order's
+     * delivery method meta (_bgc_method) to set either receiverOfficeCode or
+     * receiverAddress.  Adds senderAgent for juridical-entity senders.
+     *
+     * @param \WC_Order $order       The WooCommerce order.
+     * @param array     $sender      Sender profile as returned by sender_profile(): {client, address}.
+     * @param string    $office_code Econt string office code (e.g. "1009") for office/automat orders.
+     * @return array                 Full request body suitable for the Econt createLabel endpoint.
+     */
+    public static function build_label_body(\WC_Order $order, array $sender, string $office_code): array {
+        $label = [
+            'senderClient'  => [
+                'name'   => (string) ($sender['client']['name'] ?? ''),
+                'phones' => array_slice($sender['client']['phones'] ?? [], 0, 1),
+            ],
+            'senderAddress' => [
+                'city'   => ['id' => (int) ($sender['address']['city']['id'] ?? 0)],
+                'street' => (string) ($sender['address']['street'] ?? ''),
+                'num'    => (string) ($sender['address']['num'] ?? ''),
+                'other'  => (string) ($sender['address']['other'] ?? ''),
+            ],
+            'receiverClient' => [
+                'name'   => $order->get_formatted_billing_full_name(),
+                'phones' => [$order->get_billing_phone()],
+            ],
+            'packCount'           => 1,
+            'weight'              => max(0.1, (float) ($order->get_meta('_bgc_weight_kg') ?: 1.0)),
+            'shipmentType'        => 'pack',
+            'shipmentDescription' => 'Goods',
+        ];
+
+        $method = (string) $order->get_meta('_bgc_method');
+        if ($method === 'office' || $method === 'automat') {
+            $label['receiverOfficeCode'] = $office_code;
+        } else {
+            // address delivery
+            $label['receiverAddress'] = [
+                'city'   => ['id' => (int) $order->get_meta('_bgc_site_id')],
+                'street' => (string) $order->get_meta('_bgc_street_name'),
+                'num'    => (string) $order->get_meta('_bgc_street_no'),
+            ];
+        }
+
+        // Juridical senders require senderAgent (authorised person / MOL).
+        if (!empty($sender['client']['juridicalEntity'])) {
+            $mol = (string) ($sender['client']['molName'] ?? '');
+            if ($mol === '') {
+                $mol = (string) ($sender['client']['name'] ?? '');
+            }
+            $label['senderAgent'] = [
+                'name'   => $mol,
+                'phones' => array_slice($sender['client']['phones'] ?? [], 0, 1),
+            ];
+        }
+
+        return ['mode' => 'create', 'label' => $label];
+    }
+
+    /**
+     * Extract the waybill number from a createLabel response.
+     *
+     * @param array $resp Decoded JSON response from the Econt createLabel endpoint.
+     * @return string     The shipment number (waybill), or '' if not present.
+     */
+    public static function parse_shipment_id(array $resp): string {
+        return (string) ($resp['label']['shipmentNumber'] ?? '');
+    }
+
+    /**
+     * Issue a real waybill for the given order.  Live – do NOT call in tests.
+     */
+    public function create_label(\WC_Order $order): BGC_Label {
+        $sender = $this->sender_profile();
+        $office_code = $this->office_code(
+            (int) $order->get_meta('_bgc_site_id'),
+            (int) $order->get_meta('_bgc_office_id')
+        );
+        $resp = $this->post_json(
+            $this->base . '/Shipments/LabelService.createLabel.json',
+            self::build_label_body($order, $sender, $office_code)
+        );
+        return new BGC_Label(self::parse_shipment_id($resp));
+    }
+
+    /**
+     * Fetch label PDF bytes for a given waybill.  Live – do NOT call in tests.
+     */
+    public function get_label_pdf(string $waybill): string {
+        $resp = $this->post_json(
+            $this->base . '/Shipments/LabelService.getShipmentStatuses.json',
+            ['shipmentNumbers' => [$waybill]]
+        );
+        $url = (string) ($resp['shipmentStatuses'][0]['status']['pdfURL'] ?? '');
+        if ($url === '') { throw new BGC_Api_Exception('No pdfURL in Econt getShipmentStatuses response'); }
+        $r = wp_remote_get($url, ['timeout' => 30]);
+        if (is_wp_error($r)) { throw new BGC_Api_Exception('Econt PDF download failed: ' . $r->get_error_message()); }
+        return (string) wp_remote_retrieve_body($r);
+    }
+
+    // ── Tracking ────────────────────────────────────────────────────────────
+
+    /**
+     * Parse a getShipmentStatuses response into a BGC_Tracking object.
+     *
+     * Event mapping: destinationType → code, destinationDetailsEn → name, time(ms) → date.
+     */
+    public static function parse_tracking(array $resp): BGC_Tracking {
+        $st     = $resp['shipmentStatuses'][0]['status'] ?? [];
+        $events = array_map(static function (array $e): array {
+            return [
+                'code' => (string) ($e['destinationType'] ?? ''),
+                'name' => (string) ($e['destinationDetailsEn'] ?? ''),
+                'date' => (string) ($e['time'] ?? ''),
+            ];
+        }, $st['trackingEvents'] ?? []);
+
+        $status = (string) ($st['shortDeliveryStatusEn'] ?? '');
+        if ($status === '') {
+            $last   = end($events);
+            $status = $last ? (string) ($last['name'] ?? 'UNKNOWN') : 'UNKNOWN';
+        }
+
+        return new BGC_Tracking((string) ($st['shipmentNumber'] ?? ''), $status, $events);
+    }
+
+    /**
+     * Fetch live tracking info for a waybill.  Live – do NOT call in tests.
+     */
+    public function track(string $waybill): BGC_Tracking {
+        $resp = $this->post_json(
+            $this->base . '/Shipments/LabelService.getShipmentStatuses.json',
+            ['shipmentNumbers' => [$waybill]]
+        );
+        return self::parse_tracking($resp);
+    }
+
+    /**
+     * Return the public Econt tracking URL for a waybill.
+     */
+    public function tracking_url(string $waybill): string {
+        return 'https://www.econt.com/en/services/track-shipment/' . rawurlencode($waybill);
+    }
+
+    /**
+     * Cancel/delete a waybill.  Live – do NOT call in tests.
+     * The owner cancels test waybills manually; this is implemented for completeness.
+     */
+    public function cancel_label(string $waybill): bool {
+        try {
+            $resp = $this->post_json(
+                $this->base . '/Shipments/LabelService.deleteLabels.json',
+                ['shipmentNumbers' => [$waybill]]
+            );
+            return empty($resp['error']);
+        } catch (BGC_Api_Exception $e) {
+            return false;
+        }
+    }
 }
