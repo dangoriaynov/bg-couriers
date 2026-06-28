@@ -36,13 +36,12 @@ offer fully self-service API signup — each requires contacting the courier.
 
 ## 3. Express One (Bulgaria) — courier (expressone.bg)  *(newly added to the roadmap)*
 
-- **Docs:** No public self-service developer portal on expressone.bg; the API is provided on request. (Their regional sister site documents a "Shipping API": https://expressone.ba/en/technical-solutions/shipping-api ; tracking-only access exists via third parties such as TrackingMore.) Confirm the exact BG endpoints with their team.
-- **Auth:** API key (confirm exact scheme — key in header — when they grant access).
+- **API IS readable** (2026-06-29): Express One BG is part of the Austrian Post CEE network; the API host is the group's **`https://api.expressone.si/`**, and Express One's **official open-source WooCommerce plugin** (wordpress.org/plugins/express-one-shipment/) reveals the endpoints/shapes. Full technical map in `docs/courier-api-notes.md`. Only an **API Key** is needed from them.
+- **Auth:** **API Key** (sent as `apikey=` query param + in POST bodies). Endpoints: `/apiuserinfo`, `/places`, `/parcelshops` (pickup points), `/checkcountryiseligible`, `/createshipment`, `/updateshipment`, `/pdfinternal` (label). Delivery = home + pickup-point; flat rate (no live quote).
 - **Steps to get access:**
-  1. Contact Express One Bulgaria's sales / integration team — **international@expressone.bg** (or the main office number on expressone.bg) — and request **web API integration** for your e-shop.
-  2. Ask for: the **official API documentation**, a **test/sandbox account**, and **API credentials**.
-  3. Confirm which operations are available (label creation, calculation, offices/lockers, tracking) — feature set varies; we'll scope the adapter to what they expose.
-  4. Provide the credentials + docs server-side; I'll add the `expressone` adapter on the same framework.
+  1. Contact Express One Bulgaria — **international@expressone.bg** (or the office number on expressone.bg) — and request an **API Key** for shipment integration.
+  2. Ask for: the **API Key**, a **test account** if available, and confirmation of the BG base URL (the open-source plugin uses `api.expressone.si`).
+  3. Drop the API Key server-side; I'll build the `expressone` adapter against the plugin-derived shapes (validate via `/apiuserinfo`, confirm field nuances live).
 
 ---
 

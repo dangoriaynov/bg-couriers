@@ -4,8 +4,10 @@ Researched 2026-06-28 from each courier's actual docs (not assumptions). Access/
 `docs/courier-api-access.md`; this file is the **technical** map: how each API fits the plugin's
 `BGC_Courier_Interface` framework, where it diverges, and what's blocking.
 
-**TL;DR effort:** Pigeon ≈ Econt (fits the framework, easiest) · BoxNow = medium (locker-only, geo
-picker, flat rate — diverges) · Express One = **blocked** (no public API docs; must obtain from them).
+**TL;DR effort (updated 2026-06-29):** Pigeon ≈ Econt (fits the framework, easiest; SCAFFOLDED) ·
+BoxNow = medium (locker-only, geo picker, flat rate — diverges) · Express One = medium (address +
+pickup-point, flat rate, no live quote — **API IS readable** via its official open-source WooCommerce
+plugin; not blocked). **All three couriers have real, readable APIs** — only credentials are pending.
 
 ---
 
@@ -44,20 +46,35 @@ Source: BG Partner API manual v1.65 (`boxnow.bg/en/partner-api`).
   4. COD via `amountToBeCollected` (0–5000); compartment size S/M/L; hide method when cart exceeds locker size.
 - **What's needed:** OAuth2 client_id+secret (sandbox+prod) → adapter (token caching, destinations/origins, delivery-requests, label, parcels/webhook) **+ a locker-picker checkout component** + a flat-rate config + an origin-warehouse setting. More work than Pigeon/Econt because of the UX divergence.
 
-## 3. Express One (Bulgaria) — *BLOCKED on docs*
+## 3. Express One (Bulgaria) — *API IS readable (via its open-source plugin); medium effort*
 
-Sources: `expressone.bg` (customer-facing: track / find office / calculate price) and `expressone.ba/en/technical-solutions/shipping-api`.
+Source (2026-06-29): Express One's **official open-source WooCommerce plugin** `express-one-shipment`
+(wordpress.org/plugins/express-one-shipment/, GPL) — read its source for the exact endpoints/shapes
+(facts, not copied code). Express One BG is part of the **Austrian Post** CEE network; the API host is
+the group's `https://api.expressone.si/`.
 
-- Express One **has** a "Shipping API" (for systems/webshops to prepare + administer shipments), but the **technical documentation is not public** — it's provided to clients with their own system on request. The customer site exposes offices, address delivery, and price calculation, so the API very likely supports office + address delivery + pricing, but endpoint paths, auth scheme, and shapes are **unconfirmed**.
-- **What's needed (blocker first):** contact Express One (`international@expressone.bg` / sales) to obtain (a) the **API documentation**, (b) a **test/sandbox account**, (c) **credentials**, and (d) confirmation of supported operations (offices, calculate, create label, tracking). Only after reading their real docs can the adapter be designed — do **not** guess the API. Until then, Express One stays a placeholder on the roadmap.
+- **Auth:** an **API Key** (`apikey=` query param, also in POST bodies), issued by Express One. No OAuth.
+- **Endpoints (`api.expressone.si/...`):**
+  - `GET /apiuserinfo?apikey=` — validate credentials / account info (→ `check_credentials`).
+  - `GET /places?apikey=` — cities/postcodes (→ `fetch_cities` / address validation).
+  - `GET /parcelshops?isActive=true&apikey=` — **pickup points** (parcel shops): `{id, pickupCodes, name, address, city, postcode/zip, GeoLat, GeoLong}` (→ `fetch_offices`, type "office"/pickup-point).
+  - `GET /checkcountryiseligible?apikey=` — is a ZIP/country deliverable.
+  - `POST /createshipment` (apikey in body) — recipient `{name, countryCode, zipcode, city, streetAndNumber, telephone, notifyEmail}`, `sender`, `isSenderNonCustomer`, `codValue`/`codCurrency` (COD), `collies` (parcels), `pickupCodes` (for pickup-point delivery) → returns a barcode/shipment id. `POST /updateshipment`.
+  - `GET /pdfinternal` (+ `/layouts`) — the PDF label.
+- **Delivery types:** **Home delivery** (recipient address) + **Pickup Point** (parcelshop ≈ office). **No locker/automat.**
+- **No `calculate`/price endpoint** → the plugin uses a **configured Delivery Fee** → **flat/configured rate** (like BoxNow), no `live_quote`.
+- **Framework fit:** ⚠️ partial. `capabilities()` = `['address','office']` (pickup-point as "office"); flat-rate (no live quote). Maps reasonably to the existing checkout (address + office tabs), but: cities come from `/places` (not a Speedy-style nomenclature — confirm pagination/shape live), offices = `parcelshops`, and pricing is flat (override `BGC_Pricing`). COD via `codValue/codCurrency`.
+- **What's needed:** an **API Key** from Express One (international@expressone.bg / sales) — then a normal adapter built against the plugin-derived shapes (validate via `/apiuserinfo`; `/places`+`/parcelshops` nomenclature; `/createshipment`+`/pdfinternal` label; flat-rate config). Confirm exact request/response shapes live with the key (the plugin reveals the structure; field nuances + a tracking endpoint need live confirmation).
 
 ---
 
 ## Recommended order
 
-1. **Pigeon** — fits the framework; build as soon as its API Key/Secret + base URLs are in hand.
-2. **BoxNow** — build after Pigeon; budget extra time for the locker-picker UX + flat-rate + origin setting.
-3. **Express One** — get the API docs + account from them first; then assess + plan.
+1. **Pigeon** — SCAFFOLDED (code on `main`); just needs the API Key/Secret + base URL to live-verify.
+2. **Express One** — readable via its open-source plugin (address + pickup-point, flat-rate); build once an API Key is in hand. Reasonably fits the existing checkout (no locker-picker needed — pickup-points are office-like).
+3. **BoxNow** — build last; budget extra time for the locker-picker UX + flat-rate + origin-warehouse setting (the biggest UX divergence).
+
+(Express One promoted above BoxNow now that its API is confirmed readable + it fits the existing office/address checkout, whereas BoxNow needs new locker-picker UI.)
 
 Each adapter follows the proven flow: obtain creds (server-side) → confirm live API shapes (fixtures) →
 `BGC_<Courier>` adapter → `BGC_Method_<Courier>` + register → settings section → `@group <courier>`
