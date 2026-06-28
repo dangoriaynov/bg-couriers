@@ -311,28 +311,171 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
         return self::parse_price($resp, (string) ($shipment['currency'] ?? 'EUR'));
     }
 
-    /** @throws BGC_Api_Exception Always — implemented in Task 3. */
+    // ── Label creation ──────────────────────────────────────────────────────
+
+    /**
+     * Build the request body for POST /v1/shipments.
+     *
+     * Starts from build_calculate_body() using order meta, then adds:
+     * - receiver_name, receiver_phone, receiver_email (from order billing)
+     * - inventory_items (one entry per order line item; fallback to [{description:'Goods',quantity:1}])
+     *
+     * @param \WC_Order $order           The WooCommerce order.
+     * @param int       $pickup_office_id Merchant's Pigeon pickup office id (from settings).
+     * @return array                     JSON-encodable request body.
+     */
+    public static function build_shipment_body(\WC_Order $order, int $pickup_office_id): array {
+        $s = [
+            'method'      => (string) $order->get_meta('_bgc_method'),
+            'site_id'     => (int)    $order->get_meta('_bgc_site_id'),
+            'office_id'   => (int)    $order->get_meta('_bgc_office_id'),
+            'street_name' => (string) $order->get_meta('_bgc_street_name'),
+            'street_no'   => (string) $order->get_meta('_bgc_street_no'),
+            'weight_kg'   => (float)  ($order->get_meta('_bgc_weight_kg') ?: 1.0),
+            'cod_amount'  => (float)  ($order->get_meta('_bgc_cod_amount') ?: 0),
+        ];
+
+        $body = self::build_calculate_body($s, $pickup_office_id);
+
+        $body['receiver_name']  = $order->get_formatted_billing_full_name();
+        $body['receiver_phone'] = (string) $order->get_billing_phone();
+        $body['receiver_email'] = (string) $order->get_billing_email();
+
+        // Build inventory_items from order line items; fall back to generic goods entry.
+        $items = [];
+        foreach ($order->get_items() as $item) {
+            /** @var \WC_Order_Item_Product $item */
+            $items[] = [
+                'description' => (string) $item->get_name(),
+                'quantity'    => (int) $item->get_quantity(),
+            ];
+        }
+        $body['inventory_items'] = !empty($items) ? $items : [['description' => 'Goods', 'quantity' => 1]];
+
+        return $body;
+    }
+
+    /**
+     * Extract the reference number from a POST /v1/shipments response.
+     *
+     * @param array $resp Decoded JSON response.
+     * @return string     The reference_number, or '' if not present.
+     */
+    public static function parse_shipment_id(array $resp): string {
+        return (string) ($resp['data']['reference_number'] ?? '');
+    }
+
+    /**
+     * Issue a real waybill for the given order via POST /v1/shipments.
+     * Live — do NOT call in tests.
+     */
     public function create_label(\WC_Order $order): BGC_Label {
-        throw new BGC_Api_Exception('BGC_Pigeon::create_label not yet implemented');
+        $pickup = (int) get_option('bgc_pigeon_pickup_office_id', 0);
+        $resp   = $this->post_json(
+            $this->base . '/v1/shipments',
+            self::build_shipment_body($order, $pickup)
+        );
+        return new BGC_Label(self::parse_shipment_id($resp));
     }
 
-    /** @throws BGC_Api_Exception Always — implemented in Task 3. */
+    /**
+     * Fetch label PDF bytes for a given reference number.
+     *
+     * Calls GET /v1/shipments/{ref}/label. If the response is JSON with a
+     * data.label_pdf base64 field, decodes it; otherwise returns raw bytes.
+     * Live — do NOT call in tests.
+     *
+     * @param string $waybill The Pigeon reference number.
+     * @return string         Raw PDF bytes.
+     * @throws BGC_Api_Exception On transport error or missing PDF.
+     */
     public function get_label_pdf(string $waybill): string {
-        throw new BGC_Api_Exception('BGC_Pigeon::get_label_pdf not yet implemented');
+        $path = '/v1/shipments/' . rawurlencode($waybill) . '/label';
+        $url  = $this->base . $path;
+        $res  = wp_remote_get($url, [
+            'timeout' => 30,
+            'headers' => [
+                'Accept'       => 'application/json, application/pdf',
+                'X-API-Key'    => $this->key,
+                'X-API-Secret' => $this->secret,
+            ],
+        ]);
+        if (is_wp_error($res)) {
+            throw new BGC_Api_Exception('Pigeon label download failed: ' . $res->get_error_message());
+        }
+        $code = (int) wp_remote_retrieve_response_code($res);
+        $raw  = (string) wp_remote_retrieve_body($res);
+        if ($code !== 200) {
+            throw new BGC_Api_Exception('Pigeon label HTTP ' . $code . ': ' . substr($raw, 0, 200));
+        }
+        // If the API returns JSON with base64-encoded PDF, decode it.
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded) && isset($decoded['data']['label_pdf'])) {
+            return (string) base64_decode((string) $decoded['data']['label_pdf'], true);
+        }
+        // Otherwise the body is raw PDF bytes.
+        return $raw;
     }
 
-    /** @return bool Always false — implemented in Task 3. */
-    public function cancel_label(string $waybill): bool {
-        return false;
+    // ── Tracking ────────────────────────────────────────────────────────────
+
+    /**
+     * Parse a GET /v1/shipments/{ref}/track response into a BGC_Tracking object.
+     *
+     * Event mapping: status_code → code, status → name, timestamp → date.
+     *
+     * @param array $resp Decoded JSON response (expects $resp['data']).
+     * @return BGC_Tracking
+     */
+    public static function parse_tracking(array $resp): BGC_Tracking {
+        $d      = $resp['data'] ?? [];
+        $events = array_map(static function (array $e): array {
+            return [
+                'code' => (string) ($e['status_code'] ?? ''),
+                'name' => (string) ($e['status']      ?? ''),
+                'date' => (string) ($e['timestamp']   ?? ''),
+            ];
+        }, $d['events'] ?? []);
+
+        return new BGC_Tracking(
+            (string) ($d['reference_number'] ?? ''),
+            (string) ($d['status']           ?? 'UNKNOWN'),
+            $events
+        );
     }
 
-    /** @throws BGC_Api_Exception Always — implemented in Task 3. */
+    /**
+     * Fetch live tracking info for a reference number.  Live – do NOT call in tests.
+     */
     public function track(string $waybill): BGC_Tracking {
-        throw new BGC_Api_Exception('BGC_Pigeon::track not yet implemented');
+        $resp = $this->get_json('/v1/shipments/' . rawurlencode($waybill) . '/track');
+        return self::parse_tracking($resp);
     }
 
-    /** Return a Pigeon public tracking URL (placeholder until live-verify). */
+    /**
+     * Return the public Pigeon tracking URL for a reference number.
+     * Placeholder URL — confirm at live-verify and update if needed.
+     */
     public function tracking_url(string $waybill): string {
         return 'https://pigeonexpress.com/track/' . rawurlencode($waybill);
+    }
+
+    /**
+     * Cancel a shipment via POST /v1/shipments/{ref}/cancel.
+     * Live – do NOT call in tests.
+     *
+     * @param string $waybill The Pigeon reference number.
+     * @return bool           True if the API reported success.
+     */
+    public function cancel_label(string $waybill): bool {
+        try {
+            $resp = $this->post_json(
+                $this->base . '/v1/shipments/' . rawurlencode($waybill) . '/cancel',
+                []
+            );
+            return !empty($resp['success']);
+        } catch (BGC_Api_Exception $e) {
+            return false;
+        }
     }
 }
