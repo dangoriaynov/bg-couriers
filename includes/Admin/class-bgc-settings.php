@@ -14,7 +14,9 @@ class BGC_Settings {
         add_filter('woocommerce_get_settings_pages', [$this, 'register_page']);
         add_action('woocommerce_admin_field_bgc_actions', [$this, 'render_actions']);
         add_action('woocommerce_admin_field_bgc_sortable', [$this, 'render_sortable']);
-        add_filter('woocommerce_admin_settings_sanitize_option_bgc_speedy_password', [$this, 'sanitize_password'], 10, 3);
+        foreach (array_keys(BGC_Couriers::all()) as $cid) {
+            add_filter('woocommerce_admin_settings_sanitize_option_bgc_' . $cid . '_password', [$this, 'sanitize_password'], 10, 3);
+        }
         add_action('wp_ajax_bgc_validate_creds', [$this, 'ajax_validate']);
         add_action('wp_ajax_bgc_sync_now', [$this, 'ajax_sync']);
         add_filter('plugin_action_links_' . plugin_basename(BGC_FILE), [$this, 'action_links']);
@@ -157,19 +159,20 @@ class BGC_Settings {
         echo '</td></tr>';
     }
 
-    public static function creds_present(): bool {
-        return get_option('bgc_speedy_enabled', 'no') === 'yes'
-            && get_option('bgc_speedy_username', '') !== ''
-            && get_option('bgc_speedy_password', '') !== '';
+    public static function creds_present(string $courier = 'speedy'): bool {
+        return get_option('bgc_' . $courier . '_enabled', 'no') === 'yes'
+            && get_option('bgc_' . $courier . '_username', '') !== ''
+            && get_option('bgc_' . $courier . '_password', '') !== '';
     }
 
     public function sanitize_password($value, $option, $raw_value) {
+        $key = is_array($option) ? (string) ($option['id'] ?? '') : (string) $option;
         if ($raw_value === '' || $raw_value === null) {
-            return get_option('bgc_speedy_password', '');
+            return get_option($key, '');
         }
         // The WC password field can re-render the stored (already-encrypted) value;
         // if it comes back unchanged, keep it — re-encrypting would double-encrypt it.
-        if ($raw_value === get_option('bgc_speedy_password', '')) {
+        if ($raw_value === get_option($key, '')) {
             return $raw_value;
         }
         return BGC_Encryption::encrypt($raw_value);
@@ -180,26 +183,27 @@ class BGC_Settings {
     public function ajax_validate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgc_admin', 'nonce');
-        $cfg = self::courier_config('speedy');
-        if (!$cfg) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
-        $ok = (new BGC_Speedy($cfg))->check_credentials();
-        wp_send_json_success(['ok' => (bool) $ok]);
+        $courier = sanitize_key($_POST['courier'] ?? 'speedy');
+        if (!self::courier_config($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
+        $c = BGC_Couriers::get($courier);
+        wp_send_json_success(['ok' => (bool) ($c && $c->check_credentials())]);
     }
 
     public function ajax_sync(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgc_admin', 'nonce');
-        $cfg = self::courier_config('speedy');
-        if (!$cfg) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
+        $courier = sanitize_key($_POST['courier'] ?? 'speedy');
+        $c = BGC_Couriers::get($courier);
+        if (!$c || !self::courier_config($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
         @set_time_limit(180);
-        $r = BGC_Sync::run(new BGC_Speedy($cfg));
-        wp_send_json_success($r);
+        wp_send_json_success(BGC_Sync::run($c));
     }
 
     /** Custom WC settings field: Validate / Sync buttons (only when creds present). */
     public function render_actions($field): void {
+        $courier = (!empty($field['id']) && preg_match('/^bgc_([a-z0-9]+)_actions$/', (string) $field['id'], $m)) ? $m[1] : 'speedy';
         echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html__('API check', 'bg-couriers') . '</th><td class="forminp">';
-        if (!self::creds_present()) {
+        if (!self::creds_present($courier)) {
             echo '<p class="description">' . esc_html__('Enter and save your API username and password, then Validate / Sync appear here.', 'bg-couriers') . '</p></td></tr>';
             return;
         }
@@ -221,19 +225,19 @@ class BGC_Settings {
         echo <<<JS
 <script>
 (function($){
-    var ajaxurl='{$ajax}', nonce='{$nonce}';
+    var ajaxurl='{$ajax}', nonce='{$nonce}', courier='{$courier}';
     function busy(t){ $('#bgc-validate,#bgc-sync').prop('disabled',true);
         $('#bgc-status').html('<span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>'+t); }
     function done(){ $('#bgc-validate,#bgc-sync').prop('disabled',false); }
     function err(m){ $('#bgc-status').html('<span style="color:#b32d2e;">✗ '+m+'</span>'); }
     function ok(m){ $('#bgc-status').html('<span style="color:#1a7f37;">✓ '+m+'</span>'); }
     $('#bgc-validate').on('click',function(){ busy('{$t['validating']}');
-        $.post(ajaxurl,{action:'bgc_validate_creds',nonce:nonce}).done(function(r){
+        $.post(ajaxurl,{action:'bgc_validate_creds',nonce:nonce,courier:courier}).done(function(r){
             if(r&&r.success){ r.data&&r.data.ok ? ok('{$t['valid']}') : err('{$t['invalid']}'); }
             else { err((r&&r.data&&r.data.msg)||'{$t['invalid']}'); }
         }).fail(function(){ err('{$t['fail']}'); }).always(done); });
     $('#bgc-sync').on('click',function(){ busy('{$t['syncing']}');
-        $.post(ajaxurl,{action:'bgc_sync_now',nonce:nonce}).done(function(r){
+        $.post(ajaxurl,{action:'bgc_sync_now',nonce:nonce,courier:courier}).done(function(r){
             if(r&&r.success){ var d=r.data||{}; ok((d.cities||0)+' {$t['cities']}, '+(d.offices||0)+' {$t['offices']}, '+(d.rates||0)+' {$t['rates']}'); }
             else { err((r&&r.data&&r.data.msg)||'{$t['fail']}'); }
         }).fail(function(){ err('{$t['fail']}'); }).always(done); });

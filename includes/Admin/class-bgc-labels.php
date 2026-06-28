@@ -82,8 +82,10 @@ class BGC_Labels {
         if ($waybill === '') { wp_die(esc_html__('No waybill found.', 'bg-couriers')); }
         $courier = $this->courier_for($order);
         if (!$courier) { wp_die(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
-        add_filter('allowed_redirect_hosts', function ($h) { $h[] = 'www.speedy.bg'; $h[] = 'speedy.bg'; return $h; });
-        wp_safe_redirect($courier->tracking_url($waybill));
+        $url  = $courier->tracking_url($waybill);
+        $host = wp_parse_url($url, PHP_URL_HOST);
+        add_filter('allowed_redirect_hosts', function ($h) use ($host) { if ($host) { $h[] = $host; } return $h; });
+        wp_safe_redirect($url);
         exit;
     }
     public function handle_print_batch(): void {
