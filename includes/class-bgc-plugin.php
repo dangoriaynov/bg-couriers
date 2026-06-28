@@ -13,6 +13,9 @@ class BGC_Plugin {
         BGC_Couriers::register('econt', __('Econt', 'bg-couriers'), static function () {
             return new BGC_Econt(BGC_Settings::courier_config('econt') ?: []);
         });
+        BGC_Couriers::register('pigeon', __('Pigeon Express', 'bg-couriers'), static function () {
+            return new BGC_Pigeon(array_merge(BGC_Settings::courier_config('pigeon') ?: [], ['base' => get_option('bgc_pigeon_base_url', '')]));
+        });
         BGC_Couriers::boot();
         add_filter('cron_schedules', function ($s) {
             $s['weekly'] = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
@@ -23,6 +26,7 @@ class BGC_Plugin {
         add_filter('woocommerce_shipping_methods', function ($methods) {
             $methods['bgc_speedy'] = 'BGC_Method_Speedy';
             $methods['bgc_econt'] = 'BGC_Method_Econt';
+            $methods['bgc_pigeon'] = 'BGC_Method_Pigeon';
             return $methods;
         });
         new BGC_Checkout();

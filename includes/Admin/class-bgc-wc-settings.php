@@ -32,6 +32,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ''       => __('General', 'bg-couriers'),
             'speedy' => __('Speedy', 'bg-couriers'),
             'econt'  => __('Econt', 'bg-couriers'),
+            'pigeon' => __('Pigeon Express', 'bg-couriers'),
         ];
     }
 
@@ -48,6 +49,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
             $f = $this->econt_courier_fields();
             foreach (self::$method_labels as $m => $label) {
                 $f = array_merge($f, $this->method_fields('econt', $m, $label));
+            }
+            return $f;
+        }
+        if ($section === 'pigeon') {
+            $f = $this->pigeon_courier_fields();
+            foreach (self::$method_labels as $m => $label) {
+                $f = array_merge($f, $this->method_fields('pigeon', $m, $label));
             }
             return $f;
         }
@@ -79,6 +87,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
             $this->output_courier('speedy');
         } elseif ($current_section === 'econt') {
             $this->output_courier('econt');
+        } elseif ($current_section === 'pigeon') {
+            $this->output_courier('pigeon');
         } else {
             WC_Admin_Settings::output_fields($this->general_fields());
         }
@@ -229,6 +239,36 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Order goods total (without shipping) at/above which Econt is free. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_econt_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_econt'],
+        ];
+    }
+
+    private function pigeon_courier_fields(): array {
+        return [
+            ['type' => 'title', 'id' => 'bgc_pigeon', 'title' => __('Pigeon Express — courier settings', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgc_pigeon_enabled', 'title' => __('Enable Pigeon Express', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_pigeon_username', 'title' => __('API Key', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'password', 'id' => 'bgc_pigeon_password', 'title' => __('API Secret', 'bg-couriers'),
+                'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
+            ['type' => 'bgc_actions', 'id' => 'bgc_pigeon_actions'],
+            ['type' => 'text', 'id' => 'bgc_pigeon_base_url', 'title' => __('API base URL', 'bg-couriers'),
+                'desc' => __('Per-account Pigeon API base URL (e.g. https://api.pigeonexpress.com). Leave empty for the production default.', 'bg-couriers'),
+                'default' => '', 'autoload' => false],
+            ['type' => 'number', 'id' => 'bgc_pigeon_pickup_office_id', 'title' => __('Pickup office ID', 'bg-couriers'),
+                'desc' => __('The Pigeon office ID the merchant ships from. Used for quotes and label creation.', 'bg-couriers'),
+                'default' => '', 'custom_attributes' => ['min' => '0', 'step' => '1'], 'autoload' => false],
+            ['type' => 'select', 'id' => 'bgc_pigeon_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
+                'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
+                'default' => 'A6'],
+            ['type' => 'checkbox', 'id' => 'bgc_pigeon_dynamic_pricing',
+                'title' => __('Use dynamic pricing', 'bg-couriers'),
+                'desc' => __('Calculate shipping cost live via the Pigeon Express API. When off, the per-method default prices below are used.', 'bg-couriers'),
+                'default' => 'yes'],
+            ['type' => 'checkbox', 'id' => 'bgc_pigeon_free_enabled', 'title' => __('Free shipping over a threshold', 'bg-couriers'),
+                'desc' => __('Pigeon Express ships free (you absorb the cost) when the order goods total reaches the amount below — for all delivery types.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_pigeon_free_threshold', 'title' => __('Free-shipping order amount', 'bg-couriers'),
+                'desc' => __('Order goods total (without shipping) at/above which Pigeon Express is free. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'bgc_sortable', 'id' => 'bgc_pigeon_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
+            ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
         ];
     }
 
