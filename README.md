@@ -15,7 +15,7 @@ shipments from the WordPress admin.
 | **Speedy** | ✅ Done, live-verified, on `main` | checkout (office/address/automat), live quotes, labels, tracking, settings |
 | **Econt** | ✅ Done, live-verified, on `main` | checkout (office/address/Econtomat), live quotes (office 4.68 / address 5.77 / automat 4.21 €), labels, tracking, settings; E2E 7/7 with Speedy |
 | **BOX NOW** | ⬜ planned | needs API account — see `docs/courier-api-access.md` |
-| **Pigeon Express** | ⬜ planned | needs API account — see `docs/courier-api-access.md` |
+| **Pigeon Express** | 🟡 Scaffolded (code on `main`) | adapter + method + settings + `@group pigeon` tests built against the OpenAPI spec; awaiting credentials for live-verify |
 | **Express One** | ⬜ planned | needs API account — see `docs/courier-api-access.md` |
 
 ## Architecture (multi-courier framework)
@@ -40,9 +40,14 @@ A small registry makes couriers pluggable; everything resolves a courier by id.
 - **Admin** (`includes/Admin/`) — settings (one section per courier: creds + Validate/Sync, paper size,
   dynamic pricing, per-method enable/price/order, free-shipping threshold), order panel (waybill +
   generate/print/track at the top of the order), orders-list column with a copy-waybill button.
-- **Cache** (`includes/Cache/`) — `bgc_cities` / `bgc_offices` tables (`BGC_Schema`), `BGC_Nomenclature`
-  repo, weekly `BGC_Sync` (mark-and-sweep; lifts memory/time limits — Econt's getCities is ~130MB).
-  Offices carry a `code` column (Econt addresses offices by string code, not numeric id).
+- **Cache / pricing** (`includes/Cache/`) — `bgc_cities` / `bgc_offices` tables (`BGC_Schema`),
+  `BGC_Nomenclature` repo. `BGC_Sync` runs for **all registered+enabled couriers**: weekly full
+  nomenclature sync (mark-and-sweep; lifts memory/time — Econt's getCities is ~130MB) + a **daily
+  reference-price refresh** (`seed_rates`) that quotes a baseline per courier+method — address from
+  the first alphabetical city, office/automat from the first city that has that office type
+  (`first_office`) — cached in `BGC_Rates`. At checkout, before the customer picks a destination,
+  `BGC_Pricing` shows this reference (live → cached reference → configured default fallback).
+  Offices carry a `code` column (Econt/Pigeon address offices by string code).
 - **Settings/config** — `BGC_Settings::courier_config(id)` reads `bgc_<id>_*` options (password encrypted
   via `BGC_Encryption`). `bgc_dropdown_limit` is a single global setting.
 
