@@ -1,0 +1,4 @@
+{ "data": [
+  {"id":"apm-1001","type":"apm","image":"https://example/150","lat":"42.6977","lng":"23.3219","title":"BOX NOW Витоша","name":"BOX NOW Витоша","addressLine1":"бул. Витоша 1","addressLine2":"София","postalCode":"1000","country":"BG","note":"до супермаркета","expectedDeliveryTime":"<dateTime>"},
+  {"id":"apm-1002","type":"apm","image":"https://example/150","lat":"42.1354","lng":"24.7453","title":"BOX NOW Пловдив","name":"BOX NOW Пловдив","addressLine1":"ул. Тест 5","addressLine2":"Пловдив","postalCode":"4000","country":"BG","note":null,"expectedDeliveryTime":"<dateTime>"}
+] }

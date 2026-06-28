@@ -1,0 +1,5 @@
+{ "pagination":{"first":"f","last":"l","next":null,"prev":null}, "count":1,
+  "data":[{"id":"415-02914-308","state":"new","name":"Smartphone","value":"4.56","weight":"1.6","compartmentSize":1,
+    "destinationDeliveryRefId":"apm-1001","payment":{"mode":"cod","price":{"amount":"4.99","currency":"EUR"},"state":"pending"},
+    "events":[{"type":"new","locationDisplayName":"Test","postalCode":"1000","createTime":"2026-06-07T12:33:18Z"}],
+    "parcelLabelUrl":"https://example/label.pdf","orderLabelUrl":"https://example/order.pdf","createTime":"2026-06-07T12:33:18Z"}] }
