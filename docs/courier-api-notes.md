@@ -50,8 +50,11 @@ Source: BG Partner API manual v1.65 (`boxnow.bg/en/partner-api`).
 
 Source (2026-06-29): Express One's **official open-source WooCommerce plugin** `express-one-shipment`
 (wordpress.org/plugins/express-one-shipment/, GPL) — read its source for the exact endpoints/shapes
-(facts, not copied code). Express One BG is part of the **Austrian Post** CEE network; the API host is
-the group's `https://api.expressone.si/`.
+(facts, not copied code). Express One BG is part of the **Austrian Post** CEE network; the plugin's API
+host is `https://api.expressone.si/`.
+**Caveat:** that plugin is Express One's **Slovenia** instance (default sender country `SI`, tracking
+`inet.expressone.si`). The API *style* (apikey + these endpoints) is the group's, but the **Bulgaria**
+base URL + access must be confirmed with Express One BG — do NOT assume the `.si` host serves BG.
 
 - **Auth:** an **API Key** (`apikey=` query param, also in POST bodies), issued by Express One. No OAuth.
 - **Endpoints (`api.expressone.si/...`):**

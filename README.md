@@ -86,7 +86,8 @@ bin/test core            # only framework (@group core) PHP tests
 - `docs/superpowers/specs/2026-06-26-multi-courier-design.md` — multi-courier design
 - `docs/superpowers/plans/2026-06-26-multi-courier-phase1.md` — framework refactor (done, on `main`)
 - `docs/superpowers/plans/2026-06-27-econt-phase2.md` — Econt adapter (in progress)
-- `docs/courier-api-access.md` — how to get API credentials for BoxNow / Pigeon / Express One
+- `docs/getting-api-credentials.md` — **merchant-facing** guide: who to contact + steps to get API access for every courier (Speedy/Econt/BoxNow/Pigeon/Express One)
+- `docs/courier-api-access.md` — how to get API credentials for BoxNow / Pigeon / Express One (dev reference)
 - `docs/courier-api-notes.md` — technical API analysis of those 3 (framework fit, divergences, blockers; build order Pigeon → BoxNow → Express One)
 - `docs/testing.md` — running tests per courier
 - `docs/test-speedy-waybills.md`, `docs/test-econt-waybills.md` — real test waybills for the owner to cancel
