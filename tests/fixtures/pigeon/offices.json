@@ -1,0 +1,6 @@
+{ "success": true,
+  "data": [
+    {"id":120,"name":"Попово (офис)","code":"POP-001","type":"office","address":"Попово, 7800","city":{"id":202,"name":"Попово","name_en":"Popovo"},"postal_code":"7800","phone":"0876017836","latitude":null,"longitude":null},
+    {"id":501,"name":"Pigeon локер София Витоша","code":"LCK-501","type":"locker","address":"гр. София, бул. Витоша 1","city":{"id":68134,"name":"София","name_en":"Sofia"},"postal_code":"1000","latitude":42.69,"longitude":23.32,"max_weight":20,"max_dimensions":{"length":60,"width":40,"height":40}}
+  ],
+  "meta": {"current_page":1,"per_page":50,"total":2} }

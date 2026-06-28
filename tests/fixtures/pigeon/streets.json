@@ -1,0 +1,6 @@
+{ "success": true,
+  "data": [
+    {"id":406805,"name":"3-ТИ МАРТ","name_en":"3-TI MART","type":"улица","type_en":"Street","city_id":68134},
+    {"id":406806,"name":"ВИТОША","name_en":"VITOSHA","type":"булевард","type_en":"Boulevard","city_id":68134}
+  ],
+  "meta": {"current_page":1,"per_page":50,"total":2} }

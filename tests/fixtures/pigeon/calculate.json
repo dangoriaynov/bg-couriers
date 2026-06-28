@@ -1,0 +1,2 @@
+{ "success": true,
+  "data": {"shipping_price":7.2,"total_service_fees":6.06,"total_price":13.26,"service_type":"standard","currency":"EUR","service_codes":["cod_amount"]} }
