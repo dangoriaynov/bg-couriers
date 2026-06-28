@@ -232,11 +232,83 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
         return $out;
     }
 
-    // ── Deferred live methods (Tasks 2 & 3) ─────────────────────────────────
+    // ── Quote (calculate) ────────────────────────────────────────────────────
 
-    /** @throws BGC_Api_Exception Always — implemented in Task 2. */
+    /**
+     * Build the request body for POST /v1/shipments/calculate.
+     *
+     * Pickup is always office-type (merchant ships from a fixed office).
+     * Delivery type derives from $s['method']:
+     *   'address'       → delivery_type='address', delivery_address block
+     *   'automat'       → delivery_type='locker',  delivery_office_id
+     *   'office' / else → delivery_type='office',  delivery_office_id
+     *
+     * COD: service_codes.cod_amount is added only when $s['cod_amount'] > 0.
+     *
+     * @param array $s                Shipment descriptor.
+     * @param int   $pickup_office_id Merchant's Pigeon pickup office id (from settings).
+     * @return array                  JSON-encodable request body.
+     */
+    public static function build_calculate_body(array $s, int $pickup_office_id): array {
+        $body = [
+            'pickup_type'      => 'office',
+            'pickup_office_id' => $pickup_office_id,
+            'packages'         => [
+                ['weight' => max(0.1, (float) ($s['weight_kg'] ?? 1.0))],
+            ],
+            'service_type'     => 'standard',
+            'who_pays'         => 'receiver',
+        ];
+
+        if (($s['method'] ?? 'address') === 'address') {
+            $body['delivery_type']    = 'address';
+            $body['delivery_address'] = [
+                'city_id'       => (int) ($s['site_id'] ?? 0),
+                'street_name'   => (string) ($s['street_name'] ?? ''),
+                'street_number' => (string) ($s['street_no'] ?? ''),
+            ];
+        } else {
+            $body['delivery_type']      = ($s['method'] === 'automat') ? 'locker' : 'office';
+            $body['delivery_office_id'] = (int) ($s['office_id'] ?? 0);
+        }
+
+        if (!empty($s['cod_amount'])) {
+            $body['service_codes'] = ['cod_amount' => (float) $s['cod_amount']];
+        }
+
+        return $body;
+    }
+
+    /**
+     * Parse a /v1/shipments/calculate response into a BGC_Quote.
+     *
+     * Pigeon's total_price already includes all service fees; tax split TBD at live-verify.
+     *
+     * @param array  $resp     Decoded JSON response (expects $resp['data']).
+     * @param string $currency Fallback currency if not present in response.
+     * @return BGC_Quote
+     * @throws BGC_Api_Exception When no usable price is found.
+     */
+    public static function parse_price(array $resp, string $currency): BGC_Quote {
+        $d     = $resp['data'] ?? [];
+        $total = (float) ($d['total_price'] ?? 0);
+        if ($total <= 0) {
+            throw new BGC_Api_Exception('No price in Pigeon response');
+        }
+        return new BGC_Quote($total, 0.0, (string) ($d['currency'] ?? $currency), 'live');
+    }
+
+    /**
+     * Fetch a live shipping quote via POST /v1/shipments/calculate.
+     * Live — do NOT call in tests (no credentials in CI).
+     */
     public function quote(array $shipment): BGC_Quote {
-        throw new BGC_Api_Exception('BGC_Pigeon::quote not yet implemented');
+        $pickup = (int) get_option('bgc_pigeon_pickup_office_id', 0);
+        $resp   = $this->post_json(
+            $this->base . '/v1/shipments/calculate',
+            self::build_calculate_body($shipment, $pickup)
+        );
+        return self::parse_price($resp, (string) ($shipment['currency'] ?? 'EUR'));
     }
 
     /** @throws BGC_Api_Exception Always — implemented in Task 3. */
