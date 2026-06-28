@@ -1,0 +1,9 @@
+{ "_note": "Express One /parcelshops?isActive=true (SLOVENIA instance shape — confirm field names on BG live).",
+  "data": [
+    {"Id": 101, "pickupCodes": "EO-SOF-001", "ShortName": "София Център", "OOHType": 0, "IsActive": true,
+     "GeoLat": 42.6977, "GeoLong": 23.3219,
+     "Address": {"Place": "София", "Street": "бул. Витоша 1", "ZipCode": "1000"}},
+    {"Id": 102, "pickupCodes": "EO-PLD-002", "ShortName": "Пловдив Кючук Париж", "OOHType": 0, "IsActive": true,
+     "GeoLat": 42.1354, "GeoLong": 24.7453,
+     "Address": {"Place": "Пловдив", "Street": "ул. Тест 5", "ZipCode": "4000"}}
+  ] }
