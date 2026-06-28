@@ -48,27 +48,30 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
         if (!empty($query)) {
             $url .= '?' . http_build_query($query);
         }
-        $res = wp_remote_get($url, [
-            'timeout' => 20,
-            'headers' => [
-                'Accept'       => 'application/json',
-                'X-API-Key'    => $this->key,
-                'X-API-Secret' => $this->secret,
-            ],
-        ]);
-        if (is_wp_error($res)) {
-            throw new BGC_Api_Exception('Pigeon GET transport error: ' . $res->get_error_message());
+        // Retry once on transport/5xx like the abstract post_json — nomenclature sync spans ~106
+        // pages, so a single network blip shouldn't hard-fail the whole sync.
+        $last = '';
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $res = wp_remote_get($url, [
+                'timeout' => 20,
+                'headers' => [
+                    'Accept'       => 'application/json',
+                    'X-API-Key'    => $this->key,
+                    'X-API-Secret' => $this->secret,
+                ],
+            ]);
+            if (is_wp_error($res)) { $last = 'transport error: ' . $res->get_error_message(); continue; }
+            $code = (int) wp_remote_retrieve_response_code($res);
+            $raw  = (string) wp_remote_retrieve_body($res);
+            if ($code === 200) {
+                $data = json_decode($raw, true);
+                if (!is_array($data)) { throw new BGC_Api_Exception('Pigeon invalid JSON from ' . $url); }
+                return $data;
+            }
+            $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 200);
+            if ($code >= 400 && $code < 500) { break; } // client error (auth/bad request) — retry won't help
         }
-        $code = (int) wp_remote_retrieve_response_code($res);
-        $raw  = (string) wp_remote_retrieve_body($res);
-        if ($code !== 200) {
-            throw new BGC_Api_Exception('Pigeon GET HTTP ' . $code . ': ' . substr($raw, 0, 200));
-        }
-        $data = json_decode($raw, true);
-        if (!is_array($data)) {
-            throw new BGC_Api_Exception('Pigeon invalid JSON from ' . $url);
-        }
-        return $data;
+        throw new BGC_Api_Exception('Pigeon GET failed: ' . $last);
     }
 
     // ── Credential check ─────────────────────────────────────────────────────
@@ -97,14 +100,20 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
         $cap      = 200; // defensive safety cap
 
         do {
-            $resp      = $this->get_json('/v1/cities', ['per_page' => $per_page, 'page' => $page]);
-            $out       = array_merge($out, self::parse_cities($resp));
-            $meta      = $resp['meta'] ?? [];
+            $resp = $this->get_json('/v1/cities', ['per_page' => $per_page, 'page' => $page]);
+            $out  = array_merge($out, self::parse_cities($resp));
+            $meta = $resp['meta'] ?? null;
+            if ($meta === null && class_exists('BGC_Logger')) {
+                BGC_Logger::debug('pigeon: cities page missing meta — pagination may be incomplete', ['page' => $page]);
+            }
             $last_page = (int) ($meta['last_page'] ?? 1);
             $curr_page = (int) ($meta['current_page'] ?? $page);
             $page++;
         } while ($curr_page < $last_page && $page <= $cap);
 
+        if ($page > $cap && $curr_page < $last_page && class_exists('BGC_Logger')) {
+            BGC_Logger::debug('pigeon: cities pagination hit the safety cap', ['cap' => $cap, 'last_page' => $last_page]);
+        }
         return $out;
     }
 
