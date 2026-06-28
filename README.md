@@ -13,7 +13,7 @@ shipments from the WordPress admin.
 | Courier | Status | Notes |
 |---|---|---|
 | **Speedy** | ✅ Done, live-verified, on `main` | checkout (office/address/automat), live quotes, labels, tracking, settings |
-| **Econt** | 🚧 Phase 2 (branch `feat/econt-courier`) | adapter + method + settings done & tested; live-verified on dev (quotes office 4.68 / address 5.77 €); checkout E2E in progress |
+| **Econt** | ✅ Done, live-verified, on `main` | checkout (office/address/Econtomat), live quotes (office 4.68 / address 5.77 / automat 4.21 €), labels, tracking, settings; E2E 7/7 with Speedy |
 | **BOX NOW** | ⬜ planned | needs API account — see `docs/courier-api-access.md` |
 | **Pigeon Express** | ⬜ planned | needs API account — see `docs/courier-api-access.md` |
 | **Express One** | ⬜ planned | needs API account — see `docs/courier-api-access.md` |
@@ -82,6 +82,7 @@ bin/test core            # only framework (@group core) PHP tests
 - `docs/superpowers/plans/2026-06-26-multi-courier-phase1.md` — framework refactor (done, on `main`)
 - `docs/superpowers/plans/2026-06-27-econt-phase2.md` — Econt adapter (in progress)
 - `docs/courier-api-access.md` — how to get API credentials for BoxNow / Pigeon / Express One
+- `docs/courier-api-notes.md` — technical API analysis of those 3 (framework fit, divergences, blockers; build order Pigeon → BoxNow → Express One)
 - `docs/testing.md` — running tests per courier
 - `docs/test-speedy-waybills.md`, `docs/test-econt-waybills.md` — real test waybills for the owner to cancel
 
