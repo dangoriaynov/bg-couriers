@@ -77,4 +77,15 @@ class BGC_Nomenclature {
         $sql .= ' ORDER BY name';
         return $wpdb->get_results($wpdb->prepare($sql, ...$args), ARRAY_A);
     }
+
+    /** First office of a type, in the alphabetically-first city that has one (reference origin for office/automat). */
+    public static function first_office(string $courier, string $type): ?array {
+        global $wpdb; $o = $wpdb->prefix . 'bgc_offices'; $c = $wpdb->prefix . 'bgc_cities';
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT o.office_id,o.code,o.city_id,o.type,o.name,o.address FROM {$o} o
+             JOIN {$c} c ON c.courier=o.courier AND c.city_id=o.city_id
+             WHERE o.courier=%s AND o.type=%s ORDER BY c.name LIMIT 1",
+            $courier, $type), ARRAY_A);
+        return $row ?: null;
+    }
 }

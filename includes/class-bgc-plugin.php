@@ -23,6 +23,7 @@ class BGC_Plugin {
         });
         add_action('init', ['BGC_Sync', 'schedule']);
         add_action(BGC_Sync::HOOK, ['BGC_Sync', 'cron']);
+        add_action(BGC_Sync::RATES_HOOK, ['BGC_Sync', 'refresh_rates']); // daily reference-price refresh
         add_filter('woocommerce_shipping_methods', function ($methods) {
             $methods['bgc_speedy'] = 'BGC_Method_Speedy';
             $methods['bgc_econt'] = 'BGC_Method_Econt';

@@ -18,8 +18,9 @@ final class SyncTest extends WP_UnitTestCase {
             public function fetch_cities(): array { return $this->cities; }
             public function fetch_offices(int $c): array {
                 return [
-                    ['office_id'=>10,'city_id'=>1,'type'=>'office','name'=>'O1','address'=>'A1'],
-                    ['office_id'=>11,'city_id'=>2,'type'=>'office','name'=>'O2','address'=>'A2'],
+                    ['office_id'=>10,'city_id'=>1,'code'=>'O1','type'=>'office','name'=>'O1','address'=>'A1'],
+                    ['office_id'=>11,'city_id'=>2,'code'=>'O2','type'=>'office','name'=>'O2','address'=>'A2'],
+                    ['office_id'=>12,'city_id'=>1,'code'=>'AP1','type'=>'automat','name'=>'AP1','address'=>'AA1'],
                 ];
             }
             public function quote(array $s): BGC_Quote { return new BGC_Quote(5.0, 1.0, 'BGN', 'live'); }
@@ -31,9 +32,10 @@ final class SyncTest extends WP_UnitTestCase {
         };
         $r1 = BGC_Sync::run($courier);
         $this->assertSame(2, $r1['cities']);
-        $this->assertSame(2, $r1['offices']); // now from one bulk call
-        $this->assertSame(3, $r1['rates']); // address/office/automat
+        $this->assertSame(3, $r1['offices']); // 2 offices + 1 automat, one bulk call
+        $this->assertSame(3, $r1['rates']); // address + office + automat, each from the first city (Sofia) + its representative office
         $this->assertEqualsWithDelta(6.0, BGC_Rates::get('speedy','office'), 0.001);
+        $this->assertEqualsWithDelta(6.0, BGC_Rates::get('speedy','automat'), 0.001);
 
         // Second run: Varna gone -> pruned.
         $courier->cities = [['city_id'=>1,'name'=>'Sofia','name_lat'=>'Sofia','post_code'=>'1000','region'=>'Sofia']];
