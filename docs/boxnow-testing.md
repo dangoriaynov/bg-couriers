@@ -4,9 +4,12 @@ This is the **generic approach for testing BOX NOW** with this plugin, using BOX
 (sandbox)** environment. Follow it for every BOX NOW test cycle; production testing is the same flow
 with production credentials + real APMs (see the last section).
 
-> **Credentials are NOT in this file.** The OAuth **Client ID + Client Secret** (stage and production)
-> live ONLY in the plugin's encrypted BOX NOW settings (server-side) — never in the repo, per the
-> project's credential rule. Everything below is non-secret test configuration + the rules to follow.
+> **Credentials are NOT in this file.** The OAuth **Client ID + Client Secret** live ONLY in the
+> plugin's encrypted settings (server-side) — never in the repo, per the project's credential rule.
+> The **stage creds are already stored on dev** (encrypted) as `bgc_boxnow_username` +
+> `bgc_boxnow_password`, with `bgc_boxnow_base_url` / `bgc_boxnow_partner_id` / `bgc_boxnow_origin_id`
+> set — round-trip verified, so the build can use them directly (no re-entry). Everything below is
+> non-secret test configuration + the rules to follow.
 
 ## Stage environment
 - **API base:** `https://api-stage.boxnow.bg`
