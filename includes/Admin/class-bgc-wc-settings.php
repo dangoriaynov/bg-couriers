@@ -78,6 +78,20 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-group { border: 1px solid #e2e6ea; border-radius: 10px; padding: 6px 16px 12px; margin: 0 0 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
         #wpbody .bgc-settings .bgc-group > h2 { font-size: 1.02em; margin: 12px 0 4px; }
         #wpbody .bgc-settings .bgc-group > p.description { margin-top: 0; }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-on { background-color:#f1faf3; }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-off { background-color:#fdf5f5; }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-on.nav-tab-active { background-color:#e6f6ea; }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-off.nav-tab-active { background-color:#fbeaea; }
+        #wpbody .bgc-settings .bgc-enable-toggle { display:flex; align-items:center; gap:12px; padding:11px 14px; margin:2px 0 14px; border-radius:10px; border:1px solid #e2e6ea; }
+        #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-on { background:#f1faf3; border-color:#c4e7cf; }
+        #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-off { background:#fdf5f5; border-color:#eecfcf; }
+        #wpbody .bgc-settings .bgc-switch { position:relative; display:inline-block; width:46px; height:26px; flex:0 0 auto; }
+        #wpbody .bgc-settings .bgc-switch input { opacity:0; width:0; height:0; margin:0; }
+        #wpbody .bgc-settings .bgc-slider { position:absolute; cursor:pointer; inset:0; background:#c9ced3; border-radius:26px; transition:.2s; }
+        #wpbody .bgc-settings .bgc-slider:before { content:""; position:absolute; height:20px; width:20px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
+        #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider { background:#46b450; }
+        #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider:before { transform:translateX(20px); }
+        #wpbody .bgc-settings .bgc-enable-text { font-size:13px; color:#1d2327; }
         </style>';
         echo '<div class="bgc-settings">';
         $this->section_nav((string) $current_section);
@@ -100,7 +114,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
         foreach ($this->sections() as $id => $label) {
             $url = admin_url('admin.php?page=wc-settings&tab=bg_couriers' . ($id ? '&section=' . $id : ''));
             $active = $current === $id ? ' nav-tab-active' : '';
-            echo '<a class="nav-tab' . $active . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
+            // Courier sections (every non-General one) get a light green/red tint by enabled state.
+            $tint = $id !== '' ? (get_option('bgc_' . $id . '_enabled', 'no') === 'yes' ? ' bgc-tab-on' : ' bgc-tab-off') : '';
+            echo '<a class="nav-tab' . $active . $tint . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
         }
         echo '</nav>';
     }
@@ -110,8 +126,34 @@ class BGC_WC_Settings extends WC_Settings_Page {
      * Works for any courier id (speedy, econt, …).
      */
     private function output_courier(string $courier_id): void {
-        $fields_method = $courier_id . '_courier_fields';
-        WC_Admin_Settings::output_fields($this->$fields_method());
+        $fields    = $this->{$courier_id . '_courier_fields'}();
+        $enable_id = 'bgc_' . $courier_id . '_enabled';
+        // The enable control is a prominent toggle at the top of the tab (it still saves via get_settings()),
+        // so pull it out of the form-table — it must not render as an ordinary checkbox row.
+        $fields = array_values(array_filter($fields, static function ($f) use ($enable_id) {
+            return !(isset($f['id']) && $f['id'] === $enable_id);
+        }));
+        $on    = get_option($enable_id, 'no') === 'yes';
+        $label = $this->sections()[$courier_id] ?? ucfirst($courier_id);
+        $on_t  = esc_html__('enabled', 'bg-couriers');
+        $off_t = esc_html__('disabled', 'bg-couriers');
+        echo '<div class="bgc-enable-toggle ' . ($on ? 'bgc-enable-on' : 'bgc-enable-off') . '" data-on="' . esc_attr($on_t) . '" data-off="' . esc_attr($off_t) . '">'
+            . '<label class="bgc-switch"><input type="checkbox" name="' . esc_attr($enable_id) . '" value="1"' . checked($on, true, false) . '><span class="bgc-slider"></span></label>'
+            . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> — <span class="bgc-enable-state">' . ($on ? $on_t : $off_t) . '</span></span>'
+            . '</div>';
+        WC_Admin_Settings::output_fields($fields);
+        ?>
+<script>
+(function($){
+    $(document).on('change','.bgc-enable-toggle input[type=checkbox]',function(){
+        var on=this.checked, box=$(this).closest('.bgc-enable-toggle');
+        box.toggleClass('bgc-enable-on',on).toggleClass('bgc-enable-off',!on);
+        box.find('.bgc-enable-state').text(on?box.data('on'):box.data('off'));
+        $('.bgc-settings .nav-tab-active').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on);
+    });
+})(jQuery);
+</script>
+        <?php
 
         // Level-2 nav-tabs for delivery methods (JS-switched panels; all inputs stay in the form so all save).
         echo '<h2 class="nav-tab-wrapper bgc-method-nav" style="margin-top:1.5em;">';
@@ -196,7 +238,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
 
     private function speedy_courier_fields(): array {
         return [
-            ['type' => 'title', 'id' => 'bgc_speedy', 'title' => __('Speedy — courier settings', 'bg-couriers')],
+            ['type' => 'title', 'id' => 'bgc_speedy', 'title' => ''],
             ['type' => 'checkbox', 'id' => 'bgc_speedy_enabled', 'title' => __('Enable Speedy', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_speedy_username', 'title' => __('API username', 'bg-couriers'), 'autoload' => false],
             ['type' => 'password', 'id' => 'bgc_speedy_password', 'title' => __('API password', 'bg-couriers'),
@@ -209,10 +251,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'title' => __('Use dynamic pricing', 'bg-couriers'),
                 'desc' => __('Calculate shipping cost live via the Speedy API. When off, the per-method default prices below are used.', 'bg-couriers'),
                 'default' => 'yes'],
-            ['type' => 'checkbox', 'id' => 'bgc_speedy_free_enabled', 'title' => __('Free shipping over a threshold', 'bg-couriers'),
-                'desc' => __('Speedy ships free (you absorb the cost) when the order goods total reaches the amount below — for all delivery types.', 'bg-couriers'), 'default' => 'no'],
-            ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping order amount', 'bg-couriers'),
-                'desc' => __('Order goods total (without shipping) at/above which Speedy is free. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers'),
+                'desc' => __('Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_speedy_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
         ];
@@ -220,7 +260,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
 
     private function econt_courier_fields(): array {
         return [
-            ['type' => 'title', 'id' => 'bgc_econt', 'title' => __('Econt — courier settings', 'bg-couriers')],
+            ['type' => 'title', 'id' => 'bgc_econt', 'title' => ''],
             ['type' => 'checkbox', 'id' => 'bgc_econt_enabled', 'title' => __('Enable Econt', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_econt_username', 'title' => __('API username', 'bg-couriers'), 'autoload' => false],
             ['type' => 'password', 'id' => 'bgc_econt_password', 'title' => __('API password', 'bg-couriers'),
@@ -233,10 +273,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'title' => __('Use dynamic pricing', 'bg-couriers'),
                 'desc' => __('Calculate shipping cost live via the Econt API. When off, the per-method default prices below are used.', 'bg-couriers'),
                 'default' => 'yes'],
-            ['type' => 'checkbox', 'id' => 'bgc_econt_free_enabled', 'title' => __('Free shipping over a threshold', 'bg-couriers'),
-                'desc' => __('Econt ships free (you absorb the cost) when the order goods total reaches the amount below — for all delivery types.', 'bg-couriers'), 'default' => 'no'],
-            ['type' => 'text', 'id' => 'bgc_econt_free_threshold', 'title' => __('Free-shipping order amount', 'bg-couriers'),
-                'desc' => __('Order goods total (without shipping) at/above which Econt is free. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'text', 'id' => 'bgc_econt_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers'),
+                'desc' => __('Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_econt_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_econt'],
         ];
@@ -244,7 +282,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
 
     private function pigeon_courier_fields(): array {
         return [
-            ['type' => 'title', 'id' => 'bgc_pigeon', 'title' => __('Pigeon Express — courier settings', 'bg-couriers')],
+            ['type' => 'title', 'id' => 'bgc_pigeon', 'title' => ''],
             ['type' => 'checkbox', 'id' => 'bgc_pigeon_enabled', 'title' => __('Enable Pigeon Express', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_pigeon_username', 'title' => __('API Key', 'bg-couriers'), 'autoload' => false],
             ['type' => 'password', 'id' => 'bgc_pigeon_password', 'title' => __('API Secret', 'bg-couriers'),
@@ -263,10 +301,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'title' => __('Use dynamic pricing', 'bg-couriers'),
                 'desc' => __('Calculate shipping cost live via the Pigeon Express API. When off, the per-method default prices below are used.', 'bg-couriers'),
                 'default' => 'yes'],
-            ['type' => 'checkbox', 'id' => 'bgc_pigeon_free_enabled', 'title' => __('Free shipping over a threshold', 'bg-couriers'),
-                'desc' => __('Pigeon Express ships free (you absorb the cost) when the order goods total reaches the amount below — for all delivery types.', 'bg-couriers'), 'default' => 'no'],
-            ['type' => 'text', 'id' => 'bgc_pigeon_free_threshold', 'title' => __('Free-shipping order amount', 'bg-couriers'),
-                'desc' => __('Order goods total (without shipping) at/above which Pigeon Express is free. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'text', 'id' => 'bgc_pigeon_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers'),
+                'desc' => __('Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_pigeon_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
         ];

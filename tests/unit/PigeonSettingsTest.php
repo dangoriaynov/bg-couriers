@@ -77,7 +77,6 @@ final class PigeonSettingsTest extends TestCase {
             'bgc_pigeon_pickup_office_id',
             'bgc_pigeon_label_paper_size',
             'bgc_pigeon_dynamic_pricing',
-            'bgc_pigeon_free_enabled',
             'bgc_pigeon_free_threshold',
         ];
 

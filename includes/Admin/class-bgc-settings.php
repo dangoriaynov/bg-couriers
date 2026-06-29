@@ -68,11 +68,15 @@ class BGC_Settings {
         return (int) $raw;
     }
 
-    /** Speedy method-level free shipping (the merchant absorbs it) over a goods-total threshold. */
+    /**
+     * Method-level free shipping (the merchant absorbs it) over a goods-total threshold.
+     * Auto-enabled by a positive threshold — there is no separate on/off flag.
+     */
     public static function free_shipping(string $courier): array {
+        $threshold = (float) get_option('bgc_' . $courier . '_free_threshold', 0);
         return [
-            'enabled'   => get_option('bgc_' . $courier . '_free_enabled', 'no') === 'yes',
-            'threshold' => (float) get_option('bgc_' . $courier . '_free_threshold', 0),
+            'enabled'   => $threshold > 0,
+            'threshold' => $threshold,
         ];
     }
 

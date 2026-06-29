@@ -28,9 +28,10 @@ final class FreeShippingTest extends TestCase {
         $this->assertFalse(BGC_Method_Speedy::is_free(100.0, ['enabled' => true, 'threshold' => 0.0]));
     }
 
-    public function test_free_shipping_accessor_reads_method_level_options(): void {
+    public function test_free_shipping_auto_enabled_by_positive_threshold(): void {
+        // No on/off flag — a positive threshold alone enables free shipping.
         Functions\when('get_option')->alias(function ($name, $default = false) {
-            return ['bgc_speedy_free_enabled' => 'yes', 'bgc_speedy_free_threshold' => '60'][$name] ?? $default;
+            return ['bgc_speedy_free_threshold' => '60'][$name] ?? $default;
         });
         $f = BGC_Settings::free_shipping('speedy');
         $this->assertTrue($f['enabled']);
