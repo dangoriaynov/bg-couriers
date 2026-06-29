@@ -13,14 +13,7 @@ class BGC_Checkout {
         // recalculation via WC's fragment mechanism (server computes the remaining; no DOM parsing).
         add_action('woocommerce_before_checkout_form', [$this, 'render_free_notice'], 5);
         add_filter('woocommerce_update_order_review_fragments', [$this, 'free_notice_fragment']);
-        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'unavailable_label'], 10, 2);
         add_filter('woocommerce_shipping_chosen_method', [$this, 'default_courier'], 10, 3);
-    }
-
-    /** A rate flagged unavailable (the chosen city has no office/APS of that type) shows its label only — no price. */
-    public function unavailable_label($label, $rate) {
-        $meta = method_exists($rate, 'get_meta_data') ? (array) $rate->get_meta_data() : [];
-        return !empty($meta['bgc_unavailable']) ? esc_html($rate->get_label()) : $label;
     }
 
     /** Pre-select the configured default courier when the customer hasn't chosen a shipping method yet. */
@@ -189,6 +182,7 @@ class BGC_Checkout {
                 'emerg_default'=>__('Having trouble placing your order? We can help — call us:','bg-couriers'),
                 'close'=>__('Close','bg-couriers'),
                 'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),'street_ph'=>__('Type a street…','bg-couriers'),
+                'na_city' => __('Not available in this city','bg-couriers'),
             ],
         ]);
 

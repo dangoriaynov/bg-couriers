@@ -48,6 +48,29 @@
     pushSelection($wrap); // saves method + recalc; loader cleared on updated_checkout
   }
 
+  // Per-city availability: grey out + disable a delivery option the chosen city has none of.
+  var availCache = {};
+  function methodOk(av, m) { return m === 'address' || (m === 'office' && av.office) || (m === 'automat' && av.automat); }
+  function applyAvail($wrap) {
+    var city = $wrap.find('.bgc-city').val() || 0;
+    if (!city) { $wrap.find('.bgc-tab').removeClass('bgc-tab-na').prop('disabled', false).attr('title', ''); return; }
+    var key = courier($wrap) + ':' + city;
+    if (availCache[key] === undefined) {
+      $.get(BGC.ajax, { action: 'bgc_city_avail', courier: courier($wrap), city_id: city }, function (res) {
+        availCache[key] = { office: !!(res && res.office), automat: !!(res && res.automat) };
+        applyAvail($wrap);
+      });
+      return;
+    }
+    var av = availCache[key], firstOk = null;
+    $wrap.find('.bgc-tab').each(function () {
+      var $t = $(this), m = $t.data('method'), ok = methodOk(av, m);
+      $t.toggleClass('bgc-tab-na', !ok).prop('disabled', !ok).attr('title', ok ? '' : (BGC.i18n.na_city || ''));
+      if (ok && firstOk === null) { firstOk = m; }
+    });
+    if (!methodOk(av, method($wrap)) && firstOk) { setMethod($wrap, firstOk); } // active option unavailable -> switch
+  }
+
   // City (searchable, server-limited) --------------------------------------
   function initCity($wrap) {
     var $city = $wrap.find('.bgc-city');
@@ -142,12 +165,13 @@
       var mine = $wrap.attr('data-courier') === chosen;
       $wrap.toggle(mine); // show only the chosen courier's fields (multiple couriers can share a zone)
       if (!mine) return;
-      renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); hideLoader($wrap);
+      renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); hideLoader($wrap);
     });
   });
 
   $(document.body).on('click', '.bgc-tab', function (e) {
     e.preventDefault();
+    if ($(this).hasClass('bgc-tab-na') || this.disabled) { return; } // unavailable for this city
     setMethod($(this).closest('.bgc-fields'), $(this).data('method'));
   });
 

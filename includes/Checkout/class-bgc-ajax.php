@@ -3,7 +3,7 @@ defined('ABSPATH') || exit;
 
 class BGC_Ajax {
     public function __construct() {
-        foreach (['search_cities','offices','streets','set_selection'] as $a) {
+        foreach (['search_cities','offices','city_avail','streets','set_selection'] as $a) {
             add_action("wp_ajax_bgc_{$a}", [$this, $a]);
             add_action("wp_ajax_nopriv_bgc_{$a}", [$this, $a]);
         }
@@ -27,6 +27,24 @@ class BGC_Ajax {
         $type = sanitize_key($_GET['type'] ?? '');
         $term = sanitize_text_field($_GET['term'] ?? '');
         wp_send_json(self::city_offices($courier, $city, $type, $term, BGC_Settings::dropdown_limit()));
+    }
+
+    /** Which office types a city has (so the checkout can grey out a delivery option the city lacks). */
+    public function city_avail(): void {
+        $courier_id = sanitize_key($_GET['courier'] ?? 'speedy');
+        $city = (int) ($_GET['city_id'] ?? 0);
+        $office = false; $automat = false;
+        if ($city > 0) {
+            $rows = [];
+            try { $c = BGC_Couriers::get($courier_id); if ($c) { $rows = $c->fetch_offices($city); } }
+            catch (\Exception $e) { $rows = []; }
+            if (empty($rows)) { $rows = BGC_Nomenclature::offices($courier_id, $city); } // fallback to cache
+            foreach ($rows as $o) {
+                $t = $o['type'] ?? '';
+                if ($t === 'office') { $office = true; } elseif ($t === 'automat') { $automat = true; }
+            }
+        }
+        wp_send_json(['office' => $office, 'automat' => $automat]);
     }
 
     /**
