@@ -14,9 +14,9 @@ shipments from the WordPress admin.
 |---|---|---|
 | **Speedy** | ✅ Done, live-verified, on `main` | checkout (office/address/automat), live quotes, labels, tracking, settings |
 | **Econt** | ✅ Done, live-verified, on `main` | checkout (office/address/Econtomat), live quotes (office 4.68 / address 5.77 / automat 4.21 €), labels, tracking, settings; E2E 7/7 with Speedy |
-| **BOX NOW** | ⬜ planned | needs API account — see `docs/courier-api-access.md` |
 | **Pigeon Express** | 🟡 Scaffolded (code on `main`) | adapter + method + settings + `@group pigeon` tests built against the OpenAPI spec; awaiting credentials for live-verify |
-| **Express One** | ⬜ planned | needs API account — see `docs/courier-api-access.md` |
+| **Express One** | 📋 Plan ready (gated on creds) | turn-key `plans/2026-06-29-expressone-phase4.md` + fixtures from the official plugin; needs a BG API Key + 1 live confirm (pickup-point→createshipment encoding) |
+| **BOX NOW** | 📋 Plan ready (gated on creds) | turn-key `plans/2026-06-29-boxnow-phase5.md` + fixtures from the v1.65 manual; needs OAuth2 creds + a geo locker-picker UI |
 
 ## Architecture (multi-courier framework)
 
