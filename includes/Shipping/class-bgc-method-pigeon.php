@@ -27,13 +27,18 @@ class BGC_Method_Pigeon extends WC_Shipping_Method {
         $weight  = (float) ($package['contents_weight'] ?? 0);
         $packed  = BGC_Packer::from_weight($weight);
 
-        // Office/automat price is the same for any office in a city, so quote with a representative
-        // office of the chosen city when the customer hasn't picked a specific one yet — otherwise
-        // the live quote can't run (no pickupOfficeId) and falls back to a higher flat rate.
-        if ($office <= 0 && $site_id > 0 && in_array($method, ['office', 'automat'], true)) {
-            $rep = BGC_Nomenclature::offices('pigeon', $site_id, $method);
-            if (!empty($rep[0]['office_id'])) { $office = (int) $rep[0]['office_id']; }
+        // Resolve the office to quote against (representative office for a city without a specific pick).
+        // If the chosen city has NO office/APS of this type, the option is unavailable — show that, no price.
+        $res = BGC_Pricing::resolve_office('pigeon', $method, $site_id, $office);
+        if ($res['unavailable']) {
+            if (WC()->session) { WC()->session->set('bgc_quote_price', 0); WC()->session->set('bgc_quote_source', 'unavailable'); }
+            $this->add_rate(['id' => $this->get_rate_id(),
+                'label' => $this->title . ' — ' . __('not available for this city', 'bg-couriers'),
+                'cost' => 0, 'taxes' => false, 'meta_data' => ['bgc_unavailable' => '1', 'bgc_method' => $method]]);
+            return;
         }
+        $office  = $res['office_id'];
+        $site_id = $res['site_id'];
         $shipment = array_merge($packed, [
             'method' => $method, 'site_id' => $site_id, 'office_id' => $office, 'cod_amount' => 0.0, 'currency' => get_woocommerce_currency(),
         ]);
