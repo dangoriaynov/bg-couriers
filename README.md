@@ -93,7 +93,8 @@ bin/test core            # only framework (@group core) PHP tests
 - `docs/courier-api-access.md` — how to get API credentials for BoxNow / Pigeon / Express One (dev reference)
 - `docs/courier-api-notes.md` — technical API analysis of those 3 (framework fit, divergences, blockers; build order Pigeon → BoxNow → Express One)
 - `docs/testing.md` — running tests per courier
-- `docs/test-speedy-waybills.md`, `docs/test-econt-waybills.md` — real test waybills for the owner to cancel
+- `docs/boxnow-testing.md` — **BOX NOW testing guide** (the generic approach): stage env, which warehouses/APM to use, the rules, and the end-to-end test flow
+- `docs/test-speedy-waybills.md`, `docs/test-econt-waybills.md`, `docs/test-boxnow-waybills.md` — real/stage test waybills for the owner to cancel
 
 ## License
 
