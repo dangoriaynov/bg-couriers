@@ -78,10 +78,15 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-group { border: 1px solid #e2e6ea; border-radius: 10px; padding: 6px 16px 12px; margin: 0 0 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
         #wpbody .bgc-settings .bgc-group > h2 { font-size: 1.02em; margin: 12px 0 4px; }
         #wpbody .bgc-settings .bgc-group > p.description { margin-top: 0; }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-on { background-color:#f1faf3; }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-off { background-color:#fdf5f5; }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-on.nav-tab-active { background-color:#e6f6ea; }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-off.nav-tab-active { background-color:#fbeaea; }
+        /* Nice wide rounded shadowed tabs — applies to both the courier nav and the per-method nav. */
+        #wpbody .bgc-settings .nav-tab-wrapper { border-bottom:none; margin:0 0 16px; display:flex; flex-wrap:wrap; gap:10px; padding:0; }
+        #wpbody .bgc-settings .nav-tab { border:1px solid #dcdcde; border-radius:11px; padding:11px 26px; margin:0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.10); font-weight:500; line-height:1.2; color:#1d2327; transition:box-shadow .15s ease, transform .15s ease, background .15s ease; }
+        #wpbody .bgc-settings .nav-tab:hover { box-shadow:0 3px 8px rgba(0,0,0,.16); }
+        #wpbody .bgc-settings .nav-tab.nav-tab-active { border-color:#8c8f94; box-shadow:0 5px 13px rgba(0,0,0,.20); transform:translateY(-1px); }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-on { background:#eafaf0; border-color:#c4e7cf; }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-off { background:#fdeeee; border-color:#eecfcf; }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-on.nav-tab-active { background:#d8f3e1; }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-off.nav-tab-active { background:#fbdcdc; }
         #wpbody .bgc-settings .bgc-enable-toggle { display:flex; align-items:center; gap:12px; padding:11px 14px; margin:2px 0 14px; border-radius:10px; border:1px solid #e2e6ea; }
         #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-on { background:#f1faf3; border-color:#c4e7cf; }
         #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-off { background:#fdf5f5; border-color:#eecfcf; }
@@ -110,7 +115,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
     }
 
     private function section_nav(string $current): void {
-        echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper" style="margin:0 0 1em;">';
+        echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper">';
         foreach ($this->sections() as $id => $label) {
             $url = admin_url('admin.php?page=wc-settings&tab=bg_couriers' . ($id ? '&section=' . $id : ''));
             $active = $current === $id ? ' nav-tab-active' : '';
@@ -182,11 +187,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
         }
         ?>
 <style>
-.bgc-method-nav{padding-bottom:0;margin-bottom:0;border-bottom:1px solid #787c82;}
-.bgc-method-nav .bgc-method-tab{display:inline-flex;align-items:center;gap:7px;}
-.bgc-method-nav .nav-tab{margin-bottom:-1px;}
-#wpbody .bgc-settings .bgc-method-nav .nav-tab.nav-tab-active{border:1px solid #787c82;border-bottom-color:#fff;}
-.bgc-method-panel{border:1px solid #787c82;border-top:none;border-radius:0 0 6px 6px;padding:10px 16px 14px;background:#fff;margin-bottom:8px;}
+.bgc-method-nav{padding-bottom:0;}
+.bgc-method-nav .bgc-method-tab{display:inline-flex;align-items:center;gap:8px;}
+.bgc-method-panel{border:1px solid #e2e6ea;border-radius:12px;padding:8px 18px 14px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.07);margin:0 0 10px;}
 #wpbody .bgc-settings .bgc-switch-sm{width:32px;height:18px;}
 #wpbody .bgc-settings .bgc-switch-sm .bgc-slider:before{height:12px;width:12px;left:3px;bottom:3px;}
 #wpbody .bgc-settings .bgc-switch-sm input:checked + .bgc-slider:before{transform:translateX(14px);}
