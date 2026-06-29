@@ -14,12 +14,25 @@ class BGC_Checkout {
         add_action('woocommerce_before_checkout_form', [$this, 'render_free_notice'], 5);
         add_filter('woocommerce_update_order_review_fragments', [$this, 'free_notice_fragment']);
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'unavailable_label'], 10, 2);
+        add_filter('woocommerce_shipping_chosen_method', [$this, 'default_courier'], 10, 3);
     }
 
     /** A rate flagged unavailable (the chosen city has no office/APS of that type) shows its label only — no price. */
     public function unavailable_label($label, $rate) {
         $meta = method_exists($rate, 'get_meta_data') ? (array) $rate->get_meta_data() : [];
         return !empty($meta['bgc_unavailable']) ? esc_html($rate->get_label()) : $label;
+    }
+
+    /** Pre-select the configured default courier when the customer hasn't chosen a shipping method yet. */
+    public function default_courier($default, $rates, $chosen_method) {
+        if (!empty($chosen_method)) { return $default; } // respect an explicit choice
+        $pref = (string) get_option('bgc_default_courier', '');
+        if ($pref !== '') {
+            foreach ((array) $rates as $id => $rate) {
+                if (is_object($rate) && method_exists($rate, 'get_method_id') && $rate->get_method_id() === 'bgc_' . $pref) { return $id; }
+            }
+        }
+        return $default;
     }
 
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
@@ -116,7 +129,7 @@ class BGC_Checkout {
         $courier = $this->chosen_courier(); if (!$courier) { return; }
         $s = WC()->session; if (!$s) { return; }
         $order->update_meta_data('_bgc_courier', $courier);
-        $order->update_meta_data('_bgc_method', (string) $s->get('bgc_method', 'office'));
+        $order->update_meta_data('_bgc_method', (string) ($s->get('bgc_method', '') ?: (BGC_Settings::enabled_methods($courier)[0] ?? 'office')));
         $order->update_meta_data('_bgc_site_id', (int) $s->get('bgc_site_id', 0));
         $order->update_meta_data('_bgc_office_id', (int) $s->get('bgc_office_id', 0));
         $order->update_meta_data('_bgc_post_code', (string) $s->get('bgc_post_code', ''));

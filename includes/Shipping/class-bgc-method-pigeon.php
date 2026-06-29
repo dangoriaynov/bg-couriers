@@ -21,7 +21,8 @@ class BGC_Method_Pigeon extends WC_Shipping_Method {
     }
 
     public function calculate_shipping($package = []) {
-        $method  = WC()->session ? (string) WC()->session->get('bgc_method', 'office') : 'office';
+        $dflt    = BGC_Settings::enabled_methods('pigeon')[0] ?? 'office';
+        $method  = WC()->session ? ((string) WC()->session->get('bgc_method', '') ?: $dflt) : $dflt;
         $site_id = WC()->session ? (int) WC()->session->get('bgc_site_id', 0) : 0;
         $office  = WC()->session ? (int) WC()->session->get('bgc_office_id', 0) : 0;
         $weight  = (float) ($package['contents_weight'] ?? 0);

@@ -216,6 +216,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
 
     private function general_fields(): array {
         $statuses = function_exists('wc_get_order_statuses') ? wc_get_order_statuses() : ['wc-processing' => 'Processing'];
+        $courier_opts = ['' => __('Automatic (first / cheapest)', 'bg-couriers')];
+        foreach ($this->sections() as $sid => $slabel) { if ($sid !== '') { $courier_opts[$sid] = $slabel; } }
         return [
             ['type' => 'title', 'id' => 'bgc_general', 'title' => __('General', 'bg-couriers'),
                 'desc' => __('Settings that apply to all couriers. Prices are always shown in the store currency.', 'bg-couriers')],
@@ -229,6 +231,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'number', 'id' => 'bgc_dropdown_limit', 'title' => __('Checkout dropdown results', 'bg-couriers'),
                 'desc' => __('How many city / office results to show in checkout dropdowns (search shows the same max). Default 5.', 'bg-couriers'),
                 'default' => 5, 'custom_attributes' => ['min' => '1', 'step' => '1']],
+            ['type' => 'select', 'id' => 'bgc_default_courier', 'title' => __('Default courier', 'bg-couriers'),
+                'desc' => __('Which courier is pre-selected at checkout. The default delivery option is the first one in each courier’s “Delivery option order” below.', 'bg-couriers'),
+                'options' => $courier_opts, 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_general'],
 
             ['type' => 'title', 'id' => 'bgc_sender', 'title' => __('Sender address (for labels)', 'bg-couriers'),
