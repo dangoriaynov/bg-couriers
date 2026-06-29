@@ -150,13 +150,15 @@ class BGC_Settings {
         ];
         wp_enqueue_script('jquery-ui-sortable');
         echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html($field['title'] ?? '') . '</th><td class="forminp">';
-        echo '<ul id="bgc-sort-' . esc_attr($id) . '" class="bgc-sortable" style="margin:0;max-width:320px;">';
-        foreach (self::method_order('speedy') as $m) {
+        $courier = preg_match('/^bgc_([a-z0-9]+)_method_order$/', $id, $mm) ? $mm[1] : 'speedy';
+        // Horizontal row — delivery options sit side by side at checkout, so the order control mirrors that.
+        echo '<ul id="bgc-sort-' . esc_attr($id) . '" class="bgc-sortable" style="display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;">';
+        foreach (self::method_order($courier) as $m) {
             if (!isset($labels[$m])) { continue; }
-            echo '<li data-m="' . esc_attr($m) . '" style="padding:8px 12px;margin:4px 0;border:1px solid #c3c4c7;border-radius:4px;background:#fff;cursor:move;">⠿ ' . esc_html($labels[$m]) . '</li>';
+            echo '<li data-m="' . esc_attr($m) . '" style="padding:8px 12px;margin:0;border:1px solid #c3c4c7;border-radius:4px;background:#fff;cursor:move;white-space:nowrap;">⠿ ' . esc_html($labels[$m]) . '</li>';
         }
         echo '</ul>';
-        echo '<input type="hidden" name="' . esc_attr($id) . '" id="' . esc_attr($id) . '" value="' . esc_attr(implode(',', self::method_order('speedy'))) . '">';
+        echo '<input type="hidden" name="' . esc_attr($id) . '" id="' . esc_attr($id) . '" value="' . esc_attr(implode(',', self::method_order($courier))) . '">';
         echo '<p class="description">' . esc_html__('Drag to set the order delivery options appear at checkout.', 'bg-couriers') . '</p>';
         $sid = esc_js($id);
         echo "<script>jQuery(function($){ $('#bgc-sort-{$sid}').sortable({update:function(){ $('#{$sid}').val($(this).children().map(function(){return $(this).data('m');}).get().join(',')); }}); });</script>";

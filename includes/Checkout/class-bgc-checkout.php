@@ -54,6 +54,12 @@ class BGC_Checkout {
                 unset($fields[$g][$g . '_' . $f]);
             }
         }
+        // When the country field is hidden (BG-only store), pin it to BG so the hidden field still submits.
+        if (get_option('bgc_hide_country', 'no') === 'yes') {
+            foreach (['billing', 'shipping'] as $g) {
+                if (isset($fields[$g][$g . '_country'])) { $fields[$g][$g . '_country']['default'] = 'BG'; }
+            }
+        }
         return $fields;
     }
 
@@ -173,6 +179,10 @@ class BGC_Checkout {
             if ($selectors !== '') {
                 wp_add_inline_style('bgc-checkout', $selectors . '{display:none !important;}');
             }
+        }
+        // Hide the Country/Region field (BG-only store) when enabled in settings.
+        if (get_option('bgc_hide_country', 'no') === 'yes') {
+            wp_add_inline_style('bgc-checkout', '#billing_country_field,#shipping_country_field{display:none !important;}');
         }
     }
     public function render_fields($method, $index): void {
