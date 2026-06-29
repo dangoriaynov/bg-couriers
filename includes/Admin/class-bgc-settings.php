@@ -146,7 +146,7 @@ class BGC_Settings {
         $labels = [
             'office'  => __('To office', 'bg-couriers'),
             'address' => __('To address', 'bg-couriers'),
-            'automat' => __('To automat (APS)', 'bg-couriers'),
+            'automat' => __('To APS', 'bg-couriers'),
         ];
         wp_enqueue_script('jquery-ui-sortable');
         echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html($field['title'] ?? '') . '</th><td class="forminp">';

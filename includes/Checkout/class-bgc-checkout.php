@@ -95,7 +95,7 @@ class BGC_Checkout {
         $method = (string) WC()->session->get('bgc_method', 'office');
         $office = (int) WC()->session->get('bgc_office_id', 0);
         if (!$site) { $errors->add('bgc', __('Please choose a city for Speedy delivery.', 'bg-couriers')); }
-        if ($method !== 'address' && !$office) { $errors->add('bgc', __('Please choose a Speedy office/automat.', 'bg-couriers')); }
+        if ($method !== 'address' && !$office) { $errors->add('bgc', __('Please choose an office/APS.', 'bg-couriers')); }
         if ($method === 'address') {
             $street = (string) WC()->session->get('bgc_addr_street_name', '');
             $no     = (string) WC()->session->get('bgc_addr_street_no', '');
@@ -164,8 +164,8 @@ class BGC_Checkout {
             'currency' => get_woocommerce_currency(),
             'emergency' => BGC_Settings::emergency(),
             'i18n'  => [
-                'address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To automat','bg-couriers'),
-                'office_label'=>__('Office','bg-couriers'),'automat_label'=>__('Automat (locker)','bg-couriers'),
+                'address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To APS','bg-couriers'),
+                'office_label'=>__('Office','bg-couriers'),'automat_label'=>__('APS (locker)','bg-couriers'),
                 'emerg_default'=>__('Having trouble placing your order? We can help — call us:','bg-couriers'),
                 'close'=>__('Close','bg-couriers'),
                 'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),'street_ph'=>__('Type a street…','bg-couriers'),
@@ -219,7 +219,7 @@ class BGC_Checkout {
         $addr_style = ($sel_method === 'address') ? '' : ' style="display:none;"';
 
         $office_label = ($sel_method === 'automat')
-            ? esc_html__('Automat (locker)', 'bg-couriers')
+            ? esc_html__('APS (locker)', 'bg-couriers')
             : esc_html__('Office', 'bg-couriers');
 
         echo '<div class="bgc-fields" data-courier="' . esc_attr($courier) . '" data-method="' . esc_attr($sel_method) . '"'

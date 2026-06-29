@@ -19,7 +19,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         self::$method_labels = [
             'office'  => __('To office', 'bg-couriers'),
             'address' => __('To address', 'bg-couriers'),
-            'automat' => __('To automat (APS)', 'bg-couriers'),
+            'automat' => __('To APS', 'bg-couriers'),
         ];
         parent::__construct();
     }
@@ -182,8 +182,11 @@ class BGC_WC_Settings extends WC_Settings_Page {
         }
         ?>
 <style>
-.bgc-method-nav{padding-bottom:0;}
+.bgc-method-nav{padding-bottom:0;margin-bottom:0;border-bottom:1px solid #787c82;}
 .bgc-method-nav .bgc-method-tab{display:inline-flex;align-items:center;gap:7px;}
+.bgc-method-nav .nav-tab{margin-bottom:-1px;}
+#wpbody .bgc-settings .bgc-method-nav .nav-tab.nav-tab-active{border:1px solid #787c82;border-bottom-color:#fff;}
+.bgc-method-panel{border:1px solid #787c82;border-top:none;border-radius:0 0 6px 6px;padding:10px 16px 14px;background:#fff;margin-bottom:8px;}
 #wpbody .bgc-settings .bgc-switch-sm{width:32px;height:18px;}
 #wpbody .bgc-settings .bgc-switch-sm .bgc-slider:before{height:12px;width:12px;left:3px;bottom:3px;}
 #wpbody .bgc-settings .bgc-switch-sm input:checked + .bgc-slider:before{transform:translateX(14px);}
