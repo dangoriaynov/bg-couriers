@@ -159,21 +159,34 @@ class BGC_WC_Settings extends WC_Settings_Page {
         echo '<h2 class="nav-tab-wrapper bgc-method-nav" style="margin-top:1.5em;">';
         $first = true;
         foreach (self::$method_labels as $m => $label) {
-            echo '<a href="#" class="nav-tab' . ($first ? ' nav-tab-active' : '') . '" data-bgc-tab="' . esc_attr($m) . '">' . esc_html($label) . '</a>';
+            $mid = 'bgc_' . $courier_id . '_' . $m . '_enabled';
+            $mon = get_option($mid, 'yes') === 'yes';
+            echo '<a href="#" class="nav-tab bgc-method-tab' . ($first ? ' nav-tab-active' : '') . ($mon ? ' bgc-tab-on' : ' bgc-tab-off') . '" data-bgc-tab="' . esc_attr($m) . '">'
+                . '<label class="bgc-switch bgc-switch-sm" onclick="event.stopPropagation();"><input type="checkbox" name="' . esc_attr($mid) . '" value="1"' . checked($mon, true, false) . '><span class="bgc-slider"></span></label>'
+                . '<span>' . esc_html($label) . '</span></a>';
             $first = false;
         }
         echo '</h2>';
 
         $first = true;
         foreach (self::$method_labels as $m => $label) {
+            // Only the price field renders in the panel — the enable control is the tab toggle (still saved via get_settings()).
+            $en = 'bgc_' . $courier_id . '_' . $m . '_enabled';
+            $mf = array_values(array_filter($this->method_fields($courier_id, $m, $label), static function ($f) use ($en) {
+                return !(isset($f['id']) && $f['id'] === $en);
+            }));
             echo '<div class="bgc-method-panel" data-bgc-panel="' . esc_attr($m) . '"' . ($first ? '' : ' style="display:none;"') . '>';
-            WC_Admin_Settings::output_fields($this->method_fields($courier_id, $m, $label));
+            WC_Admin_Settings::output_fields($mf);
             echo '</div>';
             $first = false;
         }
         ?>
 <style>
 .bgc-method-nav{padding-bottom:0;}
+.bgc-method-nav .bgc-method-tab{display:inline-flex;align-items:center;gap:7px;}
+#wpbody .bgc-settings .bgc-switch-sm{width:32px;height:18px;}
+#wpbody .bgc-settings .bgc-switch-sm .bgc-slider:before{height:12px;width:12px;left:3px;bottom:3px;}
+#wpbody .bgc-settings .bgc-switch-sm input:checked + .bgc-slider:before{transform:translateX(14px);}
 .bgc-method-panel table.form-table{margin-top:.5em;}
 .bgc-method-panel h2{display:none;} /* method name lives in the tab, hide the empty group title */
 </style>
@@ -185,6 +198,10 @@ class BGC_WC_Settings extends WC_Settings_Page {
         $('.bgc-method-nav .nav-tab').removeClass('nav-tab-active');
         $(this).addClass('nav-tab-active');
         $('.bgc-method-panel').hide().filter('[data-bgc-panel="'+t+'"]').show();
+    });
+    $(document).on('change','.bgc-method-tab input[type=checkbox]',function(){
+        var on=this.checked;
+        $(this).closest('.bgc-method-tab').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on);
     });
 })(jQuery);
 </script>
@@ -316,7 +333,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'title', 'id' => $p . 'grp', 'title' => ''],
             ['type' => 'checkbox', 'id' => $p . 'enabled', 'title' => sprintf(__('Enable “%s”', 'bg-couriers'), $label), 'default' => 'yes'],
             ['type' => 'text', 'id' => $p . 'price', 'title' => __('Default price (API fallback)', 'bg-couriers'),
-                'desc' => __('In the store currency. Used when the courier API is unavailable or dynamic pricing is off.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Leave empty to use only the live API price. If set, this price is used for this courier + delivery option when there is no connection to the API (or dynamic pricing is off). In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => $p . 'grp'],
         ];
     }
