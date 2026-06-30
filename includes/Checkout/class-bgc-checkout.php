@@ -40,17 +40,22 @@ class BGC_Checkout {
 
     /** The progress notice HTML (always the .bgc-free-notice element so the fragment can swap it). */
     public static function free_notice_html(): string {
-        $cfg = BGC_Settings::free_shipping('speedy');
+        $courier = self::chosen_courier();
+        if (!$courier) { return '<div class="bgc-free-notice"></div>'; } // no bgc courier chosen
+        $cfg = BGC_Settings::free_shipping($courier);
         $subtotal = (function_exists('WC') && WC()->cart) ? (float) WC()->cart->get_subtotal() : 0.0;
         if (empty($cfg['enabled']) || (float) ($cfg['threshold'] ?? 0) <= 0) {
             return '<div class="bgc-free-notice"></div>';
         }
+        $couriers = BGC_Couriers::all();
+        $label = isset($couriers[$courier]) ? $couriers[$courier] : ucfirst($courier);
         $remaining = self::free_remaining($subtotal, $cfg);
         if ($remaining <= 0) {
-            $msg = esc_html__('You have free Speedy delivery! 🎉', 'bg-couriers');
+            /* translators: %s is the courier name. */
+            $msg = sprintf(esc_html__('You have free %s delivery! 🎉', 'bg-couriers'), esc_html($label));
         } else {
-            /* translators: %s is a formatted price. */
-            $msg = sprintf(esc_html__('Add %s more for free Speedy delivery', 'bg-couriers'), wc_price($remaining));
+            /* translators: 1: a formatted price, 2: the courier name. */
+            $msg = sprintf(esc_html__('Add %1$s more for free %2$s delivery', 'bg-couriers'), wc_price($remaining), esc_html($label));
         }
         return '<div class="bgc-free-notice woocommerce-info" style="margin-bottom:1em;">' . $msg . '</div>';
     }
@@ -103,8 +108,8 @@ class BGC_Checkout {
     }
 
     /** The courier id of the chosen bgc_<id> shipping method, or null. */
-    public function chosen_courier(): ?string {
-        $chosen = WC()->session ? (array) WC()->session->get('chosen_shipping_methods') : [];
+    public static function chosen_courier(): ?string {
+        $chosen = (function_exists('WC') && WC()->session) ? (array) WC()->session->get('chosen_shipping_methods') : [];
         foreach ($chosen as $m) {
             if (preg_match('/^bgc_([a-z0-9]+)/', (string) $m, $mm)) { return $mm[1]; }
         }
@@ -132,7 +137,7 @@ class BGC_Checkout {
     }
 
     public function persist(\WC_Order $order): void {
-        $courier = $this->chosen_courier(); if (!$courier) { return; }
+        $courier = self::chosen_courier(); if (!$courier) { return; }
         $s = WC()->session; if (!$s) { return; }
         $order->update_meta_data('_bgc_courier', $courier);
         $order->update_meta_data('_bgc_method', (string) ($s->get('bgc_method', '') ?: (BGC_Settings::enabled_methods($courier)[0] ?? 'office')));
