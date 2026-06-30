@@ -142,26 +142,43 @@ class BGC_Settings {
         return array_values(array_intersect($order, self::METHODS));
     }
 
-    /** Custom WC field: drag-sortable order of the delivery methods. */
+    /** Configured order couriers appear at checkout (registered couriers, default registration order). */
+    public static function courier_order(): array {
+        $all = array_keys(BGC_Couriers::all());
+        $raw = (string) get_option('bgc_courier_order', '');
+        $order = $raw !== '' ? array_values(array_filter(array_map('trim', explode(',', $raw)))) : [];
+        foreach ($all as $c) { if (!in_array($c, $order, true)) { $order[] = $c; } }
+        return array_values(array_intersect($order, $all));
+    }
+
+    /** Custom WC field: drag-sortable order — of the delivery methods (bgc_<courier>_method_order) OR the couriers (bgc_courier_order). */
     public function render_sortable($field): void {
         $id = $field['id'];
-        $labels = [
-            'office'  => __('To office', 'bg-couriers'),
-            'address' => __('To address', 'bg-couriers'),
-            'automat' => __('To APS', 'bg-couriers'),
-        ];
         wp_enqueue_script('jquery-ui-sortable');
+        if ($id === 'bgc_courier_order') {
+            $labels = BGC_Couriers::all(); // id => label
+            $items  = self::courier_order();
+            $desc   = __('Drag to set the order couriers appear at checkout.', 'bg-couriers');
+        } else {
+            $labels = [
+                'office'  => __('To office', 'bg-couriers'),
+                'address' => __('To address', 'bg-couriers'),
+                'automat' => __('To APS', 'bg-couriers'),
+            ];
+            $courier = preg_match('/^bgc_([a-z0-9]+)_method_order$/', $id, $mm) ? $mm[1] : 'speedy';
+            $items  = self::method_order($courier);
+            $desc   = __('Drag to set the order delivery options appear at checkout.', 'bg-couriers');
+        }
         echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html($field['title'] ?? '') . '</th><td class="forminp">';
-        $courier = preg_match('/^bgc_([a-z0-9]+)_method_order$/', $id, $mm) ? $mm[1] : 'speedy';
-        // Horizontal row — delivery options sit side by side at checkout, so the order control mirrors that.
+        // Horizontal row — options sit side by side at checkout, so the order control mirrors that.
         echo '<ul id="bgc-sort-' . esc_attr($id) . '" class="bgc-sortable" style="display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;">';
-        foreach (self::method_order($courier) as $m) {
-            if (!isset($labels[$m])) { continue; }
-            echo '<li data-m="' . esc_attr($m) . '" style="padding:8px 12px;margin:0;border:1px solid #c3c4c7;border-radius:4px;background:#fff;cursor:move;white-space:nowrap;">⠿ ' . esc_html($labels[$m]) . '</li>';
+        foreach ($items as $key) {
+            if (!isset($labels[$key])) { continue; }
+            echo '<li data-m="' . esc_attr($key) . '" style="padding:8px 12px;margin:0;border:1px solid #c3c4c7;border-radius:4px;background:#fff;cursor:move;white-space:nowrap;">⠿ ' . esc_html($labels[$key]) . '</li>';
         }
         echo '</ul>';
-        echo '<input type="hidden" name="' . esc_attr($id) . '" id="' . esc_attr($id) . '" value="' . esc_attr(implode(',', self::method_order($courier))) . '">';
-        echo '<p class="description">' . esc_html__('Drag to set the order delivery options appear at checkout.', 'bg-couriers') . '</p>';
+        echo '<input type="hidden" name="' . esc_attr($id) . '" id="' . esc_attr($id) . '" value="' . esc_attr(implode(',', $items)) . '">';
+        echo '<p class="description">' . esc_html($desc) . '</p>';
         $sid = esc_js($id);
         echo "<script>jQuery(function($){ $('#bgc-sort-{$sid}').sortable({update:function(){ $('#{$sid}').val($(this).children().map(function(){return $(this).data('m');}).get().join(',')); }}); });</script>";
         echo '</td></tr>';

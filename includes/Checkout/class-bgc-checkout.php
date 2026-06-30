@@ -8,6 +8,7 @@ class BGC_Checkout {
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
+        add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
         // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
         // recalculation via WC's fragment mechanism (server computes the remaining; no DOM parsing).
@@ -87,6 +88,18 @@ class BGC_Checkout {
         $key = (string) $s->get('bgc_method', '') . ':' . (int) $s->get('bgc_site_id', 0) . ':' . (int) $s->get('bgc_office_id', 0);
         foreach ($packages as $i => $pkg) { $packages[$i]['bgc_selection'] = $key; }
         return $packages;
+    }
+
+    /** Order the courier shipping rates at checkout by the configured courier order (General settings). */
+    public function sort_rates($rates) {
+        if (!is_array($rates) || count($rates) < 2) { return $rates; }
+        $pos = array_flip(BGC_Settings::courier_order());
+        $key = static function ($r) use ($pos) {
+            $mid = (is_object($r) && method_exists($r, 'get_method_id')) ? (string) $r->get_method_id() : '';
+            return strpos($mid, 'bgc_') === 0 ? ($pos[substr($mid, 4)] ?? 900) : 1000; // non-bgc rates keep to the end
+        };
+        uasort($rates, static function ($a, $b) use ($key) { return $key($a) <=> $key($b); });
+        return $rates;
     }
 
     /** The courier id of the chosen bgc_<id> shipping method, or null. */

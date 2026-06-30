@@ -272,6 +272,7 @@ JS;
             ['type' => 'select', 'id' => 'bgc_default_courier', 'title' => __('Default courier', 'bg-couriers'),
                 'desc' => __('Which courier is pre-selected at checkout. The default delivery option is the first one in each courier’s “Delivery option order” below.', 'bg-couriers'),
                 'options' => $courier_opts, 'default' => ''],
+            ['type' => 'bgc_sortable', 'id' => 'bgc_courier_order', 'title' => __('Courier order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_general'],
 
             ['type' => 'title', 'id' => 'bgc_sender', 'title' => __('Sender address (for labels)', 'bg-couriers'),
