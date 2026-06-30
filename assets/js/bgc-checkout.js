@@ -175,7 +175,15 @@
     return m ? m[1] : '';
   }
 
+  // Dim the label + price of the shipping methods that aren't selected (you only pay for the chosen one).
+  function dimRates() {
+    $('input[name^="shipping_method"]').each(function () {
+      $('label[for="' + this.id + '"]').toggleClass('bgc-rate-inactive', !this.checked);
+    });
+  }
+
   $(document.body).on('updated_checkout', function () {
+    dimRates();
     if (!$('.bgc-fields').length) return;
     var chosen = chosenCourier();
     $('.bgc-fields').each(function () {
@@ -192,6 +200,8 @@
     if ($(this).hasClass('bgc-tab-na') || this.disabled) { return; } // unavailable for this city
     setMethod($(this).closest('.bgc-fields'), $(this).data('method'));
   });
+
+  $(document.body).on('change', 'input[name^="shipping_method"]', dimRates);
 
   $(document.body).on('input', '.bgc-postcode', function () {
     var $wrap = $(this).closest('.bgc-fields'), code = this.value.trim(); if (code.length < 4) { return; }
