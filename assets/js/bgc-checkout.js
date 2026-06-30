@@ -1,6 +1,13 @@
 (function ($) {
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
   function sel2($el, opts) { return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts)); }
+  // Suppress select2's "results could not be loaded" flash when it aborts an in-flight search on fast typing.
+  function noAbortTransport(params, success, failure) {
+    var req = $.ajax(params);
+    req.then(success);
+    req.fail(function (x, status) { if (status !== 'abort') { failure(); } });
+    return req;
+  }
 
   function courier($wrap) { return $wrap.attr('data-courier') || 'speedy'; }
   function caps($wrap) {
@@ -84,7 +91,7 @@
     sel2($city, {
       width: '100%', allowClear: true, placeholder: (BGC.i18n && BGC.i18n.city_ph) || '', minimumInputLength: 0,
       ajax: {
-        url: BGC.ajax, dataType: 'json', delay: 250,
+        url: BGC.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
         data: function (params) { return { action: 'bgc_search_cities', courier: courier($wrap), term: params.term || '' }; },
         processResults: function (rows) {
           var counts = {};
@@ -115,7 +122,7 @@
     sel2($office, {
       width: '100%', minimumInputLength: 0, placeholder: (BGC.i18n && BGC.i18n.office_ph) || '',
       ajax: {
-        url: BGC.ajax, dataType: 'json', delay: 250,
+        url: BGC.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
         data: function (params) {
           return { action: 'bgc_offices', courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
         },
@@ -134,7 +141,7 @@
     sel2($street, {
       width: '100%', tags: true, allowClear: true, minimumInputLength: 2, placeholder: (BGC.i18n && BGC.i18n.street_ph) || '',
       ajax: {
-        url: BGC.ajax, dataType: 'json', delay: 250,
+        url: BGC.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
         data: function (params) { return { action: 'bgc_streets', courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
         processResults: function (rows) { return { results: rows.map(function (s) { return { id: s.name, text: s.label || s.name }; }) }; }
       },
