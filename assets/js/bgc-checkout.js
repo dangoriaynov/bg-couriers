@@ -59,6 +59,7 @@
     if (m !== 'address') { resetOffice($wrap); }
     showLoader($wrap);
     pushSelection($wrap); // saves method + recalc; loader cleared on updated_checkout
+    if (m !== 'address') { preloadOffices($wrap); }
   }
 
   // Per-city availability: grey out + disable a delivery option the chosen city has none of.
@@ -106,25 +107,50 @@
     });
     $city.on('select2:select', function (e) {
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
-      resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap);
+      resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
     });
     // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
     $city.on('select2:clear', function () {
       $wrap.find('.bgc-postcode').val('');
-      resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap);
+      resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
     });
   }
 
-  // Office / automat (searchable, live per-city, server-limited) ------------
+  // Office / automat — preloaded per city+method, cached client-side until refresh; search is then local.
+  var officeCache = {}; // 'courier:city:type' -> all office rows for that city+type
+  function preloadOffices($wrap) {
+    var city = $wrap.find('.bgc-city').val() || 0, m = method($wrap);
+    if (!city || m === 'address') { return; }
+    var key = courier($wrap) + ':' + city + ':' + m;
+    if (officeCache[key] !== undefined) { return; }
+    $.get(BGC.ajax, { action: 'bgc_offices', courier: courier($wrap), city_id: city, type: m, all: 1 },
+      function (rows) { officeCache[key] = rows || []; });
+  }
+
   function initOffice($wrap) {
     var $office = $wrap.find('.bgc-office');
     if ($office.hasClass('select2-hidden-accessible')) { return; }
+    var hasCity = !!$wrap.find('.bgc-city').val();
+    $office.prop('disabled', !hasCity); // no office search until a city is chosen
     sel2($office, {
-      width: '100%', minimumInputLength: 0, placeholder: (BGC.i18n && BGC.i18n.office_ph) || '',
+      width: '100%', minimumInputLength: 0, placeholder: hasCity ? ((BGC.i18n && BGC.i18n.office_ph) || '') : ((BGC.i18n && BGC.i18n.office_need_city) || ''),
       ajax: {
-        url: BGC.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
+        delay: 0,
+        transport: function (params, success, failure) {
+          var d = params.data, key = d.courier + ':' + d.city_id + ':' + d.type, term = (d.term || '').toLowerCase();
+          function done(rows) {
+            success(term ? rows.filter(function (o) {
+              return ((o.name || '').toLowerCase().indexOf(term) !== -1) || (String(o.office_id).indexOf(term) !== -1) || ((o.address || '').toLowerCase().indexOf(term) !== -1);
+            }) : rows);
+          }
+          if (officeCache[key] !== undefined) { done(officeCache[key]); return { abort: function () {} }; } // local
+          var req = $.get(BGC.ajax, { action: 'bgc_offices', courier: d.courier, city_id: d.city_id, type: d.type, all: 1 });
+          req.done(function (rows) { officeCache[key] = rows || []; done(officeCache[key]); });
+          req.fail(function (x, status) { if (status !== 'abort') { failure(); } });
+          return req;
+        },
         data: function (params) {
-          return { action: 'bgc_offices', courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
+          return { courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
         },
         processResults: function (rows) {
           return { results: rows.map(function (o) { return { id: o.office_id, text: o.name + ' — ' + o.address }; }) };
@@ -209,7 +235,7 @@
       if (rows && rows.length === 1) {
         var $city = $wrap.find('.bgc-city'); var r = rows[0];
         $city.append(new Option(r.name, r.city_id, true, true)).trigger('change');
-        resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap);
+        resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
       }
     });
   });

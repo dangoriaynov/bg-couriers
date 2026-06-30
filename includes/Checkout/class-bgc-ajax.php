@@ -26,7 +26,8 @@ class BGC_Ajax {
         $city = (int) ($_GET['city_id'] ?? 0);
         $type = sanitize_key($_GET['type'] ?? '');
         $term = sanitize_text_field($_GET['term'] ?? '');
-        wp_send_json(self::city_offices($courier, $city, $type, $term, BGC_Settings::dropdown_limit()));
+        $limit = !empty($_GET['all']) ? 100000 : BGC_Settings::dropdown_limit(); // all=1 -> the full city list, for the client cache
+        wp_send_json(self::city_offices($courier, $city, $type, $term, $limit));
     }
 
     /** Which office types a city has (so the checkout can grey out a delivery option the city lacks). */

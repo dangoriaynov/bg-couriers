@@ -201,6 +201,7 @@ class BGC_Checkout {
                 'close'=>__('Close','bg-couriers'),
                 'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),'street_ph'=>__('Type a street…','bg-couriers'),
                 'na_city' => __('Not available in this city','bg-couriers'),
+                'office_need_city' => __('Select a city first','bg-couriers'),
             ],
         ]);
 
