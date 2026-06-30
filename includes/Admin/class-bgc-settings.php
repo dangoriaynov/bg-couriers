@@ -20,6 +20,7 @@ class BGC_Settings {
         add_action('wp_ajax_bgc_validate_creds', [$this, 'ajax_validate']);
         add_action('wp_ajax_bgc_sync_now', [$this, 'ajax_sync']);
         add_action('wp_ajax_bgc_reset_creds', [$this, 'ajax_reset_creds']);
+        add_action('wp_ajax_bgc_save_settings', [$this, 'ajax_save']);
         add_filter('plugin_action_links_' . plugin_basename(BGC_FILE), [$this, 'action_links']);
     }
 
@@ -209,6 +210,23 @@ class BGC_Settings {
         wp_send_json_success(['ok' => true]);
     }
 
+    /** AJAX save of a BG Couriers settings section (no page reload). Mirrors WC's own field save. */
+    public function ajax_save(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do this.', 'bg-couriers')]); }
+        check_ajax_referer('bgc_save', 'bgc_nonce');
+        if (!class_exists('WC_Admin_Settings')) { wp_send_json_error(['msg' => __('WooCommerce not available.', 'bg-couriers')]); }
+        $section = isset($_POST['bgc_section']) ? sanitize_key(wp_unslash($_POST['bgc_section'])) : '';
+        $page = new BGC_WC_Settings();
+        WC_Admin_Settings::save_fields($page->get_settings($section), $_POST); // runs the same sanitize filters as a normal save
+        $courier = array_key_exists($section, BGC_Couriers::all()) ? $section : '';
+        wp_send_json_success([
+            'msg'       => __('Saved', 'bg-couriers'),
+            'courier'   => $courier,
+            'present'   => $courier !== '' ? self::creds_present($courier) : false,
+            'validated' => $courier !== '' && get_option('bgc_' . $courier . '_validated', 'no') === 'yes',
+        ]);
+    }
+
     public function ajax_sync(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgc_admin', 'nonce');
@@ -268,6 +286,7 @@ class BGC_Settings {
     function unlock(){ p.prop('disabled',false).removeClass('bgc-cred-locked').val('').attr('placeholder',''); xbtn.hide(); tint(false); syncV(); p.focus(); }
     if(present){ lock(validated); } else { xbtn.hide(); }
     xbtn.on('click',function(){ unlock(); $.post(ajaxurl,{action:'bgc_reset_creds',nonce:nonce,courier:courier}); });
+    $(document).on('bgc:saved',function(e,d){ if(d&&d.courier===courier){ present=!!d.present; if(present){ lock(!!d.validated); } else { unlock(); xbtn.hide(); } } });
 
     function busy(t){ vbtn.add(sbtn).prop('disabled',true); st.html('<span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>'+t); }
     function err(m){ st.html('<span style="color:#b32d2e;">✗ '+m+'</span>'); }

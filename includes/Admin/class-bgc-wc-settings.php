@@ -102,6 +102,11 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:#fdf5f5; }
         #wpbody .bgc-settings .bgc-cred-x { color:#b32d2e; border-color:#dca7a7 !important; margin-left:8px; font-weight:700; line-height:1.6; }
         #wpbody .bgc-settings input.bgc-cred-locked { background:#f0f0f1; color:#787c82; letter-spacing:2px; }
+        #bgc-toasts { position:fixed; top:46px; right:22px; z-index:100001; display:flex; flex-direction:column; gap:9px; }
+        #bgc-toasts .bgc-toast { padding:12px 18px; border-radius:9px; color:#fff; font-weight:600; font-size:13px; box-shadow:0 6px 18px rgba(0,0,0,.20); opacity:0; transform:translateY(-10px); transition:opacity .25s ease, transform .25s ease; max-width:360px; }
+        #bgc-toasts .bgc-toast.show { opacity:1; transform:none; }
+        #bgc-toasts .bgc-toast-ok { background:#1a7f37; }
+        #bgc-toasts .bgc-toast-err { background:#b32d2e; }
         </style>';
         echo '<div class="bgc-settings">';
         $this->section_nav((string) $current_section);
@@ -117,6 +122,34 @@ class BGC_WC_Settings extends WC_Settings_Page {
             WC_Admin_Settings::output_fields($this->general_fields());
         }
         echo '</div></div>';
+
+        // AJAX "Save changes" — save without a page reload, with a top-right toast (green ok / red error).
+        $save_nonce = esc_js(wp_create_nonce('bgc_save'));
+        $ajaxurl    = esc_js(admin_url('admin-ajax.php'));
+        $sect       = esc_js((string) $current_section);
+        $i_saved    = esc_js(__('Saved', 'bg-couriers'));
+        $i_failed   = esc_js(__('Could not save — please try again.', 'bg-couriers'));
+        echo <<<JS
+<script>
+(function($){
+    var ajaxurl='{$ajaxurl}', nonce='{$save_nonce}', section='{$sect}';
+    function toast(msg,type,ms){ var c=$('#bgc-toasts'); if(!c.length){ c=$('<div id="bgc-toasts"></div>').appendTo('body'); }
+        var t=$('<div class="bgc-toast bgc-toast-'+type+'"></div>').text(msg).appendTo(c);
+        requestAnimationFrame(function(){ t.addClass('show'); });
+        setTimeout(function(){ t.removeClass('show'); setTimeout(function(){ t.remove(); }, 320); }, ms||3000); }
+    var form=$('#mainform'); if(!form.length){ return; }
+    form.on('submit', function(e){
+        e.preventDefault();
+        var save=form.find('button[name="save"],input[name="save"]'); save.prop('disabled',true);
+        var data=form.serialize()+'&action=bgc_save_settings&bgc_nonce='+nonce+'&bgc_section='+encodeURIComponent(section);
+        $.post(ajaxurl,data).done(function(r){
+            if(r&&r.success){ toast((r.data&&r.data.msg)||'{$i_saved}','ok',2500); $(document).trigger('bgc:saved',[r.data||{}]); }
+            else { toast((r&&r.data&&r.data.msg)||'{$i_failed}','err',7000); }
+        }).fail(function(){ toast('{$i_failed}','err',7000); }).always(function(){ save.prop('disabled',false); });
+    });
+})(jQuery);
+</script>
+JS;
     }
 
     private function section_nav(string $current): void {
