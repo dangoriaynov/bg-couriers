@@ -133,7 +133,7 @@
     var hasCity = !!$wrap.find('.bgc-city').val();
     $office.prop('disabled', !hasCity); // no office search until a city is chosen
     sel2($office, {
-      width: '100%', minimumInputLength: 0, placeholder: hasCity ? ((BGC.i18n && BGC.i18n.office_ph) || '') : ((BGC.i18n && BGC.i18n.office_need_city) || ''),
+      width: '100%', allowClear: true, minimumInputLength: 0, placeholder: hasCity ? ((BGC.i18n && BGC.i18n.office_ph) || '') : ((BGC.i18n && BGC.i18n.office_need_city) || ''),
       ajax: {
         delay: 0,
         transport: function (params, success, failure) {
@@ -158,6 +158,7 @@
       }
     });
     $office.on('select2:select', function () { pushSelection($wrap); });
+    $office.on('select2:clear', function () { showLoader($wrap); pushSelection($wrap); }); // clearing resets the saved office
   }
 
   // Street (autocomplete via /location/street; tags:true keeps free-typed streets working).
