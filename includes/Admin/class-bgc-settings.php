@@ -215,6 +215,18 @@ class BGC_Settings {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do this.', 'bg-couriers')]); }
         check_ajax_referer('bgc_save', 'bgc_nonce');
         if (!class_exists('WC_Admin_Settings')) { wp_send_json_error(['msg' => __('WooCommerce not available.', 'bg-couriers')]); }
+        // BGC_WC_Settings skips defining itself when WC's abstract settings page isn't loaded (e.g. admin-ajax) —
+        // load the base, then (re)include the class so we can build + save the section's fields.
+        if (!class_exists('BGC_WC_Settings')) {
+            if (!class_exists('WC_Settings_Page') && function_exists('WC')) {
+                foreach (['/includes/admin/settings/class-wc-settings-page.php', '/includes/admin/abstract-wc-settings-page.php'] as $rel) {
+                    $base = WC()->plugin_path() . $rel;
+                    if (is_readable($base)) { include_once $base; break; }
+                }
+            }
+            if (class_exists('WC_Settings_Page')) { require BGC_PATH . 'includes/Admin/class-bgc-wc-settings.php'; }
+        }
+        if (!class_exists('BGC_WC_Settings')) { wp_send_json_error(['msg' => __('Settings unavailable.', 'bg-couriers')]); }
         $section = isset($_POST['bgc_section']) ? sanitize_key(wp_unslash($_POST['bgc_section'])) : '';
         $page = new BGC_WC_Settings();
         WC_Admin_Settings::save_fields($page->get_settings($section), $_POST); // runs the same sanitize filters as a normal save
