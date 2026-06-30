@@ -32,21 +32,30 @@ A small registry makes couriers pluggable; everything resolves a courier by id.
   registered into the Bulgaria zone via `woocommerce_shipping_methods`. Pricing via `BGC_Pricing` (live
   quote with a configured default-price fallback); method-level free-shipping threshold.
 - **Checkout** (`includes/Checkout/`) — `render_fields` emits a courier-aware `.bgc-fields[data-courier]`
-  block after each shipping rate (tabs office/address/automat; searchable city/office/street via selectWoo
-  + AJAX `bgc_search_cities`/`bgc_offices`/`bgc_streets`, server-limited to `bgc_dropdown_limit`). The JS
-  shows only the **chosen** courier's block. Redundant standard WC address fields are removed
-  (`woocommerce_checkout_fields` unset); the order address is filled from the plugin selection in
-  `persist()`. Free-shipping progress notice via `woocommerce_update_order_review_fragments`.
-- **Admin** (`includes/Admin/`) — settings (one section per courier: creds + Validate/Sync, paper size,
-  dynamic pricing, per-method enable/price/order, free-shipping threshold), order panel (waybill +
-  generate/print/track at the top of the order), orders-list column with a copy-waybill button.
+  block after each shipping rate (tabs office/address/**APS**; searchable city/office/street via selectWoo).
+  The JS shows only the **chosen** courier's block. Per-city availability via `bgc_city_avail` **greys +
+  disables** an option the city lacks (auto-switches off it). The **office/APS dropdown is disabled until a
+  city is chosen**, then offices are **preloaded per courier+city+type and cached client-side**
+  (`bgc_offices&all=1`, local search until refresh); city/office/street all have a clear ✕, street resets
+  on city change. The **unselected courier's price is dimmed**. Redundant standard WC address fields are
+  removed (`woocommerce_checkout_fields` unset, `bgc_hide_country` also hides Country); order address filled
+  in `persist()`. Free-shipping notice (`free_notice_html`, follows the **chosen** courier via
+  `chosen_courier()`) via `woocommerce_update_order_review_fragments`. WC's blockUI is the only recalc loader.
+- **Admin** (`includes/Admin/`) — settings (one section per courier): Enable is a **top toggle**; courier +
+  per-method tabs are rounded pills tinted **green=on/red=off**; per-method enable lives on its sub-tab.
+  Credentials show a **validated state** (`bgc_<courier>_validated`: green / locked-masked-password + red ✕
+  to re-edit). **AJAX Save** (`ajax_save`) with a top-right **toast** — no reload. General has **Default
+  courier**, **Courier order** (drag-sortable → `BGC_Checkout::sort_rates`), Hide-country. Free shipping
+  auto-enables on a positive threshold. Order panel (waybill + generate/print/track), orders-list column.
 - **Cache / pricing** (`includes/Cache/`) — `bgc_cities` / `bgc_offices` tables (`BGC_Schema`),
   `BGC_Nomenclature` repo. `BGC_Sync` runs for **all registered+enabled couriers**: weekly full
   nomenclature sync (mark-and-sweep; lifts memory/time — Econt's getCities is ~130MB) + a **daily
   reference-price refresh** (`seed_rates`) that quotes a baseline per courier+method — address from
   the first alphabetical city, office/automat from the first city that has that office type
-  (`first_office`) — cached in `BGC_Rates`. At checkout, before the customer picks a destination,
-  `BGC_Pricing` shows this reference (live → cached reference → configured default fallback).
+  (`first_office`) — cached in `BGC_Rates`. At checkout `BGC_Pricing::resolve_office` quotes a
+  representative office (the chosen city, or the first such office anywhere) at the **real cart weight**;
+  the fixed-weight `BGC_Rates` reference is only the API-down fallback (live → cached reference →
+  configured default). Couriers' `parse_price` returns the **net** price; WC adds VAT once (no double-VAT).
   Offices carry a `code` column (Econt/Pigeon address offices by string code).
 - **Settings/config** — `BGC_Settings::courier_config(id)` reads `bgc_<id>_*` options (password encrypted
   via `BGC_Encryption`). `bgc_dropdown_limit` is a single global setting.
