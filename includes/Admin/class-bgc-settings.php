@@ -235,7 +235,7 @@ class BGC_Settings {
             'msg'       => __('Saved', 'bg-couriers'),
             'courier'   => $courier,
             'present'   => $courier !== '' ? self::creds_present($courier) : false,
-            'validated' => $courier !== '' && get_option('bgc_' . $courier . '_validated', 'no') === 'yes',
+            'validated' => $courier !== '' && get_option('bgc_' . $courier . '_validated', 'yes') === 'yes',
         ]);
     }
 
@@ -253,7 +253,10 @@ class BGC_Settings {
     public function render_actions($field): void {
         $courier = (!empty($field['id']) && preg_match('/^bgc_([a-z0-9]+)_actions$/', (string) $field['id'], $m)) ? $m[1] : 'speedy';
         $present   = self::creds_present($courier);
-        $validated = $present && get_option('bgc_' . $courier . '_validated', 'no') === 'yes';
+        // Default 'yes' for already-configured couriers: creds saved before this flag existed are assumed
+        // valid (green) until something explicitly invalidates them (a password change, the × reset, or a
+        // failed Validate set the flag to 'no').
+        $validated = $present && get_option('bgc_' . $courier . '_validated', 'yes') === 'yes';
         $nonce = esc_js(wp_create_nonce('bgc_admin'));
         $ajax  = esc_js(admin_url('admin-ajax.php'));
 

@@ -39,6 +39,12 @@
     if ($o.hasClass('select2-hidden-accessible')) { $o.val(null).trigger('change.select2'); }
     $o.empty();
   }
+  function resetStreet($wrap) {
+    var $s = $wrap.find('.bgc-street');
+    if ($s.hasClass('select2-hidden-accessible')) { $s.val(null).trigger('change.select2'); }
+    $s.empty().append(new Option('', '', false, false));
+    $wrap.find('.bgc-street-no').val('');
+  }
 
   function setMethod($wrap, m) {
     $wrap.attr('data-method', m);
@@ -93,12 +99,12 @@
     });
     $city.on('select2:select', function (e) {
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
-      resetOffice($wrap); showLoader($wrap); pushSelection($wrap);
+      resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap);
     });
     // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
     $city.on('select2:clear', function () {
       $wrap.find('.bgc-postcode').val('');
-      resetOffice($wrap); showLoader($wrap); pushSelection($wrap);
+      resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap);
     });
   }
 
@@ -126,7 +132,7 @@
     var $street = $wrap.find('.bgc-street');
     if (!$street.length || $street[0].tagName !== 'SELECT' || $street.hasClass('select2-hidden-accessible')) { return; }
     sel2($street, {
-      width: '100%', tags: true, minimumInputLength: 2, placeholder: (BGC.i18n && BGC.i18n.street_ph) || '',
+      width: '100%', tags: true, allowClear: true, minimumInputLength: 2, placeholder: (BGC.i18n && BGC.i18n.street_ph) || '',
       ajax: {
         url: BGC.ajax, dataType: 'json', delay: 250,
         data: function (params) { return { action: 'bgc_streets', courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
@@ -150,7 +156,7 @@
       apartment: $wrap.find('.bgc-apartment').val() || '', address_note: $wrap.find('.bgc-note').val() || ''
     };
   }
-  function pushSelection($wrap) { $.post(BGC.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
+  function pushSelection($wrap) { showLoader($wrap); $.post(BGC.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
   function saveSelection($wrap) { $.post(BGC.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
 
   // Wiring ------------------------------------------------------------------
@@ -186,7 +192,7 @@
       if (rows && rows.length === 1) {
         var $city = $wrap.find('.bgc-city'); var r = rows[0];
         $city.append(new Option(r.name, r.city_id, true, true)).trigger('change');
-        resetOffice($wrap); showLoader($wrap); pushSelection($wrap);
+        resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap);
       }
     });
   });
