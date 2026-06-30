@@ -19,6 +19,7 @@ class BGC_Settings {
         }
         add_action('wp_ajax_bgc_validate_creds', [$this, 'ajax_validate']);
         add_action('wp_ajax_bgc_sync_now', [$this, 'ajax_sync']);
+        add_action('wp_ajax_bgc_reset_creds', [$this, 'ajax_reset_creds']);
         add_filter('plugin_action_links_' . plugin_basename(BGC_FILE), [$this, 'action_links']);
     }
 
@@ -181,6 +182,8 @@ class BGC_Settings {
         if ($raw_value === get_option($key, '')) {
             return $raw_value;
         }
+        // A genuinely new password -> the credentials are no longer validated until re-checked.
+        if (preg_match('/^bgc_([a-z0-9]+)_password$/', $key, $mm)) { update_option('bgc_' . $mm[1] . '_validated', 'no'); }
         return BGC_Encryption::encrypt($raw_value);
     }
 
@@ -192,7 +195,18 @@ class BGC_Settings {
         $courier = sanitize_key($_POST['courier'] ?? 'speedy');
         if (!self::courier_config($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
         $c = BGC_Couriers::get($courier);
-        wp_send_json_success(['ok' => (bool) ($c && $c->check_credentials())]);
+        $ok = (bool) ($c && $c->check_credentials());
+        update_option('bgc_' . $courier . '_validated', $ok ? 'yes' : 'no'); // drives the green/red credentials tint
+        wp_send_json_success(['ok' => $ok]);
+    }
+
+    /** The red × by the password: marks the credentials as needing re-validation (so the tint goes red). */
+    public function ajax_reset_creds(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        check_ajax_referer('bgc_admin', 'nonce');
+        $courier = sanitize_key($_POST['courier'] ?? 'speedy');
+        update_option('bgc_' . $courier . '_validated', 'no');
+        wp_send_json_success(['ok' => true]);
     }
 
     public function ajax_sync(): void {
@@ -205,19 +219,24 @@ class BGC_Settings {
         wp_send_json_success(BGC_Sync::run($c));
     }
 
-    /** Custom WC settings field: Validate / Sync buttons (only when creds present). */
+    /** Custom WC settings field: Validate / Sync buttons + the green/red credentials state (locked password + red ×). */
     public function render_actions($field): void {
         $courier = (!empty($field['id']) && preg_match('/^bgc_([a-z0-9]+)_actions$/', (string) $field['id'], $m)) ? $m[1] : 'speedy';
-        echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html__('API check', 'bg-couriers') . '</th><td class="forminp">';
-        if (!self::creds_present($courier)) {
-            echo '<p class="description">' . esc_html__('Enter and save your API username and password, then Validate / Sync appear here.', 'bg-couriers') . '</p></td></tr>';
-            return;
-        }
+        $present   = self::creds_present($courier);
+        $validated = $present && get_option('bgc_' . $courier . '_validated', 'no') === 'yes';
         $nonce = esc_js(wp_create_nonce('bgc_admin'));
         $ajax  = esc_js(admin_url('admin-ajax.php'));
-        echo '<button type="button" class="button" id="bgc-validate">' . esc_html__('Validate credentials', 'bg-couriers') . '</button> ';
-        echo '<button type="button" class="button" id="bgc-sync">' . esc_html__('Sync now', 'bg-couriers') . '</button> ';
-        echo '<span id="bgc-status" style="margin-left:10px;vertical-align:middle;"></span>';
+
+        echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html__('API check', 'bg-couriers') . '</th><td class="forminp">';
+        if ($present) {
+            echo '<button type="button" class="button" id="bgc-validate">' . esc_html__('Validate credentials', 'bg-couriers') . '</button> ';
+            echo '<button type="button" class="button" id="bgc-sync">' . esc_html__('Sync now', 'bg-couriers') . '</button> ';
+            echo '<span id="bgc-status" style="margin-left:10px;vertical-align:middle;"></span>';
+        } else {
+            echo '<p class="description">' . esc_html__('Enter and save your API username and password, then Validate / Sync appear here.', 'bg-couriers') . '</p>';
+        }
+        echo '</td></tr>';
+
         $t = [
             'validating' => esc_js(__('Validating…', 'bg-couriers')),
             'syncing'    => esc_js(__('Syncing… this can take a moment', 'bg-couriers')),
@@ -227,30 +246,45 @@ class BGC_Settings {
             'offices'    => esc_js(__('offices', 'bg-couriers')),
             'rates'      => esc_js(__('rates', 'bg-couriers')),
             'fail'       => esc_js(__('Request failed', 'bg-couriers')),
+            'change'     => esc_js(__('Change credentials', 'bg-couriers')),
+            'savefirst'  => esc_js(__('Save your changes first, then validate.', 'bg-couriers')),
         ];
+        $present_js   = $present ? 'true' : 'false';
+        $validated_js = $validated ? 'true' : 'false';
+
         echo <<<JS
 <script>
 (function($){
-    var ajaxurl='{$ajax}', nonce='{$nonce}', courier='{$courier}';
-    function busy(t){ $('#bgc-validate,#bgc-sync').prop('disabled',true);
-        $('#bgc-status').html('<span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>'+t); }
-    function done(){ $('#bgc-validate,#bgc-sync').prop('disabled',false); }
-    function err(m){ $('#bgc-status').html('<span style="color:#b32d2e;">✗ '+m+'</span>'); }
-    function ok(m){ $('#bgc-status').html('<span style="color:#1a7f37;">✓ '+m+'</span>'); }
-    $('#bgc-validate').on('click',function(){ busy('{$t['validating']}');
+    var ajaxurl='{$ajax}', nonce='{$nonce}', courier='{$courier}', present={$present_js}, validated={$validated_js};
+    var u=$('#bgc_'+courier+'_username'), p=$('#bgc_'+courier+'_password');
+    if(!p.length){ return; }
+    var vbtn=$('#bgc-validate'), sbtn=$('#bgc-sync'), st=$('#bgc-status');
+    var rows=u.closest('tr').add(p.closest('tr')).add(vbtn.closest('tr'));
+    var xbtn=$('<button type="button" class="button bgc-cred-x" title="{$t['change']}">✕</button>');
+    p.after(xbtn);
+    function syncV(){ vbtn.prop('disabled', present ? (!p.prop('disabled')) : true).attr('title', p.prop('disabled')?'':'{$t['savefirst']}'); }
+    function tint(ok){ rows.toggleClass('bgc-creds-ok',ok).toggleClass('bgc-creds-edit',!ok); }
+    function lock(green){ p.prop('disabled',true).addClass('bgc-cred-locked').val('').attr('placeholder','••••••••'); xbtn.show(); tint(green); syncV(); }
+    function unlock(){ p.prop('disabled',false).removeClass('bgc-cred-locked').val('').attr('placeholder',''); xbtn.hide(); tint(false); syncV(); p.focus(); }
+    if(present){ lock(validated); } else { xbtn.hide(); }
+    xbtn.on('click',function(){ unlock(); $.post(ajaxurl,{action:'bgc_reset_creds',nonce:nonce,courier:courier}); });
+
+    function busy(t){ vbtn.add(sbtn).prop('disabled',true); st.html('<span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>'+t); }
+    function err(m){ st.html('<span style="color:#b32d2e;">✗ '+m+'</span>'); }
+    function good(m){ st.html('<span style="color:#1a7f37;">✓ '+m+'</span>'); }
+    vbtn.on('click',function(){ if(!p.prop('disabled')){ err('{$t['savefirst']}'); return; } busy('{$t['validating']}');
         $.post(ajaxurl,{action:'bgc_validate_creds',nonce:nonce,courier:courier}).done(function(r){
-            if(r&&r.success){ r.data&&r.data.ok ? ok('{$t['valid']}') : err('{$t['invalid']}'); }
-            else { err((r&&r.data&&r.data.msg)||'{$t['invalid']}'); }
-        }).fail(function(){ err('{$t['fail']}'); }).always(done); });
-    $('#bgc-sync').on('click',function(){ busy('{$t['syncing']}');
+            if(r&&r.success&&r.data&&r.data.ok){ good('{$t['valid']}'); lock(true); }
+            else { err((r&&r.data&&r.data.msg)||'{$t['invalid']}'); tint(false); }
+        }).fail(function(){ err('{$t['fail']}'); }).always(function(){ sbtn.prop('disabled',false); syncV(); }); });
+    sbtn.on('click',function(){ busy('{$t['syncing']}');
         $.post(ajaxurl,{action:'bgc_sync_now',nonce:nonce,courier:courier}).done(function(r){
-            if(r&&r.success){ var d=r.data||{}; ok((d.cities||0)+' {$t['cities']}, '+(d.offices||0)+' {$t['offices']}, '+(d.rates||0)+' {$t['rates']}'); }
+            if(r&&r.success){ var d=r.data||{}; good((d.cities||0)+' {$t['cities']}, '+(d.offices||0)+' {$t['offices']}, '+(d.rates||0)+' {$t['rates']}'); }
             else { err((r&&r.data&&r.data.msg)||'{$t['fail']}'); }
-        }).fail(function(){ err('{$t['fail']}'); }).always(done); });
+        }).fail(function(){ err('{$t['fail']}'); }).always(function(){ sbtn.prop('disabled',false); syncV(); }); });
 })(jQuery);
 </script>
 JS;
-        echo '</td></tr>';
     }
 
     public function action_links($links): array {

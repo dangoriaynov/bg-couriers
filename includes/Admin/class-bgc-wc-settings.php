@@ -97,6 +97,11 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider { background:#46b450; }
         #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider:before { transform:translateX(20px); }
         #wpbody .bgc-settings .bgc-enable-text { font-size:13px; color:#1d2327; }
+        /* Credentials state: green when validated, red while editing/unverified; locked masked password + red change-× */
+        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td { background:#f1faf3; }
+        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:#fdf5f5; }
+        #wpbody .bgc-settings .bgc-cred-x { color:#b32d2e; border-color:#dca7a7 !important; margin-left:8px; font-weight:700; line-height:1.6; }
+        #wpbody .bgc-settings input.bgc-cred-locked { background:#f0f0f1; color:#787c82; letter-spacing:2px; }
         </style>';
         echo '<div class="bgc-settings">';
         $this->section_nav((string) $current_section);
