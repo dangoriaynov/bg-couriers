@@ -95,6 +95,11 @@
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
       resetOffice($wrap); showLoader($wrap); pushSelection($wrap);
     });
+    // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
+    $city.on('select2:clear', function () {
+      $wrap.find('.bgc-postcode').val('');
+      resetOffice($wrap); showLoader($wrap); pushSelection($wrap);
+    });
   }
 
   // Office / automat (searchable, live per-city, server-limited) ------------
