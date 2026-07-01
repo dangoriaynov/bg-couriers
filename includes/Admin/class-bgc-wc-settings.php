@@ -328,6 +328,13 @@ JS;
     }
 
     private function econt_courier_fields(): array {
+        $cd_opts = ['' => __('— none (COD off) —', 'bg-couriers')];
+        if (BGC_Settings::creds_present('econt')) {
+            $econt = BGC_Couriers::get('econt');
+            if ($econt && method_exists($econt, 'cd_pay_options')) {
+                foreach ($econt->cd_pay_options() as $num => $lbl) { $cd_opts[$num] = $lbl; }
+            }
+        }
         return [
             ['type' => 'title', 'id' => 'bgc_econt', 'title' => ''],
             ['type' => 'checkbox', 'id' => 'bgc_econt_enabled', 'title' => __('Enable Econt', 'bg-couriers'), 'default' => 'no'],
@@ -338,6 +345,11 @@ JS;
             ['type' => 'select', 'id' => 'bgc_econt_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
                 'default' => 'A6'],
+            ['type' => 'checkbox', 'id' => 'bgc_econt_cod_enabled', 'title' => __('Cash on delivery (наложен платеж)', 'bg-couriers'),
+                'desc' => __('Attach наложен платеж for the full order total + an item packing list (name, qty, weight, price) to every Econt label, paid out via the agreement below. Enable only if you ship cash-on-delivery.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'select', 'id' => 'bgc_econt_cd_num', 'title' => __('CD pay-out agreement', 'bg-couriers'),
+                'desc' => __('The наложен платеж agreement the money is paid out with (loaded from your Econt profile — e.g. postal money transfer / bank).', 'bg-couriers'),
+                'options' => $cd_opts, 'default' => ''],
             ['type' => 'checkbox', 'id' => 'bgc_econt_dynamic_pricing',
                 'title' => __('Use dynamic pricing', 'bg-couriers'),
                 'desc' => __('Calculate shipping cost live via the Econt API. When off, the per-method default prices below are used.', 'bg-couriers'),

@@ -104,6 +104,26 @@ class BGC_Econt extends BGC_Abstract_Courier {
         return $sender;
     }
 
+    /** CD (наложен платеж) pay-out agreements from the client profile — `num` => human label. Cached. */
+    public function cd_pay_options(): array {
+        $cached = get_transient('bgc_econt_cd_options');
+        if (is_array($cached)) { return $cached; }
+        $out = [];
+        try {
+            $resp = $this->post_json($this->base . '/Profile/ProfileService.getClientProfiles.json', []);
+            foreach ($resp['profiles'][0]['cdPayOptions'] ?? [] as $o) {
+                $num = (string) ($o['num'] ?? '');
+                if ($num === '') { continue; }
+                $desc = !empty($o['moneyTransfer'])
+                    ? __('postal money transfer', 'bg-couriers') . (!empty($o['officeCode']) ? ' (office ' . $o['officeCode'] . ')' : '')
+                    : (!empty($o['IBAN']) ? 'IBAN ' . $o['IBAN'] : (string) ($o['method'] ?? ''));
+                $out[$num] = $num . ' — ' . $desc;
+            }
+            set_transient('bgc_econt_cd_options', $out, HOUR_IN_SECONDS);
+        } catch (\Exception $e) { /* leave empty on API failure */ }
+        return $out;
+    }
+
     /**
      * Resolve the Econt office string code (e.g. "1000") from a numeric office_id.
      * Uses BGC_Nomenclature::office_by_id which returns a row with a 'code' key
@@ -252,7 +272,39 @@ class BGC_Econt extends BGC_Abstract_Courier {
             ];
         }
 
+        // Наложен платеж (COD) + packing list — only when enabled in the Econt settings.
+        if (get_option('bgc_econt_cod_enabled', 'no') === 'yes') {
+            $label['services'] = [
+                'cdAmount'             => round((float) $order->get_total(), 2),
+                'cdType'               => 'get', // collect from the receiver
+                'cdCurrency'           => $order->get_currency(),
+                'cdPayOptionsTemplate' => (string) get_option('bgc_econt_cd_num', ''),
+            ];
+            $label['packingListType'] = 'digital';
+            $label['packingList']     = self::packing_list($order);
+        }
+
         return ['mode' => 'create', 'label' => $label];
+    }
+
+    /** Order line items as Econt PackingListElement[] — seq #, name, weight (kg), qty, price. */
+    private static function packing_list(\WC_Order $order): array {
+        $out = []; $i = 0;
+        foreach ($order->get_items() as $item) {
+            $i++;
+            $product = method_exists($item, 'get_product') ? $item->get_product() : null;
+            $weight  = ($product && $product->get_weight() !== '') ? (float) wc_get_weight((float) $product->get_weight(), 'kg') : 0.0;
+            $qty     = max(1, (int) $item->get_quantity());
+            $sku     = $product ? (string) $product->get_sku() : '';
+            $out[] = [
+                'inventoryNum' => $sku !== '' ? $sku : (string) $i,
+                'description'  => (string) $item->get_name(),
+                'weight'       => round($weight * $qty, 3),
+                'count'        => $qty,
+                'price'        => round((float) $item->get_total(), 2),
+            ];
+        }
+        return $out;
     }
 
     /**
