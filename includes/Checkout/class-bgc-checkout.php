@@ -9,6 +9,7 @@ class BGC_Checkout {
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
+        add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
         // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
         // recalculation via WC's fragment mechanism (server computes the remaining; no DOM parsing).
@@ -31,6 +32,35 @@ class BGC_Checkout {
 
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
     public function free_notice_fragment($fragments) { $fragments['.bgc-free-notice'] = self::free_notice_html(); return $fragments; }
+
+    /**
+     * Shipping-cost estimate on the cart page (per enabled courier + delivery option), so the customer
+     * sees prices before checkout. No-API (cached reference / configured default) — the exact, address-
+     * specific price is computed at checkout. Re-renders with the cart totals (WooCommerce refreshes them).
+     */
+    public function cart_estimate(): void {
+        if (get_option('bgc_cart_estimate_enabled', 'no') !== 'yes') { return; }
+        if (!function_exists('WC') || !WC()->cart) { return; }
+        $labels = ['office' => __('office', 'bg-couriers'), 'address' => __('address', 'bg-couriers'), 'automat' => __('APS', 'bg-couriers')];
+        $names  = BGC_Couriers::all();
+        $rows   = [];
+        foreach (BGC_Settings::courier_order() as $cid) {
+            if (BGC_Settings::courier_config($cid) === null) { continue; } // enabled + configured only
+            $parts = [];
+            foreach (BGC_Settings::enabled_methods($cid) as $m) {
+                $est = BGC_Pricing::estimate($cid, $m);
+                if ($est === null) { continue; }
+                $parts[] = esc_html($labels[$m] ?? $m) . ' ' . wp_kses_post(wc_price($est));
+            }
+            if ($parts) {
+                $rows[] = '<div class="bgc-cart-est-row"><strong>' . esc_html($names[$cid] ?? ucfirst($cid)) . '</strong> — ' . implode(' · ', $parts) . '</div>';
+            }
+        }
+        if (!$rows) { return; }
+        echo '<div class="bgc-cart-estimate"><div class="bgc-cart-est-title">' . esc_html__('Estimated shipping (exact price at checkout)', 'bg-couriers') . '</div>' . implode('', $rows) . '</div>';
+        echo '<style>.bgc-cart-estimate{margin-top:12px;padding:12px 14px;border:1px solid #e2e6ea;border-radius:10px;background:#fafbfc;font-size:.92em;}'
+            . '.bgc-cart-est-title{font-weight:600;margin-bottom:6px;}.bgc-cart-est-row{margin:3px 0;color:#555;}</style>';
+    }
 
     /** Amount still needed to reach the Speedy free-shipping threshold (0 if disabled or already met). */
     public static function free_remaining(float $subtotal, array $cfg): float {

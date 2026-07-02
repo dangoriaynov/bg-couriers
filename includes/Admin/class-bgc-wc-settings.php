@@ -266,6 +266,8 @@ JS;
                 'css' => 'min-width:400px;height:90px;', 'default' => ''],
             ['type' => 'checkbox', 'id' => 'bgc_hide_country', 'title' => __('Hide the country field', 'bg-couriers'),
                 'desc' => __('Hide the Country / Region selector at checkout. Deliveries are Bulgaria-only, so it is fixed to Bulgaria.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'checkbox', 'id' => 'bgc_cart_estimate_enabled', 'title' => __('Shipping estimate on the cart', 'bg-couriers'),
+                'desc' => __('Show an estimated shipping price per courier + delivery option on the cart page. The exact, address-specific price is still calculated at checkout.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'number', 'id' => 'bgc_dropdown_limit', 'title' => __('Checkout dropdown results', 'bg-couriers'),
                 'desc' => __('How many city / office results to show in checkout dropdowns (search shows the same max). Default 5.', 'bg-couriers'),
                 'default' => 5, 'custom_attributes' => ['min' => '1', 'step' => '1']],

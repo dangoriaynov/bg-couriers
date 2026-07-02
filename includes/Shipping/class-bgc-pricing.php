@@ -38,4 +38,15 @@ class BGC_Pricing {
         $amount = $mc['price'] > 0 ? $mc['price'] : 6.99;
         return new BGC_Quote(round($amount, 2), 0.0, $store, 'flat');
     }
+
+    /**
+     * A no-API price estimate for a courier+method (the cart-page estimate): the cached daily reference,
+     * else the configured default price, else null (no estimate available). Store currency, net.
+     */
+    public static function estimate(string $courier, string $method): ?float {
+        $cached = BGC_Rates::get($courier, $method);
+        if ($cached !== null) { return (float) $cached; }
+        $mc = BGC_Settings::method_config($courier, $method);
+        return $mc['price'] > 0 ? (float) $mc['price'] : null;
+    }
 }
