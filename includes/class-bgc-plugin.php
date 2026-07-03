@@ -16,6 +16,9 @@ class BGC_Plugin {
         BGC_Couriers::register('pigeon', __('Pigeon Express', 'bg-couriers'), static function () {
             return new BGC_Pigeon(array_merge(BGC_Settings::courier_config('pigeon') ?: [], ['base' => get_option('bgc_pigeon_base_url', '')]));
         });
+        BGC_Couriers::register('sameday', __('Sameday', 'bg-couriers'), static function () {
+            return new BGC_Sameday(BGC_Settings::courier_config('sameday') ?: []);
+        });
         BGC_Couriers::boot();
         add_filter('cron_schedules', function ($s) {
             $s['weekly'] = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
