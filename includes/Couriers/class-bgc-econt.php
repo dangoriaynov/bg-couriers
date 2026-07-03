@@ -280,8 +280,12 @@ class BGC_Econt extends BGC_Abstract_Courier {
                 'cdCurrency'           => $order->get_currency(),
                 'cdPayOptionsTemplate' => (string) get_option('bgc_econt_cd_num', ''),
             ];
-            $label['packingListType'] = 'digital';
-            $label['packingList']     = self::packing_list($order);
+            // Who pays the Econt delivery fee (за чий рахунок): the sender/merchant, billed to their
+            // Econt account ('credit'). The customer's COD (goods + shipping) is returned to the
+            // merchant in full via пощенски паричен превод (the cdPayOptionsTemplate agreement above).
+            $label['paymentSenderMethod'] = 'credit';
+            $label['packingListType']     = 'digital';
+            $label['packingList']         = self::packing_list($order);
         }
 
         return ['mode' => 'create', 'label' => $label];
