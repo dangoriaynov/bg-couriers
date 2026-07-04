@@ -104,4 +104,84 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $this->assertArrayHasKey('senderAgent', $body['label']);
         $this->assertSame('КОМПАНИЯ АД', $body['label']['senderAgent']['name']);
     }
+
+    /**
+     * COD enabled: the label must carry наложен платеж via the postal-money-transfer agreement (ППП),
+     * the delivery-fee payer (за чий рахунок = sender, on account), and the itemised packing list
+     * (seq / name / weight kg / qty / price). This is the money-critical path.
+     */
+    public function test_cod_enabled_payload_has_ppp_who_pays_and_packing_list(): void {
+        if (!function_exists('wc_create_order') || !class_exists('WC_Product_Simple')) {
+            $this->markTestSkipped('WC not loaded');
+        }
+        update_option('woocommerce_weight_unit', 'kg');
+        update_option('bgc_econt_cod_enabled', 'yes');
+        update_option('bgc_econt_cd_num', 'CD139879'); // the moneyTransfer agreement (пощенски паричен превод)
+
+        $product = new WC_Product_Simple();
+        $product->set_name('Тест продукт');
+        $product->set_regular_price('10.00');
+        $product->set_weight('0.5');
+        $product->set_sku('SKU-1');
+        $product->save();
+
+        $order = wc_create_order();
+        $order->set_billing_first_name('Мария');
+        $order->set_billing_last_name('Иванова');
+        $order->set_billing_phone('0888000001');
+        $order->set_currency('EUR');
+        $order->add_product($product, 2);
+        $order->update_meta_data('_bgc_courier', 'econt');
+        $order->update_meta_data('_bgc_method', 'office');
+        $order->update_meta_data('_bgc_office_id', 100);
+        $order->calculate_totals();
+        $order->save();
+
+        $sender = [
+            'client'  => ['name' => 'ЗЕЛЕНИ ООД', 'phones' => ['0700123456'], 'juridicalEntity' => true, 'molName' => 'Иван'],
+            'address' => ['city' => ['id' => 41], 'street' => 'бул. Витоша', 'num' => '1', 'other' => ''],
+        ];
+
+        $label = $this->build($order, $sender, '1009')['label'];
+
+        // наложен платеж via the ППП agreement
+        $this->assertSame('CD139879', $label['services']['cdPayOptionsTemplate']);
+        $this->assertSame('get', $label['services']['cdType']);
+        $this->assertSame('EUR', $label['services']['cdCurrency']);
+        $this->assertEqualsWithDelta((float) $order->get_total(), (float) $label['services']['cdAmount'], 0.001);
+        // за чий рахунок — the sender pays the delivery on account
+        $this->assertSame('credit', $label['paymentSenderMethod']);
+        // packing list: seq / name / weight (kg) / qty / price
+        $this->assertSame('digital', $label['packingListType']);
+        $this->assertNotEmpty($label['packingList']);
+        $item = $label['packingList'][0];
+        $this->assertSame('SKU-1', $item['inventoryNum']);
+        $this->assertSame('Тест продукт', $item['description']);
+        $this->assertSame(2, $item['count']);
+        $this->assertEqualsWithDelta(1.0, (float) $item['weight'], 0.001);   // 0.5 kg × 2
+        $this->assertEqualsWithDelta(20.0, (float) $item['price'], 0.01);    // 10.00 × 2
+
+        update_option('bgc_econt_cod_enabled', 'no');
+        update_option('bgc_econt_cd_num', '');
+    }
+
+    /** COD disabled: no наложен платеж / packing list / payment-sender leaks onto the label. */
+    public function test_cod_disabled_payload_has_no_cod_fields(): void {
+        if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
+        update_option('bgc_econt_cod_enabled', 'no');
+
+        $order = wc_create_order();
+        $order->set_billing_first_name('Иван');
+        $order->set_billing_last_name('Петров');
+        $order->update_meta_data('_bgc_courier', 'econt');
+        $order->update_meta_data('_bgc_method', 'office');
+        $order->save();
+
+        $sender = ['client' => ['name' => 'X', 'phones' => ['0700123456']], 'address' => ['city' => ['id' => 41], 'street' => 's', 'num' => '1']];
+        $label = $this->build($order, $sender, '1009')['label'];
+
+        $this->assertArrayNotHasKey('services', $label);
+        $this->assertArrayNotHasKey('packingList', $label);
+        $this->assertArrayNotHasKey('paymentSenderMethod', $label);
+    }
 }
