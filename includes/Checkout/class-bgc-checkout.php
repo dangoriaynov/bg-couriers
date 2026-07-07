@@ -224,6 +224,12 @@ class BGC_Checkout {
             'nonce' => wp_create_nonce('bgc_checkout'),
             'currency' => get_woocommerce_currency(),
             'emergency' => BGC_Settings::emergency(),
+            'boxnow' => [
+                'widget'    => 'https://map.boxnow.bg/iframe.html', // BoxNow map widget (has built-in GPS)
+                'partnerId' => (string) get_option('bgc_boxnow_partner_id', ''),
+                'country'   => 'bg',
+                'gps'       => 'yes',
+            ],
             'i18n'  => [
                 'address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To APS','bg-couriers'),
                 'office_label'=>__('Office','bg-couriers'),'automat_label'=>__('APS (locker)','bg-couriers'),
@@ -232,6 +238,8 @@ class BGC_Checkout {
                 'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),'street_ph'=>__('Type a street…','bg-couriers'),
                 'na_city' => __('Not available in this city','bg-couriers'),
                 'office_need_city' => __('Select a city first','bg-couriers'),
+                'boxnow_pick' => __('Choose a BOX NOW locker','bg-couriers'),
+                'boxnow_change' => __('Change locker','bg-couriers'),
             ],
         ]);
 
@@ -252,6 +260,7 @@ class BGC_Checkout {
         if (strpos((string) $method->get_method_id(), 'bgc_') !== 0) { return; }
         $courier = substr((string) $method->get_method_id(), 4); // 'bgc_speedy' -> 'speedy'
         if (!BGC_Couriers::get($courier)) { return; }
+        if ($courier === 'boxnow') { $this->render_boxnow_fields(WC()->session); return; } // locker chosen on the map widget
         // Stateful: re-render the session selection so update_checkout recalcs don't wipe the fields.
         $s = WC()->session;
         $sel_method = $s ? (string) $s->get('bgc_method', '') : '';
@@ -315,5 +324,23 @@ class BGC_Checkout {
            . '</div>'
            . '</div>'
            . '</div>';
+    }
+
+    /** BOX NOW checkout: a locker chosen on the BoxNow map widget (no city/office dropdowns). */
+    private function render_boxnow_fields($s): void {
+        $locker = $s ? (int) $s->get('bgc_office_id', 0) : 0;
+        $name   = $s ? (string) $s->get('bgc_boxnow_name', '') : '';
+        $addr   = $s ? (string) $s->get('bgc_boxnow_addr', '') : '';
+        $has    = $locker > 0;
+        echo '<div class="bgc-fields bgc-boxnow" data-courier="boxnow" data-method="automat" data-methods="automat" data-order="automat">'
+           . '<div class="bgc-loader" aria-hidden="true"><span class="bgc-spinner"></span></div>'
+           . '<div class="bgc-panel">'
+           . '<button type="button" class="button bgc-boxnow-pick">' . esc_html__('Choose a BOX NOW locker', 'bg-couriers') . '</button>'
+           . '<div class="bgc-boxnow-selected"' . ($has ? '' : ' style="display:none;"') . '>'
+           . '<strong class="bgc-boxnow-name">' . esc_html($name) . '</strong>'
+           . '<span class="bgc-boxnow-addr"> ' . esc_html($addr) . '</span>'
+           . '</div>'
+           . '<input type="hidden" class="bgc-boxnow-id" value="' . esc_attr($has ? (string) $locker : '') . '">'
+           . '</div></div>';
     }
 }

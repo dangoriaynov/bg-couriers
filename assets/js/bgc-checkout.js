@@ -193,6 +193,48 @@
   function pushSelection($wrap) { showLoader($wrap); $.post(BGC.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
   function saveSelection($wrap) { $.post(BGC.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
 
+  // BOX NOW locker picker — the official map widget (built-in GPS "nearest to me") ---------
+  function boxnowUrl() {
+    var c = BGC.boxnow || {}, p = [];
+    if (c.partnerId) { p.push('partnerId=' + encodeURIComponent(c.partnerId)); }
+    p.push('countryCode=' + encodeURIComponent(c.country || 'bg'));
+    p.push('language=' + encodeURIComponent(c.country || 'bg'));
+    p.push('gps=' + (c.gps === 'no' ? 'no' : 'yes'));
+    return (c.widget || 'https://map.boxnow.bg/iframe.html') + '?' + p.join('&');
+  }
+  var boxnowWrap = null;
+  function openBoxnow($wrap) {
+    boxnowWrap = $wrap;
+    var $ov = $('<div class="bgc-boxnow-overlay"><div class="bgc-boxnow-modal">'
+      + '<button type="button" class="bgc-boxnow-close" aria-label="' + esc(BGC.i18n && BGC.i18n.close) + '">×</button>'
+      + '<iframe class="bgc-boxnow-frame" src="' + esc(boxnowUrl()) + '" allow="geolocation"></iframe>'
+      + '</div></div>');
+    $ov.on('click', function (e) { if (e.target === $ov[0] || $(e.target).hasClass('bgc-boxnow-close')) { $ov.remove(); } });
+    $('body').append($ov);
+  }
+  function closeBoxnow() { $('.bgc-boxnow-overlay').remove(); }
+  function pickBoxnow(d) {
+    var $wrap = (boxnowWrap && boxnowWrap.length) ? boxnowWrap : $('.bgc-fields.bgc-boxnow:visible').first();
+    if (!$wrap.length || !d.boxnowLockerId) { return; }
+    var name = d.boxnowLockerName || '', addr = d.boxnowLockerAddressLine1 || '';
+    $wrap.find('.bgc-boxnow-id').val(d.boxnowLockerId);
+    $wrap.find('.bgc-boxnow-name').text(name);
+    $wrap.find('.bgc-boxnow-addr').text(addr ? ' ' + addr : '');
+    $wrap.find('.bgc-boxnow-selected').show();
+    closeBoxnow(); showLoader($wrap);
+    $.post(BGC.ajax, { action: 'bgc_set_selection', nonce: BGC.nonce, courier: 'boxnow', method: 'automat', office_id: d.boxnowLockerId, boxnow_name: name, boxnow_addr: addr },
+      function () { $(document.body).trigger('update_checkout'); });
+  }
+  window.addEventListener('message', function (event) {
+    var d = event.data;
+    if (d === 'closeIframe') { closeBoxnow(); return; }
+    if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) { return; } }
+    if (!d || typeof d !== 'object') { return; }
+    if (d.boxnowClose !== undefined) { closeBoxnow(); return; }
+    if (d.boxnowLockerId) { pickBoxnow(d); }
+  });
+  $(document.body).on('click', '.bgc-boxnow-pick', function (e) { e.preventDefault(); openBoxnow($(this).closest('.bgc-fields')); });
+
   // Wiring ------------------------------------------------------------------
   // The chosen bgc_<id> shipping method's courier id (each courier renders its own .bgc-fields).
   function chosenCourier() {
@@ -218,6 +260,7 @@
       var mine = $wrap.attr('data-courier') === chosen;
       $wrap.toggle(mine); // show only the chosen courier's fields (multiple couriers can share a zone)
       if (!mine) return;
+      if ($wrap.hasClass('bgc-boxnow')) { hideLoader($wrap); return; } // locker picked via the map widget — nothing to init
       renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); hideLoader($wrap);
     });
   });
