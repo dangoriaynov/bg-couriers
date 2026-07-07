@@ -292,21 +292,38 @@ class BGC_Econt extends BGC_Abstract_Courier {
         return ['mode' => 'create', 'label' => $label];
     }
 
-    /** Order line items as Econt PackingListElement[] — seq #, name, weight (kg), qty, price. */
+    /**
+     * Order line items as Econt PackingListElement[] — seq #, name, weight (kg), qty, price.
+     * Prices are TAX-INCLUSIVE line totals, and Econt requires the packing-list total to equal the
+     * наложен платеж (cdAmount = order total). So any remainder (shipping, fees, rounding) is folded
+     * into one balancing line, guaranteeing sum(packingList) == order total.
+     */
     private static function packing_list(\WC_Order $order): array {
-        $out = []; $i = 0;
+        $out = []; $i = 0; $sum = 0.0;
         foreach ($order->get_items() as $item) {
             $i++;
             $product = method_exists($item, 'get_product') ? $item->get_product() : null;
             $weight  = ($product && $product->get_weight() !== '') ? (float) wc_get_weight((float) $product->get_weight(), 'kg') : 0.0;
             $qty     = max(1, (int) $item->get_quantity());
             $sku     = $product ? (string) $product->get_sku() : '';
+            $price   = round((float) $item->get_total() + (float) $item->get_total_tax(), 2); // tax-inclusive line total
+            $sum    += $price;
             $out[] = [
                 'inventoryNum' => $sku !== '' ? $sku : (string) $i,
                 'description'  => (string) $item->get_name(),
                 'weight'       => round($weight * $qty, 3),
                 'count'        => $qty,
-                'price'        => round((float) $item->get_total(), 2),
+                'price'        => $price,
+            ];
+        }
+        $remainder = round((float) $order->get_total() - $sum, 2); // shipping + fees + rounding
+        if (abs($remainder) >= 0.01) {
+            $out[] = [
+                'inventoryNum' => 'S',
+                'description'  => __('Shipping & fees', 'bg-couriers'),
+                'weight'       => 0,
+                'count'        => 1,
+                'price'        => $remainder,
             ];
         }
         return $out;
