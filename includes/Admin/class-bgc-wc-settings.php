@@ -285,17 +285,6 @@ JS;
             ['type' => 'bgc_sortable', 'id' => 'bgc_courier_order', 'title' => __('Courier order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_general'],
 
-            ['type' => 'title', 'id' => 'bgc_sender', 'title' => __('Sender address (for labels)', 'bg-couriers'),
-                'desc' => __('Used as the sender on generated shipping labels.', 'bg-couriers')],
-            ['type' => 'text', 'id' => 'bgc_sender_name', 'title' => __('Company / sender name', 'bg-couriers')],
-            ['type' => 'text', 'id' => 'bgc_sender_phone', 'title' => __('Phone', 'bg-couriers')],
-            ['type' => 'email', 'id' => 'bgc_sender_email', 'title' => __('Email', 'bg-couriers')],
-            ['type' => 'text', 'id' => 'bgc_sender_city', 'title' => __('City', 'bg-couriers')],
-            ['type' => 'text', 'id' => 'bgc_sender_region', 'title' => __('Region', 'bg-couriers')],
-            ['type' => 'textarea', 'id' => 'bgc_sender_street', 'title' => __('Street address', 'bg-couriers'), 'css' => 'min-width:400px;height:70px;'],
-            ['type' => 'text', 'id' => 'bgc_sender_postcode', 'title' => __('Post code', 'bg-couriers')],
-            ['type' => 'sectionend', 'id' => 'bgc_sender'],
-
             ['type' => 'title', 'id' => 'bgc_labels', 'title' => __('Label generation', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_autolabel_enabled',
                 'title' => __('Auto-generate labels', 'bg-couriers'),

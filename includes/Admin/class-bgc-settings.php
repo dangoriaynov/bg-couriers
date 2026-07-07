@@ -42,7 +42,6 @@ class BGC_Settings {
         return [
             'username' => get_option('bgc_' . $courier . '_username', ''),
             'password' => BGC_Encryption::decrypt(get_option('bgc_' . $courier . '_password', '')),
-            'sender'   => self::sender(),
         ];
     }
 
@@ -91,18 +90,6 @@ class BGC_Settings {
         return $out;
     }
 
-    /** Global sender address (for shipping labels). */
-    public static function sender(): array {
-        return [
-            'name'     => get_option('bgc_sender_name', ''),
-            'phone'    => get_option('bgc_sender_phone', ''),
-            'email'    => get_option('bgc_sender_email', ''),
-            'city'     => get_option('bgc_sender_city', ''),
-            'region'   => get_option('bgc_sender_region', ''),
-            'street'   => get_option('bgc_sender_street', ''),
-            'postcode' => get_option('bgc_sender_postcode', ''),
-        ];
-    }
 
     /** Auto-generate labels when an order reaches a status. */
     public static function autolabel(): array {
