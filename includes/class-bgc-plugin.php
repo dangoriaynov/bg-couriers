@@ -35,6 +35,7 @@ class BGC_Plugin {
             $methods['bgc_speedy'] = 'BGC_Method_Speedy';
             $methods['bgc_econt'] = 'BGC_Method_Econt';
             $methods['bgc_pigeon'] = 'BGC_Method_Pigeon';
+            $methods['bgc_boxnow'] = 'BGC_Method_Boxnow';
             return $methods;
         });
         new BGC_Checkout();

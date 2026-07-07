@@ -33,6 +33,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             'speedy' => __('Speedy', 'bg-couriers'),
             'econt'  => __('Econt', 'bg-couriers'),
             'pigeon' => __('Pigeon Express', 'bg-couriers'),
+            'boxnow' => __('BOX NOW', 'bg-couriers'),
         ];
     }
 
@@ -58,6 +59,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 $f = array_merge($f, $this->method_fields('pigeon', $m, $label));
             }
             return $f;
+        }
+        if ($section === 'boxnow') {
+            return $this->boxnow_courier_fields(); // locker-only, flat-rate → no per-method fields
         }
         return $this->general_fields();
     }
@@ -118,6 +122,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
             $this->output_courier('econt');
         } elseif ($current_section === 'pigeon') {
             $this->output_courier('pigeon');
+        } elseif ($current_section === 'boxnow') {
+            $this->output_courier('boxnow');
         } else {
             WC_Admin_Settings::output_fields($this->general_fields());
         }
@@ -388,6 +394,31 @@ JS;
                 'desc' => __('Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_pigeon_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
+        ];
+    }
+
+    /** BOX NOW — locker-only, flat-rate, OAuth2. Only the fields BoxNow actually uses (no dangling params). */
+    private function boxnow_courier_fields(): array {
+        return [
+            ['type' => 'title', 'id' => 'bgc_boxnow', 'title' => ''],
+            ['type' => 'checkbox', 'id' => 'bgc_boxnow_enabled', 'title' => __('Enable BOX NOW', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_boxnow_username', 'title' => __('Client ID', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'password', 'id' => 'bgc_boxnow_password', 'title' => __('Client secret', 'bg-couriers'),
+                'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
+            ['type' => 'bgc_actions', 'id' => 'bgc_boxnow_actions'],
+            ['type' => 'text', 'id' => 'bgc_boxnow_api_url', 'title' => __('API URL', 'bg-couriers'),
+                'desc' => __('e.g. https://api-production.boxnow.bg (use the stage URL for testing).', 'bg-couriers'),
+                'default' => 'https://api-production.boxnow.bg', 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_boxnow_partner_id', 'title' => __('Partner ID', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_boxnow_warehouse_id', 'title' => __('Warehouse ID', 'bg-couriers'),
+                'desc' => __('Origin warehouse/location ID parcels ship from (from BoxNow).', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
+                'desc' => __('Used to verify BoxNow tracking callbacks.', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_boxnow_flat_price', 'title' => __('Delivery price', 'bg-couriers'),
+                'desc' => __('Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'text', 'id' => 'bgc_boxnow_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers'),
+                'desc' => __('Ship BOX NOW free (you absorb the cost) when the order goods total (without shipping) reaches this amount. Positive to enable; empty/0 to disable. Store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'sectionend', 'id' => 'bgc_boxnow'],
         ];
     }
 
