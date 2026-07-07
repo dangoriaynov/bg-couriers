@@ -164,7 +164,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
             'packCount'           => 1,
             'weight'              => max(0.1, (float) ($s['weight_kg'] ?? 1.0)),
             'shipmentType'        => 'pack',
-            'shipmentDescription' => 'Goods',
+            'shipmentDescription' => ((string) get_option('bgc_econt_shipment_description', '')) ?: 'Goods',
         ];
 
         if (($s['method'] ?? 'address') === 'address') {
@@ -247,7 +247,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
             'packCount'           => 1,
             'weight'              => max(0.1, (float) ($order->get_meta('_bgc_weight_kg') ?: 1.0)),
             'shipmentType'        => 'pack',
-            'shipmentDescription' => 'Goods',
+            'shipmentDescription' => ((string) get_option('bgc_econt_shipment_description', '')) ?: 'Goods',
         ];
 
         $method = (string) $order->get_meta('_bgc_method');
