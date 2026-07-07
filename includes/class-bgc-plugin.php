@@ -16,6 +16,13 @@ class BGC_Plugin {
         BGC_Couriers::register('pigeon', __('Pigeon Express', 'bg-couriers'), static function () {
             return new BGC_Pigeon(array_merge(BGC_Settings::courier_config('pigeon') ?: [], ['base' => get_option('bgc_pigeon_base_url', '')]));
         });
+        BGC_Couriers::register('boxnow', __('BOX NOW', 'bg-couriers'), static function () {
+            return new BGC_Boxnow(array_merge(BGC_Settings::courier_config('boxnow') ?: [], [
+                'api_url'      => get_option('bgc_boxnow_api_url', 'https://api-production.boxnow.bg'),
+                'partner_id'   => get_option('bgc_boxnow_partner_id', ''),
+                'warehouse_id' => get_option('bgc_boxnow_warehouse_id', ''),
+            ]));
+        });
         BGC_Couriers::boot();
         add_filter('cron_schedules', function ($s) {
             $s['weekly'] = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
