@@ -160,10 +160,10 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $this->assertSame('SKU-1', $item['inventoryNum']);
         $this->assertSame('Тест продукт', $item['description']);
         $this->assertSame(2, $item['count']);
-        $this->assertEqualsWithDelta(1.0, (float) $item['weight'], 0.001);   // 0.5 kg × 2
-        $this->assertEqualsWithDelta(20.0, (float) $item['price'], 0.01);    // 10.00 × 2 (tax-inclusive; no tax in test env)
-        // Econt invariant: sum(packing list) must equal the наложен платеж (cdAmount), else it rejects.
-        $sum = array_sum(array_column($label['packingList'], 'price'));
+        $this->assertEqualsWithDelta(0.5, (float) $item['weight'], 0.001);   // per unit
+        $this->assertEqualsWithDelta(10.0, (float) $item['price'], 0.01);    // per unit (tax-inclusive; no tax in test env)
+        // Econt invariant: sum(price × count) must equal the наложен платеж (cdAmount), else it rejects.
+        $sum = 0.0; foreach ($label['packingList'] as $pl) { $sum += (float) $pl['price'] * (int) $pl['count']; }
         $this->assertEqualsWithDelta((float) $label['services']['cdAmount'], $sum, 0.01);
 
         update_option('bgc_econt_cod_enabled', 'no');

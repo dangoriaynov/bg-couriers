@@ -294,9 +294,9 @@ class BGC_Econt extends BGC_Abstract_Courier {
 
     /**
      * Order line items as Econt PackingListElement[] — seq #, name, weight (kg), qty, price.
-     * Prices are TAX-INCLUSIVE line totals, and Econt requires the packing-list total to equal the
-     * наложен платеж (cdAmount = order total). So any remainder (shipping, fees, rounding) is folded
-     * into one balancing line, guaranteeing sum(packingList) == order total.
+     * Econt totals the опис as sum(price × count), so price + weight are PER UNIT (tax-inclusive).
+     * Econt requires that опис total to equal the наложен платеж (cdAmount = order total), so any
+     * remainder (shipping, fees, rounding) is folded into one balancing line.
      */
     private static function packing_list(\WC_Order $order): array {
         $out = []; $i = 0; $sum = 0.0;
@@ -306,14 +306,14 @@ class BGC_Econt extends BGC_Abstract_Courier {
             $weight  = ($product && $product->get_weight() !== '') ? (float) wc_get_weight((float) $product->get_weight(), 'kg') : 0.0;
             $qty     = max(1, (int) $item->get_quantity());
             $sku     = $product ? (string) $product->get_sku() : '';
-            $price   = round((float) $item->get_total() + (float) $item->get_total_tax(), 2); // tax-inclusive line total
-            $sum    += $price;
+            $unit    = round(((float) $item->get_total() + (float) $item->get_total_tax()) / $qty, 2); // per-unit, tax-incl
+            $sum    += $unit * $qty;
             $out[] = [
                 'inventoryNum' => $sku !== '' ? $sku : (string) $i,
                 'description'  => (string) $item->get_name(),
-                'weight'       => round($weight * $qty, 3),
+                'weight'       => round($weight, 3), // per unit; Econt scales by count
                 'count'        => $qty,
-                'price'        => $price,
+                'price'        => $unit,
             ];
         }
         $remainder = round((float) $order->get_total() - $sum, 2); // shipping + fees + rounding
