@@ -152,9 +152,10 @@ class BGC_Econt extends BGC_Abstract_Courier {
             ],
             'senderAddress' => [
                 'city'  => ['id' => (int) ($sender['address']['city']['id'] ?? 0)],
-                'street' => (string) ($sender['address']['street'] ?? ''),
-                'num'    => (string) ($sender['address']['num'] ?? ''),
-                'other'  => (string) ($sender['address']['other'] ?? ''),
+                'street'  => (string) ($sender['address']['street'] ?? ''),
+                'num'     => (string) ($sender['address']['num'] ?? ''),
+                'quarter' => (string) ($sender['address']['quarter'] ?? ''), // Econt needs street+num OR quarter+other
+                'other'   => (string) ($sender['address']['other'] ?? ''),
             ],
             'receiverClient' => [
                 'name'   => 'Получател',
@@ -234,9 +235,10 @@ class BGC_Econt extends BGC_Abstract_Courier {
             ],
             'senderAddress' => [
                 'city'   => ['id' => (int) ($sender['address']['city']['id'] ?? 0)],
-                'street' => (string) ($sender['address']['street'] ?? ''),
-                'num'    => (string) ($sender['address']['num'] ?? ''),
-                'other'  => (string) ($sender['address']['other'] ?? ''),
+                'street'  => (string) ($sender['address']['street'] ?? ''),
+                'num'     => (string) ($sender['address']['num'] ?? ''),
+                'quarter' => (string) ($sender['address']['quarter'] ?? ''), // Econt needs street+num OR quarter+other
+                'other'   => (string) ($sender['address']['other'] ?? ''),
             ],
             'receiverClient' => [
                 'name'   => $order->get_formatted_billing_full_name(),
