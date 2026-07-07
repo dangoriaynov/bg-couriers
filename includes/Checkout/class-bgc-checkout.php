@@ -10,6 +10,7 @@ class BGC_Checkout {
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
         add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
+        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
         // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
         // recalculation via WC's fragment mechanism (server computes the remaining; no DOM parsing).
@@ -33,6 +34,20 @@ class BGC_Checkout {
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
     public function free_notice_fragment($fragments) { $fragments['.bgc-free-notice'] = self::free_notice_html(); return $fragments; }
 
+    /** Append the pegged BGN/EUR equivalent to a shipping-method rate label when dual display is on. */
+    public function dual_shipping_label($label, $method) {
+        if (!BGC_Currency::enabled()) { return $label; }
+        $store = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : '';
+        if ($store !== 'EUR' && $store !== 'BGN') { return $label; }
+        $cost = (float) $method->get_cost();
+        if ($cost <= 0) { return $label; } // free / no cost — nothing to convert
+        $taxes   = $method->get_taxes();
+        $tax     = is_array($taxes) ? array_sum($taxes) : 0.0;
+        $display = (get_option('woocommerce_tax_display_cart') === 'incl') ? ($cost + $tax) : $cost;
+        $other   = $store === 'BGN' ? 'EUR' : 'BGN';
+        return $label . ' <span class="bgc-dual">(' . BGC_Currency::fmt(BGC_Currency::convert($display, $store, $other), $other) . ')</span>';
+    }
+
     /**
      * Shipping-cost estimate on the cart page (per enabled courier + delivery option), so the customer
      * sees prices before checkout. No-API (cached reference / configured default) — the exact, address-
@@ -50,7 +65,7 @@ class BGC_Checkout {
             foreach (BGC_Settings::enabled_methods($cid) as $m) {
                 $est = BGC_Pricing::estimate($cid, $m);
                 if ($est === null) { continue; }
-                $parts[] = esc_html($labels[$m] ?? $m) . ' ' . wp_kses_post(wc_price($est));
+                $parts[] = esc_html($labels[$m] ?? $m) . ' ' . wp_kses_post(BGC_Currency::dual_store($est));
             }
             if ($parts) {
                 $rows[] = '<div class="bgc-cart-est-row"><strong>' . esc_html($names[$cid] ?? ucfirst($cid)) . '</strong> — ' . implode(' · ', $parts) . '</div>';
@@ -85,7 +100,7 @@ class BGC_Checkout {
             $msg = sprintf(esc_html__('You have free %s delivery! 🎉', 'bg-couriers'), esc_html($label));
         } else {
             /* translators: 1: a formatted price, 2: the courier name. */
-            $msg = sprintf(esc_html__('Add %1$s more for free %2$s delivery', 'bg-couriers'), wc_price($remaining), esc_html($label));
+            $msg = sprintf(esc_html__('Add %1$s more for free %2$s delivery', 'bg-couriers'), BGC_Currency::dual_store($remaining), esc_html($label));
         }
         return '<div class="bgc-free-notice woocommerce-info" style="margin-bottom:1em;">' . $msg . '</div>';
     }
@@ -151,18 +166,36 @@ class BGC_Checkout {
     }
 
     public function validate($data, $errors): void {
-        if (!$this->chosen_courier()) { return; }
-        $site = (int) WC()->session->get('bgc_site_id', 0);
-        $method = (string) WC()->session->get('bgc_method', 'office');
-        $office = (int) WC()->session->get('bgc_office_id', 0);
-        if (!$site) { $errors->add('bgc', __('Please choose a city for Speedy delivery.', 'bg-couriers')); }
-        if ($method !== 'address' && !$office) { $errors->add('bgc', __('Please choose an office/APS.', 'bg-couriers')); }
-        if ($method === 'address') {
-            $street = (string) WC()->session->get('bgc_addr_street_name', '');
-            $no     = (string) WC()->session->get('bgc_addr_street_no', '');
-            if ($street === '' || $no === '') {
-                $errors->add('bgc', __('Please enter a street and number for Speedy address delivery.', 'bg-couriers'));
+        $courier = $this->chosen_courier();
+        if (!$courier) { return; } // a non-bgc shipping method — not ours to validate
+        $names = BGC_Couriers::all();
+        $label = $names[$courier] ?? ucfirst($courier);
+        $s = WC()->session;
+        // The saved selection must belong to the courier actually chosen — switching couriers voids the old pick.
+        if ((string) $s->get('bgc_selection_courier', '') !== $courier) {
+            $errors->add('bgc', sprintf(__('Please choose your %s delivery point before placing the order.', 'bg-couriers'), $label));
+            return;
+        }
+        // BoxNow — a locker picked on the map widget (no city).
+        if ($courier === 'boxnow') {
+            if ((int) $s->get('bgc_office_id', 0) <= 0) {
+                $errors->add('bgc', __('Please choose a BOX NOW locker before placing the order.', 'bg-couriers'));
             }
+            return;
+        }
+        // City/office couriers (Speedy, Econt, Pigeon).
+        $method = (string) $s->get('bgc_method', '');
+        if ((int) $s->get('bgc_site_id', 0) <= 0) {
+            $errors->add('bgc', sprintf(__('Please choose a city for %s delivery.', 'bg-couriers'), $label));
+        }
+        if ($method === 'address') {
+            $street = (string) $s->get('bgc_addr_street_name', '');
+            $no     = (string) $s->get('bgc_addr_street_no', '');
+            if ($street === '' || $no === '') {
+                $errors->add('bgc', sprintf(__('Please enter a street and number for %s address delivery.', 'bg-couriers'), $label));
+            }
+        } elseif ((int) $s->get('bgc_office_id', 0) <= 0) {
+            $errors->add('bgc', sprintf(__('Please choose an office/APS for %s.', 'bg-couriers'), $label));
         }
     }
 
@@ -224,6 +257,12 @@ class BGC_Checkout {
             'nonce' => wp_create_nonce('bgc_checkout'),
             'currency' => get_woocommerce_currency(),
             'emergency' => BGC_Settings::emergency(),
+            'boxnow' => [
+                'widget'    => 'https://map.boxnow.bg/iframe.html', // BoxNow map widget (has built-in GPS)
+                'partnerId' => (string) get_option('bgc_boxnow_partner_id', ''),
+                'country'   => 'bg',
+                'gps'       => 'yes',
+            ],
             'i18n'  => [
                 'address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To APS','bg-couriers'),
                 'office_label'=>__('Office','bg-couriers'),'automat_label'=>__('APS (locker)','bg-couriers'),
@@ -232,6 +271,8 @@ class BGC_Checkout {
                 'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),'street_ph'=>__('Type a street…','bg-couriers'),
                 'na_city' => __('Not available in this city','bg-couriers'),
                 'office_need_city' => __('Select a city first','bg-couriers'),
+                'boxnow_pick' => __('Choose a BOX NOW locker','bg-couriers'),
+                'boxnow_change' => __('Change locker','bg-couriers'),
             ],
         ]);
 
@@ -250,14 +291,21 @@ class BGC_Checkout {
     }
     public function render_fields($method, $index): void {
         if (strpos((string) $method->get_method_id(), 'bgc_') !== 0) { return; }
+        // The interactive pickers belong to checkout (their JS/CSS only load there). On the cart page keep
+        // the rate row clean — the customer picks the destination at checkout (the cart shows the estimate).
+        if (function_exists('is_cart') && is_cart()) { return; }
         $courier = substr((string) $method->get_method_id(), 4); // 'bgc_speedy' -> 'speedy'
         if (!BGC_Couriers::get($courier)) { return; }
+        if ($courier === 'boxnow') { $this->render_boxnow_fields(WC()->session); return; } // locker chosen on the map widget
         // Stateful: re-render the session selection so update_checkout recalcs don't wipe the fields.
+        // Only render a selection that was made for THIS courier — switching couriers must not show a
+        // stale city/office from another courier (whose ids are invalid here).
         $s = WC()->session;
-        $sel_method = $s ? (string) $s->get('bgc_method', '') : '';
-        $site_id    = $s ? (int) $s->get('bgc_site_id', 0) : 0;
-        $office_id  = $s ? (int) $s->get('bgc_office_id', 0) : 0;
-        $post_code  = $s ? (string) $s->get('bgc_post_code', '') : '';
+        $mine = $s && (string) $s->get('bgc_selection_courier', '') === $courier;
+        $sel_method = $mine ? (string) $s->get('bgc_method', '') : '';
+        $site_id    = $mine ? (int) $s->get('bgc_site_id', 0) : 0;
+        $office_id  = $mine ? (int) $s->get('bgc_office_id', 0) : 0;
+        $post_code  = $mine ? (string) $s->get('bgc_post_code', '') : '';
 
         $city_option = '';
         if ($site_id) {
@@ -276,8 +324,8 @@ class BGC_Checkout {
         // Office/automat picker shows for office+automat methods, hides for address.
         $office_style = ($sel_method === 'address') ? ' style="display:none;"' : '';
 
-        $av = function ($k) use ($s) { return $s ? esc_attr((string) $s->get('bgc_addr_' . $k, '')) : ''; };
-        $sn = $s ? (string) $s->get('bgc_addr_street_name', '') : '';
+        $av = function ($k) use ($s, $mine) { return $mine ? esc_attr((string) $s->get('bgc_addr_' . $k, '')) : ''; };
+        $sn = $mine ? (string) $s->get('bgc_addr_street_name', '') : '';
         $street_option = $sn !== '' ? '<option value="' . esc_attr($sn) . '" selected>' . esc_html($sn) . '</option>' : '';
         $addr_style = ($sel_method === 'address') ? '' : ' style="display:none;"';
 
@@ -315,5 +363,25 @@ class BGC_Checkout {
            . '</div>'
            . '</div>'
            . '</div>';
+    }
+
+    /** BOX NOW checkout: a locker chosen on the BoxNow map widget (no city/office dropdowns). */
+    private function render_boxnow_fields($s): void {
+        // Only treat the saved locker as ours if the selection was actually made for BoxNow — otherwise a
+        // stale office id from a previously-chosen courier would render an empty "selected locker" box.
+        $mine   = $s && (string) $s->get('bgc_selection_courier', '') === 'boxnow';
+        $locker = $mine ? (int) $s->get('bgc_office_id', 0) : 0;
+        $name   = $mine ? (string) $s->get('bgc_boxnow_name', '') : '';
+        $addr   = $mine ? (string) $s->get('bgc_boxnow_addr', '') : '';
+        $has    = $locker > 0;
+        echo '<div class="bgc-fields bgc-boxnow" data-courier="boxnow" data-method="automat" data-methods="automat" data-order="automat">'
+           . '<div class="bgc-panel">'
+           . '<button type="button" class="button bgc-boxnow-pick">' . esc_html__('Choose a BOX NOW locker', 'bg-couriers') . '</button>'
+           . '<div class="bgc-boxnow-selected"' . ($has ? '' : ' style="display:none;"') . '>'
+           . '<strong class="bgc-boxnow-name">' . esc_html($name) . '</strong>'
+           . '<span class="bgc-boxnow-addr"> ' . esc_html($addr) . '</span>'
+           . '</div>'
+           . '<input type="hidden" class="bgc-boxnow-id" value="' . esc_attr($has ? (string) $locker : '') . '">'
+           . '</div></div>';
     }
 }

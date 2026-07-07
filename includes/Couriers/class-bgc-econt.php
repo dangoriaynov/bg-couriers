@@ -152,9 +152,10 @@ class BGC_Econt extends BGC_Abstract_Courier {
             ],
             'senderAddress' => [
                 'city'  => ['id' => (int) ($sender['address']['city']['id'] ?? 0)],
-                'street' => (string) ($sender['address']['street'] ?? ''),
-                'num'    => (string) ($sender['address']['num'] ?? ''),
-                'other'  => (string) ($sender['address']['other'] ?? ''),
+                'street'  => (string) ($sender['address']['street'] ?? ''),
+                'num'     => (string) ($sender['address']['num'] ?? ''),
+                'quarter' => (string) ($sender['address']['quarter'] ?? ''), // Econt needs street+num OR quarter+other
+                'other'   => (string) ($sender['address']['other'] ?? ''),
             ],
             'receiverClient' => [
                 'name'   => 'Получател',
@@ -163,7 +164,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
             'packCount'           => 1,
             'weight'              => max(0.1, (float) ($s['weight_kg'] ?? 1.0)),
             'shipmentType'        => 'pack',
-            'shipmentDescription' => 'Goods',
+            'shipmentDescription' => ((string) get_option('bgc_econt_shipment_description', '')) ?: 'Goods',
         ];
 
         if (($s['method'] ?? 'address') === 'address') {
@@ -234,9 +235,10 @@ class BGC_Econt extends BGC_Abstract_Courier {
             ],
             'senderAddress' => [
                 'city'   => ['id' => (int) ($sender['address']['city']['id'] ?? 0)],
-                'street' => (string) ($sender['address']['street'] ?? ''),
-                'num'    => (string) ($sender['address']['num'] ?? ''),
-                'other'  => (string) ($sender['address']['other'] ?? ''),
+                'street'  => (string) ($sender['address']['street'] ?? ''),
+                'num'     => (string) ($sender['address']['num'] ?? ''),
+                'quarter' => (string) ($sender['address']['quarter'] ?? ''), // Econt needs street+num OR quarter+other
+                'other'   => (string) ($sender['address']['other'] ?? ''),
             ],
             'receiverClient' => [
                 'name'   => $order->get_formatted_billing_full_name(),
@@ -245,7 +247,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
             'packCount'           => 1,
             'weight'              => max(0.1, (float) ($order->get_meta('_bgc_weight_kg') ?: 1.0)),
             'shipmentType'        => 'pack',
-            'shipmentDescription' => 'Goods',
+            'shipmentDescription' => ((string) get_option('bgc_econt_shipment_description', '')) ?: 'Goods',
         ];
 
         $method = (string) $order->get_meta('_bgc_method');
@@ -280,6 +282,11 @@ class BGC_Econt extends BGC_Abstract_Courier {
                 'cdCurrency'           => $order->get_currency(),
                 'cdPayOptionsTemplate' => (string) get_option('bgc_econt_cd_num', ''),
             ];
+            // Who pays the delivery (за чий рахунок): left to Econt's default — the API client (the
+            // sender/merchant, ЗЕЛЕНИ ДОБАВКИ) is billed on their own account. Setting
+            // paymentSenderMethod='credit' explicitly makes Econt demand a payer client number the
+            // profile doesn't carry → rejected ("грешен клиентски номер за платец подател"). The COD
+            // (goods + VAT) still returns to the merchant in full via ППП (the cdPayOptionsTemplate above).
             $label['packingListType'] = 'digital';
             $label['packingList']     = self::packing_list($order);
         }
@@ -287,21 +294,38 @@ class BGC_Econt extends BGC_Abstract_Courier {
         return ['mode' => 'create', 'label' => $label];
     }
 
-    /** Order line items as Econt PackingListElement[] — seq #, name, weight (kg), qty, price. */
+    /**
+     * Order line items as Econt PackingListElement[] — seq #, name, weight (kg), qty, price.
+     * Econt totals the опис as sum(price × count), so price + weight are PER UNIT (tax-inclusive).
+     * Econt requires that опис total to equal the наложен платеж (cdAmount = order total), so any
+     * remainder (shipping, fees, rounding) is folded into one balancing line.
+     */
     private static function packing_list(\WC_Order $order): array {
-        $out = []; $i = 0;
+        $out = []; $i = 0; $sum = 0.0;
         foreach ($order->get_items() as $item) {
             $i++;
             $product = method_exists($item, 'get_product') ? $item->get_product() : null;
             $weight  = ($product && $product->get_weight() !== '') ? (float) wc_get_weight((float) $product->get_weight(), 'kg') : 0.0;
             $qty     = max(1, (int) $item->get_quantity());
             $sku     = $product ? (string) $product->get_sku() : '';
+            $unit    = round(((float) $item->get_total() + (float) $item->get_total_tax()) / $qty, 2); // per-unit, tax-incl
+            $sum    += $unit * $qty;
             $out[] = [
                 'inventoryNum' => $sku !== '' ? $sku : (string) $i,
                 'description'  => (string) $item->get_name(),
-                'weight'       => round($weight * $qty, 3),
+                'weight'       => round($weight, 3), // per unit; Econt scales by count
                 'count'        => $qty,
-                'price'        => round((float) $item->get_total(), 2),
+                'price'        => $unit,
+            ];
+        }
+        $remainder = round((float) $order->get_total() - $sum, 2); // shipping + fees + rounding
+        if (abs($remainder) >= 0.01) {
+            $out[] = [
+                'inventoryNum' => 'S',
+                'description'  => __('Shipping & fees', 'bg-couriers'),
+                'weight'       => 0,
+                'count'        => 1,
+                'price'        => $remainder,
             ];
         }
         return $out;

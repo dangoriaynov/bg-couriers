@@ -16,6 +16,13 @@ class BGC_Plugin {
         BGC_Couriers::register('pigeon', __('Pigeon Express', 'bg-couriers'), static function () {
             return new BGC_Pigeon(array_merge(BGC_Settings::courier_config('pigeon') ?: [], ['base' => get_option('bgc_pigeon_base_url', '')]));
         });
+        BGC_Couriers::register('boxnow', __('BOX NOW', 'bg-couriers'), static function () {
+            return new BGC_Boxnow(array_merge(BGC_Settings::courier_config('boxnow') ?: [], [
+                'api_url'      => get_option('bgc_boxnow_api_url', 'https://api-production.boxnow.bg'),
+                'partner_id'   => get_option('bgc_boxnow_partner_id', ''),
+                'warehouse_id' => get_option('bgc_boxnow_warehouse_id', ''),
+            ]));
+        });
         BGC_Couriers::register('sameday', __('Sameday', 'bg-couriers'), static function () {
             return new BGC_Sameday(BGC_Settings::courier_config('sameday') ?: []);
         });
@@ -31,6 +38,7 @@ class BGC_Plugin {
             $methods['bgc_speedy'] = 'BGC_Method_Speedy';
             $methods['bgc_econt'] = 'BGC_Method_Econt';
             $methods['bgc_pigeon'] = 'BGC_Method_Pigeon';
+            $methods['bgc_boxnow'] = 'BGC_Method_Boxnow';
             return $methods;
         });
         new BGC_Checkout();
