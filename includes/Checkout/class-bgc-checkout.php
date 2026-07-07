@@ -291,6 +291,9 @@ class BGC_Checkout {
     }
     public function render_fields($method, $index): void {
         if (strpos((string) $method->get_method_id(), 'bgc_') !== 0) { return; }
+        // The interactive pickers belong to checkout (their JS/CSS only load there). On the cart page keep
+        // the rate row clean — the customer picks the destination at checkout (the cart shows the estimate).
+        if (function_exists('is_cart') && is_cart()) { return; }
         $courier = substr((string) $method->get_method_id(), 4); // 'bgc_speedy' -> 'speedy'
         if (!BGC_Couriers::get($courier)) { return; }
         if ($courier === 'boxnow') { $this->render_boxnow_fields(WC()->session); return; } // locker chosen on the map widget
