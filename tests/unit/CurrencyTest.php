@@ -18,4 +18,8 @@ final class CurrencyTest extends TestCase {
     public function test_dual_enabled_appends_other(): void {
         $this->assertSame('19.56 лв. (10.00 €)', BGC_Currency::dual(19.5583, 'BGN', true));
     }
+    public function test_shipping_price_eur_to_bgn_peg(): void {
+        // 3.99 € shipping → 7.80 лв. at the fixed peg (what dual_store shows on the rate)
+        $this->assertEqualsWithDelta(7.80, BGC_Currency::convert(3.99, 'EUR', 'BGN'), 0.005);
+    }
 }

@@ -10,6 +10,7 @@ class BGC_Checkout {
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
         add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
+        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
         // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
         // recalculation via WC's fragment mechanism (server computes the remaining; no DOM parsing).
@@ -33,6 +34,22 @@ class BGC_Checkout {
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
     public function free_notice_fragment($fragments) { $fragments['.bgc-free-notice'] = self::free_notice_html(); return $fragments; }
 
+    /** Append the pegged BGN/EUR equivalent to a shipping-method rate label when dual display is on. */
+    public function dual_shipping_label($label, $method) {
+        if (!BGC_Currency::enabled()) { return $label; }
+        $store = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : '';
+        if ($store !== 'EUR' && $store !== 'BGN') { return $label; }
+        $cost = (float) $method->get_cost();
+        if ($cost <= 0) { return $label; } // free / no cost — nothing to convert
+        $taxes   = $method->get_taxes();
+        $tax     = is_array($taxes) ? array_sum($taxes) : 0.0;
+        $display = (get_option('woocommerce_tax_display_cart') === 'incl') ? ($cost + $tax) : $cost;
+        $other   = $store === 'BGN' ? 'EUR' : 'BGN';
+        $val     = number_format(BGC_Currency::convert($display, $store, $other), 2);
+        $sym     = $other === 'EUR' ? '€' : 'лв.';
+        return $label . ' <span class="bgc-dual">(' . $val . ' ' . $sym . ')</span>';
+    }
+
     /**
      * Shipping-cost estimate on the cart page (per enabled courier + delivery option), so the customer
      * sees prices before checkout. No-API (cached reference / configured default) — the exact, address-
@@ -50,7 +67,7 @@ class BGC_Checkout {
             foreach (BGC_Settings::enabled_methods($cid) as $m) {
                 $est = BGC_Pricing::estimate($cid, $m);
                 if ($est === null) { continue; }
-                $parts[] = esc_html($labels[$m] ?? $m) . ' ' . wp_kses_post(wc_price($est));
+                $parts[] = esc_html($labels[$m] ?? $m) . ' ' . wp_kses_post(BGC_Currency::dual_store($est));
             }
             if ($parts) {
                 $rows[] = '<div class="bgc-cart-est-row"><strong>' . esc_html($names[$cid] ?? ucfirst($cid)) . '</strong> — ' . implode(' · ', $parts) . '</div>';
@@ -85,7 +102,7 @@ class BGC_Checkout {
             $msg = sprintf(esc_html__('You have free %s delivery! 🎉', 'bg-couriers'), esc_html($label));
         } else {
             /* translators: 1: a formatted price, 2: the courier name. */
-            $msg = sprintf(esc_html__('Add %1$s more for free %2$s delivery', 'bg-couriers'), wc_price($remaining), esc_html($label));
+            $msg = sprintf(esc_html__('Add %1$s more for free %2$s delivery', 'bg-couriers'), BGC_Currency::dual_store($remaining), esc_html($label));
         }
         return '<div class="bgc-free-notice woocommerce-info" style="margin-bottom:1em;">' . $msg . '</div>';
     }

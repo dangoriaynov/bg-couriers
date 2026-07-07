@@ -274,6 +274,8 @@ JS;
                 'desc' => __('Hide the Country / Region selector at checkout. Deliveries are Bulgaria-only, so it is fixed to Bulgaria.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgc_cart_estimate_enabled', 'title' => __('Shipping estimate on the cart', 'bg-couriers'),
                 'desc' => __('Show an estimated shipping price per courier + delivery option on the cart page. The exact, address-specific price is still calculated at checkout.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'checkbox', 'id' => 'bgc_dual_currency', 'title' => __('Show prices in both EUR and BGN', 'bg-couriers'),
+                'desc' => __('Show the shipping price with the pegged equivalent in brackets — 1 EUR = 1.95583 BGN — on the shipping method, the cart estimate and the free-shipping notice.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'number', 'id' => 'bgc_dropdown_limit', 'title' => __('Checkout dropdown results', 'bg-couriers'),
                 'desc' => __('How many city / office results to show in checkout dropdowns (search shows the same max). Default 5.', 'bg-couriers'),
                 'default' => 5, 'custom_attributes' => ['min' => '1', 'step' => '1']],
