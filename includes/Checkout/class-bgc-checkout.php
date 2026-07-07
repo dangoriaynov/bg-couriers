@@ -45,9 +45,7 @@ class BGC_Checkout {
         $tax     = is_array($taxes) ? array_sum($taxes) : 0.0;
         $display = (get_option('woocommerce_tax_display_cart') === 'incl') ? ($cost + $tax) : $cost;
         $other   = $store === 'BGN' ? 'EUR' : 'BGN';
-        $val     = number_format(BGC_Currency::convert($display, $store, $other), 2);
-        $sym     = $other === 'EUR' ? '€' : 'лв.';
-        return $label . ' <span class="bgc-dual">(' . $val . ' ' . $sym . ')</span>';
+        return $label . ' <span class="bgc-dual">(' . BGC_Currency::fmt(BGC_Currency::convert($display, $store, $other), $other) . ')</span>';
     }
 
     /**

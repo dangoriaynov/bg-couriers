@@ -36,7 +36,13 @@ class BGC_Currency {
         $store = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'EUR';
         if ($store !== 'EUR' && $store !== 'BGN') { return $main; }
         $other = $store === 'BGN' ? 'EUR' : 'BGN';
-        $val   = number_format(self::convert($amount, $store, $other), 2);
-        return $main . ' <span class="bgc-dual">(' . $val . ' ' . self::symbol($other) . ')</span>';
+        return $main . ' <span class="bgc-dual">(' . self::fmt(self::convert($amount, $store, $other), $other) . ')</span>';
+    }
+
+    /** Format an amount with the store's separators + currency symbol, e.g. "7,80 лв.". */
+    public static function fmt(float $amount, string $cur): string {
+        $dec = function_exists('wc_get_price_decimal_separator') ? wc_get_price_decimal_separator() : '.';
+        $tho = function_exists('wc_get_price_thousand_separator') ? wc_get_price_thousand_separator() : '';
+        return number_format($amount, 2, $dec, $tho) . ' ' . self::symbol($cur);
     }
 }
