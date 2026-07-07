@@ -100,6 +100,8 @@ class BGC_Ajax {
         WC()->session->set('bgc_site_id', (int) ($_POST['site_id'] ?? 0));
         WC()->session->set('bgc_office_id', (int) ($_POST['office_id'] ?? 0));
         WC()->session->set('bgc_post_code', sanitize_text_field($_POST['post_code'] ?? ''));
+        WC()->session->set('bgc_boxnow_name', sanitize_text_field($_POST['boxnow_name'] ?? '')); // BoxNow locker label
+        WC()->session->set('bgc_boxnow_addr', sanitize_text_field($_POST['boxnow_addr'] ?? ''));
         foreach (self::address_fields($_POST) as $k => $v) { WC()->session->set('bgc_addr_' . $k, $v); }
         wp_send_json_success(['ok' => true]);
     }
