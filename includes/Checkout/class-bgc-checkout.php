@@ -251,15 +251,15 @@ class BGC_Checkout {
         $css = BGC_PATH . 'assets/css/bgc-checkout.css';
         $js  = BGC_PATH . 'assets/js/bgc-checkout.js';
         // Leaflet (bundled locally — no CDN, WP.org-safe) powers the office/APS map picker.
-        wp_enqueue_style('bgc-leaflet', BGC_URL . 'assets/vendor/leaflet/leaflet.css', [], '1.9.4');
-        wp_enqueue_script('bgc-leaflet', BGC_URL . 'assets/vendor/leaflet/leaflet.js', [], '1.9.4', true);
+        wp_enqueue_style('bgc-leaflet', BGC_URL . 'assets/lib/leaflet/leaflet.css', [], '1.9.4');
+        wp_enqueue_script('bgc-leaflet', BGC_URL . 'assets/lib/leaflet/leaflet.js', [], '1.9.4', true);
         wp_enqueue_style('bgc-checkout', BGC_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet'], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
         wp_enqueue_script('bgc-checkout', BGC_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo', 'bgc-leaflet'], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
         wp_localize_script('bgc-checkout', 'BGC', [
             'ajax'  => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('bgc_checkout'),
             'currency' => get_woocommerce_currency(),
-            'leaflet_images' => BGC_URL . 'assets/vendor/leaflet/images/', // bundled Leaflet marker icons
+            'leaflet_images' => BGC_URL . 'assets/lib/leaflet/images/', // bundled Leaflet marker icons
             'emergency' => BGC_Settings::emergency(),
             'boxnow' => [
                 'widget'    => 'https://map.boxnow.bg/iframe.html', // BoxNow map widget (has built-in GPS)
