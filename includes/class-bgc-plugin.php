@@ -39,6 +39,7 @@ class BGC_Plugin {
             $methods['bgc_econt'] = 'BGC_Method_Econt';
             $methods['bgc_pigeon'] = 'BGC_Method_Pigeon';
             $methods['bgc_boxnow'] = 'BGC_Method_Boxnow';
+            $methods['bgc_sameday'] = 'BGC_Method_Sameday';
             return $methods;
         });
         new BGC_Checkout();

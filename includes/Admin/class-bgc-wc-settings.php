@@ -34,6 +34,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             'econt'  => __('Econt', 'bg-couriers'),
             'pigeon' => __('Pigeon Express', 'bg-couriers'),
             'boxnow' => __('BOX NOW', 'bg-couriers'),
+            'sameday' => __('Sameday', 'bg-couriers'),
         ];
     }
 
@@ -62,6 +63,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
         }
         if ($section === 'boxnow') {
             return $this->boxnow_courier_fields(); // locker-only, flat-rate → no per-method fields
+        }
+        if ($section === 'sameday') {
+            $f = $this->sameday_courier_fields();
+            foreach (self::$method_labels as $m => $label) {
+                $f = array_merge($f, $this->method_fields('sameday', $m, $label));
+            }
+            return $f;
         }
         return $this->general_fields();
     }
@@ -124,6 +132,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
             $this->output_courier('pigeon');
         } elseif ($current_section === 'boxnow') {
             $this->output_courier('boxnow');
+        } elseif ($current_section === 'sameday') {
+            $this->output_courier('sameday');
         } else {
             WC_Admin_Settings::output_fields($this->general_fields());
         }
@@ -395,6 +405,44 @@ JS;
                 'desc' => __('Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_pigeon_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
+        ];
+    }
+
+    /** Sameday — office/address/easyBox + live quote. Needs a pickup point + per-type service IDs from the contract. */
+    private function sameday_courier_fields(): array {
+        $cur = get_woocommerce_currency();
+        return [
+            ['type' => 'title', 'id' => 'bgc_sameday', 'title' => ''],
+            ['type' => 'checkbox', 'id' => 'bgc_sameday_enabled', 'title' => __('Enable Sameday', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_sameday_username', 'title' => __('Username', 'bg-couriers'),
+                'desc' => __('Sameday API username (X-Auth-Username).', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'password', 'id' => 'bgc_sameday_password', 'title' => __('Password', 'bg-couriers'),
+                'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
+            ['type' => 'bgc_actions', 'id' => 'bgc_sameday_actions'],
+            ['type' => 'checkbox', 'id' => 'bgc_sameday_sandbox', 'title' => __('Sandbox (demo) mode', 'bg-couriers'),
+                'desc' => __('Use the Sameday demo API (sameday-api.demo.zitec.com) instead of production. For testing without a live account.', 'bg-couriers'),
+                'default' => 'no', 'autoload' => false],
+            ['type' => 'number', 'id' => 'bgc_sameday_pickup_point', 'title' => __('Pickup point ID', 'bg-couriers'),
+                'desc' => __('The Sameday pickup-point ID the merchant ships from. Required for quotes and labels.', 'bg-couriers'),
+                'default' => '', 'custom_attributes' => ['min' => '0', 'step' => '1'], 'autoload' => false],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday'],
+
+            ['type' => 'title', 'id' => 'bgc_sameday_services', 'title' => __('Service IDs per delivery type', 'bg-couriers'),
+                'desc' => __('Map each delivery type to a Sameday service ID from your contract (used for pricing and labels).', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_office', 'title' => __('Service ID — to office', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_address', 'title' => __('Service ID — to address', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_automat', 'title' => __('Service ID — to locker (easyBox)', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday_services'],
+
+            ['type' => 'title', 'id' => 'bgc_sameday_more', 'title' => ''],
+            ['type' => 'select', 'id' => 'bgc_sameday_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
+                'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')], 'default' => 'A6'],
+            ['type' => 'checkbox', 'id' => 'bgc_sameday_dynamic_pricing', 'title' => __('Use dynamic pricing', 'bg-couriers'),
+                'desc' => __('Calculate shipping cost live via the Sameday API. When off, the per-method default prices below are used.', 'bg-couriers'), 'default' => 'yes'],
+            ['type' => 'text', 'id' => 'bgc_sameday_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
+                'desc' => __('Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'bgc_sortable', 'id' => 'bgc_sameday_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday_more'],
         ];
     }
 
