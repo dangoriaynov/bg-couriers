@@ -20,7 +20,7 @@ final class EcontNomenclatureTest extends TestCase {
         $types = array_column($rows, 'type');
         foreach ($types as $t) { $this->assertContains($t, ['office','automat']); }
         $this->assertContains('automat', $types); // fixture includes >=1 isAPS office
-        $this->assertSame(['office_id','code','city_id','type','name','address'], array_keys($rows[0]));
+        $this->assertSame(['office_id','code','city_id','type','name','address','lat','lng'], array_keys($rows[0]));
         $this->assertNotSame('', $rows[0]['code']); // Econt label receiverOfficeCode uses the string code
     }
     public function test_parse_streets(): void {

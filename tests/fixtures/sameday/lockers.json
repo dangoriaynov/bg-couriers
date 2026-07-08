@@ -1,0 +1,6 @@
+{
+  "data": [
+    {"id": 501, "name": "easyBox София Мол", "address": "бул. България 1", "cityId": 161, "lat": 42.66, "lng": 23.29},
+    {"id": 502, "name": "easyBox Пловдив Център", "address": "ул. Главна 5", "cityId": 205}
+  ]
+}

@@ -23,6 +23,9 @@ class BGC_Plugin {
                 'warehouse_id' => get_option('bgc_boxnow_warehouse_id', ''),
             ]));
         });
+        BGC_Couriers::register('sameday', __('Sameday', 'bg-couriers'), static function () {
+            return new BGC_Sameday(BGC_Settings::courier_config('sameday') ?: []);
+        });
         BGC_Couriers::boot();
         add_filter('cron_schedules', function ($s) {
             $s['weekly'] = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
@@ -36,11 +39,13 @@ class BGC_Plugin {
             $methods['bgc_econt'] = 'BGC_Method_Econt';
             $methods['bgc_pigeon'] = 'BGC_Method_Pigeon';
             $methods['bgc_boxnow'] = 'BGC_Method_Boxnow';
+            $methods['bgc_sameday'] = 'BGC_Method_Sameday';
             return $methods;
         });
         new BGC_Checkout();
         new BGC_Ajax();
         new BGC_Labels(); // status-change hook must fire on front-end order transitions too
+        new BGC_Boxnow_Webhook(); // REST receiver for BOX NOW parcel-event webhooks (front-end route)
         if (is_admin()) {
             new BGC_Settings();
             BGC_Settings_Migrator::migrate();

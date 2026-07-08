@@ -4,12 +4,23 @@ defined('ABSPATH') || exit;
 class BGC_Checkout {
     public function __construct() {
         add_action('woocommerce_after_shipping_rate', [$this, 'render_fields'], 10, 2);
+        add_action('woocommerce_after_shipping_rate', [$this, 'cart_rate_note'], 11, 2); // cart-only: explain the estimate basis
         add_action('wp_enqueue_scripts', [$this, 'assets']);
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
         add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
+        // Hide WC's generic cart shipping calculator (Country/Region/City/Postcode) — deliveries are
+        // Bulgaria-only and the real office/APS/address is chosen at checkout, so those fields only confuse.
+        // The calculator is gated by the *option* (not a filter), so short-circuit it to 'no'; a CSS net
+        // covers themes (e.g. Shoptimizer) that render the calculator from a custom template regardless.
+        add_filter('pre_option_woocommerce_enable_shipping_calc', static function () { return 'no'; });
+        add_action('wp_head', static function () {
+            if (function_exists('is_cart') && is_cart()) {
+                echo '<style>.woocommerce-shipping-calculator{display:none!important;}.bgc-cart-note{font-size:.85em;color:#6b7280;margin:2px 0 8px;line-height:1.35;}</style>';
+            }
+        });
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
         // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
@@ -29,6 +40,34 @@ class BGC_Checkout {
             }
         }
         return $default;
+    }
+
+    /**
+     * Cart-only note under each courier rate that explains what the shown price actually is —
+     * which delivery type it's quoted for, and that live/weight-based couriers finalise it at checkout.
+     */
+    public function cart_rate_note($rate, $index): void {
+        if (!function_exists('is_cart') || !is_cart()) { return; }
+        if (!is_object($rate) || strpos((string) $rate->get_method_id(), 'bgc_') !== 0) { return; }
+        $courier_id = substr((string) $rate->get_method_id(), 4);
+        $c = BGC_Couriers::get($courier_id);
+        if (!$c) { return; }
+        $meta = method_exists($rate, 'get_meta_data') ? (array) $rate->get_meta_data() : [];
+        $m = (string) ($meta['bgc_method'] ?? (BGC_Settings::enabled_methods($courier_id)[0] ?? 'office'));
+        $types = [
+            'office'  => __('to an office', 'bg-couriers'),
+            'address' => __('to your address', 'bg-couriers'),
+            'automat' => __('to an APS (locker)', 'bg-couriers'),
+        ];
+        $type = $types[$m] ?? $types['office'];
+        if (in_array('live_quote', $c->capabilities(), true)) {
+            /* translators: %s = delivery type, e.g. "to an office" */
+            $note = sprintf(__('≈ estimate for delivery %s at this cart weight — choose your city and exact point at checkout for the final price.', 'bg-couriers'), $type);
+        } else {
+            /* translators: %s = delivery type */
+            $note = sprintf(__('Flat price for delivery %s — choose your exact locker at checkout.', 'bg-couriers'), $type);
+        }
+        echo '<div class="bgc-cart-note">' . esc_html($note) . '</div>';
     }
 
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
@@ -173,6 +212,7 @@ class BGC_Checkout {
         $s = WC()->session;
         // The saved selection must belong to the courier actually chosen — switching couriers voids the old pick.
         if ((string) $s->get('bgc_selection_courier', '') !== $courier) {
+            /* translators: %s: courier name */
             $errors->add('bgc', sprintf(__('Please choose your %s delivery point before placing the order.', 'bg-couriers'), $label));
             return;
         }
@@ -186,15 +226,18 @@ class BGC_Checkout {
         // City/office couriers (Speedy, Econt, Pigeon).
         $method = (string) $s->get('bgc_method', '');
         if ((int) $s->get('bgc_site_id', 0) <= 0) {
+            /* translators: %s: courier name */
             $errors->add('bgc', sprintf(__('Please choose a city for %s delivery.', 'bg-couriers'), $label));
         }
         if ($method === 'address') {
             $street = (string) $s->get('bgc_addr_street_name', '');
             $no     = (string) $s->get('bgc_addr_street_no', '');
             if ($street === '' || $no === '') {
+                /* translators: %s: courier name */
                 $errors->add('bgc', sprintf(__('Please enter a street and number for %s address delivery.', 'bg-couriers'), $label));
             }
         } elseif ((int) $s->get('bgc_office_id', 0) <= 0) {
+            /* translators: %s: courier name */
             $errors->add('bgc', sprintf(__('Please choose an office/APS for %s.', 'bg-couriers'), $label));
         }
     }
@@ -250,12 +293,16 @@ class BGC_Checkout {
         // Version by file mtime so every asset change busts the browser cache automatically.
         $css = BGC_PATH . 'assets/css/bgc-checkout.css';
         $js  = BGC_PATH . 'assets/js/bgc-checkout.js';
-        wp_enqueue_style('bgc-checkout', BGC_URL . 'assets/css/bgc-checkout.css', [], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
-        wp_enqueue_script('bgc-checkout', BGC_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo'], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
+        // Leaflet (bundled locally — no CDN, WP.org-safe) powers the office/APS map picker.
+        wp_enqueue_style('bgc-leaflet', BGC_URL . 'assets/lib/leaflet/leaflet.css', [], '1.9.4');
+        wp_enqueue_script('bgc-leaflet', BGC_URL . 'assets/lib/leaflet/leaflet.js', [], '1.9.4', true);
+        wp_enqueue_style('bgc-checkout', BGC_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet'], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
+        wp_enqueue_script('bgc-checkout', BGC_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo', 'bgc-leaflet'], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
         wp_localize_script('bgc-checkout', 'BGC', [
             'ajax'  => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('bgc_checkout'),
             'currency' => get_woocommerce_currency(),
+            'leaflet_images' => BGC_URL . 'assets/lib/leaflet/images/', // bundled Leaflet marker icons
             'emergency' => BGC_Settings::emergency(),
             'boxnow' => [
                 'widget'    => 'https://map.boxnow.bg/iframe.html', // BoxNow map widget (has built-in GPS)
@@ -273,6 +320,11 @@ class BGC_Checkout {
                 'office_need_city' => __('Select a city first','bg-couriers'),
                 'boxnow_pick' => __('Choose a BOX NOW locker','bg-couriers'),
                 'boxnow_change' => __('Change locker','bg-couriers'),
+                'map_open' => __('View on map','bg-couriers'),
+                'map_title' => __('Pick from the map','bg-couriers'),
+                'map_choose' => __('Choose this location','bg-couriers'),
+                'map_locate' => __('Show my location','bg-couriers'),
+                'map_none' => __('No offices with a map location for this city yet — use the list.','bg-couriers'),
             ],
         ]);
 
@@ -346,7 +398,8 @@ class BGC_Checkout {
            . '<input type="text" class="bgc-postcode" autocomplete="off" inputmode="numeric" maxlength="4" placeholder="' . esc_attr__('opt.', 'bg-couriers') . '" value="' . esc_attr($post_code) . '"></div>'
            . '</div>'
            . '<div class="bgc-field bgc-office-row"' . $office_style . '><label class="bgc-office-label">' . $office_label . '</label>'
-           . '<select class="bgc-office">' . $office_option . '</select></div>'
+           . '<div class="bgc-office-pick"><select class="bgc-office">' . $office_option . '</select>'
+           . '<button type="button" class="button bgc-map-btn" title="' . esc_attr__('View on map', 'bg-couriers') . '"><span class="bgc-map-pin">📍</span> ' . esc_html__('Map', 'bg-couriers') . '</button></div></div>'
            . '<div class="bgc-address-rows"' . $addr_style . '>'
            . '<div class="bgc-grid">'
            . '<div class="bgc-field bgc-street-field"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select></div>'

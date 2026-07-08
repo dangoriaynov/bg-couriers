@@ -1,0 +1,6 @@
+{
+  "data": [
+    {"id": 161, "name": "София", "postalCode": "1000", "county": {"id": 10, "name": "София"}},
+    {"id": 205, "name": "Пловдив", "postalCode": "4000", "county": {"id": 16, "name": "Пловдив"}}
+  ]
+}

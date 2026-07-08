@@ -20,11 +20,12 @@ class BGC_Nomenclature {
         global $wpdb; $t = $wpdb->prefix . 'bgc_offices'; $n = 0;
         foreach ($rows as $r) {
             $wpdb->query($wpdb->prepare(
-                "INSERT INTO {$t} (courier,office_id,code,city_id,type,name,address,sync_run,updated_at)
-                 VALUES (%s,%d,%s,%d,%s,%s,%s,%s,NOW())
+                "INSERT INTO {$t} (courier,office_id,code,city_id,type,name,address,lat,lng,sync_run,updated_at)
+                 VALUES (%s,%d,%s,%d,%s,%s,%s,%f,%f,%s,NOW())
                  ON DUPLICATE KEY UPDATE code=VALUES(code),city_id=VALUES(city_id),type=VALUES(type),name=VALUES(name),
-                 address=VALUES(address),sync_run=VALUES(sync_run),updated_at=NOW()",
-                $courier, $r['office_id'], (string) ($r['code'] ?? ''), $r['city_id'], $r['type'], $r['name'], $r['address'], $run
+                 address=VALUES(address),lat=VALUES(lat),lng=VALUES(lng),sync_run=VALUES(sync_run),updated_at=NOW()",
+                $courier, $r['office_id'], (string) ($r['code'] ?? ''), $r['city_id'], $r['type'], $r['name'], $r['address'],
+                (float) ($r['lat'] ?? 0), (float) ($r['lng'] ?? 0), $run
             ));
             $n++;
         }
@@ -65,13 +66,13 @@ class BGC_Nomenclature {
     public static function office_by_id(string $courier, int $office_id): ?array {
         global $wpdb;
         $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT office_id,code,city_id,type,name,address FROM {$wpdb->prefix}bgc_offices WHERE courier=%s AND office_id=%d LIMIT 1",
+            "SELECT office_id,code,city_id,type,name,address,lat,lng FROM {$wpdb->prefix}bgc_offices WHERE courier=%s AND office_id=%d LIMIT 1",
             $courier, $office_id), ARRAY_A);
         return $row ?: null;
     }
     public static function offices(string $courier, int $city_id, string $type = ''): array {
         global $wpdb; $t = $wpdb->prefix . 'bgc_offices';
-        $sql = "SELECT office_id,code,city_id,type,name,address FROM {$t} WHERE courier=%s AND city_id=%d";
+        $sql = "SELECT office_id,code,city_id,type,name,address,lat,lng FROM {$t} WHERE courier=%s AND city_id=%d";
         $args = [$courier, $city_id];
         if ($type !== '') { $sql .= ' AND type=%s'; $args[] = $type; }
         $sql .= ' ORDER BY name';

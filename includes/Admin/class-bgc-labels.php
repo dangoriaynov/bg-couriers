@@ -23,6 +23,7 @@ class BGC_Labels {
         if ($order->get_meta('_bgc_waybill') !== '') { return; }
         try { self::generate((int) $order_id); }
         catch (\Exception $e) {
+            /* translators: %s: error message */
             $order->add_order_note(sprintf(__('BG Couriers auto-label failed: %s', 'bg-couriers'), $e->getMessage()));
         }
     }
@@ -47,6 +48,7 @@ class BGC_Labels {
         file_put_contents($file, $pdf);
         $url = trailingslashit($up['baseurl']) . 'bgc-labels/speedy-' . $safe_waybill . '.pdf';
         $order->update_meta_data('_bgc_label_url', $url);
+        /* translators: %s: waybill number */
         $order->add_order_note(sprintf(__('Speedy label generated: %s', 'bg-couriers'), $label->waybill));
         $order->save();
         return new BGC_Label($label->waybill, $url);
@@ -110,6 +112,7 @@ class BGC_Labels {
                 if ($wb === '') { wp_die(esc_html__('No label to print.', 'bg-couriers')); }
                 $pdf = $courier->get_label_pdf($wb);
             }
+        /* translators: %s: error message */
         } catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         nocache_headers();
         header('Content-Type: application/pdf');

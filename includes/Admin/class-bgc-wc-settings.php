@@ -34,6 +34,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             'econt'  => __('Econt', 'bg-couriers'),
             'pigeon' => __('Pigeon Express', 'bg-couriers'),
             'boxnow' => __('BOX NOW', 'bg-couriers'),
+            'sameday' => __('Sameday', 'bg-couriers'),
         ];
     }
 
@@ -62,6 +63,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
         }
         if ($section === 'boxnow') {
             return $this->boxnow_courier_fields(); // locker-only, flat-rate → no per-method fields
+        }
+        if ($section === 'sameday') {
+            $f = $this->sameday_courier_fields();
+            foreach (self::$method_labels as $m => $label) {
+                $f = array_merge($f, $this->method_fields('sameday', $m, $label));
+            }
+            return $f;
         }
         return $this->general_fields();
     }
@@ -94,6 +102,12 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-enable-toggle { display:flex; align-items:center; gap:12px; padding:11px 14px; margin:2px 0 14px; border-radius:10px; border:1px solid #e2e6ea; }
         #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-on { background:#f1faf3; border-color:#c4e7cf; }
         #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-off { background:#fdf5f5; border-color:#eecfcf; }
+        .bgc-enable-modal { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100001; display:flex; align-items:center; justify-content:center; padding:16px; }
+        .bgc-enable-box { background:#fff; border-radius:10px; max-width:540px; width:100%; padding:18px 22px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+        .bgc-enable-box h3 { margin:0 0 6px; color:#b32d2e; }
+        .bgc-enable-box ul { margin:12px 0 16px; padding-left:18px; }
+        .bgc-enable-box li { margin-bottom:10px; }
+        .bgc-enable-box .bgc-fix { color:#50575e; }
         #wpbody .bgc-settings .bgc-switch { position:relative; display:inline-block; width:46px; height:26px; flex:0 0 auto; }
         #wpbody .bgc-settings .bgc-switch input { opacity:0; width:0; height:0; margin:0; }
         #wpbody .bgc-settings .bgc-slider { position:absolute; cursor:pointer; inset:0; background:#c9ced3; border-radius:26px; transition:.2s; }
@@ -124,6 +138,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
             $this->output_courier('pigeon');
         } elseif ($current_section === 'boxnow') {
             $this->output_courier('boxnow');
+        } elseif ($current_section === 'sameday') {
+            $this->output_courier('sameday');
         } else {
             WC_Admin_Settings::output_fields($this->general_fields());
         }
@@ -191,18 +207,46 @@ JS;
             . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> — <span class="bgc-enable-state">' . ($on ? $on_t : $off_t) . '</span></span>'
             . '</div>';
         WC_Admin_Settings::output_fields($fields);
-        ?>
+        $c_id    = esc_js($courier_id);
+        $c_ajax  = esc_js(admin_url('admin-ajax.php'));
+        $c_save  = esc_js(wp_create_nonce('bgc_save'));
+        $c_admin = esc_js(wp_create_nonce('bgc_admin'));
+        /* translators: %s: courier name */
+        $i_title = esc_js(sprintf(__('“%s” can’t be enabled yet', 'bg-couriers'), $label));
+        $i_intro = esc_js(__('Please fix the following, then enable it again:', 'bg-couriers'));
+        $i_fix   = esc_js(__('How to fix:', 'bg-couriers'));
+        $i_close = esc_js(__('Close', 'bg-couriers'));
+        echo <<<JS
 <script>
 (function($){
-    $(document).on('change','.bgc-enable-toggle input[type=checkbox]',function(){
-        var on=this.checked, box=$(this).closest('.bgc-enable-toggle');
-        box.toggleClass('bgc-enable-on',on).toggleClass('bgc-enable-off',!on);
+    var courier='{$c_id}', ajaxurl='{$c_ajax}', saveNonce='{$c_save}', adminNonce='{$c_admin}', section='{$c_id}';
+    function esc(s){ return $('<i>').text(s==null?'':s).html(); }
+    function saveForm(cb){ var f=$('#mainform'); if(!f.length){ if(cb){cb();} return; }
+        $.post(ajaxurl, f.serialize()+'&action=bgc_save_settings&bgc_nonce='+saveNonce+'&bgc_section='+encodeURIComponent(section)).always(function(){ if(cb){cb();} }); }
+    function setVis(box,on){ box.toggleClass('bgc-enable-on',on).toggleClass('bgc-enable-off',!on);
         box.find('.bgc-enable-state').text(on?box.data('on'):box.data('off'));
-        $('.bgc-settings .nav-tab-active').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on);
+        $('.bgc-settings .nav-tab-active').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on); }
+    function showProblems(list){
+        var h='<div class="bgc-enable-modal"><div class="bgc-enable-box"><h3>{$i_title}</h3><p>{$i_intro}</p><ul>';
+        (list||[]).forEach(function(p){ h+='<li><strong>'+esc(p.msg)+'</strong>'+(p.fix?'<br><span class="bgc-fix">{$i_fix} '+esc(p.fix)+'</span>':'')+'</li>'; });
+        h+='</ul><p><button type="button" class="button button-primary bgc-enable-close">{$i_close}</button></p></div></div>';
+        var m=$(h).appendTo('body');
+        m.on('click',function(e){ if(e.target===this||$(e.target).hasClass('bgc-enable-close')){ m.remove(); } });
+    }
+    $(document).on('change','.bgc-enable-toggle input[type=checkbox]',function(){
+        var cb=$(this), on=this.checked, box=cb.closest('.bgc-enable-toggle');
+        setVis(box,on);
+        if(!on){ saveForm(); return; } // disabling never needs validation
+        cb.prop('disabled',true);
+        saveForm(function(){ // persist the entered fields first, then check against them
+            $.post(ajaxurl,{action:'bgc_enable_check',nonce:adminNonce,courier:courier}).done(function(r){
+                if(!(r&&r.success)){ cb.prop('checked',false); setVis(box,false); saveForm(); showProblems(r&&r.data&&r.data.problems); }
+            }).always(function(){ cb.prop('disabled',false); });
+        });
     });
 })(jQuery);
 </script>
-        <?php
+JS;
 
         // Delivery-method sub-tabs — only the methods this courier supports (from capabilities()).
         // Skip entirely for single-method / flat-rate couriers (e.g. BoxNow = locker only, one flat price).
@@ -398,6 +442,44 @@ JS;
         ];
     }
 
+    /** Sameday — office/address/easyBox + live quote. Needs a pickup point + per-type service IDs from the contract. */
+    private function sameday_courier_fields(): array {
+        $cur = get_woocommerce_currency();
+        return [
+            ['type' => 'title', 'id' => 'bgc_sameday', 'title' => ''],
+            ['type' => 'checkbox', 'id' => 'bgc_sameday_enabled', 'title' => __('Enable Sameday', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_sameday_username', 'title' => __('Username', 'bg-couriers'),
+                'desc' => __('Sameday API username (X-Auth-Username).', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'password', 'id' => 'bgc_sameday_password', 'title' => __('Password', 'bg-couriers'),
+                'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
+            ['type' => 'bgc_actions', 'id' => 'bgc_sameday_actions'],
+            ['type' => 'checkbox', 'id' => 'bgc_sameday_sandbox', 'title' => __('Sandbox (demo) mode', 'bg-couriers'),
+                'desc' => __('Use the Sameday demo API (sameday-api.demo.zitec.com) instead of production. For testing without a live account.', 'bg-couriers'),
+                'default' => 'no', 'autoload' => false],
+            ['type' => 'number', 'id' => 'bgc_sameday_pickup_point', 'title' => __('Pickup point ID', 'bg-couriers'),
+                'desc' => __('The Sameday pickup-point ID the merchant ships from. Required for quotes and labels.', 'bg-couriers'),
+                'default' => '', 'custom_attributes' => ['min' => '0', 'step' => '1'], 'autoload' => false],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday'],
+
+            ['type' => 'title', 'id' => 'bgc_sameday_services', 'title' => __('Service IDs per delivery type', 'bg-couriers'),
+                'desc' => __('Map each delivery type to a Sameday service ID from your contract (used for pricing and labels).', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_office', 'title' => __('Service ID — to office', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_address', 'title' => __('Service ID — to address', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_automat', 'title' => __('Service ID — to locker (easyBox)', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday_services'],
+
+            ['type' => 'title', 'id' => 'bgc_sameday_more', 'title' => ''],
+            ['type' => 'select', 'id' => 'bgc_sameday_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
+                'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')], 'default' => 'A6'],
+            ['type' => 'checkbox', 'id' => 'bgc_sameday_dynamic_pricing', 'title' => __('Use dynamic pricing', 'bg-couriers'),
+                'desc' => __('Calculate shipping cost live via the Sameday API. When off, the per-method default prices below are used.', 'bg-couriers'), 'default' => 'yes'],
+            ['type' => 'text', 'id' => 'bgc_sameday_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
+                'desc' => __('Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'bgc_sortable', 'id' => 'bgc_sameday_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday_more'],
+        ];
+    }
+
     /** BOX NOW — locker-only, flat-rate, OAuth2. Only the fields BoxNow actually uses (no dangling params). */
     private function boxnow_courier_fields(): array {
         return [
@@ -414,7 +496,8 @@ JS;
             ['type' => 'text', 'id' => 'bgc_boxnow_warehouse_id', 'title' => __('Warehouse ID', 'bg-couriers'),
                 'desc' => __('Origin warehouse/location ID parcels ship from (from BoxNow).', 'bg-couriers'), 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
-                'desc' => __('Used to verify BoxNow tracking callbacks.', 'bg-couriers'), 'autoload' => false],
+                'desc' => __('Verifies incoming BOX NOW parcel-event webhooks (HMAC-SHA256). Register this webhook URL in your BOX NOW account:', 'bg-couriers')
+                    . '<br><code>' . esc_html(BGC_Boxnow_Webhook::url()) . '</code>', 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_boxnow_flat_price', 'title' => __('Delivery price', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'text', 'id' => 'bgc_boxnow_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
@@ -427,7 +510,7 @@ JS;
         $p = "bgc_{$courier}_{$m}_";
         return [
             ['type' => 'title', 'id' => $p . 'grp', 'title' => ''],
-            ['type' => 'checkbox', 'id' => $p . 'enabled', 'title' => sprintf(__('Enable “%s”', 'bg-couriers'), $label), 'default' => 'yes'],
+            ['type' => 'checkbox', 'id' => $p . 'enabled', /* translators: %s: courier name */ 'title' => sprintf(__('Enable “%s”', 'bg-couriers'), $label), 'default' => 'yes'],
             ['type' => 'text', 'id' => $p . 'price', 'title' => __('Default price (API fallback)', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Leave empty to use only the live API price. If set, this price is used for this courier + delivery option when there is no connection to the API (or dynamic pricing is off). In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => $p . 'grp'],

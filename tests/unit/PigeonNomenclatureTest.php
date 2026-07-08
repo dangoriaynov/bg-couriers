@@ -29,7 +29,7 @@ final class PigeonNomenclatureTest extends TestCase {
     public function test_parse_offices_keys_and_type_mapping(): void {
         $rows = BGC_Pigeon::parse_offices($this->fx('offices.json'));
         $this->assertCount(2, $rows);
-        $this->assertSame(['office_id', 'code', 'city_id', 'type', 'name', 'address'], array_keys($rows[0]));
+        $this->assertSame(['office_id', 'code', 'city_id', 'type', 'name', 'address', 'lat', 'lng'], array_keys($rows[0]));
         // office row
         $office = $rows[0];
         $this->assertSame(120, $office['office_id']);

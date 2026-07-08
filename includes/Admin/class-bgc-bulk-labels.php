@@ -34,6 +34,7 @@ class BGC_Bulk_Labels {
             try { BGC_Labels::generate($oid); $results[] = 'generated'; $print_ids[] = $oid; }
             catch (\Exception $e) {
                 $results[] = 'failed';
+                /* translators: %s: error message */
                 $order->add_order_note(sprintf(__('BG Couriers bulk label failed: %s', 'bg-couriers'), $e->getMessage()));
             }
         }
@@ -56,6 +57,7 @@ class BGC_Bulk_Labels {
             $url = wp_nonce_url(admin_url('admin-post.php?action=bgc_print_batch'), 'bgc_print_batch');
             $total = $c['generated'] + $c['reused'];
             $link = ' <a class="button" target="_blank" href="' . esc_url($url) . '">'
+                /* translators: %d: number of labels */
                 . esc_html(sprintf(__('Print %d labels', 'bg-couriers'), $total)) . '</a>';
         }
         $cls = $c['failed'] ? 'notice-warning' : 'notice-success';
