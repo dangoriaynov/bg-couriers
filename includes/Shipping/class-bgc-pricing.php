@@ -24,6 +24,24 @@ class BGC_Pricing {
         return ['office_id' => $office, 'site_id' => $site_id];
     }
 
+    /**
+     * Price for the checkout shipping row. Before the customer picks a city we return the FAST cached daily
+     * reference (no API call) — so switching couriers stays snappy and the customer can start entering the
+     * address immediately. Once a real city is chosen we do the exact live quote against the resolved office.
+     */
+    public static function checkout_quote(BGC_Courier_Interface $courier, string $method, int $site_id, int $office, array $packed, string $currency): BGC_Quote {
+        if ($site_id <= 0) {
+            $est = self::estimate($courier->id(), $method);
+            if ($est !== null) { return new BGC_Quote(round($est, 2), 0.0, $currency, 'reference'); }
+        }
+        $res = self::resolve_office($courier->id(), $method, $site_id, $office);
+        $shipment = array_merge($packed, [
+            'method' => $method, 'site_id' => $res['site_id'], 'office_id' => $res['office_id'],
+            'cod_amount' => 0.0, 'currency' => $currency,
+        ]);
+        return self::quote($courier, $shipment);
+    }
+
     public static function quote(BGC_Courier_Interface $courier, array $shipment): BGC_Quote {
         $method = (string) ($shipment['method'] ?? 'address');
         if (BGC_Settings::dynamic_pricing($courier->id()) && in_array('live_quote', $courier->capabilities(), true)) {

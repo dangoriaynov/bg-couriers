@@ -28,16 +28,11 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
         $weight  = (float) ($package['contents_weight'] ?? 0);
         $packed  = BGC_Packer::from_weight($weight);
 
-        // Resolve the office to quote against (representative office for a city without a specific pick).
-        // If the chosen city has NO office/APS of this type, the option is unavailable — show that, no price.
-        $res = BGC_Pricing::resolve_office('speedy', $method, $site_id, $office);
-        $office  = $res['office_id'];
-        $site_id = $res['site_id'];
-        $shipment = array_merge($packed, [
-            'method' => $method, 'site_id' => $site_id, 'office_id' => $office, 'cod_amount' => 0.0, 'currency' => get_woocommerce_currency(),
-        ]);
+        // Before a city is chosen use the fast cached daily reference (no live API) so switching couriers
+        // stays snappy and the customer can start entering the address; checkout_quote does the exact live
+        // quote once a real city is picked.
         $courier = BGC_Couriers::get('speedy');
-        $quote = BGC_Pricing::quote($courier, $shipment);
+        $quote = BGC_Pricing::checkout_quote($courier, $method, $site_id, $office, $packed, get_woocommerce_currency());
         $cost  = $quote->price;
 
         // Free shipping (the merchant absorbs it) when the order goods total (w/o shipping,
