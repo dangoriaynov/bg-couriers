@@ -395,9 +395,12 @@ class BGC_Checkout {
             ? esc_html__('APS (locker)', 'bg-couriers')
             : esc_html__('Office', 'bg-couriers');
 
+        // Only the chosen courier's block is visible from the server — the others render hidden so the page
+        // doesn't briefly show every courier's fields expanded before the JS hides them. JS keeps this in sync.
+        $hide = self::chosen_courier() !== $courier ? ' style="display:none;"' : '';
         echo '<div class="bgc-fields" data-courier="' . esc_attr($courier) . '" data-method="' . esc_attr($sel_method) . '"'
            . ' data-methods="' . esc_attr(implode(',', BGC_Settings::enabled_methods($courier))) . '"'
-           . ' data-order="' . esc_attr(implode(',', BGC_Settings::method_order($courier))) . '">'
+           . ' data-order="' . esc_attr(implode(',', BGC_Settings::method_order($courier))) . '"' . $hide . '>'
            . '<div class="bgc-loader" aria-hidden="true"><span class="bgc-spinner"></span></div>'
            . '<div class="bgc-tabs" role="tablist"></div>'
            . '<div class="bgc-panel">'
@@ -437,7 +440,8 @@ class BGC_Checkout {
         $name   = $mine ? (string) $s->get('bgc_boxnow_name', '') : '';
         $addr   = $mine ? (string) $s->get('bgc_boxnow_addr', '') : '';
         $has    = $locker > 0;
-        echo '<div class="bgc-fields bgc-boxnow" data-courier="boxnow" data-method="automat" data-methods="automat" data-order="automat">'
+        $hide   = self::chosen_courier() !== 'boxnow' ? ' style="display:none;"' : ''; // hidden unless BoxNow is the chosen courier
+        echo '<div class="bgc-fields bgc-boxnow" data-courier="boxnow" data-method="automat" data-methods="automat" data-order="automat"' . $hide . '>'
            . '<div class="bgc-panel">'
            . '<button type="button" class="button bgc-boxnow-pick">' . esc_html__('Choose a BOX NOW locker', 'bg-couriers') . '</button>'
            . '<div class="bgc-boxnow-selected"' . ($has ? '' : ' style="display:none;"') . '>'
