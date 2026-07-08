@@ -65,7 +65,9 @@ class BGC_Econt extends BGC_Abstract_Courier {
             $out[] = ['office_id' => (int) $o['id'], 'code' => (string) ($o['code'] ?? ''),
                 'city_id' => (int) ($o['address']['city']['id'] ?? 0),
                 'type' => !empty($o['isAPS']) ? 'automat' : 'office', 'name' => (string) ($o['name'] ?? ''),
-                'address' => (string) ($o['address']['fullAddress'] ?? '')];
+                'address' => (string) ($o['address']['fullAddress'] ?? ''),
+                'lat' => (float) ($o['address']['location']['latitude'] ?? 0),
+                'lng' => (float) ($o['address']['location']['longitude'] ?? 0)];
         }
         return $out;
     }

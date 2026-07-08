@@ -138,6 +138,8 @@ class BGC_Speedy extends BGC_Abstract_Courier {
                 'type'      => $type,
                 'name'      => (string) ($o['name'] ?? ''),
                 'address'   => is_string($addr) ? $addr : '',
+                'lat'       => (float) ($o['address']['y'] ?? 0), // Speedy address.y = latitude
+                'lng'       => (float) ($o['address']['x'] ?? 0), // Speedy address.x = longitude
             ];
         }
         return $out;

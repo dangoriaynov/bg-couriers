@@ -33,6 +33,8 @@ class BGC_Schema {
  type VARCHAR(10) NOT NULL DEFAULT 'office',
  name VARCHAR(190) NOT NULL,
  address VARCHAR(255) NOT NULL DEFAULT '',
+ lat DECIMAL(9,6) NULL,
+ lng DECIMAL(9,6) NULL,
  sync_run VARCHAR(32) NOT NULL DEFAULT '',
  updated_at DATETIME NULL,
  PRIMARY KEY  (id),

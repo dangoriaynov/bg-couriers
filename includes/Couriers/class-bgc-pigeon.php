@@ -206,6 +206,8 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
                 'type'      => (($o['type'] ?? '') === 'locker') ? 'automat' : 'office',
                 'name'      => (string) ($o['name'] ?? ''),
                 'address'   => (string) ($o['address'] ?? ''),
+                'lat'       => (float) ($o['latitude'] ?? 0),
+                'lng'       => (float) ($o['longitude'] ?? 0),
             ];
         }
         return $out;

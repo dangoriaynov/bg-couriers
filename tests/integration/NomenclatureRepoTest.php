@@ -24,10 +24,13 @@ final class NomenclatureRepoTest extends WP_UnitTestCase {
 
     public function test_offices_persist_code(): void {
         BGC_Nomenclature::upsert_offices('econt', [
-            ['office_id'=>34024,'code'=>'8015','city_id'=>2,'type'=>'automat','name'=>'Еконтомат','address'=>'ул. Марица 2'],
+            ['office_id'=>34024,'code'=>'8015','city_id'=>2,'type'=>'automat','name'=>'Еконтомат','address'=>'ул. Марица 2','lat'=>43.849,'lng'=>25.954],
             ['office_id'=>1053,'code'=>'7538','city_id'=>2,'type'=>'office','name'=>'Айдемир','address'=>'ул. Тест 1'],
         ], 'run1');
         $this->assertSame('8015', BGC_Nomenclature::office_by_id('econt', 34024)['code']);
+        // coordinates round-trip through storage (they feed the map picker)
+        $this->assertEqualsWithDelta(43.849, (float) BGC_Nomenclature::office_by_id('econt', 34024)['lat'], 0.001);
+        $this->assertEqualsWithDelta(25.954, (float) BGC_Nomenclature::office_by_id('econt', 34024)['lng'], 0.001);
         $codes = array_column(BGC_Nomenclature::offices('econt', 2), 'code');
         $this->assertContains('8015', $codes);
         $this->assertContains('7538', $codes);

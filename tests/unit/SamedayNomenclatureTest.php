@@ -32,7 +32,7 @@ final class SamedayNomenclatureTest extends TestCase {
     public function test_parse_offices_lockers_are_automat_ooh_are_office(): void {
         $rows = BGC_Sameday::parse_offices($this->fx('lockers.json'), $this->fx('ooh.json'));
         $this->assertCount(3, $rows); // 2 lockers + 1 ooh
-        $this->assertSame(['office_id', 'code', 'city_id', 'type', 'name', 'address'], array_keys($rows[0]));
+        $this->assertSame(['office_id', 'code', 'city_id', 'type', 'name', 'address', 'lat', 'lng'], array_keys($rows[0]));
         // lockers first → automat
         $this->assertSame('automat', $rows[0]['type']);
         $this->assertSame(501, $rows[0]['office_id']);

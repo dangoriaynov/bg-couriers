@@ -155,6 +155,8 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
                     'type'      => $type,
                     'name'      => (string) ($o['name'] ?? ''),
                     'address'   => (string) ($o['address'] ?? ''),
+                    'lat'       => (float) ($o['lat'] ?? 0),
+                    'lng'       => (float) ($o['lng'] ?? 0),
                 ];
             }
         };
