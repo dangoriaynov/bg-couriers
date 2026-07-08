@@ -1,0 +1,91 @@
+=== BG Couriers for WooCommerce ===
+Contributors: dangoriaynov
+Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
+Requires at least: 6.0
+Tested up to: 6.6
+Requires PHP: 7.4
+Stable tag: 0.2.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Shipping for Bulgarian online stores with Speedy, Econt, BOX NOW, Pigeon Express and Sameday — office/address/locker delivery, live rates, labels and tracking.
+
+== Description ==
+
+BG Couriers adds the major Bulgarian couriers to WooCommerce as shipping methods. At checkout the customer picks a delivery type per courier — **to an office, to an address, or to an APS/locker** — searches for their city and office (or picks it from an **interactive map**), and sees a **live price** from the courier's own API. The merchant generates shipping labels and tracks shipments from the WordPress admin.
+
+Deliveries are Bulgaria-only.
+
+**Couriers**
+
+* **Speedy** — office / address / APS, live rates, labels, tracking.
+* **Econt** — office / address / Econtomat, live rates, labels, tracking, and **cash on delivery (наложен платеж)** with an itemised packing list paid out via your postal-money-transfer agreement.
+* **Pigeon Express** — office / address / locker, live rates, labels, tracking.
+* **BOX NOW** — locker (APM) delivery with an embedded GPS map picker, flat rate.
+* **Sameday** — office / address / easyBox, live rates, labels, tracking.
+
+**Highlights**
+
+* Live prices per courier and delivery type, with a daily reference baseline and a configurable fallback.
+* Interactive map picker for offices/lockers (geolocation "nearest to me").
+* Per-order and bulk label generation to a combined PDF (A6 / A4), tracking links.
+* Optional dual BGN + EUR price display (fixed peg 1 EUR = 1.95583 BGN).
+* Per-courier settings: only the fields each courier actually needs.
+
+== External services ==
+
+This plugin relies on the online APIs of the couriers you enable to calculate shipping prices, create shipping labels and track shipments. Data is sent **only for the couriers you configure**, and only when an action requires it (a checkout price quote, a label generation, or a tracking lookup).
+
+**What is sent and when**
+
+* **Price quote (checkout / cart):** the parcel weight, the destination city/office and delivery type. Triggered when a customer views shipping options.
+* **Label creation (admin):** the recipient's name, phone, e-mail, and the chosen address or office/locker, the parcel weight, and — if you enable cash on delivery — the amount to collect and an item list. Triggered when you generate a label.
+* **Tracking:** the waybill number. Triggered when you or the customer open tracking.
+
+**Services used** (each only if you enable that courier):
+
+* **Speedy** — api.speedy.bg. Terms: https://www.speedy.bg/en/terms-and-conditions · Privacy: https://www.speedy.bg/en/privacy-policy
+* **Econt** — ee.econt.com. Terms: https://www.econt.com/en/terms · Privacy: https://www.econt.com/en/privacy-policy
+* **Pigeon Express** — api.pigeonexpress.com. Terms/Privacy: https://pigeonexpress.com
+* **BOX NOW** — api-production.boxnow.bg, and the locker-selection **map widget map.boxnow.bg**, which is loaded in an iframe **only when the customer opens the BOX NOW locker picker**. Terms/Privacy: https://boxnow.bg
+* **Sameday** — api.sameday.ro (or the demo host sameday-api.demo.zitec.com in test mode). Terms/Privacy: https://sameday.bg
+
+**Maps:** the office/locker map picker for Speedy/Econt/Pigeon/Sameday loads map tiles from **OpenStreetMap (tile.openstreetmap.org)** — only when the customer opens the map. OpenStreetMap tile usage policy: https://operations.osmfoundation.org/policies/tiles/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
+
+No data is sent to any service the merchant has not configured, and the plugin sends nothing to the plugin author.
+
+== Installation ==
+
+1. Upload the plugin to `/wp-content/plugins/bg-couriers` (or install via the Plugins screen) and activate it. WooCommerce must be active.
+2. Go to **WooCommerce → Settings → BG Couriers**.
+3. Open a courier's tab, enter its API credentials, click **Validate**, then **Sync** its cities/offices.
+4. Add the courier's shipping method to your **Bulgaria** shipping zone (WooCommerce → Settings → Shipping).
+
+== Frequently Asked Questions ==
+
+= Which countries are supported? =
+Bulgaria only.
+
+= Do I need an account with the couriers? =
+Yes. Each courier requires its own API credentials, obtained from that courier. Enter them on the courier's settings tab.
+
+= How are prices calculated? =
+Live from each courier's API for the parcel weight and destination. If the API is briefly unreachable, a daily reference price (or your configured default) is used. BOX NOW uses a flat rate you set (it has no rate API).
+
+== Changelog ==
+
+= 0.2.0 =
+* BOX NOW courier (locker delivery + embedded GPS map widget).
+* Sameday courier (office/address/easyBox) — pending live verification.
+* Econt cash on delivery (наложен платеж) with itemised packing list.
+* Interactive office/locker map picker (Leaflet + OpenStreetMap) for Speedy/Econt/Pigeon/Sameday.
+* Optional dual BGN/EUR price display.
+* Courier-aware checkout validation and full Bulgarian translation.
+
+= 0.1.0 =
+* Initial release: Speedy, Econt and Pigeon Express — office/address/APS delivery, live rates, labels, tracking.
+
+== Upgrade Notice ==
+
+= 0.2.0 =
+Adds BOX NOW, Sameday, cash on delivery, a map picker and Bulgarian translation.
