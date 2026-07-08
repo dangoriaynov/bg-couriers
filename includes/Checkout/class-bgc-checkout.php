@@ -212,6 +212,7 @@ class BGC_Checkout {
         $s = WC()->session;
         // The saved selection must belong to the courier actually chosen — switching couriers voids the old pick.
         if ((string) $s->get('bgc_selection_courier', '') !== $courier) {
+            /* translators: %s: courier name */
             $errors->add('bgc', sprintf(__('Please choose your %s delivery point before placing the order.', 'bg-couriers'), $label));
             return;
         }
@@ -225,15 +226,18 @@ class BGC_Checkout {
         // City/office couriers (Speedy, Econt, Pigeon).
         $method = (string) $s->get('bgc_method', '');
         if ((int) $s->get('bgc_site_id', 0) <= 0) {
+            /* translators: %s: courier name */
             $errors->add('bgc', sprintf(__('Please choose a city for %s delivery.', 'bg-couriers'), $label));
         }
         if ($method === 'address') {
             $street = (string) $s->get('bgc_addr_street_name', '');
             $no     = (string) $s->get('bgc_addr_street_no', '');
             if ($street === '' || $no === '') {
+                /* translators: %s: courier name */
                 $errors->add('bgc', sprintf(__('Please enter a street and number for %s address delivery.', 'bg-couriers'), $label));
             }
         } elseif ((int) $s->get('bgc_office_id', 0) <= 0) {
+            /* translators: %s: courier name */
             $errors->add('bgc', sprintf(__('Please choose an office/APS for %s.', 'bg-couriers'), $label));
         }
     }

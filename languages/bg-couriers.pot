@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-08T08:29:27+00:00\n"
+"POT-Creation-Date: 2026-07-08T08:56:34+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: bg-couriers\n"
@@ -38,55 +38,60 @@ msgstr ""
 msgid "Generate Speedy labels"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:37
+#. translators: %s: error message
+#: includes/Admin/class-bgc-bulk-labels.php:38
 #, php-format
 msgid "BG Couriers bulk label failed: %s"
 msgstr ""
 
 #. translators: 1: generated 2: reused 3: skipped 4: failed
-#: includes/Admin/class-bgc-bulk-labels.php:51
+#: includes/Admin/class-bgc-bulk-labels.php:52
 #, php-format
 msgid "Speedy labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:59
+#. translators: %d: number of labels
+#: includes/Admin/class-bgc-bulk-labels.php:61
 #, php-format
 msgid "Print %d labels"
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:26
+#. translators: %s: error message
+#: includes/Admin/class-bgc-labels.php:27
 #, php-format
 msgid "BG Couriers auto-label failed: %s"
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:37
-#: includes/Admin/class-bgc-labels.php:84
-#: includes/Admin/class-bgc-labels.php:100
+#: includes/Admin/class-bgc-labels.php:38
+#: includes/Admin/class-bgc-labels.php:86
+#: includes/Admin/class-bgc-labels.php:102
 msgid "Unknown courier for this order."
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:50
+#. translators: %s: waybill number
+#: includes/Admin/class-bgc-labels.php:52
 #, php-format
 msgid "Speedy label generated: %s"
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:70
+#: includes/Admin/class-bgc-labels.php:72
 msgid "Order not found."
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:82
+#: includes/Admin/class-bgc-labels.php:84
 msgid "No waybill found."
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:105
+#: includes/Admin/class-bgc-labels.php:107
 msgid "No labels to print."
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:110
+#: includes/Admin/class-bgc-labels.php:112
 msgid "No label to print."
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:113
+#. translators: %s: error message
+#: includes/Admin/class-bgc-labels.php:116
 #, php-format
 msgid "Print failed: %s"
 msgstr ""
@@ -134,19 +139,19 @@ msgstr ""
 
 #: includes/Admin/class-bgc-settings.php:151
 #: includes/Admin/class-bgc-wc-settings.php:20
-#: includes/Checkout/class-bgc-checkout.php:310
+#: includes/Checkout/class-bgc-checkout.php:314
 msgid "To office"
 msgstr ""
 
 #: includes/Admin/class-bgc-settings.php:152
 #: includes/Admin/class-bgc-wc-settings.php:21
-#: includes/Checkout/class-bgc-checkout.php:310
+#: includes/Checkout/class-bgc-checkout.php:314
 msgid "To address"
 msgstr ""
 
 #: includes/Admin/class-bgc-settings.php:153
 #: includes/Admin/class-bgc-wc-settings.php:22
-#: includes/Checkout/class-bgc-checkout.php:310
+#: includes/Checkout/class-bgc-checkout.php:314
 msgid "To APS"
 msgstr ""
 
@@ -650,11 +655,13 @@ msgstr ""
 msgid "Ship BOX NOW free (you absorb the cost) when the order goods total (without shipping) reaches this amount. Positive to enable; empty/0 to disable. Store currency."
 msgstr ""
 
+#. translators: %s: courier name
 #: includes/Admin/class-bgc-wc-settings.php:478
 #, php-format
 msgid "Enable “%s”"
 msgstr ""
 
+#. translators: %s: courier name
 #: includes/Admin/class-bgc-wc-settings.php:479
 msgid "Default price (API fallback)"
 msgstr ""
@@ -715,143 +722,147 @@ msgstr ""
 msgid "Add %1$s more for free %2$s delivery"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:215
+#. translators: %s: courier name
+#: includes/Checkout/class-bgc-checkout.php:216
 #, php-format
 msgid "Please choose your %s delivery point before placing the order."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:221
+#: includes/Checkout/class-bgc-checkout.php:222
 msgid "Please choose a BOX NOW locker before placing the order."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:228
+#. translators: %s: courier name
+#: includes/Checkout/class-bgc-checkout.php:230
 #, php-format
 msgid "Please choose a city for %s delivery."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:234
+#. translators: %s: courier name
+#: includes/Checkout/class-bgc-checkout.php:237
 #, php-format
 msgid "Please enter a street and number for %s address delivery."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:237
+#. translators: %s: courier name
+#: includes/Checkout/class-bgc-checkout.php:241
 #, php-format
 msgid "Please choose an office/APS for %s."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:311
-#: includes/Checkout/class-bgc-checkout.php:382
+#: includes/Checkout/class-bgc-checkout.php:315
+#: includes/Checkout/class-bgc-checkout.php:386
 msgid "Office"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:311
-#: includes/Checkout/class-bgc-checkout.php:381
+#: includes/Checkout/class-bgc-checkout.php:315
+#: includes/Checkout/class-bgc-checkout.php:385
 msgid "APS (locker)"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:312
+#: includes/Checkout/class-bgc-checkout.php:316
 msgid "Having trouble placing your order? We can help — call us:"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:313
+#: includes/Checkout/class-bgc-checkout.php:317
 msgid "Close"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:314
+#: includes/Checkout/class-bgc-checkout.php:318
 msgid "Type a city…"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:314
+#: includes/Checkout/class-bgc-checkout.php:318
 msgid "Search…"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:314
+#: includes/Checkout/class-bgc-checkout.php:318
 msgid "Type a street…"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:315
+#: includes/Checkout/class-bgc-checkout.php:319
 msgid "Not available in this city"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:316
+#: includes/Checkout/class-bgc-checkout.php:320
 msgid "Select a city first"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:317
-#: includes/Checkout/class-bgc-checkout.php:428
+#: includes/Checkout/class-bgc-checkout.php:321
+#: includes/Checkout/class-bgc-checkout.php:432
 msgid "Choose a BOX NOW locker"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:318
+#: includes/Checkout/class-bgc-checkout.php:322
 msgid "Change locker"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:319
-#: includes/Checkout/class-bgc-checkout.php:398
+#: includes/Checkout/class-bgc-checkout.php:323
+#: includes/Checkout/class-bgc-checkout.php:402
 msgid "View on map"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:320
+#: includes/Checkout/class-bgc-checkout.php:324
 msgid "Pick from the map"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:321
+#: includes/Checkout/class-bgc-checkout.php:325
 msgid "Choose this location"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:322
+#: includes/Checkout/class-bgc-checkout.php:326
 msgid "Show my location"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:323
+#: includes/Checkout/class-bgc-checkout.php:327
 msgid "No offices with a map location for this city yet — use the list."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:391
+#: includes/Checkout/class-bgc-checkout.php:395
 msgid "City"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:393
+#: includes/Checkout/class-bgc-checkout.php:397
 msgid "Postcode"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:394
+#: includes/Checkout/class-bgc-checkout.php:398
 msgid "opt."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:398
+#: includes/Checkout/class-bgc-checkout.php:402
 msgid "Map"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:401
+#: includes/Checkout/class-bgc-checkout.php:405
 msgid "Street"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:402
+#: includes/Checkout/class-bgc-checkout.php:406
 msgid "No."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:404
+#: includes/Checkout/class-bgc-checkout.php:408
 msgid "Quarter / complex"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:406
+#: includes/Checkout/class-bgc-checkout.php:410
 msgid "Block"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:407
+#: includes/Checkout/class-bgc-checkout.php:411
 msgid "Entr."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:408
+#: includes/Checkout/class-bgc-checkout.php:412
 msgid "Floor"
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:409
+#: includes/Checkout/class-bgc-checkout.php:413
 msgid "Apt."
 msgstr ""
 
-#: includes/Checkout/class-bgc-checkout.php:411
+#: includes/Checkout/class-bgc-checkout.php:415
 msgid "Note"
 msgstr ""
 
