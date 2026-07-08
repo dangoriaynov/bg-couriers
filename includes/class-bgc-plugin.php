@@ -45,6 +45,7 @@ class BGC_Plugin {
         new BGC_Checkout();
         new BGC_Ajax();
         new BGC_Labels(); // status-change hook must fire on front-end order transitions too
+        new BGC_Boxnow_Webhook(); // REST receiver for BOX NOW parcel-event webhooks (front-end route)
         if (is_admin()) {
             new BGC_Settings();
             BGC_Settings_Migrator::migrate();

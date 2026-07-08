@@ -11,7 +11,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-08T10:37:13+00:00\n"
+"POT-Creation-Date: 2026-07-08T20:05:34+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: bg-couriers\n"
@@ -478,7 +478,7 @@ msgstr "Изчислявай цената на доставката на жив�
 #: includes/Admin/class-bgc-wc-settings.php:410
 #: includes/Admin/class-bgc-wc-settings.php:438
 #: includes/Admin/class-bgc-wc-settings.php:476
-#: includes/Admin/class-bgc-wc-settings.php:502
+#: includes/Admin/class-bgc-wc-settings.php:503
 msgid "Free-shipping threshold"
 msgstr "Праг за безплатна доставка"
 
@@ -666,33 +666,33 @@ msgid "Webhook secret"
 msgstr "Webhook таен ключ"
 
 #: includes/Admin/class-bgc-wc-settings.php:499
-msgid "Used to verify BoxNow tracking callbacks."
-msgstr "Използва се за проверка на известията за проследяване от BoxNow."
+msgid "Verifies incoming BOX NOW parcel-event webhooks (HMAC-SHA256). Register this webhook URL in your BOX NOW account:"
+msgstr "Проверява входящите webhook известия за събития от BOX NOW (HMAC-SHA256). Регистрирайте този webhook адрес във Вашия BOX NOW акаунт:"
 
-#: includes/Admin/class-bgc-wc-settings.php:500
+#: includes/Admin/class-bgc-wc-settings.php:501
 msgid "Delivery price"
 msgstr "Цена за доставка"
 
-#: includes/Admin/class-bgc-wc-settings.php:501
+#: includes/Admin/class-bgc-wc-settings.php:502
 msgid "Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the store currency."
 msgstr "Фиксирана цена за доставка до автомат на BOX NOW (BoxNow няма API за живи тарифи). Във валутата на магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:503
+#: includes/Admin/class-bgc-wc-settings.php:504
 msgid "Ship BOX NOW free (you absorb the cost) when the order goods total (without shipping) reaches this amount. Positive to enable; empty/0 to disable. Store currency."
 msgstr "Доставяй безплатно с BOX NOW (Вие поемате разхода), когато стойността на стоките (без доставка) достигне тази сума. Положителна за включване; празно/0 за изключване. Валута на магазина."
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgc-wc-settings.php:512
+#: includes/Admin/class-bgc-wc-settings.php:513
 #, php-format
 msgid "Enable “%s”"
 msgstr "Активирай „%s“"
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgc-wc-settings.php:513
+#: includes/Admin/class-bgc-wc-settings.php:514
 msgid "Default price (API fallback)"
 msgstr "Цена по подразбиране (резервна при API)"
 
-#: includes/Admin/class-bgc-wc-settings.php:514
+#: includes/Admin/class-bgc-wc-settings.php:515
 msgid "Leave empty to use only the live API price. If set, this price is used for this courier + delivery option when there is no connection to the API (or dynamic pricing is off). In the store currency."
 msgstr "Оставете празно, за да се използва само живата цена от API. Ако е зададена, тази цена се използва за този куриер + опция, когато няма връзка с API (или динамичните цени са изключени). Във валутата на магазина."
 
@@ -903,6 +903,48 @@ msgstr "Данните за достъп до API не са проверени."
 #: includes/Couriers/abstract-bgc-courier.php:51
 msgid "Click “Validate credentials” and make sure the check succeeds."
 msgstr "Натиснете „Провери данните за достъп“ и се уверете, че проверката е успешна."
+
+#. translators: %s: human-readable parcel state, e.g. "delivered"
+#: includes/Couriers/class-bgc-boxnow-webhook.php:87
+#, php-format
+msgid "BOX NOW tracking update: %s"
+msgstr "Актуализация на проследяването на BOX NOW: %s"
+
+#: includes/Couriers/class-bgc-boxnow-webhook.php:94
+msgid "registered"
+msgstr "регистрирана"
+
+#: includes/Couriers/class-bgc-boxnow-webhook.php:95
+msgid "in transit"
+msgstr "в движение"
+
+#: includes/Couriers/class-bgc-boxnow-webhook.php:96
+msgid "in the locker — ready for pickup"
+msgstr "в автомата — готова за получаване"
+
+#: includes/Couriers/class-bgc-boxnow-webhook.php:97
+msgid "delivered"
+msgstr "доставена"
+
+#: includes/Couriers/class-bgc-boxnow-webhook.php:98
+msgid "returned"
+msgstr "върната"
+
+#: includes/Couriers/class-bgc-boxnow-webhook.php:99
+msgid "returned (not collected in time)"
+msgstr "върната (неполучена навреме)"
+
+#: includes/Couriers/class-bgc-boxnow-webhook.php:100
+msgid "canceled"
+msgstr "отменена"
+
+#: includes/Couriers/class-bgc-boxnow-webhook.php:101
+msgid "lost"
+msgstr "изгубена"
+
+#: includes/Couriers/class-bgc-boxnow-webhook.php:102
+msgid "missing"
+msgstr "липсваща"
 
 #: includes/Couriers/class-bgc-boxnow.php:33
 msgid "No Partner ID is set."
