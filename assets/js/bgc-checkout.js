@@ -107,11 +107,13 @@
     });
     $city.on('select2:select', function (e) {
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
+      $wrap.find('.bgc-map-btn').prop('disabled', false).attr('title', '');
       resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
     });
     // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
     $city.on('select2:clear', function () {
       $wrap.find('.bgc-postcode').val('');
+      $wrap.find('.bgc-map-btn').prop('disabled', true).attr('title', (BGC.i18n && BGC.i18n.office_need_city) || '');
       resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
     });
   }
@@ -129,8 +131,10 @@
 
   function initOffice($wrap) {
     var $office = $wrap.find('.bgc-office');
-    if ($office.hasClass('select2-hidden-accessible')) { return; }
     var hasCity = !!$wrap.find('.bgc-city').val();
+    // The map picker plots a city's offices, so it needs a city first (same as the office dropdown).
+    $wrap.find('.bgc-map-btn').prop('disabled', !hasCity).attr('title', hasCity ? '' : ((BGC.i18n && BGC.i18n.office_need_city) || ''));
+    if ($office.hasClass('select2-hidden-accessible')) { return; }
     $office.prop('disabled', !hasCity); // no office search until a city is chosen
     sel2($office, {
       width: '100%', allowClear: true, minimumInputLength: 0, placeholder: hasCity ? ((BGC.i18n && BGC.i18n.office_ph) || '') : ((BGC.i18n && BGC.i18n.office_need_city) || ''),
