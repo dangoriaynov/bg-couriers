@@ -27,6 +27,23 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
     public function label(): string { return 'BOX NOW'; }
     public function capabilities(): array { return ['automat']; } // locker-only
 
+    public function enable_problems(): array {
+        $p = parent::enable_problems();
+        $this->need_option($p, 'bgc_boxnow_partner_id',
+            __('No Partner ID is set.', 'bg-couriers'),
+            __('Enter the Partner ID from your BOX NOW account (a required header on every request).', 'bg-couriers'));
+        $this->need_option($p, 'bgc_boxnow_warehouse_id',
+            __('No Warehouse ID is set.', 'bg-couriers'),
+            __('Enter the origin Warehouse ID parcels ship from (from BOX NOW).', 'bg-couriers'));
+        if ((float) get_option('bgc_boxnow_flat_price', 0) <= 0) {
+            $p[] = [
+                'msg' => __('The flat delivery price is not set.', 'bg-couriers'),
+                'fix' => __('Enter a “Delivery price” greater than 0 — BOX NOW has no live rate API.', 'bg-couriers'),
+            ];
+        }
+        return $p;
+    }
+
     /** Cached OAuth2 bearer token (BoxNow expires_in 3600s → refresh at 55 min). */
     protected function token(): string {
         $tok = get_transient('bgc_boxnow_token');

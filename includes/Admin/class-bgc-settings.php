@@ -21,6 +21,7 @@ class BGC_Settings {
         add_action('wp_ajax_bgc_sync_now', [$this, 'ajax_sync']);
         add_action('wp_ajax_bgc_reset_creds', [$this, 'ajax_reset_creds']);
         add_action('wp_ajax_bgc_save_settings', [$this, 'ajax_save']);
+        add_action('wp_ajax_bgc_enable_check', [$this, 'ajax_enable_check']);
         add_filter('plugin_action_links_' . plugin_basename(BGC_FILE), [$this, 'action_links']);
     }
 
@@ -203,6 +204,22 @@ class BGC_Settings {
         $ok = (bool) ($c && $c->check_credentials());
         update_option('bgc_' . $courier . '_validated', $ok ? 'yes' : 'no'); // drives the green/red credentials tint
         wp_send_json_success(['ok' => $ok]);
+    }
+
+    /** Pre-enable check: return the courier's crucial-settings problems; a non-empty list blocks enabling. */
+    public function ajax_enable_check(): void {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(['problems' => [['msg' => __('You are not allowed to do this.', 'bg-couriers'), 'fix' => '']]]);
+        }
+        check_ajax_referer('bgc_admin', 'nonce');
+        $courier = sanitize_key(wp_unslash($_POST['courier'] ?? ''));
+        $c = BGC_Couriers::get($courier);
+        if (!$c || !method_exists($c, 'enable_problems')) {
+            wp_send_json_error(['problems' => [['msg' => __('Unknown courier.', 'bg-couriers'), 'fix' => '']]]);
+        }
+        $problems = $c->enable_problems();
+        if (!empty($problems)) { wp_send_json_error(['problems' => array_values($problems)]); }
+        wp_send_json_success(['ok' => true]);
     }
 
     /** The red × by the password: marks the credentials as needing re-validation (so the tint goes red). */

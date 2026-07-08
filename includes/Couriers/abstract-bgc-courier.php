@@ -28,4 +28,36 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
             'body'    => wp_json_encode($body),
         ]);
     }
+
+    /**
+     * Crucial-settings check run before this courier may be enabled. Returns a list of problems, each
+     * ['msg' => what is wrong, 'fix' => how to resolve it]; an empty list means it is ready to enable.
+     * Reads SAVED options — the merchant should Save (and Validate credentials) before enabling.
+     * Couriers override this to add their own required fields on top of the base credential check.
+     *
+     * @return array<int,array{msg:string,fix:string}>
+     */
+    public function enable_problems(): array {
+        $id = $this->id();
+        $problems = [];
+        if (!BGC_Settings::creds_present($id)) {
+            $problems[] = [
+                'msg' => __('API credentials are missing.', 'bg-couriers'),
+                'fix' => __('Enter the username/key and password/secret, then click “Save changes”.', 'bg-couriers'),
+            ];
+        } elseif (get_option('bgc_' . $id . '_validated', 'no') !== 'yes') {
+            $problems[] = [
+                'msg' => __('The API credentials have not been validated.', 'bg-couriers'),
+                'fix' => __('Click “Validate credentials” and make sure the check succeeds.', 'bg-couriers'),
+            ];
+        }
+        return $problems;
+    }
+
+    /** Helper for overrides: append a problem when a saved option is empty. */
+    protected function need_option(array &$problems, string $option, string $msg, string $fix): void {
+        if (trim((string) get_option($option, '')) === '') {
+            $problems[] = ['msg' => $msg, 'fix' => $fix];
+        }
+    }
 }

@@ -102,6 +102,12 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-enable-toggle { display:flex; align-items:center; gap:12px; padding:11px 14px; margin:2px 0 14px; border-radius:10px; border:1px solid #e2e6ea; }
         #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-on { background:#f1faf3; border-color:#c4e7cf; }
         #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-off { background:#fdf5f5; border-color:#eecfcf; }
+        .bgc-enable-modal { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100001; display:flex; align-items:center; justify-content:center; padding:16px; }
+        .bgc-enable-box { background:#fff; border-radius:10px; max-width:540px; width:100%; padding:18px 22px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+        .bgc-enable-box h3 { margin:0 0 6px; color:#b32d2e; }
+        .bgc-enable-box ul { margin:12px 0 16px; padding-left:18px; }
+        .bgc-enable-box li { margin-bottom:10px; }
+        .bgc-enable-box .bgc-fix { color:#50575e; }
         #wpbody .bgc-settings .bgc-switch { position:relative; display:inline-block; width:46px; height:26px; flex:0 0 auto; }
         #wpbody .bgc-settings .bgc-switch input { opacity:0; width:0; height:0; margin:0; }
         #wpbody .bgc-settings .bgc-slider { position:absolute; cursor:pointer; inset:0; background:#c9ced3; border-radius:26px; transition:.2s; }
@@ -201,18 +207,46 @@ JS;
             . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> — <span class="bgc-enable-state">' . ($on ? $on_t : $off_t) . '</span></span>'
             . '</div>';
         WC_Admin_Settings::output_fields($fields);
-        ?>
+        $c_id    = esc_js($courier_id);
+        $c_ajax  = esc_js(admin_url('admin-ajax.php'));
+        $c_save  = esc_js(wp_create_nonce('bgc_save'));
+        $c_admin = esc_js(wp_create_nonce('bgc_admin'));
+        /* translators: %s: courier name */
+        $i_title = esc_js(sprintf(__('“%s” can’t be enabled yet', 'bg-couriers'), $label));
+        $i_intro = esc_js(__('Please fix the following, then enable it again:', 'bg-couriers'));
+        $i_fix   = esc_js(__('How to fix:', 'bg-couriers'));
+        $i_close = esc_js(__('Close', 'bg-couriers'));
+        echo <<<JS
 <script>
 (function($){
-    $(document).on('change','.bgc-enable-toggle input[type=checkbox]',function(){
-        var on=this.checked, box=$(this).closest('.bgc-enable-toggle');
-        box.toggleClass('bgc-enable-on',on).toggleClass('bgc-enable-off',!on);
+    var courier='{$c_id}', ajaxurl='{$c_ajax}', saveNonce='{$c_save}', adminNonce='{$c_admin}', section='{$c_id}';
+    function esc(s){ return $('<i>').text(s==null?'':s).html(); }
+    function saveForm(cb){ var f=$('#mainform'); if(!f.length){ if(cb){cb();} return; }
+        $.post(ajaxurl, f.serialize()+'&action=bgc_save_settings&bgc_nonce='+saveNonce+'&bgc_section='+encodeURIComponent(section)).always(function(){ if(cb){cb();} }); }
+    function setVis(box,on){ box.toggleClass('bgc-enable-on',on).toggleClass('bgc-enable-off',!on);
         box.find('.bgc-enable-state').text(on?box.data('on'):box.data('off'));
-        $('.bgc-settings .nav-tab-active').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on);
+        $('.bgc-settings .nav-tab-active').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on); }
+    function showProblems(list){
+        var h='<div class="bgc-enable-modal"><div class="bgc-enable-box"><h3>{$i_title}</h3><p>{$i_intro}</p><ul>';
+        (list||[]).forEach(function(p){ h+='<li><strong>'+esc(p.msg)+'</strong>'+(p.fix?'<br><span class="bgc-fix">{$i_fix} '+esc(p.fix)+'</span>':'')+'</li>'; });
+        h+='</ul><p><button type="button" class="button button-primary bgc-enable-close">{$i_close}</button></p></div></div>';
+        var m=$(h).appendTo('body');
+        m.on('click',function(e){ if(e.target===this||$(e.target).hasClass('bgc-enable-close')){ m.remove(); } });
+    }
+    $(document).on('change','.bgc-enable-toggle input[type=checkbox]',function(){
+        var cb=$(this), on=this.checked, box=cb.closest('.bgc-enable-toggle');
+        setVis(box,on);
+        if(!on){ saveForm(); return; } // disabling never needs validation
+        cb.prop('disabled',true);
+        saveForm(function(){ // persist the entered fields first, then check against them
+            $.post(ajaxurl,{action:'bgc_enable_check',nonce:adminNonce,courier:courier}).done(function(r){
+                if(!(r&&r.success)){ cb.prop('checked',false); setVis(box,false); saveForm(); showProblems(r&&r.data&&r.data.problems); }
+            }).always(function(){ cb.prop('disabled',false); });
+        });
     });
 })(jQuery);
 </script>
-        <?php
+JS;
 
         // Delivery-method sub-tabs — only the methods this courier supports (from capabilities()).
         // Skip entirely for single-method / flat-rate couriers (e.g. BoxNow = locker only, one flat price).

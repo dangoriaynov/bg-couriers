@@ -18,6 +18,14 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
     public function label(): string { return 'Pigeon Express'; }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
 
+    public function enable_problems(): array {
+        $p = parent::enable_problems();
+        $this->need_option($p, 'bgc_pigeon_pickup_office_id',
+            __('No pickup office ID is set.', 'bg-couriers'),
+            __('Enter the “Pickup office ID” you ship from (used for quotes and labels).', 'bg-couriers'));
+        return $p;
+    }
+
     // ── Transport ────────────────────────────────────────────────────────────
 
     /** Pigeon uses two header tokens, not Basic auth — override http_post. */

@@ -33,6 +33,27 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
     public function label(): string { return 'Sameday'; }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
 
+    public function enable_problems(): array {
+        $p = parent::enable_problems();
+        $this->need_option($p, 'bgc_sameday_pickup_point',
+            __('No pickup point ID is set.', 'bg-couriers'),
+            __('Enter the “Pickup point ID” you ship from (required for quotes and labels).', 'bg-couriers'));
+        $labels = [
+            'office'  => __('to office', 'bg-couriers'),
+            'address' => __('to address', 'bg-couriers'),
+            'automat' => __('to locker (easyBox)', 'bg-couriers'),
+        ];
+        foreach (BGC_Settings::enabled_methods('sameday') as $m) {
+            if (!isset($labels[$m]) || trim((string) get_option('bgc_sameday_service_' . $m, '')) !== '') { continue; }
+            $p[] = [
+                /* translators: %s: delivery type, e.g. "to office" */
+                'msg' => sprintf(__('No Sameday service ID for the enabled “%s” delivery type.', 'bg-couriers'), $labels[$m]),
+                'fix' => __('Enter the matching “Service ID” below, or disable that delivery type.', 'bg-couriers'),
+            ];
+        }
+        return $p;
+    }
+
     // ── Auth ─────────────────────────────────────────────────────────────────
 
     /**

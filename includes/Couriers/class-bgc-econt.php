@@ -17,6 +17,16 @@ class BGC_Econt extends BGC_Abstract_Courier {
     public function label(): string { return 'Econt'; }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
 
+    public function enable_problems(): array {
+        $p = parent::enable_problems();
+        if (get_option('bgc_econt_cod_enabled') === 'yes') {
+            $this->need_option($p, 'bgc_econt_cd_num',
+                __('Cash on delivery is on, but no pay-out agreement is selected.', 'bg-couriers'),
+                __('Choose a “CD pay-out agreement” below, or turn off cash on delivery.', 'bg-couriers'));
+        }
+        return $p;
+    }
+
     /** Econt uses HTTP Basic, not a body credential — override the transport. */
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [
