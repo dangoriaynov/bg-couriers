@@ -213,14 +213,19 @@
         bounds.push([lat, lng]);
       });
       if (bounds.length) { bgcMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); } else { bgcMap.setView([42.73, 25.3], 7); }
-      $ov.find('.bgc-map-locate').on('click', function () {
+      var meMarker = null;
+      function showMe(recenter) {
         if (!navigator.geolocation) { return; }
         navigator.geolocation.getCurrentPosition(function (pos) {
           var here = [pos.coords.latitude, pos.coords.longitude];
-          L.circleMarker(here, { radius: 7, color: '#2271b1', fillColor: '#2271b1', fillOpacity: 0.85 }).addTo(bgcMap);
-          bgcMap.setView(here, 13);
+          if (meMarker) { meMarker.setLatLng(here); } else { meMarker = L.circleMarker(here, { radius: 7, color: '#2271b1', fillColor: '#2271b1', fillOpacity: 0.85 }).addTo(bgcMap); }
+          // Keep the offices in view too: fit both when there are offices, else center on the user.
+          if (bounds.length) { bgcMap.fitBounds(bounds.concat([here]), { padding: [30, 30], maxZoom: 14 }); }
+          else if (recenter) { bgcMap.setView(here, 13); }
         });
-      });
+      }
+      $ov.find('.bgc-map-locate').on('click', function () { showMe(true); });
+      showMe(true); // auto-locate on open — if location is already granted, the marker shows without a click
       setTimeout(function () { if (bgcMap) { bgcMap.invalidateSize(); } }, 60); // the modal was just inserted
     });
   }

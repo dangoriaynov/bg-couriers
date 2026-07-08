@@ -358,6 +358,16 @@ class BGC_Checkout {
         $site_id    = $mine ? (int) $s->get('bgc_site_id', 0) : 0;
         $office_id  = $mine ? (int) $s->get('bgc_office_id', 0) : 0;
         $post_code  = $mine ? (string) $s->get('bgc_post_code', '') : '';
+        // Carry the city across a courier switch: postcode is courier-agnostic, so if this courier has no
+        // selection yet but the customer already picked a city, pre-fill the same city (resolved for THIS
+        // courier). The office stays empty — office ids are courier-specific, so they pick that again.
+        if (!$mine && $s) {
+            $carry_pc = (string) $s->get('bgc_post_code', '');
+            if ($carry_pc !== '') {
+                $carry_city = BGC_Nomenclature::city_by_postcode($courier, $carry_pc);
+                if ($carry_city) { $site_id = (int) $carry_city['city_id']; $post_code = $carry_pc; }
+            }
+        }
 
         $city_option = '';
         if ($site_id) {
