@@ -37,8 +37,9 @@ shipments from the WordPress admin.
   for **any** courier (BoxNow needs a locker; a selection made for one courier can't satisfy another),
   with clear per-courier error messages.
 - **Emergency help** — a configurable help phone + message shown after repeated checkout failures.
-- **Interactive map locker picker** — BoxNow's GPS map widget today (a unified GPS map for the other
-  couriers' offices is planned).
+- **Interactive map picker for every courier** — BoxNow's own GPS map widget, plus a bundled-Leaflet
+  (no CDN) GPS map for Speedy/Econt/Pigeon/Sameday: a "Map" button by the office dropdown plots the city's
+  offices/APS from stored coordinates, "show my location" geolocation, click a marker to choose.
 - **Settings** — one tab per courier (only the fields each courier actually uses), toggles tinted green/red,
   AJAX save with a toast, default courier, drag-to-order couriers + delivery options, hide-country,
   per-method free-shipping thresholds, dual-currency switch.
@@ -55,8 +56,7 @@ shipments from the WordPress admin.
   `readme.txt`, and an **external-services disclosure** is required (we call 4 courier APIs + embed the
   BoxNow map iframe). Then a complete, reviewed **bg_BG (Bulgarian) translation** and an escaping/capability sweep.
 - **Advanced courier parity** — per `docs/superpowers/specs/2026-07-04-courier-competitive-settings.md`:
-  Sameday per-service rows / 3-way pricing / open-package; BoxNow home-delivery + any-APM + returns; a
-  unified interactive GPS map for Speedy/Econt/Pigeon offices.
+  Sameday per-service rows / 3-way pricing / open-package; BoxNow home-delivery + any-APM + returns.
 
 ## Architecture (multi-courier framework)
 
