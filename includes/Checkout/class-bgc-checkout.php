@@ -4,6 +4,7 @@ defined('ABSPATH') || exit;
 class BGC_Checkout {
     public function __construct() {
         add_action('woocommerce_after_shipping_rate', [$this, 'render_fields'], 10, 2);
+        add_action('woocommerce_after_shipping_rate', [$this, 'cart_rate_note'], 11, 2); // cart-only: explain the estimate basis
         add_action('wp_enqueue_scripts', [$this, 'assets']);
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
@@ -17,7 +18,7 @@ class BGC_Checkout {
         add_filter('pre_option_woocommerce_enable_shipping_calc', static function () { return 'no'; });
         add_action('wp_head', static function () {
             if (function_exists('is_cart') && is_cart()) {
-                echo '<style>.woocommerce-shipping-calculator{display:none!important;}</style>';
+                echo '<style>.woocommerce-shipping-calculator{display:none!important;}.bgc-cart-note{font-size:.85em;color:#6b7280;margin:2px 0 8px;line-height:1.35;}</style>';
             }
         });
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
@@ -39,6 +40,34 @@ class BGC_Checkout {
             }
         }
         return $default;
+    }
+
+    /**
+     * Cart-only note under each courier rate that explains what the shown price actually is —
+     * which delivery type it's quoted for, and that live/weight-based couriers finalise it at checkout.
+     */
+    public function cart_rate_note($rate, $index): void {
+        if (!function_exists('is_cart') || !is_cart()) { return; }
+        if (!is_object($rate) || strpos((string) $rate->get_method_id(), 'bgc_') !== 0) { return; }
+        $courier_id = substr((string) $rate->get_method_id(), 4);
+        $c = BGC_Couriers::get($courier_id);
+        if (!$c) { return; }
+        $meta = method_exists($rate, 'get_meta_data') ? (array) $rate->get_meta_data() : [];
+        $m = (string) ($meta['bgc_method'] ?? (BGC_Settings::enabled_methods($courier_id)[0] ?? 'office'));
+        $types = [
+            'office'  => __('to an office', 'bg-couriers'),
+            'address' => __('to your address', 'bg-couriers'),
+            'automat' => __('to an APS (locker)', 'bg-couriers'),
+        ];
+        $type = $types[$m] ?? $types['office'];
+        if (in_array('live_quote', $c->capabilities(), true)) {
+            /* translators: %s = delivery type, e.g. "to an office" */
+            $note = sprintf(__('≈ estimate for delivery %s at this cart weight — choose your city and exact point at checkout for the final price.', 'bg-couriers'), $type);
+        } else {
+            /* translators: %s = delivery type */
+            $note = sprintf(__('Flat price for delivery %s — choose your exact locker at checkout.', 'bg-couriers'), $type);
+        }
+        echo '<div class="bgc-cart-note">' . esc_html($note) . '</div>';
     }
 
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
