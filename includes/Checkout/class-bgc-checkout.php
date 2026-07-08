@@ -12,7 +12,14 @@ class BGC_Checkout {
         add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
         // Hide WC's generic cart shipping calculator (Country/Region/City/Postcode) — deliveries are
         // Bulgaria-only and the real office/APS/address is chosen at checkout, so those fields only confuse.
-        add_filter('woocommerce_enable_shipping_calc', '__return_false');
+        // The calculator is gated by the *option* (not a filter), so short-circuit it to 'no'; a CSS net
+        // covers themes (e.g. Shoptimizer) that render the calculator from a custom template regardless.
+        add_filter('pre_option_woocommerce_enable_shipping_calc', static function () { return 'no'; });
+        add_action('wp_head', static function () {
+            if (function_exists('is_cart') && is_cart()) {
+                echo '<style>.woocommerce-shipping-calculator{display:none!important;}</style>';
+            }
+        });
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
         // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
