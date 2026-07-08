@@ -161,6 +161,69 @@
     $office.on('select2:clear', function () { showLoader($wrap); pushSelection($wrap); }); // clearing resets the saved office
   }
 
+  // ── Office / APS map picker (Leaflet, bundled locally) ──────────────────────
+  var mapIconsSet = false, bgcMap = null;
+  function setMapIcons() {
+    if (mapIconsSet || !window.L) { return; }
+    var base = BGC.leaflet_images || '';
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({ iconRetinaUrl: base + 'marker-icon-2x.png', iconUrl: base + 'marker-icon.png', shadowUrl: base + 'marker-shadow.png' });
+    mapIconsSet = true;
+  }
+  function officesFor($wrap, cb) {
+    var city = $wrap.find('.bgc-city').val() || 0, m = method($wrap);
+    if (!city || m === 'address') { cb([]); return; }
+    var key = courier($wrap) + ':' + city + ':' + m;
+    if (officeCache[key] !== undefined) { cb(officeCache[key]); return; }
+    $.get(BGC.ajax, { action: 'bgc_offices', courier: courier($wrap), city_id: city, type: m, all: 1 },
+      function (rows) { officeCache[key] = rows || []; cb(officeCache[key]); });
+  }
+  function pickMapOffice($wrap, o) {
+    var $office = $wrap.find('.bgc-office'), text = o.name + (o.address ? ' — ' + o.address : '');
+    $office.append(new Option(text, o.office_id, true, true)).val(String(o.office_id)).trigger('change');
+    pushSelection($wrap); // recalc + save the chosen office
+  }
+  function closeMap() { $('#bgc-map-overlay').remove(); if (bgcMap) { bgcMap.remove(); bgcMap = null; } }
+  function openMap($wrap) {
+    if (!window.L) { return; }
+    officesFor($wrap, function (rows) {
+      var i18n = BGC.i18n || {};
+      var pts = (rows || []).filter(function (o) { return Number(o.lat) !== 0 || Number(o.lng) !== 0; });
+      var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box">'
+        + '<div class="bgc-map-head"><strong>' + esc(i18n.map_title || 'Map') + '</strong>'
+        + '<button type="button" class="bgc-map-close" aria-label="' + esc(i18n.close || 'Close') + '">×</button></div>'
+        + '<div class="bgc-map-canvas" id="bgc-map"></div>'
+        + '<div class="bgc-map-actions"><button type="button" class="button bgc-map-locate">' + esc(i18n.map_locate || 'My location') + '</button>'
+        + '<span class="bgc-map-hint">' + (pts.length ? '' : esc(i18n.map_none || '')) + '</span></div></div></div>');
+      $('body').append($ov);
+      setMapIcons();
+      bgcMap = L.map('bgc-map', { scrollWheelZoom: true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(bgcMap);
+      var bounds = [];
+      pts.forEach(function (o) {
+        var lat = Number(o.lat), lng = Number(o.lng);
+        var mk = L.marker([lat, lng]).addTo(bgcMap);
+        mk.bindPopup('<div class="bgc-map-pop"><strong>' + esc(o.name || '') + '</strong><br>' + esc(o.address || '')
+          + '<br><button type="button" class="button bgc-map-choose">' + esc(i18n.map_choose || 'Choose') + '</button></div>');
+        mk.on('popupopen', function () { $('.bgc-map-choose').off('click').on('click', function () { pickMapOffice($wrap, o); closeMap(); }); });
+        bounds.push([lat, lng]);
+      });
+      if (bounds.length) { bgcMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); } else { bgcMap.setView([42.73, 25.3], 7); }
+      $ov.find('.bgc-map-locate').on('click', function () {
+        if (!navigator.geolocation) { return; }
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          var here = [pos.coords.latitude, pos.coords.longitude];
+          L.circleMarker(here, { radius: 7, color: '#2271b1', fillColor: '#2271b1', fillOpacity: 0.85 }).addTo(bgcMap);
+          bgcMap.setView(here, 13);
+        });
+      });
+      setTimeout(function () { if (bgcMap) { bgcMap.invalidateSize(); } }, 60); // the modal was just inserted
+    });
+  }
+  $(document).on('click', '.bgc-map-btn', function (e) { e.preventDefault(); openMap($(this).closest('.bgc-fields')); });
+  $(document).on('click', '.bgc-map-close', function () { closeMap(); });
+  $(document).on('click', '#bgc-map-overlay', function (e) { if (e.target === this) { closeMap(); } });
+
   // Street (autocomplete via /location/street; tags:true keeps free-typed streets working).
   function initStreet($wrap) {
     var $street = $wrap.find('.bgc-street');

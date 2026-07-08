@@ -250,12 +250,16 @@ class BGC_Checkout {
         // Version by file mtime so every asset change busts the browser cache automatically.
         $css = BGC_PATH . 'assets/css/bgc-checkout.css';
         $js  = BGC_PATH . 'assets/js/bgc-checkout.js';
-        wp_enqueue_style('bgc-checkout', BGC_URL . 'assets/css/bgc-checkout.css', [], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
-        wp_enqueue_script('bgc-checkout', BGC_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo'], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
+        // Leaflet (bundled locally — no CDN, WP.org-safe) powers the office/APS map picker.
+        wp_enqueue_style('bgc-leaflet', BGC_URL . 'assets/vendor/leaflet/leaflet.css', [], '1.9.4');
+        wp_enqueue_script('bgc-leaflet', BGC_URL . 'assets/vendor/leaflet/leaflet.js', [], '1.9.4', true);
+        wp_enqueue_style('bgc-checkout', BGC_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet'], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
+        wp_enqueue_script('bgc-checkout', BGC_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo', 'bgc-leaflet'], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
         wp_localize_script('bgc-checkout', 'BGC', [
             'ajax'  => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('bgc_checkout'),
             'currency' => get_woocommerce_currency(),
+            'leaflet_images' => BGC_URL . 'assets/vendor/leaflet/images/', // bundled Leaflet marker icons
             'emergency' => BGC_Settings::emergency(),
             'boxnow' => [
                 'widget'    => 'https://map.boxnow.bg/iframe.html', // BoxNow map widget (has built-in GPS)
@@ -273,6 +277,11 @@ class BGC_Checkout {
                 'office_need_city' => __('Select a city first','bg-couriers'),
                 'boxnow_pick' => __('Choose a BOX NOW locker','bg-couriers'),
                 'boxnow_change' => __('Change locker','bg-couriers'),
+                'map_open' => __('View on map','bg-couriers'),
+                'map_title' => __('Pick from the map','bg-couriers'),
+                'map_choose' => __('Choose this location','bg-couriers'),
+                'map_locate' => __('Show my location','bg-couriers'),
+                'map_none' => __('No offices with a map location for this city yet — use the list.','bg-couriers'),
             ],
         ]);
 
@@ -346,7 +355,8 @@ class BGC_Checkout {
            . '<input type="text" class="bgc-postcode" autocomplete="off" inputmode="numeric" maxlength="4" placeholder="' . esc_attr__('opt.', 'bg-couriers') . '" value="' . esc_attr($post_code) . '"></div>'
            . '</div>'
            . '<div class="bgc-field bgc-office-row"' . $office_style . '><label class="bgc-office-label">' . $office_label . '</label>'
-           . '<select class="bgc-office">' . $office_option . '</select></div>'
+           . '<div class="bgc-office-pick"><select class="bgc-office">' . $office_option . '</select>'
+           . '<button type="button" class="button bgc-map-btn" title="' . esc_attr__('View on map', 'bg-couriers') . '"><span class="bgc-map-pin">📍</span> ' . esc_html__('Map', 'bg-couriers') . '</button></div></div>'
            . '<div class="bgc-address-rows"' . $addr_style . '>'
            . '<div class="bgc-grid">'
            . '<div class="bgc-field bgc-street-field"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select></div>'
