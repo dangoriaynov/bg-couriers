@@ -102,7 +102,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-courier-tabs { display:inline-flex; flex-wrap:wrap; gap:10px; }
         #wpbody .bgc-settings .nav-tab { display:inline-flex; align-items:center; gap:8px; }
         #wpbody .bgc-settings .bgc-courier-tab { padding-left:16px; padding-right:20px; cursor:move; }
-        #wpbody .bgc-settings .bgc-tab-ico { flex:0 0 auto; display:block; width:22px; height:22px; object-fit:contain; }
+        #wpbody .bgc-settings .bgc-tab-ico { flex:0 0 auto; display:block; width:16px; height:16px; object-fit:contain; }
         #wpbody .bgc-settings .ui-sortable-helper { box-shadow:0 8px 22px rgba(0,0,0,.28); }
         #wpbody .bgc-settings .ui-sortable-placeholder { visibility:visible !important; background:#f0f0f1; border:1px dashed #b0b3b8; box-shadow:none; }
         #wpbody .bgc-settings .bgc-enable-toggle { display:flex; align-items:center; gap:12px; padding:11px 14px; margin:2px 0 14px; border-radius:10px; border:1px solid #e2e6ea; }
@@ -186,21 +186,15 @@ JS;
         return $map[$id] ?? '#6b7280';
     }
 
-    /** Bundled brand-logo file per courier (assets/img/couriers/), or '' if none. */
-    private static function courier_logo_file(string $id): string {
-        $map = ['speedy' => 'speedy.png', 'econt' => 'econt.png', 'pigeon' => 'pigeon.png', 'boxnow' => 'boxnow.svg', 'sameday' => 'sameday.png'];
-        return $map[$id] ?? '';
-    }
-
     /**
      * Courier brand logo shown before the name on its tab. Uses the bundled logo when present,
      * and falls back to an original brand-coloured parcel badge otherwise.
      */
     private static function courier_icon(string $id): string {
-        $file = self::courier_logo_file($id);
-        if ($file !== '' && is_readable(BGC_PATH . 'assets/img/couriers/' . $file)) {
-            return '<img class="bgc-tab-ico" src="' . esc_url(BGC_URL . 'assets/img/couriers/' . $file)
-                . '" alt="" aria-hidden="true" width="22" height="22">';
+        $url = BGC_Couriers::logo_url($id);
+        if ($url !== '') {
+            return '<img class="bgc-tab-ico" src="' . esc_url($url)
+                . '" alt="" aria-hidden="true" width="16" height="16">';
         }
         $c = esc_attr(self::courier_color($id));
         return '<svg class="bgc-tab-ico" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'

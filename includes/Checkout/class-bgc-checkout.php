@@ -21,6 +21,7 @@ class BGC_Checkout {
                 echo '<style>.woocommerce-shipping-calculator{display:none!important;}.bgc-cart-note{font-size:.85em;color:#6b7280;margin:2px 0 8px;line-height:1.35;}</style>';
             }
         });
+        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'logo_shipping_label'], 5, 2);  // courier brand logo before the name
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
         // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
@@ -74,6 +75,16 @@ class BGC_Checkout {
     public function free_notice_fragment($fragments) { $fragments['.bgc-free-notice'] = self::free_notice_html(); return $fragments; }
 
     /** Append the pegged BGN/EUR equivalent to a shipping-method rate label when dual display is on. */
+    /** Prepend the courier's brand logo to its shipping-method radio label (BGC methods only). */
+    public function logo_shipping_label($label, $method) {
+        if (!is_object($method) || !method_exists($method, 'get_method_id')) { return $label; }
+        $mid = (string) $method->get_method_id();
+        if (strpos($mid, 'bgc_') !== 0) { return $label; }
+        $url = BGC_Couriers::logo_url(substr($mid, 4));
+        if ($url === '') { return $label; }
+        return '<img class="bgc-ship-logo" src="' . esc_url($url) . '" alt="" aria-hidden="true" width="16" height="16"> ' . $label;
+    }
+
     public function dual_shipping_label($label, $method) {
         if (!BGC_Currency::enabled()) { return $label; }
         $store = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : '';

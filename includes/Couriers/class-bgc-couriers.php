@@ -29,6 +29,21 @@ final class BGC_Couriers {
 
     public static function reset(): void { self::$defs = []; self::$built = []; self::$booted = false; }
 
+    /** Bundled brand-logo filename for a courier (assets/img/couriers/), or '' if none. */
+    public static function logo_file(string $id): string {
+        $map = ['speedy' => 'speedy.png', 'econt' => 'econt.png', 'pigeon' => 'pigeon.png', 'boxnow' => 'boxnow.svg', 'sameday' => 'sameday.png'];
+        return $map[$id] ?? '';
+    }
+
+    /** Public URL of a courier's bundled logo, or '' when there is no readable file. */
+    public static function logo_url(string $id): string {
+        $f = self::logo_file($id);
+        if ($f === '' || !defined('BGC_PATH') || !defined('BGC_URL') || !is_readable(BGC_PATH . 'assets/img/couriers/' . $f)) {
+            return '';
+        }
+        return BGC_URL . 'assets/img/couriers/' . $f;
+    }
+
     /** Wire the resolver hook once, at boot (idempotent — safe to call more than once). */
     public static function boot(): void {
         if (self::$booted) { return; }
