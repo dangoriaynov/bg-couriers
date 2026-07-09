@@ -191,8 +191,10 @@
         }
       }
     });
-    $office.on('select2:select', function () { pushSelection($wrap); });
-    $office.on('select2:clear', function () { showLoader($wrap); pushSelection($wrap); }); // clearing resets the saved office
+    // Picking/clearing a specific office in the same city doesn't change the price (it's per city+weight),
+    // so save it without a recalc/loader — no more blinking on this "elementary" action.
+    $office.on('select2:select', function () { saveSelection($wrap); });
+    $office.on('select2:clear', function () { saveSelection($wrap); });
   }
 
   // ── Office / APS map picker (Leaflet, bundled locally) ──────────────────────

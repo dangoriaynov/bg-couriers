@@ -56,11 +56,20 @@ class BGC_Ajax {
     public static function city_offices(string $courier_id, int $city, string $type, string $term = '', int $limit = 5): array {
         $rows = [];
         if ($city > 0) {
-            try {
-                $courier = BGC_Couriers::get($courier_id);
-                if (!$courier) { return []; } // honor the array return type; the AJAX handler sends the empty JSON
-                $rows = $courier->fetch_offices($city);
-            } catch (\Exception $e) { $rows = BGC_Nomenclature::offices($courier_id, $city); }
+            // Cache the (live) office list per courier+city — offices change rarely, so this turns the first
+            // fetch into an instant response for everyone after, killing the checkout's biggest round-trip.
+            $tkey   = 'bgc_off_' . $courier_id . '_' . $city;
+            $cached = get_transient($tkey);
+            if (is_array($cached)) {
+                $rows = $cached;
+            } else {
+                try {
+                    $courier = BGC_Couriers::get($courier_id);
+                    if (!$courier) { return []; } // honor the array return type; the AJAX handler sends the empty JSON
+                    $rows = $courier->fetch_offices($city);
+                    if (!empty($rows)) { set_transient($tkey, $rows, 6 * HOUR_IN_SECONDS); }
+                } catch (\Exception $e) { $rows = BGC_Nomenclature::offices($courier_id, $city); }
+            }
         }
         if ($type !== '') {
             $rows = array_filter($rows, static function ($o) use ($type) { return ($o['type'] ?? '') === $type; });
