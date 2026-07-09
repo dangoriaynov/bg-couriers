@@ -225,35 +225,56 @@
     officesFor($wrap, function (rows) {
       var i18n = BGC.i18n || {};
       var pts = (rows || []).filter(function (o) { return Number(o.lat) !== 0 || Number(o.lng) !== 0; });
-      var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box">'
+      var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box bgc-map-box-wide">'
         + '<div class="bgc-map-head"><strong>' + esc(i18n.map_title || 'Map') + '</strong>'
         + '<button type="button" class="bgc-map-close" aria-label="' + esc(i18n.close || 'Close') + '">×</button></div>'
-        + '<div class="bgc-map-canvas" id="bgc-map"></div>'
+        + '<div class="bgc-map-body"><div class="bgc-map-side">'
+        + '<input type="text" class="bgc-map-search" placeholder="' + esc((i18n.office_ph || 'Search…')) + '">'
+        + '<ul class="bgc-map-list"></ul></div>'
+        + '<div class="bgc-map-canvas" id="bgc-map"></div></div>'
         + '<div class="bgc-map-actions"><button type="button" class="button bgc-map-locate">' + esc(i18n.map_locate || 'My location') + '</button>'
         + '<span class="bgc-map-hint">' + (pts.length ? '' : esc(i18n.map_none || '')) + '</span></div></div></div>');
       $('body').append($ov);
       setMapIcons();
       bgcMap = L.map('bgc-map', { scrollWheelZoom: true });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(bgcMap);
-      var bounds = [];
-      pts.forEach(function (o) {
+      var bounds = [], markers = [], $list = $ov.find('.bgc-map-list');
+      pts.forEach(function (o, i) {
         var lat = Number(o.lat), lng = Number(o.lng);
         var mk = L.marker([lat, lng]).addTo(bgcMap);
         mk.bindPopup('<div class="bgc-map-pop"><strong>' + esc(o.name || '') + '</strong><br>' + esc(o.address || '')
           + '<br><button type="button" class="button bgc-map-choose">' + esc(i18n.map_choose || 'Choose') + '</button></div>');
         mk.on('popupopen', function () { $('.bgc-map-choose').off('click').on('click', function () { pickMapOffice($wrap, o); closeMap(); }); });
-        bounds.push([lat, lng]);
+        markers.push(mk); bounds.push([lat, lng]);
+        $('<li class="bgc-map-item" data-i="' + i + '"><strong>' + esc(o.name || '') + '</strong><span>' + esc(o.address || '') + '</span></li>').appendTo($list);
+      });
+      // Click a list row -> focus that office on the map + open its popup (like the BOX NOW widget).
+      $list.on('click', '.bgc-map-item', function () {
+        var mk = markers[+$(this).data('i')]; if (!mk) { return; }
+        $list.find('.active').removeClass('active'); $(this).addClass('active');
+        bgcMap.setView(mk.getLatLng(), Math.max(bgcMap.getZoom(), 15)); mk.openPopup();
+      });
+      $ov.find('.bgc-map-search').on('input', function () {
+        var t = this.value.toLowerCase();
+        $list.find('.bgc-map-item').each(function () {
+          var o = pts[+$(this).data('i')] || {};
+          $(this).toggle(!t || (o.name || '').toLowerCase().indexOf(t) !== -1 || (o.address || '').toLowerCase().indexOf(t) !== -1);
+        });
       });
       if (bounds.length) { bgcMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); } else { bgcMap.setView([42.73, 25.3], 7); }
       var meMarker = null;
+      function pulseMe() { // draw attention to the "you are here" marker for a moment
+        if (!meMarker) { return; }
+        var i = 0, iv = setInterval(function () { i++; meMarker.setRadius(i % 2 ? 14 : 7); if (i >= 6) { clearInterval(iv); meMarker.setRadius(7); } }, 220);
+      }
       function showMe(recenter) {
         if (!navigator.geolocation) { return; }
         navigator.geolocation.getCurrentPosition(function (pos) {
           var here = [pos.coords.latitude, pos.coords.longitude];
-          if (meMarker) { meMarker.setLatLng(here); } else { meMarker = L.circleMarker(here, { radius: 7, color: '#2271b1', fillColor: '#2271b1', fillOpacity: 0.85 }).addTo(bgcMap); }
+          if (meMarker) { meMarker.setLatLng(here); } else { meMarker = L.circleMarker(here, { radius: 7, color: '#fff', weight: 3, fillColor: '#2271b1', fillOpacity: 1 }).addTo(bgcMap); }
+          pulseMe();
           if (pts.length) {
-            // Zoom to the customer + the few NEAREST offices (not the whole city), so it's clear where they
-            // are and which points are close. Longitude scaled by ~cos(42°) for Bulgaria.
+            // Zoom to the customer + the few NEAREST offices (not the whole city). Lng scaled by ~cos(42°).
             var near = pts.map(function (o) {
                 var dlat = Number(o.lat) - here[0], dlng = (Number(o.lng) - here[1]) * 0.74;
                 return { ll: [Number(o.lat), Number(o.lng)], d: dlat * dlat + dlng * dlng };
@@ -270,6 +291,7 @@
   $(document).on('click', '.bgc-map-btn:not(.bgc-addr-map-btn)', function (e) { e.preventDefault(); openMap($(this).closest('.bgc-fields')); });
   $(document).on('click', '.bgc-map-close', function () { closeMap(); });
   $(document).on('click', '#bgc-map-overlay', function (e) { if (e.target === this) { closeMap(); } });
+  $(document).on('keydown', function (e) { if ((e.key === 'Escape' || e.keyCode === 27) && $('#bgc-map-overlay').length) { closeMap(); } });
 
   // ── Address map picker: drop/drag a pin -> reverse-geocode -> fill the (still editable) address fields.
   var geoT;
