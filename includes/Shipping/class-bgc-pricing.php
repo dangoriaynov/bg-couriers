@@ -34,12 +34,22 @@ class BGC_Pricing {
             $est = self::estimate($courier->id(), $method);
             if ($est !== null) { return new BGC_Quote(round($est, 2), 0.0, $currency, 'reference'); }
         }
+        // Cache the live quote per courier+method+city+weight. The city now carries across couriers, so
+        // without this every switch would re-hit the courier API; with it, a seen combo is instant.
+        $w    = round((float) ($packed['weight_kg'] ?? 0), 2);
+        $tkey = 'bgc_q_' . $courier->id() . '_' . $method . '_' . $site_id . '_' . str_replace('.', '', (string) $w);
+        $cached = get_transient($tkey);
+        if (is_array($cached) && isset($cached['p'])) {
+            return new BGC_Quote((float) $cached['p'], 0.0, (string) ($cached['c'] ?? $currency), 'cached');
+        }
         $res = self::resolve_office($courier->id(), $method, $site_id, $office);
         $shipment = array_merge($packed, [
             'method' => $method, 'site_id' => $res['site_id'], 'office_id' => $res['office_id'],
             'cod_amount' => 0.0, 'currency' => $currency,
         ]);
-        return self::quote($courier, $shipment);
+        $q = self::quote($courier, $shipment);
+        if ($q->source === 'live') { set_transient($tkey, ['p' => $q->price, 'c' => $q->currency], 3 * HOUR_IN_SECONDS); }
+        return $q;
     }
 
     public static function quote(BGC_Courier_Interface $courier, array $shipment): BGC_Quote {
