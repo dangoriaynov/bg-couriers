@@ -69,7 +69,17 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 /* min-width:0 + width:auto let the select shrink so the Map button stays inside the row (overrides the
    global .select2-container width:100% !important, hence the more specific selector). */
 .bgc-office-pick .bgc-office, .bgc-office-pick .select2-container { flex: 1 1 auto; min-width: 0; width: auto !important; }
-.bgc-map-btn { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+/* Neutral, theme-agnostic button: transparent with a currentColor border + icon, so it looks right on
+   both light and dark sites (no theme accent colour, no emoji). */
+.bgc-map-btn { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;
+  box-sizing: border-box; height: 38px; padding: 0 12px;
+  background: transparent; color: inherit; font: inherit; line-height: 1;
+  border: 1px solid currentColor; border-radius: 8px; opacity: .6;
+  cursor: pointer; box-shadow: none; transition: opacity .15s ease, background-color .15s ease; }
+.bgc-map-btn:hover { opacity: 1; background: rgba(128,128,128,.10); }
+.bgc-map-btn:focus-visible { opacity: 1; outline: 2px solid currentColor; outline-offset: 1px; }
+.bgc-map-btn:disabled { opacity: .3; cursor: default; background: transparent; }
+.bgc-map-btn .bgc-map-ico { flex: 0 0 auto; display: block; }
 .bgc-map-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .bgc-map-box { background: #fff; border-radius: 10px; width: min(860px, 96vw); max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.3); }
 .bgc-map-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #e5e7eb; }
