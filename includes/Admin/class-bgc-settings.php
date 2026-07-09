@@ -22,6 +22,7 @@ class BGC_Settings {
         add_action('wp_ajax_bgc_reset_creds', [$this, 'ajax_reset_creds']);
         add_action('wp_ajax_bgc_save_settings', [$this, 'ajax_save']);
         add_action('wp_ajax_bgc_enable_check', [$this, 'ajax_enable_check']);
+        add_action('wp_ajax_bgc_save_order', [$this, 'ajax_save_order']);
         add_filter('plugin_action_links_' . plugin_basename(BGC_FILE), [$this, 'action_links']);
     }
 
@@ -220,6 +221,15 @@ class BGC_Settings {
         $problems = $c->enable_problems();
         if (!empty($problems)) { wp_send_json_error(['problems' => array_values($problems)]); }
         wp_send_json_success(['ok' => true]);
+    }
+
+    /** Save the courier order dragged on the settings tabs (drives checkout + cart ordering via sort_rates). */
+    public function ajax_save_order(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(); }
+        check_ajax_referer('bgc_admin', 'nonce');
+        $order = array_values(array_filter(array_map('sanitize_key', explode(',', (string) ($_POST['order'] ?? '')))));
+        update_option('bgc_courier_order', implode(',', $order));
+        wp_send_json_success();
     }
 
     /** The red × by the password: marks the credentials as needing re-validation (so the tint goes red). */

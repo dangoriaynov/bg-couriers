@@ -99,6 +99,12 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .nav-tab.bgc-tab-off { background:#fdeeee; border-color:#eecfcf; }
         #wpbody .bgc-settings .nav-tab.bgc-tab-on.nav-tab-active { background:#d8f3e1; }
         #wpbody .bgc-settings .nav-tab.bgc-tab-off.nav-tab-active { background:#fbdcdc; }
+        #wpbody .bgc-settings .bgc-courier-tabs { display:inline-flex; flex-wrap:wrap; gap:10px; }
+        #wpbody .bgc-settings .nav-tab { display:inline-flex; align-items:center; gap:8px; }
+        #wpbody .bgc-settings .bgc-courier-tab { padding-left:16px; padding-right:20px; cursor:move; }
+        #wpbody .bgc-settings .bgc-tab-ico { flex:0 0 auto; display:block; }
+        #wpbody .bgc-settings .ui-sortable-helper { box-shadow:0 8px 22px rgba(0,0,0,.28); }
+        #wpbody .bgc-settings .ui-sortable-placeholder { visibility:visible !important; background:#f0f0f1; border:1px dashed #b0b3b8; box-shadow:none; }
         #wpbody .bgc-settings .bgc-enable-toggle { display:flex; align-items:center; gap:12px; padding:11px 14px; margin:2px 0 14px; border-radius:10px; border:1px solid #e2e6ea; }
         #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-on { background:#f1faf3; border-color:#c4e7cf; }
         #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-off { background:#fdf5f5; border-color:#eecfcf; }
@@ -174,16 +180,59 @@ class BGC_WC_Settings extends WC_Settings_Page {
 JS;
     }
 
+    /** Brand colour per courier — original, trademark-safe (not the couriers' logos). */
+    private static function courier_color(string $id): string {
+        $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034'];
+        return $map[$id] ?? '#6b7280';
+    }
+
+    /** Small brand-coloured parcel badge shown before the courier name on its tab. */
+    private static function courier_icon(string $id): string {
+        $c = esc_attr(self::courier_color($id));
+        return '<svg class="bgc-tab-ico" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+            . '<rect x="1" y="1" width="22" height="22" rx="5" fill="' . $c . '"></rect>'
+            . '<path d="M12 5.4l5.6 2.8v7.6L12 18.6 6.4 15.8V8.2L12 5.4z" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"></path>'
+            . '<path d="M6.6 8.4L12 11.1l5.4-2.7M12 11.1v7.4" fill="none" stroke="#fff" stroke-width="1.2"></path></svg>';
+    }
+
+    private function nav_pill(string $id, string $label, string $current, bool $courier): string {
+        $url    = admin_url('admin.php?page=wc-settings&tab=bg_couriers' . ($id ? '&section=' . $id : ''));
+        $active = $current === $id ? ' nav-tab-active' : '';
+        $tint   = $id !== '' ? (get_option('bgc_' . $id . '_enabled', 'no') === 'yes' ? ' bgc-tab-on' : ' bgc-tab-off') : '';
+        $cls    = 'nav-tab' . $active . $tint . ($courier ? ' bgc-courier-tab' : '');
+        $ico    = $courier ? self::courier_icon($id) : '';
+        return '<a class="' . $cls . '" href="' . esc_url($url) . '" data-courier="' . esc_attr($id) . '">' . $ico . '<span>' . esc_html($label) . '</span></a>';
+    }
+
     private function section_nav(string $current): void {
-        echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper">';
-        foreach ($this->sections() as $id => $label) {
-            $url = admin_url('admin.php?page=wc-settings&tab=bg_couriers' . ($id ? '&section=' . $id : ''));
-            $active = $current === $id ? ' nav-tab-active' : '';
-            // Courier sections (every non-General one) get a light green/red tint by enabled state.
-            $tint = $id !== '' ? (get_option('bgc_' . $id . '_enabled', 'no') === 'yes' ? ' bgc-tab-on' : ' bgc-tab-off') : '';
-            echo '<a class="nav-tab' . $active . $tint . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
+        $sections = $this->sections();
+        echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper bgc-section-nav">';
+        if (array_key_exists('', $sections)) { echo $this->nav_pill('', $sections[''], $current, false); } // General — fixed
+        echo '<span class="bgc-courier-tabs">'; // draggable couriers, in the saved order
+        foreach (BGC_Settings::courier_order() as $cid) {
+            if (isset($sections[$cid])) { echo $this->nav_pill($cid, $sections[$cid], $current, true); }
         }
-        echo '</nav>';
+        echo '</span></nav>';
+        wp_enqueue_script('jquery-ui-sortable');
+        $ajax  = esc_js(admin_url('admin-ajax.php'));
+        $nonce = esc_js(wp_create_nonce('bgc_admin'));
+        echo <<<JS
+<script>
+jQuery(function($){
+    var c = $('.bgc-courier-tabs'); if (!c.length || !$.fn.sortable) { return; }
+    var dragged = false;
+    c.sortable({ items: '> .bgc-courier-tab', distance: 6, cursor: 'move', tolerance: 'pointer', opacity: .85,
+        start: function(){ dragged = true; },
+        stop: function(){ setTimeout(function(){ dragged = false; }, 0); },
+        update: function(){
+            var order = c.children('.bgc-courier-tab').map(function(){ return $(this).data('courier'); }).get().join(',');
+            $.post('{$ajax}', { action: 'bgc_save_order', nonce: '{$nonce}', order: order });
+        }
+    });
+    c.on('click', '.bgc-courier-tab', function(e){ if (dragged) { e.preventDefault(); } }); // a drag isn't a navigation
+});
+</script>
+JS;
     }
 
     /**
@@ -333,7 +382,7 @@ JS;
             ['type' => 'select', 'id' => 'bgc_default_courier', 'title' => __('Default courier', 'bg-couriers'),
                 'desc' => __('Which courier is pre-selected at checkout. The default delivery option is the first one in each courier’s “Delivery option order” below.', 'bg-couriers'),
                 'options' => $courier_opts, 'default' => ''],
-            ['type' => 'bgc_sortable', 'id' => 'bgc_courier_order', 'title' => __('Courier order', 'bg-couriers')],
+            // Courier order is now set by dragging the courier tabs at the top of this page.
             ['type' => 'sectionend', 'id' => 'bgc_general'],
 
             ['type' => 'title', 'id' => 'bgc_labels', 'title' => __('Label generation', 'bg-couriers')],
