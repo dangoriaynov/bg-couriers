@@ -3,10 +3,65 @@ defined('ABSPATH') || exit;
 
 class BGC_Ajax {
     public function __construct() {
-        foreach (['search_cities','offices','city_avail','streets','set_selection'] as $a) {
+        foreach (['search_cities','offices','city_avail','streets','set_selection','geocode'] as $a) {
             add_action("wp_ajax_bgc_{$a}", [$this, $a]);
             add_action("wp_ajax_nopriv_bgc_{$a}", [$this, $a]);
         }
+    }
+
+    /**
+     * Reverse-geocode a lat/lng to Bulgarian address parts for the checkout address-map picker.
+     * Uses Google when the admin has set a Maps API key (better accuracy), else OpenStreetMap Nominatim.
+     * Result cached per rounded coordinate. Returns { city, postcode, street, number }.
+     */
+    public function geocode(): void {
+        $lat = round((float) ($_GET['lat'] ?? 0), 5);
+        $lng = round((float) ($_GET['lng'] ?? 0), 5);
+        if ($lat === 0.0 && $lng === 0.0) { wp_send_json([]); }
+        $tkey = 'bgc_geo_' . str_replace(['.', '-'], ['', 'm'], $lat . '_' . $lng);
+        $cached = get_transient($tkey);
+        if (is_array($cached)) { wp_send_json($cached); }
+        $key = trim((string) get_option('bgc_google_maps_key', ''));
+        $out = $key !== '' ? self::geocode_google($lat, $lng, $key) : self::geocode_nominatim($lat, $lng);
+        if (!empty($out)) { set_transient($tkey, $out, WEEK_IN_SECONDS); }
+        wp_send_json($out);
+    }
+
+    private static function geocode_nominatim(float $lat, float $lng): array {
+        $url = add_query_arg([
+            'lat' => $lat, 'lon' => $lng, 'format' => 'jsonv2', 'addressdetails' => 1, 'accept-language' => 'bg',
+        ], 'https://nominatim.openstreetmap.org/reverse');
+        $r = wp_remote_get($url, ['timeout' => 12, 'headers' => ['User-Agent' => 'bg-couriers WooCommerce plugin']]);
+        if (is_wp_error($r)) { return []; }
+        $a = (array) (json_decode((string) wp_remote_retrieve_body($r), true)['address'] ?? []);
+        if (empty($a)) { return []; }
+        return [
+            'city'     => (string) ($a['city'] ?? $a['town'] ?? $a['village'] ?? $a['municipality'] ?? ''),
+            'postcode' => (string) ($a['postcode'] ?? ''),
+            'street'   => (string) ($a['road'] ?? ''),
+            'number'   => (string) ($a['house_number'] ?? ''),
+        ];
+    }
+
+    private static function geocode_google(float $lat, float $lng, string $key): array {
+        $url = add_query_arg([
+            'latlng' => $lat . ',' . $lng, 'language' => 'bg', 'key' => $key,
+        ], 'https://maps.googleapis.com/maps/api/geocode/json');
+        $r = wp_remote_get($url, ['timeout' => 12]);
+        if (is_wp_error($r)) { return self::geocode_nominatim($lat, $lng); } // fall back to OSM
+        $data = json_decode((string) wp_remote_retrieve_body($r), true);
+        $comp = (array) ($data['results'][0]['address_components'] ?? []);
+        if (empty($comp)) { return []; }
+        $pick = static function ($type) use ($comp) {
+            foreach ($comp as $c) { if (in_array($type, (array) ($c['types'] ?? []), true)) { return (string) ($c['long_name'] ?? ''); } }
+            return '';
+        };
+        return [
+            'city'     => $pick('locality') ?: $pick('administrative_area_level_2'),
+            'postcode' => $pick('postal_code'),
+            'street'   => $pick('route'),
+            'number'   => $pick('street_number'),
+        ];
     }
     public static function address_fields(array $src): array {
         $keys = ['street_name','street_no','complex','block','entrance','floor','apartment','address_note'];

@@ -50,7 +50,8 @@ This plugin relies on the online APIs of the couriers you enable to calculate sh
 * **BOX NOW** — api-production.boxnow.bg, and the locker-selection **map widget map.boxnow.bg**, which is loaded in an iframe **only when the customer opens the BOX NOW locker picker**. Terms/Privacy: https://boxnow.bg
 * **Sameday** — api.sameday.ro (or the demo host sameday-api.demo.zitec.com in test mode). Terms/Privacy: https://sameday.bg
 
-**Maps:** the office/locker map picker for Speedy/Econt/Pigeon/Sameday loads map tiles from **OpenStreetMap (tile.openstreetmap.org)** — only when the customer opens the map. OpenStreetMap tile usage policy: https://operations.osmfoundation.org/policies/tiles/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
+**Maps:** the map pickers (office/locker, and the address picker) load map tiles from **OpenStreetMap (tile.openstreetmap.org)** and reverse-geocode a picked point via **OpenStreetMap Nominatim (nominatim.openstreetmap.org)** — only when the customer opens a map / drops a pin. OSM tile policy: https://operations.osmfoundation.org/policies/tiles/ · Nominatim policy: https://operations.osmfoundation.org/policies/nominatim/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
+If the merchant sets a **Google Maps API key** (optional), the address picker instead uses **Google Maps Geocoding (maps.googleapis.com)** for that lookup — sending only the picked coordinates. Google terms: https://cloud.google.com/maps-platform/terms · Privacy: https://policies.google.com/privacy
 
 No data is sent to any service the merchant has not configured, and the plugin sends nothing to the plugin author.
 

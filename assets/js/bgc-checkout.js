@@ -261,9 +261,65 @@
       setTimeout(function () { if (bgcMap) { bgcMap.invalidateSize(); } }, 60); // the modal was just inserted
     });
   }
-  $(document).on('click', '.bgc-map-btn', function (e) { e.preventDefault(); openMap($(this).closest('.bgc-fields')); });
+  $(document).on('click', '.bgc-map-btn:not(.bgc-addr-map-btn)', function (e) { e.preventDefault(); openMap($(this).closest('.bgc-fields')); });
   $(document).on('click', '.bgc-map-close', function () { closeMap(); });
   $(document).on('click', '#bgc-map-overlay', function (e) { if (e.target === this) { closeMap(); } });
+
+  // ── Address map picker: drop/drag a pin -> reverse-geocode -> fill the (still editable) address fields.
+  var geoT;
+  function reverseGeocode(lat, lng, cb) {
+    clearTimeout(geoT);
+    geoT = setTimeout(function () { $.get(BGC.ajax, { action: 'bgc_geocode', lat: lat, lng: lng }, function (r) { cb(r || {}); }); }, 350);
+  }
+  function fillAddress($wrap, geo) {
+    function rest() {
+      if (geo.postcode) { $wrap.find('.bgc-postcode').val(geo.postcode); }
+      if (geo.street) { $wrap.find('.bgc-street').append(new Option(geo.street, geo.street, true, true)).trigger('change'); }
+      if (geo.number) { $wrap.find('.bgc-street-no').val(geo.number); }
+      resetOffice($wrap); showLoader($wrap); pushSelection($wrap); // recalc for the (possibly new) city
+    }
+    var term = geo.postcode || geo.city || '';
+    if (term) {
+      $.get(BGC.ajax, { action: 'bgc_search_cities', courier: courier($wrap), term: term }, function (rows) {
+        var r = (rows && rows.length) ? rows[0] : null;
+        if (r) { $wrap.find('.bgc-city').append(new Option(r.name, r.city_id, true, true)).trigger('change'); }
+        rest();
+      });
+    } else { rest(); }
+  }
+  function openAddressMap($wrap) {
+    if (!window.L) { return; }
+    var i18n = BGC.i18n || {};
+    var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box">'
+      + '<div class="bgc-map-head"><strong>' + esc(i18n.addr_map_title || 'Map') + '</strong>'
+      + '<button type="button" class="bgc-map-close" aria-label="' + esc(i18n.close || 'Close') + '">×</button></div>'
+      + '<div class="bgc-map-canvas" id="bgc-map"></div>'
+      + '<div class="bgc-map-actions"><button type="button" class="button bgc-map-locate">' + esc(i18n.map_locate || 'My location') + '</button>'
+      + '<span class="bgc-map-hint bgc-addr-preview">' + esc(i18n.addr_map_hint || '') + '</span>'
+      + '<button type="button" class="button button-primary bgc-addr-use" disabled>' + esc(i18n.addr_use || 'Use') + '</button></div></div></div>');
+    $('body').append($ov);
+    setMapIcons();
+    bgcMap = L.map('bgc-map', { scrollWheelZoom: true }).setView([42.7, 25.3], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(bgcMap);
+    var pin = null, current = {};
+    function place(ll) {
+      if (pin) { pin.setLatLng(ll); } else { pin = L.marker(ll, { draggable: true }).addTo(bgcMap); pin.on('dragend', function () { place(pin.getLatLng()); }); }
+      $ov.find('.bgc-addr-preview').text('…'); $ov.find('.bgc-addr-use').prop('disabled', true);
+      reverseGeocode(ll.lat, ll.lng, function (geo) {
+        current = geo;
+        var txt = [geo.street, geo.number].filter(Boolean).join(' ') + (geo.city ? ((geo.street ? ', ' : '') + geo.city) : '');
+        $ov.find('.bgc-addr-preview').text(txt || (i18n.addr_none || ''));
+        $ov.find('.bgc-addr-use').prop('disabled', !(geo.city || geo.street));
+      });
+    }
+    bgcMap.on('click', function (e) { place(e.latlng); });
+    function locate() { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(function (pos) { var here = L.latLng(pos.coords.latitude, pos.coords.longitude); bgcMap.setView(here, 15); place(here); }); } }
+    $ov.find('.bgc-map-locate').on('click', locate);
+    locate(); // auto-locate + drop a pin on open
+    $ov.find('.bgc-addr-use').on('click', function () { fillAddress($wrap, current); closeMap(); });
+    setTimeout(function () { if (bgcMap) { bgcMap.invalidateSize(); } }, 60);
+  }
+  $(document).on('click', '.bgc-addr-map-btn', function (e) { e.preventDefault(); openAddressMap($(this).closest('.bgc-fields')); });
 
   // Street (autocomplete via /location/street; tags:true keeps free-typed streets working).
   function initStreet($wrap) {

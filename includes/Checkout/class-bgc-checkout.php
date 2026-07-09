@@ -314,6 +314,8 @@ class BGC_Checkout {
             'currency' => get_woocommerce_currency(),
             'preloadCities' => $preload,
             'cityIndex' => $city_index,
+            'addressMap' => get_option('bgc_address_map', 'yes') === 'yes',
+            'googleKey' => (string) get_option('bgc_google_maps_key', ''), // set => Google map + geocoding; else OSM
             'leaflet_images' => BGC_URL . 'assets/lib/leaflet/images/', // bundled Leaflet marker icons
             'emergency' => BGC_Settings::emergency(),
             'boxnow' => [
@@ -337,6 +339,10 @@ class BGC_Checkout {
                 'map_choose' => __('Choose this location','bg-couriers'),
                 'map_locate' => __('Show my location','bg-couriers'),
                 'map_none' => __('No offices with a map location for this city yet — use the list.','bg-couriers'),
+                'addr_map_title' => __('Choose your address on the map','bg-couriers'),
+                'addr_map_hint' => __('Click the map or drag the pin to your address.','bg-couriers'),
+                'addr_use' => __('Use this address','bg-couriers'),
+                'addr_none' => __('No address found here — try another spot.','bg-couriers'),
             ],
         ]);
 
@@ -428,6 +434,11 @@ class BGC_Checkout {
            . '<svg class="bgc-map-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
            . '<span>' . esc_html__('Map', 'bg-couriers') . '</span></button></div></div>'
            . '<div class="bgc-address-rows"' . $addr_style . '>'
+           . (get_option('bgc_address_map', 'yes') === 'yes'
+               ? '<div class="bgc-field bgc-addr-map-row"><button type="button" class="bgc-map-btn bgc-addr-map-btn">'
+                 . '<svg class="bgc-map-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
+                 . '<span>' . esc_html__('Choose on map', 'bg-couriers') . '</span></button></div>'
+               : '')
            . '<div class="bgc-grid">'
            . '<div class="bgc-field bgc-street-field"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select></div>'
            . '<div class="bgc-field bgc-streetno-field"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></div>'
