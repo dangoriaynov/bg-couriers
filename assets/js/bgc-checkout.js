@@ -251,9 +251,15 @@
         navigator.geolocation.getCurrentPosition(function (pos) {
           var here = [pos.coords.latitude, pos.coords.longitude];
           if (meMarker) { meMarker.setLatLng(here); } else { meMarker = L.circleMarker(here, { radius: 7, color: '#2271b1', fillColor: '#2271b1', fillOpacity: 0.85 }).addTo(bgcMap); }
-          // Keep the offices in view too: fit both when there are offices, else center on the user.
-          if (bounds.length) { bgcMap.fitBounds(bounds.concat([here]), { padding: [30, 30], maxZoom: 14 }); }
-          else if (recenter) { bgcMap.setView(here, 13); }
+          if (pts.length) {
+            // Zoom to the customer + the few NEAREST offices (not the whole city), so it's clear where they
+            // are and which points are close. Longitude scaled by ~cos(42°) for Bulgaria.
+            var near = pts.map(function (o) {
+                var dlat = Number(o.lat) - here[0], dlng = (Number(o.lng) - here[1]) * 0.74;
+                return { ll: [Number(o.lat), Number(o.lng)], d: dlat * dlat + dlng * dlng };
+              }).sort(function (a, b) { return a.d - b.d; }).slice(0, 6).map(function (x) { return x.ll; });
+            bgcMap.fitBounds([here].concat(near), { padding: [45, 45], maxZoom: 15 });
+          } else if (recenter) { bgcMap.setView(here, 14); }
         });
       }
       $ov.find('.bgc-map-locate').on('click', function () { showMe(true); });
