@@ -375,7 +375,7 @@ JS;
             ['type' => 'checkbox', 'id' => 'bgc_cart_estimate_enabled', 'title' => __('Shipping estimate on the cart', 'bg-couriers'),
                 'desc' => __('Show an estimated shipping price per courier + delivery option on the cart page. The exact, address-specific price is still calculated at checkout.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgc_dual_currency', 'title' => __('Show prices in both EUR and BGN', 'bg-couriers'),
-                'desc' => __('Show the shipping price with the pegged equivalent in brackets — 1 EUR = 1.95583 BGN — on the shipping method, the cart estimate and the free-shipping notice.', 'bg-couriers'), 'default' => 'no'],
+                'desc' => __('Show the shipping price with the pegged лв. equivalent in brackets — 1 EUR = 1.95583 BGN — on the shipping method, the cart estimate and the free-shipping notice. Leave off to show only the store currency (e.g. if another plugin already displays лв.).', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgc_preload_cities', 'title' => __('Preload city lists', 'bg-couriers'),
                 'desc' => __('Embed each courier’s office/APS city list in the checkout page so those dropdowns open instantly with no loading. Address delivery still searches all cities live. Recommended on.', 'bg-couriers'), 'default' => 'yes'],
             ['type' => 'number', 'id' => 'bgc_dropdown_limit', 'title' => __('Checkout dropdown results', 'bg-couriers'),

@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-09T09:09:55+00:00\n"
+"POT-Creation-Date: 2026-07-09T09:32:01+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: bg-couriers\n"
@@ -359,7 +359,7 @@ msgid "Show prices in both EUR and BGN"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:378
-msgid "Show the shipping price with the pegged equivalent in brackets — 1 EUR = 1.95583 BGN — on the shipping method, the cart estimate and the free-shipping notice."
+msgid "Show the shipping price with the pegged лв. equivalent in brackets — 1 EUR = 1.95583 BGN — on the shipping method, the cart estimate and the free-shipping notice. Leave off to show only the store currency (e.g. if another plugin already displays лв.)."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:379
