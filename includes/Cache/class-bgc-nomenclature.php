@@ -89,4 +89,26 @@ class BGC_Nomenclature {
             $courier, $type), ARRAY_A);
         return $row ?: null;
     }
+
+    /**
+     * Compact list of cities that HAVE this courier's offices, per type — for preloading the checkout city
+     * dropdown (office/automat) so it needs no AJAX. Rows are [city_id, name, post_code]. Cached (a day).
+     * @return array{office:array<int,array>,automat:array<int,array>}
+     */
+    public static function city_index(string $courier): array {
+        $key = 'bgc_cityidx_' . $courier;
+        $cached = get_transient($key);
+        if (is_array($cached)) { return $cached; }
+        global $wpdb; $o = $wpdb->prefix . 'bgc_offices'; $c = $wpdb->prefix . 'bgc_cities';
+        $out = ['office' => [], 'automat' => []];
+        foreach (['office', 'automat'] as $type) {
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT DISTINCT c.city_id, c.name, c.post_code FROM {$o} o
+                 JOIN {$c} c ON c.courier=o.courier AND c.city_id=o.city_id
+                 WHERE o.courier=%s AND o.type=%s ORDER BY c.name", $courier, $type), ARRAY_A);
+            foreach ($rows as $r) { $out[$type][] = [(int) $r['city_id'], $r['name'], (string) $r['post_code']]; }
+        }
+        set_transient($key, $out, DAY_IN_SECONDS);
+        return $out;
+    }
 }

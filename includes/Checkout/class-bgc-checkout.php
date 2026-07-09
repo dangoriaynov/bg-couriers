@@ -298,10 +298,22 @@ class BGC_Checkout {
         wp_enqueue_script('bgc-leaflet', BGC_URL . 'assets/lib/leaflet/leaflet.js', [], '1.9.4', true);
         wp_enqueue_style('bgc-checkout', BGC_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet'], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
         wp_enqueue_script('bgc-checkout', BGC_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo', 'bgc-leaflet'], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
+        // When enabled (default), preload each enabled courier's cities-with-offices (office/automat) so the
+        // checkout city dropdown needs no AJAX and availability is derived client-side. The AJAX path stays
+        // as the fallback + for address (all BG cities). Off => nothing preloaded, pure AJAX as before.
+        $preload = get_option('bgc_preload_cities', 'yes') === 'yes';
+        $city_index = [];
+        if ($preload) {
+            foreach (array_keys(BGC_Couriers::all()) as $cid) {
+                if (BGC_Settings::courier_config($cid)) { $city_index[$cid] = BGC_Nomenclature::city_index($cid); }
+            }
+        }
         wp_localize_script('bgc-checkout', 'BGC', [
             'ajax'  => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('bgc_checkout'),
             'currency' => get_woocommerce_currency(),
+            'preloadCities' => $preload,
+            'cityIndex' => $city_index,
             'leaflet_images' => BGC_URL . 'assets/lib/leaflet/images/', // bundled Leaflet marker icons
             'emergency' => BGC_Settings::emergency(),
             'boxnow' => [

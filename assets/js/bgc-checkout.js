@@ -65,16 +65,28 @@
   // Per-city availability: grey out + disable a delivery option the chosen city has none of.
   var availCache = {};
   function methodOk(av, m) { return m === 'address' || (m === 'office' && av.office) || (m === 'automat' && av.automat); }
+  // Derive availability from the preloaded index (no AJAX) when the switch is on; else null -> AJAX below.
+  function cityAvailLocal($wrap, city) {
+    if (!BGC.preloadCities) { return null; }
+    var idx = BGC.cityIndex && BGC.cityIndex[courier($wrap)];
+    if (!idx) { return null; }
+    function has(list) { var a = idx[list] || []; for (var i = 0; i < a.length; i++) { if (a[i][0] == city) { return true; } } return false; }
+    return { office: has('office'), automat: has('automat') };
+  }
   function applyAvail($wrap) {
     var city = $wrap.find('.bgc-city').val() || 0;
     if (!city) { $wrap.find('.bgc-tab').removeClass('bgc-tab-na').prop('disabled', false).attr('title', ''); return; }
     var key = courier($wrap) + ':' + city;
     if (availCache[key] === undefined) {
-      $.get(BGC.ajax, { action: 'bgc_city_avail', courier: courier($wrap), city_id: city }, function (res) {
-        availCache[key] = { office: !!(res && res.office), automat: !!(res && res.automat) };
-        applyAvail($wrap);
-      });
-      return;
+      var local = cityAvailLocal($wrap, city);
+      if (local) { availCache[key] = local; }
+      else {
+        $.get(BGC.ajax, { action: 'bgc_city_avail', courier: courier($wrap), city_id: city }, function (res) {
+          availCache[key] = { office: !!(res && res.office), automat: !!(res && res.automat) };
+          applyAvail($wrap);
+        });
+        return;
+      }
     }
     var av = availCache[key], firstOk = null;
     $wrap.find('.bgc-tab').each(function () {
@@ -92,7 +104,25 @@
     sel2($city, {
       width: '100%', allowClear: true, placeholder: (BGC.i18n && BGC.i18n.city_ph) || '', minimumInputLength: 0,
       ajax: {
-        url: BGC.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
+        url: BGC.ajax, dataType: 'json', delay: 250,
+        // When "preload cities" is on (default) + we have the index, office/automat searches the preloaded
+        // cities-with-offices locally (instant, no AJAX). Otherwise — and always for address — the original
+        // AJAX path (noAbortTransport) runs unchanged.
+        transport: function (params, success, failure) {
+          var m = method($wrap), cour = courier($wrap);
+          var idx = BGC.cityIndex && BGC.cityIndex[cour];
+          if (BGC.preloadCities && m !== 'address' && idx && idx[m]) {
+            var term = ((params.data && params.data.term) || '').toLowerCase(), rows = idx[m], out = [];
+            for (var i = 0; i < rows.length && out.length < 200; i++) {
+              var a = rows[i]; // [city_id, name, post_code]
+              if (!term || a[1].toLowerCase().indexOf(term) !== -1 || String(a[2]).indexOf(term) !== -1) {
+                out.push({ city_id: a[0], name: a[1], post_code: a[2] });
+              }
+            }
+            success(out); return { abort: function () {} };
+          }
+          return noAbortTransport(params, success, failure); // original AJAX path, untouched
+        },
         data: function (params) { return { action: 'bgc_search_cities', courier: courier($wrap), term: params.term || '' }; },
         processResults: function (rows) {
           var counts = {};

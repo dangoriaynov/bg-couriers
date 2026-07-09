@@ -376,6 +376,8 @@ JS;
                 'desc' => __('Show an estimated shipping price per courier + delivery option on the cart page. The exact, address-specific price is still calculated at checkout.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgc_dual_currency', 'title' => __('Show prices in both EUR and BGN', 'bg-couriers'),
                 'desc' => __('Show the shipping price with the pegged equivalent in brackets — 1 EUR = 1.95583 BGN — on the shipping method, the cart estimate and the free-shipping notice.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'checkbox', 'id' => 'bgc_preload_cities', 'title' => __('Preload city lists', 'bg-couriers'),
+                'desc' => __('Embed each courier’s office/APS city list in the checkout page so those dropdowns open instantly with no loading. Address delivery still searches all cities live. Recommended on.', 'bg-couriers'), 'default' => 'yes'],
             ['type' => 'number', 'id' => 'bgc_dropdown_limit', 'title' => __('Checkout dropdown results', 'bg-couriers'),
                 'desc' => __('How many city / office results to show in checkout dropdowns (search shows the same max). Default 5.', 'bg-couriers'),
                 'default' => 5, 'custom_attributes' => ['min' => '1', 'step' => '1']],
