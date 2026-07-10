@@ -96,15 +96,10 @@ final class PigeonLabelIntegrityTest extends WP_UnitTestCase {
         if (!function_exists('wc_create_order')) {
             $this->markTestSkipped('WC not loaded');
         }
-        if (!function_exists('wc_create_product')) {
-            $this->markTestSkipped('wc_create_product not available');
-        }
-
-        $product = wc_create_product([
-            'name'          => 'Тест Продукт',
-            'type'          => 'simple',
-            'regular_price' => '20.00',
-        ]);
+        $product = new WC_Product_Simple();
+        $product->set_name('Тест Продукт');
+        $product->set_regular_price('20.00');
+        $product->save();
 
         $order = wc_create_order();
         $order->set_billing_first_name('Тест');
