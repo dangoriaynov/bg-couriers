@@ -266,12 +266,20 @@ class BGC_Econt extends BGC_Abstract_Courier {
         if ($method === 'office' || $method === 'automat') {
             $label['receiverOfficeCode'] = $office_code;
         } else {
-            // address delivery
-            $label['receiverAddress'] = [
-                'city'   => ['id' => (int) $order->get_meta('_bgc_site_id')],
-                'street' => (string) $order->get_meta('_bgc_street_name'),
-                'num'    => (string) $order->get_meta('_bgc_street_no'),
-            ];
+            // Address delivery. Econt only accepts a street+num pair when the street matches its OWN
+            // nomenclature; our checkout street is free text, so it errors ExInvalidAddress ("insufficient,
+            // add street+num OR quarter+other"). We therefore also pass the full free-text address as
+            // quarter+other, which Econt falls back to when the street is not recognised.
+            $street  = (string) $order->get_meta('_bgc_street_name');
+            $num     = (string) $order->get_meta('_bgc_street_no');
+            $quarter = (string) $order->get_meta('_bgc_complex');
+            $other   = self::receiver_other($order, $street, $num);
+            $addr = ['city' => ['id' => (int) $order->get_meta('_bgc_site_id')]];
+            if ($street !== '')  { $addr['street']  = $street; }
+            if ($num !== '')     { $addr['num']     = $num; }
+            if ($quarter !== '') { $addr['quarter'] = $quarter; }
+            if ($other !== '')   { $addr['other']   = $other; }
+            $label['receiverAddress'] = $addr;
         }
 
         // Juridical senders require senderAgent (authorised person / MOL).
@@ -304,6 +312,19 @@ class BGC_Econt extends BGC_Abstract_Courier {
         }
 
         return ['mode' => 'create', 'label' => $label];
+    }
+
+    /** Full free-text receiver address for Econt's `other` field: street+num plus block/entrance/floor/apt. */
+    private static function receiver_other(\WC_Order $order, string $street, string $num): string {
+        $parts = [];
+        if ($street !== '') { $parts[] = trim($street . ' ' . $num); }
+        foreach (['_bgc_block' => 'бл.', '_bgc_entrance' => 'вх.', '_bgc_floor' => 'ет.', '_bgc_apartment' => 'ап.'] as $meta => $lbl) {
+            $v = trim((string) $order->get_meta($meta));
+            if ($v !== '') { $parts[] = $lbl . ' ' . $v; }
+        }
+        $note = trim((string) $order->get_meta('_bgc_address_note'));
+        if ($note !== '') { $parts[] = $note; }
+        return implode(', ', $parts);
     }
 
     /**
