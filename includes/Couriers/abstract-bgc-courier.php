@@ -15,7 +15,7 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
                 if (!is_array($data)) { throw new BGC_Api_Exception('Invalid JSON from ' . $url); }
                 return $data;
             }
-            $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 200);
+            $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 1000); // keep enough of the body for field-level API errors
         }
         throw new BGC_Api_Exception('Request failed: ' . $last);
     }
