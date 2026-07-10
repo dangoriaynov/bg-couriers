@@ -77,7 +77,13 @@ class BGC_Labels {
         check_admin_referer('bgc_generate_label_' . $id);
         if (!wc_get_order($id)) { wp_die(esc_html__('Order not found.', 'bg-couriers')); }
         try { self::generate($id); }
-        catch (\Exception $e) { set_transient('bgc_admin_error_' . $id, $e->getMessage(), 60); }
+        catch (\Exception $e) {
+            set_transient('bgc_admin_error_' . $id, $e->getMessage(), 60);
+            if ($o = wc_get_order($id)) {
+                /* translators: %s: error message from the courier */
+                $o->add_order_note(sprintf(__('Label generation failed: %s', 'bg-couriers'), $e->getMessage()));
+            }
+        }
         wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
         exit;
     }
