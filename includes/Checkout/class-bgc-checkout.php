@@ -256,8 +256,13 @@ class BGC_Checkout {
     public function persist(\WC_Order $order): void {
         $courier = self::chosen_courier(); if (!$courier) { return; }
         $s = WC()->session; if (!$s) { return; }
+        // BoxNow is locker-only; force 'automat' so a stale 'office' from a previously-chosen courier
+        // cannot leak onto the order.
+        $method = $courier === 'boxnow'
+            ? 'automat'
+            : (string) ($s->get('bgc_method', '') ?: (BGC_Settings::enabled_methods($courier)[0] ?? 'office'));
         $order->update_meta_data('_bgc_courier', $courier);
-        $order->update_meta_data('_bgc_method', (string) ($s->get('bgc_method', '') ?: (BGC_Settings::enabled_methods($courier)[0] ?? 'office')));
+        $order->update_meta_data('_bgc_method', $method);
         $order->update_meta_data('_bgc_site_id', (int) $s->get('bgc_site_id', 0));
         $order->update_meta_data('_bgc_office_id', (int) $s->get('bgc_office_id', 0));
         $order->update_meta_data('_bgc_post_code', (string) $s->get('bgc_post_code', ''));
@@ -271,15 +276,23 @@ class BGC_Checkout {
         $order->update_meta_data('_bgc_floor',       (string) $s->get('bgc_addr_floor', ''));
         $order->update_meta_data('_bgc_apartment',   (string) $s->get('bgc_addr_apartment', ''));
         $order->update_meta_data('_bgc_address_note',(string) $s->get('bgc_addr_address_note', ''));
+        // BoxNow locker label/address, for display on the order (create_label only needs the locker id).
+        $order->update_meta_data('_bgc_boxnow_name', (string) $s->get('bgc_boxnow_name', ''));
+        $order->update_meta_data('_bgc_boxnow_addr', (string) $s->get('bgc_boxnow_addr', ''));
 
         // Fill the WC order address from our selection (the standard WC address fields are
         // hidden/optional on checkout); the shipping label still uses the _bgc_* meta above.
-        $method = (string) $s->get('bgc_method', 'office');
         $city   = (int) $s->get('bgc_site_id', 0) ? BGC_Nomenclature::city_by_id($courier, (int) $s->get('bgc_site_id', 0)) : null;
         $name   = (string) ($city['name'] ?? '');
         $post   = (string) $s->get('bgc_post_code', '') ?: (string) ($city['post_code'] ?? '');
         $region = (string) ($city['region'] ?? '');
-        if ($method === 'address') {
+        if ($courier === 'boxnow') {
+            // BoxNow has no city in our nomenclature; the locker line carries the full location.
+            $name  = '';
+            $post  = '';
+            $line1 = (string) $s->get('bgc_boxnow_name', '');
+            $line2 = (string) $s->get('bgc_boxnow_addr', '');
+        } elseif ($method === 'address') {
             $line1 = trim((string) $s->get('bgc_addr_street_name', '') . ' ' . (string) $s->get('bgc_addr_street_no', ''));
             $line2 = trim((string) $s->get('bgc_addr_complex', ''));
         } else {
