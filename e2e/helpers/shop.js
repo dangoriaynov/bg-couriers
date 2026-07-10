@@ -21,7 +21,7 @@ async function addAnyProductToCart(page) {
   });
 
   if (productId) {
-    // Direct URL add-to-cart — bypasses all click overlays.
+    // Direct URL add-to-cart - bypasses all click overlays.
     await page.goto(`/?add-to-cart=${productId}`);
     await page.waitForTimeout(1500);
   } else {
@@ -38,7 +38,7 @@ async function gotoCheckout(page) {
 }
 
 async function fillGuestBilling(page, d) {
-  // Only name/phone/email — the WC address fields are hidden + optional when Speedy is active
+  // Only name/phone/email - the WC address fields are hidden + optional when Speedy is active
   // (the plugin's own fields drive the address). Filling visible fields only.
   const set = async (sel, val) => {
     const el = page.locator(sel).first();
@@ -64,7 +64,7 @@ async function selectShippingMethod(page, courierId) {
     await radio.check({ force: true });
     await page.waitForLoadState('networkidle').catch(() => {});
     await page.waitForTimeout(2000);
-  } catch (e) { /* re-render race — best effort; the assert on .bgc-fields visibility follows */ }
+  } catch (e) { /* re-render race - best effort; the assert on .bgc-fields visibility follows */ }
 }
 
 // Click a delivery-type tab (office | address | automat) within a courier's fields block.

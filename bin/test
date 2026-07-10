@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Run PHPUnit + E2E tests inside the wp-env tests container.
 # Usage:
-#   bin/test              — full suite (unit + integration + e2e)
-#   bin/test core         — framework tests only (--group core, no e2e)
-#   bin/test speedy       — Speedy PHP tests + @speedy e2e specs
-#   bin/test <courier>    — <courier> PHP tests + @<courier> e2e specs
+#   bin/test              - full suite (unit + integration + e2e)
+#   bin/test core         - framework tests only (--group core, no e2e)
+#   bin/test speedy       - Speedy PHP tests + @speedy e2e specs
+#   bin/test <courier>    - <courier> PHP tests + @<courier> e2e specs
 set -euo pipefail
 
 COURIER="${1:-}"

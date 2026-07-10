@@ -21,7 +21,7 @@ msgstr ""
 
 #. Description of the plugin
 #: bg-couriers.php
-msgid "Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) — office/address/locker delivery, live rates, labels and tracking."
+msgid "Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) - office/address/locker delivery, live rates, labels and tracking."
 msgstr ""
 
 #. Author of the plugin
@@ -284,7 +284,7 @@ msgid "Sameday"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:159
-msgid "Could not save — please try again."
+msgid "Could not save - please try again."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:252
@@ -359,7 +359,7 @@ msgid "Show prices in both EUR and BGN"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:378
-msgid "Show the shipping price with the pegged лв. equivalent in brackets — 1 EUR = 1.95583 BGN — on the shipping method, the cart estimate and the free-shipping notice. Leave off to show only the store currency (e.g. if another plugin already displays лв.)."
+msgid "Show the shipping price with the pegged лв. equivalent in brackets - 1 EUR = 1.95583 BGN - on the shipping method, the cart estimate and the free-shipping notice. Leave off to show only the store currency (e.g. if another plugin already displays лв.)."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:379
@@ -375,7 +375,7 @@ msgid "Address map picker"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:382
-msgid "Add a “Choose on map” button to address delivery — the customer drops a pin and the address fields fill in automatically (still editable). Uses free OpenStreetMap unless a Google key is set below."
+msgid "Add a “Choose on map” button to address delivery - the customer drops a pin and the address fields fill in automatically (still editable). Uses free OpenStreetMap unless a Google key is set below."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:383
@@ -501,7 +501,7 @@ msgid "Free-shipping threshold"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:430
-msgid "Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgid "Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:431
@@ -512,7 +512,7 @@ msgid "Delivery option order"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:437
-msgid "— none (COD off) —"
+msgid "- none (COD off) -"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:446
@@ -540,7 +540,7 @@ msgid "CD pay-out agreement"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:460
-msgid "The наложен платеж agreement the money is paid out with (loaded from your Econt profile — e.g. postal money transfer / bank)."
+msgid "The наложен платеж agreement the money is paid out with (loaded from your Econt profile - e.g. postal money transfer / bank)."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:464
@@ -548,7 +548,7 @@ msgid "Calculate shipping cost live via the Econt API. When off, the per-method 
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:467
-msgid "Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgid "Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:476
@@ -584,7 +584,7 @@ msgid "Calculate shipping cost live via the Pigeon Express API. When off, the pe
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:495
-msgid "Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgid "Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:506
@@ -628,15 +628,15 @@ msgid "Map each delivery type to a Sameday service ID from your contract (used f
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:522
-msgid "Service ID — to office"
+msgid "Service ID - to office"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:523
-msgid "Service ID — to address"
+msgid "Service ID - to address"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:524
-msgid "Service ID — to locker (easyBox)"
+msgid "Service ID - to locker (easyBox)"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:531
@@ -644,7 +644,7 @@ msgid "Calculate shipping cost live via the Sameday API. When off, the per-metho
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:533
-msgid "Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgid "Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:543
@@ -729,13 +729,13 @@ msgstr ""
 #. translators: %s = delivery type, e.g. "to an office"
 #: includes/Checkout/class-bgc-checkout.php:65
 #, php-format
-msgid "≈ estimate for delivery %s at this cart weight — choose your city and exact point at checkout for the final price."
+msgid "≈ estimate for delivery %s at this cart weight - choose your city and exact point at checkout for the final price."
 msgstr ""
 
 #. translators: %s = delivery type
 #: includes/Checkout/class-bgc-checkout.php:68
 #, php-format
-msgid "Flat price for delivery %s — choose your exact locker at checkout."
+msgid "Flat price for delivery %s - choose your exact locker at checkout."
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:98
@@ -805,7 +805,7 @@ msgid "APS (locker)"
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:330
-msgid "Having trouble placing your order? We can help — call us:"
+msgid "Having trouble placing your order? We can help - call us:"
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:332
@@ -855,7 +855,7 @@ msgid "Show my location"
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:341
-msgid "No offices with a map location for this city yet — use the list."
+msgid "No offices with a map location for this city yet - use the list."
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:342
@@ -871,7 +871,7 @@ msgid "Use this address"
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:345
-msgid "No address found here — try another spot."
+msgid "No address found here - try another spot."
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:426
@@ -957,7 +957,7 @@ msgid "in transit"
 msgstr ""
 
 #: includes/Couriers/class-bgc-boxnow-webhook.php:96
-msgid "in the locker — ready for pickup"
+msgid "in the locker - ready for pickup"
 msgstr ""
 
 #: includes/Couriers/class-bgc-boxnow-webhook.php:97
@@ -1005,7 +1005,7 @@ msgid "The flat delivery price is not set."
 msgstr ""
 
 #: includes/Couriers/class-bgc-boxnow.php:41
-msgid "Enter a “Delivery price” greater than 0 — BOX NOW has no live rate API."
+msgid "Enter a “Delivery price” greater than 0 - BOX NOW has no live rate API."
 msgstr ""
 
 #: includes/Couriers/class-bgc-econt.php:24

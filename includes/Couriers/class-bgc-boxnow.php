@@ -2,7 +2,7 @@
 defined('ABSPATH') || exit;
 
 /**
- * BOX NOW — locker (APM) courier. OAuth2 client-credentials + X-PartnerID header. No price API
+ * BOX NOW - locker (APM) courier. OAuth2 client-credentials + X-PartnerID header. No price API
  * (flat rate via BGC_Pricing). Delivery is to an APM the customer picks with BoxNow's map widget.
  * Shapes live-verified against the stage API (api-stage.boxnow.bg), Partner API 1.72, 2026-07-07.
  */
@@ -38,7 +38,7 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
         if ((float) get_option('bgc_boxnow_flat_price', 0) <= 0) {
             $p[] = [
                 'msg' => __('The flat delivery price is not set.', 'bg-couriers'),
-                'fix' => __('Enter a “Delivery price” greater than 0 — BOX NOW has no live rate API.', 'bg-couriers'),
+                'fix' => __('Enter a “Delivery price” greater than 0 - BOX NOW has no live rate API.', 'bg-couriers'),
             ];
         }
         return $p;
@@ -96,7 +96,7 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
         try { return $this->token() !== ''; } catch (\Exception $e) { return false; }
     }
 
-    public function fetch_cities(): array { return []; } // geo/APM — no city nomenclature
+    public function fetch_cities(): array { return []; } // geo/APM - no city nomenclature
 
     /** All BoxNow APM lockers (geo-based; checkout uses the map widget, not a city→office dropdown). */
     public function fetch_offices(int $city_id = 0): array {

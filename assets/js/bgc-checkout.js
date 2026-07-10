@@ -106,7 +106,7 @@
       ajax: {
         url: BGC.ajax, dataType: 'json', delay: 250,
         // When "preload cities" is on (default) + we have the index, office/automat searches the preloaded
-        // cities-with-offices locally (instant, no AJAX). Otherwise — and always for address — the original
+        // cities-with-offices locally (instant, no AJAX). Otherwise - and always for address - the original
         // AJAX path (noAbortTransport) runs unchanged.
         transport: function (params, success, failure) {
           var m = method($wrap), cour = courier($wrap);
@@ -130,7 +130,7 @@
           return { results: rows.map(function (r) {
             // Postcode in the label: lets people search/pick by it and tells apart same-named villages.
             var text = r.name + (r.post_code ? ' (' + r.post_code + ')' : '');
-            if (counts[r.name] > 1 && !r.post_code && r.region) { text += ' — ' + r.region; }
+            if (counts[r.name] > 1 && !r.post_code && r.region) { text += ' - ' + r.region; }
             return { id: r.city_id, text: text, post_code: r.post_code };
           }) };
         }
@@ -149,7 +149,7 @@
     });
   }
 
-  // Office / automat — preloaded per city+method, cached client-side until refresh; search is then local.
+  // Office / automat - preloaded per city+method, cached client-side until refresh; search is then local.
   var officeCache = {}; // 'courier:city:type' -> all office rows for that city+type
   function preloadOffices($wrap) {
     var city = $wrap.find('.bgc-city').val() || 0, m = method($wrap);
@@ -188,12 +188,12 @@
           return { courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
         },
         processResults: function (rows) {
-          return { results: rows.map(function (o) { return { id: o.office_id, text: o.name + ' — ' + o.address }; }) };
+          return { results: rows.map(function (o) { return { id: o.office_id, text: o.name + ' - ' + o.address }; }) };
         }
       }
     });
     // Picking/clearing a specific office in the same city doesn't change the price (it's per city+weight),
-    // so save it without a recalc/loader — no more blinking on this "elementary" action.
+    // so save it without a recalc/loader - no more blinking on this "elementary" action.
     $office.on('select2:select', function () { saveSelection($wrap); });
     $office.on('select2:clear', function () { saveSelection($wrap); });
   }
@@ -216,7 +216,7 @@
       function (rows) { officeCache[key] = rows || []; cb(officeCache[key]); });
   }
   function pickMapOffice($wrap, o) {
-    var $office = $wrap.find('.bgc-office'), text = o.name + (o.address ? ' — ' + o.address : '');
+    var $office = $wrap.find('.bgc-office'), text = o.name + (o.address ? ' - ' + o.address : '');
     $office.append(new Option(text, o.office_id, true, true)).val(String(o.office_id)).trigger('change');
     pushSelection($wrap); // recalc + save the chosen office
   }
@@ -285,7 +285,7 @@
         });
       }
       $ov.find('.bgc-map-locate').on('click', function () { showMe(true); });
-      showMe(true); // auto-locate on open — if location is already granted, the marker shows without a click
+      showMe(true); // auto-locate on open - if location is already granted, the marker shows without a click
       setTimeout(function () { if (bgcMap) { bgcMap.invalidateSize(); } }, 60); // the modal was just inserted
     });
   }
@@ -385,7 +385,7 @@
   function pushSelection($wrap) { showLoader($wrap); $.post(BGC.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
   function saveSelection($wrap) { $.post(BGC.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
 
-  // BOX NOW locker picker — the official map widget (built-in GPS "nearest to me") ---------
+  // BOX NOW locker picker - the official map widget (built-in GPS "nearest to me") ---------
   function boxnowUrl() {
     var c = BGC.boxnow || {}, p = [];
     if (c.partnerId) { p.push('partnerId=' + encodeURIComponent(c.partnerId)); }
@@ -452,7 +452,7 @@
       var mine = $wrap.attr('data-courier') === chosen;
       $wrap.toggle(mine); // show only the chosen courier's fields (multiple couriers can share a zone)
       if (!mine) return;
-      if ($wrap.hasClass('bgc-boxnow')) { hideLoader($wrap); return; } // locker picked via the map widget — nothing to init
+      if ($wrap.hasClass('bgc-boxnow')) { hideLoader($wrap); return; } // locker picked via the map widget - nothing to init
       renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); hideLoader($wrap);
     });
   });

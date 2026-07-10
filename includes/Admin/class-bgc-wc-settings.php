@@ -7,7 +7,7 @@ if (!class_exists('WC_Settings_Page')) { return; }
  * WooCommerce → Settings → "BG Couriers" tab.
  * Level 1 (WP nav-tabs): courier sections (General + Speedy).
  * Level 2 (WP nav-tabs, JS-switched, no reload): per delivery method (office/address/automat).
- * See feedback-settings-architecture — every future courier follows this shape.
+ * See feedback-settings-architecture - every future courier follows this shape.
  */
 class BGC_WC_Settings extends WC_Settings_Page {
 
@@ -38,7 +38,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         ];
     }
 
-    /** Full field set for the section — used by save() (save_settings_for_current_section). */
+    /** Full field set for the section - used by save() (save_settings_for_current_section). */
     public function get_settings($section = '') {
         if ($section === 'speedy') {
             $f = $this->speedy_courier_fields();
@@ -77,7 +77,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
     protected function get_settings_for_section_core($section_id) { return $this->get_settings($section_id); }
 
     /** Custom output: WP nav-tab section nav + (for Speedy) per-method sub-tabs. */
-    // Suppress WooCommerce's default section nav (the "subsubsub" link row) — we render our own
+    // Suppress WooCommerce's default section nav (the "subsubsub" link row) - we render our own
     // nicer nav-tabs in output(); otherwise the General/Speedy row shows twice.
     public function output_sections() {}
 
@@ -90,7 +90,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-group { border: 1px solid #e2e6ea; border-radius: 10px; padding: 6px 16px 12px; margin: 0 0 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
         #wpbody .bgc-settings .bgc-group > h2 { font-size: 1.02em; margin: 12px 0 4px; }
         #wpbody .bgc-settings .bgc-group > p.description { margin-top: 0; }
-        /* Nice wide rounded shadowed tabs — applies to both the courier nav and the per-method nav. */
+        /* Nice wide rounded shadowed tabs - applies to both the courier nav and the per-method nav. */
         #wpbody .bgc-settings .nav-tab-wrapper { border-bottom:none; margin:0 0 16px; display:flex; flex-wrap:wrap; gap:10px; padding:0; }
         #wpbody .bgc-settings .nav-tab { border:1px solid #dcdcde; border-radius:11px; padding:11px 26px; margin:0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.10); font-weight:500; line-height:1.2; color:#1d2327; transition:box-shadow .15s ease, transform .15s ease, background .15s ease; }
         #wpbody .bgc-settings .nav-tab:hover { box-shadow:0 3px 8px rgba(0,0,0,.16); }
@@ -151,12 +151,12 @@ class BGC_WC_Settings extends WC_Settings_Page {
         }
         echo '</div></div>';
 
-        // AJAX "Save changes" — save without a page reload, with a top-right toast (green ok / red error).
+        // AJAX "Save changes" - save without a page reload, with a top-right toast (green ok / red error).
         $save_nonce = esc_js(wp_create_nonce('bgc_save'));
         $ajaxurl    = esc_js(admin_url('admin-ajax.php'));
         $sect       = esc_js((string) $current_section);
         $i_saved    = esc_js(__('Saved', 'bg-couriers'));
-        $i_failed   = esc_js(__('Could not save — please try again.', 'bg-couriers'));
+        $i_failed   = esc_js(__('Could not save - please try again.', 'bg-couriers'));
         echo <<<JS
 <script>
 (function($){
@@ -180,7 +180,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
 JS;
     }
 
-    /** Brand colour per courier — original, trademark-safe (not the couriers' logos). */
+    /** Brand colour per courier - original, trademark-safe (not the couriers' logos). */
     private static function courier_color(string $id): string {
         $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034'];
         return $map[$id] ?? '#6b7280';
@@ -215,7 +215,7 @@ JS;
     private function section_nav(string $current): void {
         $sections = $this->sections();
         echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper bgc-section-nav">';
-        if (array_key_exists('', $sections)) { echo $this->nav_pill('', $sections[''], $current, false); } // General — fixed
+        if (array_key_exists('', $sections)) { echo $this->nav_pill('', $sections[''], $current, false); } // General - fixed
         echo '<span class="bgc-courier-tabs">'; // draggable couriers, in the saved order
         foreach (BGC_Settings::courier_order() as $cid) {
             if (isset($sections[$cid])) { echo $this->nav_pill($cid, $sections[$cid], $current, true); }
@@ -251,7 +251,7 @@ JS;
         $fields    = $this->{$courier_id . '_courier_fields'}();
         $enable_id = 'bgc_' . $courier_id . '_enabled';
         // The enable control is a prominent toggle at the top of the tab (it still saves via get_settings()),
-        // so pull it out of the form-table — it must not render as an ordinary checkbox row.
+        // so pull it out of the form-table - it must not render as an ordinary checkbox row.
         $fields = array_values(array_filter($fields, static function ($f) use ($enable_id) {
             return !(isset($f['id']) && $f['id'] === $enable_id);
         }));
@@ -261,7 +261,7 @@ JS;
         $off_t = esc_html__('disabled', 'bg-couriers');
         echo '<div class="bgc-enable-toggle ' . ($on ? 'bgc-enable-on' : 'bgc-enable-off') . '" data-on="' . esc_attr($on_t) . '" data-off="' . esc_attr($off_t) . '">'
             . '<label class="bgc-switch"><input type="checkbox" name="' . esc_attr($enable_id) . '" value="1"' . checked($on, true, false) . '><span class="bgc-slider"></span></label>'
-            . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> — <span class="bgc-enable-state">' . ($on ? $on_t : $off_t) . '</span></span>'
+            . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> - <span class="bgc-enable-state">' . ($on ? $on_t : $off_t) . '</span></span>'
             . '</div>';
         WC_Admin_Settings::output_fields($fields);
         $c_id    = esc_js($courier_id);
@@ -305,7 +305,7 @@ JS;
 </script>
 JS;
 
-        // Delivery-method sub-tabs — only the methods this courier supports (from capabilities()).
+        // Delivery-method sub-tabs - only the methods this courier supports (from capabilities()).
         // Skip entirely for single-method / flat-rate couriers (e.g. BoxNow = locker only, one flat price).
         $c       = BGC_Couriers::get($courier_id);
         $caps    = $c ? array_values(array_diff($c->capabilities(), ['live_quote'])) : array_keys(self::$method_labels);
@@ -326,7 +326,7 @@ JS;
 
             $first = true;
             foreach ($methods as $m => $label) {
-                // Only the price field renders in the panel — the enable control is the tab toggle (still saved via get_settings()).
+                // Only the price field renders in the panel - the enable control is the tab toggle (still saved via get_settings()).
                 $en = 'bgc_' . $courier_id . '_' . $m . '_enabled';
                 $mf = array_values(array_filter($this->method_fields($courier_id, $m, $label), static function ($f) use ($en) {
                     return !(isset($f['id']) && $f['id'] === $en);
@@ -383,11 +383,11 @@ JS;
             ['type' => 'checkbox', 'id' => 'bgc_cart_estimate_enabled', 'title' => __('Shipping estimate on the cart', 'bg-couriers'),
                 'desc' => __('Show an estimated shipping price per courier + delivery option on the cart page. The exact, address-specific price is still calculated at checkout.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgc_dual_currency', 'title' => __('Show prices in both EUR and BGN', 'bg-couriers'),
-                'desc' => __('Show the shipping price with the pegged лв. equivalent in brackets — 1 EUR = 1.95583 BGN — on the shipping method, the cart estimate and the free-shipping notice. Leave off to show only the store currency (e.g. if another plugin already displays лв.).', 'bg-couriers'), 'default' => 'no'],
+                'desc' => __('Show the shipping price with the pegged лв. equivalent in brackets - 1 EUR = 1.95583 BGN - on the shipping method, the cart estimate and the free-shipping notice. Leave off to show only the store currency (e.g. if another plugin already displays лв.).', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgc_preload_cities', 'title' => __('Preload city lists', 'bg-couriers'),
                 'desc' => __('Embed each courier’s office/APS city list in the checkout page so those dropdowns open instantly with no loading. Address delivery still searches all cities live. Recommended on.', 'bg-couriers'), 'default' => 'yes'],
             ['type' => 'checkbox', 'id' => 'bgc_address_map', 'title' => __('Address map picker', 'bg-couriers'),
-                'desc' => __('Add a “Choose on map” button to address delivery — the customer drops a pin and the address fields fill in automatically (still editable). Uses free OpenStreetMap unless a Google key is set below.', 'bg-couriers'), 'default' => 'yes'],
+                'desc' => __('Add a “Choose on map” button to address delivery - the customer drops a pin and the address fields fill in automatically (still editable). Uses free OpenStreetMap unless a Google key is set below.', 'bg-couriers'), 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_google_maps_key', 'title' => __('Google Maps API key (optional)', 'bg-couriers'),
                 'desc' => __('Leave empty to use free OpenStreetMap. Paste a Google Maps API key for more accurate maps and address lookup. Get one at console.cloud.google.com → enable “Maps JavaScript API” + “Geocoding API” → create an API key.', 'bg-couriers'),
                 'default' => '', 'autoload' => false],
@@ -435,14 +435,14 @@ JS;
                 'desc' => __('Calculate shipping cost live via the Speedy API. When off, the per-method default prices below are used.', 'bg-couriers'),
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_speedy_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
         ];
     }
 
     private function econt_courier_fields(): array {
-        $cd_opts = ['' => __('— none (COD off) —', 'bg-couriers')];
+        $cd_opts = ['' => __('- none (COD off) -', 'bg-couriers')];
         if (BGC_Settings::creds_present('econt')) {
             $econt = BGC_Couriers::get('econt');
             if ($econt && method_exists($econt, 'cd_pay_options')) {
@@ -465,14 +465,14 @@ JS;
             ['type' => 'checkbox', 'id' => 'bgc_econt_cod_enabled', 'title' => __('Cash on delivery (наложен платеж)', 'bg-couriers'),
                 'desc' => __('Attach наложен платеж for the full order total + an item packing list (name, qty, weight, price) to every Econt label, paid out via the agreement below. Enable only if you ship cash-on-delivery.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'select', 'id' => 'bgc_econt_cd_num', 'title' => __('CD pay-out agreement', 'bg-couriers'),
-                'desc' => __('The наложен платеж agreement the money is paid out with (loaded from your Econt profile — e.g. postal money transfer / bank).', 'bg-couriers'),
+                'desc' => __('The наложен платеж agreement the money is paid out with (loaded from your Econt profile - e.g. postal money transfer / bank).', 'bg-couriers'),
                 'options' => $cd_opts, 'default' => ''],
             ['type' => 'checkbox', 'id' => 'bgc_econt_dynamic_pricing',
                 'title' => __('Use dynamic pricing', 'bg-couriers'),
                 'desc' => __('Calculate shipping cost live via the Econt API. When off, the per-method default prices below are used.', 'bg-couriers'),
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_econt_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_econt_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_econt'],
         ];
@@ -500,13 +500,13 @@ JS;
                 'desc' => __('Calculate shipping cost live via the Pigeon Express API. When off, the per-method default prices below are used.', 'bg-couriers'),
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_pigeon_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_pigeon_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
         ];
     }
 
-    /** Sameday — office/address/easyBox + live quote. Needs a pickup point + per-type service IDs from the contract. */
+    /** Sameday - office/address/easyBox + live quote. Needs a pickup point + per-type service IDs from the contract. */
     private function sameday_courier_fields(): array {
         $cur = get_woocommerce_currency();
         return [
@@ -527,9 +527,9 @@ JS;
 
             ['type' => 'title', 'id' => 'bgc_sameday_services', 'title' => __('Service IDs per delivery type', 'bg-couriers'),
                 'desc' => __('Map each delivery type to a Sameday service ID from your contract (used for pricing and labels).', 'bg-couriers')],
-            ['type' => 'text', 'id' => 'bgc_sameday_service_office', 'title' => __('Service ID — to office', 'bg-couriers'), 'default' => '', 'autoload' => false],
-            ['type' => 'text', 'id' => 'bgc_sameday_service_address', 'title' => __('Service ID — to address', 'bg-couriers'), 'default' => '', 'autoload' => false],
-            ['type' => 'text', 'id' => 'bgc_sameday_service_automat', 'title' => __('Service ID — to locker (easyBox)', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_office', 'title' => __('Service ID - to office', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_address', 'title' => __('Service ID - to address', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_automat', 'title' => __('Service ID - to locker (easyBox)', 'bg-couriers'), 'default' => '', 'autoload' => false],
             ['type' => 'sectionend', 'id' => 'bgc_sameday_services'],
 
             ['type' => 'title', 'id' => 'bgc_sameday_more', 'title' => ''],
@@ -538,13 +538,13 @@ JS;
             ['type' => 'checkbox', 'id' => 'bgc_sameday_dynamic_pricing', 'title' => __('Use dynamic pricing', 'bg-couriers'),
                 'desc' => __('Calculate shipping cost live via the Sameday API. When off, the per-method default prices below are used.', 'bg-couriers'), 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_sameday_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
-                'desc' => __('Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'bgc_sortable', 'id' => 'bgc_sameday_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_sameday_more'],
         ];
     }
 
-    /** BOX NOW — locker-only, flat-rate, OAuth2. Only the fields BoxNow actually uses (no dangling params). */
+    /** BOX NOW - locker-only, flat-rate, OAuth2. Only the fields BoxNow actually uses (no dangling params). */
     private function boxnow_courier_fields(): array {
         return [
             ['type' => 'title', 'id' => 'bgc_boxnow', 'title' => ''],

@@ -2,7 +2,7 @@
 defined('ABSPATH') || exit;
 
 /**
- * BOX NOW WC shipping method — locker-only, flat rate (BoxNow has no live price endpoint).
+ * BOX NOW WC shipping method - locker-only, flat rate (BoxNow has no live price endpoint).
  * Hidden when the cart exceeds the BoxNow parcel limit (20 kg / 36×45×60 cm).
  */
 class BGC_Method_Boxnow extends WC_Shipping_Method {
@@ -25,7 +25,7 @@ class BGC_Method_Boxnow extends WC_Shipping_Method {
     }
 
     public function calculate_shipping($package = []) {
-        // BoxNow parcel limit — hide the method for carts it cannot carry.
+        // BoxNow parcel limit - hide the method for carts it cannot carry.
         if ((float) ($package['contents_weight'] ?? 0) > 20.0) { return; }
 
         $cost = (float) get_option('bgc_boxnow_flat_price', 0);

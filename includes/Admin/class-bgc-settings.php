@@ -73,7 +73,7 @@ class BGC_Settings {
 
     /**
      * Method-level free shipping (the merchant absorbs it) over a goods-total threshold.
-     * Auto-enabled by a positive threshold — there is no separate on/off flag.
+     * Auto-enabled by a positive threshold - there is no separate on/off flag.
      */
     public static function free_shipping(string $courier): array {
         $threshold = (float) get_option('bgc_' . $courier . '_free_threshold', 0);
@@ -140,7 +140,7 @@ class BGC_Settings {
         return array_values(array_intersect($order, $all));
     }
 
-    /** Custom WC field: drag-sortable order — of the delivery methods (bgc_<courier>_method_order) OR the couriers (bgc_courier_order). */
+    /** Custom WC field: drag-sortable order - of the delivery methods (bgc_<courier>_method_order) OR the couriers (bgc_courier_order). */
     public function render_sortable($field): void {
         $id = $field['id'];
         wp_enqueue_script('jquery-ui-sortable');
@@ -159,7 +159,7 @@ class BGC_Settings {
             $desc   = __('Drag to set the order delivery options appear at checkout.', 'bg-couriers');
         }
         echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html($field['title'] ?? '') . '</th><td class="forminp">';
-        // Horizontal row — options sit side by side at checkout, so the order control mirrors that.
+        // Horizontal row - options sit side by side at checkout, so the order control mirrors that.
         echo '<ul id="bgc-sort-' . esc_attr($id) . '" class="bgc-sortable" style="display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;">';
         foreach ($items as $key) {
             if (!isset($labels[$key])) { continue; }
@@ -185,7 +185,7 @@ class BGC_Settings {
             return get_option($key, '');
         }
         // The WC password field can re-render the stored (already-encrypted) value;
-        // if it comes back unchanged, keep it — re-encrypting would double-encrypt it.
+        // if it comes back unchanged, keep it - re-encrypting would double-encrypt it.
         if ($raw_value === get_option($key, '')) {
             return $raw_value;
         }
@@ -246,7 +246,7 @@ class BGC_Settings {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do this.', 'bg-couriers')]); }
         check_ajax_referer('bgc_save', 'bgc_nonce');
         if (!class_exists('WC_Admin_Settings')) { wp_send_json_error(['msg' => __('WooCommerce not available.', 'bg-couriers')]); }
-        // BGC_WC_Settings skips defining itself when WC's abstract settings page isn't loaded (e.g. admin-ajax) —
+        // BGC_WC_Settings skips defining itself when WC's abstract settings page isn't loaded (e.g. admin-ajax) -
         // load the base, then (re)include the class so we can build + save the section's fields.
         if (!class_exists('BGC_WC_Settings')) {
             if (!class_exists('WC_Settings_Page') && function_exists('WC')) {

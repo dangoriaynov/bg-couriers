@@ -32,7 +32,7 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
     /**
      * Crucial-settings check run before this courier may be enabled. Returns a list of problems, each
      * ['msg' => what is wrong, 'fix' => how to resolve it]; an empty list means it is ready to enable.
-     * Reads SAVED options — the merchant should Save (and Validate credentials) before enabling.
+     * Reads SAVED options - the merchant should Save (and Validate credentials) before enabling.
      * Couriers override this to add their own required fields on top of the base credential check.
      *
      * @return array<int,array{msg:string,fix:string}>

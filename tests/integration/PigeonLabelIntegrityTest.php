@@ -1,7 +1,7 @@
 <?php
 /**
  * The Pigeon build_shipment_body payload must carry exactly what the order data
- * dictates — correct receiver_name/phone/email, delivery type (office/address/locker),
+ * dictates - correct receiver_name/phone/email, delivery type (office/address/locker),
  * pickup office id, and inventory_items from order line items.
  *
  * Mirror of EcontLabelIntegrityTest for Pigeon.

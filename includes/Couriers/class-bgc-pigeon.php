@@ -28,7 +28,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
 
     // ── Transport ────────────────────────────────────────────────────────────
 
-    /** Pigeon uses two header tokens, not Basic auth — override http_post. */
+    /** Pigeon uses two header tokens, not Basic auth - override http_post. */
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [
             'timeout' => 20,
@@ -56,7 +56,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
         if (!empty($query)) {
             $url .= '?' . http_build_query($query);
         }
-        // Retry once on transport/5xx like the abstract post_json — nomenclature sync spans ~106
+        // Retry once on transport/5xx like the abstract post_json - nomenclature sync spans ~106
         // pages, so a single network blip shouldn't hard-fail the whole sync.
         $last = '';
         for ($attempt = 0; $attempt < 2; $attempt++) {
@@ -77,7 +77,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
                 return $data;
             }
             $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 200);
-            if ($code >= 400 && $code < 500) { break; } // client error (auth/bad request) — retry won't help
+            if ($code >= 400 && $code < 500) { break; } // client error (auth/bad request) - retry won't help
         }
         throw new BGC_Api_Exception('Pigeon GET failed: ' . $last);
     }
@@ -96,7 +96,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
     // ── Nomenclature ─────────────────────────────────────────────────────────
 
     /**
-     * Fetch all cities (paginated — Pigeon has ~5275 cities across ~106 pages).
+     * Fetch all cities (paginated - Pigeon has ~5275 cities across ~106 pages).
      * Accumulates pages until current_page >= last_page or the safety cap is hit.
      *
      * @return array[] Parsed city rows.
@@ -112,7 +112,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
             $out  = array_merge($out, self::parse_cities($resp));
             $meta = $resp['meta'] ?? null;
             if ($meta === null && class_exists('BGC_Logger')) {
-                BGC_Logger::debug('pigeon: cities page missing meta — pagination may be incomplete', ['page' => $page]);
+                BGC_Logger::debug('pigeon: cities page missing meta - pagination may be incomplete', ['page' => $page]);
             }
             $last_page = (int) ($meta['last_page'] ?? 1);
             $curr_page = (int) ($meta['current_page'] ?? $page);
@@ -319,7 +319,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
 
     /**
      * Fetch a live shipping quote via POST /v1/shipments/calculate.
-     * Live — do NOT call in tests (no credentials in CI).
+     * Live - do NOT call in tests (no credentials in CI).
      */
     public function quote(array $shipment): BGC_Quote {
         $pickup = (int) get_option('bgc_pigeon_pickup_office_id', 0);
@@ -386,7 +386,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
 
     /**
      * Issue a real waybill for the given order via POST /v1/shipments.
-     * Live — do NOT call in tests.
+     * Live - do NOT call in tests.
      */
     public function create_label(\WC_Order $order): BGC_Label {
         $pickup = (int) get_option('bgc_pigeon_pickup_office_id', 0);
@@ -402,7 +402,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
      *
      * Calls GET /v1/shipments/{ref}/label. If the response is JSON with a
      * data.label_pdf base64 field, decodes it; otherwise returns raw bytes.
-     * Live — do NOT call in tests.
+     * Live - do NOT call in tests.
      *
      * @param string $waybill The Pigeon reference number.
      * @return string         Raw PDF bytes.
@@ -464,7 +464,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
     }
 
     /**
-     * Fetch live tracking info for a reference number.  Live – do NOT call in tests.
+     * Fetch live tracking info for a reference number.  Live - do NOT call in tests.
      */
     public function track(string $waybill): BGC_Tracking {
         $resp = $this->get_json('/v1/shipments/' . rawurlencode($waybill) . '/track');
@@ -473,7 +473,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
 
     /**
      * Return the public Pigeon tracking URL for a reference number.
-     * Placeholder URL — confirm at live-verify and update if needed.
+     * Placeholder URL - confirm at live-verify and update if needed.
      */
     public function tracking_url(string $waybill): string {
         return 'https://pigeonexpress.com/track/' . rawurlencode($waybill);
@@ -481,7 +481,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
 
     /**
      * Cancel a shipment via POST /v1/shipments/{ref}/cancel.
-     * Live – do NOT call in tests.
+     * Live - do NOT call in tests.
      *
      * @param string $waybill The Pigeon reference number.
      * @return bool           True if the API reported success.

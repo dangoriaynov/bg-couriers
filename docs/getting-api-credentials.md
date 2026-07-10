@@ -1,7 +1,7 @@
 # Getting your courier API credentials (merchant guide)
 
 To enable a courier in this plugin you need **your own API access** from that courier (a business
-account + API credentials). Couriers issue these to registered business clients — there is no instant
+account + API credentials). Couriers issue these to registered business clients - there is no instant
 self-signup for most. Below is exactly **who to contact and what to ask for** per courier, then where
 to enter the credentials.
 
@@ -15,7 +15,7 @@ to enter the credentials.
 - **Contact:** your Speedy account / a Speedy office · https://www.speedy.bg
 - **Steps:**
   1. Have (or open) a **Speedy business contract**.
-  2. Ask Speedy to enable **API access** for your account — you receive an **API username + password** (the credentials for `api.speedy.bg`).
+  2. Ask Speedy to enable **API access** for your account - you receive an **API username + password** (the credentials for `api.speedy.bg`).
   3. Enter the **username** and **password** in the plugin's **Speedy** settings, click **Validate**, then **Sync**.
 
 ## Econt
@@ -60,5 +60,5 @@ to enter the credentials.
 | Pigeon Express | support@pigeonexpress.com | API Key + Secret + base URL |
 | Express One | international@expressone.bg | API Key (+ confirm BG base URL) |
 
-A courier's exact process can change — if a step differs from the above, follow the courier's own
+A courier's exact process can change - if a step differs from the above, follow the courier's own
 instructions; the plugin only needs the credentials they give you.

@@ -1,4 +1,4 @@
-# Speedy slice — manual E2E on dev.dobavki.club
+# Speedy slice - manual E2E on dev.dobavki.club
 1. `./bin/deploy.sh dev` → activate "BG Couriers" in wp-admin.
 2. WooCommerce → BG Couriers: enable Speedy, set env, paste creds (copied server-side from prod, never via chat), Save → "Validate credentials" shows OK.
 3. "Sync now" → cities/offices/standard_rates tables populate (verify via mysql: `SELECT COUNT(*) FROM wp_bgc_cities;`).

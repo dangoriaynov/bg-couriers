@@ -1,4 +1,4 @@
-{ "_note": "Express One /parcelshops?isActive=true (SLOVENIA instance shape — confirm field names on BG live).",
+{ "_note": "Express One /parcelshops?isActive=true (SLOVENIA instance shape - confirm field names on BG live).",
   "data": [
     {"Id": 101, "pickupCodes": "EO-SOF-001", "ShortName": "София Център", "OOHType": 0, "IsActive": true,
      "GeoLat": 42.6977, "GeoLong": 23.3219,

@@ -2,7 +2,7 @@
 defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
 
 /**
- * BOX NOW webhook receiver — real-time parcel tracking.
+ * BOX NOW webhook receiver - real-time parcel tracking.
  *
  * BoxNow posts a WebhookMessage to a URL the merchant registers in their BoxNow account on every parcel
  * event. The message's `data` object is authenticated by `datasignature` = HMAC-SHA256 of the data, keyed
@@ -74,7 +74,7 @@ class BGC_Boxnow_Webhook {
         return null;
     }
 
-    /** Record the parcel state on the matching order (visibility only — no forced status transition). */
+    /** Record the parcel state on the matching order (visibility only - no forced status transition). */
     private static function apply(array $data): void {
         if (!function_exists('wc_get_orders')) { return; }
         $order = self::find_order((string) ($data['parcelId'] ?? ''), (string) ($data['orderNumber'] ?? ''));
@@ -93,7 +93,7 @@ class BGC_Boxnow_Webhook {
         return [
             'new'                  => __('registered', 'bg-couriers'),
             'in-transit'           => __('in transit', 'bg-couriers'),
-            'in-final-destination' => __('in the locker — ready for pickup', 'bg-couriers'),
+            'in-final-destination' => __('in the locker - ready for pickup', 'bg-couriers'),
             'delivered'            => __('delivered', 'bg-couriers'),
             'returned'             => __('returned', 'bg-couriers'),
             'expired-return'       => __('returned (not collected in time)', 'bg-couriers'),

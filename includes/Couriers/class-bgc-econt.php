@@ -27,7 +27,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
         return $p;
     }
 
-    /** Econt uses HTTP Basic, not a body credential — override the transport. */
+    /** Econt uses HTTP Basic, not a body credential - override the transport. */
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [
             'timeout' => 20,
@@ -109,14 +109,14 @@ class BGC_Econt extends BGC_Abstract_Courier {
         $client   = $profile['client'] ?? [];
         $address  = $profile['addresses'][0] ?? [];
         if (empty($client['name']) || empty($address['city']['id'])) {
-            throw new BGC_Api_Exception('Econt sender profile missing client/address — check getClientProfiles');
+            throw new BGC_Api_Exception('Econt sender profile missing client/address - check getClientProfiles');
         }
         $sender   = ['client' => $client, 'address' => $address];
         set_transient('bgc_econt_sender', $sender, DAY_IN_SECONDS);
         return $sender;
     }
 
-    /** CD (наложен платеж) pay-out agreements from the client profile — `num` => human label. Cached. */
+    /** CD (наложен платеж) pay-out agreements from the client profile - `num` => human label. Cached. */
     public function cd_pay_options(): array {
         $cached = get_transient('bgc_econt_cd_options');
         if (is_array($cached)) { return $cached; }
@@ -129,7 +129,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
                 $desc = !empty($o['moneyTransfer'])
                     ? __('postal money transfer', 'bg-couriers') . (!empty($o['officeCode']) ? ' (office ' . $o['officeCode'] . ')' : '')
                     : (!empty($o['IBAN']) ? 'IBAN ' . $o['IBAN'] : (string) ($o['method'] ?? ''));
-                $out[$num] = $num . ' — ' . $desc;
+                $out[$num] = $num . ' - ' . $desc;
             }
             set_transient('bgc_econt_cd_options', $out, HOUR_IN_SECONDS);
         } catch (\Exception $e) { /* leave empty on API failure */ }
@@ -286,7 +286,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
             ];
         }
 
-        // Наложен платеж (COD) + packing list — only when enabled in the Econt settings.
+        // Наложен платеж (COD) + packing list - only when enabled in the Econt settings.
         if (get_option('bgc_econt_cod_enabled', 'no') === 'yes') {
             $label['services'] = [
                 'cdAmount'             => round((float) $order->get_total(), 2),
@@ -294,7 +294,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
                 'cdCurrency'           => $order->get_currency(),
                 'cdPayOptionsTemplate' => (string) get_option('bgc_econt_cd_num', ''),
             ];
-            // Who pays the delivery (за чий рахунок): left to Econt's default — the API client (the
+            // Who pays the delivery (за чий рахунок): left to Econt's default - the API client (the
             // sender/merchant, ЗЕЛЕНИ ДОБАВКИ) is billed on their own account. Setting
             // paymentSenderMethod='credit' explicitly makes Econt demand a payer client number the
             // profile doesn't carry → rejected ("грешен клиентски номер за платец подател"). The COD
@@ -307,7 +307,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
     }
 
     /**
-     * Order line items as Econt PackingListElement[] — seq #, name, weight (kg), qty, price.
+     * Order line items as Econt PackingListElement[] - seq #, name, weight (kg), qty, price.
      * Econt totals the опис as sum(price × count), so price + weight are PER UNIT (tax-inclusive).
      * Econt requires that опис total to equal the наложен платеж (cdAmount = order total), so any
      * remainder (shipping, fees, rounding) is folded into one balancing line.
@@ -354,7 +354,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
     }
 
     /**
-     * Issue a real waybill for the given order.  Live – do NOT call in tests.
+     * Issue a real waybill for the given order.  Live - do NOT call in tests.
      */
     public function create_label(\WC_Order $order): BGC_Label {
         $sender = $this->sender_profile();
@@ -370,7 +370,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
     }
 
     /**
-     * Fetch label PDF bytes for a given waybill.  Live – do NOT call in tests.
+     * Fetch label PDF bytes for a given waybill.  Live - do NOT call in tests.
      */
     public function get_label_pdf(string $waybill): string {
         $resp = $this->post_json(
@@ -411,7 +411,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
     }
 
     /**
-     * Fetch live tracking info for a waybill.  Live – do NOT call in tests.
+     * Fetch live tracking info for a waybill.  Live - do NOT call in tests.
      */
     public function track(string $waybill): BGC_Tracking {
         $resp = $this->post_json(
@@ -429,7 +429,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
     }
 
     /**
-     * Cancel/delete a waybill.  Live – do NOT call in tests.
+     * Cancel/delete a waybill.  Live - do NOT call in tests.
      * The owner cancels test waybills manually; this is implemented for completeness.
      */
     public function cancel_label(string $waybill): bool {

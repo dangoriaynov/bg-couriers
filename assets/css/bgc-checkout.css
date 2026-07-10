@@ -1,4 +1,4 @@
-/* BG Couriers — checkout fields */
+/* BG Couriers - checkout fields */
 .bgc-fields { position: relative; margin: 10px 0; }
 .bgc-fields, .bgc-fields * { box-sizing: border-box; }
 
@@ -34,12 +34,12 @@
 .bgc-fields .select2-selection__arrow { height: 36px !important; }
 
 /* Loader overlay shown while a tab's data + price load */
-.bgc-loader { display: none; } /* WooCommerce's own blockUI spinner covers recalculation — avoid a second spinner */
+.bgc-loader { display: none; } /* WooCommerce's own blockUI spinner covers recalculation - avoid a second spinner */
 /* Grey out + disable the fields while recalculating. No CSS filter: it creates a containing block that
    mispositions select2's dropdown. Opacity is safe. */
 .bgc-fields.bgc-loading .bgc-panel, .bgc-fields.bgc-loading .bgc-tabs { opacity: .5; pointer-events: none; }
 
-/* Unselected courier's price/label dimmed — visible for comparison, but clearly not what you'll pay. */
+/* Unselected courier's price/label dimmed - visible for comparison, but clearly not what you'll pay. */
 label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactive .woocommerce-Price-amount { color: #9aa0a6 !important; }
 .bgc-spinner { width: 26px; height: 26px; border: 3px solid #cfd8e3; border-top-color: #2271b1; border-radius: 50%; animation: bgc-spin .7s linear infinite; }
 @keyframes bgc-spin { to { transform: rotate(360deg); } }

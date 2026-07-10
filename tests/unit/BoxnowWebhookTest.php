@@ -6,7 +6,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-boxnow-webhook.
 
 /**
  * The BOX NOW webhook must only be trusted when the HMAC-SHA256 signature over `data` matches the shared
- * secret — a tampered payload or wrong/empty secret is rejected.
+ * secret - a tampered payload or wrong/empty secret is rejected.
  *
  * @group boxnow
  */

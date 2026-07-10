@@ -91,7 +91,7 @@ class BGC_Nomenclature {
     }
 
     /**
-     * Compact list of cities that HAVE this courier's offices, per type — for preloading the checkout city
+     * Compact list of cities that HAVE this courier's offices, per type - for preloading the checkout city
      * dropdown (office/automat) so it needs no AJAX. Rows are [city_id, name, post_code]. Cached (a day).
      * @return array{office:array<int,array>,automat:array<int,array>}
      */

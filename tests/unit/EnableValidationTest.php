@@ -15,7 +15,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-boxnow.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-sameday.php';
 
 /**
- * Per-courier "can this courier be enabled" rules — crucial settings must be present + credentials
+ * Per-courier "can this courier be enabled" rules - crucial settings must be present + credentials
  * validated, and each courier adds its own required fields.
  *
  * @group core
@@ -29,7 +29,7 @@ final class EnableValidationTest extends TestCase {
             return array_key_exists($k, $map) ? $map[$k] : $d;
         });
     }
-    /** enabled + credentials saved + validated — the base "ready" state. */
+    /** enabled + credentials saved + validated - the base "ready" state. */
     private function ok(string $c): array {
         return ["bgc_{$c}_enabled" => 'yes', "bgc_{$c}_username" => 'u', "bgc_{$c}_password" => 'p', "bgc_{$c}_validated" => 'yes'];
     }

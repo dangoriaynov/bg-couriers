@@ -5,7 +5,7 @@ use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgc-settings.php';
 
 /**
- * The emergency help phone/message the merchant configures must be read back verbatim —
+ * The emergency help phone/message the merchant configures must be read back verbatim -
  * these feed the checkout help box (BGC.emergency) after repeated checkout failures.
  *
  * @group core

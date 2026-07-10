@@ -21,5 +21,5 @@ Tag the courier's E2E specs by appending `@<id>` to each `test(...)` title:
 test('econt guest checkout to office @econt', async ({ page }) => {
 ```
 
-Then `bin/test econt` picks them up automatically — PHPUnit runs `--group econt`
+Then `bin/test econt` picks them up automatically - PHPUnit runs `--group econt`
 (unit + integration) and Playwright runs `--grep "@econt"` in the `e2e/` directory.

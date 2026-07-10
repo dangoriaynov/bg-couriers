@@ -145,7 +145,7 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         return $out;
     }
 
-    // Filled in Tasks 6–7:
+    // Filled in Tasks 6-7:
     public function quote(array $shipment): BGC_Quote {
         $resp = $this->post_json($this->base . '/calculate', $this->auth(self::build_calculate_body($shipment)));
         return self::parse_price($resp, (string) ($shipment['currency'] ?? 'BGN'));

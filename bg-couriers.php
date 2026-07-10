@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: BG Couriers for WooCommerce
- * Description: Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) — office/address/locker delivery, live rates, labels and tracking.
+ * Description: Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) - office/address/locker delivery, live rates, labels and tracking.
  * Version: 0.2.0
  * Author: Дан Горяйнов
  * Author URI: https://github.com/dangoriaynov
@@ -42,7 +42,7 @@ add_action('before_woocommerce_init', function () {
 
 add_action('plugins_loaded', function () {
     if (!class_exists('WooCommerce')) { return; }
-    // Run schema upgrades on version change (dbDelta is idempotent — adds new columns like office lat/lng
+    // Run schema upgrades on version change (dbDelta is idempotent - adds new columns like office lat/lng
     // to existing installs, since the activation hook doesn't fire on a plugin update).
     if (get_option('bgc_db_version') !== BGC_VERSION) {
         BGC_Schema::create();

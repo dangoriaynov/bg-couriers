@@ -29,7 +29,7 @@ final class FreeShippingTest extends TestCase {
     }
 
     public function test_free_shipping_auto_enabled_by_positive_threshold(): void {
-        // No on/off flag — a positive threshold alone enables free shipping.
+        // No on/off flag - a positive threshold alone enables free shipping.
         Functions\when('get_option')->alias(function ($name, $default = false) {
             return ['bgc_speedy_free_threshold' => '60'][$name] ?? $default;
         });

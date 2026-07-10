@@ -60,7 +60,7 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
      * Return a valid X-Auth-Token, fetching a new one when absent/expired.
      *
      * Request shape confirmed from SDK:
-     *   SamedayAuthenticateRequest::buildRequest() — headers X-Auth-Username / X-Auth-Password,
+     *   SamedayAuthenticateRequest::buildRequest() - headers X-Auth-Username / X-Auth-Password,
      *   body 'remember_me=true' (URL-encoded form).
      * Response shape confirmed from SamedayAuthenticateResponse:
      *   JSON { "token": "...", "expire_at": "YYYY-MM-DD HH:MM" }

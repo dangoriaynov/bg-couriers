@@ -1,6 +1,6 @@
 <?php
 /**
- * The Speedy /shipment payload must carry exactly what the customer entered at checkout —
+ * The Speedy /shipment payload must carry exactly what the customer entered at checkout -
  * nothing added, nothing dropped. Exercises BGC_Speedy::build_shipment_body against a real order.
  *
  * @group speedy
@@ -31,7 +31,7 @@ final class LabelIntegrityTest extends WP_UnitTestCase {
         $order->save();
 
         $addr = $this->build($order)['recipient']['address'];
-        // Exactly the entered keys, in build_address() order — no empties added, none missing.
+        // Exactly the entered keys, in build_address() order - no empties added, none missing.
         $this->assertSame(['countryId', 'siteId', 'complexName', 'streetName', 'streetNo'], array_keys($addr));
         $this->assertSame(100, $addr['countryId']);
         $this->assertSame(68134, $addr['siteId']);

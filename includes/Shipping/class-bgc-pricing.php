@@ -5,7 +5,7 @@ class BGC_Pricing {
     /**
      * Resolve the office to quote against, given the customer's session selection.
      * office/automat with a chosen office → use it. Otherwise quote a representative office (of the
-     * chosen city, or — when no city is picked, or the city has none of that type — the first such
+     * chosen city, or - when no city is picked, or the city has none of that type - the first such
      * office anywhere) so the price is a live quote at the REAL cart weight. The checkout greys out a
      * delivery option the chosen city lacks, so the customer never actually selects that combination.
      *
@@ -26,7 +26,7 @@ class BGC_Pricing {
 
     /**
      * Price for the checkout shipping row. Before the customer picks a city we return the FAST cached daily
-     * reference (no API call) — so switching couriers stays snappy and the customer can start entering the
+     * reference (no API call) - so switching couriers stays snappy and the customer can start entering the
      * address immediately. Once a real city is chosen we do the exact live quote against the resolved office.
      */
     public static function checkout_quote(BGC_Courier_Interface $courier, string $method, int $site_id, int $office, array $packed, string $currency): BGC_Quote {

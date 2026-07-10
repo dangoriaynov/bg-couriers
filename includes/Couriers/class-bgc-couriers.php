@@ -10,7 +10,7 @@ final class BGC_Couriers {
     private static $built = [];
     private static $booted = false;
 
-    /** Register a courier. Re-registering the same id overrides it (last wins) — intentional, so a
+    /** Register a courier. Re-registering the same id overrides it (last wins) - intentional, so a
      *  site can swap in its own implementation of a courier. */
     public static function register(string $id, string $label, callable $factory): void {
         self::$defs[$id] = ['label' => $label, 'factory' => $factory];
@@ -44,7 +44,7 @@ final class BGC_Couriers {
         return BGC_URL . 'assets/img/couriers/' . $f;
     }
 
-    /** Wire the resolver hook once, at boot (idempotent — safe to call more than once). */
+    /** Wire the resolver hook once, at boot (idempotent - safe to call more than once). */
     public static function boot(): void {
         if (self::$booted) { return; }
         self::$booted = true;

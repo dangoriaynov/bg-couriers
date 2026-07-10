@@ -1,6 +1,6 @@
 <?php
 /**
- * Checkout pricing must NOT hit a courier's API before a city is chosen — it uses the fast cached daily
+ * Checkout pricing must NOT hit a courier's API before a city is chosen - it uses the fast cached daily
  * reference, so switching couriers stays snappy. Once a real city is picked it does the exact live quote.
  *
  * @group core

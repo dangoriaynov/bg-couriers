@@ -28,7 +28,7 @@ class BGC_Currency {
 
     /**
      * A store-currency amount as WC formats it, plus the pegged other currency in brackets when dual
-     * display is on — e.g. "3,99 €  (7,80 лв.)". HTML. Peg applies only to EUR⇄BGN.
+     * display is on - e.g. "3,99 €  (7,80 лв.)". HTML. Peg applies only to EUR⇄BGN.
      */
     public static function dual_store(float $amount): string {
         $main = function_exists('wc_price') ? wc_price($amount) : (number_format($amount, 2) . ' €');

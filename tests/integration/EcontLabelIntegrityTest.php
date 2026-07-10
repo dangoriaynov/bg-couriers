@@ -1,6 +1,6 @@
 <?php
 /**
- * The Econt createLabel payload must carry exactly what the order data dictates —
+ * The Econt createLabel payload must carry exactly what the order data dictates -
  * correct receiver (office code vs address), senderAgent for juridical senders,
  * and receiverClient from the order.
  *
@@ -149,7 +149,7 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $this->assertSame('get', $label['services']['cdType']);
         $this->assertSame('EUR', $label['services']['cdCurrency']);
         $this->assertEqualsWithDelta((float) $order->get_total(), (float) $label['services']['cdAmount'], 0.001);
-        // за чий рахунок — left to Econt's default (the API client / sender is billed); NOT set
+        // за чий рахунок - left to Econt's default (the API client / sender is billed); NOT set
         // explicitly, because paymentSenderMethod='credit' makes Econt demand a payer client number
         // the profile doesn't carry (live-confirmed rejection 2026-07-06).
         $this->assertArrayNotHasKey('paymentSenderMethod', $label);

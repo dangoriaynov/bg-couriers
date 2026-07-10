@@ -23,8 +23,8 @@ msgstr ""
 
 #. Description of the plugin
 #: bg-couriers.php
-msgid "Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) — office/address/locker delivery, live rates, labels and tracking."
-msgstr "Доставка с български куриери (Speedy, Econt, BOX NOW, Pigeon, Sameday) — доставка до офис/адрес/автомат, живи цени, етикети и проследяване."
+msgid "Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) - office/address/locker delivery, live rates, labels and tracking."
+msgstr "Доставка с български куриери (Speedy, Econt, BOX NOW, Pigeon, Sameday) - доставка до офис/адрес/автомат, живи цени, етикети и проследяване."
 
 #. Author of the plugin
 #: bg-couriers.php
@@ -286,8 +286,8 @@ msgid "Sameday"
 msgstr "Sameday"
 
 #: includes/Admin/class-bgc-wc-settings.php:159
-msgid "Could not save — please try again."
-msgstr "Неуспешно запазване — моля, опитайте отново."
+msgid "Could not save - please try again."
+msgstr "Неуспешно запазване - моля, опитайте отново."
 
 #: includes/Admin/class-bgc-wc-settings.php:252
 msgid "enabled"
@@ -361,8 +361,8 @@ msgid "Show prices in both EUR and BGN"
 msgstr "Показвай цените в EUR и BGN"
 
 #: includes/Admin/class-bgc-wc-settings.php:378
-msgid "Show the shipping price with the pegged лв. equivalent in brackets — 1 EUR = 1.95583 BGN — on the shipping method, the cart estimate and the free-shipping notice. Leave off to show only the store currency (e.g. if another plugin already displays лв.)."
-msgstr "Показвай цената на доставката с фиксирания еквивалент в лв. в скоби — 1 EUR = 1.95583 BGN — при метода на доставка, приблизителната цена в количката и известието за безплатна доставка. Оставете изключено, за да се показва само валутата на магазина (напр. ако друг плъгин вече показва лв.)."
+msgid "Show the shipping price with the pegged лв. equivalent in brackets - 1 EUR = 1.95583 BGN - on the shipping method, the cart estimate and the free-shipping notice. Leave off to show only the store currency (e.g. if another plugin already displays лв.)."
+msgstr "Показвай цената на доставката с фиксирания еквивалент в лв. в скоби - 1 EUR = 1.95583 BGN - при метода на доставка, приблизителната цена в количката и известието за безплатна доставка. Оставете изключено, за да се показва само валутата на магазина (напр. ако друг плъгин вече показва лв.)."
 
 #: includes/Admin/class-bgc-wc-settings.php:379
 msgid "Preload city lists"
@@ -377,8 +377,8 @@ msgid "Address map picker"
 msgstr "Избор на адрес от карта"
 
 #: includes/Admin/class-bgc-wc-settings.php:382
-msgid "Add a “Choose on map” button to address delivery — the customer drops a pin and the address fields fill in automatically (still editable). Uses free OpenStreetMap unless a Google key is set below."
-msgstr "Добавя бутон „Изберете от карта“ към доставката до адрес — клиентът поставя маркер и адресните полета се попълват автоматично (остават редактируеми). Използва безплатната OpenStreetMap, освен ако по-долу не е зададен Google ключ."
+msgid "Add a “Choose on map” button to address delivery - the customer drops a pin and the address fields fill in automatically (still editable). Uses free OpenStreetMap unless a Google key is set below."
+msgstr "Добавя бутон „Изберете от карта“ към доставката до адрес - клиентът поставя маркер и адресните полета се попълват автоматично (остават редактируеми). Използва безплатната OpenStreetMap, освен ако по-долу не е зададен Google ключ."
 
 #: includes/Admin/class-bgc-wc-settings.php:383
 msgid "Google Maps API key (optional)"
@@ -503,8 +503,8 @@ msgid "Free-shipping threshold"
 msgstr "Праг за безплатна доставка"
 
 #: includes/Admin/class-bgc-wc-settings.php:430
-msgid "Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
-msgstr "Доставяй безплатно със Speedy (Вие поемате разхода), когато стойността на стоките (без доставка) достигне тази сума — за всички видове доставка. Въведете положителна сума за включване; оставете празно или 0 за изключване. Във валутата на магазина."
+msgid "Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgstr "Доставяй безплатно със Speedy (Вие поемате разхода), когато стойността на стоките (без доставка) достигне тази сума - за всички видове доставка. Въведете положителна сума за включване; оставете празно или 0 за изключване. Във валутата на магазина."
 
 #: includes/Admin/class-bgc-wc-settings.php:431
 #: includes/Admin/class-bgc-wc-settings.php:468
@@ -514,8 +514,8 @@ msgid "Delivery option order"
 msgstr "Ред на опциите за доставка"
 
 #: includes/Admin/class-bgc-wc-settings.php:437
-msgid "— none (COD off) —"
-msgstr "— няма (наложен платеж изкл.) —"
+msgid "- none (COD off) -"
+msgstr "- няма (наложен платеж изкл.) -"
 
 #: includes/Admin/class-bgc-wc-settings.php:446
 msgid "Enable Econt"
@@ -542,16 +542,16 @@ msgid "CD pay-out agreement"
 msgstr "Договор за изплащане на наложен платеж"
 
 #: includes/Admin/class-bgc-wc-settings.php:460
-msgid "The наложен платеж agreement the money is paid out with (loaded from your Econt profile — e.g. postal money transfer / bank)."
-msgstr "Договорът за наложен платеж, чрез който се изплащат парите (зареден от Вашия Econt профил — напр. пощенски паричен превод / банка)."
+msgid "The наложен платеж agreement the money is paid out with (loaded from your Econt profile - e.g. postal money transfer / bank)."
+msgstr "Договорът за наложен платеж, чрез който се изплащат парите (зареден от Вашия Econt профил - напр. пощенски паричен превод / банка)."
 
 #: includes/Admin/class-bgc-wc-settings.php:464
 msgid "Calculate shipping cost live via the Econt API. When off, the per-method default prices below are used."
 msgstr "Изчислявай цената на доставката на живо чрез Econt API. Когато е изключено, се използват цените по подразбиране за всеки метод по-долу."
 
 #: includes/Admin/class-bgc-wc-settings.php:467
-msgid "Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
-msgstr "Доставяй безплатно с Econt (Вие поемате разхода), когато стойността на стоките (без доставка) достигне тази сума — за всички видове доставка. Въведете положителна сума за включване; оставете празно или 0 за изключване. Във валутата на магазина."
+msgid "Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgstr "Доставяй безплатно с Econt (Вие поемате разхода), когато стойността на стоките (без доставка) достигне тази сума - за всички видове доставка. Въведете положителна сума за включване; оставете празно или 0 за изключване. Във валутата на магазина."
 
 #: includes/Admin/class-bgc-wc-settings.php:476
 msgid "Enable Pigeon Express"
@@ -586,8 +586,8 @@ msgid "Calculate shipping cost live via the Pigeon Express API. When off, the pe
 msgstr "Изчислявай цената на доставката на живо чрез Pigeon Express API. Когато е изключено, се използват цените по подразбиране за всеки метод по-долу."
 
 #: includes/Admin/class-bgc-wc-settings.php:495
-msgid "Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
-msgstr "Доставяй безплатно с Pigeon Express (Вие поемате разхода), когато стойността на стоките (без доставка) достигне тази сума — за всички видове доставка. Въведете положителна сума за включване; оставете празно или 0 за изключване. Във валутата на магазина."
+msgid "Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgstr "Доставяй безплатно с Pigeon Express (Вие поемате разхода), когато стойността на стоките (без доставка) достигне тази сума - за всички видове доставка. Въведете положителна сума за включване; оставете празно или 0 за изключване. Във валутата на магазина."
 
 #: includes/Admin/class-bgc-wc-settings.php:506
 msgid "Enable Sameday"
@@ -630,24 +630,24 @@ msgid "Map each delivery type to a Sameday service ID from your contract (used f
 msgstr "Свържете всеки вид доставка с ID на услуга на Sameday от Вашия договор (използва се за цени и етикети)."
 
 #: includes/Admin/class-bgc-wc-settings.php:522
-msgid "Service ID — to office"
-msgstr "ID на услуга — до офис"
+msgid "Service ID - to office"
+msgstr "ID на услуга - до офис"
 
 #: includes/Admin/class-bgc-wc-settings.php:523
-msgid "Service ID — to address"
-msgstr "ID на услуга — до адрес"
+msgid "Service ID - to address"
+msgstr "ID на услуга - до адрес"
 
 #: includes/Admin/class-bgc-wc-settings.php:524
-msgid "Service ID — to locker (easyBox)"
-msgstr "ID на услуга — до автомат (easyBox)"
+msgid "Service ID - to locker (easyBox)"
+msgstr "ID на услуга - до автомат (easyBox)"
 
 #: includes/Admin/class-bgc-wc-settings.php:531
 msgid "Calculate shipping cost live via the Sameday API. When off, the per-method default prices below are used."
 msgstr "Изчислявай цената на доставката на живо чрез Sameday API. Когато е изключено, се използват цените по подразбиране за всеки метод по-долу."
 
 #: includes/Admin/class-bgc-wc-settings.php:533
-msgid "Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount — for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
-msgstr "Доставяй безплатно със Sameday (Вие поемате разхода), когато стойността на стоките (без доставка) достигне тази сума — за всички видове доставка. Въведете положителна сума за включване; оставете празно или 0 за изключване. Във валутата на магазина."
+msgid "Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgstr "Доставяй безплатно със Sameday (Вие поемате разхода), когато стойността на стоките (без доставка) достигне тази сума - за всички видове доставка. Въведете положителна сума за включване; оставете празно или 0 за изключване. Във валутата на магазина."
 
 #: includes/Admin/class-bgc-wc-settings.php:543
 msgid "Enable BOX NOW"
@@ -731,14 +731,14 @@ msgstr "до автомат"
 #. translators: %s = delivery type, e.g. "to an office"
 #: includes/Checkout/class-bgc-checkout.php:65
 #, php-format
-msgid "≈ estimate for delivery %s at this cart weight — choose your city and exact point at checkout for the final price."
-msgstr "≈ приблизителна цена за доставка %s при това тегло на количката — изберете град и точна локация при поръчката за крайната цена."
+msgid "≈ estimate for delivery %s at this cart weight - choose your city and exact point at checkout for the final price."
+msgstr "≈ приблизителна цена за доставка %s при това тегло на количката - изберете град и точна локация при поръчката за крайната цена."
 
 #. translators: %s = delivery type
 #: includes/Checkout/class-bgc-checkout.php:68
 #, php-format
-msgid "Flat price for delivery %s — choose your exact locker at checkout."
-msgstr "Фиксирана цена за доставка %s — изберете точния автомат при поръчката."
+msgid "Flat price for delivery %s - choose your exact locker at checkout."
+msgstr "Фиксирана цена за доставка %s - изберете точния автомат при поръчката."
 
 #: includes/Checkout/class-bgc-checkout.php:98
 msgid "office"
@@ -807,8 +807,8 @@ msgid "APS (locker)"
 msgstr "Автомат"
 
 #: includes/Checkout/class-bgc-checkout.php:330
-msgid "Having trouble placing your order? We can help — call us:"
-msgstr "Имате проблем с поръчката? Можем да помогнем — обадете ни се:"
+msgid "Having trouble placing your order? We can help - call us:"
+msgstr "Имате проблем с поръчката? Можем да помогнем - обадете ни се:"
 
 #: includes/Checkout/class-bgc-checkout.php:332
 msgid "Type a city…"
@@ -857,8 +857,8 @@ msgid "Show my location"
 msgstr "Покажи моето местоположение"
 
 #: includes/Checkout/class-bgc-checkout.php:341
-msgid "No offices with a map location for this city yet — use the list."
-msgstr "Все още няма офиси с локация на картата за този град — използвайте списъка."
+msgid "No offices with a map location for this city yet - use the list."
+msgstr "Все още няма офиси с локация на картата за този град - използвайте списъка."
 
 #: includes/Checkout/class-bgc-checkout.php:342
 msgid "Choose your address on the map"
@@ -873,8 +873,8 @@ msgid "Use this address"
 msgstr "Използвай този адрес"
 
 #: includes/Checkout/class-bgc-checkout.php:345
-msgid "No address found here — try another spot."
-msgstr "Тук не е намерен адрес — опитайте на друго място."
+msgid "No address found here - try another spot."
+msgstr "Тук не е намерен адрес - опитайте на друго място."
 
 #: includes/Checkout/class-bgc-checkout.php:426
 msgid "City"
@@ -959,8 +959,8 @@ msgid "in transit"
 msgstr "в движение"
 
 #: includes/Couriers/class-bgc-boxnow-webhook.php:96
-msgid "in the locker — ready for pickup"
-msgstr "в автомата — готова за получаване"
+msgid "in the locker - ready for pickup"
+msgstr "в автомата - готова за получаване"
 
 #: includes/Couriers/class-bgc-boxnow-webhook.php:97
 msgid "delivered"
@@ -1007,8 +1007,8 @@ msgid "The flat delivery price is not set."
 msgstr "Не е зададена фиксирана цена за доставка."
 
 #: includes/Couriers/class-bgc-boxnow.php:41
-msgid "Enter a “Delivery price” greater than 0 — BOX NOW has no live rate API."
-msgstr "Въведете „Цена за доставка“ по-голяма от 0 — BOX NOW няма API за живи тарифи."
+msgid "Enter a “Delivery price” greater than 0 - BOX NOW has no live rate API."
+msgstr "Въведете „Цена за доставка“ по-голяма от 0 - BOX NOW няма API за живи тарифи."
 
 #: includes/Couriers/class-bgc-econt.php:24
 msgid "Cash on delivery is on, but no pay-out agreement is selected."

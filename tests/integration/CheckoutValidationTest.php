@@ -1,6 +1,6 @@
 <?php
 /**
- * Checkout must be blocked — with a clear, courier-named error — whenever the delivery destination
+ * Checkout must be blocked - with a clear, courier-named error - whenever the delivery destination
  * isn't validly specified, and the saved selection must belong to the courier actually chosen.
  *
  * @group core

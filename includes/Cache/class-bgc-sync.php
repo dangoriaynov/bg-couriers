@@ -2,8 +2,8 @@
 defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
 
 class BGC_Sync {
-    const HOOK       = 'bgc_weekly_sync'; // full nomenclature sync (heavy) — weekly
-    const RATES_HOOK = 'bgc_daily_rates'; // reference-price refresh (light) — daily
+    const HOOK       = 'bgc_weekly_sync'; // full nomenclature sync (heavy) - weekly
+    const RATES_HOOK = 'bgc_daily_rates'; // reference-price refresh (light) - daily
 
     /** First city alphabetically from a courier's cached cities (the reference origin). */
     public static function first_city(string $courier): int {
@@ -25,7 +25,7 @@ class BGC_Sync {
             return array_merge($base, ['site_id' => $city, 'office_id' => 0, 'office_code' => '',
                                        'street_name' => 'Тест', 'street_no' => '1']);
         }
-        // office / automat — first office of that type, in the alphabetically-first city that has one
+        // office / automat - first office of that type, in the alphabetically-first city that has one
         // (the first city overall is often a village with no Econtomat/locker).
         $off = BGC_Nomenclature::first_office($courier, $method);
         if (empty($off['office_id'])) { return []; }
@@ -107,7 +107,7 @@ class BGC_Sync {
         foreach (self::enabled_couriers() as $courier) { self::run($courier); }
     }
 
-    /** Daily: refresh just the reference prices (light — first city + a quote per method). */
+    /** Daily: refresh just the reference prices (light - first city + a quote per method). */
     public static function refresh_rates(): void {
         foreach (self::enabled_couriers() as $courier) { self::seed_rates($courier); }
     }

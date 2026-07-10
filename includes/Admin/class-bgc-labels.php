@@ -113,7 +113,7 @@ class BGC_Labels {
                 if (!$parcels) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
                 $pdf = $courier->print_labels($parcels, BGC_Settings::label_paper_size((string) $first_order->get_meta('_bgc_courier') ?: 'speedy'));
             } else {
-                // Courier exposes a per-waybill PDF (no batch combine) — print the first order's label.
+                // Courier exposes a per-waybill PDF (no batch combine) - print the first order's label.
                 $wb = (string) $first_order->get_meta('_bgc_waybill');
                 if ($wb === '') { wp_die(esc_html__('No label to print.', 'bg-couriers')); }
                 $pdf = $courier->get_label_pdf($wb);

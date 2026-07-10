@@ -104,14 +104,14 @@ class BGC_Ajax {
     }
 
     /**
-     * Office/automat list for one city — fetched LIVE per-city (the country-wide nomenclature
+     * Office/automat list for one city - fetched LIVE per-city (the country-wide nomenclature
      * is capped by Speedy and misses most cities), filtered by type + search term, sorted by
      * office number, limited to N. Falls back to the cached nomenclature when the API is down.
      */
     public static function city_offices(string $courier_id, int $city, string $type, string $term = '', int $limit = 5): array {
         $rows = [];
         if ($city > 0) {
-            // Cache the (live) office list per courier+city — offices change rarely, so this turns the first
+            // Cache the (live) office list per courier+city - offices change rarely, so this turns the first
             // fetch into an instant response for everyone after, killing the checkout's biggest round-trip.
             $tkey   = 'bgc_off_' . $courier_id . '_' . $city;
             $cached = get_transient($tkey);
