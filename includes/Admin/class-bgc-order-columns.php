@@ -44,7 +44,7 @@ document.addEventListener('click', function (e) {
 
     public function render($column, $order): void {
         if ($column !== 'bgc_shipping' || !$order) { return; }
-        if ($order->get_meta('_bgc_courier') !== 'speedy') { echo '—'; return; }
+        if (!BGC_Labels::order_courier($order)) { echo '—'; return; } // any BGC courier, not just Speedy
         $id = $order->get_id();
         $base = admin_url('admin-post.php');
         $print = wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id, 'bgc_print_batch');

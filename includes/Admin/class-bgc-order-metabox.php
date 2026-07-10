@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-/** Renders the Speedy shipment panel (waybill + generate/print/track) at the TOP of the order. */
+/** Renders the shipment panel (waybill + generate/print/track) at the TOP of a BG Couriers order. */
 class BGC_Order_Metabox {
     public function __construct() {
         // The order-data panel (after the shipping address) — visible at the top, both HPOS + legacy.
@@ -9,14 +9,15 @@ class BGC_Order_Metabox {
     }
 
     public function render($order): void {
-        if (!$order instanceof WC_Order || $order->get_meta('_bgc_courier') !== 'speedy') { return; }
+        $courier = BGC_Labels::order_courier($order); // any BG Couriers order, not just Speedy
+        if (!$courier) { return; }
         $id      = $order->get_id();
         $waybill = (string) $order->get_meta('_bgc_waybill');
         $method  = (string) $order->get_meta('_bgc_method');
         $base    = admin_url('admin-post.php');
 
         echo '<div class="bgc-order-panel" style="margin-top:12px;padding:12px 14px;border:1px solid #e2e6ea;border-radius:8px;background:#fff;">';
-        echo '<p style="margin:0 0 8px;"><strong>Speedy</strong> — ' . esc_html(ucfirst($method ?: 'office')) . '</p>';
+        echo '<p style="margin:0 0 8px;"><strong>' . esc_html($courier->label()) . '</strong> — ' . esc_html(ucfirst($method ?: 'office')) . '</p>';
 
         if ($waybill === '') {
             $gen = wp_nonce_url($base . '?action=bgc_generate_label&order_id=' . $id, 'bgc_generate_label_' . $id);

@@ -13,7 +13,7 @@ class BGC_Bulk_Labels {
     }
 
     public function register(array $actions): array {
-        $actions[self::ACTION] = __('Generate Speedy labels', 'bg-couriers');
+        $actions[self::ACTION] = __('Generate shipping labels', 'bg-couriers');
         return $actions;
     }
 
@@ -29,7 +29,7 @@ class BGC_Bulk_Labels {
         $print_ids = [];
         foreach (array_map('intval', (array) $ids) as $oid) {
             $order = wc_get_order($oid);
-            if (!$order || $order->get_meta('_bgc_courier') !== 'speedy') { $results[] = 'skipped'; continue; }
+            if (!$order || !BGC_Labels::order_courier($order)) { $results[] = 'skipped'; continue; }
             if ((string) $order->get_meta('_bgc_waybill') !== '') { $results[] = 'reused'; $print_ids[] = $oid; continue; }
             try { BGC_Labels::generate($oid); $results[] = 'generated'; $print_ids[] = $oid; }
             catch (\Exception $e) {
@@ -49,7 +49,7 @@ class BGC_Bulk_Labels {
         foreach ($c as $k => $_) { $c[$k] = (int) ($_GET[$k] ?? 0); }
         $msg = sprintf(
             /* translators: 1: generated 2: reused 3: skipped 4: failed */
-            esc_html__('Speedy labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed.', 'bg-couriers'),
+            esc_html__('Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed.', 'bg-couriers'),
             $c['generated'], $c['reused'], $c['skipped'], $c['failed']
         );
         $link = '';

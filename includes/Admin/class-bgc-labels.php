@@ -2,9 +2,14 @@
 defined('ABSPATH') || exit;
 
 class BGC_Labels {
-    private function courier_for(\WC_Order $order): ?BGC_Courier_Interface {
+    /** The registered courier for a BGC order, or null if it isn't one of ours. */
+    public static function order_courier($order): ?BGC_Courier_Interface {
+        if (!$order instanceof \WC_Order) { return null; }
         $id = (string) $order->get_meta('_bgc_courier');
-        return $id ? BGC_Couriers::get($id) : null;
+        return $id !== '' ? BGC_Couriers::get($id) : null;
+    }
+    private function courier_for(\WC_Order $order): ?BGC_Courier_Interface {
+        return self::order_courier($order);
     }
 
     public function __construct() {
@@ -19,7 +24,7 @@ class BGC_Labels {
         $cfg = BGC_Settings::autolabel();
         if (!$cfg['enabled']) { return; }
         if ('wc-' . $new_status !== $cfg['status']) { return; }
-        if (!$order || $order->get_meta('_bgc_courier') !== 'speedy') { return; }
+        if (!self::order_courier($order)) { return; } // any BGC courier, not just Speedy
         if ($order->get_meta('_bgc_waybill') !== '') { return; }
         try { self::generate((int) $order_id); }
         catch (\Exception $e) {
@@ -44,12 +49,13 @@ class BGC_Labels {
         $dir = trailingslashit($up['basedir']) . 'bgc-labels';
         wp_mkdir_p($dir);
         $safe_waybill = preg_replace('/[^A-Za-z0-9\-]/', '', (string) $label->waybill);
-        $file = $dir . '/speedy-' . $safe_waybill . '.pdf';
+        $prefix = preg_replace('/[^a-z0-9]/', '', $courier->id()) ?: 'bgc';
+        $file = $dir . '/' . $prefix . '-' . $safe_waybill . '.pdf';
         file_put_contents($file, $pdf);
-        $url = trailingslashit($up['baseurl']) . 'bgc-labels/speedy-' . $safe_waybill . '.pdf';
+        $url = trailingslashit($up['baseurl']) . 'bgc-labels/' . $prefix . '-' . $safe_waybill . '.pdf';
         $order->update_meta_data('_bgc_label_url', $url);
-        /* translators: %s: waybill number */
-        $order->add_order_note(sprintf(__('Speedy label generated: %s', 'bg-couriers'), $label->waybill));
+        /* translators: 1: courier name, 2: waybill number */
+        $order->add_order_note(sprintf(__('%1$s label generated: %2$s', 'bg-couriers'), $courier->label(), $label->waybill));
         $order->save();
         return new BGC_Label($label->waybill, $url);
     }
