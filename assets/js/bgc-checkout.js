@@ -301,23 +301,32 @@
     geoT = setTimeout(function () { $.get(BGC.ajax, { action: 'bgc_geocode', lat: lat, lng: lng }, function (r) { cb(r || {}); }); }, 350);
   }
   function fillAddress($wrap, geo) {
-    function rest() {
-      if (geo.postcode) { $wrap.find('.bgc-postcode').val(geo.postcode); }
+    var $city = $wrap.find('.bgc-city');
+    function pickCity(r) {
+      $city.append(new Option(r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), r.city_id, true, true)).trigger('change');
+    }
+    function fields(pc) {
+      if (pc) { $wrap.find('.bgc-postcode').val(pc); }
       if (geo.street) { $wrap.find('.bgc-street').append(new Option(geo.street, geo.street, true, true)).trigger('change'); }
       if (geo.number) { $wrap.find('.bgc-street-no').val(geo.number); }
       resetOffice($wrap); showLoader($wrap); pushSelection($wrap); // recalc for the (possibly new) city
     }
-    var term = geo.postcode || geo.city || '';
-    if (term) {
+    function findCity(term, cb) {
+      if (!term) { cb(null); return; }
       $.get(BGC.ajax, { action: 'bgc_search_cities', courier: courier($wrap), term: term }, function (rows) {
-        var r = (rows && rows.length) ? rows[0] : null;
-        if (r) {
-          $wrap.find('.bgc-city').append(new Option(r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), r.city_id, true, true)).trigger('change');
-          if (!geo.postcode && r.post_code) { $wrap.find('.bgc-postcode').val(r.post_code); }
-        }
-        rest();
+        cb((rows && rows.length) ? rows[0] : null);
       });
-    } else { rest(); }
+    }
+    // The city NAME is the reliable key into the courier nomenclature; a map point's specific postcode is
+    // often not the city's representative postcode, so it is only a fallback. Never keep the previously
+    // chosen city - that leaves city, postcode and street disagreeing (e.g. Plovdiv with a Sofia postcode).
+    findCity(geo.city, function (r) {
+      if (r) { pickCity(r); fields(geo.postcode || r.post_code || ''); return; }
+      findCity(geo.postcode, function (r2) {
+        if (r2) { pickCity(r2); fields(geo.postcode || r2.post_code || ''); }
+        else { $city.val('').trigger('change'); fields(geo.postcode || ''); } // no match - clear so the customer picks the city
+      });
+    });
   }
   function openAddressMap($wrap) {
     if (!window.L) { return; }
