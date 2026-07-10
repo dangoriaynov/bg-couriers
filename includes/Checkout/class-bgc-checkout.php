@@ -402,7 +402,8 @@ class BGC_Checkout {
         if ($site_id) {
             $city = BGC_Nomenclature::city_by_id($courier, $site_id);
             if ($city) {
-                $city_option = '<option value="' . esc_attr($site_id) . '" selected>' . esc_html($city['name']) . '</option>';
+                $label = (string) $city['name'] . (!empty($city['post_code']) ? ' (' . $city['post_code'] . ')' : '');
+                $city_option = '<option value="' . esc_attr($site_id) . '" selected>' . esc_html($label) . '</option>';
             }
         }
         $office_option = '';
@@ -433,12 +434,12 @@ class BGC_Checkout {
            . '<div class="bgc-loader" aria-hidden="true"><span class="bgc-spinner"></span></div>'
            . '<div class="bgc-tabs" role="tablist"></div>'
            . '<div class="bgc-panel">'
-           . '<div class="bgc-grid">'
+           // The postcode rides along in the city label as "Name (1234)" (search + disambiguation); its value
+           // is kept in a hidden field — it's never sent to a courier, only used to carry the city across a
+           // courier switch and to set the order's postcode record.
            . '<div class="bgc-field bgc-city-field"><label>' . esc_html__('City', 'bg-couriers') . '</label>'
-           . '<select class="bgc-city"><option value=""></option>' . $city_option . '</select></div>'
-           . '<div class="bgc-field bgc-postcode-field"><label>' . esc_html__('Postcode', 'bg-couriers') . '</label>'
-           . '<input type="text" class="bgc-postcode" autocomplete="off" inputmode="numeric" maxlength="4" placeholder="' . esc_attr__('opt.', 'bg-couriers') . '" value="' . esc_attr($post_code) . '"></div>'
-           . '</div>'
+           . '<select class="bgc-city"><option value=""></option>' . $city_option . '</select>'
+           . '<input type="hidden" class="bgc-postcode" value="' . esc_attr($post_code) . '"></div>'
            . '<div class="bgc-field bgc-office-row"' . $office_style . '><label class="bgc-office-label">' . $office_label . '</label>'
            . '<div class="bgc-office-pick"><select class="bgc-office">' . $office_option . '</select>'
            . '<button type="button" class="bgc-map-btn" title="' . esc_attr__('View on map', 'bg-couriers') . '">'

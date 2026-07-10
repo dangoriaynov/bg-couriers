@@ -128,8 +128,9 @@
           var counts = {};
           rows.forEach(function (r) { counts[r.name] = (counts[r.name] || 0) + 1; });
           return { results: rows.map(function (r) {
-            var text = r.name;
-            if (counts[r.name] > 1) { text += ' — ' + (r.region || r.post_code || ''); }
+            // Postcode in the label: lets people search/pick by it and tells apart same-named villages.
+            var text = r.name + (r.post_code ? ' (' + r.post_code + ')' : '');
+            if (counts[r.name] > 1 && !r.post_code && r.region) { text += ' — ' + r.region; }
             return { id: r.city_id, text: text, post_code: r.post_code };
           }) };
         }
@@ -310,7 +311,10 @@
     if (term) {
       $.get(BGC.ajax, { action: 'bgc_search_cities', courier: courier($wrap), term: term }, function (rows) {
         var r = (rows && rows.length) ? rows[0] : null;
-        if (r) { $wrap.find('.bgc-city').append(new Option(r.name, r.city_id, true, true)).trigger('change'); }
+        if (r) {
+          $wrap.find('.bgc-city').append(new Option(r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), r.city_id, true, true)).trigger('change');
+          if (!geo.postcode && r.post_code) { $wrap.find('.bgc-postcode').val(r.post_code); }
+        }
         rest();
       });
     } else { rest(); }
@@ -460,17 +464,6 @@
   });
 
   $(document.body).on('change', 'input[name^="shipping_method"]', dimRates);
-
-  $(document.body).on('input', '.bgc-postcode', function () {
-    var $wrap = $(this).closest('.bgc-fields'), code = this.value.trim(); if (code.length < 4) { return; }
-    $.get(BGC.ajax, { action: 'bgc_search_cities', courier: courier($wrap), term: code }, function (rows) {
-      if (rows && rows.length === 1) {
-        var $city = $wrap.find('.bgc-city'); var r = rows[0];
-        $city.append(new Option(r.name, r.city_id, true, true)).trigger('change');
-        resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
-      }
-    });
-  });
 
   var addrT;
   $(document.body).on('input', '.bgc-address-rows input', function () {
