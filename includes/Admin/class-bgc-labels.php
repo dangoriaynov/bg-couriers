@@ -44,7 +44,11 @@ class BGC_Labels {
         $label = $courier->create_label($order);
         $order->update_meta_data('_bgc_waybill', $label->waybill);
 
-        $pdf = $courier->get_label_pdf($label->waybill);
+        // Prefer the PDF URL the courier returned in the create response (Econt does this); otherwise
+        // fetch the label by waybill.
+        $pdf = ($label->pdf !== '' && strpos($label->pdf, 'http') === 0)
+            ? self::download_pdf($label->pdf)
+            : $courier->get_label_pdf($label->waybill);
         $up = wp_upload_dir();
         $dir = trailingslashit($up['basedir']) . 'bgc-labels';
         wp_mkdir_p($dir);
@@ -58,6 +62,11 @@ class BGC_Labels {
         $order->add_order_note(sprintf(__('%1$s label generated: %2$s', 'bg-couriers'), $courier->label(), $label->waybill));
         $order->save();
         return new BGC_Label($label->waybill, $url);
+    }
+    private static function download_pdf(string $url): string {
+        $r = wp_remote_get($url, ['timeout' => 30]);
+        if (is_wp_error($r)) { throw new BGC_Api_Exception('Label PDF download failed: ' . $r->get_error_message()); }
+        return (string) wp_remote_retrieve_body($r);
     }
     public static function batch_parcel_ids(array $order_ids, ?callable $resolver = null): array {
         $resolver = $resolver ?: static function ($id) {

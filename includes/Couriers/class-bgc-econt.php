@@ -390,7 +390,8 @@ class BGC_Econt extends BGC_Abstract_Courier {
             $this->base . '/Shipments/LabelService.createLabel.json',
             self::build_label_body($order, $sender, $office_code)
         );
-        return new BGC_Label(self::parse_shipment_id($resp));
+        // The create response already carries the label PDF URL, so hand it back and skip a second call.
+        return new BGC_Label(self::parse_shipment_id($resp), (string) ($resp['label']['pdfURL'] ?? ''));
     }
 
     /**
@@ -398,7 +399,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
      */
     public function get_label_pdf(string $waybill): string {
         $resp = $this->post_json(
-            $this->base . '/Shipments/LabelService.getShipmentStatuses.json',
+            $this->base . '/Shipments/ShipmentService.getShipmentStatuses.json',
             ['shipmentNumbers' => [$waybill]]
         );
         $url = (string) ($resp['shipmentStatuses'][0]['status']['pdfURL'] ?? '');
@@ -439,7 +440,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
      */
     public function track(string $waybill): BGC_Tracking {
         $resp = $this->post_json(
-            $this->base . '/Shipments/LabelService.getShipmentStatuses.json',
+            $this->base . '/Shipments/ShipmentService.getShipmentStatuses.json',
             ['shipmentNumbers' => [$waybill]]
         );
         return self::parse_tracking($resp);
