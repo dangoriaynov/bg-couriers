@@ -73,7 +73,6 @@ final class EcontSettingsTest extends TestCase {
             'bgc_econt_username',
             'bgc_econt_password',
             'bgc_econt_paper_size',
-            'bgc_econt_dynamic_pricing',
             'bgc_econt_free_threshold',
         ];
 

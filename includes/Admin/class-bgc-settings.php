@@ -51,9 +51,15 @@ class BGC_Settings {
     /** @return array<string,string> id => label of registered couriers. */
     public static function couriers(): array { return BGC_Couriers::all(); }
 
-    /** Whether to compute live prices from the courier API (vs. configured defaults). */
-    public static function dynamic_pricing(string $courier): bool {
-        return get_option('bgc_' . $courier . '_dynamic_pricing', 'yes') === 'yes';
+    /**
+     * Per courier+method delivery-price mode:
+     *  - 'live'     : live API only (cached/reference before an address is chosen); no fixed default.
+     *  - 'fallback' : live API, fall back to the fixed price if the API is unavailable.
+     *  - 'fixed'    : always the fixed price; no live API calls at checkout.
+     */
+    public static function price_mode(string $courier, string $method): string {
+        $m = (string) get_option('bgc_' . $courier . '_' . $method . '_price_mode', 'fallback');
+        return in_array($m, ['live', 'fallback', 'fixed'], true) ? $m : 'fallback';
     }
 
     /** Per delivery-method config (default price in store currency, free-shipping threshold). */

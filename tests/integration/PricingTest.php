@@ -41,10 +41,18 @@ final class PricingTest extends WP_UnitTestCase {
         update_option('woocommerce_currency', 'BGN');
         update_option('bgc_speedy_address_price', '5.50');
         update_option('bgc_speedy_address_currency', 'BGN');
-        // live throws, no cached 'address' rate -> configured per-method default price.
+        // live throws, no cached 'address' rate -> the fixed/default price (default 'fallback' mode).
         $q = BGC_Pricing::quote($this->courier(true), ['method' => 'address']);
-        $this->assertSame('flat', $q->source);
+        $this->assertSame('fixed', $q->source);
         $this->assertEqualsWithDelta(5.50, $q->price, 0.001);
+    }
+    public function test_fixed_mode_uses_fixed_price_without_calling_the_api(): void {
+        update_option('bgc_speedy_office_price_mode', 'fixed');
+        update_option('bgc_speedy_office_price', '3.20');
+        // courier(false) would return a live 4.0 if the API were called; fixed mode must not call it.
+        $q = BGC_Pricing::quote($this->courier(false), ['method' => 'office']);
+        $this->assertSame('fixed', $q->source);
+        $this->assertEqualsWithDelta(3.20, $q->price, 0.001);
     }
     public function test_no_live_quote_capability_uses_cache(): void {
         BGC_Rates::set('speedy', 'office', 9.0, 'BGN');

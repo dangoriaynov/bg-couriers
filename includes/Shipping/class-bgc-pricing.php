@@ -30,6 +30,11 @@ class BGC_Pricing {
      * address immediately. Once a real city is chosen we do the exact live quote against the resolved office.
      */
     public static function checkout_quote(BGC_Courier_Interface $courier, string $method, int $site_id, int $office, array $packed, string $currency): BGC_Quote {
+        // 'fixed' mode: a predefined flat price, regardless of address - never call the API or cache.
+        if (BGC_Settings::price_mode($courier->id(), $method) === 'fixed') {
+            $price = (float) BGC_Settings::method_config($courier->id(), $method)['price'];
+            return new BGC_Quote($price > 0 ? round($price, 2) : 6.99, 0.0, $currency, 'fixed');
+        }
         if ($site_id <= 0) {
             $est = self::estimate($courier->id(), $method);
             if ($est !== null) { return new BGC_Quote(round($est, 2), 0.0, $currency, 'reference'); }
@@ -53,17 +58,23 @@ class BGC_Pricing {
     }
 
     public static function quote(BGC_Courier_Interface $courier, array $shipment): BGC_Quote {
-        $method = (string) ($shipment['method'] ?? 'address');
-        if (BGC_Settings::dynamic_pricing($courier->id()) && in_array('live_quote', $courier->capabilities(), true)) {
+        $method  = (string) ($shipment['method'] ?? 'address');
+        $mode    = BGC_Settings::price_mode($courier->id(), $method);
+        $store   = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'BGN';
+        $default = (float) BGC_Settings::method_config($courier->id(), $method)['price'];
+        // Live API for 'live' and 'fallback' (not 'fixed').
+        if ($mode !== 'fixed' && in_array('live_quote', $courier->capabilities(), true)) {
             try { return $courier->quote($shipment); }
             catch (\Exception $e) { BGC_Logger::debug('live quote failed -> fallback', ['courier' => $courier->id()]); }
         }
-        // Cached standard rate and configured default are both already in the store currency.
-        $store = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'BGN';
+        // No live price (fixed mode, or the API failed). 'fixed'/'fallback' prefer the configured price;
+        // 'live' prefers the daily cached reference. All amounts are already in the store currency.
+        if (($mode === 'fixed' || $mode === 'fallback') && $default > 0) {
+            return new BGC_Quote(round($default, 2), 0.0, $store, 'fixed');
+        }
         $cached = BGC_Rates::get($courier->id(), $method);
         if ($cached !== null) { return new BGC_Quote($cached, 0.0, $store, 'standard'); }
-        $mc = BGC_Settings::method_config($courier->id(), $method);
-        $amount = $mc['price'] > 0 ? $mc['price'] : 6.99;
+        $amount = $default > 0 ? $default : 6.99;
         return new BGC_Quote(round($amount, 2), 0.0, $store, 'flat');
     }
 
@@ -72,9 +83,13 @@ class BGC_Pricing {
      * else the configured default price, else null (no estimate available). Store currency, net.
      */
     public static function estimate(string $courier, string $method): ?float {
+        $mc = BGC_Settings::method_config($courier, $method);
+        // 'fixed' mode shows its fixed price everywhere; otherwise the daily cached reference, then the default.
+        if (BGC_Settings::price_mode($courier, $method) === 'fixed') {
+            return $mc['price'] > 0 ? (float) $mc['price'] : null;
+        }
         $cached = BGC_Rates::get($courier, $method);
         if ($cached !== null) { return (float) $cached; }
-        $mc = BGC_Settings::method_config($courier, $method);
         return $mc['price'] > 0 ? (float) $mc['price'] : null;
     }
 }
