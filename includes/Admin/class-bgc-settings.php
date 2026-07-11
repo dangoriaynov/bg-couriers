@@ -17,6 +17,7 @@ class BGC_Settings {
         foreach (array_keys(BGC_Couriers::all()) as $cid) {
             add_filter('woocommerce_admin_settings_sanitize_option_bgc_' . $cid . '_password', [$this, 'sanitize_password'], 10, 3);
         }
+        add_filter('woocommerce_admin_settings_sanitize_option_bgc_dropdown_limit', [$this, 'sanitize_dropdown_limit'], 10, 3);
         add_action('wp_ajax_bgc_validate_creds', [$this, 'ajax_validate']);
         add_action('wp_ajax_bgc_sync_now', [$this, 'ajax_sync']);
         add_action('wp_ajax_bgc_reset_creds', [$this, 'ajax_reset_creds']);
@@ -67,8 +68,13 @@ class BGC_Settings {
     /** How many results to show in checkout city/office dropdowns (shared across couriers). */
     public static function dropdown_limit(): int {
         $raw = get_option('bgc_dropdown_limit', 5);
-        if ($raw === '' || (int) $raw <= 0) { return 1000; } // empty / 0 = show all
+        if ($raw === '' || (int) $raw <= 0) { return 5; } // empty / invalid falls back to the default 5
         return (int) $raw;
+    }
+
+    /** Keep bgc_dropdown_limit a positive number; an empty/invalid value resets to the default 5. */
+    public function sanitize_dropdown_limit($value, $option, $raw_value) {
+        return (int) $raw_value > 0 ? (string) (int) $raw_value : '5';
     }
 
     /**
