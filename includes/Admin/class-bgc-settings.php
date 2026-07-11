@@ -101,6 +101,16 @@ class BGC_Settings {
         ];
     }
 
+    /** Whether the customer's e-mail may be sent to the courier when generating a label. */
+    public static function send_email(): bool {
+        return get_option('bgc_send_email', 'no') === 'yes';
+    }
+
+    /** The e-mail to pass to a courier for this order: the customer's, only if enabled and non-empty. */
+    public static function label_email(\WC_Order $order): string {
+        return self::send_email() ? (string) $order->get_billing_email() : '';
+    }
+
     /** Label paper size setting (A6 or A4), per courier. */
     public static function label_paper_size(string $courier = 'speedy'): string {
         $v = (string) get_option('bgc_' . $courier . '_label_paper_size', 'A6');

@@ -358,7 +358,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
 
         $body['receiver_name']  = $order->get_formatted_billing_full_name();
         $body['receiver_phone'] = (string) $order->get_billing_phone();
-        $body['receiver_email'] = (string) $order->get_billing_email();
+        $body['receiver_email'] = BGC_Settings::label_email($order);
 
         // Build inventory_items from order line items; fall back to generic goods entry.
         $items = [];

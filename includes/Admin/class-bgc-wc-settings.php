@@ -406,6 +406,9 @@ JS;
                 'desc' => __('Automatically generate a shipping label when an order reaches the status below.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'select', 'id' => 'bgc_autolabel_status', 'title' => __('Trigger status', 'bg-couriers'),
                 'options' => $statuses, 'default' => 'wc-processing'],
+            ['type' => 'checkbox', 'id' => 'bgc_send_email',
+                'title' => __('Send e-mail to courier', 'bg-couriers'),
+                'desc' => __('Include the customer\'s e-mail on the shipment (for courier delivery notifications), when they provided one. The e-mail is optional at checkout.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgc_labels'],
 
             ['type' => 'title', 'id' => 'bgc_emergency', 'title' => __('Emergency contact', 'bg-couriers'),

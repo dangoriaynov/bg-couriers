@@ -192,11 +192,12 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         $method  = (string) $order->get_meta('_bgc_method') ?: 'address';
         $site_id = (int) $order->get_meta('_bgc_site_id');
         $office  = (int) $order->get_meta('_bgc_office_id');
+        // trim() so an empty shipping name ("" joined = " ", which is truthy) still falls back to billing.
         $recipient = [
             'privatePerson' => true,
-            'clientName'    => $order->get_formatted_shipping_full_name() ?: $order->get_formatted_billing_full_name(),
+            'clientName'    => trim($order->get_formatted_shipping_full_name()) ?: trim($order->get_formatted_billing_full_name()),
             'phone1'        => ['number' => $order->get_billing_phone()],
-            'email'         => $order->get_billing_email(),
+            'email'         => BGC_Settings::label_email($order),
         ];
         if ($method === 'address') {
             $recipient['address'] = self::build_address($site_id, [

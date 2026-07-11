@@ -156,7 +156,7 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
             ],
             'destination'         => [
                 'contactName'   => $order->get_formatted_billing_full_name(),
-                'contactEmail'  => (string) $order->get_billing_email(),
+                'contactEmail'  => BGC_Settings::label_email($order),
                 'contactNumber' => (string) $order->get_billing_phone(),
                 'locationId'    => (string) ($order->get_meta('_bgc_office_id') ?: ''),
             ],

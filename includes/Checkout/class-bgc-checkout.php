@@ -168,6 +168,10 @@ class BGC_Checkout {
                 unset($fields[$g][$g . '_' . $f]);
             }
         }
+        // A courier label needs a recipient phone, so require it; the e-mail is optional (only used if the
+        // merchant opts to forward it to the courier).
+        if (isset($fields['billing']['billing_phone'])) { $fields['billing']['billing_phone']['required'] = true; }
+        if (isset($fields['billing']['billing_email'])) { $fields['billing']['billing_email']['required'] = false; }
         // When the country field is hidden (BG-only store), pin it to BG so the hidden field still submits.
         if (get_option('bgc_hide_country', 'no') === 'yes') {
             foreach (['billing', 'shipping'] as $g) {

@@ -34,6 +34,7 @@ final class PigeonLabelIntegrityTest extends WP_UnitTestCase {
         $order->update_meta_data('_bgc_weight_kg', 1.5);
         $order->save();
 
+        update_option('bgc_send_email', 'yes'); // opt in to forwarding the customer e-mail to the courier
         $body = $this->build($order, 1001);
 
         // Pickup always office
@@ -76,6 +77,7 @@ final class PigeonLabelIntegrityTest extends WP_UnitTestCase {
         $order->update_meta_data('_bgc_weight_kg', 2.0);
         $order->save();
 
+        update_option('bgc_send_email', 'yes'); // opt in to forwarding the customer e-mail to the courier
         $body = $this->build($order, 1001);
 
         $this->assertSame('address', $body['delivery_type']);
