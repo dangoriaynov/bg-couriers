@@ -243,8 +243,14 @@ class BGC_Settings {
     public function ajax_save_order(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(); }
         check_ajax_referer('bgc_admin', 'nonce');
-        $order = array_values(array_filter(array_map('sanitize_key', explode(',', (string) ($_POST['order'] ?? '')))));
-        update_option('bgc_courier_order', implode(',', $order));
+        $order   = array_values(array_filter(array_map('sanitize_key', explode(',', (string) ($_POST['order'] ?? '')))));
+        $courier = isset($_POST['courier']) ? sanitize_key(wp_unslash($_POST['courier'])) : '';
+        // With a courier: the drag order of that courier's delivery-option tabs. Without: the courier order.
+        if ($courier !== '' && array_key_exists($courier, BGC_Couriers::all())) {
+            update_option('bgc_' . $courier . '_method_order', implode(',', $order));
+        } else {
+            update_option('bgc_courier_order', implode(',', $order));
+        }
         wp_send_json_success();
     }
 

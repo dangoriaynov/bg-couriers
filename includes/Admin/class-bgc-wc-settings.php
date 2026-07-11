@@ -314,9 +314,14 @@ JS;
         $c       = BGC_Couriers::get($courier_id);
         $caps    = $c ? array_values(array_diff($c->capabilities(), ['live_quote'])) : array_keys(self::$method_labels);
         $methods = array_filter(self::$method_labels, static function ($m) use ($caps) { return in_array($m, $caps, true); }, ARRAY_FILTER_USE_KEY);
+        // Show the tabs (and panels) in the merchant's saved drag order.
+        $ordered = [];
+        foreach (BGC_Settings::method_order($courier_id) as $m) { if (isset($methods[$m])) { $ordered[$m] = $methods[$m]; } }
+        if ($ordered) { $methods = $ordered; }
         if (count($methods) > 1) {
-            // Level-2 nav-tabs for delivery methods (JS-switched panels; all inputs stay in the form so all save).
-            echo '<h2 class="nav-tab-wrapper bgc-method-nav" style="margin-top:1.5em;">';
+            // Level-2 nav-tabs for delivery methods - drag to reorder (saves bgc_<courier>_method_order); JS-switched panels.
+            echo '<h2 class="nav-tab-wrapper bgc-method-nav" data-courier="' . esc_attr($courier_id)
+                . '" data-nonce="' . esc_attr(wp_create_nonce('bgc_admin')) . '" style="margin-top:1.5em;">';
             $first = true;
             foreach ($methods as $m => $label) {
                 $mid = 'bgc_' . $courier_id . '_' . $m . '_enabled';
@@ -344,7 +349,8 @@ JS;
         ?>
 <style>
 .bgc-method-nav{padding-bottom:0;}
-.bgc-method-nav .bgc-method-tab{display:inline-flex;align-items:center;gap:8px;}
+.bgc-method-nav .bgc-method-tab{display:inline-flex;align-items:center;gap:8px;cursor:move;}
+.bgc-method-nav .ui-sortable-helper{box-shadow:0 6px 16px rgba(0,0,0,.22);}
 .bgc-method-panel{border:1px solid #e2e6ea;border-radius:12px;padding:8px 18px 14px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.07);margin:0 0 10px;}
 #wpbody .bgc-settings .bgc-switch-sm{width:32px;height:18px;}
 #wpbody .bgc-settings .bgc-switch-sm .bgc-slider:before{height:12px;width:12px;left:3px;bottom:3px;}
@@ -354,13 +360,20 @@ JS;
 </style>
 <script>
 (function($){
-    $('.bgc-method-nav').on('click','.nav-tab',function(e){
-        e.preventDefault();
-        var t=$(this).data('bgc-tab');
-        $('.bgc-method-nav .nav-tab').removeClass('nav-tab-active');
-        $(this).addClass('nav-tab-active');
-        $('.bgc-method-panel').hide().filter('[data-bgc-panel="'+t+'"]').show();
-    });
+    var mn=$('.bgc-method-nav');
+    function switchTo(t){ mn.find('.nav-tab').removeClass('nav-tab-active'); mn.find('[data-bgc-tab="'+t+'"]').addClass('nav-tab-active');
+        $('.bgc-method-panel').hide().filter('[data-bgc-panel="'+t+'"]').show(); }
+    var dragged=false;
+    if (mn.length && $.fn.sortable) {
+        mn.sortable({ items:'> .bgc-method-tab', distance:6, tolerance:'pointer', cursor:'move', opacity:.85,
+            start:function(){ dragged=true; }, stop:function(){ setTimeout(function(){ dragged=false; },0); },
+            update:function(){
+                var order=mn.children('.bgc-method-tab').map(function(){ return $(this).data('bgc-tab'); }).get().join(',');
+                $.post(ajaxurl,{ action:'bgc_save_order', nonce: mn.data('nonce'), courier: mn.data('courier'), order: order });
+            }
+        });
+    }
+    mn.on('click','.nav-tab',function(e){ e.preventDefault(); if(dragged){return;} switchTo($(this).data('bgc-tab')); }); // a drag isn't a tab switch
     $(document).on('change','.bgc-method-tab input[type=checkbox]',function(){
         var on=this.checked;
         $(this).closest('.bgc-method-tab').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on);
@@ -446,7 +459,6 @@ JS;
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
-            ['type' => 'bgc_sortable', 'id' => 'bgc_speedy_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
         ];
     }
@@ -483,7 +495,6 @@ JS;
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_econt_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
-            ['type' => 'bgc_sortable', 'id' => 'bgc_econt_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_econt'],
         ];
     }
@@ -511,7 +522,6 @@ JS;
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_pigeon_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
-            ['type' => 'bgc_sortable', 'id' => 'bgc_pigeon_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
         ];
     }
@@ -549,7 +559,6 @@ JS;
                 'desc' => __('Calculate shipping cost live via the Sameday API. When off, the per-method default prices below are used.', 'bg-couriers'), 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_sameday_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
                 'desc' => __('Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
-            ['type' => 'bgc_sortable', 'id' => 'bgc_sameday_method_order', 'title' => __('Delivery option order', 'bg-couriers')],
             ['type' => 'sectionend', 'id' => 'bgc_sameday_more'],
         ];
     }
