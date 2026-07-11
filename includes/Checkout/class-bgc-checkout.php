@@ -260,57 +260,83 @@ class BGC_Checkout {
     public function persist(\WC_Order $order): void {
         $courier = self::chosen_courier(); if (!$courier) { return; }
         $s = WC()->session; if (!$s) { return; }
-        // BoxNow is locker-only; force 'automat' so a stale 'office' from a previously-chosen courier
-        // cannot leak onto the order.
+        self::apply_delivery($order, [
+            'courier'      => $courier,
+            'method'       => (string) $s->get('bgc_method', ''),
+            'site_id'      => (int) $s->get('bgc_site_id', 0),
+            'office_id'    => (int) $s->get('bgc_office_id', 0),
+            'post_code'    => (string) $s->get('bgc_post_code', ''),
+            'quote_price'  => (float) $s->get('bgc_quote_price', 0),
+            'quote_source' => (string) $s->get('bgc_quote_source', ''),
+            'street_name'  => (string) $s->get('bgc_addr_street_name', ''),
+            'street_no'    => (string) $s->get('bgc_addr_street_no', ''),
+            'complex'      => (string) $s->get('bgc_addr_complex', ''),
+            'block'        => (string) $s->get('bgc_addr_block', ''),
+            'entrance'     => (string) $s->get('bgc_addr_entrance', ''),
+            'floor'        => (string) $s->get('bgc_addr_floor', ''),
+            'apartment'    => (string) $s->get('bgc_addr_apartment', ''),
+            'address_note' => (string) $s->get('bgc_addr_address_note', ''),
+            'boxnow_name'  => (string) $s->get('bgc_boxnow_name', ''),
+            'boxnow_addr'  => (string) $s->get('bgc_boxnow_addr', ''),
+        ]);
+    }
+
+    /**
+     * Write a delivery selection ($d) onto an order: the _bgc_* meta the label uses, plus the WC
+     * billing/shipping address for display. Shared by the checkout (from the session) and the admin
+     * order editor (from POST), so both produce identical order data.
+     */
+    public static function apply_delivery(\WC_Order $order, array $d): void {
+        $courier = (string) ($d['courier'] ?? '');
+        if ($courier === '') { return; }
+        $g = static function ($k, $def = '') use ($d) { return $d[$k] ?? $def; };
+        // BoxNow is locker-only; force 'automat' so a stale method can't leak on.
         $method = $courier === 'boxnow'
             ? 'automat'
-            : (string) ($s->get('bgc_method', '') ?: (BGC_Settings::enabled_methods($courier)[0] ?? 'office'));
+            : ((string) $g('method') ?: (BGC_Settings::enabled_methods($courier)[0] ?? 'office'));
+
         $order->update_meta_data('_bgc_courier', $courier);
         $order->update_meta_data('_bgc_method', $method);
-        $order->update_meta_data('_bgc_site_id', (int) $s->get('bgc_site_id', 0));
-        $order->update_meta_data('_bgc_office_id', (int) $s->get('bgc_office_id', 0));
-        $order->update_meta_data('_bgc_post_code', (string) $s->get('bgc_post_code', ''));
-        $order->update_meta_data('_bgc_quote_price', (float) $s->get('bgc_quote_price', 0));
-        $order->update_meta_data('_bgc_quote_source', (string) $s->get('bgc_quote_source', ''));
-        $order->update_meta_data('_bgc_street_name', (string) $s->get('bgc_addr_street_name', ''));
-        $order->update_meta_data('_bgc_street_no',   (string) $s->get('bgc_addr_street_no', ''));
-        $order->update_meta_data('_bgc_complex',     (string) $s->get('bgc_addr_complex', ''));
-        $order->update_meta_data('_bgc_block',       (string) $s->get('bgc_addr_block', ''));
-        $order->update_meta_data('_bgc_entrance',    (string) $s->get('bgc_addr_entrance', ''));
-        $order->update_meta_data('_bgc_floor',       (string) $s->get('bgc_addr_floor', ''));
-        $order->update_meta_data('_bgc_apartment',   (string) $s->get('bgc_addr_apartment', ''));
-        $order->update_meta_data('_bgc_address_note',(string) $s->get('bgc_addr_address_note', ''));
-        // BoxNow locker label/address, for display on the order (create_label only needs the locker id).
-        $order->update_meta_data('_bgc_boxnow_name', (string) $s->get('bgc_boxnow_name', ''));
-        $order->update_meta_data('_bgc_boxnow_addr', (string) $s->get('bgc_boxnow_addr', ''));
+        $order->update_meta_data('_bgc_site_id', (int) $g('site_id', 0));
+        $order->update_meta_data('_bgc_office_id', (int) $g('office_id', 0));
+        $order->update_meta_data('_bgc_post_code', (string) $g('post_code'));
+        $order->update_meta_data('_bgc_street_name', (string) $g('street_name'));
+        $order->update_meta_data('_bgc_street_no',   (string) $g('street_no'));
+        $order->update_meta_data('_bgc_complex',     (string) $g('complex'));
+        $order->update_meta_data('_bgc_block',       (string) $g('block'));
+        $order->update_meta_data('_bgc_entrance',    (string) $g('entrance'));
+        $order->update_meta_data('_bgc_floor',       (string) $g('floor'));
+        $order->update_meta_data('_bgc_apartment',   (string) $g('apartment'));
+        $order->update_meta_data('_bgc_address_note',(string) $g('address_note'));
+        $order->update_meta_data('_bgc_boxnow_name', (string) $g('boxnow_name'));
+        $order->update_meta_data('_bgc_boxnow_addr', (string) $g('boxnow_addr'));
+        if (array_key_exists('quote_price', $d))  { $order->update_meta_data('_bgc_quote_price', (float) $d['quote_price']); }
+        if (array_key_exists('quote_source', $d)) { $order->update_meta_data('_bgc_quote_source', (string) $d['quote_source']); }
 
-        // Fill the WC order address from our selection (the standard WC address fields are
-        // hidden/optional on checkout); the shipping label still uses the _bgc_* meta above.
-        $city   = (int) $s->get('bgc_site_id', 0) ? BGC_Nomenclature::city_by_id($courier, (int) $s->get('bgc_site_id', 0)) : null;
+        // Fill the WC order address from the selection (the label itself uses the _bgc_* meta above).
+        $city   = (int) $g('site_id', 0) ? BGC_Nomenclature::city_by_id($courier, (int) $g('site_id', 0)) : null;
         $name   = (string) ($city['name'] ?? '');
-        $post   = (string) $s->get('bgc_post_code', '') ?: (string) ($city['post_code'] ?? '');
+        $post   = (string) $g('post_code') ?: (string) ($city['post_code'] ?? '');
         $region = (string) ($city['region'] ?? '');
         if ($courier === 'boxnow') {
-            // BoxNow has no city in our nomenclature; the locker line carries the full location.
-            $name  = '';
-            $post  = '';
-            $line1 = (string) $s->get('bgc_boxnow_name', '');
-            $line2 = (string) $s->get('bgc_boxnow_addr', '');
+            $name = ''; $post = '';
+            $line1 = (string) $g('boxnow_name');
+            $line2 = (string) $g('boxnow_addr');
         } elseif ($method === 'address') {
-            $line1 = trim((string) $s->get('bgc_addr_street_name', '') . ' ' . (string) $s->get('bgc_addr_street_no', ''));
-            $line2 = trim((string) $s->get('bgc_addr_complex', ''));
+            $line1 = trim((string) $g('street_name') . ' ' . (string) $g('street_no'));
+            $line2 = trim((string) $g('complex'));
         } else {
-            $o = (int) $s->get('bgc_office_id', 0) ? BGC_Nomenclature::office_by_id($courier, (int) $s->get('bgc_office_id', 0)) : null;
+            $o = (int) $g('office_id', 0) ? BGC_Nomenclature::office_by_id($courier, (int) $g('office_id', 0)) : null;
             $line1 = (string) ($o['name'] ?? '');
             $line2 = (string) ($o['address'] ?? '');
         }
-        foreach (['billing', 'shipping'] as $g) {
-            $order->{"set_{$g}_country"}('BG');
-            $order->{"set_{$g}_city"}($name);
-            $order->{"set_{$g}_state"}($region);
-            $order->{"set_{$g}_postcode"}($post);
-            $order->{"set_{$g}_address_1"}($line1);
-            $order->{"set_{$g}_address_2"}($line2);
+        foreach (['billing', 'shipping'] as $grp) {
+            $order->{"set_{$grp}_country"}('BG');
+            $order->{"set_{$grp}_city"}($name);
+            $order->{"set_{$grp}_state"}($region);
+            $order->{"set_{$grp}_postcode"}($post);
+            $order->{"set_{$grp}_address_1"}($line1);
+            $order->{"set_{$grp}_address_2"}($line2);
         }
         $order->set_shipping_first_name($order->get_billing_first_name());
         $order->set_shipping_last_name($order->get_billing_last_name());

@@ -19,6 +19,7 @@ class BGC_Labels {
         add_action('admin_post_bgc_cancel_order', [$this, 'handle_cancel_order']);
         add_action('admin_post_bgc_track', [$this, 'handle_track']);
         add_action('admin_post_bgc_print_batch', [$this, 'handle_print_batch']);
+        add_action('wp_ajax_bgc_order_save_delivery', [$this, 'handle_save_delivery']);
         add_action('woocommerce_order_status_changed', [$this, 'maybe_auto_generate'], 20, 4);
     }
 
@@ -156,6 +157,38 @@ class BGC_Labels {
         }
         wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
         exit;
+    }
+
+    /** Save edited delivery details onto an order; auto cancel+regenerate the label when auto-generate is on. */
+    public function handle_save_delivery(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        check_ajax_referer('bgc_order_delivery', 'nonce');
+        $id = (int) ($_POST['order_id'] ?? 0);
+        $order = wc_get_order($id);
+        if (!$order) { wp_send_json_error(['msg' => __('Order not found.', 'bg-couriers')]); }
+        $courier = sanitize_key(wp_unslash($_POST['courier'] ?? ''));
+        if ($courier === '' || !BGC_Couriers::get($courier)) { wp_send_json_error(['msg' => __('Choose a courier.', 'bg-couriers')]); }
+        $t = static function ($k) { return isset($_POST[$k]) ? sanitize_text_field(wp_unslash($_POST[$k])) : ''; };
+        BGC_Checkout::apply_delivery($order, [
+            'courier' => $courier, 'method' => sanitize_key(wp_unslash($_POST['method'] ?? '')),
+            'site_id' => (int) ($_POST['site_id'] ?? 0), 'office_id' => (int) ($_POST['office_id'] ?? 0),
+            'post_code' => $t('post_code'), 'street_name' => $t('street_name'), 'street_no' => $t('street_no'),
+            'complex' => $t('complex'), 'block' => $t('block'), 'entrance' => $t('entrance'),
+            'floor' => $t('floor'), 'apartment' => $t('apartment'), 'address_note' => $t('address_note'),
+            'boxnow_name' => $t('boxnow_name'), 'boxnow_addr' => $t('boxnow_addr'),
+        ]);
+        $order->save();
+
+        $had_waybill = (string) $order->get_meta('_bgc_waybill') !== '';
+        $regenerated = false;
+        if ($had_waybill && BGC_Settings::autolabel()['enabled']) {
+            try { self::cancel($id); self::generate($id); $regenerated = true; }
+            catch (\Exception $e) { wp_send_json_error(['msg' => sprintf(__('Saved, but re-generating the label failed: %s', 'bg-couriers'), $e->getMessage())]); }
+        }
+        wp_send_json_success([
+            'msg'     => $regenerated ? __('Delivery updated and label re-generated.', 'bg-couriers') : __('Delivery details saved.', 'bg-couriers'),
+            'stale'   => $had_waybill && !$regenerated, // existing waybill no longer matches the new address
+        ]);
     }
 
     public function handle_track(): void {
