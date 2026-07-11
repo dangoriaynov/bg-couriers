@@ -52,6 +52,79 @@ class BGC_Order_Metabox {
                 . ' style="color:#b32d2e;font-weight:700;line-height:1;padding:0 9px;">&times;</a>';
             echo '</span>';
         }
+        $this->render_editor($order);
         echo '</div>';
+    }
+
+    /** Collapsible checkout-like editor for the order's delivery details (courier switch, city/office/address). */
+    private function render_editor(\WC_Order $order): void {
+        $cur_courier = (string) $order->get_meta('_bgc_courier');
+        $cur_method  = (string) $order->get_meta('_bgc_method');
+        $site_id     = (int) $order->get_meta('_bgc_site_id');
+        $office_id   = (int) $order->get_meta('_bgc_office_id');
+        $has_waybill = (string) $order->get_meta('_bgc_waybill') !== '';
+
+        // Enabled couriers (+ the order's current one even if now disabled), with their delivery options.
+        $caps = []; $opts = '';
+        foreach (BGC_Couriers::all() as $cid => $clabel) {
+            if (get_option('bgc_' . $cid . '_enabled', 'no') !== 'yes' && $cid !== $cur_courier) { continue; }
+            $co = BGC_Couriers::get($cid);
+            $caps[$cid] = $co ? array_values(array_diff($co->capabilities(), ['live_quote'])) : ['office', 'address', 'automat'];
+            $opts .= '<option value="' . esc_attr($cid) . '"' . selected($cid, $cur_courier, false) . '>' . esc_html($clabel) . '</option>';
+        }
+        $city_opt = '';
+        if ($site_id && ($city = BGC_Nomenclature::city_by_id($cur_courier, $site_id))) {
+            $pc = !empty($city['post_code']) ? ' (' . $city['post_code'] . ')' : '';
+            $city_opt = '<option value="' . esc_attr($site_id) . '" selected>' . esc_html($city['name'] . $pc) . '</option>';
+        }
+        $office_opt = '';
+        if ($office_id && ($o = BGC_Nomenclature::office_by_id($cur_courier, $office_id))) {
+            $office_opt = '<option value="' . esc_attr($office_id) . '" selected>' . esc_html($o['name'] ?? '') . '</option>';
+        }
+        $street = (string) $order->get_meta('_bgc_street_name');
+        $street_opt = $street !== '' ? '<option value="' . esc_attr($street) . '" selected>' . esc_html($street) . '</option>' : '';
+        $v = static function ($k) use ($order) { return esc_attr((string) $order->get_meta('_bgc_' . $k)); };
+
+        wp_enqueue_style('select2');
+        wp_enqueue_script('selectWoo');
+        $ver = @filemtime(BGC_PATH . 'assets/js/bgc-order-admin.js') ?: '1';
+        wp_enqueue_script('bgc-order-admin', BGC_URL . 'assets/js/bgc-order-admin.js', ['jquery', 'selectWoo'], $ver, true);
+        wp_localize_script('bgc-order-admin', 'BGC_ED', [
+            'ajax'    => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('bgc_order_delivery'),
+            'orderId' => $order->get_id(),
+            'caps'    => $caps,
+            'methodLabels' => ['office' => __('To office', 'bg-couriers'), 'address' => __('To address', 'bg-couriers'), 'automat' => __('To APS', 'bg-couriers')],
+            'i18n'    => ['city' => __('City', 'bg-couriers'), 'office' => __('Office / APS', 'bg-couriers'), 'street' => __('Street', 'bg-couriers'),
+                          'saving' => __('Saving…', 'bg-couriers'), 'err' => __('Could not save.', 'bg-couriers')],
+        ]);
+
+        echo '<div class="bgc-ed" style="margin-top:12px;border-top:1px solid #eee;padding-top:10px;">';
+        echo '<a href="#" class="bgc-ed-toggle">' . esc_html__('Edit delivery details', 'bg-couriers') . '</a>';
+        echo '<div class="bgc-ed-form" style="display:none;margin-top:10px;max-width:520px;">';
+        echo '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>';
+        echo '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>';
+        echo '<p class="bgc-ed-city-row"><label>' . esc_html__('City', 'bg-couriers') . '</label><br><select class="bgc-ed-city" style="min-width:300px;"><option></option>' . $city_opt . '</select><input type="hidden" class="bgc-ed-postcode" value="' . $v('post_code') . '"></p>';
+        echo '<p class="bgc-ed-office-row"><label>' . esc_html__('Office / APS', 'bg-couriers') . '</label><br><select class="bgc-ed-office" style="min-width:300px;"><option></option>' . $office_opt . '</select></p>';
+        echo '<div class="bgc-ed-address">';
+        echo '<p><label>' . esc_html__('Street', 'bg-couriers') . '</label><br><select class="bgc-ed-street" style="min-width:220px;"><option></option>' . $street_opt . '</select> '
+            . '<label>' . esc_html__('No.', 'bg-couriers') . '</label> <input class="bgc-ed-streetno" value="' . $v('street_no') . '" style="width:70px;"></p>';
+        echo '<p><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label> <input class="bgc-ed-complex" value="' . $v('complex') . '"></p>';
+        echo '<p><label>' . esc_html__('Bl.', 'bg-couriers') . '</label> <input class="bgc-ed-block" value="' . $v('block') . '" style="width:60px;"> '
+            . '<label>' . esc_html__('Entr.', 'bg-couriers') . '</label> <input class="bgc-ed-entrance" value="' . $v('entrance') . '" style="width:60px;"> '
+            . '<label>' . esc_html__('Floor', 'bg-couriers') . '</label> <input class="bgc-ed-floor" value="' . $v('floor') . '" style="width:60px;"> '
+            . '<label>' . esc_html__('Apt.', 'bg-couriers') . '</label> <input class="bgc-ed-apartment" value="' . $v('apartment') . '" style="width:60px;"></p>';
+        echo '<p><label>' . esc_html__('Note', 'bg-couriers') . '</label> <input class="bgc-ed-note" value="' . $v('address_note') . '" style="width:100%;"></p>';
+        echo '</div>';
+        echo '<div class="bgc-ed-boxnow">';
+        echo '<p><label>' . esc_html__('Locker id', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-id" value="' . ($cur_courier === 'boxnow' ? esc_attr((string) $office_id) : '') . '" style="width:110px;"> '
+            . '<label>' . esc_html__('Locker name', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-name" value="' . $v('boxnow_name') . '"></p>';
+        echo '<p><label>' . esc_html__('Locker address', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-addr" value="' . $v('boxnow_addr') . '" style="width:100%;"></p>';
+        echo '</div>';
+        echo '<p><button type="button" class="button button-primary bgc-ed-save">' . esc_html__('Save delivery', 'bg-couriers') . '</button> <span class="bgc-ed-msg"></span></p>';
+        if ($has_waybill) {
+            echo '<p class="description">' . esc_html__('A waybill exists. If auto-generate is on, saving voids it and re-issues a new one; otherwise void it with × above and Generate again.', 'bg-couriers') . '</p>';
+        }
+        echo '</div></div>';
     }
 }
