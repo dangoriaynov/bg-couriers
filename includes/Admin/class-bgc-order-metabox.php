@@ -100,7 +100,7 @@ class BGC_Order_Metabox {
         ]);
 
         echo '<div class="bgc-ed" style="margin-top:12px;border-top:1px solid #eee;padding-top:10px;">';
-        echo '<a href="#" class="bgc-ed-toggle">' . esc_html__('Edit delivery details', 'bg-couriers') . '</a>';
+        echo '<a href="#" class="button bgc-ed-toggle" style="display:inline-block;">✎ ' . esc_html__('Edit delivery details', 'bg-couriers') . '</a>';
         echo '<div class="bgc-ed-form" style="display:none;margin-top:10px;max-width:520px;">';
         echo '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>';
         echo '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>';
