@@ -273,6 +273,10 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         return new BGC_Tracking((string) ($parcel['id'] ?? ''), $status, $events);
     }
 
-    public function cancel_label(string $waybill): bool { return false; }
+    public function cancel_label(string $waybill): bool {
+        // Speedy: POST /shipment/cancel {shipmentId, comment}; a 200 with no `error` means cancelled.
+        $resp = $this->post_json($this->base . '/shipment/cancel', $this->auth(['shipmentId' => $waybill, 'comment' => 'Cancelled from WooCommerce']));
+        return empty($resp['error']);
+    }
     public function tracking_url(string $waybill): string { return 'https://www.speedy.bg/en/track-shipment?shipmentNumber=' . rawurlencode($waybill); }
 }
