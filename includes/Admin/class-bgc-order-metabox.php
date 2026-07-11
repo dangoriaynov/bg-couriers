@@ -16,8 +16,22 @@ class BGC_Order_Metabox {
         $method  = (string) $order->get_meta('_bgc_method');
         $base    = admin_url('admin-post.php');
 
-        echo '<div class="bgc-order-panel" style="margin-top:12px;padding:12px 14px;border:1px solid #e2e6ea;border-radius:8px;background:#fff;">';
-        echo '<p style="margin:0 0 8px;"><strong>' . esc_html($courier->label()) . '</strong> - ' . esc_html(ucfirst($method ?: 'office')) . '</p>';
+        $mlabels = ['office' => __('To office', 'bg-couriers'), 'address' => __('To address', 'bg-couriers'), 'automat' => __('To APS', 'bg-couriers')];
+        $mlabel  = $mlabels[$method] ?? ucfirst($method ?: 'office');
+        echo '<style>'
+            . '.bgc-order-panel{margin-top:12px;padding:14px 16px;border:1px solid #e2e6ea;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);}'
+            . '.bgc-order-panel .bgc-hd{display:flex;align-items:center;gap:8px;margin:0 0 12px;}'
+            . '.bgc-order-panel .bgc-hd b{font-size:14px;}'
+            . '.bgc-order-panel .bgc-chip{display:inline-block;padding:2px 10px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;}'
+            . '.bgc-order-panel .bgc-wb{display:inline-block;padding:3px 10px;border-radius:6px;background:#f0f6fc;border:1px solid #d7e3f1;font-family:ui-monospace,Menlo,monospace;font-size:13px;}'
+            . '.bgc-order-panel .bgc-la{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}'
+            . '.bgc-order-panel .bgc-la .button{border-radius:8px;}'
+            . '.bgc-order-panel .bgc-void{width:32px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0;color:#b32d2e;border-color:#e6a2a5;font-size:16px;line-height:1;border-radius:8px;}'
+            . '.bgc-order-panel .bgc-void:hover{background:#fcf0f1;border-color:#b32d2e;color:#8a1f2b;}'
+            . '.bgc-order-panel .bgc-ed-toggle{border-radius:8px;}'
+            . '</style>';
+        echo '<div class="bgc-order-panel">';
+        echo '<p class="bgc-hd"><b>' . esc_html($courier->label()) . '</b> <span class="bgc-chip">' . esc_html($mlabel) . '</span></p>';
 
         // Surface the last generation error (handle_generate stores it in a transient, then redirects here),
         // so a failing create_label no longer looks like "nothing happened".
@@ -36,21 +50,19 @@ class BGC_Order_Metabox {
 
         if ($waybill === '') {
             $gen = $nonce_url('bgc_generate_label', 'bgc_generate_label_');
-            echo '<a class="button button-primary" href="' . $gen . '">' . esc_html__('Generate label', 'bg-couriers') . '</a>';
+            echo '<div class="bgc-la"><a class="button button-primary" href="' . $gen . '">' . esc_html__('Generate label', 'bg-couriers') . '</a></div>';
         } else {
             $print  = esc_url(wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id, 'bgc_print_batch'));
             $track  = $nonce_url('bgc_track', 'bgc_track_');
             $cancel = $nonce_url('bgc_cancel_label', 'bgc_cancel_label_');
             $hint   = esc_attr__('Cancel (void) this shipment label', 'bg-couriers');
-            echo '<p style="margin:0 0 8px;"><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> <code>' . esc_html($waybill) . '</code></p>';
-            echo '<span style="display:inline-flex;gap:6px;align-items:center;">';
+            echo '<p style="margin:0 0 10px;"><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> <span class="bgc-wb">' . esc_html($waybill) . '</span></p>';
+            echo '<div class="bgc-la">';
             echo '<a class="button button-primary" target="_blank" href="' . $print . '">' . esc_html__('Print label', 'bg-couriers') . '</a>';
             echo '<a class="button" target="_blank" href="' . $track . '">' . esc_html__('Track', 'bg-couriers') . '</a>';
-            // Compact "void the waybill" control sitting next to the label actions.
-            echo '<a class="button bgc-void-waybill" href="' . $cancel . '" title="' . $hint . '" aria-label="' . $hint . '"'
-                . $confirm(__('Cancel (void) this shipment label?', 'bg-couriers'))
-                . ' style="color:#b32d2e;font-weight:700;line-height:1;padding:0 9px;">&times;</a>';
-            echo '</span>';
+            echo '<a class="button bgc-void" href="' . $cancel . '" title="' . $hint . '" aria-label="' . $hint . '"'
+                . $confirm(__('Cancel (void) this shipment label?', 'bg-couriers')) . '>&times;</a>';
+            echo '</div>';
         }
         $this->render_editor($order);
         echo '</div>';
