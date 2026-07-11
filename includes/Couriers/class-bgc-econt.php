@@ -272,8 +272,12 @@ class BGC_Econt extends BGC_Abstract_Courier {
             // quarter+other, which Econt falls back to when the street is not recognised.
             $street  = (string) $order->get_meta('_bgc_street_name');
             $num     = (string) $order->get_meta('_bgc_street_no');
-            $quarter = (string) $order->get_meta('_bgc_complex');
             $other   = self::receiver_other($order, $street, $num);
+            // Econt accepts street+num only for a street in its OWN nomenclature; a checkout/map-entered
+            // street usually is not, so we must guarantee the free-text fallback, which needs BOTH quarter
+            // and other filled. Use the complex as the quarter, or fall back to the street name.
+            $quarter = (string) $order->get_meta('_bgc_complex');
+            if ($quarter === '') { $quarter = $street; }
             $addr = ['city' => ['id' => (int) $order->get_meta('_bgc_site_id')]];
             if ($street !== '')  { $addr['street']  = $street; }
             if ($num !== '')     { $addr['num']     = $num; }
