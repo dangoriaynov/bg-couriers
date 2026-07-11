@@ -75,10 +75,10 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $this->assertSame(41, $body['label']['receiverAddress']['city']['id']);
         $this->assertSame('Витоша', $body['label']['receiverAddress']['street']);
         $this->assertSame('5', $body['label']['receiverAddress']['num']);
-        // Free-text fallback so Econt accepts the address even when the street is not in its nomenclature:
-        // quarter AND other must both be filled (quarter falls back to the street when there is no complex).
-        $this->assertSame('Витоша 5', $body['label']['receiverAddress']['other']);
-        $this->assertSame('Витоша', $body['label']['receiverAddress']['quarter']);
+        // No complex or building details on this order, so no quarter/other are added (street+num suffice
+        // when the city is correct).
+        $this->assertArrayNotHasKey('quarter', $body['label']['receiverAddress']);
+        $this->assertArrayNotHasKey('other', $body['label']['receiverAddress']);
         // receiverClient from order
         $this->assertSame('Иван Петров', $body['label']['receiverClient']['name']);
         // no senderAgent for natural person

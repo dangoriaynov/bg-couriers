@@ -270,18 +270,18 @@ class BGC_Econt extends BGC_Abstract_Courier {
             // nomenclature; our checkout street is free text, so it errors ExInvalidAddress ("insufficient,
             // add street+num OR quarter+other"). We therefore also pass the full free-text address as
             // quarter+other, which Econt falls back to when the street is not recognised.
-            $street  = (string) $order->get_meta('_bgc_street_name');
-            $num     = (string) $order->get_meta('_bgc_street_no');
-            $other   = self::receiver_other($order, $street, $num);
-            // Econt accepts street+num only for a street in its OWN nomenclature; a checkout/map-entered
-            // street usually is not, so we must guarantee the free-text fallback, which needs BOTH quarter
-            // and other filled. Use the complex as the quarter, or fall back to the street name.
-            $quarter = (string) $order->get_meta('_bgc_complex');
-            if ($quarter === '') { $quarter = $street; }
-            $addr = ['city' => ['id' => (int) $order->get_meta('_bgc_site_id')]];
-            if ($street !== '')  { $addr['street']  = $street; }
-            if ($num !== '')     { $addr['num']     = $num; }
-            if ($quarter !== '') { $addr['quarter'] = $quarter; }
+            // Address delivery. Econt validates the receiver address against the city; street+num is accepted
+            // as long as the CITY is correct (verified via validateAddress: even a loosely-spelled street
+            // validates 'normal' in the right city, and fails only when the city is wrong). We also pass the
+            // building details in `other` and the complex as `quarter`, mirroring Econt's own address shape.
+            $street = (string) $order->get_meta('_bgc_street_name');
+            $num    = (string) $order->get_meta('_bgc_street_no');
+            $other  = self::receiver_other($order);
+            $addr   = ['city' => ['id' => (int) $order->get_meta('_bgc_site_id')]];
+            if ($street !== '') { $addr['street'] = $street; }
+            if ($num !== '')    { $addr['num']    = $num; }
+            $complex = (string) $order->get_meta('_bgc_complex');
+            if ($complex !== '') { $addr['quarter'] = $complex; }
             if ($other !== '')   { $addr['other']   = $other; }
             $label['receiverAddress'] = $addr;
         }
@@ -318,10 +318,9 @@ class BGC_Econt extends BGC_Abstract_Courier {
         return ['mode' => 'create', 'label' => $label];
     }
 
-    /** Full free-text receiver address for Econt's `other` field: street+num plus block/entrance/floor/apt. */
-    private static function receiver_other(\WC_Order $order, string $street, string $num): string {
+    /** Building details for Econt's `other` field: block/entrance/floor/apt plus any note (street+num are separate). */
+    private static function receiver_other(\WC_Order $order): string {
         $parts = [];
-        if ($street !== '') { $parts[] = trim($street . ' ' . $num); }
         foreach (['_bgc_block' => 'бл.', '_bgc_entrance' => 'вх.', '_bgc_floor' => 'ет.', '_bgc_apartment' => 'ап.'] as $meta => $lbl) {
             $v = trim((string) $order->get_meta($meta));
             if ($v !== '') { $parts[] = $lbl . ' ' . $v; }
