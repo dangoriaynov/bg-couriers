@@ -239,13 +239,14 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
             'packageWeight'  => $w,
             'cashOnDelivery' => $is_cod ? round((float) $order->get_total(), 2) : 0,
             'insuredValue'   => 0,
-            'awbRecipient'   => [
+            'awbRecipient'   => array_filter([
                 'name'        => $order->get_formatted_billing_full_name(),
                 'phoneNumber' => (string) $order->get_billing_phone(),
+                'email'       => BGC_Settings::label_email($order), // empty unless sharing is enabled
                 'personType'  => 0, // individual
                 'cityId'      => (int) $order->get_meta('_bgc_site_id'),
                 'address'     => trim((string) $order->get_meta('_bgc_street_name') . ' ' . (string) $order->get_meta('_bgc_street_no')),
-            ],
+            ], static function ($v) { return $v !== ''; }),
             'parcels'        => [['weight' => $w]],
         ];
         $office = (int) $order->get_meta('_bgc_office_id');

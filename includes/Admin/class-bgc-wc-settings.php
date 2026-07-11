@@ -166,14 +166,18 @@ class BGC_WC_Settings extends WC_Settings_Page {
         requestAnimationFrame(function(){ t.addClass('show'); });
         setTimeout(function(){ t.removeClass('show'); setTimeout(function(){ t.remove(); }, 320); }, ms||3000); }
     var form=$('#mainform'); if(!form.length){ return; }
-    form.on('submit', function(e){
-        e.preventDefault();
-        var save=form.find('button[name="save"],input[name="save"]'); save.prop('disabled',true);
-        var data=form.serialize()+'&action=bgc_save_settings&bgc_nonce='+nonce+'&bgc_section='+encodeURIComponent(section);
+    function busy(save,on){ save.prop('disabled',on).toggleClass('is-busy',on); }
+    // Take full control of the save button so WooCommerce's own submit/loading handling (which expects a
+    // page reload we prevent) can't leave the button spinning forever. stopImmediatePropagation blocks WC's
+    // click handler; we always clear the busy state in .always().
+    form.on('click', 'button[name="save"], input[name="save"]', function(e){
+        e.preventDefault(); e.stopImmediatePropagation();
+        var save=$(this); busy(save,true);
+        var data=form.serialize()+'&action=bgc_save_settings&bgc_nonce='+nonce+'&bgc_section='+encodeURIComponent(section)+'&save=1';
         $.post(ajaxurl,data).done(function(r){
             if(r&&r.success){ toast((r.data&&r.data.msg)||'{$i_saved}','ok',2500); $(document).trigger('bgc:saved',[r.data||{}]); }
             else { toast((r&&r.data&&r.data.msg)||'{$i_failed}','err',7000); }
-        }).fail(function(){ toast('{$i_failed}','err',7000); }).always(function(){ save.prop('disabled',false); });
+        }).fail(function(){ toast('{$i_failed}','err',7000); }).always(function(){ busy(save,false); });
     });
 })(jQuery);
 </script>
@@ -407,7 +411,7 @@ JS;
             ['type' => 'select', 'id' => 'bgc_autolabel_status', 'title' => __('Trigger status', 'bg-couriers'),
                 'options' => $statuses, 'default' => 'wc-processing'],
             ['type' => 'checkbox', 'id' => 'bgc_send_email',
-                'title' => __('Send e-mail to courier', 'bg-couriers'),
+                'title' => __('Share customer email with courier', 'bg-couriers'),
                 'desc' => __('Include the customer\'s e-mail on the shipment (for courier delivery notifications), when they provided one. The e-mail is optional at checkout.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgc_labels'],
 

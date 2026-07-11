@@ -252,10 +252,11 @@ class BGC_Econt extends BGC_Abstract_Courier {
                 'quarter' => (string) ($sender['address']['quarter'] ?? ''), // Econt needs street+num OR quarter+other
                 'other'   => (string) ($sender['address']['other'] ?? ''),
             ],
-            'receiverClient' => [
+            'receiverClient' => array_filter([
                 'name'   => $order->get_formatted_billing_full_name(),
                 'phones' => [$order->get_billing_phone()],
-            ],
+                'email'  => BGC_Settings::label_email($order), // empty unless sharing is enabled
+            ], static function ($v) { return $v !== ''; }),
             'packCount'           => 1,
             'weight'              => max(0.1, (float) ($order->get_meta('_bgc_weight_kg') ?: 1.0)),
             'shipmentType'        => 'pack',
