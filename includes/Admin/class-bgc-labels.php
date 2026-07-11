@@ -14,6 +14,9 @@ class BGC_Labels {
 
     public function __construct() {
         add_action('admin_post_bgc_generate_label', [$this, 'handle_generate']);
+        add_action('admin_post_bgc_cancel_label', [$this, 'handle_cancel_label']);
+        add_action('admin_post_bgc_regenerate', [$this, 'handle_regenerate']);
+        add_action('admin_post_bgc_cancel_order', [$this, 'handle_cancel_order']);
         add_action('admin_post_bgc_track', [$this, 'handle_track']);
         add_action('admin_post_bgc_print_batch', [$this, 'handle_print_batch']);
         add_action('woocommerce_order_status_changed', [$this, 'maybe_auto_generate'], 20, 4);
@@ -96,6 +99,65 @@ class BGC_Labels {
         wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
         exit;
     }
+    /** Void the courier waybill and clear it from the order (throws on courier failure). */
+    public static function cancel(int $order_id): void {
+        $order = wc_get_order($order_id);
+        if (!$order) { throw new BGC_Api_Exception('Order not found'); }
+        $waybill = (string) $order->get_meta('_bgc_waybill');
+        if ($waybill === '') { return; } // nothing to cancel
+        $courier = self::order_courier($order);
+        if (!$courier) { throw new BGC_Api_Exception(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
+        if (!$courier->cancel_label($waybill)) { throw new BGC_Api_Exception(esc_html__('The courier did not cancel the waybill.', 'bg-couriers')); }
+        $order->delete_meta_data('_bgc_waybill');
+        $order->delete_meta_data('_bgc_label_url');
+        /* translators: %s: waybill number */
+        $order->add_order_note(sprintf(__('Shipment label %s cancelled.', 'bg-couriers'), $waybill));
+        $order->save();
+    }
+
+    private function fail_note(int $id, string $msg, string $context): void {
+        set_transient('bgc_admin_error_' . $id, $msg, 60);
+        if ($o = wc_get_order($id)) { $o->add_order_note($context . ': ' . $msg); }
+    }
+
+    public function handle_cancel_label(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        $id = (int) ($_GET['order_id'] ?? 0);
+        check_admin_referer('bgc_cancel_label_' . $id);
+        try { self::cancel($id); }
+        catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label cancellation failed', 'bg-couriers')); }
+        wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
+        exit;
+    }
+
+    /** Void the existing waybill and issue a fresh one from the order's current delivery details. */
+    public function handle_regenerate(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        $id = (int) ($_GET['order_id'] ?? 0);
+        check_admin_referer('bgc_regenerate_' . $id);
+        try { self::cancel($id); self::generate($id); }
+        catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label re-generation failed', 'bg-couriers')); }
+        wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
+        exit;
+    }
+
+    /** Cancel the order (and void its label first, best effort). */
+    public function handle_cancel_order(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        $id = (int) ($_GET['order_id'] ?? 0);
+        check_admin_referer('bgc_cancel_order_' . $id);
+        $order = wc_get_order($id);
+        if ($order) {
+            if ((string) $order->get_meta('_bgc_waybill') !== '') {
+                try { self::cancel($id); } catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label cancellation failed', 'bg-couriers')); }
+            }
+            $order = wc_get_order($id);
+            $order->update_status('cancelled', __('Cancelled from the BG Couriers panel.', 'bg-couriers'));
+        }
+        wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
+        exit;
+    }
+
     public function handle_track(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
         $id = (int) ($_GET['order_id'] ?? 0);

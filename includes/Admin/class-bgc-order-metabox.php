@@ -29,15 +29,28 @@ class BGC_Order_Metabox {
                 . esc_html(sprintf(__('Label generation failed: %s', 'bg-couriers'), $err)) . '</div>';
         }
 
+        $nonce_url = static function (string $action, string $nonce) use ($base, $id): string {
+            return esc_url(wp_nonce_url($base . '?action=' . $action . '&order_id=' . $id, $nonce . $id));
+        };
+        $cancel_order = $nonce_url('bgc_cancel_order', 'bgc_cancel_order_');
+        $confirm      = static function (string $msg): string { return ' onclick="return confirm(\'' . esc_js($msg) . '\')"'; };
+
         if ($waybill === '') {
-            $gen = wp_nonce_url($base . '?action=bgc_generate_label&order_id=' . $id, 'bgc_generate_label_' . $id);
-            echo '<a class="button button-primary" href="' . esc_url($gen) . '">' . esc_html__('Generate label', 'bg-couriers') . '</a>';
+            $gen = $nonce_url('bgc_generate_label', 'bgc_generate_label_');
+            echo '<a class="button button-primary" href="' . $gen . '">' . esc_html__('Generate label', 'bg-couriers') . '</a> ';
         } else {
-            $print = wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id, 'bgc_print_batch');
-            $track = wp_nonce_url($base . '?action=bgc_track&order_id=' . $id, 'bgc_track_' . $id);
+            $print  = esc_url(wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id, 'bgc_print_batch'));
+            $track  = $nonce_url('bgc_track', 'bgc_track_');
+            $cancel = $nonce_url('bgc_cancel_label', 'bgc_cancel_label_');
+            $regen  = $nonce_url('bgc_regenerate', 'bgc_regenerate_');
             echo '<p style="margin:0 0 8px;"><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> <code>' . esc_html($waybill) . '</code></p>';
-            echo '<a class="button button-primary" target="_blank" href="' . esc_url($print) . '">' . esc_html__('Print label', 'bg-couriers') . '</a> ';
-            echo '<a class="button" target="_blank" href="' . esc_url($track) . '">' . esc_html__('Track', 'bg-couriers') . '</a>';
+            echo '<a class="button button-primary" target="_blank" href="' . $print . '">' . esc_html__('Print label', 'bg-couriers') . '</a> ';
+            echo '<a class="button" target="_blank" href="' . $track . '">' . esc_html__('Track', 'bg-couriers') . '</a> ';
+            echo '<a class="button" href="' . $regen . '"' . $confirm(__('Cancel the current waybill and generate a new one from this order\'s delivery details?', 'bg-couriers')) . '>' . esc_html__('Re-generate', 'bg-couriers') . '</a> ';
+            echo '<a class="button" href="' . $cancel . '"' . $confirm(__('Cancel (void) this shipment label?', 'bg-couriers')) . '>' . esc_html__('Cancel label', 'bg-couriers') . '</a> ';
+        }
+        if ($order->get_status() !== 'cancelled') {
+            echo '<a class="button" style="color:#b32d2e;" href="' . $cancel_order . '"' . $confirm(__('Cancel this order (its label will be voided too)?', 'bg-couriers')) . '>' . esc_html__('Cancel order', 'bg-couriers') . '</a>';
         }
         echo '</div>';
     }
