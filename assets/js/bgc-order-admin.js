@@ -1,19 +1,84 @@
-/* On-order delivery editor (WooCommerce order edit screen). Reuses the checkout nomenclature AJAX. */
+/* On-order delivery editor + shipment-panel actions (WooCommerce order edit screen). */
 (function ($) {
-  // Copy-the-waybill button (bound first so it works even where the editor isn't rendered).
-  $(document).on('click', '.bgc-wb-copy', function (e) {
+  var C = window.BGC_ED || {};
+  var I = C.i18n || {};
+
+  // --- small UI helpers: toast + custom confirm dialog ------------------------------------------
+  var $toast;
+  function toast(msg) {
+    if (!$toast) { $toast = $('<div class="bgc-toast"></div>').appendTo('body'); }
+    $toast.stop(true, true).text(msg);
+    // position near the last click, falling back to bottom-centre
+    var e = toast._e;
+    if (e) { $toast.css({ left: Math.min(e.clientX + 12, window.innerWidth - 180) + 'px', top: (e.clientY + 14) + 'px', right: 'auto', bottom: 'auto' }); }
+    else { $toast.css({ left: '50%', bottom: '32px', top: 'auto', right: 'auto', transform: 'translateX(-50%)' }); }
+    $toast.addClass('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { $toast.removeClass('show'); }, 1400);
+  }
+  $(document).on('mousedown', '.bgc-copy,.bgc-cancel', function (e) { toast._e = e; });
+
+  function confirmDialog(opts) {
+    var $ov = $('<div class="bgc-modal-ov"></div>');
+    var $m = $(
+      '<div class="bgc-modal" role="dialog" aria-modal="true">' +
+      '<h3><span class="dashicons dashicons-warning"></span><span class="bgc-m-title"></span></h3>' +
+      '<p class="bgc-m-body"></p>' +
+      '<div class="bgc-modal-actions">' +
+      '<button type="button" class="button bgc-m-no"></button>' +
+      '<button type="button" class="button bgc-btn-danger bgc-m-yes"></button>' +
+      '</div></div>'
+    );
+    $m.find('.bgc-m-title').text(opts.title || 'Are you sure?');
+    $m.find('.bgc-m-body').text(opts.body || '');
+    $m.find('.bgc-m-yes').text(opts.yes || 'Confirm');
+    $m.find('.bgc-m-no').text(opts.no || 'Cancel');
+    $ov.append($m).appendTo('body');
+    // eslint-disable-next-line no-unused-expressions
+    $ov[0].offsetWidth; // force reflow so the transition runs
+    $ov.addClass('show');
+    function close() { $ov.removeClass('show'); setTimeout(function () { $ov.remove(); }, 180); }
+    $m.find('.bgc-m-no').on('click', close);
+    $ov.on('click', function (e) { if (e.target === $ov[0]) { close(); } });
+    $(document).on('keydown.bgcmodal', function (e) { if (e.key === 'Escape') { close(); $(document).off('keydown.bgcmodal'); } });
+    $m.find('.bgc-m-yes').on('click', function () { close(); $(document).off('keydown.bgcmodal'); if (opts.onYes) { opts.onYes(); } });
+    $m.find('.bgc-m-yes').focus();
+  }
+
+  // --- copy the waybill number ------------------------------------------------------------------
+  $(document).on('click', '.bgc-copy', function (e) {
     e.preventDefault();
     var $b = $(this), wb = String($b.data('wb') || '');
-    var ok = function () { $b.addClass('done'); $b.find('.dashicons').removeClass('dashicons-clipboard').addClass('dashicons-yes');
-      setTimeout(function () { $b.removeClass('done'); $b.find('.dashicons').removeClass('dashicons-yes').addClass('dashicons-clipboard'); }, 1200); };
+    var ok = function () { $b.addClass('done'); toast(I.copied || 'Copied to clipboard'); setTimeout(function () { $b.removeClass('done'); }, 1200); };
     if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(wb).then(ok, function () {}); }
     else { var $t = $('<input>').val(wb).appendTo('body'); $t[0].select(); try { document.execCommand('copy'); ok(); } catch (x) {} $t.remove(); }
   });
 
-  var C = window.BGC_ED || {};
+  // --- cancel (void) the waybill, behind a custom confirmation ----------------------------------
+  $(document).on('click', '.bgc-cancel', function (e) {
+    e.preventDefault();
+    var url = String($(this).data('cancel-url') || '');
+    if (!url) { return; }
+    confirmDialog({
+      title: I.cancelTitle || 'Cancel this waybill?',
+      body: I.cancelBody || 'This voids the shipment label with the courier.',
+      yes: I.cancelYes || 'Yes, cancel it',
+      no: I.cancelNo || 'Keep it',
+      onYes: function () { window.location.href = url; }
+    });
+  });
+
+  // --- toggle the delivery-details editor (icon lives in the panel, form lives in .bgc-ed) -------
+  $(document).on('click', '.bgc-ed-toggle', function (e) {
+    e.preventDefault();
+    var $form = $('.bgc-ed-form');
+    $form.toggle();
+    if ($form.is(':visible')) { $form[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  });
+
+  // --- the editor itself ------------------------------------------------------------------------
   var $panel = $('.bgc-ed');
   if (!$panel.length) { return; }
-  var $form = $panel.find('.bgc-ed-form');
   function sel2($el, opts) { if ($.fn.selectWoo) { $el.selectWoo(opts); } else if ($.fn.select2) { $el.select2(opts); } }
 
   var $courier = $panel.find('.bgc-ed-courier'),
@@ -41,7 +106,7 @@
     $panel.find('.bgc-ed-address').toggle(!isBox && m === 'address');
   }
 
-  sel2($city, { width: '100%', allowClear: true, placeholder: C.i18n.city, minimumInputLength: 0,
+  sel2($city, { width: '100%', allowClear: true, placeholder: I.city, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
       data: function (params) { return { action: 'bgc_search_cities', courier: courier(), term: params.term || '' }; },
       processResults: function (rows) { return { results: (rows || []).map(function (r) {
@@ -52,7 +117,7 @@
 
   // Office/APS: preload the city's offices into the <select> (robust - works even if select2 isn't
   // enhancing, and doesn't depend on select2 firing an AJAX on open). select2 then just adds local search.
-  sel2($office, { width: '100%', allowClear: true, placeholder: C.i18n.office });
+  sel2($office, { width: '100%', allowClear: true, placeholder: I.office });
   function loadOffices() {
     var c = courier(), city = $city.val() || 0, m = $method.val();
     if (!city || m === 'address' || c === 'boxnow') { return; }
@@ -67,14 +132,13 @@
     }, 'json');
   }
 
-  sel2($street, { width: '100%', allowClear: true, tags: true, placeholder: C.i18n.street, minimumInputLength: 0,
+  sel2($street, { width: '100%', allowClear: true, tags: true, placeholder: I.street, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
       data: function (params) { return { action: 'bgc_streets', courier: courier(), city_id: $city.val() || 0, term: params.term || '' }; },
       processResults: function (rows) { return { results: (rows || []).map(function (s) { return { id: s.name, text: s.name }; }) }; }
     }
   });
 
-  $panel.on('click', '.bgc-ed-toggle', function (e) { e.preventDefault(); $form.toggle(); });
   $city.on('change', function () { resetOffice(); resetStreet(); loadOffices(); });
   $courier.on('change', function () { fillMethods(); resetOffice(); resetStreet(); loadOffices(); });
   $method.on('change', function () { updateMode(); resetOffice(); loadOffices(); });
@@ -84,7 +148,7 @@
   $panel.on('click', '.bgc-ed-save', function (e) {
     e.preventDefault();
     var $b = $(this), $msg = $panel.find('.bgc-ed-msg');
-    $b.prop('disabled', true); $msg.text('').css('color', '#50575e').text(C.i18n.saving);
+    $b.prop('disabled', true); $msg.text('').css('color', '#50575e').text(I.saving);
     var data = {
       action: 'bgc_order_save_delivery', nonce: C.nonce, order_id: C.orderId,
       courier: courier(), method: $method.val(),
@@ -98,7 +162,7 @@
     if (courier() === 'boxnow') { data.office_id = $panel.find('.bgc-ed-boxnow-id').val() || 0; }
     $.post(C.ajax, data).done(function (r) {
       if (r && r.success) { $msg.css('color', '#1a7f37').text((r.data && r.data.msg) || 'Saved'); setTimeout(function () { location.reload(); }, 800); }
-      else { $msg.css('color', '#b32d2e').text((r && r.data && r.data.msg) || C.i18n.err); $b.prop('disabled', false); }
-    }).fail(function () { $msg.css('color', '#b32d2e').text(C.i18n.err); $b.prop('disabled', false); });
+      else { $msg.css('color', '#b32d2e').text((r && r.data && r.data.msg) || I.err); $b.prop('disabled', false); }
+    }).fail(function () { $msg.css('color', '#b32d2e').text(I.err); $b.prop('disabled', false); });
   });
 })(jQuery);
