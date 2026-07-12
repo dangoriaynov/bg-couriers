@@ -245,9 +245,9 @@ class BGC_Labels {
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         if (!$pdfs) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
 
-        // Pack onto landscape A4 (labels enlarged to fill) or A6 stickers. Fall back to the raw label if the
-        // packer can't read it (encrypted / object streams).
-        $out = BGC_Label_Packer::pack($pdfs, $paper);
+        // A single label prints at its native size; multiple labels are packed onto the sheet (natural size,
+        // couriers mixed). Fall back to the raw label if the packer can't read it (encrypted / object streams).
+        $out = (count($pdfs) === 1) ? $pdfs[0] : BGC_Label_Packer::pack($pdfs, $paper);
         if ($out === '') { $out = $pdfs[0]; }
 
         nocache_headers();
