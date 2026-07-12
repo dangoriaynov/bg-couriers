@@ -20,19 +20,14 @@ class BGC_Order_Metabox {
         $mlabel  = $mlabels[$method] ?? ucfirst($method ?: 'office');
         echo '<style>'
             . '.bgc-order-panel{margin-top:12px;padding:16px;border:1px solid #e2e6ea;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);}'
-            . '.bgc-order-panel .bgc-hd{display:flex;align-items:center;gap:8px;margin:0 0 14px;}'
+            . '.bgc-order-panel .bgc-hd{display:flex;align-items:center;gap:10px;margin:0 0 14px;flex-wrap:wrap;}'
             . '.bgc-order-panel .bgc-hd b{font-size:14px;color:#1d2327;}'
+            . '.bgc-order-panel .bgc-logo{height:20px;width:auto;display:block;}'
             . '.bgc-order-panel .bgc-chip{display:inline-block;padding:3px 11px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}'
-            . '.bgc-order-panel .bgc-wbline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;}'
-            // # + number + copy button stay glued together on one line (the group wraps as a unit).
-            . '.bgc-order-panel .bgc-wb-group{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}'
-            . '.bgc-order-panel .bgc-wb-group .bgc-hash{font-size:15px;font-weight:700;color:#646970;}'
-            . '.bgc-order-panel .bgc-wb{padding:6px 11px;border-radius:8px;background:#f0f6fc;border:1px solid #d7e3f1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#1d2327;letter-spacing:.3px;}'
-            // Small inline copy button that sits immediately to the right of the waybill number.
-            . '.bgc-order-panel .bgc-copy{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:1px solid #d0d5dc;border-radius:7px;background:#fff;color:#646970;cursor:pointer;transition:all .12s;}'
-            . '.bgc-order-panel .bgc-copy:hover{background:#f2f6fb;border-color:#9fb6cf;color:#2271b1;}'
-            . '.bgc-order-panel .bgc-copy svg{width:15px;height:15px;display:block;}'
-            . '.bgc-order-panel .bgc-copy.done{background:#eaf7ee;border-color:#8fcea5;color:#1a7f37;}'
+            // The waybill number IS the copy button: clicking the field copies it to the clipboard.
+            . '.bgc-order-panel .bgc-wb{padding:6px 11px;border-radius:8px;background:#f0f6fc;border:1px solid #d7e3f1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#1d2327;letter-spacing:.3px;cursor:pointer;transition:all .12s;}'
+            . '.bgc-order-panel .bgc-wb:hover{border-color:#9fb6cf;background:#e9f2fb;}'
+            . '.bgc-order-panel .bgc-wb.copied{border-color:#8fcea5;background:#eaf7ee;color:#1a7f37;}'
             // One cohesive row of icon-only actions (print / track / edit / cancel), 40px squares.
             . '.bgc-order-panel .bgc-la{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}'
             . '.bgc-order-panel .bgc-act{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;margin:0;border:1px solid #c9ced6;border-radius:10px;background:#fff;color:#2b3440;cursor:pointer;text-decoration:none;box-shadow:none;transition:all .12s;}'
@@ -64,19 +59,6 @@ class BGC_Order_Metabox {
             . '.bgc-modal .bgc-btn-danger{background:#b32d2e!important;border-color:#b32d2e!important;color:#fff!important;box-shadow:none!important;}'
             . '.bgc-modal .bgc-btn-danger:hover{background:#8a1f2b!important;border-color:#8a1f2b!important;}'
             . '</style>';
-        echo '<div class="bgc-order-panel">';
-        echo '<p class="bgc-hd"><b>' . esc_html($courier->label()) . '</b> <span class="bgc-chip">' . esc_html($mlabel) . '</span></p>';
-
-        // Surface the last generation error (handle_generate stores it in a transient, then redirects here),
-        // so a failing create_label no longer looks like "nothing happened".
-        $err = get_transient('bgc_admin_error_' . $id);
-        if ($err) {
-            delete_transient('bgc_admin_error_' . $id);
-            /* translators: %s: error message from the courier */
-            echo '<div style="margin:0 0 8px;padding:8px 10px;border-radius:6px;background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;">'
-                . esc_html(sprintf(__('Label generation failed: %s', 'bg-couriers'), $err)) . '</div>';
-        }
-
         $nonce_url = static function (string $action, string $nonce) use ($base, $id): string {
             return esc_url(wp_nonce_url($base . '?action=' . $action . '&order_id=' . $id, $nonce . $id));
         };
@@ -89,35 +71,65 @@ class BGC_Order_Metabox {
         };
         $edit_tip = __('Edit delivery details', 'bg-couriers');
 
+        // Header: courier logo + delivery-type label + (when issued) the waybill number, which is itself the
+        // copy button - clicking the field copies the number (see bgc-order-admin.js).
+        $logo = BGC_Couriers::logo_url($courier->id());
+        $body = '<div class="bgc-hd">'
+            . ($logo
+                ? '<img class="bgc-logo" src="' . esc_url($logo) . '" alt="' . esc_attr($courier->label()) . '">'
+                : '<b>' . esc_html($courier->label()) . '</b>')
+            . '<span class="bgc-chip">' . esc_html($mlabel) . '</span>';
+        if ($waybill !== '') {
+            $body .= '<span class="bgc-wb bgc-wb-copy" data-wb="' . esc_attr($waybill) . '" role="button" tabindex="0" data-tip="'
+                . esc_attr__('Click to copy', 'bg-couriers') . '">' . esc_html($waybill) . '</span>';
+        }
+        $body .= '</div>';
+
+        // Surface the last generation error (handle_generate stores it in a transient, then redirects here).
+        $err = get_transient('bgc_admin_error_' . $id);
+        if ($err) {
+            delete_transient('bgc_admin_error_' . $id);
+            /* translators: %s: error message from the courier */
+            $body .= '<div class="bgc-err" style="margin:0 0 8px;padding:8px 10px;border-radius:6px;background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;">'
+                . esc_html(sprintf(__('Label generation failed: %s', 'bg-couriers'), $err)) . '</div>';
+        }
+
         if ($waybill === '') {
             $gen = $nonce_url('bgc_generate_label', 'bgc_generate_label_');
-            echo '<div class="bgc-la">';
-            echo '<a class="bgc-act bgc-primary bgc-gen" href="' . $gen . '"><span class="dashicons dashicons-tag"></span> ' . esc_html__('Generate label', 'bg-couriers') . '</a>';
-            echo $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle');
-            echo '</div>';
+            $body .= '<div class="bgc-la">'
+                . '<a class="bgc-act bgc-primary bgc-gen" href="' . $gen . '"><span class="dashicons dashicons-tag"></span> ' . esc_html__('Generate label', 'bg-couriers') . '</a>'
+                . $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle')
+                . '</div>';
         } else {
             $paper  = strtolower(BGC_Settings::label_paper_size($courier->id()));
             $print  = esc_url(wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id . '&paper=' . $paper, 'bgc_print_batch'));
             $track  = $nonce_url('bgc_track', 'bgc_track_');
             $cancel = $nonce_url('bgc_cancel_label', 'bgc_cancel_label_');
-            $copy_hint = esc_attr__('Copy waybill number', 'bg-couriers');
-            // Waybill number with the copy button sitting immediately to its right (feather "copy" glyph).
-            $copy_svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-                . '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-            echo '<div class="bgc-wbline"><span class="bgc-wb-group"><span class="bgc-hash">#</span> <span class="bgc-wb">' . esc_html($waybill) . '</span>'
-                . '<button type="button" class="bgc-copy" data-wb="' . esc_attr($waybill) . '" data-tip="' . $copy_hint . '" aria-label="' . $copy_hint . '">'
-                . $copy_svg . '</button></span></div>';
             // One row: print, track, edit, cancel (destructive last), all icon-only with hover hints.
-            echo '<div class="bgc-la">';
-            echo $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary');
-            echo $act('a', 'location', __('Track shipment', 'bg-couriers'), 'href="' . $track . '" target="_blank"');
-            echo $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle');
-            echo $act('button', 'no-alt', __('Cancel (void) label', 'bg-couriers'), 'type="button" data-cancel-url="' . $cancel . '"', 'bgc-danger bgc-cancel');
-            echo '</div>';
+            $body .= '<div class="bgc-la">'
+                . $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary')
+                . $act('a', 'location', __('Track shipment', 'bg-couriers'), 'href="' . $track . '" target="_blank"')
+                . $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle')
+                . $act('button', 'no-alt', __('Cancel (void) label', 'bg-couriers'), 'type="button" data-cancel-url="' . $cancel . '"', 'bgc-danger bgc-cancel')
+                . '</div>';
         }
+
+        echo '<div class="bgc-order-panel">';
+        echo wp_kses($body, self::PANEL_TAGS); // each field escaped above; kses is the output-escaping gate
         $this->render_editor($order);
         echo '</div>';
     }
+
+    /** Allowed tags/attributes for the shipment-panel body passed through wp_kses. */
+    const PANEL_TAGS = [
+        'div'    => ['class' => true, 'style' => true],
+        'span'   => ['class' => true, 'data-wb' => true, 'data-tip' => true, 'role' => true, 'tabindex' => true, 'aria-label' => true],
+        'strong' => ['class' => true],
+        'b'      => [],
+        'img'    => ['class' => true, 'src' => true, 'alt' => true],
+        'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'aria-label' => true, 'data-tip' => true],
+        'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-cancel-url' => true],
+    ];
 
     /** Collapsible checkout-like editor for the order's delivery details (courier switch, city/office/address). */
     private function render_editor(\WC_Order $order): void {
@@ -167,31 +179,43 @@ class BGC_Order_Metabox {
                           'cancelNo'    => __('Keep it', 'bg-couriers')],
         ]);
 
-        echo '<div class="bgc-ed">';
-        echo '<div class="bgc-ed-form" style="display:none;margin-top:10px;max-width:520px;">';
-        echo '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>';
-        echo '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>';
-        echo '<p class="bgc-ed-city-row"><label>' . esc_html__('City', 'bg-couriers') . '</label><br><select class="bgc-ed-city" style="min-width:300px;"><option></option>' . $city_opt . '</select><input type="hidden" class="bgc-ed-postcode" value="' . $v('post_code') . '"></p>';
-        echo '<p class="bgc-ed-office-row"><label>' . esc_html__('Office / APS', 'bg-couriers') . '</label><br><select class="bgc-ed-office" style="min-width:300px;"><option></option>' . $office_opt . '</select></p>';
-        echo '<div class="bgc-ed-address">';
-        echo '<p><label>' . esc_html__('Street', 'bg-couriers') . '</label><br><select class="bgc-ed-street" style="min-width:220px;"><option></option>' . $street_opt . '</select> '
-            . '<label>' . esc_html__('No.', 'bg-couriers') . '</label> <input class="bgc-ed-streetno" value="' . $v('street_no') . '" style="width:70px;"></p>';
-        echo '<p><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label> <input class="bgc-ed-complex" value="' . $v('complex') . '"></p>';
-        echo '<p><label>' . esc_html__('Bl.', 'bg-couriers') . '</label> <input class="bgc-ed-block" value="' . $v('block') . '" style="width:60px;"> '
+        $boxnow_id = $cur_courier === 'boxnow' ? esc_attr((string) $office_id) : '';
+        $form = '<div class="bgc-ed"><div class="bgc-ed-form" style="display:none;margin-top:10px;max-width:520px;">'
+            . '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>'
+            . '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>'
+            . '<p class="bgc-ed-city-row"><label>' . esc_html__('City', 'bg-couriers') . '</label><br><select class="bgc-ed-city" style="min-width:300px;"><option></option>' . $city_opt . '</select><input type="hidden" class="bgc-ed-postcode" value="' . $v('post_code') . '"></p>'
+            . '<p class="bgc-ed-office-row"><label>' . esc_html__('Office / APS', 'bg-couriers') . '</label><br><select class="bgc-ed-office" style="min-width:300px;"><option></option>' . $office_opt . '</select></p>'
+            . '<div class="bgc-ed-address">'
+            . '<p><label>' . esc_html__('Street', 'bg-couriers') . '</label><br><select class="bgc-ed-street" style="min-width:220px;"><option></option>' . $street_opt . '</select> '
+            . '<label>' . esc_html__('No.', 'bg-couriers') . '</label> <input class="bgc-ed-streetno" value="' . $v('street_no') . '" style="width:70px;"></p>'
+            . '<p><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label> <input class="bgc-ed-complex" value="' . $v('complex') . '"></p>'
+            . '<p><label>' . esc_html__('Bl.', 'bg-couriers') . '</label> <input class="bgc-ed-block" value="' . $v('block') . '" style="width:60px;"> '
             . '<label>' . esc_html__('Entr.', 'bg-couriers') . '</label> <input class="bgc-ed-entrance" value="' . $v('entrance') . '" style="width:60px;"> '
             . '<label>' . esc_html__('Floor', 'bg-couriers') . '</label> <input class="bgc-ed-floor" value="' . $v('floor') . '" style="width:60px;"> '
-            . '<label>' . esc_html__('Apt.', 'bg-couriers') . '</label> <input class="bgc-ed-apartment" value="' . $v('apartment') . '" style="width:60px;"></p>';
-        echo '<p><label>' . esc_html__('Note', 'bg-couriers') . '</label> <input class="bgc-ed-note" value="' . $v('address_note') . '" style="width:100%;"></p>';
-        echo '</div>';
-        echo '<div class="bgc-ed-boxnow">';
-        echo '<p><label>' . esc_html__('Locker id', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-id" value="' . ($cur_courier === 'boxnow' ? esc_attr((string) $office_id) : '') . '" style="width:110px;"> '
-            . '<label>' . esc_html__('Locker name', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-name" value="' . $v('boxnow_name') . '"></p>';
-        echo '<p><label>' . esc_html__('Locker address', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-addr" value="' . $v('boxnow_addr') . '" style="width:100%;"></p>';
-        echo '</div>';
-        echo '<p><button type="button" class="button button-primary bgc-ed-save">' . esc_html__('Save delivery', 'bg-couriers') . '</button> <span class="bgc-ed-msg"></span></p>';
+            . '<label>' . esc_html__('Apt.', 'bg-couriers') . '</label> <input class="bgc-ed-apartment" value="' . $v('apartment') . '" style="width:60px;"></p>'
+            . '<p><label>' . esc_html__('Note', 'bg-couriers') . '</label> <input class="bgc-ed-note" value="' . $v('address_note') . '" style="width:100%;"></p>'
+            . '</div>'
+            . '<div class="bgc-ed-boxnow">'
+            . '<p><label>' . esc_html__('Locker id', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-id" value="' . $boxnow_id . '" style="width:110px;"> '
+            . '<label>' . esc_html__('Locker name', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-name" value="' . $v('boxnow_name') . '"></p>'
+            . '<p><label>' . esc_html__('Locker address', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-addr" value="' . $v('boxnow_addr') . '" style="width:100%;"></p>'
+            . '</div>'
+            . '<p><button type="button" class="button button-primary bgc-ed-save">' . esc_html__('Save delivery', 'bg-couriers') . '</button> <span class="bgc-ed-msg"></span></p>';
         if ($has_waybill) {
-            echo '<p class="description">' . esc_html__('A waybill exists. If auto-generate is on, saving voids it and re-issues a new one; otherwise void it with × above and Generate again.', 'bg-couriers') . '</p>';
+            $form .= '<p class="description">' . esc_html__('A waybill exists. Saving voids it and issues a new one matching the new details.', 'bg-couriers') . '</p>';
         }
-        echo '</div></div>';
+        $form .= '</div></div>';
+
+        echo wp_kses($form, [
+            'div'    => ['class' => true, 'style' => true],
+            'p'      => ['class' => true, 'style' => true],
+            'label'  => ['class' => true],
+            'br'     => [],
+            'select' => ['class' => true, 'style' => true, 'data-current' => true],
+            'option' => ['value' => true, 'selected' => true],
+            'input'  => ['type' => true, 'class' => true, 'value' => true, 'style' => true],
+            'button' => ['type' => true, 'class' => true],
+            'span'   => ['class' => true],
+        ]);
     }
 }

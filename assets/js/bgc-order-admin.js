@@ -16,7 +16,7 @@
     clearTimeout(toast._t);
     toast._t = setTimeout(function () { $toast.removeClass('show'); }, 1400);
   }
-  $(document).on('mousedown', '.bgc-copy,.bgc-cancel', function (e) { toast._e = e; });
+  $(document).on('mousedown', '.bgc-wb-copy,.bgc-cancel', function (e) { toast._e = e; });
 
   function confirmDialog(opts) {
     var $ov = $('<div class="bgc-modal-ov"></div>');
@@ -45,11 +45,11 @@
     $m.find('.bgc-m-yes').focus();
   }
 
-  // --- copy the waybill number ------------------------------------------------------------------
-  $(document).on('click', '.bgc-copy', function (e) {
+  // --- copy the waybill number (the number field itself is the copy button) ---------------------
+  $(document).on('click', '.bgc-wb-copy', function (e) {
     e.preventDefault();
     var $b = $(this), wb = String($b.data('wb') || '');
-    var ok = function () { $b.addClass('done'); toast(I.copied || 'Copied to clipboard'); setTimeout(function () { $b.removeClass('done'); }, 1200); };
+    var ok = function () { $b.addClass('copied'); toast(I.copied || 'Copied to clipboard'); setTimeout(function () { $b.removeClass('copied'); }, 1200); };
     if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(wb).then(ok, function () {}); }
     else { var $t = $('<input>').val(wb).appendTo('body'); $t[0].select(); try { document.execCommand('copy'); ok(); } catch (x) {} $t.remove(); }
   });

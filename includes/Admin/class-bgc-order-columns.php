@@ -81,6 +81,9 @@ class BGC_Order_Columns {
     ov.addEventListener('click', function (e) { if (e.target === ov) { close(); } });
     ov.querySelector('.bgc-lyes').addEventListener('click', function () { close(); if (o.onYes) { o.onYes(); } });
   }
+  // Share the dialog + toast so other admin scripts (e.g. the bulk "Cancel waybils" action) reuse them.
+  window.bgcConfirmDialog = window.bgcConfirmDialog || confirmDlg;
+  window.bgcToast = window.bgcToast || toast;
   function doCancel(x) {
     var id = x.getAttribute('data-id'), nonce = x.getAttribute('data-nonce'), gn = x.getAttribute('data-gennonce');
     var cell = x.closest('.bgc-cell') || x.parentNode;

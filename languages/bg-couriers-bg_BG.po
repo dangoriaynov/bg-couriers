@@ -1471,6 +1471,44 @@ msgstr ""
 "има значение само когато няколко се събират на един лист за етикетен "
 "принтер."
 
+msgid "Click to copy"
+msgstr "Натиснете за копиране"
+
+msgid ""
+"A waybill exists. Saving voids it and issues a new one matching the new "
+"details."
+msgstr ""
+"Съществува товарителница. Запазването я анулира и издава нова според новите "
+"данни."
+
+msgid "Print waybils A4"
+msgstr "Печат на товарителници A4"
+
+msgid "Print waybils A6"
+msgstr "Печат на товарителници A6"
+
+msgid "Generate waybils only"
+msgstr "Само генериране на товарителници"
+
+msgid "Cancel waybils"
+msgstr "Анулиране на товарителници"
+
+msgid "Cancel the selected waybills?"
+msgstr "Да анулирам ли избраните товарителници?"
+
+msgid ""
+"This voids the shipment label with the courier for every selected order. "
+"This cannot be undone."
+msgstr ""
+"Това анулира етикета за доставка при куриера за всяка избрана поръчка. "
+"Действието е необратимо."
+
+msgid "Yes, cancel them"
+msgstr "Да, анулирай ги"
+
+msgid "Keep them"
+msgstr "Запази ги"
+
 #~ msgid "Generate Speedy labels"
 #~ msgstr "Генерирай етикети за Speedy"
 

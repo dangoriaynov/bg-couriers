@@ -1345,3 +1345,37 @@ msgid ""
 "Econt labels are A4-landscape. A4 keeps them full size; A6 only matters when"
 " several are packed onto one sheet for a label printer."
 msgstr ""
+
+msgid "Click to copy"
+msgstr ""
+
+msgid ""
+"A waybill exists. Saving voids it and issues a new one matching the new "
+"details."
+msgstr ""
+
+msgid "Print waybils A4"
+msgstr ""
+
+msgid "Print waybils A6"
+msgstr ""
+
+msgid "Generate waybils only"
+msgstr ""
+
+msgid "Cancel waybils"
+msgstr ""
+
+msgid "Cancel the selected waybills?"
+msgstr ""
+
+msgid ""
+"This voids the shipment label with the courier for every selected order. "
+"This cannot be undone."
+msgstr ""
+
+msgid "Yes, cancel them"
+msgstr ""
+
+msgid "Keep them"
+msgstr ""
