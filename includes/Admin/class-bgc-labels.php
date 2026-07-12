@@ -233,7 +233,7 @@ class BGC_Labels {
     }
 
     /** Collect each order's label PDF bytes: the saved file first, else re-fetch from the courier. */
-    private static function collect_label_pdfs(array $order_ids): array {
+    public static function collect_label_pdfs(array $order_ids): array {
         $up = wp_upload_dir();
         $pdfs = [];
         foreach ($order_ids as $oid) {

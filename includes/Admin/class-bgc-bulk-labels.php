@@ -2,8 +2,10 @@
 defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
 
 class BGC_Bulk_Labels {
-    const ACTION = 'bgc_generate_labels';
-    const CANCEL = 'bgc_cancel_labels';
+    const ACTION   = 'bgc_generate_labels';
+    const CANCEL   = 'bgc_cancel_labels';
+    const PRINT_A4 = 'bgc_print_a4';
+    const PRINT_A6 = 'bgc_print_a6';
 
     public function __construct() {
         foreach (['woocommerce_page_wc-orders', 'edit-shop_order'] as $screen) {
@@ -14,8 +16,10 @@ class BGC_Bulk_Labels {
     }
 
     public function register(array $actions): array {
-        $actions[self::ACTION] = __('Generate shipping labels', 'bg-couriers');
-        $actions[self::CANCEL] = __('Cancel shipping labels', 'bg-couriers');
+        $actions[self::PRINT_A4] = __('Bulk print A4 (packed)', 'bg-couriers');
+        $actions[self::PRINT_A6] = __('Bulk print A6 (stickers)', 'bg-couriers');
+        $actions[self::ACTION]   = __('Generate shipping labels', 'bg-couriers');
+        $actions[self::CANCEL]   = __('Cancel shipping labels', 'bg-couriers');
         return $actions;
     }
 
@@ -26,7 +30,9 @@ class BGC_Bulk_Labels {
     }
 
     public function handle($redirect, $action, $ids) {
-        if ($action === self::CANCEL) { return $this->handle_cancel($redirect, $ids); }
+        if ($action === self::PRINT_A4) { $this->handle_print('A4', $ids); }
+        if ($action === self::PRINT_A6) { $this->handle_print('A6', $ids); }
+        if ($action === self::CANCEL)   { return $this->handle_cancel($redirect, $ids); }
         if ($action !== self::ACTION) { return $redirect; }
         $results = [];
         $print_ids = [];
@@ -44,6 +50,38 @@ class BGC_Bulk_Labels {
         if ($print_ids) { set_transient('bgc_print_batch_' . get_current_user_id(), $print_ids, 5 * MINUTE_IN_SECONDS); }
         $c = self::summary($results);
         return add_query_arg(array_merge(['bgc_bulk' => 1, 'bgc_print' => $print_ids ? 1 : 0], $c), $redirect);
+    }
+
+    /**
+     * Bulk print: generate any missing labels for the selected orders, then pack them onto A4 (many per
+     * sheet) or A6 (one per page) and stream the PDF directly. WooCommerce runs the bulk handler before any
+     * output, so we can emit the PDF and exit instead of redirecting.
+     */
+    private function handle_print(string $paper, $ids): void {
+        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        $ok = [];
+        foreach (array_map('intval', (array) $ids) as $oid) {
+            $order = wc_get_order($oid);
+            if (!$order || !BGC_Labels::order_courier($order)) { continue; }
+            if ((string) $order->get_meta('_bgc_waybill') === '') {
+                try { BGC_Labels::generate($oid); }
+                catch (\Exception $e) {
+                    /* translators: %s: error message */
+                    $order->add_order_note(sprintf(__('BG Couriers bulk print - generate failed: %s', 'bg-couriers'), $e->getMessage()));
+                    continue;
+                }
+            }
+            $ok[] = $oid;
+        }
+        $pdfs = BGC_Labels::collect_label_pdfs($ok);
+        if (!$pdfs) { wp_die(esc_html__('No labels to print (none could be generated).', 'bg-couriers')); }
+        $out = BGC_Label_Packer::pack($pdfs, $paper);
+        if ($out === '') { $out = $pdfs[0]; }
+        nocache_headers();
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="labels-' . strtolower($paper) . '.pdf"');
+        echo $out; // phpcs:ignore WordPress.Security.EscapeOutput -- binary PDF
+        exit;
     }
 
     /** Bulk-cancel each selected order's waybill (via BGC_Labels::cancel, which voids + clears it). */
