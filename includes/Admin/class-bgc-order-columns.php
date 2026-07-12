@@ -9,7 +9,7 @@ class BGC_Order_Columns {
         add_action('manage_shop_order_posts_custom_column', [$this, 'render_legacy'], 10, 2);
         add_action('admin_footer', [$this, 'copy_script']);
     }
-    public function col($cols) { $cols['bgc_shipping'] = __('Speedy', 'bg-couriers'); return $cols; }
+    public function col($cols) { $cols['bgc_shipping'] = __('Waybill', 'bg-couriers'); return $cols; }
 
     public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = ''): string {
         if ($waybill === '') {
