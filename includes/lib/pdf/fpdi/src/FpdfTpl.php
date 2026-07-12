@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
  * Class FpdfTpl

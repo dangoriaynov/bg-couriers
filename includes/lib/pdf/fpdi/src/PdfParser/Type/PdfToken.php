@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\PdfParser\Type;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
  * Class representing PDF token object

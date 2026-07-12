@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\PdfReader;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
  * An abstract class for page boundary constants and some helper methods

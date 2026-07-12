@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 class BGC_Logger {
     public static function debug(string $msg, array $ctx = []): void {

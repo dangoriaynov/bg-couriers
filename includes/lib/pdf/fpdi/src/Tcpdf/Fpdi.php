@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\Tcpdf;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 use setasign\Fpdi\FpdiException;
 use setasign\Fpdi\FpdiTrait;

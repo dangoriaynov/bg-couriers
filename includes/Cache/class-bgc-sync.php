@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 class BGC_Sync {
     const HOOK       = 'bgc_weekly_sync'; // full nomenclature sync (heavy) - weekly

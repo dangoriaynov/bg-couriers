@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 /**
  * BOX NOW webhook receiver - real-time parcel tracking.

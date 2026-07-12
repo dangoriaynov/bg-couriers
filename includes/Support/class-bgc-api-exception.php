@@ -1,4 +1,4 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 class BGC_Api_Exception extends \Exception {}

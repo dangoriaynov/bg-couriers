@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 /** Registry of couriers. Resolves the `bgc_courier` filter so the rest of the plugin
  *  fetches a courier by id without knowing the concrete class. */

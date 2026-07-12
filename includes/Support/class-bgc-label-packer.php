@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 /**
  * Packs courier label PDFs onto sheets using the bundled FPDI + FPDF:

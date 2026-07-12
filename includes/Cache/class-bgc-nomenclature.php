@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 class BGC_Nomenclature {
     public static function upsert_cities(string $courier, array $rows, string $run): int {

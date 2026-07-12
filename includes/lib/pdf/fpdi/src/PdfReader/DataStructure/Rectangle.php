@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\PdfReader\DataStructure;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 use setasign\Fpdi\Math\Vector;
 use setasign\Fpdi\PdfParser\CrossReference\CrossReferenceException;

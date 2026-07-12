@@ -2,13 +2,13 @@
 Contributors: dangoriaynov
 Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
-Tested up to: 6.6
+Tested up to: 6.8
 Requires PHP: 7.4
 Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Shipping for Bulgarian online stores with Speedy, Econt, BOX NOW, Pigeon Express and Sameday - office/address/locker delivery, live rates, labels and tracking.
+Shipping for Bulgarian stores: Speedy, Econt, BOX NOW, Pigeon Express, Sameday - office/address/locker delivery, live rates, labels, tracking.
 
 == Description ==
 

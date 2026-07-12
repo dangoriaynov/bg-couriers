@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 class BGC_Speedy extends BGC_Abstract_Courier {
     const BG_COUNTRY_ID = 100;

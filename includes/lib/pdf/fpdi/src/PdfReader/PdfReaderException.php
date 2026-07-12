@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\PdfReader;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 use setasign\Fpdi\FpdiException;
 

@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
  * Base exception class for the FPDI package.

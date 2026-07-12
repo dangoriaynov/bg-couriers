@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 $type = 'Core';
 $name = 'Times-BoldItalic';
 $up = -100;

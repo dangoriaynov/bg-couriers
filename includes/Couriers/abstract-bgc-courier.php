@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
     /** POST JSON, parse JSON, one retry, throw on failure. */

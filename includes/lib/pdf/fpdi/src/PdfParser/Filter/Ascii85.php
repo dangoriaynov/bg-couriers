@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\PdfParser\Filter;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
  * Class for handling ASCII base-85 encoded data

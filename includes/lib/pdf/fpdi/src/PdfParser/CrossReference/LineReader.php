@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\PdfParser\CrossReference;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 use setasign\Fpdi\PdfParser\PdfParser;
 use setasign\Fpdi\PdfParser\StreamReader;

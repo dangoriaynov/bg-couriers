@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 class BGC_Econt extends BGC_Abstract_Courier {
     const PROD = 'https://ee.econt.com/services';

@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\PdfParser;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
  * A tokenizer class.

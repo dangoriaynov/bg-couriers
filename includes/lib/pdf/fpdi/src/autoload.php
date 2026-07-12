@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
  * This file is part of FPDI

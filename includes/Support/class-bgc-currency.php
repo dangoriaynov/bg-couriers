@@ -1,5 +1,5 @@
 <?php
-defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
+defined('ABSPATH') || exit;
 
 class BGC_Currency {
     const PEG = 1.95583; // fixed BGN per 1 EUR (BG euro adoption)

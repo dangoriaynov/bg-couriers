@@ -23,10 +23,8 @@ define('BGC_URL', plugin_dir_url(__FILE__));
 require_once BGC_PATH . 'includes/class-bgc-autoloader.php';
 BGC_Autoloader::register();
 
-// Load the bundled translations (bg_BG ships in /languages).
-add_action('init', static function () {
-    load_plugin_textdomain('bg-couriers', false, dirname(plugin_basename(__FILE__)) . '/languages');
-});
+// Translations: WordPress auto-loads them just-in-time from /languages (bg_BG ships there) for the
+// plugin's own text domain, so no manual load_plugin_textdomain() call is needed (discouraged since WP 4.6).
 
 register_activation_hook(__FILE__, function () {
     require_once BGC_PATH . 'includes/class-bgc-autoloader.php';

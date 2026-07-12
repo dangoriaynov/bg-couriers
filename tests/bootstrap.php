@@ -1,8 +1,18 @@
 <?php
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+$bgc_is_integration = getenv('BGC_SUITE') === 'integration'
+    || (in_array('--testsuite', $_SERVER['argv'] ?? [], true) && in_array('integration', $_SERVER['argv'], true));
+
+// Unit suite: source files guard on ABSPATH (`defined('ABSPATH') || exit;`), so define it here to let the
+// files be required standalone under Brain Monkey. The integration suite boots real WordPress, which
+// defines ABSPATH itself, so only set it for units.
+if (!$bgc_is_integration && !defined('ABSPATH')) {
+    define('ABSPATH', dirname(__DIR__) . '/');
+}
+
 // Integration suite only: boot the WordPress test framework.
-if (getenv('BGC_SUITE') === 'integration' || in_array('--testsuite', $_SERVER['argv'] ?? [], true) && in_array('integration', $_SERVER['argv'], true)) {
+if ($bgc_is_integration) {
     $wp_tests = getenv('WP_PHPUNIT__DIR') ?: (getenv('WP_TESTS_DIR') ?: '/wordpress-phpunit');
     // Point the WP test bootstrap at the real wp-tests-config.php that has DB + constant definitions.
     if (!defined('WP_TESTS_CONFIG_FILE_PATH')) {

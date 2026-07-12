@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\PdfParser\Filter;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
  * Exception for LZW filter class

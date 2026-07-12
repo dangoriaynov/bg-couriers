@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi\Math;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
  * A simple 2D-Vector class

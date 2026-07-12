@@ -9,6 +9,7 @@
  */
 
 namespace setasign\Fpdi;
+if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 use setasign\Fpdi\Math\Matrix;
 use setasign\Fpdi\Math\Vector;
