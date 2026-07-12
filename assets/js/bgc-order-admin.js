@@ -139,8 +139,35 @@
     }
   });
 
+  // The selected city's id belongs to the PREVIOUS courier's nomenclature; when the courier changes we
+  // re-look-up the same city name in the new courier's list so its offices/APS resolve (otherwise the
+  // office select shows "No results found" - e.g. Econt Sofia id 68134 is not Speedy's Sofia).
+  function cityName() {
+    var t = ($city.find('option:selected').text() || '').trim();
+    return t.replace(/\s*\(\d+\)\s*$/, ''); // drop the " (1000)" postcode suffix
+  }
+  function reResolveCity() {
+    var name = cityName();
+    if (!name) { loadOffices(); return; }
+    $.get(C.ajax, { action: 'bgc_search_cities', courier: courier(), term: name }, function (rows) {
+      rows = rows || [];
+      var lc = name.toLowerCase();
+      var m = null, i;
+      for (i = 0; i < rows.length; i++) { if ((rows[i].name || '').toLowerCase() === lc) { m = rows[i]; break; } }
+      if (!m) { m = rows[0]; }
+      if (m) {
+        var text = m.name + (m.post_code ? ' (' + m.post_code + ')' : '');
+        $city.empty().append(new Option(text, m.city_id, true, true)).trigger('change.select2');
+        if (m.post_code) { $panel.find('.bgc-ed-postcode').val(m.post_code); }
+      } else {
+        $city.val(null).trigger('change.select2');
+      }
+      loadOffices();
+    }, 'json');
+  }
+
   $city.on('change', function () { resetOffice(); resetStreet(); loadOffices(); });
-  $courier.on('change', function () { fillMethods(); resetOffice(); resetStreet(); loadOffices(); });
+  $courier.on('change', function () { fillMethods(); resetOffice(); resetStreet(); reResolveCity(); });
   $method.on('change', function () { updateMode(); resetOffice(); loadOffices(); });
   fillMethods();
   loadOffices(); // populate the office/APS list for the order's current city + method

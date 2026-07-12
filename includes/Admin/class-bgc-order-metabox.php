@@ -24,7 +24,9 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel .bgc-hd b{font-size:14px;color:#1d2327;}'
             . '.bgc-order-panel .bgc-chip{display:inline-block;padding:3px 11px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}'
             . '.bgc-order-panel .bgc-wbline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;}'
-            . '.bgc-order-panel .bgc-wbline strong{color:#50575e;}'
+            // # + number + copy button stay glued together on one line (the group wraps as a unit).
+            . '.bgc-order-panel .bgc-wb-group{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}'
+            . '.bgc-order-panel .bgc-wb-group .bgc-hash{font-size:15px;font-weight:700;color:#646970;}'
             . '.bgc-order-panel .bgc-wb{padding:6px 11px;border-radius:8px;background:#f0f6fc;border:1px solid #d7e3f1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#1d2327;letter-spacing:.3px;}'
             // Small inline copy button that sits immediately to the right of the waybill number.
             . '.bgc-order-panel .bgc-copy{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:1px solid #d0d5dc;border-radius:7px;background:#fff;color:#646970;cursor:pointer;transition:all .12s;}'
@@ -102,9 +104,9 @@ class BGC_Order_Metabox {
             // Waybill number with the copy button sitting immediately to its right (feather "copy" glyph).
             $copy_svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
                 . '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-            echo '<div class="bgc-wbline"><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> <span class="bgc-wb">' . esc_html($waybill) . '</span>'
+            echo '<div class="bgc-wbline"><span class="bgc-wb-group"><span class="bgc-hash">#</span> <span class="bgc-wb">' . esc_html($waybill) . '</span>'
                 . '<button type="button" class="bgc-copy" data-wb="' . esc_attr($waybill) . '" data-tip="' . $copy_hint . '" aria-label="' . $copy_hint . '">'
-                . $copy_svg . '</button></div>';
+                . $copy_svg . '</button></span></div>';
             // One row: print, track, edit, cancel (destructive last), all icon-only with hover hints.
             echo '<div class="bgc-la">';
             echo $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary');

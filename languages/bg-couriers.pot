@@ -1308,3 +1308,24 @@ msgstr ""
 
 msgid "Keep it"
 msgstr ""
+
+msgid "Cancel waybill"
+msgstr ""
+
+msgid "Waybill cancelled"
+msgstr ""
+
+msgid "Could not cancel."
+msgstr ""
+
+msgid "Could not cancel the current waybill: %s"
+msgstr ""
+
+msgid "Saved, but issuing the new waybill failed: %s"
+msgstr ""
+
+msgid "Delivery updated and a new waybill issued."
+msgstr ""
+
+msgid "Waybill cancelled."
+msgstr ""

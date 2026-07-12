@@ -20,6 +20,7 @@ class BGC_Labels {
         add_action('admin_post_bgc_track', [$this, 'handle_track']);
         add_action('admin_post_bgc_print_batch', [$this, 'handle_print_batch']);
         add_action('wp_ajax_bgc_order_save_delivery', [$this, 'handle_save_delivery']);
+        add_action('wp_ajax_bgc_ajax_cancel_label', [$this, 'ajax_cancel_label']);
         add_action('woocommerce_order_status_changed', [$this, 'maybe_auto_generate'], 20, 4);
     }
 
@@ -159,7 +160,7 @@ class BGC_Labels {
         exit;
     }
 
-    /** Save edited delivery details onto an order; auto cancel+regenerate the label when auto-generate is on. */
+    /** Save edited delivery details onto an order; void the old waybill and issue a fresh matching one. */
     public function handle_save_delivery(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgc_order_delivery', 'nonce');
@@ -168,6 +169,18 @@ class BGC_Labels {
         if (!$order) { wp_send_json_error(['msg' => __('Order not found.', 'bg-couriers')]); }
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? ''));
         if ($courier === '' || !BGC_Couriers::get($courier)) { wp_send_json_error(['msg' => __('Choose a courier.', 'bg-couriers')]); }
+
+        // A pre-existing waybill must be voided FIRST, while the order still carries its ORIGINAL courier -
+        // cancel() resolves the courier from the order, so after an Econt->Speedy switch it would otherwise
+        // try to void the Econt waybill through Speedy's API. Reload afterwards so apply_delivery/save don't
+        // resurrect the cleared waybill meta.
+        $had_waybill = (string) $order->get_meta('_bgc_waybill') !== '';
+        if ($had_waybill) {
+            try { self::cancel($id); }
+            catch (\Exception $e) { wp_send_json_error(['msg' => sprintf(__('Could not cancel the current waybill: %s', 'bg-couriers'), $e->getMessage())]); }
+            $order = wc_get_order($id);
+        }
+
         $t = static function ($k) { return isset($_POST[$k]) ? sanitize_text_field(wp_unslash($_POST[$k])) : ''; };
         BGC_Checkout::apply_delivery($order, [
             'courier' => $courier, 'method' => sanitize_key(wp_unslash($_POST['method'] ?? '')),
@@ -179,16 +192,26 @@ class BGC_Labels {
         ]);
         $order->save();
 
-        $had_waybill = (string) $order->get_meta('_bgc_waybill') !== '';
+        // Issue a fresh waybill from the new details (only if one existed before - a plain save on an order
+        // without a waybill just stores the details).
         $regenerated = false;
-        if ($had_waybill && BGC_Settings::autolabel()['enabled']) {
-            try { self::cancel($id); self::generate($id); $regenerated = true; }
-            catch (\Exception $e) { wp_send_json_error(['msg' => sprintf(__('Saved, but re-generating the label failed: %s', 'bg-couriers'), $e->getMessage())]); }
+        if ($had_waybill) {
+            try { self::generate($id); $regenerated = true; }
+            catch (\Exception $e) { wp_send_json_error(['msg' => sprintf(__('Saved, but issuing the new waybill failed: %s', 'bg-couriers'), $e->getMessage())]); }
         }
         wp_send_json_success([
-            'msg'     => $regenerated ? __('Delivery updated and label re-generated.', 'bg-couriers') : __('Delivery details saved.', 'bg-couriers'),
-            'stale'   => $had_waybill && !$regenerated, // existing waybill no longer matches the new address
+            'msg' => $regenerated ? __('Delivery updated and a new waybill issued.', 'bg-couriers') : __('Delivery details saved.', 'bg-couriers'),
         ]);
+    }
+
+    /** AJAX: void a waybill from the Orders list without reloading the page. */
+    public function ajax_cancel_label(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        $id = (int) ($_POST['order_id'] ?? 0);
+        check_ajax_referer('bgc_cancel_label_' . $id, 'nonce');
+        try { self::cancel($id); }
+        catch (\Exception $e) { wp_send_json_error(['msg' => $e->getMessage()]); }
+        wp_send_json_success(['msg' => __('Waybill cancelled.', 'bg-couriers')]);
     }
 
     public function handle_track(): void {
@@ -220,9 +243,9 @@ class BGC_Labels {
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         if (!$pdfs) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
 
-        // Pack the collected labels onto A4 (many per sheet, natural size) or A6 (one per page). If the
-        // packer is unavailable or can't read a label, fall back to the raw single label PDF.
-        $out = (count($pdfs) === 1 && !BGC_Label_Packer::available()) ? $pdfs[0] : BGC_Label_Packer::pack($pdfs, $paper);
+        // A single label always prints at its NATIVE size (packing it onto A6 would shrink an A4-landscape
+        // Econt label to a tiny corner). Packing only kicks in when combining several labels onto a sheet.
+        $out = (count($pdfs) === 1) ? $pdfs[0] : BGC_Label_Packer::pack($pdfs, $paper);
         if ($out === '') { $out = $pdfs[0]; }
 
         nocache_headers();

@@ -1429,6 +1429,27 @@ msgstr "Да, анулирай"
 msgid "Keep it"
 msgstr "Запази"
 
+msgid "Cancel waybill"
+msgstr "Анулирай товарителницата"
+
+msgid "Waybill cancelled"
+msgstr "Товарителницата е анулирана"
+
+msgid "Could not cancel."
+msgstr "Неуспешно анулиране."
+
+msgid "Could not cancel the current waybill: %s"
+msgstr "Текущата товарителница не можа да се анулира: %s"
+
+msgid "Saved, but issuing the new waybill failed: %s"
+msgstr "Запазено, но издаването на новата товарителница беше неуспешно: %s"
+
+msgid "Delivery updated and a new waybill issued."
+msgstr "Доставката е обновена и е издадена нова товарителница."
+
+msgid "Waybill cancelled."
+msgstr "Товарителницата е анулирана."
+
 #~ msgid "Generate Speedy labels"
 #~ msgstr "Генерирай етикети за Speedy"
 
