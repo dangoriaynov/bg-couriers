@@ -3,6 +3,7 @@ defined('ABSPATH') || defined('PHPUNIT_COMPOSER_INSTALL') || exit;
 
 class BGC_Bulk_Labels {
     const ACTION = 'bgc_generate_labels';
+    const CANCEL = 'bgc_cancel_labels';
 
     public function __construct() {
         foreach (['woocommerce_page_wc-orders', 'edit-shop_order'] as $screen) {
@@ -14,6 +15,7 @@ class BGC_Bulk_Labels {
 
     public function register(array $actions): array {
         $actions[self::ACTION] = __('Generate shipping labels', 'bg-couriers');
+        $actions[self::CANCEL] = __('Cancel shipping labels', 'bg-couriers');
         return $actions;
     }
 
@@ -24,6 +26,7 @@ class BGC_Bulk_Labels {
     }
 
     public function handle($redirect, $action, $ids) {
+        if ($action === self::CANCEL) { return $this->handle_cancel($redirect, $ids); }
         if ($action !== self::ACTION) { return $redirect; }
         $results = [];
         $print_ids = [];
@@ -43,7 +46,34 @@ class BGC_Bulk_Labels {
         return add_query_arg(array_merge(['bgc_bulk' => 1, 'bgc_print' => $print_ids ? 1 : 0], $c), $redirect);
     }
 
+    /** Bulk-cancel each selected order's waybill (via BGC_Labels::cancel, which voids + clears it). */
+    private function handle_cancel($redirect, $ids) {
+        $c = ['cancelled' => 0, 'skipped' => 0, 'failed' => 0];
+        foreach (array_map('intval', (array) $ids) as $oid) {
+            $order = wc_get_order($oid);
+            if (!$order || (string) $order->get_meta('_bgc_waybill') === '') { $c['skipped']++; continue; }
+            try { BGC_Labels::cancel($oid); $c['cancelled']++; }
+            catch (\Exception $e) {
+                $c['failed']++;
+                /* translators: %s: error message */
+                $order->add_order_note(sprintf(__('BG Couriers bulk cancel failed: %s', 'bg-couriers'), $e->getMessage()));
+            }
+        }
+        return add_query_arg(array_merge(['bgc_bulk_cancel' => 1], $c), $redirect);
+    }
+
     public function notice(): void {
+        if (!empty($_GET['bgc_bulk_cancel'])) {
+            $cc = ['cancelled' => 0, 'skipped' => 0, 'failed' => 0];
+            foreach ($cc as $k => $_) { $cc[$k] = (int) ($_GET[$k] ?? 0); }
+            $msg = sprintf(
+                /* translators: 1: cancelled 2: skipped 3: failed */
+                esc_html__('Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed.', 'bg-couriers'),
+                $cc['cancelled'], $cc['skipped'], $cc['failed']
+            );
+            echo '<div class="notice ' . ($cc['failed'] ? 'notice-warning' : 'notice-success') . ' is-dismissible"><p>' . esc_html($msg) . '</p></div>';
+            return;
+        }
         if (empty($_GET['bgc_bulk'])) { return; }
         $c = ['generated' => 0, 'reused' => 0, 'skipped' => 0, 'failed' => 0];
         foreach ($c as $k => $_) { $c[$k] = (int) ($_GET[$k] ?? 0); }
