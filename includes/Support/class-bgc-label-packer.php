@@ -64,16 +64,35 @@ class BGC_Label_Packer {
         if ($isA6) { return $pdf->PageNo() > 0 ? $pdf->Output('S') : ''; }
         if (!$items) { return ''; }
 
-        // FFDH: tallest label first so each new shelf's height is set by its tallest member; shorter labels
-        // then first-fit into earlier shelves that still have width. Stable order among equal heights keeps
-        // a courier's labels adjacent.
-        usort($items, static function ($a, $b) { return $b['h'] <=> $a['h']; });
+        // Shelf-pack the labels twice - shortest-first and tallest-first - and keep whichever needs fewer
+        // pages. On a tie, shortest-first wins: it fills the small labels together (e.g. 4 Speedy on a
+        // sheet) and lets a big full-width label take its own page, instead of the big label stranding a
+        // lone small label on a half-empty trailing page. Rows still cut apart with straight guillotine lines.
+        $asc = $items;  usort($asc,  static function ($a, $b) { return $a['h'] <=> $b['h']; });
+        $desc = $items; usort($desc, static function ($a, $b) { return $b['h'] <=> $a['h']; });
+        $la = self::layout($asc, $pageW, $pageH);
+        $ld = self::layout($desc, $pageW, $pageH);
+        $best = ($ld['pages'] < $la['pages']) ? $ld : $la; // tie -> ascending (nicer grouping)
 
+        for ($pg = 0; $pg < $best['pages']; $pg++) {
+            $pdf->AddPage('P', $size);
+            foreach ($best['placements'] as $pl) {
+                if ($pl['page'] === $pg) { $pdf->useTemplate($pl['tpl'], $pl['x'], $pl['y'], $pl['w'], $pl['h']); }
+            }
+        }
+        return $pdf->Output('S');
+    }
+
+    /**
+     * Next-fit shelf packing of pre-ordered items onto pages: each item goes into the first row (shelf) on
+     * the current page that still has width and is tall enough, else a new row, else a new page.
+     *
+     * @param array<int,array{tpl:mixed,w:float,h:float}> $items
+     * @return array{placements:array<int,array>,pages:int}
+     */
+    private static function layout(array $items, float $pageW, float $pageH): array {
         $eps = 0.5; // mm tolerance for float rounding
-        $placements = [];   // ['page','tpl','x','y','w','h']
-        $shelves    = [];   // current page's rows: ['y','h','used']
-        $page       = 0;
-        $pageFilled = 0.0;  // total height consumed on the current page
+        $placements = []; $shelves = []; $page = 0; $filled = 0.0;
         foreach ($items as $it) {
             $w = $it['w']; $h = $it['h']; $done = false;
             foreach ($shelves as $i => $sh) {
@@ -85,21 +104,12 @@ class BGC_Label_Packer {
                 }
             }
             if ($done) { continue; }
-            if ($pageFilled + $h > $pageH + $eps && $shelves) { // no vertical room -> new page
-                $page++; $shelves = []; $pageFilled = 0.0;
-            }
-            $y = $pageFilled;
+            if ($filled + $h > $pageH + $eps && $shelves) { $page++; $shelves = []; $filled = 0.0; }
+            $y = $filled;
             $shelves[]    = ['y' => $y, 'h' => $h, 'used' => $w];
-            $pageFilled  += $h;
+            $filled      += $h;
             $placements[] = ['page' => $page, 'tpl' => $it['tpl'], 'x' => 0.0, 'y' => $y, 'w' => $w, 'h' => $h];
         }
-
-        for ($pg = 0; $pg <= $page; $pg++) {
-            $pdf->AddPage('P', $size);
-            foreach ($placements as $pl) {
-                if ($pl['page'] === $pg) { $pdf->useTemplate($pl['tpl'], $pl['x'], $pl['y'], $pl['w'], $pl['h']); }
-            }
-        }
-        return $pdf->Output('S');
+        return ['placements' => $placements, 'pages' => $page + 1];
     }
 }
