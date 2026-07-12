@@ -19,19 +19,26 @@ class BGC_Order_Metabox {
         $mlabels = ['office' => __('To office', 'bg-couriers'), 'address' => __('To address', 'bg-couriers'), 'automat' => __('To APS', 'bg-couriers')];
         $mlabel  = $mlabels[$method] ?? ucfirst($method ?: 'office');
         echo '<style>'
-            . '.bgc-order-panel{margin-top:12px;padding:14px 16px;border:1px solid #e2e6ea;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);}'
-            . '.bgc-order-panel .bgc-hd{display:flex;align-items:center;gap:8px;margin:0 0 12px;}'
-            . '.bgc-order-panel .bgc-hd b{font-size:14px;}'
-            . '.bgc-order-panel .bgc-chip{display:inline-block;padding:2px 10px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;}'
-            . '.bgc-order-panel .bgc-wb{display:inline-block;padding:3px 10px;border-radius:6px;background:#f0f6fc;border:1px solid #d7e3f1;font-family:ui-monospace,Menlo,monospace;font-size:13px;}'
-            . '.bgc-order-panel .bgc-wb-copy{padding:0 6px;min-height:26px;height:26px;line-height:24px;vertical-align:middle;border-radius:6px;}'
-            . '.bgc-order-panel .bgc-wb-copy .dashicons{font-size:15px;width:15px;height:15px;line-height:24px;vertical-align:middle;}'
-            . '.bgc-order-panel .bgc-wb-copy.done{color:#1a7f37;border-color:#8fd0a3;}'
+            . '.bgc-order-panel{margin-top:12px;padding:16px;border:1px solid #e2e6ea;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);}'
+            . '.bgc-order-panel .bgc-hd{display:flex;align-items:center;gap:8px;margin:0 0 14px;}'
+            . '.bgc-order-panel .bgc-hd b{font-size:14px;color:#1d2327;}'
+            . '.bgc-order-panel .bgc-chip{display:inline-block;padding:3px 11px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}'
+            . '.bgc-order-panel .bgc-wbline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;}'
+            . '.bgc-order-panel .bgc-wbline strong{color:#50575e;}'
+            . '.bgc-order-panel .bgc-wb{padding:7px 12px;border-radius:9px;background:#f0f6fc;border:1px solid #d7e3f1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:#1d2327;}'
+            // One cohesive button system for the panel; !important to beat the admin theme's own button styles.
+            . '.bgc-order-panel .button{height:38px!important;min-height:38px!important;box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;margin:0!important;padding:0 16px!important;border:1px solid #c3c9d0!important;border-radius:9px!important;background:#fff!important;color:#2b3440!important;font-size:13px!important;font-weight:600!important;line-height:1!important;box-shadow:none!important;text-decoration:none!important;transition:background .12s,border-color .12s,box-shadow .12s;}'
+            . '.bgc-order-panel .button:hover{background:#f6f7f9!important;border-color:#a7b0ba!important;box-shadow:0 1px 2px rgba(0,0,0,.06)!important;}'
+            . '.bgc-order-panel .button:focus{box-shadow:0 0 0 2px rgba(34,113,177,.35)!important;}'
+            . '.bgc-order-panel .button.button-primary{background:#2271b1!important;border-color:#2271b1!important;color:#fff!important;}'
+            . '.bgc-order-panel .button.button-primary:hover{background:#1c5d92!important;border-color:#1c5d92!important;}'
             . '.bgc-order-panel .bgc-la{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}'
-            . '.bgc-order-panel .bgc-la .button{border-radius:8px;}'
-            . '.bgc-order-panel .bgc-void{width:32px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0;color:#b32d2e;border-color:#e6a2a5;font-size:16px;line-height:1;border-radius:8px;}'
-            . '.bgc-order-panel .bgc-void:hover{background:#fcf0f1;border-color:#b32d2e;color:#8a1f2b;}'
-            . '.bgc-order-panel .bgc-ed-toggle{border-radius:8px;}'
+            . '.bgc-order-panel .bgc-icon{width:38px!important;padding:0!important;}'
+            . '.bgc-order-panel .bgc-icon .dashicons{font-size:18px;width:18px;height:18px;line-height:1;}'
+            . '.bgc-order-panel .bgc-void{color:#b32d2e!important;border-color:#e6a2a5!important;}'
+            . '.bgc-order-panel .bgc-void:hover{background:#fcecec!important;border-color:#cf6a6f!important;color:#8a1f2b!important;}'
+            . '.bgc-order-panel .bgc-wb-copy.done{color:#1a7f37!important;border-color:#9ad3ab!important;}'
+            . '.bgc-order-panel .bgc-ed{margin-top:14px;border-top:1px solid #eef0f2;padding-top:12px;}'
             . '</style>';
         echo '<div class="bgc-order-panel">';
         echo '<p class="bgc-hd"><b>' . esc_html($courier->label()) . '</b> <span class="bgc-chip">' . esc_html($mlabel) . '</span></p>';
@@ -60,14 +67,14 @@ class BGC_Order_Metabox {
             $cancel = $nonce_url('bgc_cancel_label', 'bgc_cancel_label_');
             $hint   = esc_attr__('Cancel (void) this shipment label', 'bg-couriers');
             $copy_hint = esc_attr__('Copy waybill number', 'bg-couriers');
-            echo '<p style="margin:0 0 10px;"><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> <span class="bgc-wb">' . esc_html($waybill) . '</span> '
-                . '<button type="button" class="button bgc-wb-copy" data-wb="' . esc_attr($waybill) . '" title="' . $copy_hint . '" aria-label="' . $copy_hint . '">'
-                . '<span class="dashicons dashicons-clipboard"></span></button></p>';
+            echo '<div class="bgc-wbline"><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> <span class="bgc-wb">' . esc_html($waybill) . '</span>'
+                . '<button type="button" class="button bgc-icon bgc-wb-copy" data-wb="' . esc_attr($waybill) . '" title="' . $copy_hint . '" aria-label="' . $copy_hint . '">'
+                . '<span class="dashicons dashicons-clipboard"></span></button></div>';
             echo '<div class="bgc-la">';
             echo '<a class="button button-primary" target="_blank" href="' . $print . '">' . esc_html__('Print label', 'bg-couriers') . '</a>';
             echo '<a class="button" target="_blank" href="' . $track . '">' . esc_html__('Track', 'bg-couriers') . '</a>';
-            echo '<a class="button bgc-void" href="' . $cancel . '" title="' . $hint . '" aria-label="' . $hint . '"'
-                . $confirm(__('Cancel (void) this shipment label?', 'bg-couriers')) . '>&times;</a>';
+            echo '<a class="button bgc-icon bgc-void" href="' . $cancel . '" title="' . $hint . '" aria-label="' . $hint . '"'
+                . $confirm(__('Cancel (void) this shipment label?', 'bg-couriers')) . '><span class="dashicons dashicons-no-alt"></span></a>';
             echo '</div>';
         }
         $this->render_editor($order);
@@ -117,8 +124,8 @@ class BGC_Order_Metabox {
                           'saving' => __('Saving…', 'bg-couriers'), 'err' => __('Could not save.', 'bg-couriers')],
         ]);
 
-        echo '<div class="bgc-ed" style="margin-top:12px;border-top:1px solid #eee;padding-top:10px;">';
-        echo '<a href="#" class="button bgc-ed-toggle" style="display:inline-block;">✎ ' . esc_html__('Edit delivery details', 'bg-couriers') . '</a>';
+        echo '<div class="bgc-ed">';
+        echo '<a href="#" class="button bgc-ed-toggle"><span class="dashicons dashicons-edit"></span> ' . esc_html__('Edit delivery details', 'bg-couriers') . '</a>';
         echo '<div class="bgc-ed-form" style="display:none;margin-top:10px;max-width:520px;">';
         echo '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>';
         echo '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>';
