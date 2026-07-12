@@ -1,5 +1,15 @@
 /* On-order delivery editor (WooCommerce order edit screen). Reuses the checkout nomenclature AJAX. */
 (function ($) {
+  // Copy-the-waybill button (bound first so it works even where the editor isn't rendered).
+  $(document).on('click', '.bgc-wb-copy', function (e) {
+    e.preventDefault();
+    var $b = $(this), wb = String($b.data('wb') || '');
+    var ok = function () { $b.addClass('done'); $b.find('.dashicons').removeClass('dashicons-clipboard').addClass('dashicons-yes');
+      setTimeout(function () { $b.removeClass('done'); $b.find('.dashicons').removeClass('dashicons-yes').addClass('dashicons-clipboard'); }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(wb).then(ok, function () {}); }
+    else { var $t = $('<input>').val(wb).appendTo('body'); $t[0].select(); try { document.execCommand('copy'); ok(); } catch (x) {} $t.remove(); }
+  });
+
   var C = window.BGC_ED || {};
   var $panel = $('.bgc-ed');
   if (!$panel.length) { return; }

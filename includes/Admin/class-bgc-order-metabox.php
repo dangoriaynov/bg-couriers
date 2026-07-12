@@ -24,6 +24,9 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel .bgc-hd b{font-size:14px;}'
             . '.bgc-order-panel .bgc-chip{display:inline-block;padding:2px 10px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;}'
             . '.bgc-order-panel .bgc-wb{display:inline-block;padding:3px 10px;border-radius:6px;background:#f0f6fc;border:1px solid #d7e3f1;font-family:ui-monospace,Menlo,monospace;font-size:13px;}'
+            . '.bgc-order-panel .bgc-wb-copy{padding:0 6px;min-height:26px;height:26px;line-height:24px;vertical-align:middle;border-radius:6px;}'
+            . '.bgc-order-panel .bgc-wb-copy .dashicons{font-size:15px;width:15px;height:15px;line-height:24px;vertical-align:middle;}'
+            . '.bgc-order-panel .bgc-wb-copy.done{color:#1a7f37;border-color:#8fd0a3;}'
             . '.bgc-order-panel .bgc-la{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}'
             . '.bgc-order-panel .bgc-la .button{border-radius:8px;}'
             . '.bgc-order-panel .bgc-void{width:32px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0;color:#b32d2e;border-color:#e6a2a5;font-size:16px;line-height:1;border-radius:8px;}'
@@ -56,7 +59,10 @@ class BGC_Order_Metabox {
             $track  = $nonce_url('bgc_track', 'bgc_track_');
             $cancel = $nonce_url('bgc_cancel_label', 'bgc_cancel_label_');
             $hint   = esc_attr__('Cancel (void) this shipment label', 'bg-couriers');
-            echo '<p style="margin:0 0 10px;"><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> <span class="bgc-wb">' . esc_html($waybill) . '</span></p>';
+            $copy_hint = esc_attr__('Copy waybill number', 'bg-couriers');
+            echo '<p style="margin:0 0 10px;"><strong>' . esc_html__('Waybill', 'bg-couriers') . ':</strong> <span class="bgc-wb">' . esc_html($waybill) . '</span> '
+                . '<button type="button" class="button bgc-wb-copy" data-wb="' . esc_attr($waybill) . '" title="' . $copy_hint . '" aria-label="' . $copy_hint . '">'
+                . '<span class="dashicons dashicons-clipboard"></span></button></p>';
             echo '<div class="bgc-la">';
             echo '<a class="button button-primary" target="_blank" href="' . $print . '">' . esc_html__('Print label', 'bg-couriers') . '</a>';
             echo '<a class="button" target="_blank" href="' . $track . '">' . esc_html__('Track', 'bg-couriers') . '</a>';
