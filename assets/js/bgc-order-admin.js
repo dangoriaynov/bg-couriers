@@ -3,6 +3,16 @@
   var C = window.BGC_ED || {};
   var I = C.i18n || {};
 
+  // Delivery is edited through our panel's "Edit delivery details", so hide WooCommerce's native SHIPPING
+  // address editor (its pencil + inline form live in the same column as our panel) - it conflicts with our
+  // panel and edits fields the courier doesn't use. Billing keeps its native editor.
+  (function () {
+    var $panel = $('.bgc-order-panel');
+    if (!$panel.length) { return; }
+    var $col = $panel.closest('.order_data_column');
+    if ($col.length) { $col.find('.edit_address').hide(); } // WC uses .edit_address for BOTH the pencil <a> and the form <div>
+  })();
+
   // --- small UI helpers: toast + custom confirm dialog ------------------------------------------
   var $toast;
   function toast(msg) {
