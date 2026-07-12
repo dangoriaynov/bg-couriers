@@ -461,10 +461,14 @@ JS;
 
     private function econt_courier_fields(): array {
         $cd_opts = ['' => __('- none (COD off) -', 'bg-couriers')];
+        $sender_opts = ['' => __('- automatic (first profile address) -', 'bg-couriers')];
         if (BGC_Settings::creds_present('econt')) {
             $econt = BGC_Couriers::get('econt');
             if ($econt && method_exists($econt, 'cd_pay_options')) {
                 foreach ($econt->cd_pay_options() as $num => $lbl) { $cd_opts[$num] = $lbl; }
+            }
+            if ($econt && method_exists($econt, 'sender_addresses')) {
+                foreach ($econt->sender_addresses() as $id => $lbl) { $sender_opts[$id] = $lbl; }
             }
         }
         return [
@@ -474,9 +478,13 @@ JS;
             ['type' => 'password', 'id' => 'bgc_econt_password', 'title' => __('API password', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
             ['type' => 'bgc_actions', 'id' => 'bgc_econt_actions'],
+            ['type' => 'select', 'id' => 'bgc_econt_sender_address', 'title' => __('Ship-from address', 'bg-couriers'),
+                'desc' => __('The sender (ship-from) address printed on the waybill, loaded from your Econt profile. Leave automatic to use the first profile address.', 'bg-couriers'),
+                'options' => $sender_opts, 'default' => ''],
             ['type' => 'select', 'id' => 'bgc_econt_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
+                'desc' => __('Econt labels are A4-landscape. A4 keeps them full size; A6 only matters when several are packed onto one sheet for a label printer.', 'bg-couriers'),
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
-                'default' => 'A6'],
+                'default' => 'A4'],
             ['type' => 'text', 'id' => 'bgc_econt_shipment_description', 'title' => __('Parcel contents description', 'bg-couriers'),
                 'desc' => __('Short text describing the contents on the Econt waybill (e.g. "Хранителни добавки"). Leave empty for a generic value.', 'bg-couriers'),
                 'default' => '', 'autoload' => false],

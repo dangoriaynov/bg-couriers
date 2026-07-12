@@ -100,20 +100,56 @@ class BGC_Econt extends BGC_Abstract_Courier {
      * @return array{client:array,address:array}
      */
     private function sender_profile(): array {
-        $cached = get_transient('bgc_econt_sender');
+        // The ship-from address is chosen in settings (bgc_econt_sender_address); the cache key includes it
+        // so changing the setting takes effect immediately instead of waiting for a stale transient.
+        $chosen = (string) get_option('bgc_econt_sender_address', '');
+        $key    = 'bgc_econt_sender_' . ($chosen !== '' ? $chosen : 'auto');
+        $cached = get_transient($key);
         if (is_array($cached) && isset($cached['client'], $cached['address'])) {
             return $cached;
         }
         $resp     = $this->post_json($this->base . '/Profile/ProfileService.getClientProfiles.json', []);
         $profile  = $resp['profiles'][0] ?? [];
         $client   = $profile['client'] ?? [];
-        $address  = $profile['addresses'][0] ?? [];
+        $addrs    = $profile['addresses'] ?? [];
+        $address  = $addrs[0] ?? []; // default: first profile address
+        if ($chosen !== '') {
+            foreach ($addrs as $a) { if ((string) ($a['id'] ?? '') === $chosen) { $address = $a; break; } }
+        }
         if (empty($client['name']) || empty($address['city']['id'])) {
             throw new BGC_Api_Exception('Econt sender profile missing client/address - check getClientProfiles');
         }
         $sender   = ['client' => $client, 'address' => $address];
-        set_transient('bgc_econt_sender', $sender, DAY_IN_SECONDS);
+        set_transient($key, $sender, DAY_IN_SECONDS);
         return $sender;
+    }
+
+    /**
+     * Ship-from addresses from the client profile as id => human label, for the settings dropdown.
+     * Cached for a day; empty on API failure (the setting then just offers "automatic").
+     *
+     * @return array<string,string>
+     */
+    public function sender_addresses(): array {
+        $cached = get_transient('bgc_econt_sender_addrs');
+        if (is_array($cached)) { return $cached; }
+        $out = [];
+        try {
+            $resp = $this->post_json($this->base . '/Profile/ProfileService.getClientProfiles.json', []);
+            foreach ($resp['profiles'][0]['addresses'] ?? [] as $a) {
+                $id = (string) ($a['id'] ?? '');
+                if ($id === '') { continue; }
+                $parts = array_filter([
+                    (string) ($a['city']['name'] ?? ''),
+                    (string) ($a['quarter'] ?? ''),
+                    trim(((string) ($a['street'] ?? '')) . ' ' . ((string) ($a['num'] ?? ''))),
+                    (string) ($a['other'] ?? ''),
+                ], static function ($v) { return trim((string) $v) !== ''; });
+                $out[$id] = implode(', ', $parts) ?: $id;
+            }
+            set_transient('bgc_econt_sender_addrs', $out, DAY_IN_SECONDS);
+        } catch (\Exception $e) { /* leave empty on API failure */ }
+        return $out;
     }
 
     /** CD (наложен платеж) pay-out agreements from the client profile - `num` => human label. Cached. */

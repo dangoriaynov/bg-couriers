@@ -1450,6 +1450,27 @@ msgstr "Доставката е обновена и е издадена нова
 msgid "Waybill cancelled."
 msgstr "Товарителницата е анулирана."
 
+msgid "- automatic (first profile address) -"
+msgstr "- автоматично (първи адрес от профила) -"
+
+msgid "Ship-from address"
+msgstr "Адрес на изпращача"
+
+msgid ""
+"The sender (ship-from) address printed on the waybill, loaded from your "
+"Econt profile. Leave automatic to use the first profile address."
+msgstr ""
+"Адресът на изпращача, отпечатан на товарителницата, зареден от вашия Econt "
+"профил. Оставете автоматично, за да се използва първият адрес от профила."
+
+msgid ""
+"Econt labels are A4-landscape. A4 keeps them full size; A6 only matters when"
+" several are packed onto one sheet for a label printer."
+msgstr ""
+"Товарителниците на Econt са A4 (пейзаж). A4 ги запазва в пълен размер; A6 "
+"има значение само когато няколко се събират на един лист за етикетен "
+"принтер."
+
 #~ msgid "Generate Speedy labels"
 #~ msgstr "Генерирай етикети за Speedy"
 

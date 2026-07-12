@@ -1329,3 +1329,19 @@ msgstr ""
 
 msgid "Waybill cancelled."
 msgstr ""
+
+msgid "- automatic (first profile address) -"
+msgstr ""
+
+msgid "Ship-from address"
+msgstr ""
+
+msgid ""
+"The sender (ship-from) address printed on the waybill, loaded from your "
+"Econt profile. Leave automatic to use the first profile address."
+msgstr ""
+
+msgid ""
+"Econt labels are A4-landscape. A4 keeps them full size; A6 only matters when"
+" several are packed onto one sheet for a label printer."
+msgstr ""
