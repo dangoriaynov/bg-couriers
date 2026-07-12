@@ -1,6 +1,12 @@
 <?php
 defined('ABSPATH') || exit;
 
+// Dedicated data-access layer for the plugin's OWN custom tables (wp_bgc_cities / wp_bgc_offices). Every
+// query uses $wpdb->prepare() with $wpdb->prefix table names (interpolated table names cannot be bound as
+// placeholders); these tables ARE the local cache of the couriers' nomenclatures (synced, transient-wrapped
+// where hot), so object-cache layering adds nothing. Silence the custom-table DB sniffs for this file.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+
 class BGC_Nomenclature {
     public static function upsert_cities(string $courier, array $rows, string $run): int {
         global $wpdb; $t = $wpdb->prefix . 'bgc_cities'; $n = 0;

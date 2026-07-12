@@ -57,7 +57,7 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
                 'client_secret' => $this->client_secret,
             ]),
         ]);
-        if (is_wp_error($res)) { throw new BGC_Api_Exception('BoxNow auth transport: ' . $res->get_error_message()); }
+        if (is_wp_error($res)) { throw new BGC_Api_Exception(esc_html('BoxNow auth transport: ' . $res->get_error_message())); }
         $body = json_decode((string) wp_remote_retrieve_body($res), true);
         $tok  = is_array($body) ? (string) ($body['access_token'] ?? '') : '';
         if ($tok === '') { throw new BGC_Api_Exception('BoxNow authentication failed'); }
@@ -74,20 +74,20 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
     protected function get_json(string $path, array $query = []): array {
         $url = $this->base . $path . (!empty($query) ? '?' . http_build_query($query) : '');
         $res = wp_remote_get($url, ['timeout' => 30, 'headers' => $this->headers(false)]);
-        if (is_wp_error($res)) { throw new BGC_Api_Exception('BoxNow GET transport: ' . $res->get_error_message()); }
+        if (is_wp_error($res)) { throw new BGC_Api_Exception(esc_html('BoxNow GET transport: ' . $res->get_error_message())); }
         $data = json_decode((string) wp_remote_retrieve_body($res), true);
-        if (!is_array($data)) { throw new BGC_Api_Exception('BoxNow invalid JSON from ' . $url); }
+        if (!is_array($data)) { throw new BGC_Api_Exception(esc_html('BoxNow invalid JSON from ' . $url)); }
         return $data;
     }
 
     /** POST a path (not a full URL) with the BoxNow auth headers. */
     private function bn_post(string $path, array $body): array {
         $res = wp_remote_post($this->base . $path, ['timeout' => 40, 'headers' => $this->headers(true), 'body' => wp_json_encode($body)]);
-        if (is_wp_error($res)) { throw new BGC_Api_Exception('BoxNow POST transport: ' . $res->get_error_message()); }
+        if (is_wp_error($res)) { throw new BGC_Api_Exception(esc_html('BoxNow POST transport: ' . $res->get_error_message())); }
         $raw  = (string) wp_remote_retrieve_body($res);
         $code = (int) wp_remote_retrieve_response_code($res);
         $data = json_decode($raw, true);
-        if ($code >= 400) { throw new BGC_Api_Exception('BoxNow HTTP ' . $code . ': ' . substr($raw, 0, 300)); }
+        if ($code >= 400) { throw new BGC_Api_Exception(esc_html('BoxNow HTTP ' . $code . ': ' . substr($raw, 0, 300))); }
         if (!is_array($data)) { throw new BGC_Api_Exception('BoxNow invalid JSON (HTTP ' . $code . ')'); }
         return $data;
     }
@@ -190,7 +190,7 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
 
     public function get_label_pdf(string $waybill): string {
         $res = wp_remote_get($this->base . '/api/v1/parcels/' . rawurlencode($waybill) . '/label.pdf', ['timeout' => 40, 'headers' => $this->headers(false)]);
-        if (is_wp_error($res)) { throw new BGC_Api_Exception('BoxNow label transport: ' . $res->get_error_message()); }
+        if (is_wp_error($res)) { throw new BGC_Api_Exception(esc_html('BoxNow label transport: ' . $res->get_error_message())); }
         $pdf = (string) wp_remote_retrieve_body($res);
         if (strpos($pdf, '%PDF') !== 0) { throw new BGC_Api_Exception('BoxNow label is not a PDF'); }
         return $pdf;

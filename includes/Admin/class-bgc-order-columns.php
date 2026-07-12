@@ -18,12 +18,13 @@ class BGC_Order_Columns {
         // The copy link reads the waybill from the adjacent .bgc-wb-num. The cancel link carries the order
         // id + a cancel nonce + a generate nonce (NOT the generate URL, so a labelled row still shows no
         // Generate button); JS voids the waybill over AJAX and swaps the cell to a fresh Generate button.
+        // Icons match the order-edit panel (dashicons printer / location) for a consistent look.
         return '<span class="bgc-cell">'
             . '<strong class="bgc-wb-num">' . esc_html($waybill) . '</strong> '
             . '<a href="#" class="bgc-copy" title="' . esc_attr__('Copy waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Copy waybill', 'bg-couriers') . '">⧉</a> '
             . '<a href="#" class="bgc-wb-cancel" data-id="' . (int) $order_id . '" data-nonce="' . esc_attr($cancel_nonce) . '" data-gennonce="' . esc_attr($generate_nonce) . '" title="' . esc_attr__('Cancel waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Cancel waybill', 'bg-couriers') . '">&#10005;</a>'
-            . '<br><a target="_blank" href="' . esc_url($print_url) . '">' . esc_html__('Print', 'bg-couriers') . '</a> | '
-            . '<a target="_blank" href="' . esc_url($track_url) . '">' . esc_html__('Track', 'bg-couriers') . '</a>'
+            . '<br><a class="bgc-wb-ico" target="_blank" href="' . esc_url($print_url) . '" title="' . esc_attr__('Print label', 'bg-couriers') . '" aria-label="' . esc_attr__('Print label', 'bg-couriers') . '"><span class="dashicons dashicons-printer"></span></a> '
+            . '<a class="bgc-wb-ico" target="_blank" href="' . esc_url($track_url) . '" title="' . esc_attr__('Track shipment', 'bg-couriers') . '" aria-label="' . esc_attr__('Track shipment', 'bg-couriers') . '"><span class="dashicons dashicons-location"></span></a>'
             . '</span>';
     }
 
@@ -45,6 +46,10 @@ class BGC_Order_Columns {
 <style>
 .bgc-cell .bgc-copy,.bgc-cell .bgc-wb-cancel{text-decoration:none;cursor:pointer;}
 .bgc-cell .bgc-wb-cancel{color:#b32d2e;font-weight:700;margin-left:2px;}
+.bgc-cell .bgc-wb-ico{text-decoration:none;color:#2271b1;vertical-align:middle;display:inline-flex;}
+.bgc-cell .bgc-wb-ico .dashicons{font-size:18px;width:18px;height:18px;line-height:1;}
+.bgc-cell .bgc-wb-ico:hover{color:#135e96;}
+.bgc-cell .bgc-wb-ico+.bgc-wb-ico{margin-left:6px;}
 .bgc-ltoast{position:fixed;z-index:100001;left:50%;bottom:32px;transform:translateX(-50%) translateY(6px);background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;}
 .bgc-ltoast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .bgc-lmodal-ov{position:fixed;inset:0;background:rgba(20,24,28,.5);z-index:100000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}

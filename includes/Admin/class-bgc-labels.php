@@ -70,7 +70,7 @@ class BGC_Labels {
     }
     private static function download_pdf(string $url): string {
         $r = wp_remote_get($url, ['timeout' => 30]);
-        if (is_wp_error($r)) { throw new BGC_Api_Exception('Label PDF download failed: ' . $r->get_error_message()); }
+        if (is_wp_error($r)) { throw new BGC_Api_Exception(esc_html('Label PDF download failed: ' . $r->get_error_message())); }
         return (string) wp_remote_retrieve_body($r);
     }
     public static function batch_parcel_ids(array $order_ids, ?callable $resolver = null): array {
@@ -87,7 +87,7 @@ class BGC_Labels {
     }
     public function handle_generate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) ($_GET['order_id'] ?? 0);
+        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
         check_admin_referer('bgc_generate_label_' . $id);
         if (!wc_get_order($id)) { wp_die(esc_html__('Order not found.', 'bg-couriers')); }
         try { self::generate($id); }
@@ -124,7 +124,7 @@ class BGC_Labels {
 
     public function handle_cancel_label(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) ($_GET['order_id'] ?? 0);
+        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
         check_admin_referer('bgc_cancel_label_' . $id);
         try { self::cancel($id); }
         catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label cancellation failed', 'bg-couriers')); }
@@ -135,7 +135,7 @@ class BGC_Labels {
     /** Void the existing waybill and issue a fresh one from the order's current delivery details. */
     public function handle_regenerate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) ($_GET['order_id'] ?? 0);
+        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
         check_admin_referer('bgc_regenerate_' . $id);
         try { self::cancel($id); self::generate($id); }
         catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label re-generation failed', 'bg-couriers')); }
@@ -146,7 +146,7 @@ class BGC_Labels {
     /** Cancel the order (and void its label first, best effort). */
     public function handle_cancel_order(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) ($_GET['order_id'] ?? 0);
+        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
         check_admin_referer('bgc_cancel_order_' . $id);
         $order = wc_get_order($id);
         if ($order) {
@@ -164,7 +164,7 @@ class BGC_Labels {
     public function handle_save_delivery(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgc_order_delivery', 'nonce');
-        $id = (int) ($_POST['order_id'] ?? 0);
+        $id = (int) wp_unslash($_POST['order_id'] ?? 0);
         $order = wc_get_order($id);
         if (!$order) { wp_send_json_error(['msg' => __('Order not found.', 'bg-couriers')]); }
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? ''));
@@ -177,6 +177,7 @@ class BGC_Labels {
         $had_waybill = (string) $order->get_meta('_bgc_waybill') !== '';
         if ($had_waybill) {
             try { self::cancel($id); }
+            /* translators: %s: error message */
             catch (\Exception $e) { wp_send_json_error(['msg' => sprintf(__('Could not cancel the current waybill: %s', 'bg-couriers'), $e->getMessage())]); }
             $order = wc_get_order($id);
         }
@@ -184,7 +185,7 @@ class BGC_Labels {
         $t = static function ($k) { return isset($_POST[$k]) ? sanitize_text_field(wp_unslash($_POST[$k])) : ''; };
         BGC_Checkout::apply_delivery($order, [
             'courier' => $courier, 'method' => sanitize_key(wp_unslash($_POST['method'] ?? '')),
-            'site_id' => (int) ($_POST['site_id'] ?? 0), 'office_id' => (int) ($_POST['office_id'] ?? 0),
+            'site_id' => (int) wp_unslash($_POST['site_id'] ?? 0), 'office_id' => (int) wp_unslash($_POST['office_id'] ?? 0),
             'post_code' => $t('post_code'), 'street_name' => $t('street_name'), 'street_no' => $t('street_no'),
             'complex' => $t('complex'), 'block' => $t('block'), 'entrance' => $t('entrance'),
             'floor' => $t('floor'), 'apartment' => $t('apartment'), 'address_note' => $t('address_note'),
@@ -197,6 +198,7 @@ class BGC_Labels {
         $regenerated = false;
         if ($had_waybill) {
             try { self::generate($id); $regenerated = true; }
+            /* translators: %s: error message */
             catch (\Exception $e) { wp_send_json_error(['msg' => sprintf(__('Saved, but issuing the new waybill failed: %s', 'bg-couriers'), $e->getMessage())]); }
         }
         wp_send_json_success([
@@ -207,7 +209,7 @@ class BGC_Labels {
     /** AJAX: void a waybill from the Orders list without reloading the page. */
     public function ajax_cancel_label(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
-        $id = (int) ($_POST['order_id'] ?? 0);
+        $id = (int) wp_unslash($_POST['order_id'] ?? 0);
         check_ajax_referer('bgc_cancel_label_' . $id, 'nonce');
         try { self::cancel($id); }
         catch (\Exception $e) { wp_send_json_error(['msg' => $e->getMessage()]); }
@@ -216,7 +218,7 @@ class BGC_Labels {
 
     public function handle_track(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) ($_GET['order_id'] ?? 0);
+        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
         check_admin_referer('bgc_track_' . $id);
         $order = wc_get_order($id);
         $waybill = $order ? (string) $order->get_meta('_bgc_waybill') : '';
@@ -237,7 +239,7 @@ class BGC_Labels {
             : (array) get_transient('bgc_print_batch_' . get_current_user_id());
         $order_ids = array_filter(array_map('intval', $order_ids));
         if (!$order_ids) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
-        $paper = (isset($_GET['paper']) && strtoupper((string) $_GET['paper']) === 'A6') ? 'A6' : 'A4';
+        $paper = (isset($_GET['paper']) && strtoupper(sanitize_text_field(wp_unslash($_GET['paper']))) === 'A6') ? 'A6' : 'A4';
         try { $pdfs = self::collect_label_pdfs($order_ids); }
         /* translators: %s: error message */
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }

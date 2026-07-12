@@ -82,7 +82,7 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         ]);
 
         if (is_wp_error($r)) {
-            throw new BGC_Api_Exception('Sameday auth transport error: ' . $r->get_error_message());
+            throw new BGC_Api_Exception(esc_html('Sameday auth transport error: ' . $r->get_error_message()));
         }
         $body = json_decode(wp_remote_retrieve_body($r), true);
         $tok  = (string) ($body['token'] ?? '');
@@ -118,7 +118,7 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
 
     private function decode($r): array {
         if (is_wp_error($r)) {
-            throw new BGC_Api_Exception($r->get_error_message());
+            throw new BGC_Api_Exception(esc_html($r->get_error_message()));
         }
         return (array) json_decode(wp_remote_retrieve_body($r), true);
     }
@@ -263,7 +263,7 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         $r = wp_remote_get($this->base . '/api/awb/download/' . rawurlencode($waybill), [
             'timeout' => 40, 'headers' => ['X-AUTH-TOKEN' => $this->auth_token()],
         ]);
-        if (is_wp_error($r)) { throw new BGC_Api_Exception($r->get_error_message()); }
+        if (is_wp_error($r)) { throw new BGC_Api_Exception(esc_html($r->get_error_message())); }
         $pdf = (string) wp_remote_retrieve_body($r);
         if (strpos($pdf, '%PDF') !== 0) { throw new BGC_Api_Exception('Sameday label is not a PDF'); }
         return $pdf;

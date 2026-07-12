@@ -12,12 +12,12 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
             $raw  = (string) wp_remote_retrieve_body($res);
             if ($code === 200) {
                 $data = json_decode($raw, true);
-                if (!is_array($data)) { throw new BGC_Api_Exception('Invalid JSON from ' . $url); }
+                if (!is_array($data)) { throw new BGC_Api_Exception(esc_html('Invalid JSON from ' . $url)); }
                 return $data;
             }
             $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 1000); // keep enough of the body for field-level API errors
         }
-        throw new BGC_Api_Exception('Request failed: ' . $last);
+        throw new BGC_Api_Exception(esc_html('Request failed: ' . $last));
     }
 
     /** Seam: overridden in tests; real impl calls wp_remote_post. */

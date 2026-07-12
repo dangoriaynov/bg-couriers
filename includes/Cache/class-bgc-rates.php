@@ -1,6 +1,11 @@
 <?php
 defined('ABSPATH') || exit;
 
+// Data-access layer for the plugin's own custom table (wp_bgc_standard_rates). Queries use $wpdb->prepare()
+// with a $wpdb->prefix table name (table names cannot be bound as placeholders); the table is the rate cache
+// itself, so object-cache layering adds nothing. Silence the custom-table DB sniffs for this file.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
 class BGC_Rates {
     public static function set(string $courier, string $method, float $price, string $currency): void {
         global $wpdb; $t = $wpdb->prefix . 'bgc_standard_rates';

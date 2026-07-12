@@ -73,13 +73,13 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
             $raw  = (string) wp_remote_retrieve_body($res);
             if ($code === 200) {
                 $data = json_decode($raw, true);
-                if (!is_array($data)) { throw new BGC_Api_Exception('Pigeon invalid JSON from ' . $url); }
+                if (!is_array($data)) { throw new BGC_Api_Exception(esc_html('Pigeon invalid JSON from ' . $url)); }
                 return $data;
             }
             $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 200);
             if ($code >= 400 && $code < 500) { break; } // client error (auth/bad request) - retry won't help
         }
-        throw new BGC_Api_Exception('Pigeon GET failed: ' . $last);
+        throw new BGC_Api_Exception(esc_html('Pigeon GET failed: ' . $last));
     }
 
     // ── Credential check ─────────────────────────────────────────────────────
@@ -420,12 +420,12 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
             ],
         ]);
         if (is_wp_error($res)) {
-            throw new BGC_Api_Exception('Pigeon label download failed: ' . $res->get_error_message());
+            throw new BGC_Api_Exception(esc_html('Pigeon label download failed: ' . $res->get_error_message()));
         }
         $code = (int) wp_remote_retrieve_response_code($res);
         $raw  = (string) wp_remote_retrieve_body($res);
         if ($code !== 200) {
-            throw new BGC_Api_Exception('Pigeon label HTTP ' . $code . ': ' . substr($raw, 0, 200));
+            throw new BGC_Api_Exception(esc_html('Pigeon label HTTP ' . $code . ': ' . substr($raw, 0, 200)));
         }
         // If the API returns JSON with base64-encoded PDF, decode it.
         $decoded = json_decode($raw, true);
