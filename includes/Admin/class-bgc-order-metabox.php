@@ -62,7 +62,8 @@ class BGC_Order_Metabox {
             $gen = $nonce_url('bgc_generate_label', 'bgc_generate_label_');
             echo '<div class="bgc-la"><a class="button button-primary" href="' . $gen . '">' . esc_html__('Generate label', 'bg-couriers') . '</a></div>';
         } else {
-            $print  = esc_url(wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id, 'bgc_print_batch'));
+            $paper  = strtolower(BGC_Settings::label_paper_size($courier->id()));
+            $print  = esc_url(wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id . '&paper=' . $paper, 'bgc_print_batch'));
             $track  = $nonce_url('bgc_track', 'bgc_track_');
             $cancel = $nonce_url('bgc_cancel_label', 'bgc_cancel_label_');
             $hint   = esc_attr__('Cancel (void) this shipment label', 'bg-couriers');

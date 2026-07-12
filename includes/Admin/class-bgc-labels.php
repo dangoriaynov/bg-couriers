@@ -213,27 +213,43 @@ class BGC_Labels {
             ? [(int) $_GET['order_id']]
             : (array) get_transient('bgc_print_batch_' . get_current_user_id());
         $order_ids = array_filter(array_map('intval', $order_ids));
-        $first_order = $order_ids ? wc_get_order((int) $order_ids[0]) : null;
-        $courier = $first_order ? $this->courier_for($first_order) : null;
-        if (!$courier) { wp_die(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
-        try {
-            if (method_exists($courier, 'print_labels')) {
-                // Speedy-style multi-parcel combined print.
-                $parcels = self::batch_parcel_ids($order_ids);
-                if (!$parcels) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
-                $pdf = $courier->print_labels($parcels, BGC_Settings::label_paper_size((string) $first_order->get_meta('_bgc_courier') ?: 'speedy'));
-            } else {
-                // Courier exposes a per-waybill PDF (no batch combine) - print the first order's label.
-                $wb = (string) $first_order->get_meta('_bgc_waybill');
-                if ($wb === '') { wp_die(esc_html__('No label to print.', 'bg-couriers')); }
-                $pdf = $courier->get_label_pdf($wb);
-            }
+        if (!$order_ids) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
+        $paper = (isset($_GET['paper']) && strtoupper((string) $_GET['paper']) === 'A6') ? 'A6' : 'A4';
+        try { $pdfs = self::collect_label_pdfs($order_ids); }
         /* translators: %s: error message */
-        } catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
+        catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
+        if (!$pdfs) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
+
+        // Pack the collected labels onto A4 (many per sheet, natural size) or A6 (one per page). If the
+        // packer is unavailable or can't read a label, fall back to the raw single label PDF.
+        $out = (count($pdfs) === 1 && !BGC_Label_Packer::available()) ? $pdfs[0] : BGC_Label_Packer::pack($pdfs, $paper);
+        if ($out === '') { $out = $pdfs[0]; }
+
         nocache_headers();
         header('Content-Type: application/pdf');
-        header('Content-Disposition: inline; filename="labels.pdf"');
-        echo $pdf; // phpcs:ignore WordPress.Security.EscapeOutput -- binary PDF
+        header('Content-Disposition: inline; filename="labels-' . strtolower($paper) . '.pdf"');
+        echo $out; // phpcs:ignore WordPress.Security.EscapeOutput -- binary PDF
         exit;
+    }
+
+    /** Collect each order's label PDF bytes: the saved file first, else re-fetch from the courier. */
+    private static function collect_label_pdfs(array $order_ids): array {
+        $up = wp_upload_dir();
+        $pdfs = [];
+        foreach ($order_ids as $oid) {
+            $o = wc_get_order((int) $oid);
+            if (!$o) { continue; }
+            $url = (string) $o->get_meta('_bgc_label_url');
+            if ($url !== '' && !empty($up['baseurl']) && strpos($url, $up['baseurl']) === 0) {
+                $file = $up['basedir'] . substr($url, strlen($up['baseurl']));
+                if (is_file($file)) { $bytes = @file_get_contents($file); if ($bytes !== false && $bytes !== '') { $pdfs[] = $bytes; continue; } }
+            }
+            $courier = self::order_courier($o);
+            $wb = (string) $o->get_meta('_bgc_waybill');
+            if ($courier && $wb !== '' && method_exists($courier, 'get_label_pdf')) {
+                try { $b = $courier->get_label_pdf($wb); if ($b !== '') { $pdfs[] = $b; } } catch (\Exception $e) {}
+            }
+        }
+        return $pdfs;
     }
 }

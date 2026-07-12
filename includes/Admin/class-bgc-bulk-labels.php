@@ -84,11 +84,14 @@ class BGC_Bulk_Labels {
         );
         $link = '';
         if (!empty($_GET['bgc_print'])) {
-            $url = wp_nonce_url(admin_url('admin-post.php?action=bgc_print_batch'), 'bgc_print_batch');
+            $base  = admin_url('admin-post.php?action=bgc_print_batch');
             $total = $c['generated'] + $c['reused'];
-            $link = ' <a class="button" target="_blank" href="' . esc_url($url) . '">'
+            $a4    = esc_url(wp_nonce_url($base . '&paper=a4', 'bgc_print_batch'));
+            $a6    = esc_url(wp_nonce_url($base . '&paper=a6', 'bgc_print_batch'));
+            $link  = ' <a class="button button-primary" target="_blank" href="' . $a4 . '">'
                 /* translators: %d: number of labels */
-                . esc_html(sprintf(__('Print %d labels', 'bg-couriers'), $total)) . '</a>';
+                . esc_html(sprintf(__('Print %d on A4 (packed)', 'bg-couriers'), $total)) . '</a>'
+                . ' <a class="button" target="_blank" href="' . $a6 . '">' . esc_html__('A6 stickers', 'bg-couriers') . '</a>';
         }
         $cls = $c['failed'] ? 'notice-warning' : 'notice-success';
         echo '<div class="notice ' . esc_attr($cls) . ' is-dismissible"><p>' . $msg . $link . '</p></div>';
