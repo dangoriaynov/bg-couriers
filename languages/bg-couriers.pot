@@ -4,15 +4,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
+"POT-Creation-Date: 2026-07-11T23:37:43+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-11T23:37:43+00:00\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: bg-couriers\n"
+"X-Generator: WP-CLI 2.12.0\n"
 
 #. Plugin Name of the plugin
 #: bg-couriers.php
@@ -21,7 +21,9 @@ msgstr ""
 
 #. Description of the plugin
 #: bg-couriers.php
-msgid "Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) - office/address/locker delivery, live rates, labels and tracking."
+msgid ""
+"Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) -"
+" office/address/locker delivery, live rates, labels and tracking."
 msgstr ""
 
 #. Author of the plugin
@@ -47,7 +49,8 @@ msgstr ""
 #. translators: 1: generated 2: reused 3: skipped 4: failed
 #: includes/Admin/class-bgc-bulk-labels.php:52
 #, php-format
-msgid "Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
+msgid ""
+"Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
 msgstr ""
 
 #. translators: %d: number of labels
@@ -299,7 +302,9 @@ msgid "Save delivery"
 msgstr ""
 
 #: includes/Admin/class-bgc-order-metabox.php:126
-msgid "A waybill exists. If auto-generate is on, saving voids it and re-issues a new one; otherwise void it with × above and Generate again."
+msgid ""
+"A waybill exists. If auto-generate is on, saving voids it and re-issues a "
+"new one; otherwise void it with × above and Generate again."
 msgstr ""
 
 #: includes/Admin/class-bgc-settings.php:172
@@ -350,7 +355,9 @@ msgid "Sync now"
 msgstr ""
 
 #: includes/Admin/class-bgc-settings.php:328
-msgid "Enter and save your API username and password, then Validate / Sync appear here."
+msgid ""
+"Enter and save your API username and password, then Validate / Sync appear "
+"here."
 msgstr ""
 
 #: includes/Admin/class-bgc-settings.php:333
@@ -473,7 +480,10 @@ msgid "Checkout"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:393
-msgid "How the delivery picker behaves at checkout. The courier order is set by dragging the courier tabs above. Prices are always shown in the store currency."
+msgid ""
+"How the delivery picker behaves at checkout. The courier order is set by "
+"dragging the courier tabs above. Prices are always shown in the store "
+"currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:394
@@ -481,7 +491,9 @@ msgid "Default courier"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:395
-msgid "Which courier is pre-selected at checkout. The default delivery option is the first one in each courier’s “Delivery option order”."
+msgid ""
+"Which courier is pre-selected at checkout. The default delivery option is "
+"the first one in each courier’s “Delivery option order”."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:397
@@ -489,7 +501,9 @@ msgid "Checkout dropdown results"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:398
-msgid "How many city / office results to show in checkout dropdowns (search shows the same max). Default 5."
+msgid ""
+"How many city / office results to show in checkout dropdowns (search shows "
+"the same max). Default 5."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:400
@@ -497,7 +511,10 @@ msgid "Preload city lists"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:401
-msgid "Embed each courier’s office/APS city list in the checkout page so those dropdowns open instantly with no loading. Address delivery still searches all cities live. Recommended on."
+msgid ""
+"Embed each courier’s office/APS city list in the checkout page so those "
+"dropdowns open instantly with no loading. Address delivery still searches "
+"all cities live. Recommended on."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:402
@@ -505,7 +522,10 @@ msgid "Address map picker"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:403
-msgid "Add a “Choose on map” button to address delivery - the customer drops a pin and the address fields fill in automatically (still editable). Uses free OpenStreetMap unless a Google key is set below."
+msgid ""
+"Add a “Choose on map” button to address delivery - the customer drops a pin "
+"and the address fields fill in automatically (still editable). Uses free "
+"OpenStreetMap unless a Google key is set below."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:404
@@ -513,7 +533,10 @@ msgid "Google Maps API key (optional)"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:405
-msgid "Leave empty to use free OpenStreetMap. Paste a Google Maps API key for more accurate maps and address lookup. Get one at console.cloud.google.com → enable “Maps JavaScript API” + “Geocoding API” → create an API key."
+msgid ""
+"Leave empty to use free OpenStreetMap. Paste a Google Maps API key for more "
+"accurate maps and address lookup. Get one at console.cloud.google.com → "
+"enable “Maps JavaScript API” + “Geocoding API” → create an API key."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:407
@@ -525,7 +548,9 @@ msgid "Hidden checkout fields (CSS selectors)"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:409
-msgid "Comma-separated CSS selectors to hide on checkout (e.g. #billing_company_field, .cart-subtotal)."
+msgid ""
+"Comma-separated CSS selectors to hide on checkout (e.g. "
+"#billing_company_field, .cart-subtotal)."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:414
@@ -537,7 +562,10 @@ msgid "Enable 2 currencies"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:416
-msgid "Duplicate the checkout/cart delivery prices in BGN (лв.), next to the store currency. Fixed rate 1 EUR = 1.95583 BGN. Leave off to show only the store currency (e.g. if another plugin already displays лв.)."
+msgid ""
+"Duplicate the checkout/cart delivery prices in BGN (лв.), next to the store "
+"currency. Fixed rate 1 EUR = 1.95583 BGN. Leave off to show only the store "
+"currency (e.g. if another plugin already displays лв.)."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:417
@@ -545,7 +573,11 @@ msgid "Shipping estimate on the cart"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:418
-msgid "On the cart page (before checkout), show a rough shipping price for each courier and delivery option, using the daily cached reference price (not a live, address-based quote). The exact price is calculated at checkout once the customer picks their city and office/address. Off by default."
+msgid ""
+"On the cart page (before checkout), show a rough shipping price for each "
+"courier and delivery option, using the daily cached reference price (not a "
+"live, address-based quote). The exact price is calculated at checkout once "
+"the customer picks their city and office/address. Off by default."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:419
@@ -553,7 +585,9 @@ msgid "Free shipping label"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:420
-msgid "Text shown for the shipping price when a method is free (e.g. “Free shipping”)."
+msgid ""
+"Text shown for the shipping price when a method is free (e.g. “Free "
+"shipping”)."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:423
@@ -565,7 +599,9 @@ msgid "Auto-generate labels"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:426
-msgid "Automatically generate a shipping label when an order reaches the status below."
+msgid ""
+"Automatically generate a shipping label when an order reaches the status "
+"below."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:427
@@ -577,7 +613,9 @@ msgid "Share customer email with courier"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:431
-msgid "Include the customer's e-mail on the shipment (for courier delivery notifications), when they provided one. The e-mail is optional at checkout."
+msgid ""
+"Include the customer's e-mail on the shipment (for courier delivery "
+"notifications), when they provided one. The e-mail is optional at checkout."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:434
@@ -585,7 +623,10 @@ msgid "Emergency contact"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:435
-msgid "If a customer fails to place an order several times in a row at checkout, a one-time help box appears with a clickable phone link. Leave the phone empty to disable."
+msgid ""
+"If a customer fails to place an order several times in a row at checkout, a "
+"one-time help box appears with a clickable phone link. Leave the phone empty"
+" to disable."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:436
@@ -652,7 +693,10 @@ msgid "Free-shipping threshold"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:457
-msgid "Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgid ""
+"Ship Speedy free (you absorb the cost) when the order goods total (without "
+"shipping) reaches this amount - for all delivery types. Enter a positive "
+"amount to enable; leave empty or 0 to disable. In the store currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:463
@@ -668,7 +712,9 @@ msgid "Parcel contents description"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:481
-msgid "Short text describing the contents on the Econt waybill (e.g. \"Хранителни добавки\"). Leave empty for a generic value."
+msgid ""
+"Short text describing the contents on the Econt waybill (e.g. \"Хранителни "
+"добавки\"). Leave empty for a generic value."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:483
@@ -676,7 +722,10 @@ msgid "Cash on delivery (наложен платеж)"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:484
-msgid "Attach наложен платеж for the full order total + an item packing list (name, qty, weight, price) to every Econt label, paid out via the agreement below. Enable only if you ship cash-on-delivery."
+msgid ""
+"Attach наложен платеж for the full order total + an item packing list (name,"
+" qty, weight, price) to every Econt label, paid out via the agreement below."
+" Enable only if you ship cash-on-delivery."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:485
@@ -684,11 +733,16 @@ msgid "CD pay-out agreement"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:486
-msgid "The наложен платеж agreement the money is paid out with (loaded from your Econt profile - e.g. postal money transfer / bank)."
+msgid ""
+"The наложен платеж agreement the money is paid out with (loaded from your "
+"Econt profile - e.g. postal money transfer / bank)."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:489
-msgid "Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgid ""
+"Ship Econt free (you absorb the cost) when the order goods total (without "
+"shipping) reaches this amount - for all delivery types. Enter a positive "
+"amount to enable; leave empty or 0 to disable. In the store currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:497
@@ -708,7 +762,9 @@ msgid "API base URL"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:503
-msgid "Per-account Pigeon API base URL (e.g. https://api.pigeonexpress.com). Leave empty for the production default."
+msgid ""
+"Per-account Pigeon API base URL (e.g. https://api.pigeonexpress.com). Leave "
+"empty for the production default."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:505
@@ -716,11 +772,17 @@ msgid "Pickup office ID"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:506
-msgid "The Pigeon office ID the merchant ships from. Used for quotes and label creation."
+msgid ""
+"The Pigeon office ID the merchant ships from. Used for quotes and label "
+"creation."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:512
-msgid "Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgid ""
+"Ship Pigeon Express free (you absorb the cost) when the order goods total "
+"(without shipping) reaches this amount - for all delivery types. Enter a "
+"positive amount to enable; leave empty or 0 to disable. In the store "
+"currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:522
@@ -744,7 +806,9 @@ msgid "Sandbox (demo) mode"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:529
-msgid "Use the Sameday demo API (sameday-api.demo.zitec.com) instead of production. For testing without a live account."
+msgid ""
+"Use the Sameday demo API (sameday-api.demo.zitec.com) instead of production."
+" For testing without a live account."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:531
@@ -752,7 +816,9 @@ msgid "Pickup point ID"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:532
-msgid "The Sameday pickup-point ID the merchant ships from. Required for quotes and labels."
+msgid ""
+"The Sameday pickup-point ID the merchant ships from. Required for quotes and"
+" labels."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:536
@@ -760,7 +826,9 @@ msgid "Service IDs per delivery type"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:537
-msgid "Map each delivery type to a Sameday service ID from your contract (used for pricing and labels)."
+msgid ""
+"Map each delivery type to a Sameday service ID from your contract (used for "
+"pricing and labels)."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:538
@@ -776,7 +844,10 @@ msgid "Service ID - to locker (easyBox)"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:547
-msgid "Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency."
+msgid ""
+"Ship Sameday free (you absorb the cost) when the order goods total (without "
+"shipping) reaches this amount - for all delivery types. Enter a positive "
+"amount to enable; leave empty or 0 to disable. In the store currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:556
@@ -816,7 +887,9 @@ msgid "Webhook secret"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:568
-msgid "Verifies incoming BOX NOW parcel-event webhooks (HMAC-SHA256). Register this webhook URL in your BOX NOW account:"
+msgid ""
+"Verifies incoming BOX NOW parcel-event webhooks (HMAC-SHA256). Register this"
+" webhook URL in your BOX NOW account:"
 msgstr ""
 
 #. translators: %s: courier name
@@ -826,11 +899,16 @@ msgid "Delivery price"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:571
-msgid "Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the store currency."
+msgid ""
+"Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the "
+"store currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:573
-msgid "Ship BOX NOW free (you absorb the cost) when the order goods total (without shipping) reaches this amount. Positive to enable; empty/0 to disable. Store currency."
+msgid ""
+"Ship BOX NOW free (you absorb the cost) when the order goods total (without "
+"shipping) reaches this amount. Positive to enable; empty/0 to disable. Store"
+" currency."
 msgstr ""
 
 #. translators: %s: courier name
@@ -840,7 +918,9 @@ msgid "Enable “%s”"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:585
-msgid "Live price only - no fixed default (show the cached price until the address is chosen)"
+msgid ""
+"Live price only - no fixed default (show the cached price until the address "
+"is chosen)"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:586
@@ -856,7 +936,9 @@ msgid "Fixed / default price"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:590
-msgid "Used by the “fixed” and “fallback” delivery-price modes above. In the store currency."
+msgid ""
+"Used by the “fixed” and “fallback” delivery-price modes above. In the store "
+"currency."
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:59
@@ -874,7 +956,9 @@ msgstr ""
 #. translators: %s = delivery type, e.g. "to an office"
 #: includes/Checkout/class-bgc-checkout.php:66
 #, php-format
-msgid "≈ estimate for delivery %s at this cart weight - choose your city and exact point at checkout for the final price."
+msgid ""
+"≈ estimate for delivery %s at this cart weight - choose your city and exact "
+"point at checkout for the final price."
 msgstr ""
 
 #. translators: %s = delivery type
@@ -1094,7 +1178,9 @@ msgid "No Partner ID is set."
 msgstr ""
 
 #: includes/Couriers/class-bgc-boxnow.php:34
-msgid "Enter the Partner ID from your BOX NOW account (a required header on every request)."
+msgid ""
+"Enter the Partner ID from your BOX NOW account (a required header on every "
+"request)."
 msgstr ""
 
 #: includes/Couriers/class-bgc-boxnow.php:36
@@ -1110,7 +1196,8 @@ msgid "The flat delivery price is not set."
 msgstr ""
 
 #: includes/Couriers/class-bgc-boxnow.php:41
-msgid "Enter a “Delivery price” greater than 0 - BOX NOW has no live rate API."
+msgid ""
+"Enter a “Delivery price” greater than 0 - BOX NOW has no live rate API."
 msgstr ""
 
 #: includes/Couriers/class-bgc-econt.php:24
@@ -1134,7 +1221,8 @@ msgid "No pickup office ID is set."
 msgstr ""
 
 #: includes/Couriers/class-bgc-pigeon.php:25
-msgid "Enter the “Pickup office ID” you ship from (used for quotes and labels)."
+msgid ""
+"Enter the “Pickup office ID” you ship from (used for quotes and labels)."
 msgstr ""
 
 #: includes/Couriers/class-bgc-sameday.php:39
@@ -1142,7 +1230,8 @@ msgid "No pickup point ID is set."
 msgstr ""
 
 #: includes/Couriers/class-bgc-sameday.php:40
-msgid "Enter the “Pickup point ID” you ship from (required for quotes and labels)."
+msgid ""
+"Enter the “Pickup point ID” you ship from (required for quotes and labels)."
 msgstr ""
 
 #: includes/Couriers/class-bgc-sameday.php:42
@@ -1185,4 +1274,37 @@ msgstr ""
 
 #: includes/Shipping/class-bgc-method-speedy.php:9
 msgid "Speedy shipping (BG Couriers)"
+msgstr ""
+
+msgid "Bulk print A4 (packed)"
+msgstr ""
+
+msgid "Bulk print A6 (stickers)"
+msgstr ""
+
+msgid "No labels to print (none could be generated)."
+msgstr ""
+
+msgid "BG Couriers bulk print - generate failed: %s"
+msgstr ""
+
+msgid "Track shipment"
+msgstr ""
+
+msgid "Cancel (void) label"
+msgstr ""
+
+msgid "Copied to clipboard"
+msgstr ""
+
+msgid "Cancel this waybill?"
+msgstr ""
+
+msgid "This voids the shipment label with the courier. This cannot be undone."
+msgstr ""
+
+msgid "Yes, cancel it"
+msgstr ""
+
+msgid "Keep it"
 msgstr ""

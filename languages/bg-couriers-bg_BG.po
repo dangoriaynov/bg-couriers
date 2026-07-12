@@ -1395,6 +1395,40 @@ msgstr "Доставка със Sameday (BG Couriers)"
 msgid "Speedy shipping (BG Couriers)"
 msgstr "Доставка със Speedy (BG Couriers)"
 
+msgid "Bulk print A4 (packed)"
+msgstr "Групов печат A4 (уплътнен)"
+
+msgid "Bulk print A6 (stickers)"
+msgstr "Групов печат A6 (стикери)"
+
+msgid "No labels to print (none could be generated)."
+msgstr "Няма етикети за печат (нито един не можа да се генерира)."
+
+msgid "BG Couriers bulk print - generate failed: %s"
+msgstr "BG Couriers групов печат - неуспешно генериране: %s"
+
+msgid "Track shipment"
+msgstr "Проследи пратката"
+
+msgid "Cancel (void) label"
+msgstr "Анулирай етикета"
+
+msgid "Copied to clipboard"
+msgstr "Копирано в клипборда"
+
+msgid "Cancel this waybill?"
+msgstr "Да анулирам ли товарителницата?"
+
+msgid "This voids the shipment label with the courier. This cannot be undone."
+msgstr ""
+"Това анулира етикета за доставка при куриера. Действието е необратимо."
+
+msgid "Yes, cancel it"
+msgstr "Да, анулирай"
+
+msgid "Keep it"
+msgstr "Запази"
+
 #~ msgid "Generate Speedy labels"
 #~ msgstr "Генерирай етикети за Speedy"
 
