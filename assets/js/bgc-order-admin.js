@@ -48,15 +48,24 @@
         return { id: r.city_id, text: r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), post_code: r.post_code }; }) }; }
     }
   });
-  $city.on('select2:select', function (e) { var d = e.params.data; if (d && d.post_code) { $panel.find('.bgc-ed-postcode').val(d.post_code); } resetOffice(); resetStreet(); });
+  $city.on('select2:select', function (e) { var d = e.params.data; if (d && d.post_code) { $panel.find('.bgc-ed-postcode').val(d.post_code); } });
 
-  sel2($office, { width: '100%', allowClear: true, placeholder: C.i18n.office, minimumInputLength: 0,
-    ajax: { url: C.ajax, dataType: 'json', delay: 250,
-      data: function (params) { return { action: 'bgc_offices', courier: courier(), city_id: $city.val() || 0, type: $method.val(), term: params.term || '' }; },
-      processResults: function (rows) { return { results: (rows || []).map(function (o) {
-        return { id: o.office_id || o.id, text: (o.name || '') + (o.address ? ' - ' + o.address : '') }; }) }; }
-    }
-  });
+  // Office/APS: preload the city's offices into the <select> (robust - works even if select2 isn't
+  // enhancing, and doesn't depend on select2 firing an AJAX on open). select2 then just adds local search.
+  sel2($office, { width: '100%', allowClear: true, placeholder: C.i18n.office });
+  function loadOffices() {
+    var c = courier(), city = $city.val() || 0, m = $method.val();
+    if (!city || m === 'address' || c === 'boxnow') { return; }
+    $.get(C.ajax, { action: 'bgc_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) {
+      var cur = $office.val();
+      $office.empty().append('<option></option>');
+      (rows || []).forEach(function (o) {
+        $office.append($('<option>').val(o.office_id || o.id).text((o.name || '') + (o.address ? ' - ' + o.address : '')));
+      });
+      if (cur && $office.find('option[value="' + cur + '"]').length) { $office.val(cur); }
+      $office.trigger('change');
+    }, 'json');
+  }
 
   sel2($street, { width: '100%', allowClear: true, tags: true, placeholder: C.i18n.street, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
@@ -66,9 +75,11 @@
   });
 
   $panel.on('click', '.bgc-ed-toggle', function (e) { e.preventDefault(); $form.toggle(); });
-  $courier.on('change', function () { fillMethods(); resetOffice(); resetStreet(); });
-  $method.on('change', updateMode);
+  $city.on('change', function () { resetOffice(); resetStreet(); loadOffices(); });
+  $courier.on('change', function () { fillMethods(); resetOffice(); resetStreet(); loadOffices(); });
+  $method.on('change', function () { updateMode(); resetOffice(); loadOffices(); });
   fillMethods();
+  loadOffices(); // populate the office/APS list for the order's current city + method
 
   $panel.on('click', '.bgc-ed-save', function (e) {
     e.preventDefault();
