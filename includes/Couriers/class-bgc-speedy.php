@@ -278,5 +278,17 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         $resp = $this->post_json($this->base . '/shipment/cancel', $this->auth(['shipmentId' => $waybill, 'comment' => 'Cancelled from WooCommerce']));
         return empty($resp['error']);
     }
+
+    /** Already cancelled if /track shows the "Canceled" operation (code 128) - so a refused cancel is a no-op. */
+    public function is_cancelled(string $waybill): bool {
+        try {
+            $resp = $this->post_json($this->base . '/track', $this->auth(['parcels' => [['id' => $waybill]]]));
+            foreach (($resp['parcels'][0]['operations'] ?? []) as $op) {
+                if ((int) ($op['operationCode'] ?? 0) === 128
+                    || stripos((string) ($op['description'] ?? ''), 'cancel') !== false) { return true; }
+            }
+        } catch (\Exception $e) { /* can't confirm -> treat as not cancelled */ }
+        return false;
+    }
     public function tracking_url(string $waybill): string { return 'https://www.speedy.bg/en/track-shipment?shipmentNumber=' . rawurlencode($waybill); }
 }

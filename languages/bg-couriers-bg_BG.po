@@ -1509,6 +1509,12 @@ msgstr "Да, анулирай ги"
 msgid "Keep them"
 msgstr "Запази ги"
 
+msgid ""
+"Shipment label %s was already cancelled at the courier; removed from the "
+"order."
+msgstr ""
+"Товарителница %s вече беше анулирана при куриера; премахната от поръчката."
+
 #~ msgid "Generate Speedy labels"
 #~ msgstr "Генерирай етикети за Speedy"
 

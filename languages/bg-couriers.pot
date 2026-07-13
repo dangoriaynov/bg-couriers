@@ -1379,3 +1379,8 @@ msgstr ""
 
 msgid "Keep them"
 msgstr ""
+
+msgid ""
+"Shipment label %s was already cancelled at the courier; removed from the "
+"order."
+msgstr ""

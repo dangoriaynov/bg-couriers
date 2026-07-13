@@ -54,6 +54,13 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
         return $problems;
     }
 
+    /**
+     * Whether the courier reports this waybill as ALREADY cancelled / not found - so a failed cancel_label()
+     * is really "already done" and it's safe to drop our local record. Default is conservative (false): a
+     * failed cancel stays a failure. Couriers override with a real status check.
+     */
+    public function is_cancelled(string $waybill): bool { return false; }
+
     /** Helper for overrides: append a problem when a saved option is empty. */
     protected function need_option(array &$problems, string $option, string $msg, string $fix): void {
         if (trim((string) get_option($option, '')) === '') {

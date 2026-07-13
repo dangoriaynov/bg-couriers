@@ -500,9 +500,31 @@ class BGC_Econt extends BGC_Abstract_Courier {
                 $this->base . '/Shipments/LabelService.deleteLabels.json',
                 ['shipmentNumbers' => [$waybill]]
             );
-            return empty($resp['error']);
+            if (!empty($resp['error'])) { return false; }
+            // deleteLabels reports per-shipment results; a per-shipment error (e.g. "не е открита") means it
+            // was not cancelled by this call - is_cancelled() then decides whether it was already gone.
+            foreach (($resp['results'] ?? []) as $res) { if (!empty($res['error'])) { return false; } }
+            return true;
         } catch (BGC_Api_Exception $e) {
             return false;
         }
+    }
+
+    /** Already cancelled if getShipmentStatuses reports an "Анулирана"/canceled status or the shipment is gone. */
+    public function is_cancelled(string $waybill): bool {
+        try {
+            $resp = $this->post_json($this->base . '/Shipments/ShipmentService.getShipmentStatuses.json', ['shipmentNumbers' => [$waybill]]);
+            $st = $resp['shipmentStatuses'][0] ?? [];
+            if (!empty($st['error'])) { return true; } // not found -> gone
+            $status = mb_strtolower((string) ($st['status']['shortDeliveryStatus'] ?? '') . ' ' . (string) ($st['status']['shortDeliveryStatusEn'] ?? ''));
+            if (mb_strpos($status, 'анулир') !== false || strpos($status, 'cancel') !== false) { return true; }
+            foreach (($st['status']['trackingEvents'] ?? []) as $ev) {
+                if (($ev['destinationType'] ?? '') === 'canceled') { return true; }
+            }
+        } catch (\Exception $e) {
+            $m = mb_strtolower($e->getMessage());
+            if (mb_strpos($m, 'не е откри') !== false || strpos($m, 'not found') !== false) { return true; }
+        }
+        return false;
     }
 }

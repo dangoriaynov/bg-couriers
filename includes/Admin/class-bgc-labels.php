@@ -109,11 +109,23 @@ class BGC_Labels {
         if ($waybill === '') { return; } // nothing to cancel
         $courier = self::order_courier($order);
         if (!$courier) { throw new BGC_Api_Exception(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
-        if (!$courier->cancel_label($waybill)) { throw new BGC_Api_Exception(esc_html__('The courier did not cancel the waybill.', 'bg-couriers')); }
+        // If the courier refuses the cancel, it may be because the waybill is ALREADY cancelled/gone there -
+        // in which case the desired end state is reached, so clear our record. Only surface a failure when
+        // the shipment is still live (never silently drop an active shipment).
+        $already = false;
+        if (!$courier->cancel_label($waybill)) {
+            if (!$courier->is_cancelled($waybill)) {
+                throw new BGC_Api_Exception(esc_html__('The courier did not cancel the waybill.', 'bg-couriers'));
+            }
+            $already = true;
+        }
         $order->delete_meta_data('_bgc_waybill');
         $order->delete_meta_data('_bgc_label_url');
-        /* translators: %s: waybill number */
-        $order->add_order_note(sprintf(__('Shipment label %s cancelled.', 'bg-couriers'), $waybill));
+        $order->add_order_note($already
+            /* translators: %s: waybill number */
+            ? sprintf(__('Shipment label %s was already cancelled at the courier; removed from the order.', 'bg-couriers'), $waybill)
+            /* translators: %s: waybill number */
+            : sprintf(__('Shipment label %s cancelled.', 'bg-couriers'), $waybill));
         $order->save();
     }
 
