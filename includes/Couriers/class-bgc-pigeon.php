@@ -350,7 +350,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
             'office_id'   => (int)    $order->get_meta('_bgc_office_id'),
             'street_name' => (string) $order->get_meta('_bgc_street_name'),
             'street_no'   => (string) $order->get_meta('_bgc_street_no'),
-            'weight_kg'   => (float)  ($order->get_meta('_bgc_weight_kg') ?: 1.0),
+            'weight_kg'   => self::order_weight_kg($order),
             'cod_amount'  => (float)  ($order->get_meta('_bgc_cod_amount') ?: 0),
         ];
 

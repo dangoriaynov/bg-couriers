@@ -294,7 +294,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
                 'email'  => BGC_Settings::label_email($order), // empty unless sharing is enabled
             ], static function ($v) { return $v !== ''; }),
             'packCount'           => 1,
-            'weight'              => max(0.1, (float) ($order->get_meta('_bgc_weight_kg') ?: 1.0)),
+            'weight'              => max(0.1, self::order_weight_kg($order)),
             'shipmentType'        => 'pack',
             'shipmentDescription' => ((string) get_option('bgc_econt_shipment_description', '')) ?: 'Goods',
         ];

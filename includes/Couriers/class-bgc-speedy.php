@@ -217,7 +217,7 @@ class BGC_Speedy extends BGC_Abstract_Courier {
             'recipient' => $recipient,
             'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => 505],
             'content'   => ['parcelsCount' => 1, 'contents' => 'Goods', 'package' => 'BOX',
-                            'totalWeight' => (float) ($order->get_meta('_bgc_weight_kg') ?: 2.0)],
+                            'totalWeight' => self::order_weight_kg($order, 2.0)],
             'payment'   => ['courierServicePayer' => 'RECIPIENT'],
             'ref1'      => 'ORDER ' . $order->get_order_number(),
         ];

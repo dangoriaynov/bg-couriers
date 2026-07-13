@@ -228,7 +228,7 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
 
     public static function build_awb_body(\WC_Order $order): array {
         $method = (string) $order->get_meta('_bgc_method');
-        $w      = max(0.1, (float) ($order->get_meta('_bgc_weight_kg') ?: 1.0));
+        $w      = max(0.1, self::order_weight_kg($order));
         $is_cod = $order->get_payment_method() === 'cod';
         $body = [
             'pickupPoint'    => (int) get_option('bgc_sameday_pickup_point', 0),

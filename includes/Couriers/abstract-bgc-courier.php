@@ -61,6 +61,25 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
      */
     public function is_cancelled(string $waybill): bool { return false; }
 
+    /**
+     * The order's parcel weight in kg for a waybill: an explicit _bgc_weight_kg override if set, else the sum
+     * of the line items' product weights (converted to kg) x quantity, else the fallback (default 1 kg). This
+     * is what every courier should send as the shipment weight - the raw meta is never populated on its own.
+     */
+    public static function order_weight_kg(\WC_Order $order, float $fallback = 1.0): float {
+        $manual = (float) $order->get_meta('_bgc_weight_kg');
+        if ($manual > 0) { return $manual; }
+        $total = 0.0;
+        foreach ($order->get_items() as $item) {
+            $product = method_exists($item, 'get_product') ? $item->get_product() : null;
+            if (!$product) { continue; }
+            $w = $product->get_weight();
+            if ($w === '' || $w === null) { continue; }
+            $total += (float) wc_get_weight((float) $w, 'kg') * max(1, (int) $item->get_quantity());
+        }
+        return $total > 0 ? round($total, 3) : $fallback;
+    }
+
     /** Helper for overrides: append a problem when a saved option is empty. */
     protected function need_option(array &$problems, string $option, string $msg, string $fix): void {
         if (trim((string) get_option($option, '')) === '') {
