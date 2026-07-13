@@ -351,7 +351,12 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
             'street_name' => (string) $order->get_meta('_bgc_street_name'),
             'street_no'   => (string) $order->get_meta('_bgc_street_no'),
             'weight_kg'   => self::order_weight_kg($order),
-            'cod_amount'  => (float)  ($order->get_meta('_bgc_cod_amount') ?: 0),
+            // COD only for cash-on-delivery orders. Pigeon's calculate body sets who_pays='receiver' (the
+            // receiver pays the delivery fee separately), so COD collects the goods amount - like Speedy.
+            // NOTE: provisional - confirm the exact amount model when the Pigeon API is verified.
+            'cod_amount'  => $order->get_payment_method() === 'cod'
+                ? max(0.0, round((float) $order->get_total() - (float) $order->get_shipping_total() - (float) $order->get_shipping_tax(), 2))
+                : 0.0,
         ];
 
         $body = self::build_calculate_body($s, $pickup_office_id);
