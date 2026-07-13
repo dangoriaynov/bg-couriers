@@ -46,7 +46,7 @@ class BGC_Method_Boxnow extends WC_Shipping_Method {
             'label'     => $label,
             'cost'      => $cost,
             'taxes'     => '', // '' = let WC calculate shipping tax
-            'meta_data' => ['bgc_source' => 'flat', 'bgc_method' => 'automat'],
+            'meta_data' => ['_bgc_source' => 'flat', '_bgc_method' => 'automat'],
         ]);
     }
 }

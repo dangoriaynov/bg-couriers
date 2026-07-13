@@ -34,6 +34,14 @@ class BGC_Plugin {
         add_action('init', ['BGC_Sync', 'schedule']);
         add_action(BGC_Sync::HOOK, ['BGC_Sync', 'cron']);
         add_action(BGC_Sync::RATES_HOOK, ['BGC_Sync', 'refresh_rates']); // daily reference-price refresh
+        // Hide our internal shipping-line meta from the admin order screen. New orders store it under the
+        // underscore-prefixed keys WC hides automatically (admin + customer emails/pages); this covers legacy
+        // orders that stored the unprefixed keys.
+        add_filter('woocommerce_hidden_order_itemmeta', static function ($keys) {
+            $keys[] = 'bgc_source';
+            $keys[] = 'bgc_method';
+            return $keys;
+        });
         add_filter('woocommerce_shipping_methods', function ($methods) {
             $methods['bgc_speedy'] = 'BGC_Method_Speedy';
             $methods['bgc_econt'] = 'BGC_Method_Econt';

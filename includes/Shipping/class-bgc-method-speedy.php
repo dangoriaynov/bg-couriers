@@ -55,7 +55,7 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
             'label' => $label,
             'cost'  => $cost,
             'taxes' => '', // '' = let WC calculate shipping tax; only false disables it
-            'meta_data' => ['bgc_source' => $quote->source, 'bgc_method' => $method],
+            'meta_data' => ['_bgc_source' => $quote->source, '_bgc_method' => $method],
         ]);
     }
 }
