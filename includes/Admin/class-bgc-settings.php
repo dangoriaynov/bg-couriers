@@ -16,6 +16,8 @@ class BGC_Settings {
         add_action('woocommerce_admin_field_bgc_sortable', [$this, 'render_sortable']);
         foreach (array_keys(BGC_Couriers::all()) as $cid) {
             add_filter('woocommerce_admin_settings_sanitize_option_bgc_' . $cid . '_password', [$this, 'sanitize_password'], 10, 3);
+            // Keys/usernames are rendered blank (never exposed); keep the stored value when the field is blank.
+            add_filter('woocommerce_admin_settings_sanitize_option_bgc_' . $cid . '_username', [$this, 'sanitize_keep'], 10, 3);
         }
         add_filter('woocommerce_admin_settings_sanitize_option_bgc_dropdown_limit', [$this, 'sanitize_dropdown_limit'], 10, 3);
         add_action('wp_ajax_bgc_validate_creds', [$this, 'ajax_validate']);
@@ -201,6 +203,20 @@ class BGC_Settings {
             && get_option('bgc_' . $courier . '_password', '') !== '';
     }
 
+    /** Keep a stored key/username (plaintext) when the field is submitted blank; store a new value plainly. */
+    public function sanitize_keep($value, $option, $raw_value) {
+        $key = is_array($option) ? (string) ($option['id'] ?? '') : (string) $option;
+        if ($raw_value === '' || $raw_value === null) {
+            return get_option($key, ''); // blank/disabled field -> keep existing (never overwrite with empty)
+        }
+        if ($raw_value === get_option($key, '')) {
+            return $raw_value; // unchanged
+        }
+        // A genuinely new key/username -> the credentials must be re-validated.
+        if (preg_match('/^bgc_([a-z0-9]+)_username$/', $key, $mm)) { update_option('bgc_' . $mm[1] . '_validated', 'no'); }
+        return sanitize_text_field($raw_value);
+    }
+
     public function sanitize_password($value, $option, $raw_value) {
         $key = is_array($option) ? (string) ($option['id'] ?? '') : (string) $option;
         if ($raw_value === '' || $raw_value === null) {
@@ -352,22 +368,32 @@ class BGC_Settings {
     if(!p.length){ return; }
     var vbtn=$('#bgc-validate'), sbtn=$('#bgc-sync'), st=$('#bgc-status');
     var rows=u.closest('tr').add(p.closest('tr')).add(vbtn.closest('tr'));
-    var xbtn=$('<button type="button" class="button bgc-cred-x" title="{$t['change']}">✕</button>');
-    p.after(xbtn);
-    function syncV(){ vbtn.prop('disabled', present ? (!p.prop('disabled')) : true).attr('title', p.prop('disabled')?'':'{$t['savefirst']}'); }
     function tint(ok){ rows.toggleClass('bgc-creds-ok',ok).toggleClass('bgc-creds-edit',!ok); }
-    function lock(green){ p.prop('disabled',true).addClass('bgc-cred-locked').val('').attr('placeholder','••••••••'); xbtn.show(); tint(green); syncV(); }
-    function unlock(){ p.prop('disabled',false).removeClass('bgc-cred-locked').val('').attr('placeholder',''); xbtn.hide(); tint(false); syncV(); p.focus(); }
-    if(present){ lock(validated); } else { xbtn.hide(); }
-    xbtn.on('click',function(){ unlock(); $.post(ajaxurl,{action:'bgc_reset_creds',nonce:nonce,courier:courier}); });
-    $(document).on('bgc:saved',function(e,d){ if(d&&d.courier===courier){ present=!!d.present; if(present){ lock(!!d.validated); } else { unlock(); xbtn.hide(); } } });
+    // Per-field controller: a saved value shows masked dots + a disabled field + an ✕ to change it, so the
+    // real key/secret is NEVER rendered into the page. Each of the key + secret fields gets its own ✕.
+    function ctl(fld){
+        if(!fld.length){ return {lock:function(){},unlock:function(){},editing:function(){return false;},xb:$()}; }
+        var xb=$('<button type="button" class="button bgc-cred-x" title="{$t['change']}">✕</button>');
+        fld.after(xb);
+        var o={ lock:function(){ fld.prop('disabled',true).addClass('bgc-cred-locked').val('').attr('placeholder','••••••••'); xb.show(); },
+                unlock:function(){ fld.prop('disabled',false).removeClass('bgc-cred-locked').val('').attr('placeholder',''); xb.hide(); },
+                editing:function(){ return !fld.prop('disabled'); }, xb:xb };
+        xb.on('click',function(){ o.unlock(); fld.focus(); tint(false); syncV(); $.post(ajaxurl,{action:'bgc_reset_creds',nonce:nonce,courier:courier}); });
+        return o;
+    }
+    var cu=ctl(u), cp=ctl(p);
+    function syncV(){ var ed=cu.editing()||cp.editing(); vbtn.prop('disabled', present ? ed : true).attr('title', ed?'{$t['savefirst']}':''); }
+    function lockAll(green){ cu.lock(); cp.lock(); tint(green); syncV(); }
+    function unlockAll(){ cu.unlock(); cp.unlock(); tint(false); syncV(); p.focus(); }
+    if(present){ lockAll(validated); } else { cu.xb.hide(); cp.xb.hide(); }
+    $(document).on('bgc:saved',function(e,d){ if(d&&d.courier===courier){ present=!!d.present; if(present){ lockAll(!!d.validated); } else { unlockAll(); cu.xb.hide(); cp.xb.hide(); } } });
 
     function busy(t){ vbtn.add(sbtn).prop('disabled',true); st.html('<span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>'+t); }
     function err(m){ st.html('<span style="color:#b32d2e;">✗ '+m+'</span>'); }
     function good(m){ st.html('<span style="color:#1a7f37;">✓ '+m+'</span>'); }
-    vbtn.on('click',function(){ if(!p.prop('disabled')){ err('{$t['savefirst']}'); return; } busy('{$t['validating']}');
+    vbtn.on('click',function(){ if(cu.editing()||cp.editing()){ err('{$t['savefirst']}'); return; } busy('{$t['validating']}');
         $.post(ajaxurl,{action:'bgc_validate_creds',nonce:nonce,courier:courier}).done(function(r){
-            if(r&&r.success&&r.data&&r.data.ok){ good('{$t['valid']}'); lock(true); }
+            if(r&&r.success&&r.data&&r.data.ok){ good('{$t['valid']}'); lockAll(true); }
             else { err((r&&r.data&&r.data.msg)||'{$t['invalid']}'); tint(false); }
         }).fail(function(){ err('{$t['fail']}'); }).always(function(){ sbtn.prop('disabled',false); syncV(); }); });
     sbtn.on('click',function(){ busy('{$t['syncing']}');
