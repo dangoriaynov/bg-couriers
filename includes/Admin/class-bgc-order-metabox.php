@@ -49,6 +49,11 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel .bgc-ed-form p{margin:0 0 7px;}'
             . '.bgc-order-panel .bgc-ed-form label{color:#50575e;font-weight:600;font-size:12px;}'
             . '.bgc-order-panel .bgc-ed-form select,.bgc-order-panel .bgc-ed-form input[type=text],.bgc-order-panel .bgc-ed-form input:not([type]){height:32px!important;min-height:32px!important;box-sizing:border-box!important;margin:0!important;padding:0 8px!important;font-size:13px!important;line-height:1.2!important;vertical-align:middle;}'
+            // The four full-row dropdowns (courier / option / city / office) all fill the form width so their
+            // widths match - the native courier/option selects were narrower than the full-width select2
+            // city/office (which already init at width:100%). Scoped so the inline street+No. row is untouched.
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-courier,.bgc-order-panel .bgc-ed-form .bgc-ed-method{width:100%!important;min-width:0!important;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-city-row .select2-container,.bgc-order-panel .bgc-ed-form .bgc-ed-office-row .select2-container{width:100%!important;}'
             . '.bgc-order-panel .bgc-ed-form .select2-container{vertical-align:middle;min-height:32px;}'
             . '.bgc-order-panel .bgc-ed-form .select2-selection--single{height:32px!important;min-height:32px!important;box-sizing:border-box!important;}'
             . '.bgc-order-panel .bgc-ed-form .select2-selection--single .select2-selection__rendered{line-height:30px!important;font-size:13px!important;padding-left:8px!important;}'
