@@ -444,7 +444,8 @@ JS;
 
     private function speedy_courier_fields(): array {
         return [
-            ['type' => 'title', 'id' => 'bgc_speedy', 'title' => ''],
+            ['type' => 'title', 'id' => 'bgc_speedy', 'title' => '',
+                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> added automatically to orders the customer paid by cash-on-delivery. Speedy pays the collected amount back to you per your Speedy contract - postal money transfer (пощенски паричен превод) or bank transfer.', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_speedy_enabled', 'title' => __('Enable Speedy', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_speedy_username', 'title' => __('API username', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
@@ -490,7 +491,7 @@ JS;
                 'desc' => __('Short text describing the contents on the Econt waybill (e.g. "Хранителни добавки"). Leave empty for a generic value.', 'bg-couriers'),
                 'default' => '', 'autoload' => false],
             ['type' => 'checkbox', 'id' => 'bgc_econt_cod_enabled', 'title' => __('Cash on delivery (наложен платеж)', 'bg-couriers'),
-                'desc' => __('Attach наложен платеж for the full order total + an item packing list (name, qty, weight, price) to every Econt label, paid out via the agreement below. Enable only if you ship cash-on-delivery.', 'bg-couriers'), 'default' => 'no'],
+                'desc' => __('Attach наложен платеж for the full order total + an item packing list (name, qty, weight, price) to every Econt order the customer paid cash-on-delivery, paid out to you via the agreement below (postal money transfer / пощенски паричен превод, or bank). Prepaid orders are never charged again.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'select', 'id' => 'bgc_econt_cd_num', 'title' => __('CD pay-out agreement', 'bg-couriers'),
                 'desc' => __('The наложен платеж agreement the money is paid out with (loaded from your Econt profile - e.g. postal money transfer / bank).', 'bg-couriers'),
                 'options' => $cd_opts, 'default' => ''],
@@ -502,7 +503,8 @@ JS;
 
     private function pigeon_courier_fields(): array {
         return [
-            ['type' => 'title', 'id' => 'bgc_pigeon', 'title' => ''],
+            ['type' => 'title', 'id' => 'bgc_pigeon', 'title' => '',
+                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> not yet available - the Pigeon Express API integration is pending verification. Until then, ship prepaid orders only (customer pays online or to your bank account).', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_pigeon_enabled', 'title' => __('Enable Pigeon Express', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_pigeon_username', 'title' => __('API Key', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
@@ -528,7 +530,8 @@ JS;
     private function sameday_courier_fields(): array {
         $cur = get_woocommerce_currency();
         return [
-            ['type' => 'title', 'id' => 'bgc_sameday', 'title' => ''],
+            ['type' => 'title', 'id' => 'bgc_sameday', 'title' => '',
+                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> added automatically to orders the customer paid by cash-on-delivery. Sameday pays the collected amount back to you per your Sameday contract - postal money transfer (пощенски паричен превод) or bank transfer.', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_sameday_enabled', 'title' => __('Enable Sameday', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_sameday_username', 'title' => __('Username', 'bg-couriers'),
                 'desc' => __('Sameday API username (X-Auth-Username).', 'bg-couriers'),
@@ -563,7 +566,8 @@ JS;
     /** BOX NOW - locker-only, flat-rate, OAuth2. Only the fields BoxNow actually uses (no dangling params). */
     private function boxnow_courier_fields(): array {
         return [
-            ['type' => 'title', 'id' => 'bgc_boxnow', 'title' => ''],
+            ['type' => 'title', 'id' => 'bgc_boxnow', 'title' => '',
+                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> collected at the locker for orders the customer paid by cash-on-delivery; all other orders are prepaid. BOX NOW pays the collected amount back to you per your BOX NOW contract.', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_boxnow_enabled', 'title' => __('Enable BOX NOW', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_boxnow_username', 'title' => __('Client ID', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],

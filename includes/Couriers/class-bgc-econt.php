@@ -335,8 +335,9 @@ class BGC_Econt extends BGC_Abstract_Courier {
             ];
         }
 
-        // Наложен платеж (COD) + packing list - only when enabled in the Econt settings.
-        if (get_option('bgc_econt_cod_enabled', 'no') === 'yes') {
+        // Наложен платеж (COD) + packing list - only when enabled in the Econt settings AND the order is
+        // actually paid cash-on-delivery (so a prepaid order is never charged again on delivery).
+        if (get_option('bgc_econt_cod_enabled', 'no') === 'yes' && $order->get_payment_method() === 'cod') {
             $label['services'] = [
                 'cdAmount'             => round((float) $order->get_total(), 2),
                 'cdType'               => 'get', // collect from the receiver

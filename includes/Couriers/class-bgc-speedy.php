@@ -221,11 +221,13 @@ class BGC_Speedy extends BGC_Abstract_Courier {
             'payment'   => ['courierServicePayer' => 'RECIPIENT'],
             'ref1'      => 'ORDER ' . $order->get_order_number(),
         ];
-        $cod = self::cod_amount(
+        // COD only for orders actually paid cash-on-delivery (never re-collect on a prepaid order). Speedy
+        // pays the collected amount out per the merchant's Speedy contract (postal money transfer / bank).
+        $cod = ($order->get_payment_method() === 'cod') ? self::cod_amount(
             (float) $order->get_total(),
             (float) $order->get_shipping_total(),
             (float) $order->get_shipping_tax()
-        );
+        ) : 0.0;
         if ($cod > 0) {
             $body['service']['additionalServices']['cod'] = ['amount' => $cod, 'processingType' => 'CASH'];
         }
