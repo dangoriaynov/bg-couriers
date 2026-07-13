@@ -44,6 +44,16 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#1d2327;color:#fff;font-size:11px;font-weight:500;line-height:1;padding:6px 8px;border-radius:6px;pointer-events:none;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.2);}'
             . '.bgc-order-panel [data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1d2327;z-index:30;}'
             . '.bgc-order-panel .bgc-ed{margin-top:8px;}'
+            // Editor form: uniform 32px field height (native selects + select2 + inputs) and tight spacing.
+            . '.bgc-ed-form p{margin:0 0 7px;}'
+            . '.bgc-ed-form label{color:#50575e;font-weight:600;font-size:12px;}'
+            . '.bgc-ed-form select,.bgc-ed-form input[type=text],.bgc-ed-form input:not([type]){height:32px;box-sizing:border-box;margin:0;vertical-align:middle;}'
+            . '.bgc-ed-form .select2-container{vertical-align:middle;}'
+            . '.bgc-ed-form .select2-container .select2-selection--single{height:32px!important;}'
+            . '.bgc-ed-form .select2-container--default .select2-selection--single .select2-selection__rendered{line-height:30px!important;}'
+            . '.bgc-ed-form .select2-container--default .select2-selection--single .select2-selection__arrow{height:30px!important;}'
+            . '.bgc-ed-form .bgc-ed-save{height:34px;margin-top:3px;}'
+            . '.bgc-ed-form .description{margin:6px 0 0;font-size:12px;color:#646970;}'
             // Copied-to-clipboard toast + custom cancel confirmation dialog (global, not panel-scoped).
             . '.bgc-toast{position:fixed;z-index:100001;background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;}'
             . '.bgc-toast.show{opacity:1;transform:translateY(0);}'
