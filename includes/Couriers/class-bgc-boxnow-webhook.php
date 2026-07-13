@@ -106,6 +106,9 @@ class BGC_Boxnow_Webhook {
     /** Match our stored BoxNow parcel id first; fall back to a numeric order number that is ours. */
     private static function find_order(string $parcel, string $order_number) {
         if ($parcel !== '') {
+            // Runs at most once per BoxNow parcel status webhook to find the order by our stored waybill;
+            // a meta query is appropriate for this rare, event-driven lookup.
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
             $orders = wc_get_orders(['limit' => 1, 'meta_key' => '_bgc_waybill', 'meta_value' => $parcel, 'return' => 'objects']);
             if (!empty($orders)) { return $orders[0]; }
         }
