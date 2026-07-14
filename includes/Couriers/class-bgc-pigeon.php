@@ -3,6 +3,7 @@ defined('ABSPATH') || exit;
 
 class BGC_Pigeon extends BGC_Abstract_Courier {
     const PROD = 'https://api.pigeonexpress.com';
+    const DEMO = 'https://api-demo.pigeonexpress.com';
 
     private $key;   // X-API-Key   (from $config['username'])
     private $secret; // X-API-Secret (from $config['password'])
@@ -11,11 +12,11 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
     public function __construct(array $config) {
         $this->key    = (string) ($config['username'] ?? '');
         $this->secret = (string) ($config['password'] ?? '');
-        // Fall back to the production base for an EMPTY base too, not just a missing one: the plugin passes
-        // get_option('bgc_pigeon_base_url', '') which is '' when the merchant hasn't set a custom URL, and
-        // '' would produce a malformed request URL ("missing valid address" transport errors).
-        $base         = rtrim(trim((string) ($config['base'] ?? '')), '/');
-        $this->base   = $base !== '' ? $base : self::PROD;
+        // Base host comes from $config['base'] (the bootstrap resolves prod vs the DEMO sandbox from the
+        // bgc_pigeon_sandbox toggle and passes it in). Fall back to PROD for an empty/missing base - an empty
+        // base makes a malformed request URL -> "missing valid address" transport errors.
+        $base = rtrim(trim((string) ($config['base'] ?? '')), '/');
+        $this->base = $base !== '' ? $base : self::PROD;
     }
 
     public function id(): string { return 'pigeon'; }

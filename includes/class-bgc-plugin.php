@@ -14,7 +14,10 @@ class BGC_Plugin {
             return new BGC_Econt(BGC_Settings::courier_config('econt') ?: []);
         });
         BGC_Couriers::register('pigeon', __('Pigeon Express', 'bg-couriers'), static function () {
-            return new BGC_Pigeon(array_merge(BGC_Settings::courier_config('pigeon') ?: [], ['base' => get_option('bgc_pigeon_base_url', '')]));
+            // Pick the live vs sandbox host from the toggle (resolved here at runtime, not in the constructor,
+            // so the constructor stays pure for unit tests).
+            $base = get_option('bgc_pigeon_sandbox') === 'yes' ? BGC_Pigeon::DEMO : BGC_Pigeon::PROD;
+            return new BGC_Pigeon(array_merge(BGC_Settings::courier_config('pigeon') ?: [], ['base' => $base]));
         });
         BGC_Couriers::register('boxnow', __('BOX NOW', 'bg-couriers'), static function () {
             return new BGC_Boxnow(array_merge(BGC_Settings::courier_config('boxnow') ?: [], [

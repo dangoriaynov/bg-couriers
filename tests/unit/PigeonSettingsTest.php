@@ -73,7 +73,7 @@ final class PigeonSettingsTest extends TestCase {
             'bgc_pigeon_enabled',
             'bgc_pigeon_username',
             'bgc_pigeon_password',
-            'bgc_pigeon_base_url',
+            'bgc_pigeon_sandbox',
             'bgc_pigeon_pickup_office_id',
             'bgc_pigeon_free_threshold',
         ];
@@ -95,7 +95,7 @@ final class PigeonSettingsTest extends TestCase {
 
         $this->assertContains('bgc_pigeon_enabled', $ids);
         $this->assertContains('bgc_pigeon_password', $ids);
-        $this->assertContains('bgc_pigeon_base_url', $ids);
+        $this->assertContains('bgc_pigeon_sandbox', $ids);
         $this->assertContains('bgc_pigeon_pickup_office_id', $ids);
         // Per-method fields from method_fields('pigeon', 'office', …)
         $this->assertContains('bgc_pigeon_office_enabled', $ids);
