@@ -22,6 +22,7 @@ class BGC_Labels {
         add_action('wp_ajax_bgc_order_save_delivery', [$this, 'handle_save_delivery']);
         add_action('wp_ajax_bgc_ajax_cancel_label', [$this, 'ajax_cancel_label']);
         add_action('woocommerce_order_status_changed', [$this, 'maybe_auto_generate'], 20, 4);
+        add_action('woocommerce_order_refunded', [$this, 'maybe_cancel_on_refund'], 20, 2);
     }
 
     /** Auto-generate a label when an order reaches the configured status. */
@@ -133,6 +134,22 @@ class BGC_Labels {
             /* translators: %s: waybill number */
             : sprintf(__('Shipment label %s cancelled.', 'bg-couriers'), $waybill));
         $order->save();
+    }
+
+    /**
+     * When an order is FULLY refunded, void its courier waybill (best effort) so a refunded shipment is not
+     * still delivered + billed. Partial refunds are left alone. Fires on woocommerce_order_refunded.
+     */
+    public function maybe_cancel_on_refund($order_id, $refund_id): void {
+        $order = wc_get_order($order_id);
+        if (!$order) { return; }
+        if ((string) $order->get_meta('_bgc_waybill') === '') { return; }        // nothing to void
+        if ((float) $order->get_remaining_refund_amount() > 0) { return; }        // partial refund -> keep the waybill
+        try { self::cancel((int) $order_id); }
+        catch (\Exception $e) {
+            /* translators: %s: error message from the courier */
+            $order->add_order_note(sprintf(__('Auto-cancel of the waybill after a full refund failed: %s', 'bg-couriers'), $e->getMessage()));
+        }
     }
 
     private function fail_note(int $id, string $msg, string $context): void {

@@ -151,7 +151,9 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
             'origin'              => [
                 'contactName'   => get_bloginfo('name'),
                 'contactEmail'  => (string) get_option('admin_email'),
-                'contactNumber' => (string) $order->get_billing_phone(),
+                // The origin is the SENDER (merchant warehouse) - use the merchant's own contact phone, NOT the
+                // buyer's (which belongs on the destination). Matches the official plugin's boxnow_mobile_number.
+                'contactNumber' => (string) get_option('bgc_boxnow_sender_phone', ''),
                 'locationId'    => $origin_id,
             ],
             'destination'         => [

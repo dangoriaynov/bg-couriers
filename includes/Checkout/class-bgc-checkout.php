@@ -224,6 +224,16 @@ class BGC_Checkout {
         if (!$courier) { return; } // a non-bgc shipping method - not ours to validate
         $names = BGC_Couriers::all();
         $label = $names[$courier] ?? ucfirst($courier);
+        // Validate the phone FORMAT (it's already required elsewhere) so a malformed number is caught here
+        // with a friendly message, not as a cryptic courier API rejection after the order is placed. Bulgarian
+        // numbers: 0 + 8-9 digits (e.g. 0888123456) or +359 + 8-9 digits; separators are stripped first.
+        $phone = isset($data['billing_phone']) ? (string) $data['billing_phone'] : '';
+        if ($phone !== '') {
+            $digits = preg_replace('/[\s\-()]/', '', $phone);
+            if (!preg_match('/^(\+?359|0)\d{8,9}$/', (string) $digits)) {
+                $errors->add('bgc', __('Please enter a valid Bulgarian phone number (e.g. 0888 123 456) so the courier can reach the recipient.', 'bg-couriers'));
+            }
+        }
         $s = WC()->session;
         // The saved selection must belong to the courier actually chosen - switching couriers voids the old pick.
         if ((string) $s->get('bgc_selection_courier', '') !== $courier) {

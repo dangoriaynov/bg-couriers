@@ -120,7 +120,16 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         if (is_wp_error($r)) {
             throw new BGC_Api_Exception(esc_html($r->get_error_message()));
         }
-        return (array) json_decode(wp_remote_retrieve_body($r), true);
+        $code = (int) wp_remote_retrieve_response_code($r);
+        $raw  = (string) wp_remote_retrieve_body($r);
+        $data = json_decode($raw, true);
+        // Sameday returns 4xx/5xx with a JSON error body; without a status check those would be treated as a
+        // successful (empty) response and produce a blank waybill. Throw so the caller surfaces the real error.
+        if ($code < 200 || $code >= 300) {
+            $msg = is_array($data) ? ($data['message'] ?? $data['error'] ?? substr($raw, 0, 300)) : substr($raw, 0, 300);
+            throw new BGC_Api_Exception(esc_html('Sameday HTTP ' . $code . ': ' . $msg));
+        }
+        return is_array($data) ? $data : [];
     }
 
     // ── BGC_Courier_Interface stubs (to be filled in later tasks) ─────────────
