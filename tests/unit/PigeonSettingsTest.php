@@ -75,7 +75,6 @@ final class PigeonSettingsTest extends TestCase {
             'bgc_pigeon_password',
             'bgc_pigeon_base_url',
             'bgc_pigeon_pickup_office_id',
-            'bgc_pigeon_label_paper_size',
             'bgc_pigeon_free_threshold',
         ];
 

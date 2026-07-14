@@ -430,6 +430,14 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
      */
     public function create_label(\WC_Order $order): BGC_Label {
         $pickup = (int) get_option('bgc_pigeon_pickup_office_id', 0);
+        if ($pickup <= 0) {
+            // Fail with a clear, actionable message instead of Pigeon's raw HTTP 422
+            // ("invalid pickup office id") when the merchant hasn't set their drop-off office.
+            throw new BGC_Api_Exception(esc_html__(
+                'Set your Pigeon pickup office ID in Settings > BG Couriers > Pigeon Express before generating a label.',
+                'bg-couriers'
+            ));
+        }
         $resp   = $this->post_json(
             $this->base . '/v1/shipments',
             self::build_shipment_body($order, $pickup)
