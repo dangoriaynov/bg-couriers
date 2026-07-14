@@ -147,7 +147,7 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
             'invoiceValue'        => $total,
             'paymentMode'         => $is_cod ? 'cod' : 'prepaid',
             'amountToBeCollected' => $is_cod ? $total : '0.00',
-            'allowReturn'         => false,
+            'allowReturn'         => get_option('bgc_boxnow_allow_returns', 'no') === 'yes',
             'origin'              => [
                 'contactName'   => get_bloginfo('name'),
                 'contactEmail'  => (string) get_option('admin_email'),
@@ -177,13 +177,40 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
                 'name'            => (string) $item->get_name(),
                 'value'           => number_format((float) $item->get_total() + (float) $item->get_total_tax(), 2, '.', ''),
                 'weight'          => round(max(0.001, $weight * max(1, (int) $item->get_quantity())), 3),
-                'compartmentSize' => 2, // M
+                'compartmentSize' => self::compartment_size($product),
             ];
         }
         if (empty($out)) {
             $out[] = ['id' => 'order', 'name' => 'Order', 'value' => number_format((float) $order->get_total(), 2, '.', ''), 'weight' => 1.0, 'compartmentSize' => 2];
         }
         return $out;
+    }
+
+    /**
+     * BOX NOW locker compartment for a product, matching the official plugin: the footprint must fit
+     * 60 x 45 cm and the HEIGHT picks the size - <=8cm Small(1), <=17cm Medium(2), <=36cm Large(3). No
+     * dimensions -> Medium (the default). Anything larger falls back to Large (BOX NOW rejects if truly
+     * oversized). WC dimensions are converted to cm first.
+     *
+     * @param \WC_Product|null $product
+     * @return int 1=S, 2=M, 3=L
+     */
+    private static function compartment_size($product): int {
+        if (!$product) { return 2; }
+        $l = (float) $product->get_length();
+        $w = (float) $product->get_width();
+        $h = (float) $product->get_height();
+        if ($l <= 0 && $w <= 0 && $h <= 0) { return 2; } // no dimensions -> Medium default
+        $unit = (string) get_option('woocommerce_dimension_unit', 'cm');
+        $l = (float) wc_get_dimension($l, 'cm', $unit);
+        $w = (float) wc_get_dimension($w, 'cm', $unit);
+        $h = (float) wc_get_dimension($h, 'cm', $unit);
+        if ($l <= 60.0 && $w <= 45.0) {
+            if ($h <= 8.0)  { return 1; }
+            if ($h <= 17.0) { return 2; }
+            if ($h <= 36.0) { return 3; }
+        }
+        return 3; // oversized footprint/height -> largest compartment; let BOX NOW reject if it truly won't fit
     }
 
     public static function parse_parcel_id(array $resp): string {

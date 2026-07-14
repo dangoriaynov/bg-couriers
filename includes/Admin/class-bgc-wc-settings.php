@@ -586,6 +586,8 @@ JS;
                 'desc' => __('Origin warehouse/location ID parcels ship from (from BoxNow).', 'bg-couriers'), 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_boxnow_sender_phone', 'title' => __('Sender contact phone', 'bg-couriers'),
                 'desc' => __('Your (the sender\'s) contact phone for the pickup/origin - BOX NOW puts this on the parcel as the origin contact. Leave empty to omit.', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'checkbox', 'id' => 'bgc_boxnow_allow_returns', 'title' => __('Allow returns', 'bg-couriers'), 'default' => 'no',
+                'desc' => __('Let the recipient return the parcel via a BOX NOW locker (sets allowReturn on the shipment).', 'bg-couriers')],
             ['type' => 'text', 'id' => 'bgc_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
                 'desc' => __('Verifies incoming BOX NOW parcel-event webhooks (HMAC-SHA256). Register this webhook URL in your BOX NOW account:', 'bg-couriers')
                     . '<br><code>' . esc_html(BGC_Boxnow_Webhook::url()) . '</code>', 'autoload' => false],

@@ -64,11 +64,16 @@ class BGC_Labels {
         $up = wp_upload_dir();
         $dir = trailingslashit($up['basedir']) . 'bgc-labels';
         wp_mkdir_p($dir);
+        self::protect_label_dir($dir);
         $safe_waybill = preg_replace('/[^A-Za-z0-9\-]/', '', (string) $label->waybill);
         $prefix = preg_replace('/[^a-z0-9]/', '', $courier->id()) ?: 'bgc';
-        $file = $dir . '/' . $prefix . '-' . $safe_waybill . '.pdf';
+        // A random token in the filename so the URL is NOT guessable from the (customer-visible) waybill.
+        // The label PDF carries the recipient's name/address/phone, so a predictable path would leak PII.
+        $token = wp_generate_password(24, false); // [A-Za-z0-9] only
+        $name  = $prefix . '-' . $safe_waybill . '-' . $token . '.pdf';
+        $file  = $dir . '/' . $name;
         file_put_contents($file, $pdf);
-        $url = trailingslashit($up['baseurl']) . 'bgc-labels/' . $prefix . '-' . $safe_waybill . '.pdf';
+        $url = trailingslashit($up['baseurl']) . 'bgc-labels/' . $name;
         $order->update_meta_data('_bgc_label_url', $url);
         /* translators: 1: courier name, 2: waybill number */
         $order->add_order_note(sprintf(__('%1$s label generated: %2$s', 'bg-couriers'), $courier->label(), $label->waybill));
@@ -79,6 +84,21 @@ class BGC_Labels {
         $r = wp_remote_get($url, ['timeout' => 30]);
         if (is_wp_error($r)) { throw new BGC_Api_Exception(esc_html('Label PDF download failed: ' . $r->get_error_message())); }
         return (string) wp_remote_retrieve_body($r);
+    }
+
+    /** Drop an empty index.html into the label dir so the folder can't be directory-listed. */
+    private static function protect_label_dir(string $dir): void {
+        $index = $dir . '/index.html';
+        if (!file_exists($index)) { @file_put_contents($index, ''); }
+    }
+
+    /** Delete the on-disk label PDF for a saved _bgc_label_url (only inside uploads/bgc-labels). */
+    private static function delete_label_file(string $url): void {
+        if ($url === '') { return; }
+        $up = wp_upload_dir();
+        if (empty($up['baseurl']) || strpos($url, trailingslashit($up['baseurl']) . 'bgc-labels/') !== 0) { return; }
+        $file = $up['basedir'] . substr($url, strlen($up['baseurl']));
+        if (is_file($file)) { @unlink($file); }
     }
     public static function batch_parcel_ids(array $order_ids, ?callable $resolver = null): array {
         $resolver = $resolver ?: static function ($id) {
@@ -126,6 +146,7 @@ class BGC_Labels {
             }
             $already = true;
         }
+        self::delete_label_file((string) $order->get_meta('_bgc_label_url')); // remove the PII PDF for the voided shipment
         $order->delete_meta_data('_bgc_waybill');
         $order->delete_meta_data('_bgc_label_url');
         $order->add_order_note($already
