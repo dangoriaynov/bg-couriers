@@ -133,7 +133,20 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
      * @return array[]      Parsed office rows.
      */
     public function fetch_offices(int $city_id): array {
-        return self::parse_offices($this->get_json('/v1/offices', ['city_id' => $city_id]));
+        // /v1/offices returns ONLY the requested `type`; lockers/APS are a separate type (not in the default
+        // office list), so fetch both and merge - parse_offices maps type 'locker' -> 'automat'.
+        $offices = self::parse_offices($this->get_json('/v1/offices', ['city_id' => $city_id, 'type' => 'office']));
+        $lockers = self::parse_offices($this->get_json('/v1/offices', ['city_id' => $city_id, 'type' => 'locker']));
+        return array_merge($offices, $lockers);
+    }
+
+    /** Default parcel box (cm) for quotes/labels; Pigeon requires length/width/height. Merchant-overridable. */
+    public static function default_box(): array {
+        return [
+            'length' => max(1, (int) get_option('bgc_pigeon_box_length', 40)),
+            'width'  => max(1, (int) get_option('bgc_pigeon_box_width', 40)),
+            'height' => max(1, (int) get_option('bgc_pigeon_box_height', 40)),
+        ];
     }
 
     /**
@@ -272,8 +285,9 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
         $body = [
             'pickup_type'      => 'office',
             'pickup_office_id' => $pickup_office_id,
+            // Pigeon requires length/width/height on every package (not just weight), else HTTP 422.
             'packages'         => [
-                ['weight' => max(0.1, (float) ($s['weight_kg'] ?? 1.0))],
+                array_merge(['weight' => max(0.1, (float) ($s['weight_kg'] ?? 1.0))], self::default_box()),
             ],
             'service_type'     => 'standard',
             'who_pays'         => 'receiver',
