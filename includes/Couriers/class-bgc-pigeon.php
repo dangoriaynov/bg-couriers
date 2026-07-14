@@ -392,6 +392,10 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
 
         $body = self::build_calculate_body($s, $pickup_office_id, self::default_box());
 
+        // Stamp our order number as the external reference so every shipment is identifiable in the Pigeon
+        // dashboard / by support (Pigeon has no list or search-by-order API, so this is the only way to
+        // reconcile a waybill back to its order after the fact).
+        $body['external_reference'] = (string) $order->get_order_number();
         $body['receiver_name']  = $order->get_formatted_billing_full_name();
         $body['receiver_phone'] = (string) $order->get_billing_phone();
         $body['receiver_email'] = BGC_Settings::label_email($order);
