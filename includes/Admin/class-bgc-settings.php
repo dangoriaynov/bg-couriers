@@ -14,6 +14,7 @@ class BGC_Settings {
         add_filter('woocommerce_get_settings_pages', [$this, 'register_page']);
         add_action('woocommerce_admin_field_bgc_actions', [$this, 'render_actions']);
         add_action('woocommerce_admin_field_bgc_sortable', [$this, 'render_sortable']);
+        add_action('woocommerce_admin_field_bgc_pigeon_pickup', [$this, 'render_pickup']);
         foreach (array_keys(BGC_Couriers::all()) as $cid) {
             add_filter('woocommerce_admin_settings_sanitize_option_bgc_' . $cid . '_password', [$this, 'sanitize_password'], 10, 3);
             // Keys/usernames are rendered blank (never exposed); keep the stored value when the field is blank.
@@ -194,6 +195,54 @@ class BGC_Settings {
         echo '<p class="description">' . esc_html($desc) . '</p>';
         $sid = esc_js($id);
         echo "<script>jQuery(function($){ $('#bgc-sort-{$sid}').sortable({update:function(){ $('#{$sid}').val($(this).children().map(function(){return $(this).data('m');}).get().join(',')); }}); });</script>";
+        echo '</td></tr>';
+    }
+
+    /**
+     * Custom WC field: Pigeon pickup-office picker. A city search (select2, AJAX bgc_search_cities) drives an
+     * office dropdown (AJAX bgc_offices, type=office); the chosen office id is stored in the hidden input whose
+     * name is the option id (bgc_pigeon_pickup_office_id), so WC saves it like a normal field. Leaving the
+     * picker untouched keeps the current value (the hidden input already holds it).
+     */
+    public function render_pickup($field): void {
+        $id      = (string) ($field['id'] ?? 'bgc_pigeon_pickup_office_id');
+        $current = (int) get_option($id, 0);
+        wp_enqueue_script('selectWoo');
+        wp_enqueue_style('select2');
+        $ph_city = esc_js(__('Search your city...', 'bg-couriers'));
+        $ph_off  = esc_js(__('Pick the pickup office', 'bg-couriers'));
+        /* translators: %d: Pigeon office id */
+        $cur_txt = $current > 0 ? esc_js(sprintf(__('Current pickup office (#%d)', 'bg-couriers'), $current)) : '';
+        $idjs    = esc_js($id);
+
+        echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html($field['title'] ?? '') . '</th><td class="forminp">';
+        echo '<select id="bgc_pickup_city" style="min-width:300px;"></select><br>';
+        echo '<select id="bgc_pickup_office" style="min-width:300px;margin-top:6px;"></select>';
+        echo '<input type="hidden" id="' . esc_attr($id) . '" name="' . esc_attr($id) . '" value="' . esc_attr((string) $current) . '">';
+        echo '<p class="description">' . esc_html($field['desc'] ?? '') . '</p>';
+        echo "<script>
+jQuery(function($){
+  var \$c=$('#bgc_pickup_city'), \$o=$('#bgc_pickup_office'), \$h=$('#{$idjs}');
+  var cur=\$h.val();
+  if(cur && cur!=='0'){ \$o.append(new Option('{$cur_txt}', cur, true, true)); }
+  \$c.select2({ width:'300px', placeholder:'{$ph_city}', minimumInputLength:1, ajax:{
+    url: ajaxurl, dataType:'json', delay:250,
+    data:function(p){ return {action:'bgc_search_cities', courier:'pigeon', term:p.term||''}; },
+    processResults:function(d){ return {results:(d||[]).map(function(c){ return {id:c.city_id, text:(c.name||'')+(c.region?(' ('+c.region+')'):'')}; })}; }
+  }});
+  \$o.select2({ width:'300px', placeholder:'{$ph_off}' });
+  \$c.on('select2:select', function(e){
+    var cid=e.params.data.id; \$o.prop('disabled',true);
+    $.getJSON(ajaxurl, {action:'bgc_offices', courier:'pigeon', city_id:cid, type:'office', all:1}, function(rows){
+      \$o.empty();
+      (rows||[]).forEach(function(r){ \$o.append(new Option((r.name||'')+(r.address?(' - '+r.address):''), r.office_id)); });
+      \$o.prop('disabled',false).trigger('change');
+      if((rows||[]).length){ \$h.val(rows[0].office_id); }
+    });
+  });
+  \$o.on('change', function(){ if($(this).val()){ \$h.val($(this).val()); } });
+});
+</script>";
         echo '</td></tr>';
     }
 
