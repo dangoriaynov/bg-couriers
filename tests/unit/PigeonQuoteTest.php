@@ -42,8 +42,13 @@ final class PigeonQuoteTest extends TestCase {
         $this->assertSame('office', $body['delivery_type']);
         $this->assertSame(2001, $body['delivery_office_id']);
         $this->assertSame(1.5, $body['packages'][0]['weight']);
+        // packages carry length/width/height (default box) - Pigeon 422s without them
+        $this->assertSame(40, $body['packages'][0]['length']);
+        $this->assertSame(40, $body['packages'][0]['width']);
+        $this->assertSame(40, $body['packages'][0]['height']);
         $this->assertSame('standard', $body['service_type']);
-        $this->assertSame('receiver', $body['who_pays']);
+        // The merchant pays the courier (we already charged shipping at checkout)
+        $this->assertSame('sender', $body['who_pays']);
         $this->assertArrayNotHasKey('delivery_address', $body);
         // cod_amount === 0 → no service_codes
         $this->assertArrayNotHasKey('service_codes', $body);
@@ -78,8 +83,11 @@ final class PigeonQuoteTest extends TestCase {
         $this->assertSame('address', $body['delivery_type']);
         $this->assertArrayNotHasKey('delivery_office_id', $body);
         $this->assertSame(68134, $body['delivery_address']['city_id']);
-        $this->assertSame('бул. Витоша', $body['delivery_address']['street_name']);
-        $this->assertSame('1', $body['delivery_address']['street_number']);
+        // The API takes address delivery as city_id + a free-text additional_info (street_id optional,
+        // which we do not capture). street_name/street_number are NOT sent.
+        $this->assertSame('бул. Витоша 1', $body['delivery_address']['additional_info']);
+        $this->assertArrayNotHasKey('street_name', $body['delivery_address']);
+        $this->assertArrayNotHasKey('street_number', $body['delivery_address']);
     }
 
     // (e) COD adds service_codes

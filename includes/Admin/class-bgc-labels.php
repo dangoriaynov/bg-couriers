@@ -49,11 +49,17 @@ class BGC_Labels {
         $label = $courier->create_label($order);
         $order->update_meta_data('_bgc_waybill', $label->waybill);
 
-        // Prefer the PDF URL the courier returned in the create response (Econt does this); otherwise
-        // fetch the label by waybill.
-        $pdf = ($label->pdf !== '' && strpos($label->pdf, 'http') === 0)
-            ? self::download_pdf($label->pdf)
-            : $courier->get_label_pdf($label->waybill);
+        // Get the label PDF bytes. Three cases, in order:
+        //  - the create response returned a URL  (Econt) -> download it;
+        //  - the create response returned the PDF inline (Pigeon has no separate label endpoint) -> use as-is;
+        //  - otherwise fetch the label by waybill (Speedy, Econt print endpoint, ...).
+        if ($label->pdf !== '' && strpos($label->pdf, 'http') === 0) {
+            $pdf = self::download_pdf($label->pdf);
+        } elseif ($label->pdf !== '') {
+            $pdf = $label->pdf;
+        } else {
+            $pdf = $courier->get_label_pdf($label->waybill);
+        }
         $up = wp_upload_dir();
         $dir = trailingslashit($up['basedir']) . 'bgc-labels';
         wp_mkdir_p($dir);

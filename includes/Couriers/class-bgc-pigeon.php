@@ -11,7 +11,11 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
     public function __construct(array $config) {
         $this->key    = (string) ($config['username'] ?? '');
         $this->secret = (string) ($config['password'] ?? '');
-        $this->base   = (string) ($config['base'] ?? self::PROD);
+        // Fall back to the production base for an EMPTY base too, not just a missing one: the plugin passes
+        // get_option('bgc_pigeon_base_url', '') which is '' when the merchant hasn't set a custom URL, and
+        // '' would produce a malformed request URL ("missing valid address" transport errors).
+        $base         = rtrim(trim((string) ($config['base'] ?? '')), '/');
+        $this->base   = $base !== '' ? $base : self::PROD;
     }
 
     public function id(): string { return 'pigeon'; }
@@ -85,9 +89,12 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
     // ── Credential check ─────────────────────────────────────────────────────
 
     public function check_credentials(): bool {
+        // Match the official plugin's probe: GET a single known city (759 = Sofia). A 200 means the
+        // key/secret are valid; get_json throws on any non-200 (auth failures are 401/403). The list
+        // endpoints don't return a `success` flag, so we rely on the HTTP status, not a body field.
         try {
-            $r = $this->get_json('/v1/cities', ['per_page' => 1]);
-            return !empty($r['success']);
+            $this->get_json('/v1/cities/759');
+            return true;
         } catch (\Exception $e) {
             return false;
         }
@@ -281,25 +288,35 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
      * @param int   $pickup_office_id Merchant's Pigeon pickup office id (from settings).
      * @return array                  JSON-encodable request body.
      */
-    public static function build_calculate_body(array $s, int $pickup_office_id): array {
+    public static function build_calculate_body(array $s, int $pickup_office_id, array $box = ['length' => 40, 'width' => 40, 'height' => 40]): array {
         $body = [
             'pickup_type'      => 'office',
             'pickup_office_id' => $pickup_office_id,
             // Pigeon requires length/width/height on every package (not just weight), else HTTP 422.
+            // The box is injected by the caller (default_box() reads the merchant's settings); the literal
+            // default keeps this method pure and get_option-free so it can be unit-tested directly.
             'packages'         => [
-                array_merge(['weight' => max(0.1, (float) ($s['weight_kg'] ?? 1.0))], self::default_box()),
+                array_merge(['weight' => max(0.1, (float) ($s['weight_kg'] ?? 1.0))], $box),
             ],
             'service_type'     => 'standard',
-            'who_pays'         => 'receiver',
+            // The merchant pays the courier for delivery: our checkout already quotes and charges the
+            // shipping fee to the customer, so who_pays='sender' (not 'receiver', which would make the
+            // courier collect the fee AGAIN at the door). This is also what the quote price reflects.
+            'who_pays'         => 'sender',
         ];
 
         if (($s['method'] ?? 'address') === 'address') {
             $body['delivery_type']    = 'address';
+            // The API accepts address delivery with just city_id + additional_info (a free-text address);
+            // street_id is optional (we only have the street as text). additional_info must be non-empty.
+            $addr = trim((string) ($s['street_name'] ?? '') . ' ' . (string) ($s['street_no'] ?? ''));
             $body['delivery_address'] = [
-                'city_id'       => (int) ($s['site_id'] ?? 0),
-                'street_name'   => (string) ($s['street_name'] ?? ''),
-                'street_number' => (string) ($s['street_no'] ?? ''),
+                'city_id'         => (int) ($s['site_id'] ?? 0),
+                'additional_info' => $addr !== '' ? $addr : '-',
             ];
+            if (!empty($s['street_id'])) {
+                $body['delivery_address']['street_id'] = (int) $s['street_id'];
+            }
         } else {
             $body['delivery_type']      = ($s['method'] === 'automat') ? 'locker' : 'office';
             $body['delivery_office_id'] = (int) ($s['office_id'] ?? 0);
@@ -339,7 +356,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
         $pickup = (int) get_option('bgc_pigeon_pickup_office_id', 0);
         $resp   = $this->post_json(
             $this->base . '/v1/shipments/calculate',
-            self::build_calculate_body($shipment, $pickup)
+            self::build_calculate_body($shipment, $pickup, self::default_box())
         );
         return self::parse_price($resp, (string) ($shipment['currency'] ?? 'EUR'));
     }
@@ -365,15 +382,15 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
             'street_name' => (string) $order->get_meta('_bgc_street_name'),
             'street_no'   => (string) $order->get_meta('_bgc_street_no'),
             'weight_kg'   => self::order_weight_kg($order),
-            // COD only for cash-on-delivery orders. Pigeon's calculate body sets who_pays='receiver' (the
-            // receiver pays the delivery fee separately), so COD collects the goods amount - like Speedy.
-            // NOTE: provisional - confirm the exact amount model when the Pigeon API is verified.
+            // COD only for cash-on-delivery orders. who_pays='sender' (see build_calculate_body): the
+            // merchant already collected the shipping fee at checkout, so the courier collects the FULL
+            // order total from the customer at delivery - goods + shipping - like Econt/Sameday/BOX NOW.
             'cod_amount'  => $order->get_payment_method() === 'cod'
-                ? max(0.0, round((float) $order->get_total() - (float) $order->get_shipping_total() - (float) $order->get_shipping_tax(), 2))
+                ? max(0.0, round((float) $order->get_total(), 2))
                 : 0.0,
         ];
 
-        $body = self::build_calculate_body($s, $pickup_office_id);
+        $body = self::build_calculate_body($s, $pickup_office_id, self::default_box());
 
         $body['receiver_name']  = $order->get_formatted_billing_full_name();
         $body['receiver_phone'] = (string) $order->get_billing_phone();
@@ -413,46 +430,29 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
             $this->base . '/v1/shipments',
             self::build_shipment_body($order, $pickup)
         );
-        return new BGC_Label(self::parse_shipment_id($resp));
+        // Pigeon returns the label PDF INLINE (base64) in the create response - there is no separate
+        // label-download endpoint, so capture it now. BGC_Labels::generate() persists these bytes to disk;
+        // reprints then serve the saved file (collect_label_pdfs prefers the file over re-fetching).
+        $pdf = isset($resp['data']['label_pdf'])
+            ? (string) base64_decode((string) $resp['data']['label_pdf'], true)
+            : '';
+        return new BGC_Label(self::parse_shipment_id($resp), $pdf);
     }
 
     /**
-     * Fetch label PDF bytes for a given reference number.
-     *
-     * Calls GET /v1/shipments/{ref}/label. If the response is JSON with a
-     * data.label_pdf base64 field, decodes it; otherwise returns raw bytes.
-     * Live - do NOT call in tests.
+     * Pigeon has NO label-by-waybill endpoint: the PDF is returned only once, inline in the
+     * create-shipment response (see create_label(), which persists it to disk via BGC_Labels).
+     * This is a pure fallback for the rare case the saved file is gone - we cannot re-fetch it.
      *
      * @param string $waybill The Pigeon reference number.
-     * @return string         Raw PDF bytes.
-     * @throws BGC_Api_Exception On transport error or missing PDF.
+     * @return string         Never returns; always throws.
+     * @throws BGC_Api_Exception Always - the label is not retrievable after creation.
      */
     public function get_label_pdf(string $waybill): string {
-        $path = '/v1/shipments/' . rawurlencode($waybill) . '/label';
-        $url  = $this->base . $path;
-        $res  = wp_remote_get($url, [
-            'timeout' => 30,
-            'headers' => [
-                'Accept'       => 'application/json, application/pdf',
-                'X-API-Key'    => $this->key,
-                'X-API-Secret' => $this->secret,
-            ],
-        ]);
-        if (is_wp_error($res)) {
-            throw new BGC_Api_Exception(esc_html('Pigeon label download failed: ' . $res->get_error_message()));
-        }
-        $code = (int) wp_remote_retrieve_response_code($res);
-        $raw  = (string) wp_remote_retrieve_body($res);
-        if ($code !== 200) {
-            throw new BGC_Api_Exception(esc_html('Pigeon label HTTP ' . $code . ': ' . substr($raw, 0, 200)));
-        }
-        // If the API returns JSON with base64-encoded PDF, decode it.
-        $decoded = json_decode($raw, true);
-        if (is_array($decoded) && isset($decoded['data']['label_pdf'])) {
-            return (string) base64_decode((string) $decoded['data']['label_pdf'], true);
-        }
-        // Otherwise the body is raw PDF bytes.
-        return $raw;
+        throw new BGC_Api_Exception(esc_html__(
+            'Pigeon labels are only available at creation time and cannot be re-fetched. Regenerate the waybill to get a fresh label.',
+            'bg-couriers'
+        ));
     }
 
     // ── Tracking ────────────────────────────────────────────────────────────
@@ -491,11 +491,26 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
     }
 
     /**
+     * Whether a waybill is already cancelled at Pigeon (status "Отказана"). Used by BGC_Labels::cancel()
+     * to reach the desired end-state gracefully when a cancel call reports failure because the shipment
+     * was already voided. Live - do NOT call in tests.
+     */
+    public function is_cancelled(string $waybill): bool {
+        try {
+            $status = $this->track($waybill)->status;
+        } catch (\Exception $e) {
+            return false;
+        }
+        $s = function_exists('mb_strtolower') ? mb_strtolower($status) : strtolower($status);
+        return strpos($s, 'отказ') !== false || strpos($s, 'анулир') !== false || strpos($s, 'cancel') !== false;
+    }
+
+    /**
      * Return the public Pigeon tracking URL for a reference number.
-     * Placeholder URL - confirm at live-verify and update if needed.
+     * Public tracker (no auth): https://track.pigeonexpress.com/?tracking_number={n}
      */
     public function tracking_url(string $waybill): string {
-        return 'https://pigeonexpress.com/track/' . rawurlencode($waybill);
+        return 'https://track.pigeonexpress.com/?tracking_number=' . rawurlencode($waybill);
     }
 
     /**
@@ -511,7 +526,10 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
                 $this->base . '/v1/shipments/' . rawurlencode($waybill) . '/cancel',
                 []
             );
-            return !empty($resp['success']);
+            // post_json throws on non-2xx, so reaching here means the request succeeded. Treat any
+            // non-error response as success (matches the official plugin); only an explicit
+            // success:false marks a failure.
+            return !(isset($resp['success']) && $resp['success'] === false);
         } catch (BGC_Api_Exception $e) {
             return false;
         }

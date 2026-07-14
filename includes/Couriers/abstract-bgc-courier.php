@@ -10,12 +10,18 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
             if (is_wp_error($res)) { $last = 'transport error'; continue; }
             $code = (int) wp_remote_retrieve_response_code($res);
             $raw  = (string) wp_remote_retrieve_body($res);
-            if ($code === 200) {
+            // Accept ANY 2xx as success - POST create endpoints return 201 Created, not just 200. This is
+            // critical: a create that returned 201 must NOT fall through to the retry, or a second identical
+            // POST would create a DUPLICATE shipment (these endpoints are not idempotent).
+            if ($code >= 200 && $code < 300) {
                 $data = json_decode($raw, true);
                 if (!is_array($data)) { throw new BGC_Api_Exception(esc_html('Invalid JSON from ' . $url)); }
                 return $data;
             }
             $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 1000); // keep enough of the body for field-level API errors
+            // Don't retry client errors (4xx): the request won't succeed on retry, and retrying a POST that
+            // already had a side effect risks a duplicate. Only transport blips and 5xx are worth a second try.
+            if ($code >= 400 && $code < 500) { break; }
         }
         throw new BGC_Api_Exception(esc_html('Request failed: ' . $last));
     }

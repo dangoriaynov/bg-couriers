@@ -504,7 +504,7 @@ JS;
     private function pigeon_courier_fields(): array {
         return [
             ['type' => 'title', 'id' => 'bgc_pigeon', 'title' => '',
-                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> not yet available - the Pigeon Express API integration is pending verification. Until then, ship prepaid orders only (customer pays online or to your bank account).', 'bg-couriers')],
+                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> supported. For cash-on-delivery orders the courier collects the full order total (goods + shipping) from the customer and remits it to you, the same as Econt / Sameday / BOX NOW. Requires cash-on-delivery to be enabled on your Pigeon Express contract.', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_pigeon_enabled', 'title' => __('Enable Pigeon Express', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_pigeon_username', 'title' => __('API Key', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
@@ -517,6 +517,13 @@ JS;
             ['type' => 'number', 'id' => 'bgc_pigeon_pickup_office_id', 'title' => __('Pickup office ID', 'bg-couriers'),
                 'desc' => __('The Pigeon office ID the merchant ships from. Used for quotes and label creation.', 'bg-couriers'),
                 'default' => '', 'custom_attributes' => ['min' => '0', 'step' => '1'], 'autoload' => false],
+            ['type' => 'number', 'id' => 'bgc_pigeon_box_length', 'title' => __('Default parcel size (cm)', 'bg-couriers'),
+                'desc' => __('length', 'bg-couriers'), 'desc_tip' => __('Pigeon requires parcel dimensions on every quote and label. These defaults are used when an order has none of its own.', 'bg-couriers'),
+                'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
+            ['type' => 'number', 'id' => 'bgc_pigeon_box_width', 'title' => '', 'desc' => __('width', 'bg-couriers'),
+                'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
+            ['type' => 'number', 'id' => 'bgc_pigeon_box_height', 'title' => '', 'desc' => __('height', 'bg-couriers'),
+                'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'select', 'id' => 'bgc_pigeon_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
                 'default' => 'A6'],
