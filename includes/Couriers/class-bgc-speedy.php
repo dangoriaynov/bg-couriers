@@ -213,23 +213,43 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         } else {
             $recipient['pickupOfficeId'] = $office;
         }
+        $payer   = self::service_payer('speedy');
+        $package = in_array(get_option('bgc_speedy_package', 'BOX'), ['BOX', 'ENVELOPE', 'PALLET'], true)
+            ? (string) get_option('bgc_speedy_package', 'BOX')
+            : 'BOX';
+        $contents = ((string) get_option('bgc_speedy_contents', '')) ?: 'Goods';
         $body = [
             'recipient' => $recipient,
             'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => 505],
-            'content'   => ['parcelsCount' => 1, 'contents' => 'Goods', 'package' => 'BOX',
+            'content'   => ['parcelsCount' => 1, 'contents' => $contents, 'package' => $package,
                             'totalWeight' => self::order_weight_kg($order, 2.0)],
-            'payment'   => ['courierServicePayer' => 'RECIPIENT'],
+            'payment'   => ['courierServicePayer' => $payer === 'recipient' ? 'RECIPIENT' : 'SENDER'],
             'ref1'      => 'ORDER ' . $order->get_order_number(),
         ];
         // COD only for orders actually paid cash-on-delivery (never re-collect on a prepaid order). Speedy
         // pays the collected amount out per the merchant's Speedy contract (postal money transfer / bank).
-        $cod = ($order->get_payment_method() === 'cod') ? self::cod_amount(
-            (float) $order->get_total(),
-            (float) $order->get_shipping_total(),
-            (float) $order->get_shipping_tax()
-        ) : 0.0;
-        if ($cod > 0) {
-            $body['service']['additionalServices']['cod'] = ['amount' => $cod, 'processingType' => 'CASH'];
+        if ($order->get_payment_method() === 'cod') {
+            $cod = self::cod_for_payer($order, $payer);
+            if ($cod > 0) {
+                $processing_type = get_option('bgc_speedy_cod_processing', 'cash') === 'money_transfer'
+                    ? 'POSTAL_MONEY_TRANSFER'
+                    : 'CASH';
+                $body['service']['additionalServices']['cod'] = [
+                    'amount'               => $cod,
+                    'processingType'       => $processing_type,
+                    'ignoreIfNotApplicable' => true,
+                ];
+            }
+        }
+        // Open-before-payment (OBPD): allow/test inspection before the customer pays.
+        $obpd_val = (string) get_option('bgc_speedy_open_before_pay', 'no');
+        if ($obpd_val === 'open' || $obpd_val === 'test') {
+            $body['service']['additionalServices']['obpd'] = [
+                'option'                  => strtoupper($obpd_val),
+                'returnShipmentServiceId' => 505,
+                'returnShipmentPayer'     => 'SENDER',
+                'ignoreIfNotApplicable'   => true,
+            ];
         }
         $sender = $this->sender_block();
         if ($sender) { $body['sender'] = $sender; }

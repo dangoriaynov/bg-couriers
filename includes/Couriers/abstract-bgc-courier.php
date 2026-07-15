@@ -92,4 +92,31 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
             $problems[] = ['msg' => $msg, 'fix' => $fix];
         }
     }
+
+    /**
+     * 'sender' (default) or 'recipient' - who pays the courier delivery fee, per courier setting.
+     *
+     * @param string $courier Courier id (e.g. 'speedy', 'pigeon', 'sameday').
+     * @return string 'sender' or 'recipient'.
+     */
+    protected static function service_payer(string $courier): string {
+        return get_option('bgc_' . $courier . '_service_payer', 'sender') === 'recipient' ? 'recipient' : 'sender';
+    }
+
+    /**
+     * COD amount to collect: full order total when the SENDER pays delivery (merchant already charged
+     * shipping at checkout), or goods-only (total - shipping - shipping tax) when the RECIPIENT pays
+     * delivery at the door.
+     *
+     * @param \WC_Order $order  The WooCommerce order.
+     * @param string    $payer  'sender' or 'recipient'.
+     * @return float            Amount to collect via COD.
+     */
+    protected static function cod_for_payer(\WC_Order $order, string $payer): float {
+        $total = (float) $order->get_total();
+        if ($payer === 'recipient') {
+            return max(0.0, round($total - (float) $order->get_shipping_total() - (float) $order->get_shipping_tax(), 2));
+        }
+        return max(0.0, round($total, 2));
+    }
 }

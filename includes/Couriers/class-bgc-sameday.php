@@ -239,14 +239,15 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         $method = (string) $order->get_meta('_bgc_method');
         $w      = max(0.1, self::order_weight_kg($order));
         $is_cod = $order->get_payment_method() === 'cod';
+        $payer  = self::service_payer('sameday');
         $body = [
             'pickupPoint'    => (int) get_option('bgc_sameday_pickup_point', 0),
             'service'        => (string) get_option('bgc_sameday_service_' . $method, ''),
-            'awbPayment'     => 1,
+            'awbPayment'     => $payer === 'recipient' ? 2 : 1, // 1=CLIENT/sender, 2=RECIPIENT
             'packageType'    => 0,
             'packageNumber'  => 1,
             'packageWeight'  => $w,
-            'cashOnDelivery' => $is_cod ? round((float) $order->get_total(), 2) : 0,
+            'cashOnDelivery' => $is_cod ? self::cod_for_payer($order, $payer) : 0,
             'insuredValue'   => 0,
             'awbRecipient'   => array_filter([
                 'name'        => $order->get_formatted_billing_full_name(),

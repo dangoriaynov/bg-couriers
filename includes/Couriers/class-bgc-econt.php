@@ -335,15 +335,26 @@ class BGC_Econt extends BGC_Abstract_Courier {
             ];
         }
 
+        // Optional services (SMS, e-mail, pay-after-accept) — applied regardless of COD.
+        $services = [];
+        if (get_option('bgc_econt_sms_notification', 'no') === 'yes') {
+            $services['smsNotification'] = true;
+        }
+        $notify_email = trim((string) get_option('bgc_econt_delivery_email', ''));
+        if ($notify_email !== '') {
+            $services['emailOnDelivery'] = $notify_email;
+        }
+        if (get_option('bgc_econt_pay_after_accept', 'no') === 'yes') {
+            $services['payAfterAccept'] = true;
+        }
+
         // Наложен платеж (COD) + packing list - only when enabled in the Econt settings AND the order is
         // actually paid cash-on-delivery (so a prepaid order is never charged again on delivery).
         if (get_option('bgc_econt_cod_enabled', 'no') === 'yes' && $order->get_payment_method() === 'cod') {
-            $label['services'] = [
-                'cdAmount'             => round((float) $order->get_total(), 2),
-                'cdType'               => 'get', // collect from the receiver
-                'cdCurrency'           => $order->get_currency(),
-                'cdPayOptionsTemplate' => (string) get_option('bgc_econt_cd_num', ''),
-            ];
+            $services['cdAmount']             = round((float) $order->get_total(), 2);
+            $services['cdType']               = 'get'; // collect from the receiver
+            $services['cdCurrency']           = $order->get_currency();
+            $services['cdPayOptionsTemplate'] = (string) get_option('bgc_econt_cd_num', '');
             // Who pays the delivery (за чий рахунок): left to Econt's default - the API client (the
             // sender/merchant, ЗЕЛЕНИ ДОБАВКИ) is billed on their own account. Setting
             // paymentSenderMethod='credit' explicitly makes Econt demand a payer client number the
@@ -351,6 +362,10 @@ class BGC_Econt extends BGC_Abstract_Courier {
             // (goods + VAT) still returns to the merchant in full via ППП (the cdPayOptionsTemplate above).
             $label['packingListType'] = 'digital';
             $label['packingList']     = self::packing_list($order);
+        }
+
+        if (!empty($services)) {
+            $label['services'] = $services;
         }
 
         return ['mode' => 'create', 'label' => $label];

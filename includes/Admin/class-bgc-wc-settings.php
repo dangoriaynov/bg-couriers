@@ -449,6 +449,35 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'default' => 'A6'],
             ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'select', 'id' => 'bgc_speedy_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
+                'options' => [
+                    'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
+                    'recipient' => __('Recipient (pays the courier at delivery)', 'bg-couriers'),
+                ],
+                'desc' => __('Sender: the merchant pays the courier; for COD orders the courier collects the full order total (goods + shipping) from the customer. Recipient: the courier collects the delivery fee from the customer at the door; for COD orders only the goods total is collected as наложен платеж (shipping excluded).', 'bg-couriers'),
+                'default' => 'sender'],
+            ['type' => 'select', 'id' => 'bgc_speedy_cod_processing', 'title' => __('COD payout method', 'bg-couriers'),
+                'options' => [
+                    'cash'          => __('Cash', 'bg-couriers'),
+                    'money_transfer' => __('Postal money transfer (ППП)', 'bg-couriers'),
+                ],
+                'default' => 'cash'],
+            ['type' => 'select', 'id' => 'bgc_speedy_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
+                'options' => [
+                    'no'   => __('No', 'bg-couriers'),
+                    'open' => __('Allow open before payment', 'bg-couriers'),
+                    'test' => __('Allow test before payment', 'bg-couriers'),
+                ],
+                'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_speedy_contents', 'title' => __('Parcel contents (description)', 'bg-couriers'),
+                'custom_attributes' => ['placeholder' => 'Goods'], 'default' => ''],
+            ['type' => 'select', 'id' => 'bgc_speedy_package', 'title' => __('Package type', 'bg-couriers'),
+                'options' => [
+                    'BOX'      => __('Box', 'bg-couriers'),
+                    'ENVELOPE' => __('Envelope', 'bg-couriers'),
+                    'PALLET'   => __('Pallet', 'bg-couriers'),
+                ],
+                'default' => 'BOX'],
             ['type' => 'sectionend', 'id' => 'bgc_speedy'],
         ];
     }
@@ -490,6 +519,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'options' => $cd_opts, 'default' => ''],
             ['type' => 'text', 'id' => 'bgc_econt_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'checkbox', 'id' => 'bgc_econt_sms_notification', 'title' => __('SMS notification', 'bg-couriers'),
+                'desc' => __('Send the recipient an SMS notification.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_econt_delivery_email', 'title' => __('E-mail on delivery', 'bg-couriers'),
+                'desc' => __('Notify this e-mail when the shipment is delivered (leave empty to disable).', 'bg-couriers'),
+                'default' => ''],
+            ['type' => 'checkbox', 'id' => 'bgc_econt_pay_after_accept', 'title' => __('Allow inspection before payment', 'bg-couriers'),
+                'desc' => __('Let the recipient inspect the shipment before paying (преглед).', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgc_econt'],
         ];
     }
@@ -520,6 +556,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'text', 'id' => 'bgc_pigeon_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'select', 'id' => 'bgc_pigeon_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
+                'options' => [
+                    'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
+                    'recipient' => __('Recipient (pays the courier at delivery)', 'bg-couriers'),
+                ],
+                'desc' => __('Sender: the merchant pays the courier; for COD orders the courier collects the full order total (goods + shipping) from the customer. Recipient: the courier collects the delivery fee from the customer at the door; for COD orders only the goods total is collected as наложен платеж (shipping excluded).', 'bg-couriers'),
+                'default' => 'sender'],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
         ];
     }
@@ -558,6 +601,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')], 'default' => 'A6'],
             ['type' => 'text', 'id' => 'bgc_sameday_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
                 'desc' => __('Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'select', 'id' => 'bgc_sameday_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
+                'options' => [
+                    'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
+                    'recipient' => __('Recipient (pays the courier at delivery)', 'bg-couriers'),
+                ],
+                'desc' => __('Sender: the merchant pays the courier; for COD orders the courier collects the full order total (goods + shipping) from the customer. Recipient: the courier collects the delivery fee from the customer at the door; for COD orders only the goods total is collected as наложен платеж (shipping excluded).', 'bg-couriers'),
+                'default' => 'sender'],
             ['type' => 'sectionend', 'id' => 'bgc_sameday_more'],
         ];
     }

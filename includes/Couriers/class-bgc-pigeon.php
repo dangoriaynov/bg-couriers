@@ -300,10 +300,10 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
                 array_merge(['weight' => max(0.1, (float) ($s['weight_kg'] ?? 1.0))], $box),
             ],
             'service_type'     => 'standard',
-            // The merchant pays the courier for delivery: our checkout already quotes and charges the
-            // shipping fee to the customer, so who_pays='sender' (not 'receiver', which would make the
-            // courier collect the fee AGAIN at the door). This is also what the quote price reflects.
-            'who_pays'         => 'sender',
+            // Who pays the courier delivery fee. Default 'sender': the merchant already charged the
+            // customer at checkout, so the courier bills the sender. 'receiver' means the courier
+            // collects the fee from the recipient at the door (in addition to any COD amount).
+            'who_pays'         => (($s['service_payer'] ?? 'sender') === 'recipient') ? 'receiver' : 'sender',
         ];
 
         if (($s['method'] ?? 'address') === 'address') {
@@ -377,17 +377,18 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
      */
     public static function build_shipment_body(\WC_Order $order, int $pickup_office_id): array {
         $s = [
-            'method'      => (string) $order->get_meta('_bgc_method'),
-            'site_id'     => (int)    $order->get_meta('_bgc_site_id'),
-            'office_id'   => (int)    $order->get_meta('_bgc_office_id'),
-            'street_name' => (string) $order->get_meta('_bgc_street_name'),
-            'street_no'   => (string) $order->get_meta('_bgc_street_no'),
-            'weight_kg'   => self::order_weight_kg($order),
-            // COD only for cash-on-delivery orders. who_pays='sender' (see build_calculate_body): the
-            // merchant already collected the shipping fee at checkout, so the courier collects the FULL
-            // order total from the customer at delivery - goods + shipping - like Econt/Sameday/BOX NOW.
-            'cod_amount'  => $order->get_payment_method() === 'cod'
-                ? max(0.0, round((float) $order->get_total(), 2))
+            'method'         => (string) $order->get_meta('_bgc_method'),
+            'site_id'        => (int)    $order->get_meta('_bgc_site_id'),
+            'office_id'      => (int)    $order->get_meta('_bgc_office_id'),
+            'street_name'    => (string) $order->get_meta('_bgc_street_name'),
+            'street_no'      => (string) $order->get_meta('_bgc_street_no'),
+            'weight_kg'      => self::order_weight_kg($order),
+            'service_payer'  => self::service_payer('pigeon'),
+            // COD only for cash-on-delivery orders. The COD amount depends on who pays the delivery fee:
+            // when the sender (merchant) pays, the courier collects the FULL order total (goods + shipping);
+            // when the recipient pays the delivery, we collect goods-only (shipping excluded from COD).
+            'cod_amount'     => $order->get_payment_method() === 'cod'
+                ? self::cod_for_payer($order, self::service_payer('pigeon'))
                 : 0.0,
         ];
 
