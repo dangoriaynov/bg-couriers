@@ -55,16 +55,17 @@ class BGC_Checkout {
     }
 
     /**
-     * If the merchant relies on ППП AND the shop offers no prepaid gateway at all, a courier that can't do ППП
-     * would be unusable (COD only, no way to fiscalise) - so drop its shipping rates entirely. When a prepaid
-     * gateway exists we keep the courier (COD is just hidden for it by ppp_filter_gateways above).
+     * When the merchant relies on the courier's ППП (has no cash register), a courier that does NOT offer ППП
+     * cannot fiscalise cash-on-delivery, so it is not offered at all in that mode - its shipping rates are
+     * dropped from checkout. Couriers that DO ППП (per their per-courier toggle) stay. The cash-register mode
+     * is unaffected (any courier can take COD there).
      *
      * @param array $rates
      * @param array $package
      * @return array
      */
     public function ppp_filter_rates($rates, $package) {
-        if (BGC_Settings::cod_fiscalization() !== 'ppp' || self::has_prepaid_gateway()) { return $rates; }
+        if (BGC_Settings::cod_fiscalization() !== 'ppp') { return $rates; }
         foreach ($rates as $id => $rate) {
             $courier = self::courier_from_rate_id((string) $id);
             if ($courier !== '' && !BGC_Settings::courier_ppp_payout($courier)) { unset($rates[$id]); }
@@ -91,15 +92,6 @@ class BGC_Checkout {
 
     private static function is_cod_gateway(string $gid, $gw): bool {
         return $gid === 'cod' || (is_object($gw) && is_a($gw, 'WC_Gateway_COD'));
-    }
-
-    /** Whether the shop has at least one enabled NON-COD (prepaid) payment gateway. */
-    private static function has_prepaid_gateway(): bool {
-        if (!function_exists('WC') || !WC()->payment_gateways()) { return true; } // can't tell -> don't restrict
-        foreach (WC()->payment_gateways()->payment_gateways() as $gid => $gw) {
-            if (is_object($gw) && $gw->enabled === 'yes' && !self::is_cod_gateway((string) $gid, $gw)) { return true; }
-        }
-        return false;
     }
 
     /** Pre-select the configured default courier when the customer hasn't chosen a shipping method yet. */
