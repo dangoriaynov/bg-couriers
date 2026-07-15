@@ -48,24 +48,23 @@ class BGC_Checkout {
         $courier = self::chosen_bgc_courier();
         if ($courier !== '' && !BGC_Settings::courier_ppp_payout($courier)) {
             foreach ($gateways as $gid => $gw) {
-                if (self::is_cod_gateway((string) $gid, $gw)) { unset($gateways[$gid]); }
+                if (BGC_Settings::is_cod_gateway((string) $gid, $gw)) { unset($gateways[$gid]); }
             }
         }
         return $gateways;
     }
 
     /**
-     * When the merchant relies on the courier's ППП (has no cash register), a courier that does NOT offer ППП
-     * cannot fiscalise cash-on-delivery, so it is not offered at all in that mode - its shipping rates are
-     * dropped from checkout. Couriers that DO ППП (per their per-courier toggle) stay. The cash-register mode
-     * is unaffected (any courier can take COD there).
+     * If the merchant relies on ППП AND the shop offers NO prepaid gateway at all, a courier that can't do ППП
+     * is unusable (COD only, no way to fiscalise) - so drop its shipping rates. When a prepaid gateway exists
+     * the courier stays (usable for prepaid; COD is just hidden for it by ppp_filter_gateways above).
      *
      * @param array $rates
      * @param array $package
      * @return array
      */
     public function ppp_filter_rates($rates, $package) {
-        if (BGC_Settings::cod_fiscalization() !== 'ppp') { return $rates; }
+        if (BGC_Settings::cod_fiscalization() !== 'ppp' || BGC_Settings::has_prepaid_gateway()) { return $rates; }
         foreach ($rates as $id => $rate) {
             $courier = self::courier_from_rate_id((string) $id);
             if ($courier !== '' && !BGC_Settings::courier_ppp_payout($courier)) { unset($rates[$id]); }
@@ -88,10 +87,6 @@ class BGC_Checkout {
         if (strpos($id, 'bgc_') !== 0) { return ''; }
         $mid = explode(':', $id)[0]; // strip the instance id
         return substr($mid, 4);
-    }
-
-    private static function is_cod_gateway(string $gid, $gw): bool {
-        return $gid === 'cod' || (is_object($gw) && is_a($gw, 'WC_Gateway_COD'));
     }
 
     /** Pre-select the configured default courier when the customer hasn't chosen a shipping method yet. */

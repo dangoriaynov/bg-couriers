@@ -17,6 +17,7 @@ class BGC_Settings {
         add_action('woocommerce_admin_field_bgc_pigeon_pickup', [$this, 'render_pickup']);
         add_action('woocommerce_admin_field_bgc_cred_hint', [$this, 'render_cred_hint']);
         add_action('woocommerce_admin_field_bgc_about', [$this, 'render_about']);
+        add_action('woocommerce_admin_field_bgc_ppp_notice', [$this, 'render_ppp_notice']);
         foreach (array_keys(BGC_Couriers::all()) as $cid) {
             add_filter('woocommerce_admin_settings_sanitize_option_bgc_' . $cid . '_password', [$this, 'sanitize_password'], 10, 3);
             // Keys/usernames are rendered blank (never exposed); keep the stored value when the field is blank.
@@ -157,7 +158,8 @@ class BGC_Settings {
 
     /** Whether THIS courier pays collected COD out to the merchant via ППП (пощенски паричен превод). */
     public static function courier_ppp_payout(string $courier): bool {
-        if ($courier === 'boxnow') { return false; } // BOX NOW does not offer ППП payout at all
+        // Per-courier toggle (default on for Speedy/Econt, off otherwise incl. BOX NOW). BOX NOW doesn't offer
+        // ППП today, but the merchant can flip it on the day it does - no code change needed.
         $default = in_array($courier, ['speedy', 'econt'], true) ? 'yes' : 'no';
         return get_option('bgc_' . $courier . '_ppp_payout', $default) === 'yes';
     }
@@ -165,6 +167,36 @@ class BGC_Settings {
     /** Whether COD is legally usable with this courier: the merchant issues receipts, or the courier does ППП. */
     public static function cod_allowed_for(string $courier): bool {
         return self::cod_fiscalization() === 'cash_register' || self::courier_ppp_payout($courier);
+    }
+
+    public static function is_cod_gateway(string $gid, $gw): bool {
+        return $gid === 'cod' || (is_object($gw) && is_a($gw, 'WC_Gateway_COD'));
+    }
+
+    /** Whether the shop has at least one enabled NON-COD (prepaid / card / bank transfer) payment gateway. */
+    public static function has_prepaid_gateway(): bool {
+        if (!function_exists('WC') || !WC()->payment_gateways()) { return true; } // can't tell -> assume yes (don't over-restrict)
+        foreach (WC()->payment_gateways()->payment_gateways() as $gid => $gw) {
+            if (is_object($gw) && $gw->enabled === 'yes' && !self::is_cod_gateway((string) $gid, $gw)) { return true; }
+        }
+        return false;
+    }
+
+    /**
+     * Warning to show on a courier's settings tab when it can't be fully used under the current COD setup:
+     * only when fiscalisation = ППП and this courier does NOT do ППП. Returns ['level'=>'error'|'warning',
+     * 'msg'=>string] or null when there's nothing to warn about.
+     *
+     * @return array{level:string,msg:string}|null
+     */
+    public static function ppp_courier_notice(string $courier): ?array {
+        if ($courier === '' || self::cod_fiscalization() !== 'ppp' || self::courier_ppp_payout($courier)) {
+            return null;
+        }
+        if (self::has_prepaid_gateway()) {
+            return ['level' => 'warning', 'msg' => __('This courier does not offer ППП. Because your Cash on delivery setting relies on the courier\'s ППП, it can be used here only for PREPAID orders - cash-on-delivery is turned off for it at checkout.', 'bg-couriers')];
+        }
+        return ['level' => 'error', 'msg' => __('This courier does not offer ППП and your shop has no prepaid (card / bank transfer) payment method, so it cannot take cash-on-delivery and will NOT appear at checkout. Add a prepaid payment method, or set Cash on delivery to "I have a cash register".', 'bg-couriers')];
     }
 
     public static function hidden_fields(): string {
@@ -306,6 +338,26 @@ jQuery(function($){
      * an optional Revolut donation link and a contact e-mail. All static + escaped, confined to this tab (no
      * dashboard-wide notices), per the WordPress.org guidelines on donations and cross-promotion.
      */
+    /**
+     * Custom WC field: a banner at the top of a courier tab when it can't be fully used under the current COD
+     * setup (ППП mode + this courier does not do ППП). Amber = usable for prepaid only; red = unusable (no
+     * prepaid gateway) so it won't appear at checkout. Renders nothing when there's nothing to warn about.
+     */
+    public function render_ppp_notice($field): void {
+        $notice = self::ppp_courier_notice((string) ($field['courier'] ?? ''));
+        if (!$notice) { return; }
+        $is_err = $notice['level'] === 'error';
+        $bg  = $is_err ? '#fcf0f1' : '#fef8e7';
+        $bd  = $is_err ? '#e6a2a5' : '#e6cf7a';
+        $col = $is_err ? '#8a1f2b' : '#7a5b00';
+        echo '<tr valign="top"><td colspan="2" class="forminp" style="padding-top:4px;">';
+        echo '<div class="bgc-ppp-notice" style="border:1px solid ' . esc_attr($bd) . ';background:' . esc_attr($bg)
+            . ';color:' . esc_attr($col) . ';border-radius:8px;padding:10px 14px;max-width:760px;line-height:1.5;">';
+        echo '<strong>' . esc_html($is_err ? __('This courier is currently unusable', 'bg-couriers') : __('Cash on delivery is off for this courier', 'bg-couriers')) . '</strong><br>';
+        echo esc_html($notice['msg']);
+        echo '</div></td></tr>';
+    }
+
     public function render_about($field): void {
         $plugins = [
             ['name' => 'RiskyBuyer', 'url' => 'https://wordpress.org/plugins/riskybuyer/', 'note' => __('COD risk scoring for WooCommerce', 'bg-couriers')],

@@ -466,8 +466,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
 
     private function speedy_courier_fields(): array {
         return [
-            ['type' => 'title', 'id' => 'bgc_speedy', 'title' => '',
-                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> added automatically to orders the customer paid by cash-on-delivery. Speedy pays the collected amount back to you per your Speedy contract - postal money transfer (пощенски паричен превод) or bank transfer.', 'bg-couriers')],
+            ['type' => 'title', 'id' => 'bgc_speedy', 'title' => ''],
+            ['type' => 'bgc_ppp_notice', 'id' => 'bgc_ppp_notice_speedy', 'courier' => 'speedy'],
             ['type' => 'bgc_cred_hint', 'id' => 'bgc_speedy_credhint', 'courier' => 'speedy'],
             ['type' => 'checkbox', 'id' => 'bgc_speedy_enabled', 'title' => __('Enable Speedy', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_speedy_username', 'title' => __('API username', 'bg-couriers'),
@@ -524,6 +524,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         }
         return [
             ['type' => 'title', 'id' => 'bgc_econt', 'title' => ''],
+            ['type' => 'bgc_ppp_notice', 'id' => 'bgc_ppp_notice_econt', 'courier' => 'econt'],
             ['type' => 'bgc_cred_hint', 'id' => 'bgc_econt_credhint', 'courier' => 'econt'],
             ['type' => 'checkbox', 'id' => 'bgc_econt_enabled', 'title' => __('Enable Econt', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_econt_username', 'title' => __('API username', 'bg-couriers'), 'autoload' => false],
@@ -562,8 +563,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
 
     private function pigeon_courier_fields(): array {
         return [
-            ['type' => 'title', 'id' => 'bgc_pigeon', 'title' => '',
-                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> supported. For cash-on-delivery orders the courier collects the full order total (goods + shipping) from the customer and remits it to you, the same as Econt / Sameday / BOX NOW. Requires cash-on-delivery to be enabled on your Pigeon Express contract.', 'bg-couriers')],
+            ['type' => 'title', 'id' => 'bgc_pigeon', 'title' => ''],
+            ['type' => 'bgc_ppp_notice', 'id' => 'bgc_ppp_notice_pigeon', 'courier' => 'pigeon'],
             ['type' => 'bgc_cred_hint', 'id' => 'bgc_pigeon_credhint', 'courier' => 'pigeon'],
             ['type' => 'checkbox', 'id' => 'bgc_pigeon_enabled', 'title' => __('Enable Pigeon Express', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_pigeon_username', 'title' => __('API Key', 'bg-couriers'),
@@ -603,8 +604,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
     private function sameday_courier_fields(): array {
         $cur = get_woocommerce_currency();
         return [
-            ['type' => 'title', 'id' => 'bgc_sameday', 'title' => '',
-                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> added automatically to orders the customer paid by cash-on-delivery. Sameday pays the collected amount back to you per your Sameday contract - postal money transfer (пощенски паричен превод) or bank transfer.', 'bg-couriers')],
+            ['type' => 'title', 'id' => 'bgc_sameday', 'title' => ''],
+            ['type' => 'bgc_ppp_notice', 'id' => 'bgc_ppp_notice_sameday', 'courier' => 'sameday'],
             ['type' => 'bgc_cred_hint', 'id' => 'bgc_sameday_credhint', 'courier' => 'sameday'],
             ['type' => 'checkbox', 'id' => 'bgc_sameday_enabled', 'title' => __('Enable Sameday', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_sameday_username', 'title' => __('Username', 'bg-couriers'),
@@ -649,8 +650,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
     /** BOX NOW - locker-only, flat-rate, OAuth2. Only the fields BoxNow actually uses (no dangling params). */
     private function boxnow_courier_fields(): array {
         return [
-            ['type' => 'title', 'id' => 'bgc_boxnow', 'title' => '',
-                'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> collected at the locker for orders the customer paid by cash-on-delivery; all other orders are prepaid. BOX NOW pays the collected amount back to you per your BOX NOW contract.', 'bg-couriers')],
+            ['type' => 'title', 'id' => 'bgc_boxnow', 'title' => ''],
+            ['type' => 'bgc_ppp_notice', 'id' => 'bgc_ppp_notice_boxnow', 'courier' => 'boxnow'],
             ['type' => 'bgc_cred_hint', 'id' => 'bgc_boxnow_credhint', 'courier' => 'boxnow'],
             ['type' => 'checkbox', 'id' => 'bgc_boxnow_enabled', 'title' => __('Enable BOX NOW', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_boxnow_username', 'title' => __('Client ID', 'bg-couriers'),
@@ -679,6 +680,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'text', 'id' => 'bgc_boxnow_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship BOX NOW free (you absorb the cost) when the order goods total (without shipping) reaches this amount. Positive to enable; empty/0 to disable. Store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'checkbox', 'id' => 'bgc_boxnow_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
+                'desc' => __('Enable only if your BOX NOW contract pays your наложен платеж out via пощенски паричен превод (ППП). BOX NOW does not offer ППП today, so leave this off - COD with BOX NOW then needs your own cash register (see the general Cash on delivery setting).', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgc_boxnow'],
         ];
     }
