@@ -1,8 +1,8 @@
 === BG Couriers for WooCommerce ===
-Contributors: dangoriaynov
+Contributors: winter2007d
 Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
-Tested up to: 7.0
+Tested up to: 7.0.1
 Requires PHP: 7.4
 Stable tag: 0.2.0
 License: GPLv2 or later
