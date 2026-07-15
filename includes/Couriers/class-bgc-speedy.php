@@ -46,7 +46,9 @@ class BGC_Speedy extends BGC_Abstract_Courier {
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
 
     private function auth(array $body): array {
-        return array_merge(['userName' => $this->user, 'password' => $this->pass, 'language' => 'EN'], $body);
+        // Default all Speedy API content to Bulgarian (labels, tracking operation names, error messages). A
+        // per-call 'language' in $body still wins. Ref: https://api.speedy.bg/web-api.html (language BG|EN).
+        return array_merge(['userName' => $this->user, 'password' => $this->pass, 'language' => 'BG'], $body);
     }
 
     public function check_credentials(): bool {
