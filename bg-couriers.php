@@ -7,6 +7,7 @@
  * Author URI: https://github.com/dangoriaynov
  * Requires PHP: 7.4
  * Requires at least: 6.0
+ * Requires Plugins: woocommerce
  * WC requires at least: 7.0
  * Text Domain: bg-couriers
  * Domain Path: /languages

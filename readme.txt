@@ -73,6 +73,17 @@ Yes. Each courier requires its own API credentials, obtained from that courier. 
 = How are prices calculated? =
 Live from each courier's API for the parcel weight and destination. If the API is briefly unreachable, a daily reference price (or your configured default) is used. BOX NOW uses a flat rate you set (it has no rate API).
 
+= Does it bundle any third-party libraries? =
+Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permissive) and **FPDI** (MIT) to compose label PDFs, and **Leaflet** (BSD-2-Clause) with OpenStreetMap tiles for the map picker. The courier and courier brand names are used only to identify the services the plugin integrates with; this plugin is not affiliated with or endorsed by any of them.
+
+== Screenshots ==
+
+1. Checkout: delivery-type tabs (to office / to address / to APS locker) with searchable city and office pickers and a live price per courier.
+2. Checkout: interactive map picker for offices and lockers, with "nearest to me" geolocation.
+3. Order screen: the shipment panel - generate, print, track and cancel the courier waybill.
+4. Settings: a courier tab - credentials, delivery options and per-method prices.
+5. Settings: the built-in "How do I get API credentials?" hint for each courier.
+
 == Changelog ==
 
 = 0.2.0 =
