@@ -73,7 +73,11 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-grow{flex:1 1 auto;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-no{width:66px;flex:0 0 66px;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .select2-container{width:100%!important;}'
-            . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-mapbtn{margin:0!important;flex:0 0 34px;}'
+            // Map button sits in its own cell with a hidden spacer label, so it lines up with the No. INPUT
+            // (not the taller select2 street field) - the row aligns cell bottoms and every cell is label+control.
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-mapcell{flex:0 0 34px;align-items:flex-start;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-mapcell > label{visibility:hidden;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-mapbtn{margin:0!important;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-grid4 .bgc-ed-fld{margin:0;}'
             . '.bgc-order-panel .bgc-ed-form .description{margin:6px 0 0;font-size:12px;color:#646970;}'
@@ -246,7 +250,7 @@ class BGC_Order_Metabox {
             . '<div class="bgc-ed-row bgc-ed-street-row">'
             . '<div class="bgc-ed-fld bgc-ed-grow"><label>' . esc_html__('Street', 'bg-couriers') . '</label><select class="bgc-ed-street"><option></option>' . $street_opt . '</select></div>'
             . '<div class="bgc-ed-fld bgc-ed-no"><label>' . esc_html__('No.', 'bg-couriers') . '</label><input class="bgc-ed-streetno" value="' . $v('street_no') . '"></div>'
-            . '<button type="button" class="button bgc-ed-addr-map bgc-ed-mapbtn" title="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '" aria-label="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '"><span class="dashicons dashicons-location-alt"></span></button>'
+            . '<div class="bgc-ed-fld bgc-ed-mapcell"><label aria-hidden="true">&nbsp;</label><button type="button" class="button bgc-ed-addr-map bgc-ed-mapbtn" title="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '" aria-label="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '"><span class="dashicons dashicons-location-alt"></span></button></div>'
             . '</div>'
             . '<div class="bgc-ed-fld"><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label><input class="bgc-ed-complex" value="' . $v('complex') . '"></div>'
             . '<div class="bgc-ed-row bgc-ed-grid4">'
@@ -271,7 +275,7 @@ class BGC_Order_Metabox {
         echo wp_kses($form, [
             'div'    => ['class' => true, 'style' => true],
             'p'      => ['class' => true, 'style' => true],
-            'label'  => ['class' => true],
+            'label'  => ['class' => true, 'aria-hidden' => true],
             'br'     => [],
             'select' => ['class' => true, 'style' => true, 'data-current' => true],
             'option' => ['value' => true, 'selected' => true],
