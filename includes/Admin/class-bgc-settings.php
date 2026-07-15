@@ -511,6 +511,7 @@ jQuery(function($){
         $validated_js = $validated ? 'true' : 'false';
 
         $courier_js = esc_js($courier);
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- inline admin JS; every interpolated value ($ajax, $nonce, $courier_js, $t[...]) is esc_js()'d above.
         echo '<script>' . "\n"
             . '(function($){' . "\n"
             . '    var ajaxurl=\'' . $ajax . '\', nonce=\'' . $nonce . '\', courier=\'' . $courier_js . '\', present=' . $present_js . ', validated=' . $validated_js . ';' . "\n"
@@ -551,6 +552,7 @@ jQuery(function($){
             . '        }).fail(function(){ err(\'' . $t['fail'] . '\'); }).always(function(){ sbtn.prop(\'disabled\',false); syncV(); }); });' . "\n"
             . '})(jQuery);' . "\n"
             . '</script>';
+        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
     public function action_links($links): array {

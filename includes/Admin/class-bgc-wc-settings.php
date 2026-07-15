@@ -161,6 +161,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         $sect       = esc_js((string) $current_section);
         $i_saved    = esc_js(__('Saved', 'bg-couriers'));
         $i_failed   = esc_js(__('Could not save - please try again.', 'bg-couriers'));
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- inline admin JS; every interpolated value is esc_js()'d.
         echo '<script>' . "\n"
             . "(function(\$){\n"
             . "    var ajaxurl='" . $ajaxurl . "', nonce='" . $save_nonce . "', section='" . $sect . "';\n"
@@ -181,6 +182,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . "    });\n"
             . "})(jQuery);\n"
             . '</script>';
+        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
     /** Brand colour per courier - original, trademark-safe (not the couriers' logos). */
@@ -227,6 +229,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         wp_enqueue_script('jquery-ui-sortable');
         $ajax  = esc_js(admin_url('admin-ajax.php'));
         $nonce = esc_js(wp_create_nonce('bgc_admin'));
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- inline admin JS; every interpolated value is esc_js()'d.
         echo '<script>' . "\n"
             . "jQuery(function(\$){\n"
             . "    var c = \$('.bgc-courier-tabs'); if (!c.length || !\$.fn.sortable) { return; }\n"
@@ -242,6 +245,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . "    c.on('click', '.bgc-courier-tab', function(e){ if (dragged) { e.preventDefault(); } });\n"
             . "});\n"
             . '</script>';
+        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
     /**
@@ -274,6 +278,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         $i_intro = esc_js(__('Please fix the following, then enable it again:', 'bg-couriers'));
         $i_fix   = esc_js(__('How to fix:', 'bg-couriers'));
         $i_close = esc_js(__('Close', 'bg-couriers'));
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- inline admin JS; every interpolated value is esc_js()'d.
         echo '<script>' . "\n"
             . "(function(\$){\n"
             . "    var courier='" . $c_id . "', ajaxurl='" . $c_ajax . "', saveNonce='" . $c_save . "', adminNonce='" . $c_admin . "', section='" . $c_id . "';\n"
@@ -303,6 +308,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . "    });\n"
             . "})(jQuery);\n"
             . '</script>';
+        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 
         // Delivery-method sub-tabs - only the methods this courier supports (from capabilities()).
         // Skip entirely for single-method / flat-rate couriers (e.g. BoxNow = locker only, one flat price).
