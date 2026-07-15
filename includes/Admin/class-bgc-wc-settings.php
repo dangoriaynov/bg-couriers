@@ -87,6 +87,10 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings table.form-table th { padding: 9px 12px 9px 0; width: 210px; }
         #wpbody .bgc-settings table.form-table td { padding: 7px 0; }
         #wpbody .bgc-settings table.form-table { margin: 0; }
+        /* Consistent field width + left alignment for EVERY field (courier-level fields fill a full-width
+           table, per-method fields sit in a narrower card - without this their inputs align differently). */
+        #wpbody .bgc-settings table.form-table td > select,
+        #wpbody .bgc-settings table.form-table td > input:not([type=checkbox]):not([type=radio]) { width: 360px; max-width: 100%; box-sizing: border-box; float: none; margin: 0; }
         #wpbody .bgc-settings .bgc-group { border: 1px solid #e2e6ea; border-radius: 10px; padding: 6px 16px 12px; margin: 0 0 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
         #wpbody .bgc-settings .bgc-group > h2 { font-size: 1.02em; margin: 12px 0 4px; }
         #wpbody .bgc-settings .bgc-group > p.description { margin-top: 0; }
