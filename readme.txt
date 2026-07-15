@@ -78,11 +78,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Screenshots ==
 
-1. Checkout: delivery-type tabs (to office / to address / to APS locker) with searchable city and office pickers and a live price per courier.
-2. Checkout: interactive map picker for offices and lockers, with "nearest to me" geolocation.
-3. Order screen: the shipment panel - generate, print, track and cancel the courier waybill.
-4. Settings: a courier tab - credentials, delivery options and per-method prices.
-5. Settings: the built-in "How do I get API credentials?" hint for each courier.
+1. Checkout: delivery-type tabs (to office / address / APS locker), searchable city and office pickers, a live per-courier price with optional dual BGN/EUR, and a "Map" button.
+2. Checkout: the office/locker map picker - a searchable list beside the map, markers, and "show my location".
+3. Order screen: the shipment panel (waybill number + print / track / cancel) and the inline delivery editor (courier, delivery option, city, office/APS).
+4. Orders list: the "Waybill" column - generate a label, or print / track / cancel an existing one, per order.
+5. Settings: a courier tab - COD payout method, open-before-payment, contents/package, the delivery-option sub-tabs and per-method prices.
+6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
 
