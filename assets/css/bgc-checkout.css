@@ -12,7 +12,9 @@
 .bgc-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .bgc-tab { flex: 1 1 auto; min-width: 92px; padding: 9px 12px; border: 1px solid #e2e6ea; border-radius: 10px;
   background: #fff; color: #333; font-weight: 600; cursor: pointer; text-align: center;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   box-shadow: 0 1px 2px rgba(0,0,0,.06); transition: border-color .15s, box-shadow .15s, background .15s; }
+.bgc-tab .bgc-mtype-ico { flex: 0 0 auto; }
 .bgc-tab:hover { border-color: #b9c2cc; box-shadow: 0 2px 6px rgba(0,0,0,.10); }
 .bgc-tab.active { border-color: #2271b1; color: #2271b1; background: #f3f8fd; box-shadow: 0 3px 10px rgba(34,113,177,.18); }
 /* Greyed-out + disabled when the chosen city has no office/APS of that type. */

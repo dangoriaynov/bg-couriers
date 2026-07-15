@@ -381,6 +381,7 @@ class BGC_Checkout {
             'addressMap' => get_option('bgc_address_map', 'yes') === 'yes',
             'googleKey' => (string) get_option('bgc_google_maps_key', ''), // set => Google map + geocoding; else OSM
             'leaflet_images' => BGC_URL . 'assets/lib/leaflet/images/', // bundled Leaflet marker icons
+            'icons' => BGC_Icons::map(), // same delivery-type glyphs as the admin, shown with text on the tabs
             'emergency' => BGC_Settings::emergency(),
             'boxnow' => [
                 'widget'    => 'https://map.boxnow.bg/iframe.html', // BoxNow map widget (has built-in GPS)

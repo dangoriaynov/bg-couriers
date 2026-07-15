@@ -35,11 +35,18 @@ class BGC_WC_Settings extends WC_Settings_Page {
             'pigeon' => __('Pigeon Express', 'bg-couriers'),
             'boxnow' => __('BOX NOW', 'bg-couriers'),
             'sameday' => __('Sameday', 'bg-couriers'),
+            'about'  => __('About', 'bg-couriers'),
         ];
     }
 
     /** Full field set for the section - used by save() (save_settings_for_current_section). */
     public function get_settings($section = '') {
+        if ($section === 'about') {
+            return [
+                ['type' => 'bgc_about', 'id' => 'bgc_about'],
+                ['type' => 'sectionend', 'id' => 'bgc_about'],
+            ];
+        }
         if ($section === 'speedy') {
             $f = $this->speedy_courier_fields();
             foreach (self::$method_labels as $m => $label) {

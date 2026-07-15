@@ -26,8 +26,10 @@
     if (!$wrap.attr('data-method')) { $wrap.attr('data-method', types[0]); }
     var sel = method($wrap);
     if ($wrap.find('.bgc-tab').length) { syncMethodUI($wrap); return; }
+    var icons = BGC.icons || {};
     var html = types.map(function (t) {
-      return '<button type="button" class="bgc-tab' + (t === sel ? ' active' : '') + '" data-method="' + t + '">' + esc(BGC.i18n[t]) + '</button>';
+      return '<button type="button" class="bgc-tab' + (t === sel ? ' active' : '') + '" data-method="' + t + '">'
+        + (icons[t] || '') + '<span class="bgc-tab-txt">' + esc(BGC.i18n[t]) + '</span></button>';
     }).join('');
     $wrap.find('.bgc-tabs').html(html);
   }

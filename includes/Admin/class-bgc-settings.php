@@ -16,6 +16,7 @@ class BGC_Settings {
         add_action('woocommerce_admin_field_bgc_sortable', [$this, 'render_sortable']);
         add_action('woocommerce_admin_field_bgc_pigeon_pickup', [$this, 'render_pickup']);
         add_action('woocommerce_admin_field_bgc_cred_hint', [$this, 'render_cred_hint']);
+        add_action('woocommerce_admin_field_bgc_about', [$this, 'render_about']);
         foreach (array_keys(BGC_Couriers::all()) as $cid) {
             add_filter('woocommerce_admin_settings_sanitize_option_bgc_' . $cid . '_password', [$this, 'sanitize_password'], 10, 3);
             // Keys/usernames are rendered blank (never exposed); keep the stored value when the field is blank.
@@ -276,6 +277,34 @@ jQuery(function($){
 });
 </script>";
         echo '</td></tr>';
+    }
+
+    /**
+     * Custom WC field: the "About" tab - the plugin author, links to their other free WordPress.org plugins,
+     * an optional Revolut donation link and a contact e-mail. All static + escaped, confined to this tab (no
+     * dashboard-wide notices), per the WordPress.org guidelines on donations and cross-promotion.
+     */
+    public function render_about($field): void {
+        $plugins = [
+            ['name' => 'RiskyBuyer', 'url' => 'https://wordpress.org/plugins/riskybuyer/', 'note' => __('COD risk scoring for WooCommerce', 'bg-couriers')],
+            ['name' => 'Ordelist - Order List Enhancer for WooCommerce', 'url' => 'https://wordpress.org/plugins/ordelist-order-list-enhancer-for-woocommerce/', 'note' => __('in review', 'bg-couriers')],
+        ];
+        echo '<tr valign="top"><td colspan="2" class="forminp" style="padding-top:4px;">';
+        echo '<div class="bgc-about" style="max-width:760px;line-height:1.6;">';
+        echo '<h3 style="margin:.2em 0 .4em;">' . esc_html__('BG Couriers for WooCommerce', 'bg-couriers') . '</h3>';
+        echo '<p style="margin:.2em 0;">' . esc_html__('Free shipping integration for the Bulgarian couriers, built and maintained by an independent developer.', 'bg-couriers') . '</p>';
+        echo '<h4 style="margin:.9em 0 .3em;">' . esc_html__('My other free plugins', 'bg-couriers') . '</h4>';
+        echo '<ul style="margin:.2em 0 .2em 1.3em;list-style:disc;">';
+        foreach ($plugins as $p) {
+            echo '<li style="margin:.2em 0;"><a href="' . esc_url($p['url']) . '" target="_blank" rel="noopener">' . esc_html($p['name']) . '</a>'
+                . ' <span style="color:#646970;">- ' . esc_html($p['note']) . '</span></li>';
+        }
+        echo '</ul>';
+        echo '<h4 style="margin:.9em 0 .3em;">' . esc_html__('Support the work', 'bg-couriers') . '</h4>';
+        echo '<p style="margin:.2em 0;">' . esc_html__('These plugins are free. If they help your store, a small donation keeps more of them coming - thank you!', 'bg-couriers') . '</p>';
+        echo '<p style="margin:.4em 0;"><a class="button button-primary" href="' . esc_url('https://revolut.me/danq6lus') . '" target="_blank" rel="noopener">' . esc_html__('Donate via Revolut', 'bg-couriers') . '</a></p>';
+        echo '<p style="margin:.6em 0 .2em;color:#646970;">' . esc_html__('Contact / feedback:', 'bg-couriers') . ' <a href="' . esc_url('mailto:winter2007d@gmail.com') . '">winter2007d@gmail.com</a></p>';
+        echo '</div></td></tr>';
     }
 
     /**
