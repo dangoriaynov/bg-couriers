@@ -19,7 +19,7 @@ class BGC_Bulk_Labels {
     public function register(array $actions): array {
         $actions[self::PRINT_A4] = __('Print waybils A4', 'bg-couriers');
         $actions[self::PRINT_A6] = __('Print waybils A6', 'bg-couriers');
-        $actions[self::ACTION]   = __('Generate waybils only', 'bg-couriers');
+        $actions[self::ACTION]   = __('Generate waybils', 'bg-couriers');
         $actions[self::CANCEL]   = __('Cancel waybils', 'bg-couriers');
         return $actions;
     }

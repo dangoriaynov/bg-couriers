@@ -13,7 +13,7 @@ class BGC_Order_Columns {
 
     public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = ''): string {
         if ($waybill === '') {
-            return '<a class="bgc-ico bgc-gen" href="' . esc_url($generate_url) . '" title="' . esc_attr__('Generate waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Generate waybill', 'bg-couriers') . '"><span class="dashicons dashicons-tag"></span></a>';
+            return '<a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate waybill', 'bg-couriers') . '</a>';
         }
         // One line of icon-only actions - copy (the waybill # is the tooltip + clipboard payload), print,
         // track, cancel. No visible text. The cancel link carries the order id + a cancel nonce + a generate
@@ -99,7 +99,7 @@ class BGC_Order_Columns {
       .then(function (j) {
         if (j && j.success) {
           var g = AP + '?action=bgc_generate_label&order_id=' + encodeURIComponent(id) + '&_wpnonce=' + encodeURIComponent(gn);
-          cell.innerHTML = '<a class="bgc-ico bgc-gen" href="' + g + '" title="' + esc(M.gen) + '" aria-label="' + esc(M.gen) + '"><span class="dashicons dashicons-tag"></span></a>';
+          cell.innerHTML = '<a class="button button-small bgc-gen" href="' + g + '">' + esc(M.gen) + '</a>';
           toast(M.cancelled);
         } else { x.style.pointerEvents = ''; toast((j && j.data && j.data.msg) || M.err); }
       })
