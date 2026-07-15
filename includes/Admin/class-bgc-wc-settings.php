@@ -93,7 +93,12 @@ class BGC_WC_Settings extends WC_Settings_Page {
         echo '<style>
         #wpbody .bgc-settings table.form-table th { padding: 9px 12px 9px 0; width: 210px; }
         #wpbody .bgc-settings table.form-table td { padding: 7px 0; }
-        #wpbody .bgc-settings table.form-table { margin: 0; }
+        #wpbody .bgc-settings table.form-table { margin: 0; width: 100% !important; }
+        /* Full-width banners (ППП notice, API-credentials hint) span the whole settings column, not just the
+           auto-sized cell. */
+        #wpbody .bgc-settings .bgc-ppp-notice,
+        #wpbody .bgc-settings .bgc-cred-hint { display: block; width: 100%; max-width: none; box-sizing: border-box; }
+        #wpbody .bgc-settings table.form-table td[colspan] { width: auto; }
         /* Consistent field width + left alignment for EVERY field (courier-level fields fill a full-width
            table, per-method fields sit in a narrower card - without this their inputs align differently). */
         #wpbody .bgc-settings table.form-table td > select,
