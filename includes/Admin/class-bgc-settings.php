@@ -215,35 +215,57 @@ class BGC_Settings {
      */
     public function render_pickup($field): void {
         $id      = (string) ($field['id'] ?? 'bgc_pigeon_pickup_office_id');
+        $courier = (string) ($field['courier'] ?? 'pigeon');
         $current = (int) get_option($id, 0);
         wp_enqueue_script('selectWoo');
         wp_enqueue_style('select2');
         $ph_city = esc_js(__('Search your city...', 'bg-couriers'));
         $ph_off  = esc_js(__('Pick the pickup office', 'bg-couriers'));
-        /* translators: %d: Pigeon office id */
-        $cur_txt = $current > 0 ? esc_js(sprintf(__('Current pickup office (#%d)', 'bg-couriers'), $current)) : '';
         $idjs    = esc_js($id);
+        $cour_js = esc_js($courier);
+
+        // Resolve the SAVED office to its city + name/address so both dropdowns open pre-filled with a
+        // readable label (city name, "office - address"), exactly like the checkout picker - not a bare "#id".
+        $cur_office_txt = ''; $cur_city_id = 0; $cur_city_txt = '';
+        if ($current > 0) {
+            $off = BGC_Nomenclature::office_by_id($courier, $current);
+            if ($off) {
+                $cur_office_txt = esc_js(trim((string) ($off['name'] ?? '') . (!empty($off['address']) ? ' - ' . $off['address'] : '')));
+                $cur_city_id    = (int) ($off['city_id'] ?? 0);
+                $city = $cur_city_id > 0 ? BGC_Nomenclature::city_by_id($courier, $cur_city_id) : null;
+                if ($city) {
+                    $cur_city_txt = esc_js(trim((string) ($city['name'] ?? '') . (!empty($city['region']) ? ' (' . $city['region'] . ')' : '')));
+                }
+            }
+            if ($cur_office_txt === '') {
+                /* translators: %d: pickup office id */
+                $cur_office_txt = esc_js(sprintf(__('Current pickup office (#%d)', 'bg-couriers'), $current));
+            }
+        }
+        $cur_city_js = (string) $cur_city_id;
 
         echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html($field['title'] ?? '') . '</th><td class="forminp">';
         echo '<select id="bgc_pickup_city" style="min-width:300px;"></select><br>';
         echo '<select id="bgc_pickup_office" style="min-width:300px;margin-top:6px;"></select>';
         echo '<input type="hidden" id="' . esc_attr($id) . '" name="' . esc_attr($id) . '" value="' . esc_attr((string) $current) . '">';
         echo '<p class="description">' . esc_html($field['desc'] ?? '') . '</p>';
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- all interpolated vars ($idjs,$cur_txt,$ph_city,$ph_off) are esc_js()'d above
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- all interpolated vars are esc_js()'d above
         echo "<script>
 jQuery(function($){
   var \$c=$('#bgc_pickup_city'), \$o=$('#bgc_pickup_office'), \$h=$('#{$idjs}');
   var cur=\$h.val();
-  if(cur && cur!=='0'){ \$o.append(new Option('{$cur_txt}', cur, true, true)); }
+  if(cur && cur!=='0'){ \$o.append(new Option('{$cur_office_txt}', cur, true, true)); }
+  var curCity='{$cur_city_js}';
+  if(curCity && curCity!=='0'){ \$c.append(new Option('{$cur_city_txt}', curCity, true, true)); }
   \$c.select2({ width:'300px', placeholder:'{$ph_city}', minimumInputLength:1, ajax:{
     url: ajaxurl, dataType:'json', delay:250,
-    data:function(p){ return {action:'bgc_search_cities', courier:'pigeon', term:p.term||''}; },
+    data:function(p){ return {action:'bgc_search_cities', courier:'{$cour_js}', term:p.term||''}; },
     processResults:function(d){ return {results:(d||[]).map(function(c){ return {id:c.city_id, text:(c.name||'')+(c.region?(' ('+c.region+')'):'')}; })}; }
   }});
   \$o.select2({ width:'300px', placeholder:'{$ph_off}' });
   \$c.on('select2:select', function(e){
     var cid=e.params.data.id; \$o.prop('disabled',true);
-    $.getJSON(ajaxurl, {action:'bgc_offices', courier:'pigeon', city_id:cid, type:'office', all:1}, function(rows){
+    $.getJSON(ajaxurl, {action:'bgc_offices', courier:'{$cour_js}', city_id:cid, type:'office', all:1}, function(rows){
       \$o.empty();
       (rows||[]).forEach(function(r){ \$o.append(new Option((r.name||'')+(r.address?(' - '+r.address):''), r.office_id)); });
       \$o.prop('disabled',false).trigger('change');
