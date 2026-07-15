@@ -2,14 +2,14 @@
 defined('ABSPATH') || exit;
 
 /**
- * Packs courier label PDFs onto sheets using the bundled FPDI + FPDF:
- *  - 'A6': one label per A6 page (for a sticker/label printer).
- *  - 'A4': as many labels per A4 sheet as fit, at their NATURAL size, using First-Fit-Decreasing-Height
- *    (FFDH) shelf packing - labels are sorted tallest-first and each is dropped into the first row (shelf)
- *    with room, so labels of ANY courier size share a sheet tightly (e.g. two 100x147 Speedy labels beside
- *    each other with a full-width Econt label below them). Rows run top-to-bottom for straight guillotine
- *    cuts - no wasted paper and no re-feeding the sheet (no duplex needed).
- * Each imported page keeps its aspect ratio (only oversized labels are shrunk to fit the page).
+ * Packs courier label PDFs onto sheets using the bundled FPDI + FPDF, NEVER scaling or cropping a label - it
+ * is always placed at the exact native size the courier produced (only the PDF's own CropBox, i.e. declared
+ * empty margin, is trimmed on import). Two modes:
+ *  - 'A6': one label per page, each page sized to that label's own native dimensions (sticker/label printer).
+ *  - 'A4': First-Fit-Decreasing-Height (FFDH) shelf packing of labels that fit within A4, at their NATURAL
+ *    size - labels sorted by height and dropped into the first row with room, so labels of any courier size
+ *    share a sheet tightly with straight guillotine cuts. A label larger than A4 gets its own native-size page
+ *    (rather than being shrunk).
  */
 class BGC_Label_Packer {
 
@@ -27,17 +27,12 @@ class BGC_Label_Packer {
     public static function pack(array $pdfs, string $paper): string {
         if (!self::available()) { return ''; }
         $isA6 = strtoupper($paper) === 'A6';
-        // A6 = one label per page (sticker printer). FPDF only knows A3/A4/A5/Letter/Legal by name, so A6
-        // is passed as an explicit [w,h] mm size.
-        $size = $isA6 ? [105, 148] : 'A4';
-        [$pageW, $pageH] = $isA6 ? [105.0, 148.0] : [210.0, 297.0];
 
-        $pdf = new \setasign\Fpdi\Fpdi('P', 'mm', $size);
+        $pdf = new \setasign\Fpdi\Fpdi('P', 'mm', 'A4'); // base doc; pages are added per label with explicit sizes
         $pdf->SetMargins(0, 0, 0);
         $pdf->SetAutoPageBreak(false);
 
-        // Import every label page first (templates persist independent of output pages), keeping its scaled
-        // natural size. A6 emits one centred label per page as it goes; A4 collects then FFDH-packs below.
+        // Import every label page first (templates persist independent of output pages), at its NATIVE size.
         $items = [];
         foreach ($pdfs as $bytes) {
             if (!is_string($bytes) || $bytes === '') { continue; }
@@ -49,38 +44,50 @@ class BGC_Label_Packer {
                 try {
                     $tpl = $pdf->importPage($p);
                     $s   = $pdf->getTemplateSize($tpl);
-                    $fit = min(1.0, $pageW / $s['width'], $pageH / $s['height']); // only shrink oversized labels
-                    $w = $s['width'] * $fit;
-                    $h = $s['height'] * $fit;
-                    if ($isA6) { // one label per page, centred
-                        $pdf->AddPage('P', $size);
-                        $pdf->useTemplate($tpl, ($pageW - $w) / 2, ($pageH - $h) / 2, $w, $h);
-                        continue;
-                    }
-                    $items[] = ['tpl' => $tpl, 'w' => $w, 'h' => $h];
+                    $items[] = ['tpl' => $tpl, 'w' => (float) $s['width'], 'h' => (float) $s['height']];
                 } catch (\Throwable $e) { /* skip an unreadable page but keep going */ }
             }
         }
-        if ($isA6) { return $pdf->PageNo() > 0 ? $pdf->Output('S') : ''; }
         if (!$items) { return ''; }
 
-        // Shelf-pack the labels twice - shortest-first and tallest-first - and keep whichever needs fewer
-        // pages. On a tie, shortest-first wins: it fills the small labels together (e.g. 4 Speedy on a
-        // sheet) and lets a big full-width label take its own page, instead of the big label stranding a
-        // lone small label on a half-empty trailing page. Rows still cut apart with straight guillotine lines.
-        $asc = $items;  usort($asc,  static function ($a, $b) { return $a['h'] <=> $b['h']; });
-        $desc = $items; usort($desc, static function ($a, $b) { return $b['h'] <=> $a['h']; });
-        $la = self::layout($asc, $pageW, $pageH);
-        $ld = self::layout($desc, $pageW, $pageH);
-        $best = ($ld['pages'] < $la['pages']) ? $ld : $la; // tie -> ascending (nicer grouping)
+        if ($isA6) { // one label per page, each page the label's own native size - never scaled
+            foreach ($items as $it) { self::add_native_page($pdf, $it); }
+            return $pdf->PageNo() > 0 ? $pdf->Output('S') : '';
+        }
 
-        for ($pg = 0; $pg < $best['pages']; $pg++) {
-            $pdf->AddPage('P', $size);
-            foreach ($best['placements'] as $pl) {
-                if ($pl['page'] === $pg) { $pdf->useTemplate($pl['tpl'], $pl['x'], $pl['y'], $pl['w'], $pl['h']); }
+        // A4: labels that fit within an A4 sheet are FFDH-packed at native size; anything larger gets its own
+        // native-size page (never shrunk).
+        [$pageW, $pageH] = [210.0, 297.0];
+        $fit = []; $over = [];
+        foreach ($items as $it) {
+            if ($it['w'] <= $pageW + 0.5 && $it['h'] <= $pageH + 0.5) { $fit[] = $it; } else { $over[] = $it; }
+        }
+        if ($fit) {
+            // Shelf-pack twice - shortest-first and tallest-first - and keep whichever needs fewer pages. On a
+            // tie, shortest-first wins (fills small labels together, lets a big one take its own page).
+            $asc  = $fit; usort($asc,  static function ($a, $b) { return $a['h'] <=> $b['h']; });
+            $desc = $fit; usort($desc, static function ($a, $b) { return $b['h'] <=> $a['h']; });
+            $la = self::layout($asc, $pageW, $pageH);
+            $ld = self::layout($desc, $pageW, $pageH);
+            $best = ($ld['pages'] < $la['pages']) ? $ld : $la;
+            for ($pg = 0; $pg < $best['pages']; $pg++) {
+                $pdf->AddPage('P', 'A4');
+                foreach ($best['placements'] as $pl) {
+                    if ($pl['page'] === $pg) { $pdf->useTemplate($pl['tpl'], $pl['x'], $pl['y'], $pl['w'], $pl['h']); }
+                }
             }
         }
-        return $pdf->Output('S');
+        foreach ($over as $it) { self::add_native_page($pdf, $it); } // oversized -> own native page, never scaled
+        return $pdf->PageNo() > 0 ? $pdf->Output('S') : '';
+    }
+
+    /** Add a page sized exactly to the label's native dimensions and place the label on it 1:1 (no scaling). */
+    private static function add_native_page(\setasign\Fpdi\Fpdi $pdf, array $it): void {
+        $w = $it['w']; $h = $it['h'];
+        // FPDF interprets the size in portrait terms and swaps for 'L', so hand it [short,long] with the right
+        // orientation to get a page of exactly w x h.
+        if ($w <= $h) { $pdf->AddPage('P', [$w, $h]); } else { $pdf->AddPage('L', [$h, $w]); }
+        $pdf->useTemplate($it['tpl'], 0, 0, $w, $h);
     }
 
     /**

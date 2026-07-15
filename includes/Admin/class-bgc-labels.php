@@ -50,35 +50,57 @@ class BGC_Labels {
         $label = $courier->create_label($order);
         $order->update_meta_data('_bgc_waybill', $label->waybill);
 
+        // The format the PRIMARY stored label should be in - the merchant's per-courier size setting for
+        // size-aware couriers (Speedy/Sameday), else the courier's single native format, else '' (no choice).
+        $primary = self::courier_primary_format($courier);
         // Get the label PDF bytes. Three cases, in order:
         //  - the create response returned a URL  (Econt) -> download it;
         //  - the create response returned the PDF inline (Pigeon has no separate label endpoint) -> use as-is;
-        //  - otherwise fetch the label by waybill (Speedy, Econt print endpoint, ...).
+        //  - otherwise fetch the label by waybill IN THE CONFIGURED SIZE (Speedy/Sameday request it, so the
+        //    courier returns a correctly-sized native PDF and we never scale it).
         if ($label->pdf !== '' && strpos($label->pdf, 'http') === 0) {
             $pdf = self::download_pdf($label->pdf);
         } elseif ($label->pdf !== '') {
             $pdf = $label->pdf;
         } else {
-            $pdf = $courier->get_label_pdf($label->waybill);
+            $pdf = $courier->get_label_pdf($label->waybill, $primary);
         }
-        $up = wp_upload_dir();
-        $dir = trailingslashit($up['basedir']) . 'bgc-labels';
-        wp_mkdir_p($dir);
-        self::protect_label_dir($dir);
-        $safe_waybill = preg_replace('/[^A-Za-z0-9\-]/', '', (string) $label->waybill);
-        $prefix = preg_replace('/[^a-z0-9]/', '', $courier->id()) ?: 'bgc';
-        // A random token in the filename so the URL is NOT guessable from the (customer-visible) waybill.
-        // The label PDF carries the recipient's name/address/phone, so a predictable path would leak PII.
-        $token = wp_generate_password(24, false); // [A-Za-z0-9] only
-        $name  = $prefix . '-' . $safe_waybill . '-' . $token . '.pdf';
-        $file  = $dir . '/' . $name;
-        file_put_contents($file, $pdf);
-        $url = trailingslashit($up['baseurl']) . 'bgc-labels/' . $name;
+        $url = self::store_label_file($courier->id(), (string) $label->waybill, $pdf);
         $order->update_meta_data('_bgc_label_url', $url);
+        $order->update_meta_data('_bgc_label_paper_size', $primary);
         /* translators: 1: courier name, 2: waybill number */
         $order->add_order_note(sprintf(__('%1$s label generated: %2$s', 'bg-couriers'), $courier->label(), $label->waybill));
         $order->save();
         return new BGC_Label($label->waybill, $url);
+    }
+
+    /**
+     * The paper format a courier's PRIMARY label is stored in: the merchant's per-courier size setting when
+     * the courier supports choosing (label_formats), else its single native format, else '' (no size concept).
+     */
+    private static function courier_primary_format(BGC_Courier_Interface $courier): string {
+        $fmts = $courier->label_formats();
+        if (!$fmts) { return ''; }
+        $set = BGC_Settings::label_paper_size($courier->id());
+        return in_array($set, $fmts, true) ? $set : (string) $fmts[0];
+    }
+
+    /**
+     * Write label PDF bytes to a non-guessable file in uploads/bgc-labels and return its public URL. A random
+     * token keeps the URL unguessable (the PDF carries the recipient's name/address/phone - a predictable path
+     * would leak PII). Reused for the primary label and for cached alternate-size variants.
+     */
+    private static function store_label_file(string $courier_id, string $waybill, string $pdf): string {
+        $up  = wp_upload_dir();
+        $dir = trailingslashit($up['basedir']) . 'bgc-labels';
+        wp_mkdir_p($dir);
+        self::protect_label_dir($dir);
+        $safe_waybill = preg_replace('/[^A-Za-z0-9\-]/', '', $waybill);
+        $prefix = preg_replace('/[^a-z0-9]/', '', $courier_id) ?: 'bgc';
+        $token  = wp_generate_password(24, false); // [A-Za-z0-9] only
+        $name   = $prefix . '-' . $safe_waybill . '-' . $token . '.pdf';
+        file_put_contents($dir . '/' . $name, $pdf);
+        return trailingslashit($up['baseurl']) . 'bgc-labels/' . $name;
     }
     private static function download_pdf(string $url): string {
         $r = wp_remote_get($url, ['timeout' => 30]);
@@ -298,7 +320,10 @@ class BGC_Labels {
         $order_ids = array_filter(array_map('intval', $order_ids));
         if (!$order_ids) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
         $paper = (isset($_GET['paper']) && strtoupper(sanitize_text_field(wp_unslash($_GET['paper']))) === 'A6') ? 'A6' : 'A4';
-        try { $pdfs = self::collect_label_pdfs($order_ids); }
+        // One order = an individual print in the courier's configured size ($paper is that setting, from the
+        // metabox). Several = a batch: request the compact A6 unit so size-aware couriers pack tightly.
+        $req_fmt = (count($order_ids) === 1) ? $paper : 'A6';
+        try { $pdfs = self::collect_label_pdfs($order_ids, $req_fmt); }
         /* translators: %s: error message */
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         if (!$pdfs) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
@@ -315,24 +340,72 @@ class BGC_Labels {
         exit;
     }
 
-    /** Collect each order's label PDF bytes: the saved file first, else re-fetch from the courier. */
-    public static function collect_label_pdfs(array $order_ids): array {
-        $up = wp_upload_dir();
+    /**
+     * Collect each order's label PDF bytes in the desired paper $format ('' = each label's stored/native
+     * format). The couriers' own PDFs are returned unscaled; the packer arranges them at native size.
+     */
+    public static function collect_label_pdfs(array $order_ids, string $format = ''): array {
         $pdfs = [];
         foreach ($order_ids as $oid) {
             $o = wc_get_order((int) $oid);
             if (!$o) { continue; }
-            $url = (string) $o->get_meta('_bgc_label_url');
-            if ($url !== '' && !empty($up['baseurl']) && strpos($url, $up['baseurl']) === 0) {
-                $file = $up['basedir'] . substr($url, strlen($up['baseurl']));
-                if (is_file($file)) { $bytes = @file_get_contents($file); if ($bytes !== false && $bytes !== '') { $pdfs[] = $bytes; continue; } }
-            }
-            $courier = self::order_courier($o);
-            $wb = (string) $o->get_meta('_bgc_waybill');
-            if ($courier && $wb !== '' && method_exists($courier, 'get_label_pdf')) {
-                try { $b = $courier->get_label_pdf($wb); if ($b !== '') { $pdfs[] = $b; } } catch (\Exception $e) {}
-            }
+            $bytes = self::label_pdf_for_print($o, $format);
+            if ($bytes !== '') { $pdfs[] = $bytes; }
         }
         return $pdfs;
+    }
+
+    /**
+     * The label PDF bytes for one order in the desired paper $format. Serves the stored primary file when it
+     * already matches (or the courier has a single fixed format). Only when the courier can actually PRODUCE a
+     * different requested size do we fetch it from the courier once and CACHE it to a per-format file - so the
+     * next print of that size is instant and we never scale a label to fake a size it wasn't made in.
+     */
+    private static function label_pdf_for_print(\WC_Order $o, string $format): string {
+        $courier = self::order_courier($o);
+        $wb      = (string) $o->get_meta('_bgc_waybill');
+        $primary = (string) $o->get_meta('_bgc_label_paper_size');
+        $fmts    = $courier ? $courier->label_formats() : [];
+        // Only switch away from the stored primary when the courier can truly make the requested (different)
+        // size; otherwise serve what we already have.
+        $want = ($format !== '' && in_array($format, $fmts, true)) ? $format : $primary;
+
+        if ($want === '' || $want === $primary) {
+            $b = self::read_stored_url($o, (string) $o->get_meta('_bgc_label_url'));
+            if ($b !== '') { return $b; }
+            if ($courier && $wb !== '') {
+                try { return $courier->get_label_pdf($wb, $primary); } catch (\Exception $e) { return ''; }
+            }
+            return '';
+        }
+
+        // A different, courier-supported size: cached variant file first, else fetch + cache it.
+        $meta_key = '_bgc_label_url_' . $want;
+        $cached   = self::read_stored_url($o, (string) $o->get_meta($meta_key));
+        if ($cached !== '') { return $cached; }
+        if ($courier && $wb !== '') {
+            try {
+                $pdf = $courier->get_label_pdf($wb, $want);
+                if ($pdf !== '') {
+                    $url = self::store_label_file($courier->id(), $wb . '-' . strtolower($want), $pdf);
+                    $o->update_meta_data($meta_key, $url);
+                    $o->save();
+                    return $pdf;
+                }
+            } catch (\Exception $e) {}
+        }
+        // Variant unavailable - fall back to the stored primary rather than fail the print.
+        return self::read_stored_url($o, (string) $o->get_meta('_bgc_label_url'));
+    }
+
+    /** Read the bytes of a stored label file from its uploads URL, or '' if it isn't a readable local file. */
+    private static function read_stored_url(\WC_Order $o, string $url): string {
+        if ($url === '') { return ''; }
+        $up = wp_upload_dir();
+        if (empty($up['baseurl']) || strpos($url, $up['baseurl']) !== 0) { return ''; }
+        $file = $up['basedir'] . substr($url, strlen($up['baseurl']));
+        if (!is_file($file)) { return ''; }
+        $b = @file_get_contents($file);
+        return ($b !== false) ? (string) $b : '';
     }
 }

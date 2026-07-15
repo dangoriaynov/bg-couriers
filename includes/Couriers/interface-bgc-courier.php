@@ -13,7 +13,10 @@ interface BGC_Courier_Interface {
     public function fetch_offices(int $city_id): array;
     public function quote(array $shipment): BGC_Quote;
     public function create_label(\WC_Order $order): BGC_Label;
-    public function get_label_pdf(string $waybill): string;
+    /** Paper formats the courier can produce a label in on demand (e.g. ['A6','A4']); empty = one fixed native format. */
+    public function label_formats(): array;
+    /** @param string $format desired paper size ('A6'/'A4'); '' = the courier's default/native format. */
+    public function get_label_pdf(string $waybill, string $format = ''): string;
     public function cancel_label(string $waybill): bool;
     public function track(string $waybill): BGC_Tracking;
     public function tracking_url(string $waybill): string;

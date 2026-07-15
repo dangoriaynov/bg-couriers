@@ -269,8 +269,15 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         return (string) ($resp['awbNumber'] ?? $resp['awbCost']['awbNumber'] ?? '');
     }
 
-    public function get_label_pdf(string $waybill): string {
-        $r = wp_remote_get($this->base . '/api/awb/download/' . rawurlencode($waybill), [
+    public function label_formats(): array { return ['A6', 'A4']; }
+
+    public function get_label_pdf(string $waybill, string $format = ''): string {
+        // Sameday's AWB download supports a paper type; request it when a size is asked for. When $format is
+        // empty we send NO type param so the native download is unchanged. (Format param per the official
+        // php-sdk; not live-verified here - no Sameday account yet.)
+        $url = $this->base . '/api/awb/download/' . rawurlencode($waybill);
+        if (in_array($format, ['A6', 'A4'], true)) { $url = add_query_arg('type', $format, $url); }
+        $r = wp_remote_get($url, [
             'timeout' => 40, 'headers' => ['X-AUTH-TOKEN' => $this->auth_token()],
         ]);
         if (is_wp_error($r)) { throw new BGC_Api_Exception(esc_html($r->get_error_message())); }

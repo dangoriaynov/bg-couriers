@@ -217,7 +217,7 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
         return (string) ($resp['parcels'][0]['id'] ?? '');
     }
 
-    public function get_label_pdf(string $waybill): string {
+    public function get_label_pdf(string $waybill, string $format = ''): string {
         $res = wp_remote_get($this->base . '/api/v1/parcels/' . rawurlencode($waybill) . '/label.pdf', ['timeout' => 40, 'headers' => $this->headers(false)]);
         if (is_wp_error($res)) { throw new BGC_Api_Exception(esc_html('BoxNow label transport: ' . $res->get_error_message())); }
         $pdf = (string) wp_remote_retrieve_body($res);

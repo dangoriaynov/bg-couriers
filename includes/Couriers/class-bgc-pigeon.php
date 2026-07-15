@@ -462,7 +462,7 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
      * @return string         Never returns; always throws.
      * @throws BGC_Api_Exception Always - the label is not retrievable after creation.
      */
-    public function get_label_pdf(string $waybill): string {
+    public function get_label_pdf(string $waybill, string $format = ''): string {
         throw new BGC_Api_Exception(esc_html__(
             'Pigeon labels are only available at creation time and cannot be re-fetched. Regenerate the waybill to get a fresh label.',
             'bg-couriers'

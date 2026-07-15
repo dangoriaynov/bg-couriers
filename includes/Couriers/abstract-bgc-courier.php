@@ -68,6 +68,16 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
     public function is_cancelled(string $waybill): bool { return false; }
 
     /**
+     * Paper formats this courier can produce a label in on demand. Default is a single FIXED native format
+     * (empty list): the courier returns one PDF and get_label_pdf() ignores $format. Couriers whose API lets
+     * us request a size (Speedy paperSize, Sameday type) override this with ['A6','A4'] so the setting/batch
+     * choice can ask for the right size - printing then never scales.
+     *
+     * @return string[]
+     */
+    public function label_formats(): array { return []; }
+
+    /**
      * Delivery methods to actually OFFER, driven by the courier's real synced nomenclature: an office/automat
      * type the courier has ZERO synced points for is dropped (e.g. Pigeon has offices but no APS lockers, so
      * "to APS" must not be offered anywhere). If the courier syncs no points at all here (total 0 - BOX NOW is

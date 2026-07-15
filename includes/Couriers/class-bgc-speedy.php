@@ -276,8 +276,13 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         return (string) wp_remote_retrieve_body($res); // binary PDF
     }
 
-    public function get_label_pdf(string $waybill): string {
-        return $this->print_labels([$waybill], 'A6');
+    public function label_formats(): array { return ['A6', 'A4']; }
+
+    public function get_label_pdf(string $waybill, string $format = ''): string {
+        // Ask Speedy's /print for the requested size, so the courier returns the correctly-sized native PDF
+        // (no scaling on our side). Empty/invalid falls back to the merchant's configured size, not hardcoded.
+        $paper = in_array($format, ['A6', 'A4'], true) ? $format : BGC_Settings::label_paper_size('speedy');
+        return $this->print_labels([$waybill], $paper);
     }
 
     public function track(string $waybill): BGC_Tracking {

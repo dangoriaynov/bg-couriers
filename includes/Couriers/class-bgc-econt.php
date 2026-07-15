@@ -450,7 +450,9 @@ class BGC_Econt extends BGC_Abstract_Courier {
     /**
      * Fetch label PDF bytes for a given waybill.  Live - do NOT call in tests.
      */
-    public function get_label_pdf(string $waybill): string {
+    public function label_formats(): array { return ['A4']; } // Econt labels are A4-landscape; no size param in the API
+
+    public function get_label_pdf(string $waybill, string $format = ''): string {
         $resp = $this->post_json(
             $this->base . '/Shipments/ShipmentService.getShipmentStatuses.json',
             ['shipmentNumbers' => [$waybill]]

@@ -108,7 +108,9 @@ class BGC_Bulk_Labels {
             }
             $ok[] = $oid;
         }
-        $pdfs = BGC_Labels::collect_label_pdfs($ok);
+        // Request the compact A6 unit from size-aware couriers so they pack tightly onto the sheet; fixed-format
+        // couriers return their native label. The packer places everything at native size (no scaling).
+        $pdfs = BGC_Labels::collect_label_pdfs($ok, 'A6');
         if (!$pdfs) { wp_die(esc_html__('No labels to print (none could be generated).', 'bg-couriers')); }
         $out = BGC_Label_Packer::pack($pdfs, $paper);
         if ($out === '') { $out = $pdfs[0]; }
