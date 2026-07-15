@@ -270,10 +270,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
     private function output_courier(string $courier_id): void {
         $fields    = $this->{$courier_id . '_courier_fields'}();
         $enable_id = 'bgc_' . $courier_id . '_enabled';
-        // The enable control is a prominent toggle at the top of the tab (it still saves via get_settings()),
-        // so pull it out of the form-table - it must not render as an ordinary checkbox row.
+        // The enable toggle, the ППП notice and the API-credentials hint all render as prominent FULL-WIDTH
+        // blocks at the top of the tab (outside the form-table, which otherwise auto-sizes them narrow), so
+        // pull them out of the field list here and echo them directly below.
         $fields = array_values(array_filter($fields, static function ($f) use ($enable_id) {
-            return !(isset($f['id']) && $f['id'] === $enable_id);
+            if (isset($f['id']) && $f['id'] === $enable_id) { return false; }
+            $type = $f['type'] ?? '';
+            return $type !== 'bgc_ppp_notice' && $type !== 'bgc_cred_hint';
         }));
         $on    = get_option($enable_id, 'no') === 'yes';
         $label = $this->sections()[$courier_id] ?? ucfirst($courier_id);
@@ -283,6 +286,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . '<label class="bgc-switch"><input type="checkbox" name="' . esc_attr($enable_id) . '" value="1"' . checked($on, true, false) . '><span class="bgc-slider"></span></label>'
             . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> - <span class="bgc-enable-state">' . esc_html($on ? $on_t : $off_t) . '</span></span>'
             . '</div>';
+        BGC_Settings::ppp_notice_block($courier_id); // full-width, escaped internally
+        BGC_Settings::cred_hint_block($courier_id);  // full-width, escaped internally
         WC_Admin_Settings::output_fields($fields);
         $c_id    = esc_js($courier_id);
         $c_ajax  = esc_js(admin_url('admin-ajax.php'));

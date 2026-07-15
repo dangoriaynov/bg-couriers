@@ -408,6 +408,46 @@ jQuery(function($){
         echo '</div></details></td></tr>';
     }
 
+    /**
+     * Full-width ППП-notice banner rendered OUTSIDE the form-table (so it spans the whole settings column,
+     * like the enable toggle). Echoes nothing when there is no notice to show.
+     */
+    public static function ppp_notice_block(string $courier): void {
+        $notice = self::ppp_courier_notice($courier);
+        if (!$notice) { return; }
+        $is_err = $notice['level'] === 'error';
+        $bg  = $is_err ? '#fcf0f1' : '#fef8e7';
+        $bd  = $is_err ? '#e6a2a5' : '#e6cf7a';
+        $col = $is_err ? '#8a1f2b' : '#7a5b00';
+        echo '<div class="bgc-ppp-notice" style="border:1px solid ' . esc_attr($bd) . ';background:' . esc_attr($bg)
+            . ';color:' . esc_attr($col) . ';border-radius:8px;padding:10px 14px;margin:0 0 14px;line-height:1.5;">';
+        echo '<strong>' . esc_html($is_err ? __('This courier is currently unusable', 'bg-couriers') : __('Cash on delivery is off for this courier', 'bg-couriers')) . '</strong><br>';
+        echo esc_html($notice['msg']);
+        echo '</div>';
+    }
+
+    /** Full-width "How do I get API credentials?" hint rendered OUTSIDE the form-table (spans the column). */
+    public static function cred_hint_block(string $courier): void {
+        $data = self::cred_hint_data($courier);
+        if (empty($data)) { return; }
+        echo '<details class="bgc-cred-hint" style="border:1px solid #dcdcde;border-radius:6px;padding:8px 12px;margin:0 0 14px;background:#fbfbfc;">';
+        echo '<summary style="cursor:pointer;font-weight:600;color:#2271b1;">'
+            . esc_html__('How do I get API credentials for this courier?', 'bg-couriers') . '</summary>';
+        echo '<div style="margin-top:8px;line-height:1.5;">';
+        echo '<p style="margin:.3em 0;">' . esc_html($data['intro']) . '</p>';
+        echo '<ol style="margin:.3em 0 .3em 1.4em;">';
+        foreach ($data['steps'] as $step) { echo '<li style="margin:.2em 0;">' . esc_html($step) . '</li>'; }
+        echo '</ol>';
+        echo '<p style="margin:.3em 0;"><strong>' . esc_html__('You receive:', 'bg-couriers') . '</strong> ' . esc_html($data['receive']) . '</p>';
+        if (!empty($data['url'])) {
+            echo '<p style="margin:.3em 0;">' . esc_html($data['url_label']) . ' <a href="' . esc_url($data['url'])
+                . '" target="_blank" rel="noopener noreferrer">' . esc_html($data['url']) . '</a></p>';
+        }
+        echo '<p style="margin:.5em 0 0;color:#646970;font-size:.92em;">'
+            . esc_html__('A courier can change its process - if a step differs, follow the courier\'s own instructions.', 'bg-couriers') . '</p>';
+        echo '</div></details>';
+    }
+
     /** Researched per-courier credential-acquisition steps (verified against each courier's own site/docs). */
     public static function cred_hint_data(string $courier): array {
         switch ($courier) {
