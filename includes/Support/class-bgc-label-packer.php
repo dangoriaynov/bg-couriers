@@ -91,6 +91,38 @@ class BGC_Label_Packer {
     }
 
     /**
+     * Concatenate several label PDFs preserving EVERY source page at its native size and orientation - no
+     * re-packing, no scaling. Used for batch printing where each courier already returns a correctly laid-out
+     * sheet (e.g. Speedy's native A4 with landscape labels), so we just stitch the sheets together in order.
+     *
+     * @param string[] $pdfs
+     * @return string
+     */
+    public static function concat(array $pdfs): string {
+        if (!self::available()) { return ''; }
+        $pdf = new \setasign\Fpdi\Fpdi('P', 'mm', 'A4');
+        $pdf->SetMargins(0, 0, 0);
+        $pdf->SetAutoPageBreak(false);
+        $any = false;
+        foreach ($pdfs as $bytes) {
+            if (!is_string($bytes) || $bytes === '') { continue; }
+            try {
+                $reader = \setasign\Fpdi\PdfParser\StreamReader::createByString($bytes);
+                $count  = $pdf->setSourceFile($reader);
+            } catch (\Throwable $e) { continue; }
+            for ($p = 1; $p <= $count; $p++) {
+                try {
+                    $tpl = $pdf->importPage($p);
+                    $s   = $pdf->getTemplateSize($tpl);
+                    self::add_native_page($pdf, ['tpl' => $tpl, 'w' => (float) $s['width'], 'h' => (float) $s['height']]);
+                    $any = true;
+                } catch (\Throwable $e) { /* skip an unreadable page */ }
+            }
+        }
+        return $any ? $pdf->Output('S') : '';
+    }
+
+    /**
      * Next-fit shelf packing of pre-ordered items onto pages: each item goes into the first row (shelf) on
      * the current page that still has width and is tall enough, else a new row, else a new page.
      *

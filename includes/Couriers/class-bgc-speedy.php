@@ -260,10 +260,25 @@ class BGC_Speedy extends BGC_Abstract_Courier {
 
     public static function build_print_body(array $parcel_ids, string $paper_size): array {
         return [
+            // Print the label in Bulgarian (the /print API defaults to the account language, which was giving
+            // English text). BG couriers/recipients -> BG. Ref: https://api.speedy.bg/web-api.html (language BG|EN).
+            'language'  => 'BG',
             'paperSize' => in_array($paper_size, ['A6', 'A4'], true) ? $paper_size : 'A6',
             'parcels'   => array_values(array_map(static fn($id) => ['parcel' => ['id' => (string) $id]], $parcel_ids)),
             'additionalWaybillSenderCopy' => 'NONE',
         ];
+    }
+
+    /**
+     * Speedy prints multiple waybills in one native call - on A4 it lays them out itself (landscape, up to a
+     * few per sheet), which is exactly how Speedy prints them 1-by-1. Used for batch printing so we DON'T
+     * re-pack A6 stickers ourselves. Returns one PDF for all the given waybills.
+     */
+    public function has_native_batch(): bool { return true; }
+
+    public function batch_label_pdf(array $waybills, string $format = ''): string {
+        $paper = in_array($format, ['A6', 'A4'], true) ? $format : BGC_Settings::label_paper_size('speedy');
+        return $this->print_labels(array_values(array_filter(array_map('strval', $waybills))), $paper);
     }
 
     public function print_labels(array $parcel_ids, string $paper_size): string {

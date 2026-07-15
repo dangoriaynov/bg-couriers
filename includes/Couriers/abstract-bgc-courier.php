@@ -78,6 +78,27 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
     public function label_formats(): array { return []; }
 
     /**
+     * A PDF with the labels for MANY waybills, for batch printing. Default: fetch each label individually and
+     * concatenate the pages at native size (no re-packing). Couriers with a native multi-label print endpoint
+     * (Speedy lays out its own A4) override this to use it, so the sheet matches how they print 1-by-1.
+     *
+     * @param string[] $waybills
+     */
+    /** Whether the courier has a native multi-label print endpoint (so batch_label_pdf() should be used). */
+    public function has_native_batch(): bool { return false; }
+
+    public function batch_label_pdf(array $waybills, string $format = ''): string {
+        $pdfs = [];
+        foreach ($waybills as $wb) {
+            $wb = (string) $wb;
+            if ($wb === '') { continue; }
+            try { $b = $this->get_label_pdf($wb, $format); if ($b !== '') { $pdfs[] = $b; } } catch (\Exception $e) { /* skip */ }
+        }
+        if (!$pdfs) { return ''; }
+        return count($pdfs) === 1 ? $pdfs[0] : BGC_Label_Packer::concat($pdfs);
+    }
+
+    /**
      * Delivery methods to actually OFFER, driven by the courier's real synced nomenclature: an office/automat
      * type the courier has ZERO synced points for is dropped (e.g. Pigeon has offices but no APS lockers, so
      * "to APS" must not be offered anywhere). If the courier syncs no points at all here (total 0 - BOX NOW is

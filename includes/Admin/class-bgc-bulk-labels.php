@@ -108,12 +108,10 @@ class BGC_Bulk_Labels {
             }
             $ok[] = $oid;
         }
-        // Request the compact A6 unit from size-aware couriers so they pack tightly onto the sheet; fixed-format
-        // couriers return their native label. The packer places everything at native size (no scaling).
-        $pdfs = BGC_Labels::collect_label_pdfs($ok, 'A6');
-        if (!$pdfs) { wp_die(esc_html__('No labels to print (none could be generated).', 'bg-couriers')); }
-        $out = BGC_Label_Packer::pack($pdfs, $paper);
-        if ($out === '') { $out = $pdfs[0]; }
+        // Each courier lays out its own sheet the way it prints 1-by-1 (Speedy = its native A4 landscape
+        // layout), then the sheets are concatenated - no re-packing or scaling on our side.
+        $out = BGC_Labels::batch_pdf($ok, $paper);
+        if ($out === '') { wp_die(esc_html__('No labels to print (none could be generated).', 'bg-couriers')); }
         nocache_headers();
         header('Content-Type: application/pdf');
         header('Content-Disposition: inline; filename="labels-' . strtolower($paper) . '.pdf"');

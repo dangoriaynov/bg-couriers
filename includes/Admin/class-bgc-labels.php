@@ -320,24 +320,59 @@ class BGC_Labels {
         $order_ids = array_filter(array_map('intval', $order_ids));
         if (!$order_ids) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
         $paper = (isset($_GET['paper']) && strtoupper(sanitize_text_field(wp_unslash($_GET['paper']))) === 'A6') ? 'A6' : 'A4';
-        // One order = an individual print in the courier's configured size ($paper is that setting, from the
-        // metabox). Several = a batch: request the compact A6 unit so size-aware couriers pack tightly.
-        $req_fmt = (count($order_ids) === 1) ? $paper : 'A6';
-        try { $pdfs = self::collect_label_pdfs($order_ids, $req_fmt); }
+        try {
+            if (count($order_ids) === 1) {
+                // Individual print in the courier's configured size ($paper is that setting, from the metabox).
+                $pdfs = self::collect_label_pdfs($order_ids, $paper);
+                $out  = $pdfs[0] ?? '';
+            } else {
+                // Batch: each courier lays out its own sheet natively, then the sheets are concatenated.
+                $out = self::batch_pdf($order_ids, $paper);
+            }
+        }
         /* translators: %s: error message */
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
-        if (!$pdfs) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
-
-        // A single label prints at its native size; multiple labels are packed onto the sheet (natural size,
-        // couriers mixed). Fall back to the raw label if the packer can't read it (encrypted / object streams).
-        $out = (count($pdfs) === 1) ? $pdfs[0] : BGC_Label_Packer::pack($pdfs, $paper);
-        if ($out === '') { $out = $pdfs[0]; }
+        if ($out === '') { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
 
         nocache_headers();
         header('Content-Type: application/pdf');
         header('Content-Disposition: inline; filename="labels-' . strtolower($paper) . '.pdf"');
         echo $out; // phpcs:ignore WordPress.Security.EscapeOutput -- binary PDF
         exit;
+    }
+
+    /**
+     * Combined PDF for printing MANY orders' labels, grouped by courier so each courier lays out its OWN sheet
+     * the way it prints 1-by-1: a courier with a native multi-label endpoint (Speedy - landscape, its own
+     * per-A4 layout) produces one native sheet; the rest use their stored labels. Courier sheets are then
+     * concatenated at native size (no re-packing, no scaling). $format = the requested paper size (A4/A6).
+     */
+    public static function batch_pdf(array $order_ids, string $format = ''): string {
+        $groups = []; // courier_id => [ order_id => waybill ]
+        foreach ($order_ids as $oid) {
+            $o = wc_get_order((int) $oid);
+            if (!$o) { continue; }
+            $wb  = (string) $o->get_meta('_bgc_waybill');
+            $cid = (string) $o->get_meta('_bgc_courier');
+            if ($wb === '' || $cid === '') { continue; }
+            $groups[$cid][(int) $oid] = $wb;
+        }
+        $sheets = [];
+        foreach ($groups as $cid => $map) {
+            $courier = BGC_Couriers::get($cid);
+            if (!$courier) { continue; }
+            if ($courier->has_native_batch()) {
+                // The courier lays out the whole batch itself (Speedy A4).
+                try { $b = $courier->batch_label_pdf(array_values($map), $format); if ($b !== '') { $sheets[] = $b; } }
+                catch (\Exception $e) { /* skip this courier */ }
+            } else {
+                // Stored per-label files (no re-fetch - Pigeon can't re-fetch), concatenated at native size.
+                $per = self::collect_label_pdfs(array_keys($map), $format);
+                if ($per) { $sheets[] = count($per) === 1 ? $per[0] : BGC_Label_Packer::concat($per); }
+            }
+        }
+        if (!$sheets) { return ''; }
+        return count($sheets) === 1 ? $sheets[0] : BGC_Label_Packer::concat($sheets);
     }
 
     /**
