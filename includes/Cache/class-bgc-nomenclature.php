@@ -133,10 +133,11 @@ class BGC_Nomenclature {
         $out = ['office' => [], 'automat' => []];
         foreach (['office', 'automat'] as $type) {
             $rows = $wpdb->get_results($wpdb->prepare(
-                "SELECT DISTINCT c.city_id, c.name, c.post_code FROM {$o} o
+                "SELECT DISTINCT c.city_id, c.name, c.name_lat, c.post_code FROM {$o} o
                  JOIN {$c} c ON c.courier=o.courier AND c.city_id=o.city_id
                  WHERE o.courier=%s AND o.type=%s ORDER BY c.name", $courier, $type), ARRAY_A);
-            foreach ($rows as $r) { $out[$type][] = [(int) $r['city_id'], $r['name'], (string) $r['post_code']]; }
+            // Row: [city_id, name, post_code, name_lat] - name_lat lets the checkout match a Latin-typed search.
+            foreach ($rows as $r) { $out[$type][] = [(int) $r['city_id'], $r['name'], (string) $r['post_code'], (string) $r['name_lat']]; }
         }
         set_transient($key, $out, DAY_IN_SECONDS);
         return $out;

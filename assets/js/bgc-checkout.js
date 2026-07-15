@@ -1,5 +1,21 @@
 (function ($) {
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
+  // Bulgarian Cyrillic -> Latin transliteration, so a customer can type the city/office/APS in Latin letters
+  // and still match the Cyrillic-named entries (official Наредба scheme).
+  var BGC_TR = { 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
+    'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
+    'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sht', 'ъ': 'a', 'ь': 'y', 'ю': 'yu', 'я': 'ya' };
+  function bgcTranslit(s) {
+    var l = (s == null ? '' : String(s)).toLowerCase(), out = '';
+    for (var i = 0; i < l.length; i++) { out += (BGC_TR[l[i]] !== undefined ? BGC_TR[l[i]] : l[i]); }
+    return out;
+  }
+  // True if `text` matches an already-lowercased `term` directly (Cyrillic) or via its Latin transliteration.
+  function bgcTextMatch(text, term) {
+    if (!term) { return true; }
+    var t = (text == null ? '' : String(text)).toLowerCase();
+    return t.indexOf(term) !== -1 || bgcTranslit(t).indexOf(term) !== -1;
+  }
   function sel2($el, opts) { return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts)); }
   // Suppress select2's "results could not be loaded" flash when it aborts an in-flight search on fast typing.
   function noAbortTransport(params, success, failure) {
@@ -116,8 +132,10 @@
           if (BGC.preloadCities && m !== 'address' && idx && idx[m]) {
             var term = ((params.data && params.data.term) || '').toLowerCase(), rows = idx[m], out = [];
             for (var i = 0; i < rows.length && out.length < 200; i++) {
-              var a = rows[i]; // [city_id, name, post_code]
-              if (!term || a[1].toLowerCase().indexOf(term) !== -1 || String(a[2]).indexOf(term) !== -1) {
+              var a = rows[i]; // [city_id, name, post_code, name_lat]
+              // Match the Cyrillic name (and its Latin transliteration), the official Latin name, or postcode -
+              // so typing "sofia"/"София"/"1000" all find гр. София.
+              if (!term || bgcTextMatch(a[1], term) || (a[3] && String(a[3]).toLowerCase().indexOf(term) !== -1) || String(a[2]).indexOf(term) !== -1) {
                 out.push({ city_id: a[0], name: a[1], post_code: a[2] });
               }
             }
@@ -177,7 +195,9 @@
           var d = params.data, key = d.courier + ':' + d.city_id + ':' + d.type, term = (d.term || '').toLowerCase();
           function done(rows) {
             success(term ? rows.filter(function (o) {
-              return ((o.name || '').toLowerCase().indexOf(term) !== -1) || (String(o.office_id).indexOf(term) !== -1) || ((o.address || '').toLowerCase().indexOf(term) !== -1);
+              // Office names/addresses are Cyrillic only - also match their Latin transliteration so a
+              // Latin-typed term (e.g. "mladost", "metro") finds them.
+              return bgcTextMatch(o.name, term) || (String(o.office_id).indexOf(term) !== -1) || bgcTextMatch(o.address, term);
             }) : rows);
           }
           if (officeCache[key] !== undefined) { done(officeCache[key]); return { abort: function () {} }; } // local
