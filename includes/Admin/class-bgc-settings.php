@@ -347,9 +347,9 @@ jQuery(function($){
         $notice = self::ppp_courier_notice((string) ($field['courier'] ?? ''));
         if (!$notice) { return; }
         $is_err = $notice['level'] === 'error';
-        $bg  = $is_err ? '#fcf0f1' : '#fef8e7';
-        $bd  = $is_err ? '#e6a2a5' : '#e6cf7a';
-        $col = $is_err ? '#8a1f2b' : '#7a5b00';
+        $bg  = $is_err ? 'var(--bgc-red-bg)' : '#fef8e7'; // red = error, amber = warning (intentionally distinct)
+        $bd  = $is_err ? 'var(--bgc-red-bd)' : '#e6cf7a';
+        $col = $is_err ? 'var(--bgc-red-tx)' : '#7a5b00';
         echo '<tr valign="top"><td colspan="2" class="forminp" style="padding-top:4px;">';
         echo '<div class="bgc-ppp-notice" style="border:1px solid ' . esc_attr($bd) . ';background:' . esc_attr($bg)
             . ';color:' . esc_attr($col) . ';border-radius:8px;padding:10px 14px;line-height:1.5;">';
@@ -416,9 +416,9 @@ jQuery(function($){
         $notice = self::ppp_courier_notice($courier);
         if (!$notice) { return; }
         $is_err = $notice['level'] === 'error';
-        $bg  = $is_err ? '#fcf0f1' : '#fef8e7';
-        $bd  = $is_err ? '#e6a2a5' : '#e6cf7a';
-        $col = $is_err ? '#8a1f2b' : '#7a5b00';
+        $bg  = $is_err ? 'var(--bgc-red-bg)' : '#fef8e7'; // red = error, amber = warning (intentionally distinct)
+        $bd  = $is_err ? 'var(--bgc-red-bd)' : '#e6cf7a';
+        $col = $is_err ? 'var(--bgc-red-tx)' : '#7a5b00';
         echo '<div class="bgc-ppp-notice" style="border:1px solid ' . esc_attr($bd) . ';background:' . esc_attr($bg)
             . ';color:' . esc_attr($col) . ';border-radius:8px;padding:10px 14px;margin:0 0 14px;line-height:1.5;">';
         echo '<strong>' . esc_html($is_err ? __('This courier is currently unusable', 'bg-couriers') : __('Cash on delivery is off for this courier', 'bg-couriers')) . '</strong><br>';

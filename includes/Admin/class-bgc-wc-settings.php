@@ -106,6 +106,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
         /* WooCommerce floats the (i) help tip to the right of the label cell, where our full-width input then
            overlaps it. Keep it inline right after the label text so it is always fully visible. */
         #wpbody .bgc-settings table.form-table th .woocommerce-help-tip { float: none !important; position: static !important; margin: 0 0 0 6px !important; vertical-align: middle; }
+        /* One standardised red (disabled / error) + green (enabled / ok) palette, reused everywhere. */
+        #wpbody .bgc-settings { --bgc-red-bg:#fcf0f1; --bgc-red-bg2:#f7dde0; --bgc-red-bd:#e6a2a5; --bgc-red-tx:#b32d2e;
+            --bgc-green-bg:#eef9f1; --bgc-green-bg2:#dcf1e3; --bgc-green-bd:#c4e7cf; --bgc-green-tx:#1a7f37; }
         #wpbody .bgc-settings .bgc-group { border: 1px solid #e2e6ea; border-radius: 10px; padding: 6px 16px 12px; margin: 0 0 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
         #wpbody .bgc-settings .bgc-group > h2 { font-size: 1.02em; margin: 12px 0 4px; }
         #wpbody .bgc-settings .bgc-group > p.description { margin-top: 0; }
@@ -114,10 +117,10 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .nav-tab { border:1px solid #dcdcde; border-radius:11px; padding:11px 26px; margin:0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.10); font-weight:500; line-height:1.2; color:#1d2327; transition:box-shadow .15s ease, transform .15s ease, background .15s ease; }
         #wpbody .bgc-settings .nav-tab:hover { box-shadow:0 3px 8px rgba(0,0,0,.16); }
         #wpbody .bgc-settings .nav-tab.nav-tab-active { border-color:#8c8f94; box-shadow:0 5px 13px rgba(0,0,0,.20); transform:translateY(-1px); }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-on { background:#eafaf0; border-color:#c4e7cf; }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-off { background:#fdeeee; border-color:#eecfcf; }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-on.nav-tab-active { background:#d8f3e1; }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-off.nav-tab-active { background:#fbdcdc; }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-on { background:var(--bgc-green-bg); border-color:var(--bgc-green-bd); }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-off { background:var(--bgc-red-bg); border-color:var(--bgc-red-bd); }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-on.nav-tab-active { background:var(--bgc-green-bg2); }
+        #wpbody .bgc-settings .nav-tab.bgc-tab-off.nav-tab-active { background:var(--bgc-red-bg2); }
         #wpbody .bgc-settings .bgc-courier-tabs { display:inline-flex; flex-wrap:wrap; gap:10px; }
         #wpbody .bgc-settings .nav-tab { display:inline-flex; align-items:center; gap:8px; }
         #wpbody .bgc-settings .bgc-courier-tab { padding-left:16px; padding-right:20px; cursor:move; }
@@ -125,8 +128,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .ui-sortable-helper { box-shadow:0 8px 22px rgba(0,0,0,.28); }
         #wpbody .bgc-settings .ui-sortable-placeholder { visibility:visible !important; background:#f0f0f1; border:1px dashed #b0b3b8; box-shadow:none; }
         #wpbody .bgc-settings .bgc-enable-toggle { display:flex; align-items:center; gap:12px; padding:11px 14px; margin:2px 0 14px; border-radius:10px; border:1px solid #e2e6ea; }
-        #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-on { background:#f1faf3; border-color:#c4e7cf; }
-        #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-off { background:#fdf5f5; border-color:#eecfcf; }
+        #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-on { background:var(--bgc-green-bg); border-color:var(--bgc-green-bd); }
+        #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-off { background:var(--bgc-red-bg); border-color:var(--bgc-red-bd); }
         .bgc-enable-modal { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100001; display:flex; align-items:center; justify-content:center; padding:16px; }
         .bgc-enable-box { background:#fff; border-radius:10px; max-width:540px; width:100%; padding:18px 22px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
         .bgc-enable-box h3 { margin:0 0 6px; color:#b32d2e; }
@@ -137,13 +140,13 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-switch input { opacity:0; width:0; height:0; margin:0; }
         #wpbody .bgc-settings .bgc-slider { position:absolute; cursor:pointer; inset:0; background:#c9ced3; border-radius:26px; transition:.2s; }
         #wpbody .bgc-settings .bgc-slider:before { content:""; position:absolute; height:20px; width:20px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
-        #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider { background:#46b450; }
+        #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider { background:var(--bgc-green-tx); }
         #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider:before { transform:translateX(20px); }
         #wpbody .bgc-settings .bgc-enable-text { font-size:13px; color:#1d2327; }
         /* Credentials state: green when validated, red while editing/unverified; locked masked password + red change-× */
-        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td { background:#f1faf3; }
-        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:#fdf5f5; }
-        #wpbody .bgc-settings .bgc-cred-x { color:#b32d2e; border-color:#dca7a7 !important; margin-left:8px; font-weight:700; line-height:1.6; }
+        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td { background:var(--bgc-green-bg); }
+        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:var(--bgc-red-bg); }
+        #wpbody .bgc-settings .bgc-cred-x { color:var(--bgc-red-tx); border-color:var(--bgc-red-bd) !important; margin-left:8px; font-weight:700; line-height:1.6; }
         #wpbody .bgc-settings input.bgc-cred-locked { background:#f0f0f1; color:#787c82; letter-spacing:2px; }
         #bgc-toasts { position:fixed; top:46px; right:22px; z-index:100001; display:flex; flex-direction:column; gap:9px; }
         #bgc-toasts .bgc-toast { padding:12px 18px; border-radius:9px; color:#fff; font-weight:600; font-size:13px; box-shadow:0 6px 18px rgba(0,0,0,.20); opacity:0; transform:translateY(-10px); transition:opacity .25s ease, transform .25s ease; max-width:360px; }
