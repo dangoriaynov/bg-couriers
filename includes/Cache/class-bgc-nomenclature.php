@@ -47,6 +47,30 @@ class BGC_Nomenclature {
         global $wpdb;
         return (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}bgc_cities WHERE courier=%s", $courier));
     }
+
+    /**
+     * How many offices of each point-type this courier has synced - drives which delivery options to OFFER
+     * (a type with zero points is not shown). Returns ['office'=>N,'automat'=>M,'total'=>sum]; 'total' 0 means
+     * this courier syncs no points here (BOX NOW widget / un-synced Sameday), so callers should NOT prune off
+     * declared capabilities. Cached 6h and cleared by a sync run.
+     *
+     * @return array{office:int,automat:int,total:int}
+     */
+    public static function type_counts(string $courier): array {
+        $key    = 'bgc_typecnt_' . $courier;
+        $cached = get_transient($key);
+        if (is_array($cached)) { return $cached; }
+        global $wpdb;
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT type, COUNT(*) c FROM {$wpdb->prefix}bgc_offices WHERE courier=%s GROUP BY type", $courier), ARRAY_A);
+        $out = ['office' => 0, 'automat' => 0, 'total' => 0];
+        foreach ((array) $rows as $r) {
+            $out[$r['type']] = (int) $r['c'];
+            $out['total']   += (int) $r['c'];
+        }
+        set_transient($key, $out, 6 * HOUR_IN_SECONDS);
+        return $out;
+    }
     public static function search_cities(string $courier, string $term, int $limit = 20): array {
         global $wpdb; $t = $wpdb->prefix . 'bgc_cities';
         return $wpdb->get_results($wpdb->prepare(

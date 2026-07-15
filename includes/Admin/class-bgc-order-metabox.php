@@ -166,7 +166,9 @@ class BGC_Order_Metabox {
         foreach (BGC_Couriers::all() as $cid => $clabel) {
             if (get_option('bgc_' . $cid . '_enabled', 'no') !== 'yes' && $cid !== $cur_courier) { continue; }
             $co = BGC_Couriers::get($cid);
-            $caps[$cid] = $co ? array_values(array_diff($co->capabilities(), ['live_quote'])) : ['office', 'address', 'automat'];
+            // available_methods() prunes types the courier has no synced points for (e.g. Pigeon APS), so the
+            // delivery-option dropdown can't offer something the courier doesn't actually do.
+            $caps[$cid] = $co ? array_values(array_diff($co->available_methods(), ['live_quote'])) : ['office', 'address', 'automat'];
             $opts .= '<option value="' . esc_attr($cid) . '"' . selected($cid, $cur_courier, false) . '>' . esc_html($clabel) . '</option>';
         }
         $city_opt = '';

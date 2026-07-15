@@ -105,6 +105,13 @@ class BGC_Settings {
         foreach (self::METHODS as $m) {
             if (get_option('bgc_' . $courier . '_' . $m . '_enabled', 'yes') === 'yes') { $out[] = $m; }
         }
+        // Prune to what the courier can actually do AND has synced points for - so an option the courier
+        // does not offer (e.g. Pigeon "to APS", which has no lockers) never reaches checkout, even if the
+        // toggle option still reads 'yes'. Falls back to raw toggles if the registry isn't loaded yet.
+        if (class_exists('BGC_Couriers')) {
+            $co = BGC_Couriers::get($courier);
+            if ($co) { $out = array_values(array_intersect($out, $co->available_methods())); }
+        }
         return $out;
     }
 

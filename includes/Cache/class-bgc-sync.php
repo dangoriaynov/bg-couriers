@@ -78,6 +78,10 @@ class BGC_Sync {
         $offices = $courier->fetch_offices(0); // 0 = all offices in one call (country-wide)
         if ($offices) { $out['offices'] = BGC_Nomenclature::upsert_offices($id, $offices, $run); }
         $out['pruned'] = BGC_Nomenclature::prune($id, $run);
+        // Nomenclature changed - drop the per-courier caches derived from it (which delivery types exist, and
+        // the preloaded city index) so the checkout/editor immediately reflect the fresh point counts.
+        delete_transient('bgc_typecnt_' . $id);
+        delete_transient('bgc_cityidx_' . $id);
 
         $out['rates'] = self::seed_rates($courier); // reference price per method, first city
         return $out;

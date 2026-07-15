@@ -310,10 +310,11 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . '</script>';
         // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 
-        // Delivery-method sub-tabs - only the methods this courier supports (from capabilities()).
+        // Delivery-method sub-tabs - only the methods this courier actually offers (available_methods() =
+        // capabilities pruned by real synced point counts, so e.g. Pigeon shows no "to APS" tab: no lockers).
         // Skip entirely for single-method / flat-rate couriers (e.g. BoxNow = locker only, one flat price).
         $c       = BGC_Couriers::get($courier_id);
-        $caps    = $c ? array_values(array_diff($c->capabilities(), ['live_quote'])) : array_keys(self::$method_labels);
+        $caps    = $c ? array_values(array_diff($c->available_methods(), ['live_quote'])) : array_keys(self::$method_labels);
         $methods = array_filter(self::$method_labels, static function ($m) use ($caps) { return in_array($m, $caps, true); }, ARRAY_FILTER_USE_KEY);
         // Show the tabs (and panels) in the merchant's saved drag order.
         $ordered = [];

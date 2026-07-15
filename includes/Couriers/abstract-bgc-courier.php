@@ -68,6 +68,24 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
     public function is_cancelled(string $waybill): bool { return false; }
 
     /**
+     * Delivery methods to actually OFFER, driven by the courier's real synced nomenclature: an office/automat
+     * type the courier has ZERO synced points for is dropped (e.g. Pigeon has offices but no APS lockers, so
+     * "to APS" must not be offered anywhere). If the courier syncs no points at all here (total 0 - BOX NOW is
+     * widget-based, Sameday may be un-synced), we cannot prove a type is empty, so the declared capabilities
+     * pass through untouched. 'address' (not a point-type) and 'live_quote' (a pricing flag) are never pruned.
+     *
+     * @return string[] subset of capabilities()
+     */
+    public function available_methods(): array {
+        $caps   = $this->capabilities();
+        $counts = BGC_Nomenclature::type_counts($this->id());
+        if (($counts['total'] ?? 0) <= 0) { return $caps; }
+        return array_values(array_filter($caps, static function ($m) use ($counts) {
+            return ($m === 'office' || $m === 'automat') ? (($counts[$m] ?? 0) > 0) : true;
+        }));
+    }
+
+    /**
      * The order's parcel weight in kg for a waybill: an explicit _bgc_weight_kg override if set, else the sum
      * of the line items' product weights (converted to kg) x quantity, else the fallback (default 1 kg). This
      * is what every courier should send as the shipment weight - the raw meta is never populated on its own.
