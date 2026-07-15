@@ -64,6 +64,18 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn .dashicons{font-size:17px;width:17px;height:17px;line-height:1;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-save.button-primary{height:34px!important;min-height:34px!important;width:auto!important;min-width:0!important;max-width:100%;display:inline-block!important;flex:none;box-sizing:border-box;margin-top:10px!important;border-radius:7px!important;padding:0 22px!important;font-weight:600;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-avail{display:none;margin:2px 0 0;color:#b32d2e;font-size:12px;}'
+            // Address block: label-above-input fields (bgc-ed-fld) that never wrap raggedly; the small
+            // Bl./Entr./Floor/Apt. sit in an even 4-column grid, and Street+No.+map share one aligned row.
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-fld{display:flex;flex-direction:column;min-width:0;margin:0 0 7px;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-fld > label{margin:0 0 3px;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-fld > input,.bgc-order-panel .bgc-ed-form .bgc-ed-fld > select{width:100%!important;min-width:0!important;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-row{display:flex;gap:8px;align-items:flex-end;margin:0 0 7px;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-grow{flex:1 1 auto;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-no{width:66px;flex:0 0 66px;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .select2-container{width:100%!important;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-mapbtn{margin:0!important;flex:0 0 34px;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-grid4 .bgc-ed-fld{margin:0;}'
             . '.bgc-order-panel .bgc-ed-form .description{margin:6px 0 0;font-size:12px;color:#646970;}'
             // Copied-to-clipboard toast + custom cancel confirmation dialog (global, not panel-scoped).
             . '.bgc-toast{position:fixed;z-index:100001;background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;}'
@@ -231,14 +243,19 @@ class BGC_Order_Metabox {
             . '<p class="bgc-ed-office-row"><label>' . esc_html__('Office / APS', 'bg-couriers') . '</label><br><select class="bgc-ed-office" style="min-width:258px;"><option></option>' . $office_opt . '</select><button type="button" class="button bgc-ed-map bgc-ed-mapbtn" title="' . esc_attr__('Pick from the map', 'bg-couriers') . '" aria-label="' . esc_attr__('Pick from the map', 'bg-couriers') . '"><span class="dashicons dashicons-location-alt"></span></button></p>'
             . '<p class="bgc-ed-avail"></p>'
             . '<div class="bgc-ed-address">'
-            . '<p><label>' . esc_html__('Street', 'bg-couriers') . '</label><br><select class="bgc-ed-street" style="min-width:220px;"><option></option>' . $street_opt . '</select> '
-            . '<label>' . esc_html__('No.', 'bg-couriers') . '</label> <input class="bgc-ed-streetno" value="' . $v('street_no') . '" style="width:70px;"><button type="button" class="button bgc-ed-addr-map bgc-ed-mapbtn" title="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '" aria-label="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '"><span class="dashicons dashicons-location-alt"></span></button></p>'
-            . '<p><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label> <input class="bgc-ed-complex" value="' . $v('complex') . '"></p>'
-            . '<p><label>' . esc_html__('Bl.', 'bg-couriers') . '</label> <input class="bgc-ed-block" value="' . $v('block') . '" style="width:60px;"> '
-            . '<label>' . esc_html__('Entr.', 'bg-couriers') . '</label> <input class="bgc-ed-entrance" value="' . $v('entrance') . '" style="width:60px;"> '
-            . '<label>' . esc_html__('Floor', 'bg-couriers') . '</label> <input class="bgc-ed-floor" value="' . $v('floor') . '" style="width:60px;"> '
-            . '<label>' . esc_html__('Apt.', 'bg-couriers') . '</label> <input class="bgc-ed-apartment" value="' . $v('apartment') . '" style="width:60px;"></p>'
-            . '<p><label>' . esc_html__('Note', 'bg-couriers') . '</label> <input class="bgc-ed-note" value="' . $v('address_note') . '" style="width:100%;"></p>'
+            . '<div class="bgc-ed-row bgc-ed-street-row">'
+            . '<div class="bgc-ed-fld bgc-ed-grow"><label>' . esc_html__('Street', 'bg-couriers') . '</label><select class="bgc-ed-street"><option></option>' . $street_opt . '</select></div>'
+            . '<div class="bgc-ed-fld bgc-ed-no"><label>' . esc_html__('No.', 'bg-couriers') . '</label><input class="bgc-ed-streetno" value="' . $v('street_no') . '"></div>'
+            . '<button type="button" class="button bgc-ed-addr-map bgc-ed-mapbtn" title="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '" aria-label="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '"><span class="dashicons dashicons-location-alt"></span></button>'
+            . '</div>'
+            . '<div class="bgc-ed-fld"><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label><input class="bgc-ed-complex" value="' . $v('complex') . '"></div>'
+            . '<div class="bgc-ed-row bgc-ed-grid4">'
+            . '<div class="bgc-ed-fld"><label>' . esc_html__('Bl.', 'bg-couriers') . '</label><input class="bgc-ed-block" value="' . $v('block') . '"></div>'
+            . '<div class="bgc-ed-fld"><label>' . esc_html__('Entr.', 'bg-couriers') . '</label><input class="bgc-ed-entrance" value="' . $v('entrance') . '"></div>'
+            . '<div class="bgc-ed-fld"><label>' . esc_html__('Floor', 'bg-couriers') . '</label><input class="bgc-ed-floor" value="' . $v('floor') . '"></div>'
+            . '<div class="bgc-ed-fld"><label>' . esc_html__('Apt.', 'bg-couriers') . '</label><input class="bgc-ed-apartment" value="' . $v('apartment') . '"></div>'
+            . '</div>'
+            . '<div class="bgc-ed-fld"><label>' . esc_html__('Note', 'bg-couriers') . '</label><input class="bgc-ed-note" value="' . $v('address_note') . '"></div>'
             . '</div>'
             . '<div class="bgc-ed-boxnow">'
             . '<p><label>' . esc_html__('Locker id', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-id" value="' . $boxnow_id . '" style="width:110px;"> '
@@ -259,7 +276,7 @@ class BGC_Order_Metabox {
             'select' => ['class' => true, 'style' => true, 'data-current' => true],
             'option' => ['value' => true, 'selected' => true],
             'input'  => ['type' => true, 'class' => true, 'value' => true, 'style' => true],
-            'button' => ['type' => true, 'class' => true],
+            'button' => ['type' => true, 'class' => true, 'title' => true, 'aria-label' => true],
             'span'   => ['class' => true],
         ]);
     }
