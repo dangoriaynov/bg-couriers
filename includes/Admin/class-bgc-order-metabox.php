@@ -53,14 +53,16 @@ class BGC_Order_Metabox {
             // widths match - the native courier/option selects were narrower than the full-width select2
             // city/office (which already init at width:100%). Scoped so the inline street+No. row is untouched.
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-courier,.bgc-order-panel .bgc-ed-form .bgc-ed-method{width:100%!important;min-width:0!important;}'
-            . '.bgc-order-panel .bgc-ed-form .bgc-ed-city-row .select2-container,.bgc-order-panel .bgc-ed-form .bgc-ed-office-row .select2-container{width:100%!important;}'
-            . '.bgc-order-panel .bgc-ed-form .select2-container{vertical-align:middle;min-height:32px;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-city-row .select2-container{width:100%!important;}'
+            // Office row: leave room for the inline map icon so it sits to the RIGHT of the select, not below.
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-office-row .select2-container{width:calc(100% - 42px)!important;display:inline-block!important;}'
+            . '.bgc-order-panel .bgc-ed-form .select2-container{vertical-align:middle;min-height:32px;margin:0!important;}'
             . '.bgc-order-panel .bgc-ed-form .select2-selection--single{height:32px!important;min-height:32px!important;box-sizing:border-box!important;}'
             . '.bgc-order-panel .bgc-ed-form .select2-selection--single .select2-selection__rendered{line-height:30px!important;font-size:13px!important;padding-left:8px!important;}'
             . '.bgc-order-panel .bgc-ed-form .select2-selection--single .select2-selection__arrow{height:30px!important;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn{height:32px!important;min-height:32px!important;width:34px!important;min-width:34px!important;padding:0!important;margin:0 0 0 4px!important;vertical-align:middle;display:inline-flex!important;align-items:center;justify-content:center;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn .dashicons{font-size:17px;width:17px;height:17px;line-height:1;}'
-            . '.bgc-order-panel .bgc-ed-form .bgc-ed-save{height:34px!important;min-height:34px!important;margin-top:3px;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-save{height:34px!important;min-height:34px!important;width:auto!important;display:inline-block!important;margin-top:10px!important;border-radius:7px!important;padding:0 20px!important;font-weight:600;}'
             . '.bgc-order-panel .bgc-ed-form .description{margin:6px 0 0;font-size:12px;color:#646970;}'
             // Copied-to-clipboard toast + custom cancel confirmation dialog (global, not panel-scoped).
             . '.bgc-toast{position:fixed;z-index:100001;background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;}'
