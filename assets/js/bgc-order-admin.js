@@ -128,13 +128,15 @@
   // Office/APS: preload the city's offices into the <select> (robust - works even if select2 isn't
   // enhancing, and doesn't depend on select2 firing an AJAX on open). select2 then just adds local search.
   sel2($office, { width: '100%', allowClear: true, placeholder: I.office });
+  var officeRows = []; // full rows (with lat/lng) for the current city+method - reused by the map (instant open)
   function loadOffices() {
     var c = courier(), city = $city.val() || 0, m = $method.val();
-    if (!city || m === 'address' || c === 'boxnow') { return; }
+    if (!city || m === 'address' || c === 'boxnow') { officeRows = []; return; }
     $.get(C.ajax, { action: 'bgc_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) {
+      officeRows = rows || [];
       var cur = $office.val();
       $office.empty().append('<option></option>');
-      (rows || []).forEach(function (o) {
+      officeRows.forEach(function (o) {
         $office.append($('<option>').val(o.office_id || o.id).text((o.name || '') + (o.address ? ' - ' + o.address : '')));
       });
       if (cur && $office.find('option[value="' + cur + '"]').length) { $office.val(cur); }
@@ -204,7 +206,10 @@
   }
   function openMap() {
     if (!window.L) { return; }
-    officesFor(function (rows) {
+    // Reuse the offices already loaded into the select (instant); only fetch if not loaded yet.
+    if (officeRows && officeRows.length) { renderOfficeMap(officeRows); } else { officesFor(renderOfficeMap); }
+  }
+  function renderOfficeMap(rows) {
       var pts = (rows || []).filter(function (o) { return Number(o.lat) !== 0 || Number(o.lng) !== 0; });
       var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box bgc-map-box-wide">'
         + '<div class="bgc-map-head"><strong>' + escM(I.map_title || 'Map') + '</strong>'
@@ -258,7 +263,6 @@
       $ov.find('.bgc-map-locate').on('click', showMe);
       showMe();
       setTimeout(function () { if (edMap) { edMap.invalidateSize(); } }, 60);
-    });
   }
   // Address map: click/drag a pin -> reverse-geocode -> fill the editor's city/street/№.
   var geoT;
