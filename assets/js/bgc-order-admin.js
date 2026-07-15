@@ -129,9 +129,18 @@
   // enhancing, and doesn't depend on select2 firing an AJAX on open). select2 then just adds local search.
   sel2($office, { width: '100%', allowClear: true, placeholder: I.office });
   var officeRows = []; // full rows (with lat/lng) for the current city+method - reused by the map (instant open)
+  // Same guard as checkout: if the chosen office/APS type has NONE in this city, warn and block Save. We
+  // already fetched the offices for the select, so a 0-length result means the type isn't available here.
+  function updateAvail() {
+    var m = $method.val(), c = courier(), city = parseInt($city.val() || 0, 10);
+    var needs = c !== 'boxnow' && (m === 'office' || m === 'automat');
+    var none = needs && city > 0 && officeRows.length === 0;
+    $panel.find('.bgc-ed-avail').text(none ? (m === 'automat' ? I.no_automat : I.no_office) : '').toggle(none);
+    $panel.find('.bgc-ed-save').prop('disabled', none);
+  }
   function loadOffices() {
     var c = courier(), city = $city.val() || 0, m = $method.val();
-    if (!city || m === 'address' || c === 'boxnow') { officeRows = []; return; }
+    if (!city || m === 'address' || c === 'boxnow') { officeRows = []; updateAvail(); return; }
     $.get(C.ajax, { action: 'bgc_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) {
       officeRows = rows || [];
       var cur = $office.val();
@@ -141,6 +150,7 @@
       });
       if (cur && $office.find('option[value="' + cur + '"]').length) { $office.val(cur); }
       $office.trigger('change');
+      updateAvail();
     }, 'json');
   }
 

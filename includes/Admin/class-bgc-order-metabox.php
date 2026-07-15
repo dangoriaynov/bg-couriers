@@ -62,7 +62,8 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel .bgc-ed-form .select2-selection--single .select2-selection__arrow{height:30px!important;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn{height:32px!important;min-height:32px!important;width:34px!important;min-width:34px!important;padding:0!important;margin:0 0 0 4px!important;vertical-align:middle;display:inline-flex!important;align-items:center;justify-content:center;}'
             . '.bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn .dashicons{font-size:17px;width:17px;height:17px;line-height:1;}'
-            . '.bgc-order-panel .bgc-ed-form .bgc-ed-save{height:34px!important;min-height:34px!important;width:auto!important;display:inline-block!important;margin-top:10px!important;border-radius:7px!important;padding:0 20px!important;font-weight:600;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-save.button-primary{height:34px!important;min-height:34px!important;width:auto!important;min-width:0!important;max-width:100%;display:inline-block!important;flex:none;box-sizing:border-box;margin-top:10px!important;border-radius:7px!important;padding:0 22px!important;font-weight:600;}'
+            . '.bgc-order-panel .bgc-ed-form .bgc-ed-avail{display:none;margin:2px 0 0;color:#b32d2e;font-size:12px;}'
             . '.bgc-order-panel .bgc-ed-form .description{margin:6px 0 0;font-size:12px;color:#646970;}'
             // Copied-to-clipboard toast + custom cancel confirmation dialog (global, not panel-scoped).
             . '.bgc-toast{position:fixed;z-index:100001;background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;}'
@@ -215,7 +216,9 @@ class BGC_Order_Metabox {
                           'addr_map_hint'  => __('Click the map or drag the pin to the address.', 'bg-couriers'),
                           'addr_use'    => __('Use this address', 'bg-couriers'),
                           'addr_none'   => __('No address found here - try another spot.', 'bg-couriers'),
-                          'map_btn'     => __('Map', 'bg-couriers')],
+                          'map_btn'     => __('Map', 'bg-couriers'),
+                          'no_office'   => __('This courier has no office in this city - pick another city or delivery option.', 'bg-couriers'),
+                          'no_automat'  => __('This courier has no APS/locker in this city - pick another city or delivery option.', 'bg-couriers')],
         ]);
 
         $boxnow_id = $cur_courier === 'boxnow' ? esc_attr((string) $office_id) : '';
@@ -224,6 +227,7 @@ class BGC_Order_Metabox {
             . '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>'
             . '<p class="bgc-ed-city-row"><label>' . esc_html__('City', 'bg-couriers') . '</label><br><select class="bgc-ed-city" style="min-width:300px;"><option></option>' . $city_opt . '</select><input type="hidden" class="bgc-ed-postcode" value="' . $v('post_code') . '"></p>'
             . '<p class="bgc-ed-office-row"><label>' . esc_html__('Office / APS', 'bg-couriers') . '</label><br><select class="bgc-ed-office" style="min-width:258px;"><option></option>' . $office_opt . '</select><button type="button" class="button bgc-ed-map bgc-ed-mapbtn" title="' . esc_attr__('Pick from the map', 'bg-couriers') . '" aria-label="' . esc_attr__('Pick from the map', 'bg-couriers') . '"><span class="dashicons dashicons-location-alt"></span></button></p>'
+            . '<p class="bgc-ed-avail"></p>'
             . '<div class="bgc-ed-address">'
             . '<p><label>' . esc_html__('Street', 'bg-couriers') . '</label><br><select class="bgc-ed-street" style="min-width:220px;"><option></option>' . $street_opt . '</select> '
             . '<label>' . esc_html__('No.', 'bg-couriers') . '</label> <input class="bgc-ed-streetno" value="' . $v('street_no') . '" style="width:70px;"><button type="button" class="button bgc-ed-addr-map bgc-ed-mapbtn" title="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '" aria-label="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '"><span class="dashicons dashicons-location-alt"></span></button></p>'
