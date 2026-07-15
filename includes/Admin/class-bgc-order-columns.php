@@ -13,20 +13,18 @@ class BGC_Order_Columns {
 
     public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = ''): string {
         if ($waybill === '') {
-            return '<a class="button button-small" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a>';
+            return '<a class="bgc-ico bgc-gen" href="' . esc_url($generate_url) . '" title="' . esc_attr__('Generate waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Generate waybill', 'bg-couriers') . '"><span class="dashicons dashicons-tag"></span></a>';
         }
-        // The copy link reads the waybill from the adjacent .bgc-wb-num. The cancel link carries the order
-        // id + a cancel nonce + a generate nonce (NOT the generate URL, so a labelled row still shows no
-        // Generate button); JS voids the waybill over AJAX and swaps the cell to a fresh Generate button.
-        // Row 1: the waybill number (click it to copy). Row 2: one uniform row of icon actions - copy,
-        // print, track, cancel - all the same size, matching the order-edit panel's dashicons.
+        // One line of icon-only actions - copy (the waybill # is the tooltip + clipboard payload), print,
+        // track, cancel. No visible text. The cancel link carries the order id + a cancel nonce + a generate
+        // nonce; JS voids the waybill over AJAX and swaps the cell back to the Generate icon.
+        /* translators: %s: waybill number */
+        $copy_label = sprintf(__('Copy waybill %s', 'bg-couriers'), $waybill);
         return '<span class="bgc-cell">'
-            . '<div class="bgc-wb-num bgc-copy" title="' . esc_attr__('Click to copy', 'bg-couriers') . '">' . esc_html($waybill) . '</div>'
-            . '<div class="bgc-wb-row">'
+            . '<button type="button" class="bgc-ico bgc-copy" data-wb="' . esc_attr($waybill) . '" title="' . esc_attr($waybill) . '" aria-label="' . esc_attr($copy_label) . '"><span class="dashicons dashicons-clipboard"></span></button>'
             . '<a class="bgc-ico" target="_blank" href="' . esc_url($print_url) . '" title="' . esc_attr__('Print label', 'bg-couriers') . '" aria-label="' . esc_attr__('Print label', 'bg-couriers') . '"><span class="dashicons dashicons-printer"></span></a>'
             . '<a class="bgc-ico" target="_blank" href="' . esc_url($track_url) . '" title="' . esc_attr__('Track shipment', 'bg-couriers') . '" aria-label="' . esc_attr__('Track shipment', 'bg-couriers') . '"><span class="dashicons dashicons-location"></span></a>'
             . '<a href="#" class="bgc-ico bgc-danger bgc-wb-cancel" data-id="' . (int) $order_id . '" data-nonce="' . esc_attr($cancel_nonce) . '" data-gennonce="' . esc_attr($generate_nonce) . '" title="' . esc_attr__('Cancel waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Cancel waybill', 'bg-couriers') . '"><span class="dashicons dashicons-no-alt"></span></a>'
-            . '</div>'
             . '</span>';
     }
 
@@ -41,18 +39,17 @@ class BGC_Order_Columns {
             'no'           => __('Keep it', 'bg-couriers'),
             'cancelled'    => __('Waybill cancelled', 'bg-couriers'),
             'copied'       => __('Copied to clipboard', 'bg-couriers'),
-            'gen'          => __('Generate', 'bg-couriers'),
+            'gen'          => __('Generate waybill', 'bg-couriers'),
             'err'          => __('Could not cancel.', 'bg-couriers'),
         ];
         ?>
 <style>
-.bgc-cell .bgc-wb-num{font-weight:700;cursor:pointer;margin-bottom:3px;display:inline-block;}
-.bgc-cell .bgc-wb-row{display:flex;align-items:center;gap:9px;}
-.bgc-cell .bgc-ico{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;color:#2271b1;text-decoration:none;cursor:pointer;}
-.bgc-cell .bgc-ico .dashicons{font-size:18px;width:18px;height:18px;line-height:1;}
-.bgc-cell .bgc-ico:hover{color:#135e96;}
-.bgc-cell .bgc-ico.bgc-danger{color:#b32d2e;}
-.bgc-cell .bgc-ico.bgc-danger:hover{color:#8a1f2b;}
+.bgc-cell{display:inline-flex;align-items:center;gap:9px;}
+.bgc-ico{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;color:#2271b1;text-decoration:none;cursor:pointer;background:none;border:0;padding:0;box-shadow:none;}
+.bgc-ico .dashicons{font-size:18px;width:18px;height:18px;line-height:1;}
+.bgc-ico:hover{color:#135e96;}
+.bgc-ico.bgc-danger{color:#b32d2e;}
+.bgc-ico.bgc-danger:hover{color:#8a1f2b;}
 .bgc-ltoast{position:fixed;z-index:100001;left:50%;bottom:32px;transform:translateX(-50%) translateY(6px);background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;}
 .bgc-ltoast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .bgc-lmodal-ov{position:fixed;inset:0;background:rgba(20,24,28,.5);z-index:100000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
@@ -102,7 +99,7 @@ class BGC_Order_Columns {
       .then(function (j) {
         if (j && j.success) {
           var g = AP + '?action=bgc_generate_label&order_id=' + encodeURIComponent(id) + '&_wpnonce=' + encodeURIComponent(gn);
-          cell.innerHTML = '<a class="button button-small" href="' + g + '">' + esc(M.gen) + '</a>';
+          cell.innerHTML = '<a class="bgc-ico bgc-gen" href="' + g + '" title="' + esc(M.gen) + '" aria-label="' + esc(M.gen) + '"><span class="dashicons dashicons-tag"></span></a>';
           toast(M.cancelled);
         } else { x.style.pointerEvents = ''; toast((j && j.data && j.data.msg) || M.err); }
       })
@@ -112,8 +109,7 @@ class BGC_Order_Columns {
     var c = e.target.closest('.bgc-copy');
     if (c) {
       e.preventDefault(); e.stopPropagation();
-      var cell = c.closest('.bgc-cell') || document;
-      var num = cell.querySelector('.bgc-wb-num'); var wb = num ? num.textContent.trim() : '';
+      var wb = c.getAttribute('data-wb') || '';
       if (wb && navigator.clipboard) { navigator.clipboard.writeText(wb).then(function () { toast(M.copied); }); }
       return;
     }

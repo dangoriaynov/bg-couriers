@@ -25,7 +25,10 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel .bgc-logo{height:17px;width:auto;display:block;}'
             . '.bgc-order-panel .bgc-chip{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}'
             // The waybill number IS the copy button: clicking the field copies it to the clipboard.
-            . '.bgc-order-panel .bgc-wb{padding:3px 9px;border-radius:7px;background:#f0f6fc;border:1px solid #d7e3f1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#1d2327;letter-spacing:.3px;cursor:pointer;transition:all .12s;}'
+            . '.bgc-order-panel .bgc-mtype{display:inline-flex;align-items:center;padding:3px 9px;}'
+            . '.bgc-order-panel .bgc-mtype .bgc-mtype-ico{display:block;color:#3c434a;}'
+            . '.bgc-order-panel .bgc-wb{display:inline-flex;align-items:center;justify-content:center;width:28px;height:24px;padding:0;border-radius:7px;background:#f0f6fc;border:1px solid #d7e3f1;color:#2271b1;cursor:pointer;transition:all .12s;}'
+            . '.bgc-order-panel .bgc-wb .dashicons{font-size:16px;width:16px;height:16px;line-height:1;}'
             . '.bgc-order-panel .bgc-wb:hover{border-color:#9fb6cf;background:#e9f2fb;}'
             . '.bgc-order-panel .bgc-wb.copied{border-color:#8fcea5;background:#eaf7ee;color:#1a7f37;}'
             // One cohesive row of icon-only actions (print / track / edit / cancel), 40px squares.
@@ -115,10 +118,13 @@ class BGC_Order_Metabox {
             . ($logo
                 ? '<img class="bgc-logo" src="' . esc_url($logo) . '" alt="' . esc_attr($courier->label()) . '">'
                 : '<b>' . esc_html($courier->label()) . '</b>')
-            . '<span class="bgc-chip">' . esc_html($mlabel) . '</span>';
+            . (BGC_Icons::method($method) !== ''
+                ? '<span class="bgc-chip bgc-mtype" data-tip="' . esc_attr($mlabel) . '" aria-label="' . esc_attr($mlabel) . '">' . BGC_Icons::method($method) . '</span>'
+                : '<span class="bgc-chip">' . esc_html($mlabel) . '</span>');
         if ($waybill !== '') {
-            $body .= '<span class="bgc-wb bgc-wb-copy" data-wb="' . esc_attr($waybill) . '" role="button" tabindex="0" data-tip="'
-                . esc_attr__('Click to copy', 'bg-couriers') . '">' . esc_html($waybill) . '</span>';
+            /* translators: %s: waybill number */
+            $body .= '<button type="button" class="bgc-wb bgc-wb-copy" data-wb="' . esc_attr($waybill) . '" data-tip="' . esc_attr($waybill)
+                . '" aria-label="' . esc_attr(sprintf(__('Copy waybill %s', 'bg-couriers'), $waybill)) . '"><span class="dashicons dashicons-clipboard"></span></button>';
         }
         $body .= '</div>';
 
@@ -166,7 +172,12 @@ class BGC_Order_Metabox {
         'b'      => [],
         'img'    => ['class' => true, 'src' => true, 'alt' => true],
         'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'aria-label' => true, 'data-tip' => true],
-        'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-cancel-url' => true],
+        'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true],
+        'svg'    => ['class' => true, 'viewbox' => true, 'width' => true, 'height' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'aria-hidden' => true],
+        'path'   => ['d' => true],
+        'rect'   => ['x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true],
+        'line'   => ['x1' => true, 'y1' => true, 'x2' => true, 'y2' => true],
+        'circle' => ['cx' => true, 'cy' => true, 'r' => true],
     ];
 
     /** Collapsible checkout-like editor for the order's delivery details (courier switch, city/office/address). */
