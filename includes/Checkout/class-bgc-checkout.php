@@ -29,6 +29,77 @@ class BGC_Checkout {
         add_action('woocommerce_before_checkout_form', [$this, 'render_free_notice'], 5);
         add_filter('woocommerce_update_order_review_fragments', [$this, 'free_notice_fragment']);
         add_filter('woocommerce_shipping_chosen_method', [$this, 'default_courier'], 10, 3);
+        // COD fiscalisation (ППП) rules: gate the COD payment gateway / courier rates at runtime.
+        add_filter('woocommerce_available_payment_gateways', [$this, 'ppp_filter_gateways']);
+        add_filter('woocommerce_package_rates', [$this, 'ppp_filter_rates'], 25, 2);
+    }
+
+    /**
+     * When the merchant relies on the courier's ППП (has no cash register), a courier that does NOT offer ППП
+     * cannot legally take cash-on-delivery. So while such a courier is the chosen shipping method, remove the
+     * COD payment gateway - the order must be prepaid. Couriers that do ППП (or the cash-register mode) are
+     * unaffected.
+     *
+     * @param array $gateways id => WC_Payment_Gateway
+     * @return array
+     */
+    public function ppp_filter_gateways($gateways) {
+        if (!is_array($gateways) || BGC_Settings::cod_fiscalization() !== 'ppp') { return $gateways; }
+        $courier = self::chosen_bgc_courier();
+        if ($courier !== '' && !BGC_Settings::courier_ppp_payout($courier)) {
+            foreach ($gateways as $gid => $gw) {
+                if (self::is_cod_gateway((string) $gid, $gw)) { unset($gateways[$gid]); }
+            }
+        }
+        return $gateways;
+    }
+
+    /**
+     * If the merchant relies on ППП AND the shop offers no prepaid gateway at all, a courier that can't do ППП
+     * would be unusable (COD only, no way to fiscalise) - so drop its shipping rates entirely. When a prepaid
+     * gateway exists we keep the courier (COD is just hidden for it by ppp_filter_gateways above).
+     *
+     * @param array $rates
+     * @param array $package
+     * @return array
+     */
+    public function ppp_filter_rates($rates, $package) {
+        if (BGC_Settings::cod_fiscalization() !== 'ppp' || self::has_prepaid_gateway()) { return $rates; }
+        foreach ($rates as $id => $rate) {
+            $courier = self::courier_from_rate_id((string) $id);
+            if ($courier !== '' && !BGC_Settings::courier_ppp_payout($courier)) { unset($rates[$id]); }
+        }
+        return $rates;
+    }
+
+    /** The courier id of the customer's chosen BGC shipping method this session, or '' if none. */
+    private static function chosen_bgc_courier(): string {
+        $chosen = (function_exists('WC') && WC()->session) ? (array) WC()->session->get('chosen_shipping_methods') : [];
+        foreach ($chosen as $m) {
+            $c = self::courier_from_rate_id((string) $m);
+            if ($c !== '') { return $c; }
+        }
+        return '';
+    }
+
+    /** 'bgc_econt:8' / 'bgc_econt' -> 'econt'; '' for non-BGC method ids. */
+    private static function courier_from_rate_id(string $id): string {
+        if (strpos($id, 'bgc_') !== 0) { return ''; }
+        $mid = explode(':', $id)[0]; // strip the instance id
+        return substr($mid, 4);
+    }
+
+    private static function is_cod_gateway(string $gid, $gw): bool {
+        return $gid === 'cod' || (is_object($gw) && is_a($gw, 'WC_Gateway_COD'));
+    }
+
+    /** Whether the shop has at least one enabled NON-COD (prepaid) payment gateway. */
+    private static function has_prepaid_gateway(): bool {
+        if (!function_exists('WC') || !WC()->payment_gateways()) { return true; } // can't tell -> don't restrict
+        foreach (WC()->payment_gateways()->payment_gateways() as $gid => $gw) {
+            if (is_object($gw) && $gw->enabled === 'yes' && !self::is_cod_gateway((string) $gid, $gw)) { return true; }
+        }
+        return false;
     }
 
     /** Pre-select the configured default courier when the customer hasn't chosen a shipping method yet. */

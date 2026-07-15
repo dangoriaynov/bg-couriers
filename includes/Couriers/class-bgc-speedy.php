@@ -231,9 +231,7 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         if ($order->get_payment_method() === 'cod') {
             $cod = self::cod_for_payer($order, $payer);
             if ($cod > 0) {
-                $processing_type = get_option('bgc_speedy_cod_processing', 'cash') === 'money_transfer'
-                    ? 'POSTAL_MONEY_TRANSFER'
-                    : 'CASH';
+                $processing_type = BGC_Settings::courier_ppp_payout('speedy') ? 'POSTAL_MONEY_TRANSFER' : 'CASH';
                 $body['service']['additionalServices']['cod'] = [
                     'amount'               => $cod,
                     'processingType'       => $processing_type,

@@ -432,6 +432,16 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Text shown for the shipping price when a method is free (e.g. “Free shipping”).', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_pricing'],
 
+            ['type' => 'title', 'id' => 'bgc_cod', 'title' => __('Cash on delivery (наложен платеж)', 'bg-couriers'),
+                'desc' => __('How you fiscalise the cash the courier collects. If you rely on the courier\'s postal money transfer (ППП / пощенски паричен превод) because you have no cash register, a courier that does NOT offer ППП cannot be used for COD - at checkout those couriers then require prepayment (or are hidden if your shop offers no prepaid payment method). Enable ППП per courier on each courier\'s tab.', 'bg-couriers')],
+            ['type' => 'select', 'id' => 'bgc_cod_fiscalization', 'title' => __('COD fiscalisation', 'bg-couriers'),
+                'options' => [
+                    'cash_register' => __('I issue the receipt myself (I have a cash register)', 'bg-couriers'),
+                    'ppp'           => __('I rely on the courier\'s postal money transfer / ППП (no cash register)', 'bg-couriers'),
+                ],
+                'default' => 'cash_register'],
+            ['type' => 'sectionend', 'id' => 'bgc_cod'],
+
             ['type' => 'title', 'id' => 'bgc_labels', 'title' => __('Label generation', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_autolabel_enabled',
                 'title' => __('Auto-generate labels', 'bg-couriers'),
@@ -477,12 +487,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 ],
                 'desc' => __('Sender: the merchant pays the courier; for COD orders the courier collects the full order total (goods + shipping) from the customer. Recipient: the courier collects the delivery fee from the customer at the door; for COD orders only the goods total is collected as наложен платеж (shipping excluded).', 'bg-couriers'),
                 'default' => 'sender'],
-            ['type' => 'select', 'id' => 'bgc_speedy_cod_processing', 'title' => __('COD payout method', 'bg-couriers'),
-                'options' => [
-                    'cash'          => __('Cash', 'bg-couriers'),
-                    'money_transfer' => __('Postal money transfer (ППП)', 'bg-couriers'),
-                ],
-                'default' => 'cash'],
+            ['type' => 'checkbox', 'id' => 'bgc_speedy_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
+                'desc' => __('Speedy pays the collected cash-on-delivery out to you as a postal money transfer (пощенски паричен превод / ППП). Enable if your Speedy contract uses ППП - it lets you accept COD without your own cash register (the shipment is sent with processingType POSTAL_MONEY_TRANSFER; otherwise CASH).', 'bg-couriers'),
+                'default' => 'yes'],
             ['type' => 'select', 'id' => 'bgc_speedy_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
                 'options' => [
                     'no'   => __('No', 'bg-couriers'),
@@ -547,6 +554,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'default' => ''],
             ['type' => 'checkbox', 'id' => 'bgc_econt_pay_after_accept', 'title' => __('Allow inspection before payment', 'bg-couriers'),
                 'desc' => __('Let the recipient inspect the shipment before paying (преглед).', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'checkbox', 'id' => 'bgc_econt_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
+                'desc' => __('Econt pays your наложен платеж out via пощенски паричен превод (ППП) per the pay-out agreement above. Enable if that agreement is ППП - it lets you accept COD without your own cash register.', 'bg-couriers'), 'default' => 'yes'],
             ['type' => 'sectionend', 'id' => 'bgc_econt'],
         ];
     }
@@ -584,6 +593,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 ],
                 'desc' => __('Sender: the merchant pays the courier; for COD orders the courier collects the full order total (goods + shipping) from the customer. Recipient: the courier collects the delivery fee from the customer at the door; for COD orders only the goods total is collected as наложен платеж (shipping excluded).', 'bg-couriers'),
                 'default' => 'sender'],
+            ['type' => 'checkbox', 'id' => 'bgc_pigeon_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
+                'desc' => __('Enable only if your Pigeon Express contract pays your наложен платеж out via пощенски паричен превод (ППП). When off, COD with Pigeon needs your own cash register (see the general Cash on delivery setting).', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
         ];
     }
@@ -629,6 +640,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 ],
                 'desc' => __('Sender: the merchant pays the courier; for COD orders the courier collects the full order total (goods + shipping) from the customer. Recipient: the courier collects the delivery fee from the customer at the door; for COD orders only the goods total is collected as наложен платеж (shipping excluded).', 'bg-couriers'),
                 'default' => 'sender'],
+            ['type' => 'checkbox', 'id' => 'bgc_sameday_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
+                'desc' => __('Enable only if your Sameday contract pays your наложен платеж out via пощенски паричен превод (ППП). When off, COD with Sameday needs your own cash register (see the general Cash on delivery setting).', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgc_sameday_more'],
         ];
     }

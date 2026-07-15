@@ -145,6 +145,28 @@ class BGC_Settings {
         return (string) get_option('bgc_free_shipping_label', '');
     }
 
+    /**
+     * How the merchant fiscalises cash the courier collects on delivery:
+     *  - 'cash_register' (default): the merchant issues the receipt themselves - COD works with any courier;
+     *  - 'ppp': the merchant relies on the courier paying out via пощенски паричен превод (ППП), which is only
+     *    legal with couriers that actually offer ППП.
+     */
+    public static function cod_fiscalization(): string {
+        return get_option('bgc_cod_fiscalization', 'cash_register') === 'ppp' ? 'ppp' : 'cash_register';
+    }
+
+    /** Whether THIS courier pays collected COD out to the merchant via ППП (пощенски паричен превод). */
+    public static function courier_ppp_payout(string $courier): bool {
+        if ($courier === 'boxnow') { return false; } // BOX NOW does not offer ППП payout at all
+        $default = in_array($courier, ['speedy', 'econt'], true) ? 'yes' : 'no';
+        return get_option('bgc_' . $courier . '_ppp_payout', $default) === 'yes';
+    }
+
+    /** Whether COD is legally usable with this courier: the merchant issues receipts, or the courier does ППП. */
+    public static function cod_allowed_for(string $courier): bool {
+        return self::cod_fiscalization() === 'cash_register' || self::courier_ppp_payout($courier);
+    }
+
     public static function hidden_fields(): string {
         return (string) get_option('bgc_hidden_fields', '');
     }
