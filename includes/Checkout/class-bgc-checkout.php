@@ -501,14 +501,16 @@ class BGC_Checkout {
            . '<svg class="bgc-map-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
            . '<span>' . esc_html__('Map', 'bg-couriers') . '</span></button></div></div>'
            . '<div class="bgc-address-rows"' . $addr_style . '>'
-           . (get_option('bgc_address_map', 'yes') === 'yes'
-               ? '<div class="bgc-field bgc-addr-map-row"><button type="button" class="bgc-map-btn bgc-addr-map-btn">'
-                 . '<svg class="bgc-map-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
-                 . '<span>' . esc_html__('Choose on map', 'bg-couriers') . '</span></button></div>'
-               : '')
-           . '<div class="bgc-grid">'
+           . '<div class="bgc-grid' . (get_option('bgc_address_map', 'yes') === 'yes' ? ' bgc-grid-map' : '') . '">'
            . '<div class="bgc-field bgc-street-field"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select></div>'
            . '<div class="bgc-field bgc-streetno-field"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></div>'
+           . (get_option('bgc_address_map', 'yes') === 'yes'
+               // Small map-pin icon next to No. (same generic style as the order editor), not a full-width button.
+               ? '<div class="bgc-field bgc-addr-map-cell"><label aria-hidden="true">&nbsp;</label>'
+                 . '<button type="button" class="bgc-map-btn bgc-addr-map-btn bgc-addr-map-icon" title="' . esc_attr__('Choose on map', 'bg-couriers') . '" aria-label="' . esc_attr__('Choose on map', 'bg-couriers') . '">'
+                 . '<svg class="bgc-map-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
+                 . '</button></div>'
+               : '')
            . '</div>'
            . '<div class="bgc-field"><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label><input type="text" class="bgc-complex" autocomplete="off" value="' . $av('complex') . '"></div>'
            . '<div class="bgc-grid bgc-grid-4">'

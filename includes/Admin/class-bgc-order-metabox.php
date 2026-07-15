@@ -22,7 +22,8 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel{margin-top:8px;padding:10px 11px;border:1px solid #e6e9ec;border-radius:9px;background:#fff;}'
             . '.bgc-order-panel .bgc-hd{display:flex;align-items:center;gap:7px;margin:0 0 8px;flex-wrap:wrap;}'
             . '.bgc-order-panel .bgc-hd b{font-size:13px;color:#1d2327;}'
-            . '.bgc-order-panel .bgc-logo{height:17px;width:auto;display:block;}'
+            . '.bgc-order-panel .bgc-logo{height:17px;width:auto;display:block;cursor:default;}'
+            . '.bgc-order-panel .bgc-hd-acts{margin-left:auto;display:inline-flex;align-items:center;gap:6px;}'
             . '.bgc-order-panel .bgc-chip{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}'
             // The waybill number IS the copy button: clicking the field copies it to the clipboard.
             . '.bgc-order-panel .bgc-mtype{display:inline-flex;align-items:center;padding:3px 9px;}'
@@ -114,9 +115,27 @@ class BGC_Order_Metabox {
         // Header: courier logo + delivery-type label + (when issued) the waybill number, which is itself the
         // copy button - clicking the field copies the number (see bgc-order-admin.js).
         $logo = BGC_Couriers::logo_url($courier->id());
+        // Icon-only action group (no text): Generate when unlabelled, else print/track; plus edit, and cancel
+        // last when a waybill exists. All go on the SAME row as the logo/type/waybill.
+        if ($waybill === '') {
+            $gen = $nonce_url('bgc_generate_label', 'bgc_generate_label_');
+            $actions = $act('a', 'tag', __('Generate label', 'bg-couriers'), 'href="' . $gen . '"', 'bgc-primary')
+                . $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle');
+        } else {
+            $paper  = strtolower(BGC_Settings::label_paper_size($courier->id()));
+            $print  = esc_url(wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id . '&paper=' . $paper, 'bgc_print_batch'));
+            $track  = $nonce_url('bgc_track', 'bgc_track_');
+            $cancel = $nonce_url('bgc_cancel_label', 'bgc_cancel_label_');
+            $actions = $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary')
+                . $act('a', 'location', __('Track shipment', 'bg-couriers'), 'href="' . $track . '" target="_blank"')
+                . $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle')
+                . $act('button', 'no-alt', __('Cancel (void) label', 'bg-couriers'), 'type="button" data-cancel-url="' . $cancel . '"', 'bgc-danger bgc-cancel');
+        }
+
+        // ONE row, icons only: courier logo (hint) + delivery-type icon (hint) + waybill copy + action icons.
         $body = '<div class="bgc-hd">'
             . ($logo
-                ? '<img class="bgc-logo" src="' . esc_url($logo) . '" alt="' . esc_attr($courier->label()) . '">'
+                ? '<img class="bgc-logo" src="' . esc_url($logo) . '" alt="' . esc_attr($courier->label()) . '" data-tip="' . esc_attr($courier->label()) . '">'
                 : '<b>' . esc_html($courier->label()) . '</b>')
             . (BGC_Icons::method($method) !== ''
                 ? '<span class="bgc-chip bgc-mtype" data-tip="' . esc_attr($mlabel) . '" aria-label="' . esc_attr($mlabel) . '">' . BGC_Icons::method($method) . '</span>'
@@ -126,7 +145,7 @@ class BGC_Order_Metabox {
             $body .= '<button type="button" class="bgc-wb bgc-wb-copy" data-wb="' . esc_attr($waybill) . '" data-tip="' . esc_attr($waybill)
                 . '" aria-label="' . esc_attr(sprintf(__('Copy waybill %s', 'bg-couriers'), $waybill)) . '"><span class="dashicons dashicons-clipboard"></span></button>';
         }
-        $body .= '</div>';
+        $body .= '<span class="bgc-hd-acts">' . $actions . '</span></div>';
 
         // Surface the last generation error (handle_generate stores it in a transient, then redirects here).
         $err = get_transient('bgc_admin_error_' . $id);
@@ -134,28 +153,8 @@ class BGC_Order_Metabox {
             delete_transient('bgc_admin_error_' . $id);
             /* translators: %s: error message from the courier */
             $err_msg = esc_html(sprintf(__('Label generation failed: %s', 'bg-couriers'), $err));
-            $body .= '<div class="bgc-err" style="margin:0 0 8px;padding:8px 10px;border-radius:6px;background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;">'
+            $body .= '<div class="bgc-err" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;">'
                 . $err_msg . '</div>';
-        }
-
-        if ($waybill === '') {
-            $gen = $nonce_url('bgc_generate_label', 'bgc_generate_label_');
-            $body .= '<div class="bgc-la">'
-                . '<a class="bgc-act bgc-primary bgc-gen" href="' . $gen . '"><span class="dashicons dashicons-tag"></span> ' . esc_html__('Generate label', 'bg-couriers') . '</a>'
-                . $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle')
-                . '</div>';
-        } else {
-            $paper  = strtolower(BGC_Settings::label_paper_size($courier->id()));
-            $print  = esc_url(wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id . '&paper=' . $paper, 'bgc_print_batch'));
-            $track  = $nonce_url('bgc_track', 'bgc_track_');
-            $cancel = $nonce_url('bgc_cancel_label', 'bgc_cancel_label_');
-            // One row: print, track, edit, cancel (destructive last), all icon-only with hover hints.
-            $body .= '<div class="bgc-la">'
-                . $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary')
-                . $act('a', 'location', __('Track shipment', 'bg-couriers'), 'href="' . $track . '" target="_blank"')
-                . $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle')
-                . $act('button', 'no-alt', __('Cancel (void) label', 'bg-couriers'), 'type="button" data-cancel-url="' . $cancel . '"', 'bgc-danger bgc-cancel')
-                . '</div>';
         }
 
         echo '<div class="bgc-order-panel">';
@@ -170,7 +169,7 @@ class BGC_Order_Metabox {
         'span'   => ['class' => true, 'data-wb' => true, 'data-tip' => true, 'role' => true, 'tabindex' => true, 'aria-label' => true],
         'strong' => ['class' => true],
         'b'      => [],
-        'img'    => ['class' => true, 'src' => true, 'alt' => true],
+        'img'    => ['class' => true, 'src' => true, 'alt' => true, 'data-tip' => true],
         'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'aria-label' => true, 'data-tip' => true],
         'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true],
         'svg'    => ['class' => true, 'viewbox' => true, 'width' => true, 'height' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'aria-hidden' => true],

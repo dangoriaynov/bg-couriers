@@ -28,6 +28,12 @@
 .bgc-field input { width: 100%; height: 38px; padding: 6px 10px; border: 1px solid #d8dde3; border-radius: 8px; }
 .bgc-grid { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
 .bgc-grid-4 { grid-template-columns: repeat(4, 1fr); }
+/* Street row with a small map-pin icon next to No. (instead of a full-width "Choose on map" button). */
+.bgc-grid-map { grid-template-columns: 1fr 84px 46px; }
+.bgc-addr-map-cell { justify-content: flex-end; }
+.bgc-addr-map-icon { width: 100%; height: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid #d8dde3; border-radius: 8px; background: #fff; color: #2271b1; cursor: pointer; }
+.bgc-addr-map-icon:hover { border-color: #2271b1; background: #f3f8fd; }
 
 /* select2 (city + office) sizing to match inputs */
 .bgc-fields .select2-container { width: 100% !important; }
