@@ -40,6 +40,14 @@ to enter the credentials.
   2. They issue an **API Key + API Secret** and the **Production + Sandbox base URLs**.
   3. Enter the **API Key, API Secret, base URL** (and your **pickup office**) in the plugin's **Pigeon Express** settings, **Validate**, then **Sync**.
 
+## Sameday
+- **Contact:** https://sameday.bg / your Sameday account manager · test host: `sameday-api.demo.zitec.com`
+- **Steps:**
+  1. Sign a **Sameday business contract** (via sameday.bg or your Sameday account manager).
+  2. Request **API / eAWB access**; you receive a **username + password**.
+  3. Ask for your **pickup-point ID** and the **service IDs** for each delivery type (office / address / easyBox locker) from your contract.
+  4. Enter the username, password, pickup point and service IDs in the plugin's **Sameday** settings; tick **Sandbox** to use the test environment.
+
 ## Express One
 - **Contact:** **international@expressone.bg** / your Express One BG account manager · https://expressone.bg
 - *Important:* Express One BG is part of the **Austrian Post Group (CEE)**. Express One's API uses an **API Key**; the technical shape is the group's `api.expressone.*` style, but **confirm the correct Bulgaria API base URL** with Express One BG (do not assume the Slovenia host).
@@ -58,6 +66,7 @@ to enter the credentials.
 | Econt | econt.com (Моят Еконт) | account username (email) + password |
 | BOX NOW | integrationsupport@boxnow.bg | OAuth2 Client ID + Secret |
 | Pigeon Express | support@pigeonexpress.com | API Key + Secret + base URL |
+| Sameday | sameday.bg / account manager | username + password (+ pickup point & service IDs) |
 | Express One | international@expressone.bg | API Key (+ confirm BG base URL) |
 
 A courier's exact process can change - if a step differs from the above, follow the courier's own

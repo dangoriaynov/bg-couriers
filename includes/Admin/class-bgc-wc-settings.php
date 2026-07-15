@@ -437,6 +437,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         return [
             ['type' => 'title', 'id' => 'bgc_speedy', 'title' => '',
                 'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> added automatically to orders the customer paid by cash-on-delivery. Speedy pays the collected amount back to you per your Speedy contract - postal money transfer (пощенски паричен превод) or bank transfer.', 'bg-couriers')],
+            ['type' => 'bgc_cred_hint', 'id' => 'bgc_speedy_credhint', 'courier' => 'speedy'],
             ['type' => 'checkbox', 'id' => 'bgc_speedy_enabled', 'title' => __('Enable Speedy', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_speedy_username', 'title' => __('API username', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
@@ -466,6 +467,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         }
         return [
             ['type' => 'title', 'id' => 'bgc_econt', 'title' => ''],
+            ['type' => 'bgc_cred_hint', 'id' => 'bgc_econt_credhint', 'courier' => 'econt'],
             ['type' => 'checkbox', 'id' => 'bgc_econt_enabled', 'title' => __('Enable Econt', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_econt_username', 'title' => __('API username', 'bg-couriers'), 'autoload' => false],
             ['type' => 'password', 'id' => 'bgc_econt_password', 'title' => __('API password', 'bg-couriers'),
@@ -496,6 +498,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         return [
             ['type' => 'title', 'id' => 'bgc_pigeon', 'title' => '',
                 'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> supported. For cash-on-delivery orders the courier collects the full order total (goods + shipping) from the customer and remits it to you, the same as Econt / Sameday / BOX NOW. Requires cash-on-delivery to be enabled on your Pigeon Express contract.', 'bg-couriers')],
+            ['type' => 'bgc_cred_hint', 'id' => 'bgc_pigeon_credhint', 'courier' => 'pigeon'],
             ['type' => 'checkbox', 'id' => 'bgc_pigeon_enabled', 'title' => __('Enable Pigeon Express', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_pigeon_username', 'title' => __('API Key', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
@@ -527,6 +530,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         return [
             ['type' => 'title', 'id' => 'bgc_sameday', 'title' => '',
                 'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> added automatically to orders the customer paid by cash-on-delivery. Sameday pays the collected amount back to you per your Sameday contract - postal money transfer (пощенски паричен превод) or bank transfer.', 'bg-couriers')],
+            ['type' => 'bgc_cred_hint', 'id' => 'bgc_sameday_credhint', 'courier' => 'sameday'],
             ['type' => 'checkbox', 'id' => 'bgc_sameday_enabled', 'title' => __('Enable Sameday', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_sameday_username', 'title' => __('Username', 'bg-couriers'),
                 'desc' => __('Sameday API username (X-Auth-Username).', 'bg-couriers'),
@@ -563,14 +567,19 @@ class BGC_WC_Settings extends WC_Settings_Page {
         return [
             ['type' => 'title', 'id' => 'bgc_boxnow', 'title' => '',
                 'desc' => __('<strong>Cash on delivery (наложен платеж):</strong> collected at the locker for orders the customer paid by cash-on-delivery; all other orders are prepaid. BOX NOW pays the collected amount back to you per your BOX NOW contract.', 'bg-couriers')],
+            ['type' => 'bgc_cred_hint', 'id' => 'bgc_boxnow_credhint', 'courier' => 'boxnow'],
             ['type' => 'checkbox', 'id' => 'bgc_boxnow_enabled', 'title' => __('Enable BOX NOW', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_boxnow_username', 'title' => __('Client ID', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
             ['type' => 'password', 'id' => 'bgc_boxnow_password', 'title' => __('Client secret', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
             ['type' => 'bgc_actions', 'id' => 'bgc_boxnow_actions'],
-            ['type' => 'text', 'id' => 'bgc_boxnow_api_url', 'title' => __('API URL', 'bg-couriers'),
-                'desc' => __('e.g. https://api-production.boxnow.bg (use the stage URL for testing).', 'bg-couriers'),
+            ['type' => 'select', 'id' => 'bgc_boxnow_api_url', 'title' => __('API environment', 'bg-couriers'),
+                'options' => [
+                    'https://api-production.boxnow.bg' => __('Production (live shipments)', 'bg-couriers'),
+                    'https://api-stage.boxnow.bg'      => __('Stage (testing, with test credentials)', 'bg-couriers'),
+                ],
+                'desc' => __('BOX NOW has two fixed environments. Use Production for live orders; use Stage only for testing with stage credentials.', 'bg-couriers'),
                 'default' => 'https://api-production.boxnow.bg', 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_boxnow_partner_id', 'title' => __('Partner ID', 'bg-couriers'), 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_boxnow_warehouse_id', 'title' => __('Warehouse ID', 'bg-couriers'),

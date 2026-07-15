@@ -15,6 +15,7 @@ class BGC_Settings {
         add_action('woocommerce_admin_field_bgc_actions', [$this, 'render_actions']);
         add_action('woocommerce_admin_field_bgc_sortable', [$this, 'render_sortable']);
         add_action('woocommerce_admin_field_bgc_pigeon_pickup', [$this, 'render_pickup']);
+        add_action('woocommerce_admin_field_bgc_cred_hint', [$this, 'render_cred_hint']);
         foreach (array_keys(BGC_Couriers::all()) as $cid) {
             add_filter('woocommerce_admin_settings_sanitize_option_bgc_' . $cid . '_password', [$this, 'sanitize_password'], 10, 3);
             // Keys/usernames are rendered blank (never exposed); keep the stored value when the field is blank.
@@ -246,6 +247,104 @@ jQuery(function($){
 });
 </script>";
         echo '</td></tr>';
+    }
+
+    /**
+     * Custom WC field: a collapsible "How do I get API credentials?" hint per courier (opened on request
+     * via a native <details>). Content is the researched, courier-specific way to obtain access - where to
+     * write, what to provide, what you receive. Static text only, escaped at output.
+     */
+    public function render_cred_hint($field): void {
+        $data = self::cred_hint_data((string) ($field['courier'] ?? ''));
+        if (empty($data)) { return; }
+        echo '<tr valign="top"><td colspan="2" class="forminp" style="padding-top:4px;">';
+        echo '<details class="bgc-cred-hint" style="border:1px solid #dcdcde;border-radius:6px;padding:8px 12px;background:#fbfbfc;max-width:760px;">';
+        echo '<summary style="cursor:pointer;font-weight:600;color:#2271b1;">'
+            . esc_html__('How do I get API credentials for this courier?', 'bg-couriers') . '</summary>';
+        echo '<div style="margin-top:8px;line-height:1.5;">';
+        echo '<p style="margin:.3em 0;">' . esc_html($data['intro']) . '</p>';
+        echo '<ol style="margin:.3em 0 .3em 1.4em;">';
+        foreach ($data['steps'] as $step) { echo '<li style="margin:.2em 0;">' . esc_html($step) . '</li>'; }
+        echo '</ol>';
+        echo '<p style="margin:.3em 0;"><strong>' . esc_html__('You receive:', 'bg-couriers') . '</strong> ' . esc_html($data['receive']) . '</p>';
+        if (!empty($data['url'])) {
+            echo '<p style="margin:.3em 0;">' . esc_html($data['url_label']) . ' <a href="' . esc_url($data['url'])
+                . '" target="_blank" rel="noopener noreferrer">' . esc_html($data['url']) . '</a></p>';
+        }
+        echo '<p style="margin:.5em 0 0;color:#646970;font-size:.92em;">'
+            . esc_html__('A courier can change its process - if a step differs, follow the courier\'s own instructions.', 'bg-couriers') . '</p>';
+        echo '</div></details></td></tr>';
+    }
+
+    /** Researched per-courier credential-acquisition steps (verified against each courier's own site/docs). */
+    public static function cred_hint_data(string $courier): array {
+        switch ($courier) {
+            case 'speedy':
+                return [
+                    'intro' => __('Speedy issues API access to registered business clients - there is no instant self-signup.', 'bg-couriers'),
+                    'steps' => [
+                        __('Have (or open) a Speedy business contract.', 'bg-couriers'),
+                        __('Request REST API access (ask for a test account first) from your Speedy account manager, or via the integration contact on the Speedy "System integration" page below.', 'bg-couriers'),
+                        __('Speedy issues an API username + password for api.speedy.bg.', 'bg-couriers'),
+                        __('Enter the username and password below, click Validate, then Sync.', 'bg-couriers'),
+                    ],
+                    'receive'   => __('API username + password', 'bg-couriers'),
+                    'url_label' => __('Speedy system integration:', 'bg-couriers'),
+                    'url'       => 'https://www.speedy.bg/en/system-integration',
+                ];
+            case 'econt':
+                return [
+                    'intro' => __('Econt\'s API uses your own e-Econt ("Моят Еконт") business account - there is no separate API key.', 'bg-couriers'),
+                    'steps' => [
+                        __('Register or open a business account in "Моят Еконт" at ee.econt.com.', 'bg-couriers'),
+                        __('Confirm with Econt that API access is enabled for your account.', 'bg-couriers'),
+                        __('Your API username is your account e-mail; the password is your account password.', 'bg-couriers'),
+                        __('Enter the e-mail and password below, click Validate, then Sync.', 'bg-couriers'),
+                    ],
+                    'receive'   => __('account e-mail (username) + password', 'bg-couriers'),
+                    'url_label' => __('Моят Еконт:', 'bg-couriers'),
+                    'url'       => 'https://ee.econt.com',
+                ];
+            case 'pigeon':
+                return [
+                    'intro' => __('Pigeon Express issues an API Key + Secret to business clients on request.', 'bg-couriers'),
+                    'steps' => [
+                        __('Contact Pigeon Express and request API access (e-mail support@pigeonexpress.com, or via pigeonexpress.com).', 'bg-couriers'),
+                        __('They issue an API Key + API Secret (production; ask for a sandbox/test key to test).', 'bg-couriers'),
+                        __('Ask them for your pickup office ID (the office you drop parcels off at).', 'bg-couriers'),
+                        __('Enter the Key, Secret and pickup office below, click Validate, then Sync. Tick "Sandbox" only for a test account.', 'bg-couriers'),
+                    ],
+                    'receive'   => __('API Key + API Secret (+ your pickup office ID)', 'bg-couriers'),
+                    'url_label' => __('Pigeon API docs:', 'bg-couriers'),
+                    'url'       => 'https://api-docs.pigeonexpress.com',
+                ];
+            case 'boxnow':
+                return [
+                    'intro' => __('BOX NOW issues OAuth2 credentials through its integration team.', 'bg-couriers'),
+                    'steps' => [
+                        __('E-mail integrationsupport@boxnow.bg with your company name, address, tax ID (ЕИК), contact details, and the phone numbers of the people who will use the Partner Portal (needed for OTP SMS login).', 'bg-couriers'),
+                        __('They issue your OAuth2 Client ID + Client Secret and confirm your Warehouse ID and Partner ID.', 'bg-couriers'),
+                        __('Enter the Client ID, Client Secret, Partner ID and Warehouse ID below; choose the Production environment (or Stage for testing).', 'bg-couriers'),
+                    ],
+                    'receive'   => __('OAuth2 Client ID + Client Secret (+ Partner ID, Warehouse ID)', 'bg-couriers'),
+                    'url_label' => __('BOX NOW:', 'bg-couriers'),
+                    'url'       => 'https://www.boxnow.bg',
+                ];
+            case 'sameday':
+                return [
+                    'intro' => __('Sameday issues API credentials (username + password) to clients after a business contract.', 'bg-couriers'),
+                    'steps' => [
+                        __('Sign a Sameday business contract (via sameday.bg or your Sameday account manager).', 'bg-couriers'),
+                        __('Request API / eAWB access; you receive a username + password.', 'bg-couriers'),
+                        __('Ask for your pickup-point ID and the service IDs for each delivery type (office / address / easyBox locker) from your contract.', 'bg-couriers'),
+                        __('Enter the username, password, pickup point and service IDs below; tick "Sandbox" to use the test environment (sameday-api.demo.zitec.com).', 'bg-couriers'),
+                    ],
+                    'receive'   => __('username + password (+ pickup point and per-type service IDs)', 'bg-couriers'),
+                    'url_label' => __('Sameday Bulgaria:', 'bg-couriers'),
+                    'url'       => 'https://sameday.bg',
+                ];
+        }
+        return [];
     }
 
     public static function creds_present(string $courier = 'speedy'): bool {
