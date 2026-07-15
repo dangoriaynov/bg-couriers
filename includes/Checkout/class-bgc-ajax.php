@@ -15,8 +15,10 @@ class BGC_Ajax {
      * Result cached per rounded coordinate. Returns { city, postcode, street, number }.
      */
     public function geocode(): void {
-        $lat = round((float) ($_GET['lat'] ?? 0), 5);
-        $lng = round((float) ($_GET['lng'] ?? 0), 5);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
+        $lat = round((float) wp_unslash($_GET['lat'] ?? 0), 5); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- float-cast, no state change
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
+        $lng = round((float) wp_unslash($_GET['lng'] ?? 0), 5); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- float-cast, no state change
         if ($lat === 0.0 && $lng === 0.0) { wp_send_json([]); }
         $tkey = 'bgc_geo_' . str_replace(['.', '-'], ['', 'm'], $lat . '_' . $lng);
         $cached = get_transient($tkey);
@@ -70,25 +72,26 @@ class BGC_Ajax {
         return $out;
     }
     public static function search_cities_data(): array {
-        $courier = sanitize_key($_GET['courier'] ?? 'speedy');
-        $term = sanitize_text_field($_GET['term'] ?? '');
+        $courier = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
+        $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
         // No term -> first N cities alphabetically; with a term -> matches, N max (sorted by name).
         return BGC_Nomenclature::search_cities($courier, $term, BGC_Settings::dropdown_limit());
     }
     public function search_cities(): void { wp_send_json(self::search_cities_data()); }
     public function offices(): void {
-        $courier = sanitize_key($_GET['courier'] ?? 'speedy');
-        $city = (int) ($_GET['city_id'] ?? 0);
-        $type = sanitize_key($_GET['type'] ?? '');
-        $term = sanitize_text_field($_GET['term'] ?? '');
-        $limit = !empty($_GET['all']) ? 100000 : BGC_Settings::dropdown_limit(); // all=1 -> the full city list, for the client cache
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
+        $courier = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
+        $type = sanitize_key(wp_unslash($_GET['type'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        $limit = !empty($_GET['all']) ? 100000 : BGC_Settings::dropdown_limit(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- all=1 -> the full city list, for the client cache
         wp_send_json(self::city_offices($courier, $city, $type, $term, $limit));
     }
 
     /** Which office types a city has (so the checkout can grey out a delivery option the city lacks). */
     public function city_avail(): void {
-        $courier_id = sanitize_key($_GET['courier'] ?? 'speedy');
-        $city = (int) ($_GET['city_id'] ?? 0);
+        $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
+        $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
         $office = false; $automat = false;
         if ($city > 0) {
             $rows = [];
@@ -141,9 +144,9 @@ class BGC_Ajax {
         return array_slice($rows, 0, max(1, $limit));
     }
     public function streets(): void {
-        $courier_id = sanitize_key($_GET['courier'] ?? 'speedy');
-        $city = (int) ($_GET['city_id'] ?? 0);
-        $term = sanitize_text_field($_GET['term'] ?? '');
+        $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
+        $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
+        $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
         $out = [];
         if ($city > 0 && $term !== '') {
             try {
@@ -162,11 +165,11 @@ class BGC_Ajax {
         if (!in_array($method, ['address', 'office', 'automat'], true)) { $method = 'office'; }
         WC()->session->set('bgc_method', $method);
         WC()->session->set('bgc_selection_courier', sanitize_key($_POST['courier'] ?? '')); // which courier this selection belongs to
-        WC()->session->set('bgc_site_id', (int) ($_POST['site_id'] ?? 0));
-        WC()->session->set('bgc_office_id', (int) ($_POST['office_id'] ?? 0));
-        WC()->session->set('bgc_post_code', sanitize_text_field($_POST['post_code'] ?? ''));
-        WC()->session->set('bgc_boxnow_name', sanitize_text_field($_POST['boxnow_name'] ?? '')); // BoxNow locker label
-        WC()->session->set('bgc_boxnow_addr', sanitize_text_field($_POST['boxnow_addr'] ?? ''));
+        WC()->session->set('bgc_site_id', (int) wp_unslash($_POST['site_id'] ?? 0)); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
+        WC()->session->set('bgc_office_id', (int) wp_unslash($_POST['office_id'] ?? 0)); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
+        WC()->session->set('bgc_post_code', sanitize_text_field(wp_unslash($_POST['post_code'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        WC()->session->set('bgc_boxnow_name', sanitize_text_field(wp_unslash($_POST['boxnow_name'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- BoxNow locker label
+        WC()->session->set('bgc_boxnow_addr', sanitize_text_field(wp_unslash($_POST['boxnow_addr'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         foreach (self::address_fields($_POST) as $k => $v) { WC()->session->set('bgc_addr_' . $k, $v); }
         wp_send_json_success(['ok' => true]);
     }

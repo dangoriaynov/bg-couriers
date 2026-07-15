@@ -194,6 +194,7 @@ class BGC_Settings {
         echo '<input type="hidden" name="' . esc_attr($id) . '" id="' . esc_attr($id) . '" value="' . esc_attr(implode(',', $items)) . '">';
         echo '<p class="description">' . esc_html($desc) . '</p>';
         $sid = esc_js($id);
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $sid is esc_js($id)
         echo "<script>jQuery(function($){ $('#bgc-sort-{$sid}').sortable({update:function(){ $('#{$sid}').val($(this).children().map(function(){return $(this).data('m');}).get().join(',')); }}); });</script>";
         echo '</td></tr>';
     }
@@ -220,6 +221,7 @@ class BGC_Settings {
         echo '<select id="bgc_pickup_office" style="min-width:300px;margin-top:6px;"></select>';
         echo '<input type="hidden" id="' . esc_attr($id) . '" name="' . esc_attr($id) . '" value="' . esc_attr((string) $current) . '">';
         echo '<p class="description">' . esc_html($field['desc'] ?? '') . '</p>';
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- all interpolated vars ($idjs,$cur_txt,$ph_city,$ph_off) are esc_js()'d above
         echo "<script>
 jQuery(function($){
   var \$c=$('#bgc_pickup_city'), \$o=$('#bgc_pickup_office'), \$h=$('#{$idjs}');
@@ -314,7 +316,7 @@ jQuery(function($){
     public function ajax_save_order(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(); }
         check_ajax_referer('bgc_admin', 'nonce');
-        $order   = array_values(array_filter(array_map('sanitize_key', explode(',', (string) ($_POST['order'] ?? '')))));
+        $order   = array_values(array_filter(array_map('sanitize_key', explode(',', sanitize_text_field(wp_unslash($_POST['order'] ?? ''))))));
         $courier = isset($_POST['courier']) ? sanitize_key(wp_unslash($_POST['courier'])) : '';
         // With a courier: the drag order of that courier's delivery-option tabs. Without: the courier order.
         if ($courier !== '' && array_key_exists($courier, BGC_Couriers::all())) {
@@ -369,7 +371,7 @@ jQuery(function($){
         $courier = sanitize_key($_POST['courier'] ?? 'speedy');
         $c = BGC_Couriers::get($courier);
         if (!$c || !self::courier_config($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
-        @set_time_limit(180);
+        @set_time_limit(180); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- needed for long nomenclature sync
         wp_send_json_success(BGC_Sync::run($c));
     }
 
@@ -409,50 +411,47 @@ jQuery(function($){
         $present_js   = $present ? 'true' : 'false';
         $validated_js = $validated ? 'true' : 'false';
 
-        echo <<<JS
-<script>
-(function($){
-    var ajaxurl='{$ajax}', nonce='{$nonce}', courier='{$courier}', present={$present_js}, validated={$validated_js};
-    var u=$('#bgc_'+courier+'_username'), p=$('#bgc_'+courier+'_password');
-    if(!p.length){ return; }
-    var vbtn=$('#bgc-validate'), sbtn=$('#bgc-sync'), st=$('#bgc-status');
-    var rows=u.closest('tr').add(p.closest('tr')).add(vbtn.closest('tr'));
-    function tint(ok){ rows.toggleClass('bgc-creds-ok',ok).toggleClass('bgc-creds-edit',!ok); }
-    // Per-field controller: a saved value shows masked dots + a disabled field + an ✕ to change it, so the
-    // real key/secret is NEVER rendered into the page. Each of the key + secret fields gets its own ✕.
-    function ctl(fld){
-        if(!fld.length){ return {lock:function(){},unlock:function(){},editing:function(){return false;},xb:$()}; }
-        var xb=$('<button type="button" class="button bgc-cred-x" title="{$t['change']}">✕</button>');
-        fld.after(xb);
-        var o={ lock:function(){ fld.prop('disabled',true).addClass('bgc-cred-locked').val('').attr('placeholder','••••••••'); xb.show(); },
-                unlock:function(){ fld.prop('disabled',false).removeClass('bgc-cred-locked').val('').attr('placeholder',''); xb.hide(); },
-                editing:function(){ return !fld.prop('disabled'); }, xb:xb };
-        xb.on('click',function(){ o.unlock(); fld.focus(); tint(false); syncV(); $.post(ajaxurl,{action:'bgc_reset_creds',nonce:nonce,courier:courier}); });
-        return o;
-    }
-    var cu=ctl(u), cp=ctl(p);
-    function syncV(){ var ed=cu.editing()||cp.editing(); vbtn.prop('disabled', present ? ed : true).attr('title', ed?'{$t['savefirst']}':''); }
-    function lockAll(green){ cu.lock(); cp.lock(); tint(green); syncV(); }
-    function unlockAll(){ cu.unlock(); cp.unlock(); tint(false); syncV(); p.focus(); }
-    if(present){ lockAll(validated); } else { cu.xb.hide(); cp.xb.hide(); }
-    $(document).on('bgc:saved',function(e,d){ if(d&&d.courier===courier){ present=!!d.present; if(present){ lockAll(!!d.validated); } else { unlockAll(); cu.xb.hide(); cp.xb.hide(); } } });
-
-    function busy(t){ vbtn.add(sbtn).prop('disabled',true); st.html('<span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>'+t); }
-    function err(m){ st.html('<span style="color:#b32d2e;">✗ '+m+'</span>'); }
-    function good(m){ st.html('<span style="color:#1a7f37;">✓ '+m+'</span>'); }
-    vbtn.on('click',function(){ if(cu.editing()||cp.editing()){ err('{$t['savefirst']}'); return; } busy('{$t['validating']}');
-        $.post(ajaxurl,{action:'bgc_validate_creds',nonce:nonce,courier:courier}).done(function(r){
-            if(r&&r.success&&r.data&&r.data.ok){ good('{$t['valid']}'); lockAll(true); }
-            else { err((r&&r.data&&r.data.msg)||'{$t['invalid']}'); tint(false); }
-        }).fail(function(){ err('{$t['fail']}'); }).always(function(){ sbtn.prop('disabled',false); syncV(); }); });
-    sbtn.on('click',function(){ busy('{$t['syncing']}');
-        $.post(ajaxurl,{action:'bgc_sync_now',nonce:nonce,courier:courier}).done(function(r){
-            if(r&&r.success){ var d=r.data||{}; good((d.cities||0)+' {$t['cities']}, '+(d.offices||0)+' {$t['offices']}, '+(d.rates||0)+' {$t['rates']}'); }
-            else { err((r&&r.data&&r.data.msg)||'{$t['fail']}'); }
-        }).fail(function(){ err('{$t['fail']}'); }).always(function(){ sbtn.prop('disabled',false); syncV(); }); });
-})(jQuery);
-</script>
-JS;
+        $courier_js = esc_js($courier);
+        echo '<script>' . "\n"
+            . '(function($){' . "\n"
+            . '    var ajaxurl=\'' . $ajax . '\', nonce=\'' . $nonce . '\', courier=\'' . $courier_js . '\', present=' . $present_js . ', validated=' . $validated_js . ';' . "\n"
+            . '    var u=$(\'#bgc_\'+courier+\'_username\'), p=$(\'#bgc_\'+courier+\'_password\');' . "\n"
+            . '    if(!p.length){ return; }' . "\n"
+            . '    var vbtn=$(\'#bgc-validate\'), sbtn=$(\'#bgc-sync\'), st=$(\'#bgc-status\');' . "\n"
+            . '    var rows=u.closest(\'tr\').add(p.closest(\'tr\')).add(vbtn.closest(\'tr\'));' . "\n"
+            . '    function tint(ok){ rows.toggleClass(\'bgc-creds-ok\',ok).toggleClass(\'bgc-creds-edit\',!ok); }' . "\n"
+            . '    function ctl(fld){' . "\n"
+            . '        if(!fld.length){ return {lock:function(){},unlock:function(){},editing:function(){return false;},xb:$()}; }' . "\n"
+            . '        var xb=$(\'<button type="button" class="button bgc-cred-x" title="' . $t['change'] . '">✕</button>\');' . "\n"
+            . '        fld.after(xb);' . "\n"
+            . '        var o={ lock:function(){ fld.prop(\'disabled\',true).addClass(\'bgc-cred-locked\').val(\'\').attr(\'placeholder\',\'••••••••\'); xb.show(); },' . "\n"
+            . '                unlock:function(){ fld.prop(\'disabled\',false).removeClass(\'bgc-cred-locked\').val(\'\').attr(\'placeholder\',\'\'); xb.hide(); },' . "\n"
+            . '                editing:function(){ return !fld.prop(\'disabled\'); }, xb:xb };' . "\n"
+            . '        xb.on(\'click\',function(){ o.unlock(); fld.focus(); tint(false); syncV(); $.post(ajaxurl,{action:\'bgc_reset_creds\',nonce:nonce,courier:courier}); });' . "\n"
+            . '        return o;' . "\n"
+            . '    }' . "\n"
+            . '    var cu=ctl(u), cp=ctl(p);' . "\n"
+            . "    function syncV(){ var ed=cu.editing()||cp.editing(); vbtn.prop('disabled', present ? ed : true).attr('title', ed?'" . $t['savefirst'] . "':''); }\n"
+            . '    function lockAll(green){ cu.lock(); cp.lock(); tint(green); syncV(); }' . "\n"
+            . '    function unlockAll(){ cu.unlock(); cp.unlock(); tint(false); syncV(); p.focus(); }' . "\n"
+            . '    if(present){ lockAll(validated); } else { cu.xb.hide(); cp.xb.hide(); }' . "\n"
+            . '    $(document).on(\'bgc:saved\',function(e,d){ if(d&&d.courier===courier){ present=!!d.present; if(present){ lockAll(!!d.validated); } else { unlockAll(); cu.xb.hide(); cp.xb.hide(); } } });' . "\n"
+            . "\n"
+            . '    function busy(t){ vbtn.add(sbtn).prop(\'disabled\',true); st.html(\'<span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>\'+t); }' . "\n"
+            . '    function err(m){ st.html(\'<span style="color:#b32d2e;">✗ \'+m+\'</span>\'); }' . "\n"
+            . '    function good(m){ st.html(\'<span style="color:#1a7f37;">✓ \'+m+\'</span>\'); }' . "\n"
+            . '    vbtn.on(\'click\',function(){ if(cu.editing()||cp.editing()){ err(\'' . $t['savefirst'] . '\'); return; } busy(\'' . $t['validating'] . '\');' . "\n"
+            . '        $.post(ajaxurl,{action:\'bgc_validate_creds\',nonce:nonce,courier:courier}).done(function(r){' . "\n"
+            . '            if(r&&r.success&&r.data&&r.data.ok){ good(\'' . $t['valid'] . '\'); lockAll(true); }' . "\n"
+            . '            else { err((r&&r.data&&r.data.msg)||\'' . $t['invalid'] . '\'); tint(false); }' . "\n"
+            . '        }).fail(function(){ err(\'' . $t['fail'] . '\'); }).always(function(){ sbtn.prop(\'disabled\',false); syncV(); }); });' . "\n"
+            . '    sbtn.on(\'click\',function(){ busy(\'' . $t['syncing'] . '\');' . "\n"
+            . '        $.post(ajaxurl,{action:\'bgc_sync_now\',nonce:nonce,courier:courier}).done(function(r){' . "\n"
+            . '            if(r&&r.success){ var d=r.data||{}; good((d.cities||0)+\' ' . $t['cities'] . ', \'+(d.offices||0)+\' ' . $t['offices'] . ', \'+(d.rates||0)+\' ' . $t['rates'] . '\'); }' . "\n"
+            . '            else { err((r&&r.data&&r.data.msg)||\'' . $t['fail'] . '\'); }' . "\n"
+            . '        }).fail(function(){ err(\'' . $t['fail'] . '\'); }).always(function(){ sbtn.prop(\'disabled\',false); syncV(); }); });' . "\n"
+            . '})(jQuery);' . "\n"
+            . '</script>';
     }
 
     public function action_links($links): array {

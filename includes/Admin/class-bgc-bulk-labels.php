@@ -136,9 +136,10 @@ class BGC_Bulk_Labels {
     }
 
     public function notice(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only redirect param, no state change
         if (!empty($_GET['bgc_bulk_cancel'])) {
             $cc = ['cancelled' => 0, 'skipped' => 0, 'failed' => 0];
-            foreach ($cc as $k => $_) { $cc[$k] = (int) ($_GET[$k] ?? 0); }
+            foreach ($cc as $k => $_) { $cc[$k] = (int) wp_unslash($_GET[$k] ?? 0); } // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast read-only redirect param
             $msg = sprintf(
                 /* translators: 1: cancelled 2: skipped 3: failed */
                 esc_html__('Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed.', 'bg-couriers'),
@@ -147,16 +148,16 @@ class BGC_Bulk_Labels {
             echo '<div class="notice ' . ($cc['failed'] ? 'notice-warning' : 'notice-success') . ' is-dismissible"><p>' . esc_html($msg) . '</p></div>';
             return;
         }
-        if (empty($_GET['bgc_bulk'])) { return; }
+        if (empty($_GET['bgc_bulk'])) { return; } // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only redirect param
         $c = ['generated' => 0, 'reused' => 0, 'skipped' => 0, 'failed' => 0];
-        foreach ($c as $k => $_) { $c[$k] = (int) ($_GET[$k] ?? 0); }
+        foreach ($c as $k => $_) { $c[$k] = (int) wp_unslash($_GET[$k] ?? 0); } // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast read-only redirect param
         $msg = sprintf(
             /* translators: 1: generated 2: reused 3: skipped 4: failed */
             esc_html__('Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed.', 'bg-couriers'),
             $c['generated'], $c['reused'], $c['skipped'], $c['failed']
         );
         $link = '';
-        if (!empty($_GET['bgc_print'])) {
+        if (!empty($_GET['bgc_print'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only redirect param
             $base  = admin_url('admin-post.php?action=bgc_print_batch');
             $total = $c['generated'] + $c['reused'];
             $a4    = esc_url(wp_nonce_url($base . '&paper=a4', 'bgc_print_batch'));
@@ -167,6 +168,7 @@ class BGC_Bulk_Labels {
                 . ' <a class="button" target="_blank" href="' . $a6 . '">' . esc_html__('A6 stickers', 'bg-couriers') . '</a>';
         }
         $cls = $c['failed'] ? 'notice-warning' : 'notice-success';
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $msg is esc_html__()'d, $link is pre-escaped HTML (esc_url/esc_html)
         echo '<div class="notice ' . esc_attr($cls) . ' is-dismissible"><p>' . $msg . $link . '</p></div>';
     }
 }

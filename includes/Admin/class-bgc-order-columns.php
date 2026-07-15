@@ -137,11 +137,12 @@ class BGC_Order_Columns {
         $gen   = wp_nonce_url($base . '?action=bgc_generate_label&order_id=' . $id, 'bgc_generate_label_' . $id);
         // Echoed directly (not wp_kses_post) so the cancel link keeps its data-* attributes; every dynamic
         // field inside cell_html is individually escaped (esc_html / esc_attr / esc_url).
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- cell_html escapes each field
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- cell_html escapes each field internally
         echo self::cell_html(
             (string) $order->get_meta('_bgc_waybill'), $print, $track, $gen, $id,
             wp_create_nonce('bgc_cancel_label_' . $id), wp_create_nonce('bgc_generate_label_' . $id)
         );
+        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
     }
     public function render_legacy($column, $post_id): void {
         if ($column !== 'bgc_shipping') { return; }

@@ -106,8 +106,9 @@ class BGC_Order_Metabox {
         if ($err) {
             delete_transient('bgc_admin_error_' . $id);
             /* translators: %s: error message from the courier */
+            $err_msg = esc_html(sprintf(__('Label generation failed: %s', 'bg-couriers'), $err));
             $body .= '<div class="bgc-err" style="margin:0 0 8px;padding:8px 10px;border-radius:6px;background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;">'
-                . esc_html(sprintf(__('Label generation failed: %s', 'bg-couriers'), $err)) . '</div>';
+                . $err_msg . '</div>';
         }
 
         if ($waybill === '') {

@@ -157,31 +157,26 @@ class BGC_WC_Settings extends WC_Settings_Page {
         $sect       = esc_js((string) $current_section);
         $i_saved    = esc_js(__('Saved', 'bg-couriers'));
         $i_failed   = esc_js(__('Could not save - please try again.', 'bg-couriers'));
-        echo <<<JS
-<script>
-(function($){
-    var ajaxurl='{$ajaxurl}', nonce='{$save_nonce}', section='{$sect}';
-    function toast(msg,type,ms){ var c=$('#bgc-toasts'); if(!c.length){ c=$('<div id="bgc-toasts"></div>').appendTo('body'); }
-        var t=$('<div class="bgc-toast bgc-toast-'+type+'"></div>').text(msg).appendTo(c);
-        requestAnimationFrame(function(){ t.addClass('show'); });
-        setTimeout(function(){ t.removeClass('show'); setTimeout(function(){ t.remove(); }, 320); }, ms||3000); }
-    var form=$('#mainform'); if(!form.length){ return; }
-    function busy(save,on){ save.prop('disabled',on).toggleClass('is-busy',on); }
-    // Take full control of the save button so WooCommerce's own submit/loading handling (which expects a
-    // page reload we prevent) can't leave the button spinning forever. stopImmediatePropagation blocks WC's
-    // click handler; we always clear the busy state in .always().
-    form.on('click', 'button[name="save"], input[name="save"]', function(e){
-        e.preventDefault(); e.stopImmediatePropagation();
-        var save=$(this); busy(save,true);
-        var data=form.serialize()+'&action=bgc_save_settings&bgc_nonce='+nonce+'&bgc_section='+encodeURIComponent(section)+'&save=1';
-        $.post(ajaxurl,data).done(function(r){
-            if(r&&r.success){ toast((r.data&&r.data.msg)||'{$i_saved}','ok',2500); $(document).trigger('bgc:saved',[r.data||{}]); }
-            else { toast((r&&r.data&&r.data.msg)||'{$i_failed}','err',7000); }
-        }).fail(function(){ toast('{$i_failed}','err',7000); }).always(function(){ busy(save,false); });
-    });
-})(jQuery);
-</script>
-JS;
+        echo '<script>' . "\n"
+            . "(function(\$){\n"
+            . "    var ajaxurl='" . $ajaxurl . "', nonce='" . $save_nonce . "', section='" . $sect . "';\n"
+            . "    function toast(msg,type,ms){ var c=\$('#bgc-toasts'); if(!c.length){ c=\$('<div id=\"bgc-toasts\"></div>').appendTo('body'); }\n"
+            . "        var t=\$('<div class=\"bgc-toast bgc-toast-'+type+'\">'+'</div>').text(msg).appendTo(c);\n"
+            . "        requestAnimationFrame(function(){ t.addClass('show'); });\n"
+            . "        setTimeout(function(){ t.removeClass('show'); setTimeout(function(){ t.remove(); }, 320); }, ms||3000); }\n"
+            . "    var form=\$('#mainform'); if(!form.length){ return; }\n"
+            . "    function busy(save,on){ save.prop('disabled',on).toggleClass('is-busy',on); }\n"
+            . "    form.on('click', 'button[name=\"save\"], input[name=\"save\"]', function(e){\n"
+            . "        e.preventDefault(); e.stopImmediatePropagation();\n"
+            . "        var save=\$(this); busy(save,true);\n"
+            . "        var data=form.serialize()+'&action=bgc_save_settings&bgc_nonce='+nonce+'&bgc_section='+encodeURIComponent(section)+'&save=1';\n"
+            . "        \$.post(ajaxurl,data).done(function(r){\n"
+            . "            if(r&&r.success){ toast((r.data&&r.data.msg)||'" . $i_saved . "','ok',2500); \$(document).trigger('bgc:saved',[r.data||{}]); }\n"
+            . "            else { toast((r&&r.data&&r.data.msg)||'" . $i_failed . "','err',7000); }\n"
+            . "        }).fail(function(){ toast('" . $i_failed . "','err',7000); }).always(function(){ busy(save,false); });\n"
+            . "    });\n"
+            . "})(jQuery);\n"
+            . '</script>';
     }
 
     /** Brand colour per courier - original, trademark-safe (not the couriers' logos). */
@@ -219,32 +214,30 @@ JS;
     private function section_nav(string $current): void {
         $sections = $this->sections();
         echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper bgc-section-nav">';
-        if (array_key_exists('', $sections)) { echo $this->nav_pill('', $sections[''], $current, false); } // General - fixed
+        if (array_key_exists('', $sections)) { echo $this->nav_pill('', $sections[''], $current, false); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nav_pill() escapes all fields internally
         echo '<span class="bgc-courier-tabs">'; // draggable couriers, in the saved order
         foreach (BGC_Settings::courier_order() as $cid) {
-            if (isset($sections[$cid])) { echo $this->nav_pill($cid, $sections[$cid], $current, true); }
+            if (isset($sections[$cid])) { echo $this->nav_pill($cid, $sections[$cid], $current, true); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nav_pill() escapes all fields internally
         }
         echo '</span></nav>';
         wp_enqueue_script('jquery-ui-sortable');
         $ajax  = esc_js(admin_url('admin-ajax.php'));
         $nonce = esc_js(wp_create_nonce('bgc_admin'));
-        echo <<<JS
-<script>
-jQuery(function($){
-    var c = $('.bgc-courier-tabs'); if (!c.length || !$.fn.sortable) { return; }
-    var dragged = false;
-    c.sortable({ items: '> .bgc-courier-tab', distance: 6, cursor: 'move', tolerance: 'pointer', opacity: .85,
-        start: function(){ dragged = true; },
-        stop: function(){ setTimeout(function(){ dragged = false; }, 0); },
-        update: function(){
-            var order = c.children('.bgc-courier-tab').map(function(){ return $(this).data('courier'); }).get().join(',');
-            $.post('{$ajax}', { action: 'bgc_save_order', nonce: '{$nonce}', order: order });
-        }
-    });
-    c.on('click', '.bgc-courier-tab', function(e){ if (dragged) { e.preventDefault(); } }); // a drag isn't a navigation
-});
-</script>
-JS;
+        echo '<script>' . "\n"
+            . "jQuery(function(\$){\n"
+            . "    var c = \$('.bgc-courier-tabs'); if (!c.length || !\$.fn.sortable) { return; }\n"
+            . "    var dragged = false;\n"
+            . "    c.sortable({ items: '> .bgc-courier-tab', distance: 6, cursor: 'move', tolerance: 'pointer', opacity: .85,\n"
+            . "        start: function(){ dragged = true; },\n"
+            . "        stop: function(){ setTimeout(function(){ dragged = false; }, 0); },\n"
+            . "        update: function(){\n"
+            . "            var order = c.children('.bgc-courier-tab').map(function(){ return \$(this).data('courier'); }).get().join(',');\n"
+            . "            \$.post('" . $ajax . "', { action: 'bgc_save_order', nonce: '" . $nonce . "', order: order });\n"
+            . "        }\n"
+            . "    });\n"
+            . "    c.on('click', '.bgc-courier-tab', function(e){ if (dragged) { e.preventDefault(); } });\n"
+            . "});\n"
+            . '</script>';
     }
 
     /**
@@ -265,7 +258,7 @@ JS;
         $off_t = esc_html__('disabled', 'bg-couriers');
         echo '<div class="bgc-enable-toggle ' . ($on ? 'bgc-enable-on' : 'bgc-enable-off') . '" data-on="' . esc_attr($on_t) . '" data-off="' . esc_attr($off_t) . '">'
             . '<label class="bgc-switch"><input type="checkbox" name="' . esc_attr($enable_id) . '" value="1"' . checked($on, true, false) . '><span class="bgc-slider"></span></label>'
-            . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> - <span class="bgc-enable-state">' . ($on ? $on_t : $off_t) . '</span></span>'
+            . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> - <span class="bgc-enable-state">' . esc_html($on ? $on_t : $off_t) . '</span></span>'
             . '</div>';
         WC_Admin_Settings::output_fields($fields);
         $c_id    = esc_js($courier_id);
@@ -277,37 +270,35 @@ JS;
         $i_intro = esc_js(__('Please fix the following, then enable it again:', 'bg-couriers'));
         $i_fix   = esc_js(__('How to fix:', 'bg-couriers'));
         $i_close = esc_js(__('Close', 'bg-couriers'));
-        echo <<<JS
-<script>
-(function($){
-    var courier='{$c_id}', ajaxurl='{$c_ajax}', saveNonce='{$c_save}', adminNonce='{$c_admin}', section='{$c_id}';
-    function esc(s){ return $('<i>').text(s==null?'':s).html(); }
-    function saveForm(cb){ var f=$('#mainform'); if(!f.length){ if(cb){cb();} return; }
-        $.post(ajaxurl, f.serialize()+'&action=bgc_save_settings&bgc_nonce='+saveNonce+'&bgc_section='+encodeURIComponent(section)).always(function(){ if(cb){cb();} }); }
-    function setVis(box,on){ box.toggleClass('bgc-enable-on',on).toggleClass('bgc-enable-off',!on);
-        box.find('.bgc-enable-state').text(on?box.data('on'):box.data('off'));
-        $('.bgc-settings .nav-tab-active').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on); }
-    function showProblems(list){
-        var h='<div class="bgc-enable-modal"><div class="bgc-enable-box"><h3>{$i_title}</h3><p>{$i_intro}</p><ul>';
-        (list||[]).forEach(function(p){ h+='<li><strong>'+esc(p.msg)+'</strong>'+(p.fix?'<br><span class="bgc-fix">{$i_fix} '+esc(p.fix)+'</span>':'')+'</li>'; });
-        h+='</ul><p><button type="button" class="button button-primary bgc-enable-close">{$i_close}</button></p></div></div>';
-        var m=$(h).appendTo('body');
-        m.on('click',function(e){ if(e.target===this||$(e.target).hasClass('bgc-enable-close')){ m.remove(); } });
-    }
-    $(document).on('change','.bgc-enable-toggle input[type=checkbox]',function(){
-        var cb=$(this), on=this.checked, box=cb.closest('.bgc-enable-toggle');
-        setVis(box,on);
-        if(!on){ saveForm(); return; } // disabling never needs validation
-        cb.prop('disabled',true);
-        saveForm(function(){ // persist the entered fields first, then check against them
-            $.post(ajaxurl,{action:'bgc_enable_check',nonce:adminNonce,courier:courier}).done(function(r){
-                if(!(r&&r.success)){ cb.prop('checked',false); setVis(box,false); saveForm(); showProblems(r&&r.data&&r.data.problems); }
-            }).always(function(){ cb.prop('disabled',false); });
-        });
-    });
-})(jQuery);
-</script>
-JS;
+        echo '<script>' . "\n"
+            . "(function(\$){\n"
+            . "    var courier='" . $c_id . "', ajaxurl='" . $c_ajax . "', saveNonce='" . $c_save . "', adminNonce='" . $c_admin . "', section='" . $c_id . "';\n"
+            . "    function esc(s){ return \$('<i>').text(s==null?'':s).html(); }\n"
+            . "    function saveForm(cb){ var f=\$('#mainform'); if(!f.length){ if(cb){cb();} return; }\n"
+            . "        \$.post(ajaxurl, f.serialize()+'&action=bgc_save_settings&bgc_nonce='+saveNonce+'&bgc_section='+encodeURIComponent(section)).always(function(){ if(cb){cb();} }); }\n"
+            . "    function setVis(box,on){ box.toggleClass('bgc-enable-on',on).toggleClass('bgc-enable-off',!on);\n"
+            . "        box.find('.bgc-enable-state').text(on?box.data('on'):box.data('off'));\n"
+            . "        \$('.bgc-settings .nav-tab-active').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on); }\n"
+            . "    function showProblems(list){\n"
+            . "        var h='<div class=\"bgc-enable-modal\"><div class=\"bgc-enable-box\"><h3>" . $i_title . "</h3><p>" . $i_intro . "</p><ul>';\n"
+            . "        (list||[]).forEach(function(p){ h+='<li><strong>'+esc(p.msg)+'</strong>'+(p.fix?'<br><span class=\"bgc-fix\">" . $i_fix . " '+esc(p.fix)+'</span>':'')+'</li>'; });\n"
+            . "        h+='</ul><p><button type=\"button\" class=\"button button-primary bgc-enable-close\">" . $i_close . "</button></p></div></div>';\n"
+            . "        var m=\$(h).appendTo('body');\n"
+            . "        m.on('click',function(e){ if(e.target===this||\$(e.target).hasClass('bgc-enable-close')){ m.remove(); } });\n"
+            . "    }\n"
+            . "    \$(document).on('change','.bgc-enable-toggle input[type=checkbox]',function(){\n"
+            . "        var cb=\$(this), on=this.checked, box=cb.closest('.bgc-enable-toggle');\n"
+            . "        setVis(box,on);\n"
+            . "        if(!on){ saveForm(); return; }\n"
+            . "        cb.prop('disabled',true);\n"
+            . "        saveForm(function(){\n"
+            . "            \$.post(ajaxurl,{action:'bgc_enable_check',nonce:adminNonce,courier:courier}).done(function(r){\n"
+            . "                if(!(r&&r.success)){ cb.prop('checked',false); setVis(box,false); saveForm(); showProblems(r&&r.data&&r.data.problems); }\n"
+            . "            }).always(function(){ cb.prop('disabled',false); });\n"
+            . "        });\n"
+            . "    });\n"
+            . "})(jQuery);\n"
+            . '</script>';
 
         // Delivery-method sub-tabs - only the methods this courier supports (from capabilities()).
         // Skip entirely for single-method / flat-rate couriers (e.g. BoxNow = locker only, one flat price).

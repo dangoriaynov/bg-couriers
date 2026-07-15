@@ -6,6 +6,6 @@ class BGC_Logger {
         if (!(function_exists('get_option') && get_option('bgc_debug') === 'yes')) { return; }
         // Never log credential keys.
         unset($ctx['userName'], $ctx['password'], $ctx['api_key'], $ctx['api_secret']);
-        error_log('[bg-couriers] ' . $msg . ($ctx ? ' ' . wp_json_encode($ctx) : ''));
+        error_log('[bg-couriers] ' . $msg . ($ctx ? ' ' . wp_json_encode($ctx) : '')); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- gated logger, debug only
     }
 }

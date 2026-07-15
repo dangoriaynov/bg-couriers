@@ -291,7 +291,7 @@ class BGC_Labels {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
         check_admin_referer('bgc_print_batch');
         $order_ids = isset($_GET['order_id'])
-            ? [(int) $_GET['order_id']]
+            ? [(int) wp_unslash($_GET['order_id'])] // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, nonce verified above
             : (array) get_transient('bgc_print_batch_' . get_current_user_id());
         $order_ids = array_filter(array_map('intval', $order_ids));
         if (!$order_ids) { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }

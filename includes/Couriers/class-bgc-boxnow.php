@@ -88,7 +88,7 @@ class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
         $code = (int) wp_remote_retrieve_response_code($res);
         $data = json_decode($raw, true);
         if ($code >= 400) { throw new BGC_Api_Exception(esc_html('BoxNow HTTP ' . $code . ': ' . substr($raw, 0, 300))); }
-        if (!is_array($data)) { throw new BGC_Api_Exception('BoxNow invalid JSON (HTTP ' . $code . ')'); }
+        if (!is_array($data)) { throw new BGC_Api_Exception(esc_html('BoxNow invalid JSON (HTTP ' . $code . ')')); }
         return $data;
     }
 
