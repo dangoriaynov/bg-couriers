@@ -463,6 +463,23 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Include the customer\'s e-mail on the shipment (for courier delivery notifications), when they provided one. The e-mail is optional at checkout.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgc_labels'],
 
+            ['type' => 'title', 'id' => 'bgc_tracking', 'title' => __('Shipment tracking', 'bg-couriers'),
+                'desc' => __('Automatically poll the couriers for tracking updates and note them on the order (BOX NOW already updates instantly via its webhook). Only shipments from the last 45 days that are not yet delivered / returned / cancelled are polled.', 'bg-couriers')],
+            ['type' => 'select', 'id' => 'bgc_tracking_poll', 'title' => __('Auto-update tracking', 'bg-couriers'),
+                'options' => [
+                    'off'        => __('Off', 'bg-couriers'),
+                    'bgc_30min'  => __('Every 30 minutes', 'bg-couriers'),
+                    'hourly'     => __('Hourly', 'bg-couriers'),
+                    'twicedaily' => __('Twice a day', 'bg-couriers'),
+                    'daily'      => __('Once a day', 'bg-couriers'),
+                ],
+                'default' => 'twicedaily'],
+            ['type' => 'select', 'id' => 'bgc_autostatus_on_delivered', 'title' => __('On delivery, set order to', 'bg-couriers'),
+                'desc' => __('Optionally advance the order to this status when tracking reports the shipment delivered. Leave "Do not change" to only add an order note.', 'bg-couriers'),
+                'options' => array_merge(['' => __('Do not change (note only)', 'bg-couriers')], $statuses),
+                'default' => ''],
+            ['type' => 'sectionend', 'id' => 'bgc_tracking'],
+
             ['type' => 'title', 'id' => 'bgc_emergency', 'title' => __('Emergency contact', 'bg-couriers'),
                 'desc' => __('If a customer fails to place an order several times in a row at checkout, a one-time help box appears with a clickable phone link. Leave the phone empty to disable.', 'bg-couriers')],
             ['type' => 'text', 'id' => 'bgc_emergency_phone', 'title' => __('Help phone number', 'bg-couriers'),

@@ -31,12 +31,17 @@ class BGC_Plugin {
         });
         BGC_Couriers::boot();
         add_filter('cron_schedules', function ($s) {
-            $s['weekly'] = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
+            $s['weekly']    = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
+            $s['bgc_30min'] = ['interval' => 30 * MINUTE_IN_SECONDS, 'display' => 'Every 30 minutes'];
             return $s;
         });
         add_action('init', ['BGC_Sync', 'schedule']);
         add_action(BGC_Sync::HOOK, ['BGC_Sync', 'cron']);
         add_action(BGC_Sync::RATES_HOOK, ['BGC_Sync', 'refresh_rates']); // daily reference-price refresh
+        // Tracking auto-update: poll couriers without a webhook (Speedy/Econt/Pigeon/Sameday) on a schedule.
+        add_action('init', ['BGC_Tracking_Poller', 'schedule']);
+        add_action(BGC_Tracking_Poller::HOOK, ['BGC_Tracking_Poller', 'run']);
+        add_action('update_option_bgc_tracking_poll', ['BGC_Tracking_Poller', 'schedule']); // re-schedule on change
         // Hide our internal shipping-line meta from the admin order screen. New orders store it under the
         // underscore-prefixed keys WC hides automatically (admin + customer emails/pages); this covers legacy
         // orders that stored the unprefixed keys.
