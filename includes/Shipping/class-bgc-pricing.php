@@ -25,6 +25,37 @@ class BGC_Pricing {
     }
 
     /**
+     * The checkout selection to price THIS courier against. The session holds ONE selection, tagged with the
+     * courier it was made for (bgc_selection_courier). City ids and office ids are per-courier (each courier
+     * has its own nomenclature), so another courier's ids must never be reused - doing so quotes a courier
+     * against a foreign city/office and the price jumps when it later becomes the active selection.
+     *  - active (selected) courier -> its own stored method / city / office;
+     *  - every other listed courier -> the SAME destination city resolved in ITS OWN nomenclature via the
+     *    shared postcode (office 0 = a representative office), so its listed price is stable and correct.
+     *
+     * @return array{method:string, site_id:int, office_id:int}
+     */
+    public static function selection_for(string $courier_id): array {
+        $default = BGC_Settings::enabled_methods($courier_id)[0] ?? 'office';
+        $s = (function_exists('WC') && WC()->session) ? WC()->session : null;
+        if (!$s) { return ['method' => $default, 'site_id' => 0, 'office_id' => 0]; }
+        if ((string) $s->get('bgc_selection_courier', '') === $courier_id) {
+            return [
+                'method'    => (string) $s->get('bgc_method', '') ?: $default,
+                'site_id'   => (int) $s->get('bgc_site_id', 0),
+                'office_id' => (int) $s->get('bgc_office_id', 0),
+            ];
+        }
+        $site_id  = 0;
+        $postcode = (string) $s->get('bgc_post_code', '');
+        if ($postcode !== '') {
+            $city = BGC_Nomenclature::city_by_postcode($courier_id, $postcode);
+            if ($city) { $site_id = (int) $city['city_id']; }
+        }
+        return ['method' => $default, 'site_id' => $site_id, 'office_id' => 0];
+    }
+
+    /**
      * Price for the checkout shipping row. Before the customer picks a city we return the FAST cached daily
      * reference (no API call) - so switching couriers stays snappy and the customer can start entering the
      * address immediately. Once a real city is chosen we do the exact live quote against the resolved office.

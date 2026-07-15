@@ -21,10 +21,12 @@ class BGC_Method_Sameday extends WC_Shipping_Method {
     }
 
     public function calculate_shipping($package = []) {
-        $dflt    = BGC_Settings::enabled_methods('sameday')[0] ?? 'office';
-        $method  = WC()->session ? ((string) WC()->session->get('bgc_method', '') ?: $dflt) : $dflt;
-        $site_id = WC()->session ? (int) WC()->session->get('bgc_site_id', 0) : 0;
-        $office  = WC()->session ? (int) WC()->session->get('bgc_office_id', 0) : 0;
+        // Price against THIS courier's own selection (the session's single selection is tagged with the
+        // courier it was made for; city/office ids are per-courier and must not leak across couriers).
+        $sel     = BGC_Pricing::selection_for('sameday');
+        $method  = $sel['method'];
+        $site_id = $sel['site_id'];
+        $office  = $sel['office_id'];
         $weight  = (float) ($package['contents_weight'] ?? 0);
         $packed  = BGC_Packer::from_weight($weight);
 
