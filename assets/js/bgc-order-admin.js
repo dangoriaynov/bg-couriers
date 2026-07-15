@@ -182,6 +182,137 @@
   fillMethods();
   loadOffices(); // populate the office/APS list for the order's current city + method
 
+  // ── Map picker (office/APS + address) - same UX as checkout, adapted to the editor fields ────────
+  var mapIconsSet = false, edMap = null;
+  function escM(s) { return $('<i>').text(s == null ? '' : s).html(); }
+  function setMapIcons() {
+    if (mapIconsSet || !window.L) { return; }
+    var base = C.leaflet_images || '';
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({ iconRetinaUrl: base + 'marker-icon-2x.png', iconUrl: base + 'marker-icon.png', shadowUrl: base + 'marker-shadow.png' });
+    mapIconsSet = true;
+  }
+  function closeMap() { $('#bgc-map-overlay').remove(); if (edMap) { edMap.remove(); edMap = null; } }
+  function pickOffice(o) {
+    var id = String(o.office_id || o.id), text = (o.name || '') + (o.address ? ' - ' + o.address : '');
+    $office.append(new Option(text, id, true, true)).val(id).trigger('change');
+  }
+  function officesFor(cb) {
+    var c = courier(), city = $city.val() || 0, m = $method.val();
+    if (!city || m === 'address' || c === 'boxnow') { cb([]); return; }
+    $.get(C.ajax, { action: 'bgc_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) { cb(rows || []); }, 'json');
+  }
+  function openMap() {
+    if (!window.L) { return; }
+    officesFor(function (rows) {
+      var pts = (rows || []).filter(function (o) { return Number(o.lat) !== 0 || Number(o.lng) !== 0; });
+      var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box bgc-map-box-wide">'
+        + '<div class="bgc-map-head"><strong>' + escM(I.map_title || 'Map') + '</strong>'
+        + '<button type="button" class="bgc-map-close" aria-label="' + escM(I.close || 'Close') + '">×</button></div>'
+        + '<div class="bgc-map-body"><div class="bgc-map-side">'
+        + '<input type="text" class="bgc-map-search" placeholder="' + escM(I.office_ph || 'Search…') + '">'
+        + '<ul class="bgc-map-list"></ul></div>'
+        + '<div class="bgc-map-canvas" id="bgc-map"></div></div>'
+        + '<div class="bgc-map-actions"><button type="button" class="button bgc-map-locate">' + escM(I.map_locate || 'My location') + '</button>'
+        + '<span class="bgc-map-hint">' + (pts.length ? '' : escM(I.map_none || '')) + '</span></div></div></div>');
+      $('body').append($ov);
+      setMapIcons();
+      edMap = L.map('bgc-map', { scrollWheelZoom: true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(edMap);
+      var bounds = [], markers = [], $list = $ov.find('.bgc-map-list');
+      pts.forEach(function (o, i) {
+        var lat = Number(o.lat), lng = Number(o.lng);
+        var mk = L.marker([lat, lng]).addTo(edMap);
+        mk.bindPopup('<div class="bgc-map-pop"><strong>' + escM(o.name || '') + '</strong><br>' + escM(o.address || '')
+          + '<br><button type="button" class="button bgc-map-choose">' + escM(I.map_choose || 'Choose') + '</button></div>');
+        mk.on('popupopen', function () { $('.bgc-map-choose').off('click').on('click', function () { pickOffice(o); closeMap(); }); });
+        markers.push(mk); bounds.push([lat, lng]);
+        $('<li class="bgc-map-item" data-i="' + i + '"><strong>' + escM(o.name || '') + '</strong><span>' + escM(o.address || '') + '</span></li>').appendTo($list);
+      });
+      $list.on('click', '.bgc-map-item', function () {
+        var mk = markers[+$(this).data('i')]; if (!mk) { return; }
+        $list.find('.active').removeClass('active'); $(this).addClass('active');
+        edMap.setView(mk.getLatLng(), Math.max(edMap.getZoom(), 15)); mk.openPopup();
+      });
+      $ov.find('.bgc-map-search').on('input', function () {
+        var t = this.value.toLowerCase();
+        $list.find('.bgc-map-item').each(function () {
+          var o = pts[+$(this).data('i')] || {};
+          $(this).toggle(!t || (o.name || '').toLowerCase().indexOf(t) !== -1 || (o.address || '').toLowerCase().indexOf(t) !== -1);
+        });
+      });
+      if (bounds.length) { edMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); } else { edMap.setView([42.73, 25.3], 7); }
+      var meMarker = null;
+      function showMe() {
+        if (!navigator.geolocation) { return; }
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          var here = [pos.coords.latitude, pos.coords.longitude];
+          if (meMarker) { meMarker.setLatLng(here); } else { meMarker = L.circleMarker(here, { radius: 7, color: '#fff', weight: 3, fillColor: '#2271b1', fillOpacity: 1 }).addTo(edMap); }
+          if (pts.length) {
+            var near = pts.map(function (o) { var dlat = Number(o.lat) - here[0], dlng = (Number(o.lng) - here[1]) * 0.74; return { ll: [Number(o.lat), Number(o.lng)], d: dlat * dlat + dlng * dlng }; })
+              .sort(function (a, b) { return a.d - b.d; }).slice(0, 6).map(function (x) { return x.ll; });
+            edMap.fitBounds([here].concat(near), { padding: [45, 45], maxZoom: 15 });
+          } else { edMap.setView(here, 14); }
+        });
+      }
+      $ov.find('.bgc-map-locate').on('click', showMe);
+      showMe();
+      setTimeout(function () { if (edMap) { edMap.invalidateSize(); } }, 60);
+    });
+  }
+  // Address map: click/drag a pin -> reverse-geocode -> fill the editor's city/street/№.
+  var geoT;
+  function reverseGeocode(lat, lng, cb) { clearTimeout(geoT); geoT = setTimeout(function () { $.get(C.ajax, { action: 'bgc_geocode', lat: lat, lng: lng }, function (r) { cb(r || {}); }); }, 350); }
+  function fillEditorAddress(geo) {
+    function fields(pc) {
+      if (pc) { $panel.find('.bgc-ed-postcode').val(pc); }
+      if (geo.street) { $street.append(new Option(geo.street, geo.street, true, true)).trigger('change'); }
+      if (geo.number) { $panel.find('.bgc-ed-streetno').val(geo.number); }
+    }
+    function pick(r) { $city.empty().append(new Option(r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), r.city_id, true, true)).trigger('change.select2'); }
+    function find(term, cb) { if (!term) { cb(null); return; } $.get(C.ajax, { action: 'bgc_search_cities', courier: courier(), term: term }, function (rows) { cb((rows && rows.length) ? rows[0] : null); }); }
+    find(geo.city, function (r) {
+      if (r) { pick(r); fields(geo.postcode || r.post_code || ''); return; }
+      find(geo.postcode, function (r2) { if (r2) { pick(r2); fields(geo.postcode || r2.post_code || ''); } else { $city.val(null).trigger('change.select2'); fields(geo.postcode || ''); } });
+    });
+  }
+  function openAddressMap() {
+    if (!window.L) { return; }
+    var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box">'
+      + '<div class="bgc-map-head"><strong>' + escM(I.addr_map_title || 'Map') + '</strong>'
+      + '<button type="button" class="bgc-map-close" aria-label="' + escM(I.close || 'Close') + '">×</button></div>'
+      + '<div class="bgc-map-canvas" id="bgc-map"></div>'
+      + '<div class="bgc-map-actions"><button type="button" class="button bgc-map-locate">' + escM(I.map_locate || 'My location') + '</button>'
+      + '<span class="bgc-map-hint bgc-addr-preview">' + escM(I.addr_map_hint || '') + '</span>'
+      + '<button type="button" class="button button-primary bgc-addr-use" disabled>' + escM(I.addr_use || 'Use') + '</button></div></div></div>');
+    $('body').append($ov);
+    setMapIcons();
+    edMap = L.map('bgc-map', { scrollWheelZoom: true }).setView([42.7, 25.3], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(edMap);
+    var pin = null, current = {};
+    function place(ll) {
+      if (pin) { pin.setLatLng(ll); } else { pin = L.marker(ll, { draggable: true }).addTo(edMap); pin.on('dragend', function () { place(pin.getLatLng()); }); }
+      $ov.find('.bgc-addr-preview').text('…'); $ov.find('.bgc-addr-use').prop('disabled', true);
+      reverseGeocode(ll.lat, ll.lng, function (geo) {
+        current = geo;
+        var txt = [geo.street, geo.number].filter(Boolean).join(' ') + (geo.city ? ((geo.street ? ', ' : '') + geo.city) : '');
+        $ov.find('.bgc-addr-preview').text(txt || (I.addr_none || ''));
+        $ov.find('.bgc-addr-use').prop('disabled', !(geo.city || geo.street));
+      });
+    }
+    edMap.on('click', function (e) { place(e.latlng); });
+    function locate() { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(function (pos) { var here = L.latLng(pos.coords.latitude, pos.coords.longitude); edMap.setView(here, 15); place(here); }); } }
+    $ov.find('.bgc-map-locate').on('click', locate);
+    locate();
+    $ov.find('.bgc-addr-use').on('click', function () { fillEditorAddress(current); closeMap(); });
+    setTimeout(function () { if (edMap) { edMap.invalidateSize(); } }, 60);
+  }
+  $panel.on('click', '.bgc-ed-map', function (e) { e.preventDefault(); openMap(); });
+  $panel.on('click', '.bgc-ed-addr-map', function (e) { e.preventDefault(); openAddressMap(); });
+  $(document).on('click', '.bgc-map-close', function () { closeMap(); });
+  $(document).on('click', '#bgc-map-overlay', function (e) { if (e.target === this) { closeMap(); } });
+  $(document).on('keydown.bgcedmap', function (e) { if ((e.key === 'Escape' || e.keyCode === 27) && $('#bgc-map-overlay').length) { closeMap(); } });
+
   $panel.on('click', '.bgc-ed-save', function (e) {
     e.preventDefault();
     var $b = $(this), $msg = $panel.find('.bgc-ed-msg');

@@ -179,13 +179,20 @@ class BGC_Order_Metabox {
 
         wp_enqueue_style('select2');
         wp_enqueue_script('selectWoo');
+        // Leaflet (bundled) + the checkout CSS (for the .bgc-map-* modal styles) so the editor can offer the
+        // same office/APS + address map picker as checkout. The checkout rules are class-scoped to .bgc-fields
+        // and don't touch the admin editor; only the fixed-overlay map modal is reused.
+        wp_enqueue_style('bgc-leaflet', BGC_URL . 'assets/lib/leaflet/leaflet.css', [], '1.9.4');
+        wp_enqueue_script('bgc-leaflet', BGC_URL . 'assets/lib/leaflet/leaflet.js', [], '1.9.4', true);
+        wp_enqueue_style('bgc-checkout-map', BGC_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet'], BGC_VERSION);
         $ver = @filemtime(BGC_PATH . 'assets/js/bgc-order-admin.js') ?: '1';
-        wp_enqueue_script('bgc-order-admin', BGC_URL . 'assets/js/bgc-order-admin.js', ['jquery', 'selectWoo'], $ver, true);
+        wp_enqueue_script('bgc-order-admin', BGC_URL . 'assets/js/bgc-order-admin.js', ['jquery', 'selectWoo', 'bgc-leaflet'], $ver, true);
         wp_localize_script('bgc-order-admin', 'BGC_ED', [
             'ajax'    => admin_url('admin-ajax.php'),
             'nonce'   => wp_create_nonce('bgc_order_delivery'),
             'orderId' => $order->get_id(),
             'caps'    => $caps,
+            'leaflet_images' => BGC_URL . 'assets/lib/leaflet/images/',
             'methodLabels' => ['office' => __('To office', 'bg-couriers'), 'address' => __('To address', 'bg-couriers'), 'automat' => __('To APS', 'bg-couriers')],
             'i18n'    => ['city' => __('City', 'bg-couriers'), 'office' => __('Office / APS', 'bg-couriers'), 'street' => __('Street', 'bg-couriers'),
                           'saving' => __('Saving…', 'bg-couriers'), 'err' => __('Could not save.', 'bg-couriers'),
@@ -193,7 +200,18 @@ class BGC_Order_Metabox {
                           'cancelTitle' => __('Cancel this waybill?', 'bg-couriers'),
                           'cancelBody'  => __('This voids the shipment label with the courier. This cannot be undone.', 'bg-couriers'),
                           'cancelYes'   => __('Yes, cancel it', 'bg-couriers'),
-                          'cancelNo'    => __('Keep it', 'bg-couriers')],
+                          'cancelNo'    => __('Keep it', 'bg-couriers'),
+                          'map_title'   => __('Pick from the map', 'bg-couriers'),
+                          'map_choose'  => __('Choose this location', 'bg-couriers'),
+                          'map_locate'  => __('Show my location', 'bg-couriers'),
+                          'map_none'    => __('No offices with a map location for this city yet - use the list.', 'bg-couriers'),
+                          'office_ph'   => __('Search…', 'bg-couriers'),
+                          'close'       => __('Close', 'bg-couriers'),
+                          'addr_map_title' => __('Choose the address on the map', 'bg-couriers'),
+                          'addr_map_hint'  => __('Click the map or drag the pin to the address.', 'bg-couriers'),
+                          'addr_use'    => __('Use this address', 'bg-couriers'),
+                          'addr_none'   => __('No address found here - try another spot.', 'bg-couriers'),
+                          'map_btn'     => __('Map', 'bg-couriers')],
         ]);
 
         $boxnow_id = $cur_courier === 'boxnow' ? esc_attr((string) $office_id) : '';
@@ -201,10 +219,10 @@ class BGC_Order_Metabox {
             . '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>'
             . '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>'
             . '<p class="bgc-ed-city-row"><label>' . esc_html__('City', 'bg-couriers') . '</label><br><select class="bgc-ed-city" style="min-width:300px;"><option></option>' . $city_opt . '</select><input type="hidden" class="bgc-ed-postcode" value="' . $v('post_code') . '"></p>'
-            . '<p class="bgc-ed-office-row"><label>' . esc_html__('Office / APS', 'bg-couriers') . '</label><br><select class="bgc-ed-office" style="min-width:300px;"><option></option>' . $office_opt . '</select></p>'
+            . '<p class="bgc-ed-office-row"><label>' . esc_html__('Office / APS', 'bg-couriers') . '</label><br><select class="bgc-ed-office" style="min-width:300px;"><option></option>' . $office_opt . '</select> <button type="button" class="button bgc-ed-map">' . esc_html__('Map', 'bg-couriers') . '</button></p>'
             . '<div class="bgc-ed-address">'
             . '<p><label>' . esc_html__('Street', 'bg-couriers') . '</label><br><select class="bgc-ed-street" style="min-width:220px;"><option></option>' . $street_opt . '</select> '
-            . '<label>' . esc_html__('No.', 'bg-couriers') . '</label> <input class="bgc-ed-streetno" value="' . $v('street_no') . '" style="width:70px;"></p>'
+            . '<label>' . esc_html__('No.', 'bg-couriers') . '</label> <input class="bgc-ed-streetno" value="' . $v('street_no') . '" style="width:70px;"> <button type="button" class="button bgc-ed-addr-map">' . esc_html__('Map', 'bg-couriers') . '</button></p>'
             . '<p><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label> <input class="bgc-ed-complex" value="' . $v('complex') . '"></p>'
             . '<p><label>' . esc_html__('Bl.', 'bg-couriers') . '</label> <input class="bgc-ed-block" value="' . $v('block') . '" style="width:60px;"> '
             . '<label>' . esc_html__('Entr.', 'bg-couriers') . '</label> <input class="bgc-ed-entrance" value="' . $v('entrance') . '" style="width:60px;"> '
