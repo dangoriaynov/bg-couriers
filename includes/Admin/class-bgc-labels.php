@@ -98,7 +98,7 @@ class BGC_Labels {
         $up = wp_upload_dir();
         if (empty($up['baseurl']) || strpos($url, trailingslashit($up['baseurl']) . 'bgc-labels/') !== 0) { return; }
         $file = $up['basedir'] . substr($url, strlen($up['baseurl']));
-        if (is_file($file)) { @unlink($file); }
+        if (is_file($file)) { wp_delete_file($file); }
     }
     public static function batch_parcel_ids(array $order_ids, ?callable $resolver = null): array {
         $resolver = $resolver ?: static function ($id) {
@@ -114,7 +114,7 @@ class BGC_Labels {
     }
     public function handle_generate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
+        $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgc_generate_label_' . $id);
         if (!wc_get_order($id)) { wp_die(esc_html__('Order not found.', 'bg-couriers')); }
         try { self::generate($id); }
@@ -180,7 +180,7 @@ class BGC_Labels {
 
     public function handle_cancel_label(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
+        $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgc_cancel_label_' . $id);
         try { self::cancel($id); }
         catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label cancellation failed', 'bg-couriers')); }
@@ -191,7 +191,7 @@ class BGC_Labels {
     /** Void the existing waybill and issue a fresh one from the order's current delivery details. */
     public function handle_regenerate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
+        $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgc_regenerate_' . $id);
         try { self::cancel($id); self::generate($id); }
         catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label re-generation failed', 'bg-couriers')); }
@@ -202,7 +202,7 @@ class BGC_Labels {
     /** Cancel the order (and void its label first, best effort). */
     public function handle_cancel_order(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
+        $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgc_cancel_order_' . $id);
         $order = wc_get_order($id);
         if ($order) {
@@ -220,7 +220,7 @@ class BGC_Labels {
     public function handle_save_delivery(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgc_order_delivery', 'nonce');
-        $id = (int) wp_unslash($_POST['order_id'] ?? 0);
+        $id = absint(wp_unslash($_POST['order_id'] ?? 0));
         $order = wc_get_order($id);
         if (!$order) { wp_send_json_error(['msg' => __('Order not found.', 'bg-couriers')]); }
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? ''));
@@ -238,10 +238,12 @@ class BGC_Labels {
             $order = wc_get_order($id);
         }
 
-        $t = static function ($k) { return isset($_POST[$k]) ? sanitize_text_field(wp_unslash($_POST[$k])) : ''; };
+        // Nonce is verified at the top of this handler (check_ajax_referer); the reads inside this closure
+        // can't be traced back to it by the linter, so ignore the false-positive nonce warning here.
+        $t = static function ($k) { return isset($_POST[$k]) ? sanitize_text_field(wp_unslash($_POST[$k])) : ''; }; // phpcs:ignore WordPress.Security.NonceVerification.Missing
         BGC_Checkout::apply_delivery($order, [
             'courier' => $courier, 'method' => sanitize_key(wp_unslash($_POST['method'] ?? '')),
-            'site_id' => (int) wp_unslash($_POST['site_id'] ?? 0), 'office_id' => (int) wp_unslash($_POST['office_id'] ?? 0),
+            'site_id' => absint(wp_unslash($_POST['site_id'] ?? 0)), 'office_id' => absint(wp_unslash($_POST['office_id'] ?? 0)),
             'post_code' => $t('post_code'), 'street_name' => $t('street_name'), 'street_no' => $t('street_no'),
             'complex' => $t('complex'), 'block' => $t('block'), 'entrance' => $t('entrance'),
             'floor' => $t('floor'), 'apartment' => $t('apartment'), 'address_note' => $t('address_note'),
@@ -265,7 +267,7 @@ class BGC_Labels {
     /** AJAX: void a waybill from the Orders list without reloading the page. */
     public function ajax_cancel_label(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
-        $id = (int) wp_unslash($_POST['order_id'] ?? 0);
+        $id = absint(wp_unslash($_POST['order_id'] ?? 0));
         check_ajax_referer('bgc_cancel_label_' . $id, 'nonce');
         try { self::cancel($id); }
         catch (\Exception $e) { wp_send_json_error(['msg' => $e->getMessage()]); }
@@ -274,7 +276,7 @@ class BGC_Labels {
 
     public function handle_track(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
-        $id = (int) wp_unslash($_GET['order_id'] ?? 0);
+        $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgc_track_' . $id);
         $order = wc_get_order($id);
         $waybill = $order ? (string) $order->get_meta('_bgc_waybill') : '';

@@ -1,4 +1,5 @@
 <?php
+// phpcs:ignoreFile -- bundled third-party library (FPDF/FPDI), shipped unmodified.
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 $type = 'Core';
 $name = 'Times-BoldItalic';

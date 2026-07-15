@@ -1,4 +1,5 @@
 <?php
+// phpcs:ignoreFile -- bundled third-party library (FPDF/FPDI), shipped unmodified.
 
 /**
  * This file is part of FPDI
