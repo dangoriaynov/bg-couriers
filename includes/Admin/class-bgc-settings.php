@@ -352,7 +352,7 @@ jQuery(function($){
         $col = $is_err ? '#8a1f2b' : '#7a5b00';
         echo '<tr valign="top"><td colspan="2" class="forminp" style="padding-top:4px;">';
         echo '<div class="bgc-ppp-notice" style="border:1px solid ' . esc_attr($bd) . ';background:' . esc_attr($bg)
-            . ';color:' . esc_attr($col) . ';border-radius:8px;padding:10px 14px;max-width:760px;line-height:1.5;">';
+            . ';color:' . esc_attr($col) . ';border-radius:8px;padding:10px 14px;line-height:1.5;">';
         echo '<strong>' . esc_html($is_err ? __('This courier is currently unusable', 'bg-couriers') : __('Cash on delivery is off for this courier', 'bg-couriers')) . '</strong><br>';
         echo esc_html($notice['msg']);
         echo '</div></td></tr>';
@@ -390,7 +390,7 @@ jQuery(function($){
         $data = self::cred_hint_data((string) ($field['courier'] ?? ''));
         if (empty($data)) { return; }
         echo '<tr valign="top"><td colspan="2" class="forminp" style="padding-top:4px;">';
-        echo '<details class="bgc-cred-hint" style="border:1px solid #dcdcde;border-radius:6px;padding:8px 12px;background:#fbfbfc;max-width:760px;">';
+        echo '<details class="bgc-cred-hint" style="border:1px solid #dcdcde;border-radius:6px;padding:8px 12px;background:#fbfbfc;">';
         echo '<summary style="cursor:pointer;font-weight:600;color:#2271b1;">'
             . esc_html__('How do I get API credentials for this courier?', 'bg-couriers') . '</summary>';
         echo '<div style="margin-top:8px;line-height:1.5;">';
