@@ -9,12 +9,37 @@ class BGC_Ajax {
         }
     }
 
+    /** Best-effort client IP for rate-limiting only (honours a CDN/proxy header, falls back to REMOTE_ADDR). */
+    private static function client_ip(): string {
+        foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $h) {
+            if (empty($_SERVER[$h])) { continue; }
+            $ip = trim(explode(',', sanitize_text_field(wp_unslash($_SERVER[$h])))[0]);
+            if (filter_var($ip, FILTER_VALIDATE_IP)) { return $ip; }
+        }
+        return 'unknown';
+    }
+
+    /**
+     * Lightweight per-IP rate limit for the public endpoints that hit a LIVE courier API. Returns false once
+     * the caller exceeds $max requests within $window seconds; the handler then returns an empty result
+     * instead of making an outbound call, so anonymous enumeration can't amplify into many courier API calls.
+     * A real checkout makes only a handful of these calls, so the limit never affects legitimate use.
+     */
+    private static function rate_ok(int $max = 90, int $window = 60): bool {
+        $key = 'bgc_rl_' . md5(self::client_ip());
+        $n   = (int) get_transient($key);
+        if ($n >= $max) { return false; }
+        set_transient($key, $n + 1, $window);
+        return true;
+    }
+
     /**
      * Reverse-geocode a lat/lng to Bulgarian address parts for the checkout address-map picker.
      * Uses Google when the admin has set a Maps API key (better accuracy), else OpenStreetMap Nominatim.
      * Result cached per rounded coordinate. Returns { city, postcode, street, number }.
      */
     public function geocode(): void {
+        if (!self::rate_ok()) { wp_send_json([]); }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $lat = round((float) wp_unslash($_GET['lat'] ?? 0), 5); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- float-cast, no state change
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
@@ -79,6 +104,7 @@ class BGC_Ajax {
     }
     public function search_cities(): void { wp_send_json(self::search_cities_data()); }
     public function offices(): void {
+        if (!self::rate_ok()) { wp_send_json([]); }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $courier = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
@@ -90,20 +116,26 @@ class BGC_Ajax {
 
     /** Which office types a city has (so the checkout can grey out a delivery option the city lacks). */
     public function city_avail(): void {
+        if (!self::rate_ok()) { wp_send_json(['office' => false, 'automat' => false]); }
         $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
+        if ($city <= 0) { wp_send_json(['office' => false, 'automat' => false]); }
+        // Cache the availability per courier+city - it was uncached, so every call hit the live API.
+        $tkey   = 'bgc_avail_' . $courier_id . '_' . $city;
+        $cached = get_transient($tkey);
+        if (is_array($cached)) { wp_send_json($cached); }
         $office = false; $automat = false;
-        if ($city > 0) {
-            $rows = [];
-            try { $c = BGC_Couriers::get($courier_id); if ($c) { $rows = $c->fetch_offices($city); } }
-            catch (\Exception $e) { $rows = []; }
-            if (empty($rows)) { $rows = BGC_Nomenclature::offices($courier_id, $city); } // fallback to cache
-            foreach ($rows as $o) {
-                $t = $o['type'] ?? '';
-                if ($t === 'office') { $office = true; } elseif ($t === 'automat') { $automat = true; }
-            }
+        $rows = [];
+        try { $c = BGC_Couriers::get($courier_id); if ($c) { $rows = $c->fetch_offices($city); } }
+        catch (\Exception $e) { $rows = []; }
+        if (empty($rows)) { $rows = BGC_Nomenclature::offices($courier_id, $city); } // fallback to cache
+        foreach ($rows as $o) {
+            $t = $o['type'] ?? '';
+            if ($t === 'office') { $office = true; } elseif ($t === 'automat') { $automat = true; }
         }
-        wp_send_json(['office' => $office, 'automat' => $automat]);
+        $res = ['office' => $office, 'automat' => $automat];
+        set_transient($tkey, $res, 6 * HOUR_IN_SECONDS);
+        wp_send_json($res);
     }
 
     /**
@@ -144,6 +176,7 @@ class BGC_Ajax {
         return array_slice($rows, 0, max(1, $limit));
     }
     public function streets(): void {
+        if (!self::rate_ok()) { wp_send_json([]); }
         $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
         $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
