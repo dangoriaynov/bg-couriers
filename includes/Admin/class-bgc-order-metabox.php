@@ -22,11 +22,12 @@ class BGC_Order_Metabox {
             . '.bgc-order-panel{margin-top:8px;padding:10px 11px;border:1px solid #e6e9ec;border-radius:9px;background:#fff;}'
             . '.bgc-order-panel .bgc-hd{display:flex;align-items:center;gap:7px;margin:0 0 8px;flex-wrap:wrap;}'
             . '.bgc-order-panel .bgc-hd b{font-size:13px;color:#1d2327;}'
-            . '.bgc-order-panel .bgc-logo{height:17px;width:auto;display:block;cursor:default;}'
+            . '.bgc-order-panel .bgc-logo{max-width:20px;max-height:20px;width:auto;height:auto;object-fit:contain;display:block;}'
+            // Logo + delivery-type icon share the SAME 31x31 tile as the action buttons, so the whole row is one size.
+            . '.bgc-order-panel .bgc-tile{width:31px;height:31px;padding:0;border:1px solid #c9ced6;border-radius:7px;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;cursor:default;}'
             . '.bgc-order-panel .bgc-hd-acts{margin-left:auto;display:inline-flex;align-items:center;gap:6px;}'
             . '.bgc-order-panel .bgc-chip{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}'
             // The waybill number IS the copy button: clicking the field copies it to the clipboard.
-            . '.bgc-order-panel .bgc-mtype{display:inline-flex;align-items:center;padding:3px 9px;}'
             . '.bgc-order-panel .bgc-mtype .bgc-mtype-ico{display:block;color:#3c434a;}'
             . '.bgc-order-panel .bgc-wb{display:inline-flex;align-items:center;justify-content:center;width:28px;height:24px;padding:0;border-radius:7px;background:#f0f6fc;border:1px solid #d7e3f1;color:#2271b1;cursor:pointer;transition:all .12s;}'
             . '.bgc-order-panel .bgc-wb .dashicons{font-size:16px;width:16px;height:16px;line-height:1;}'
@@ -135,10 +136,10 @@ class BGC_Order_Metabox {
         // ONE row, icons only: courier logo (hint) + delivery-type icon (hint) + waybill copy + action icons.
         $body = '<div class="bgc-hd">'
             . ($logo
-                ? '<img class="bgc-logo" src="' . esc_url($logo) . '" alt="' . esc_attr($courier->label()) . '" data-tip="' . esc_attr($courier->label()) . '">'
+                ? '<span class="bgc-tile bgc-logo-tile" data-tip="' . esc_attr($courier->label()) . '"><img class="bgc-logo" src="' . esc_url($logo) . '" alt="' . esc_attr($courier->label()) . '"></span>'
                 : '<b>' . esc_html($courier->label()) . '</b>')
-            . (BGC_Icons::method($method) !== ''
-                ? '<span class="bgc-chip bgc-mtype" data-tip="' . esc_attr($mlabel) . '" aria-label="' . esc_attr($mlabel) . '">' . BGC_Icons::method($method) . '</span>'
+            . (BGC_Icons::method($method, 18) !== ''
+                ? '<span class="bgc-tile bgc-mtype" data-tip="' . esc_attr($mlabel) . '" aria-label="' . esc_attr($mlabel) . '">' . BGC_Icons::method($method, 18) . '</span>'
                 : '<span class="bgc-chip">' . esc_html($mlabel) . '</span>');
         if ($waybill !== '') {
             /* translators: %s: waybill number */
