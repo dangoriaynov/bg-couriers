@@ -161,10 +161,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
            side padding so the colour reaches the panel edges instead of leaving an uneven inset frame. */
         #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td,
         #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { vertical-align:middle; }
-        #wpbody .bgc-settings tr.bgc-creds-ok > th { background:var(--bgc-green-bg); box-shadow:-16px 0 0 var(--bgc-green-bg); }
-        #wpbody .bgc-settings tr.bgc-creds-ok > td { background:var(--bgc-green-bg); box-shadow:16px 0 0 var(--bgc-green-bg); }
-        #wpbody .bgc-settings tr.bgc-creds-edit > th { background:var(--bgc-red-bg); box-shadow:-16px 0 0 var(--bgc-red-bg); }
-        #wpbody .bgc-settings tr.bgc-creds-edit > td { background:var(--bgc-red-bg); box-shadow:16px 0 0 var(--bgc-red-bg); }
+        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td { background:var(--bgc-green-bg); }
+        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:var(--bgc-red-bg); }
         #wpbody .bgc-settings .bgc-cred-x { color:var(--bgc-red-tx); border-color:var(--bgc-red-bd) !important; margin-left:8px; font-weight:700; line-height:1.6; }
         #wpbody .bgc-settings input.bgc-cred-locked { background:#f0f0f1; color:#787c82; letter-spacing:2px; }
         #bgc-toasts { position:fixed; top:46px; right:22px; z-index:100001; display:flex; flex-direction:column; gap:9px; }
@@ -564,28 +562,12 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'password', 'id' => 'bgc_speedy_password', 'title' => __('API password', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
             ['type' => 'bgc_actions', 'id' => 'bgc_speedy_actions'],
+            ['type' => 'sectionend', 'id' => 'bgc_speedy'],
+
+            ['type' => 'title', 'id' => 'bgc_speedy_delivery', 'title' => __('Delivery & label', 'bg-couriers')],
             ['type' => 'select', 'id' => 'bgc_speedy_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
                 'default' => 'A6'],
-            ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
-            ['type' => 'select', 'id' => 'bgc_speedy_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
-                'options' => [
-                    'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
-                    'recipient' => __('Recipient (pays the courier at delivery)', 'bg-couriers'),
-                ],
-                'desc' => __('Sender: the merchant pays the courier; for COD orders the courier collects the full order total (goods + shipping) from the customer. Recipient: the courier collects the delivery fee from the customer at the door; for COD orders only the goods total is collected as наложен платеж (shipping excluded).', 'bg-couriers'),
-                'default' => 'sender'],
-            ['type' => 'checkbox', 'id' => 'bgc_speedy_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
-                'desc' => __('Speedy pays the collected cash-on-delivery out to you as a postal money transfer (пощенски паричен превод / ППП). Enable if your Speedy contract uses ППП - it lets you accept COD without your own cash register (the shipment is sent with processingType POSTAL_MONEY_TRANSFER; otherwise CASH).', 'bg-couriers'),
-                'default' => 'yes'],
-            ['type' => 'select', 'id' => 'bgc_speedy_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
-                'options' => [
-                    'no'   => __('No', 'bg-couriers'),
-                    'open' => __('Allow open before payment', 'bg-couriers'),
-                    'test' => __('Allow test before payment', 'bg-couriers'),
-                ],
-                'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_speedy_contents', 'title' => __('Parcel contents (description)', 'bg-couriers'),
                 'custom_attributes' => ['placeholder' => 'Goods'], 'default' => ''],
             ['type' => 'select', 'id' => 'bgc_speedy_package', 'title' => __('Package type', 'bg-couriers'),
@@ -595,7 +577,32 @@ class BGC_WC_Settings extends WC_Settings_Page {
                     'PALLET'   => __('Pallet', 'bg-couriers'),
                 ],
                 'default' => 'BOX'],
-            ['type' => 'sectionend', 'id' => 'bgc_speedy'],
+            ['type' => 'sectionend', 'id' => 'bgc_speedy_delivery'],
+
+            ['type' => 'title', 'id' => 'bgc_speedy_pricing', 'title' => __('Pricing', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
+                'desc' => __('Ship Speedy free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'sectionend', 'id' => 'bgc_speedy_pricing'],
+
+            ['type' => 'title', 'id' => 'bgc_speedy_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
+            ['type' => 'select', 'id' => 'bgc_speedy_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
+                'options' => [
+                    'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
+                    'recipient' => __('Recipient (pays the courier at delivery)', 'bg-couriers'),
+                ],
+                'desc' => __('Sender: the merchant pays the courier; for COD orders the courier collects the full order total (goods + shipping) from the customer. Recipient: the courier collects the delivery fee from the customer at the door; for COD orders only the goods total is collected as наложен платеж (shipping excluded).', 'bg-couriers'),
+                'default' => 'sender'],
+            ['type' => 'select', 'id' => 'bgc_speedy_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
+                'options' => [
+                    'no'   => __('No', 'bg-couriers'),
+                    'open' => __('Allow open before payment', 'bg-couriers'),
+                    'test' => __('Allow test before payment', 'bg-couriers'),
+                ],
+                'default' => 'no'],
+            ['type' => 'checkbox', 'id' => 'bgc_speedy_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
+                'desc' => __('Speedy pays the collected cash-on-delivery out to you as a postal money transfer (пощенски паричен превод / ППП). Enable if your Speedy contract uses ППП - it lets you accept COD without your own cash register (the shipment is sent with processingType POSTAL_MONEY_TRANSFER; otherwise CASH).', 'bg-couriers'),
+                'default' => 'yes'],
+            ['type' => 'sectionend', 'id' => 'bgc_speedy_cod'],
         ];
     }
 
@@ -620,6 +627,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'password', 'id' => 'bgc_econt_password', 'title' => __('API password', 'bg-couriers'),
                 'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
             ['type' => 'bgc_actions', 'id' => 'bgc_econt_actions'],
+            ['type' => 'sectionend', 'id' => 'bgc_econt'],
+
+            ['type' => 'title', 'id' => 'bgc_econt_delivery', 'title' => __('Delivery & label', 'bg-couriers')],
             ['type' => 'select', 'id' => 'bgc_econt_sender_address', 'title' => __('Ship-from address', 'bg-couriers'),
                 'desc' => __('The sender (ship-from) address printed on the waybill, loaded from your Econt profile. Leave automatic to use the first profile address.', 'bg-couriers'),
                 'options' => $sender_opts, 'default' => ''],
@@ -630,23 +640,29 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'text', 'id' => 'bgc_econt_shipment_description', 'title' => __('Parcel contents description', 'bg-couriers'),
                 'desc' => __('Short text describing the contents on the Econt waybill (e.g. "Хранителни добавки"). Leave empty for a generic value.', 'bg-couriers'),
                 'default' => '', 'autoload' => false],
+            ['type' => 'sectionend', 'id' => 'bgc_econt_delivery'],
+
+            ['type' => 'title', 'id' => 'bgc_econt_pricing', 'title' => __('Pricing', 'bg-couriers')],
+            ['type' => 'text', 'id' => 'bgc_econt_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
+                'desc' => __('Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'sectionend', 'id' => 'bgc_econt_pricing'],
+
+            ['type' => 'title', 'id' => 'bgc_econt_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_econt_cod_enabled', 'title' => __('Cash on delivery (наложен платеж)', 'bg-couriers'),
                 'desc' => __('Attach наложен платеж for the full order total + an item packing list (name, qty, weight, price) to every Econt order the customer paid cash-on-delivery, paid out to you via the agreement below (postal money transfer / пощенски паричен превод, or bank). Prepaid orders are never charged again.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'select', 'id' => 'bgc_econt_cd_num', 'title' => __('CD pay-out agreement', 'bg-couriers'),
                 'desc' => __('The наложен платеж agreement the money is paid out with (loaded from your Econt profile - e.g. postal money transfer / bank).', 'bg-couriers'),
                 'options' => $cd_opts, 'default' => ''],
-            ['type' => 'text', 'id' => 'bgc_econt_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Ship Econt free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'checkbox', 'id' => 'bgc_econt_pay_after_accept', 'title' => __('Allow inspection before payment', 'bg-couriers'),
+                'desc' => __('Let the recipient inspect the shipment before paying (преглед).', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgc_econt_sms_notification', 'title' => __('SMS notification', 'bg-couriers'),
                 'desc' => __('Send the recipient an SMS notification.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_econt_delivery_email', 'title' => __('E-mail on delivery', 'bg-couriers'),
                 'desc' => __('Notify this e-mail when the shipment is delivered (leave empty to disable).', 'bg-couriers'),
                 'default' => ''],
-            ['type' => 'checkbox', 'id' => 'bgc_econt_pay_after_accept', 'title' => __('Allow inspection before payment', 'bg-couriers'),
-                'desc' => __('Let the recipient inspect the shipment before paying (преглед).', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgc_econt_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
                 'desc' => __('Econt pays your наложен платеж out via пощенски паричен превод (ППП) per the pay-out agreement above. Enable if that agreement is ППП - it lets you accept COD without your own cash register.', 'bg-couriers'), 'default' => 'yes'],
-            ['type' => 'sectionend', 'id' => 'bgc_econt'],
+            ['type' => 'sectionend', 'id' => 'bgc_econt_cod'],
         ];
     }
 
@@ -664,6 +680,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'checkbox', 'id' => 'bgc_pigeon_live', 'title' => __('Live mode', 'bg-couriers'),
                 'desc' => __('On = the live Pigeon production account. Off = the demo/test API (api-demo.pigeonexpress.com) with test credentials.', 'bg-couriers'),
                 'default' => 'yes'],
+            ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
+
+            ['type' => 'title', 'id' => 'bgc_pigeon_delivery', 'title' => __('Delivery & label', 'bg-couriers')],
             ['type' => 'bgc_pigeon_pickup', 'id' => 'bgc_pigeon_pickup_office_id',
                 'title' => __('Pickup office', 'bg-couriers'),
                 'desc' => __('The Pigeon office you drop parcels off at. Search your city, then pick the office. Used for quotes and label creation.', 'bg-couriers')],
@@ -674,8 +693,14 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'number', 'id' => 'bgc_pigeon_box_height', 'title' => __('Default parcel height (cm)', 'bg-couriers'),
                 'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
+            ['type' => 'sectionend', 'id' => 'bgc_pigeon_delivery'],
+
+            ['type' => 'title', 'id' => 'bgc_pigeon_pricing', 'title' => __('Pricing', 'bg-couriers')],
             ['type' => 'text', 'id' => 'bgc_pigeon_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Pigeon Express free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'sectionend', 'id' => 'bgc_pigeon_pricing'],
+
+            ['type' => 'title', 'id' => 'bgc_pigeon_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
             ['type' => 'select', 'id' => 'bgc_pigeon_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
                 'options' => [
                     'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
@@ -685,7 +710,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'default' => 'sender'],
             ['type' => 'checkbox', 'id' => 'bgc_pigeon_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
                 'desc' => __('Enable only if your Pigeon Express contract pays your наложен платеж out via пощенски паричен превод (ППП). When off, COD with Pigeon needs your own cash register (see the general Cash on delivery setting).', 'bg-couriers'), 'default' => 'no'],
-            ['type' => 'sectionend', 'id' => 'bgc_pigeon'],
+            ['type' => 'sectionend', 'id' => 'bgc_pigeon_cod'],
         ];
     }
 
@@ -706,23 +731,26 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'checkbox', 'id' => 'bgc_sameday_live', 'title' => __('Live mode', 'bg-couriers'),
                 'desc' => __('On = the live Sameday account. Off = the demo/test API (sameday-api.demo.zitec.com).', 'bg-couriers'),
                 'default' => 'yes', 'autoload' => false],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday'],
+
+            ['type' => 'title', 'id' => 'bgc_sameday_delivery', 'title' => __('Delivery & label', 'bg-couriers')],
             ['type' => 'number', 'id' => 'bgc_sameday_pickup_point', 'title' => __('Pickup point ID', 'bg-couriers'),
                 'desc' => __('The Sameday pickup-point ID the merchant ships from. Required for quotes and labels.', 'bg-couriers'),
                 'default' => '', 'custom_attributes' => ['min' => '0', 'step' => '1'], 'autoload' => false],
-            ['type' => 'sectionend', 'id' => 'bgc_sameday'],
-
-            ['type' => 'title', 'id' => 'bgc_sameday_services', 'title' => __('Service IDs per delivery type', 'bg-couriers'),
-                'desc' => __('Map each delivery type to a Sameday service ID from your contract (used for pricing and labels).', 'bg-couriers')],
-            ['type' => 'text', 'id' => 'bgc_sameday_service_office', 'title' => __('Service ID - to office', 'bg-couriers'), 'default' => '', 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_sameday_service_office', 'title' => __('Service ID - to office', 'bg-couriers'),
+                'desc' => __('Map each delivery type to a Sameday service ID from your contract (used for pricing and labels).', 'bg-couriers'), 'default' => '', 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_sameday_service_address', 'title' => __('Service ID - to address', 'bg-couriers'), 'default' => '', 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_sameday_service_automat', 'title' => __('Service ID - to locker (easyBox)', 'bg-couriers'), 'default' => '', 'autoload' => false],
-            ['type' => 'sectionend', 'id' => 'bgc_sameday_services'],
-
-            ['type' => 'title', 'id' => 'bgc_sameday_more', 'title' => ''],
             ['type' => 'select', 'id' => 'bgc_sameday_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')], 'default' => 'A6'],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday_delivery'],
+
+            ['type' => 'title', 'id' => 'bgc_sameday_pricing', 'title' => __('Pricing', 'bg-couriers')],
             ['type' => 'text', 'id' => 'bgc_sameday_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
                 'desc' => __('Ship Sameday free (you absorb the cost) when the order goods total (without shipping) reaches this amount - for all delivery types. Enter a positive amount to enable; leave empty or 0 to disable. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday_pricing'],
+
+            ['type' => 'title', 'id' => 'bgc_sameday_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
             ['type' => 'select', 'id' => 'bgc_sameday_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
                 'options' => [
                     'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
@@ -732,7 +760,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'default' => 'sender'],
             ['type' => 'checkbox', 'id' => 'bgc_sameday_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
                 'desc' => __('Enable only if your Sameday contract pays your наложен платеж out via пощенски паричен превод (ППП). When off, COD with Sameday needs your own cash register (see the general Cash on delivery setting).', 'bg-couriers'), 'default' => 'no'],
-            ['type' => 'sectionend', 'id' => 'bgc_sameday_more'],
+            ['type' => 'sectionend', 'id' => 'bgc_sameday_cod'],
         ];
     }
 
@@ -752,21 +780,30 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('On = the live BOX NOW production account. Off = the stage/test API (api-stage.boxnow.bg) with test credentials.', 'bg-couriers'),
                 'default' => 'yes', 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_boxnow_partner_id', 'title' => __('Partner ID', 'bg-couriers'), 'autoload' => false],
+            ['type' => 'text', 'id' => 'bgc_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
+                'desc' => __('You receive it after you register this webhook URL in your BOX NOW account:', 'bg-couriers')
+                    . '<br><code>' . esc_html(BGC_Boxnow_Webhook::url()) . '</code>', 'autoload' => false],
+            ['type' => 'sectionend', 'id' => 'bgc_boxnow'],
+
+            ['type' => 'title', 'id' => 'bgc_boxnow_delivery', 'title' => __('Delivery & label', 'bg-couriers')],
             ['type' => 'text', 'id' => 'bgc_boxnow_warehouse_id', 'title' => __('Pickup location ID', 'bg-couriers'),
                 'desc' => __('Your BOX NOW origin ID - the pickup point parcels are sent FROM (your warehouse, or where BOX NOW collects them). This is NOT the customer\'s delivery locker. You get it from your BOX NOW partner account.', 'bg-couriers'), 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_boxnow_sender_phone', 'title' => __('Sender contact phone', 'bg-couriers'),
                 'desc' => __('Your (the sender\'s) contact phone for the pickup/origin - BOX NOW puts this on the parcel as the origin contact. Leave empty to omit.', 'bg-couriers'), 'autoload' => false],
             ['type' => 'checkbox', 'id' => 'bgc_boxnow_allow_returns', 'title' => __('Allow returns', 'bg-couriers'), 'default' => 'no'],
-            ['type' => 'text', 'id' => 'bgc_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
-                'desc' => __('You receive it after you register this webhook URL in your BOX NOW account:', 'bg-couriers')
-                    . '<br><code>' . esc_html(BGC_Boxnow_Webhook::url()) . '</code>', 'autoload' => false],
+            ['type' => 'sectionend', 'id' => 'bgc_boxnow_delivery'],
+
+            ['type' => 'title', 'id' => 'bgc_boxnow_pricing', 'title' => __('Pricing', 'bg-couriers')],
             ['type' => 'text', 'id' => 'bgc_boxnow_flat_price', 'title' => __('Delivery price', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'text', 'id' => 'bgc_boxnow_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship BOX NOW free (you absorb the cost) when the order goods total (without shipping) reaches this amount. Positive to enable; empty/0 to disable. Store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'sectionend', 'id' => 'bgc_boxnow_pricing'],
+
+            ['type' => 'title', 'id' => 'bgc_boxnow_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgc_boxnow_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
                 'desc' => __('Enable only if your BOX NOW contract pays your наложен платеж out via пощенски паричен превод (ППП). BOX NOW does not offer ППП today, so leave this off - COD with BOX NOW then needs your own cash register (see the general Cash on delivery setting).', 'bg-couriers'), 'default' => 'no'],
-            ['type' => 'sectionend', 'id' => 'bgc_boxnow'],
+            ['type' => 'sectionend', 'id' => 'bgc_boxnow_cod'],
         ];
     }
 
