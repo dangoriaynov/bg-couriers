@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-18 15:15+0300\n"
+"POT-Creation-Date: 2026-07-18 15:27+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,31 +17,31 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: includes/class-bgc-plugin.php:10 includes/Admin/class-bgc-wc-settings.php:33
+#: includes/class-bgc-plugin.php:23 includes/Admin/class-bgc-wc-settings.php:33
 #: includes/Shipping/class-bgc-method-speedy.php:8
 #: includes/Shipping/class-bgc-method-speedy.php:12
 msgid "Speedy"
 msgstr ""
 
-#: includes/class-bgc-plugin.php:13 includes/Admin/class-bgc-wc-settings.php:34
+#: includes/class-bgc-plugin.php:26 includes/Admin/class-bgc-wc-settings.php:34
 #: includes/Shipping/class-bgc-method-econt.php:8
 #: includes/Shipping/class-bgc-method-econt.php:12
 msgid "Econt"
 msgstr ""
 
-#: includes/class-bgc-plugin.php:16 includes/Admin/class-bgc-wc-settings.php:35
+#: includes/class-bgc-plugin.php:29 includes/Admin/class-bgc-wc-settings.php:35
 #: includes/Shipping/class-bgc-method-pigeon.php:8
 #: includes/Shipping/class-bgc-method-pigeon.php:12
 msgid "Pigeon Express"
 msgstr ""
 
-#: includes/class-bgc-plugin.php:22 includes/Admin/class-bgc-wc-settings.php:36
+#: includes/class-bgc-plugin.php:35 includes/Admin/class-bgc-wc-settings.php:36
 #: includes/Shipping/class-bgc-method-boxnow.php:12
 #: includes/Shipping/class-bgc-method-boxnow.php:16
 msgid "BOX NOW"
 msgstr ""
 
-#: includes/class-bgc-plugin.php:29 includes/Admin/class-bgc-wc-settings.php:37
+#: includes/class-bgc-plugin.php:42 includes/Admin/class-bgc-wc-settings.php:37
 #: includes/Shipping/class-bgc-method-sameday.php:8
 #: includes/Shipping/class-bgc-method-sameday.php:12
 msgid "Sameday"
@@ -1103,13 +1103,13 @@ msgstr ""
 #: includes/Admin/class-bgc-wc-settings.php:664
 #: includes/Admin/class-bgc-wc-settings.php:706
 #: includes/Admin/class-bgc-wc-settings.php:751
-msgid "Test mode"
+msgid "Live mode"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:665
 msgid ""
-"Use the Pigeon demo/test API (api-demo.pigeonexpress.com) with your test key "
-"and secret. Off = the live production account."
+"On = the live Pigeon production account. Off = the demo/test API (api-"
+"demo.pigeonexpress.com) with test credentials."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:668
@@ -1174,8 +1174,8 @@ msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:707
 msgid ""
-"Use the Sameday demo/test API (sameday-api.demo.zitec.com) instead of "
-"production. Off = the live account."
+"On = the live Sameday account. Off = the demo/test API (sameday-"
+"api.demo.zitec.com)."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:709
@@ -1238,8 +1238,8 @@ msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:752
 msgid ""
-"Use the BOX NOW stage/test API (api-stage.boxnow.bg) with test credentials. "
-"Off = the live production account."
+"On = the live BOX NOW production account. Off = the stage/test API (api-"
+"stage.boxnow.bg) with test credentials."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:754

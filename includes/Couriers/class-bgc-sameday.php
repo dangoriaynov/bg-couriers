@@ -25,7 +25,7 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
     public function __construct(array $config) {
         $this->config = $config;
         $demo = (defined('BGC_SAMEDAY_DEMO') && BGC_SAMEDAY_DEMO)
-            || (function_exists('get_option') && get_option('bgc_sameday_sandbox') === 'yes');
+            || (function_exists('get_option') && get_option('bgc_sameday_live', 'yes') !== 'yes');
         $this->base = $demo ? self::DEMO : self::PROD;
     }
 

@@ -6,7 +6,27 @@ class BGC_Plugin {
     public static function instance(): self {
         return self::$instance ??= new self();
     }
+    /**
+     * v0.2.x: the per-courier "sandbox / test" checkbox became an inverted "Live mode" toggle. Carry any
+     * existing setting over (once) so a courier that was left on test is not silently switched to the live
+     * API. After the first save the _live option exists and this is a no-op.
+     */
+    private static function migrate_env_flags(): void {
+        foreach (['pigeon', 'sameday', 'boxnow'] as $c) {
+            if (get_option("bgc_{$c}_live", null) === null && get_option("bgc_{$c}_sandbox", null) !== null) {
+                update_option("bgc_{$c}_live", get_option("bgc_{$c}_sandbox") === 'yes' ? 'no' : 'yes');
+            }
+        }
+        // BOX NOW earlier stored the environment as a URL (bgc_boxnow_api_url); carry that over as well.
+        if (get_option('bgc_boxnow_live', null) === null) {
+            $url = get_option('bgc_boxnow_api_url', null);
+            if ($url !== null) {
+                update_option('bgc_boxnow_live', strpos((string) $url, 'stage') !== false ? 'no' : 'yes');
+            }
+        }
+    }
     private function __construct() {
+        self::migrate_env_flags();
         BGC_Couriers::register('speedy', __('Speedy', 'bg-couriers'), static function () {
             return new BGC_Speedy(BGC_Settings::courier_config('speedy') ?: []);
         });
@@ -14,14 +34,14 @@ class BGC_Plugin {
             return new BGC_Econt(BGC_Settings::courier_config('econt') ?: []);
         });
         BGC_Couriers::register('pigeon', __('Pigeon Express', 'bg-couriers'), static function () {
-            // Pick the live vs sandbox host from the toggle (resolved here at runtime, not in the constructor,
-            // so the constructor stays pure for unit tests).
-            $base = get_option('bgc_pigeon_sandbox') === 'yes' ? BGC_Pigeon::DEMO : BGC_Pigeon::PROD;
+            // Pick the live vs sandbox host from the "Live mode" toggle (resolved here at runtime, not in the
+            // constructor, so the constructor stays pure for unit tests). Default = live.
+            $base = get_option('bgc_pigeon_live', 'yes') === 'yes' ? BGC_Pigeon::PROD : BGC_Pigeon::DEMO;
             return new BGC_Pigeon(array_merge(BGC_Settings::courier_config('pigeon') ?: [], ['base' => $base]));
         });
         BGC_Couriers::register('boxnow', __('BOX NOW', 'bg-couriers'), static function () {
             return new BGC_Boxnow(array_merge(BGC_Settings::courier_config('boxnow') ?: [], [
-                'api_url'      => get_option('bgc_boxnow_sandbox') === 'yes' ? BGC_Boxnow::STAGE : BGC_Boxnow::PROD,
+                'api_url'      => get_option('bgc_boxnow_live', 'yes') === 'yes' ? BGC_Boxnow::PROD : BGC_Boxnow::STAGE,
                 'partner_id'   => get_option('bgc_boxnow_partner_id', ''),
                 'warehouse_id' => get_option('bgc_boxnow_warehouse_id', ''),
             ]));

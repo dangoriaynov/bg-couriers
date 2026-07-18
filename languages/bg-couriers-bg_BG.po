@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-18 15:15+0300\n"
+"POT-Creation-Date: 2026-07-18 15:27+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -16,35 +16,35 @@ msgstr ""
 "X-Domain: bg-couriers\n"
 "X-Generator: WP-CLI 2.12.0\n"
 
-#: includes/class-bgc-plugin.php:10
+#: includes/class-bgc-plugin.php:23
 #: includes/Admin/class-bgc-wc-settings.php:33
 #: includes/Shipping/class-bgc-method-speedy.php:8
 #: includes/Shipping/class-bgc-method-speedy.php:12
 msgid "Speedy"
 msgstr "Speedy"
 
-#: includes/class-bgc-plugin.php:13
+#: includes/class-bgc-plugin.php:26
 #: includes/Admin/class-bgc-wc-settings.php:34
 #: includes/Shipping/class-bgc-method-econt.php:8
 #: includes/Shipping/class-bgc-method-econt.php:12
 msgid "Econt"
 msgstr "Econt"
 
-#: includes/class-bgc-plugin.php:16
+#: includes/class-bgc-plugin.php:29
 #: includes/Admin/class-bgc-wc-settings.php:35
 #: includes/Shipping/class-bgc-method-pigeon.php:8
 #: includes/Shipping/class-bgc-method-pigeon.php:12
 msgid "Pigeon Express"
 msgstr "Pigeon Express"
 
-#: includes/class-bgc-plugin.php:22
+#: includes/class-bgc-plugin.php:35
 #: includes/Admin/class-bgc-wc-settings.php:36
 #: includes/Shipping/class-bgc-method-boxnow.php:12
 #: includes/Shipping/class-bgc-method-boxnow.php:16
 msgid "BOX NOW"
 msgstr "BOX NOW"
 
-#: includes/class-bgc-plugin.php:29
+#: includes/class-bgc-plugin.php:42
 #: includes/Admin/class-bgc-wc-settings.php:37
 #: includes/Shipping/class-bgc-method-sameday.php:8
 #: includes/Shipping/class-bgc-method-sameday.php:12
@@ -1225,16 +1225,16 @@ msgstr "API таен ключ"
 #: includes/Admin/class-bgc-wc-settings.php:664
 #: includes/Admin/class-bgc-wc-settings.php:706
 #: includes/Admin/class-bgc-wc-settings.php:751
-msgid "Test mode"
-msgstr "Тестов режим"
+msgid "Live mode"
+msgstr "Реален режим"
 
 #: includes/Admin/class-bgc-wc-settings.php:665
 msgid ""
-"Use the Pigeon demo/test API (api-demo.pigeonexpress.com) with your test key"
-" and secret. Off = the live production account."
+"On = the live Pigeon production account. Off = the demo/test API (api-"
+"demo.pigeonexpress.com) with test credentials."
 msgstr ""
-"Използвайте демо/тестовия API на Pigeon (api-demo.pigeonexpress.com) с Вашия"
-" тестов ключ и секрет. Изключено = реалният акаунт."
+"Включено = реалният производствен акаунт на Pigeon. Изключено = "
+"демо/тестовия API (api-demo.pigeonexpress.com) с тестови данни за достъп."
 
 #: includes/Admin/class-bgc-wc-settings.php:668
 msgid "Pickup office"
@@ -1311,11 +1311,11 @@ msgstr "Парола"
 
 #: includes/Admin/class-bgc-wc-settings.php:707
 msgid ""
-"Use the Sameday demo/test API (sameday-api.demo.zitec.com) instead of "
-"production. Off = the live account."
+"On = the live Sameday account. Off = the demo/test API (sameday-"
+"api.demo.zitec.com)."
 msgstr ""
-"Използвайте демо/тестовия API на Sameday (sameday-api.demo.zitec.com) вместо"
-" реалния. Изключено = реалният акаунт."
+"Включено = реалният акаунт на Sameday. Изключено = демо/тестовия API "
+"(sameday-api.demo.zitec.com)."
 
 #: includes/Admin/class-bgc-wc-settings.php:709
 msgid "Pickup point ID"
@@ -1389,11 +1389,11 @@ msgstr "Client secret"
 
 #: includes/Admin/class-bgc-wc-settings.php:752
 msgid ""
-"Use the BOX NOW stage/test API (api-stage.boxnow.bg) with test credentials. "
-"Off = the live production account."
+"On = the live BOX NOW production account. Off = the stage/test API (api-"
+"stage.boxnow.bg) with test credentials."
 msgstr ""
-"Използвайте стейджинг/тестовия API на BOX NOW (api-stage.boxnow.bg) с "
-"тестови данни за достъп. Изключено = реалният акаунт."
+"Включено = реалният производствен акаунт на BOX NOW. Изключено = "
+"стейджинг/тестовия API (api-stage.boxnow.bg) с тестови данни за достъп."
 
 #: includes/Admin/class-bgc-wc-settings.php:754
 msgid "Partner ID"
