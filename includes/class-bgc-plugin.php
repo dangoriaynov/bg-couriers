@@ -21,7 +21,7 @@ class BGC_Plugin {
         });
         BGC_Couriers::register('boxnow', __('BOX NOW', 'bg-couriers'), static function () {
             return new BGC_Boxnow(array_merge(BGC_Settings::courier_config('boxnow') ?: [], [
-                'api_url'      => get_option('bgc_boxnow_api_url', 'https://api-production.boxnow.bg'),
+                'api_url'      => get_option('bgc_boxnow_sandbox') === 'yes' ? BGC_Boxnow::STAGE : BGC_Boxnow::PROD,
                 'partner_id'   => get_option('bgc_boxnow_partner_id', ''),
                 'warehouse_id' => get_option('bgc_boxnow_warehouse_id', ''),
             ]));

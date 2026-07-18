@@ -7,7 +7,8 @@ defined('ABSPATH') || exit;
  * Shapes live-verified against the stage API (api-stage.boxnow.bg), Partner API 1.72, 2026-07-07.
  */
 class BGC_Boxnow extends BGC_Abstract_Courier implements BGC_Courier_Interface {
-    const PROD = 'https://api-production.boxnow.bg';
+    const PROD  = 'https://api-production.boxnow.bg';
+    const STAGE = 'https://api-stage.boxnow.bg';
 
     private $client_id;
     private $client_secret;
