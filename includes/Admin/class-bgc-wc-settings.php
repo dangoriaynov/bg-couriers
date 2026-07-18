@@ -156,17 +156,17 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .form-table td input[type=checkbox]:checked { background:var(--bgc-green-tx)!important; }
         #wpbody .bgc-settings .form-table td input[type=checkbox]:checked::before { transform:translateX(20px); }
         #wpbody .bgc-settings .form-table td input[type=checkbox]:focus { outline:none; box-shadow:0 0 0 2px rgba(34,113,177,.35)!important; }
-        /* Credentials state: green when validated, red while editing/unverified; locked masked password + red change-×.
-           The rows render as one clean full-bleed tinted band - a 16px horizontal box-shadow bridges the group
-           side padding so the colour reaches the panel edges instead of leaving an uneven inset frame. */
+        /* Credentials band: green when validated, red while editing. One solid full-width rectangle - the table
+           is full width (like the enable bar + hint above it), borders are collapsed and every cell border is
+           removed (some come from the theme and would otherwise draw white lines between rows), and the tint is
+           forced so the last row (the API-check buttons) fills edge to edge with no gaps. */
+        #wpbody .bgc-settings table.form-table.bgc-cred-table { width:100% !important; border-collapse:collapse !important; border-spacing:0 !important; }
+        #wpbody .bgc-settings table.form-table.bgc-cred-table > tbody > tr > th,
+        #wpbody .bgc-settings table.form-table.bgc-cred-table > tbody > tr > td { border:0 !important; }
         #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td,
-        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { vertical-align:middle; }
-        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td { background:var(--bgc-green-bg); }
-        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:var(--bgc-red-bg); }
-        /* The credentials table spans the full column width (like the enable bar + hint above it), so the
-           green/red tint reads as one clean full-width rectangle - not a narrow content-sized block with a
-           ragged right edge. border-collapse kills any theme row-spacing that would step the fill. */
-        #wpbody .bgc-settings table.form-table.bgc-cred-table { width:100% !important; border-collapse:collapse; }
+        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { vertical-align:middle; border:0 !important; box-shadow:none !important; }
+        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td { background:var(--bgc-green-bg) !important; }
+        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:var(--bgc-red-bg) !important; }
         #wpbody .bgc-settings .bgc-cred-x { color:var(--bgc-red-tx); border-color:var(--bgc-red-bd) !important; margin-left:8px; font-weight:700; line-height:1.6; }
         #wpbody .bgc-settings input.bgc-cred-locked { background:#fff; color:#787c82; letter-spacing:2px; border-color:#c9ced3 !important; }
         #bgc-toasts { position:fixed; top:46px; right:22px; z-index:100001; display:flex; flex-direction:column; gap:9px; }
