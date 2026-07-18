@@ -102,11 +102,15 @@ class BGC_WC_Settings extends WC_Settings_Page {
         /* Consistent field width + left alignment for EVERY field (courier-level fields fill a full-width
            table, per-method fields sit in a narrower card - without this their inputs align differently). */
         #wpbody .bgc-settings table.form-table td > select,
-        #wpbody .bgc-settings table.form-table td > input:not([type=checkbox]):not([type=radio]) { width: 360px !important; max-width: 100% !important; box-sizing: border-box; float: none; margin: 0; display: inline-block; }
-        /* Every field description lives in a hover (i) tip shown right after the field label. JS lifts the
-           checkbox tips (WooCommerce prints those down in the value cell) up into the label cell so all field
-           types read the same; the icon stays inline, never floated or overlapping. */
-        #wpbody .bgc-settings table.form-table th .woocommerce-help-tip { float: none !important; position: static !important; display: inline-block; margin: 0 0 0 6px !important; vertical-align: middle; }
+        #wpbody .bgc-settings table.form-table td > textarea,
+        #wpbody .bgc-settings table.form-table td > input:not([type=checkbox]):not([type=radio]) { width: 400px !important; min-width: 0 !important; max-width: 100% !important; box-sizing: border-box; float: none; margin: 0; display: inline-block; vertical-align: top; }
+        /* Each field description collapses into a small (i) that sits inline right after the field label; the
+           text appears in a self-contained CSS hover/focus tooltip. Fully independent of the WooCommerce
+           help-tip so it can never float over or overlap the label. */
+        #wpbody .bgc-settings .bgc-help { display:inline-block; box-sizing:border-box; width:16px; height:16px; margin:0 0 0 6px; border-radius:50%; background:#c3c8ce; color:#fff; font:italic 700 11px/16px Georgia, serif; text-align:center; vertical-align:middle; cursor:help; position:relative; }
+        #wpbody .bgc-settings .bgc-help::before { content:"i"; }
+        #wpbody .bgc-settings .bgc-help:hover, #wpbody .bgc-settings .bgc-help:focus { background:#2271b1; outline:none; }
+        #wpbody .bgc-settings .bgc-help:hover::after, #wpbody .bgc-settings .bgc-help:focus::after { content:attr(data-tip); position:absolute; left:0; top:calc(100% + 7px); width:300px; max-width:300px; white-space:normal; background:#1d2327; color:#fff; font:400 12px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif; font-style:normal; text-align:left; padding:9px 12px; border-radius:8px; box-shadow:0 5px 18px rgba(0,0,0,.28); z-index:1000; pointer-events:none; }
         /* One standardised red (disabled / error) + green (enabled / ok) palette, reused everywhere. */
         #wpbody .bgc-settings { --bgc-red-bg:#fcf0f1; --bgc-red-bg2:#f7dde0; --bgc-red-bd:#e6a2a5; --bgc-red-tx:#b32d2e;
             --bgc-green-bg:#eef9f1; --bgc-green-bg2:#dcf1e3; --bgc-green-bd:#c4e7cf; --bgc-green-tx:#1a7f37; }
@@ -182,26 +186,35 @@ class BGC_WC_Settings extends WC_Settings_Page {
         } elseif ($current_section === 'sameday') {
             $this->output_courier('sameday');
         } else {
-            WC_Admin_Settings::output_fields(self::tipify($this->general_fields()));
+            WC_Admin_Settings::output_fields($this->general_fields());
         }
         echo '</div></div>';
 
-        // Descriptions become a hover (i) tip right after each field label. Text/select/number fields already
-        // get WooCommerce's native tip (desc_tip) in the label cell; a checkbox instead prints its description
-        // as a raw text node inside its <label>, so lift that text out into a matching (i) tip on the label.
+        // Turn every field description into a small (i) that sits inline right after the field label. Text /
+        // select / number fields print their description as a <span class="description"> in the value cell; a
+        // checkbox prints it as a raw text node inside its <label>. Pull that text out into a (i) on the label
+        // and drop the inline copy. Descriptions with a link or <code> (e.g. the webhook URL) are left inline.
         // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- static inline JS, no dynamic values.
         echo '<script>' . "\n"
             . "(function(\$){\n"
             . "    \$(function(){\n"
             . "        \$('#wpbody .bgc-settings table.form-table > tbody > tr').each(function(){\n"
-            . "            var tr=\$(this), th=tr.children('th').first(), td=tr.children('td.forminp-checkbox').first();\n"
+            . "            var tr=\$(this), th=tr.children('th').first(), td=tr.children('td').first();\n"
             . "            if(!th.length || !td.length || \$.trim(th.text())===''){ return; }\n"
-            . "            var label=td.find('label').first(); if(!label.length){ return; }\n"
-            . "            var text=\$.trim(label.text()); if(!text){ return; }\n"
-            . "            label.contents().filter(function(){ return this.nodeType===3; }).remove();\n"
-            . "            var tip=\$('<span class=\"woocommerce-help-tip\" tabindex=\"0\"></span>').attr('data-tip',text).attr('aria-label',text);\n"
+            . "            var text='', label=null;\n"
+            . "            if(td.hasClass('forminp-checkbox')){\n"
+            . "                label=td.find('label').first(); if(!label.length){ return; }\n"
+            . "                text=\$.trim(label.text());\n"
+            . "            } else {\n"
+            . "                var d=td.find('.description').first();\n"
+            . "                if(!d.length || d.find('code,a').length){ return; }\n"
+            . "                text=\$.trim(d.text());\n"
+            . "            }\n"
+            . "            if(!text){ return; }\n"
+            . "            var tip=\$('<span class=\"bgc-help\" tabindex=\"0\" role=\"img\"></span>').attr('data-tip',text).attr('aria-label',text);\n"
             . "            th.append(tip);\n"
-            . "            if(\$.fn.tipTip){ tip.tipTip({attribute:'data-tip',fadeIn:50,fadeOut:50,delay:200,keepAlive:true}); }\n"
+            . "            if(label){ label.contents().filter(function(){ return this.nodeType===3; }).remove(); }\n"
+            . "            else { td.find('.description').first().remove(); }\n"
             . "        });\n"
             . "    });\n"
             . "})(jQuery);\n"
@@ -313,29 +326,6 @@ class BGC_WC_Settings extends WC_Settings_Page {
      * Render the courier settings section (courier fields + per-method sub-tabs).
      * Works for any courier id (speedy, econt, …).
      */
-    /**
-     * Move each non-checkbox field's descriptive text into a hover tooltip on a (i) icon (WooCommerce
-     * desc_tip), which WooCommerce renders right after the field label, so the form stays uncluttered - the
-     * caption shows on hover, not as permanent inline text. Checkboxes are excluded here: WooCommerce always
-     * prints a checkbox description as visible text (it never honours desc_tip for it), so those get an
-     * equivalent (i) tip built client-side instead. Section intros and our custom banner/action rows are
-     * left untouched; a description that embeds copyable/interactive markup (the webhook URL, links) stays
-     * inline; a field that already sets its own desc_tip is respected as-is.
-     */
-    private static function tipify(array $fields): array {
-        static $skip = ['title', 'sectionend', 'checkbox', 'bgc_actions', 'bgc_ppp_notice', 'bgc_cred_hint', 'bgc_about', 'bgc_pigeon_pickup'];
-        foreach ($fields as &$f) {
-            $type = $f['type'] ?? '';
-            if (in_array($type, $skip, true)) { continue; }
-            $desc = $f['desc'] ?? '';
-            if ($desc === '' || !empty($f['desc_tip'])) { continue; }
-            if (strpos($desc, '<code') !== false || strpos($desc, '<br') !== false || strpos($desc, '<a ') !== false) { continue; }
-            $f['desc_tip'] = true;
-        }
-        unset($f);
-        return $fields;
-    }
-
     private function output_courier(string $courier_id): void {
         $fields    = $this->{$courier_id . '_courier_fields'}();
         $enable_id = 'bgc_' . $courier_id . '_enabled';
@@ -357,7 +347,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . '</div>';
         BGC_Settings::ppp_notice_block($courier_id); // full-width, escaped internally
         BGC_Settings::cred_hint_block($courier_id);  // full-width, escaped internally
-        WC_Admin_Settings::output_fields(self::tipify($fields));
+        WC_Admin_Settings::output_fields($fields);
         $c_id    = esc_js($courier_id);
         $c_ajax  = esc_js(admin_url('admin-ajax.php'));
         $c_save  = esc_js(wp_create_nonce('bgc_save'));
@@ -432,7 +422,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                     return !(isset($f['id']) && $f['id'] === $en);
                 }));
                 echo '<div class="bgc-method-panel" data-bgc-panel="' . esc_attr($m) . '"' . ($first ? '' : ' style="display:none;"') . '>';
-                WC_Admin_Settings::output_fields(self::tipify($mf));
+                WC_Admin_Settings::output_fields($mf);
                 echo '</div>';
                 $first = false;
             }
