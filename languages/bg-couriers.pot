@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-18 12:16+0300\n"
+"POT-Creation-Date: 2026-07-18 12:32+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1190,7 +1190,7 @@ msgstr ""
 #: includes/Admin/class-bgc-wc-settings.php:587
 #: includes/Admin/class-bgc-wc-settings.php:626
 #: includes/Admin/class-bgc-wc-settings.php:673
-#: includes/Admin/class-bgc-wc-settings.php:719
+#: includes/Admin/class-bgc-wc-settings.php:718
 msgid "Free-shipping threshold"
 msgstr ""
 
@@ -1234,7 +1234,7 @@ msgstr ""
 #: includes/Admin/class-bgc-wc-settings.php:596
 #: includes/Admin/class-bgc-wc-settings.php:635
 #: includes/Admin/class-bgc-wc-settings.php:682
-#: includes/Admin/class-bgc-wc-settings.php:721
+#: includes/Admin/class-bgc-wc-settings.php:720
 msgid "COD payout via ППП"
 msgstr ""
 
@@ -1541,17 +1541,17 @@ msgid "API environment"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:702
-msgid "Production (live shipments)"
+msgid "Production"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:703
-msgid "Stage (testing, with test credentials)"
+msgid "Test"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:705
 msgid ""
-"BOX NOW has two fixed environments. Use Production for live orders; use "
-"Stage only for testing with stage credentials."
+"Use Production for live orders; use Test only for trying it out with test "
+"credentials."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:707
@@ -1559,11 +1559,14 @@ msgid "Partner ID"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:708
-msgid "Warehouse ID"
+msgid "Pickup location ID"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:709
-msgid "Origin warehouse/location ID parcels ship from (from BoxNow)."
+msgid ""
+"Your BOX NOW origin ID - the pickup point parcels are sent FROM (your "
+"warehouse, or where BOX NOW collects them). This is NOT the customer's "
+"delivery locker. You get it from your BOX NOW partner account."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:710
@@ -1581,40 +1584,34 @@ msgid "Allow returns"
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:713
-msgid ""
-"Let the recipient return the parcel via a BOX NOW locker (sets allowReturn "
-"on the shipment)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:714
 msgid "Webhook secret"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:715
+#: includes/Admin/class-bgc-wc-settings.php:714
 msgid ""
 "Verifies incoming BOX NOW parcel-event webhooks (HMAC-SHA256). Register this "
 "webhook URL in your BOX NOW account:"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:717
-#: includes/Admin/class-bgc-wc-settings.php:732
+#: includes/Admin/class-bgc-wc-settings.php:716
+#: includes/Admin/class-bgc-wc-settings.php:731
 msgid "Delivery price"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:718
+#: includes/Admin/class-bgc-wc-settings.php:717
 msgid ""
 "Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the "
 "store currency."
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:720
+#: includes/Admin/class-bgc-wc-settings.php:719
 msgid ""
 "Ship BOX NOW free (you absorb the cost) when the order goods total (without "
 "shipping) reaches this amount. Positive to enable; empty/0 to disable. Store "
 "currency."
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:722
+#: includes/Admin/class-bgc-wc-settings.php:721
 msgid ""
 "Enable only if your BOX NOW contract pays your наложен платеж out via "
 "пощенски паричен превод (ППП). BOX NOW does not offer ППП today, so leave "
@@ -1623,30 +1620,30 @@ msgid ""
 msgstr ""
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgc-wc-settings.php:731
+#: includes/Admin/class-bgc-wc-settings.php:730
 #, php-format
 msgid "Enable “%s”"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:734
+#: includes/Admin/class-bgc-wc-settings.php:733
 msgid ""
 "Live price only - no fixed default (show the cached price until the address "
 "is chosen)"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:735
+#: includes/Admin/class-bgc-wc-settings.php:734
 msgid "Live price, use the fixed price below only if the API is unavailable"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:736
+#: includes/Admin/class-bgc-wc-settings.php:735
 msgid "Always the fixed price below - no live API calls at checkout"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:738
+#: includes/Admin/class-bgc-wc-settings.php:737
 msgid "Fixed / default price"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:739
+#: includes/Admin/class-bgc-wc-settings.php:738
 msgid ""
 "Used by the “fixed” and “fallback” delivery-price modes above. In the store "
 "currency."

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-18 12:16+0300\n"
+"POT-Creation-Date: 2026-07-18 12:32+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -1313,7 +1313,7 @@ msgstr "A4 (офис принтер)"
 #: includes/Admin/class-bgc-wc-settings.php:587
 #: includes/Admin/class-bgc-wc-settings.php:626
 #: includes/Admin/class-bgc-wc-settings.php:673
-#: includes/Admin/class-bgc-wc-settings.php:719
+#: includes/Admin/class-bgc-wc-settings.php:718
 msgid "Free-shipping threshold"
 msgstr "Праг за безплатна доставка"
 
@@ -1365,7 +1365,7 @@ msgstr ""
 #: includes/Admin/class-bgc-wc-settings.php:596
 #: includes/Admin/class-bgc-wc-settings.php:635
 #: includes/Admin/class-bgc-wc-settings.php:682
-#: includes/Admin/class-bgc-wc-settings.php:721
+#: includes/Admin/class-bgc-wc-settings.php:720
 msgid "COD payout via ППП"
 msgstr "Изплащане на наложен платеж чрез ППП"
 
@@ -1728,32 +1728,38 @@ msgid "API environment"
 msgstr "API среда"
 
 #: includes/Admin/class-bgc-wc-settings.php:702
-msgid "Production (live shipments)"
-msgstr "Продукция (реални пратки)"
+msgid "Production"
+msgstr "Продукционна"
 
 #: includes/Admin/class-bgc-wc-settings.php:703
-msgid "Stage (testing, with test credentials)"
-msgstr "Stage (тестване, с тестови данни)"
+msgid "Test"
+msgstr "Тестова"
 
 #: includes/Admin/class-bgc-wc-settings.php:705
 msgid ""
-"BOX NOW has two fixed environments. Use Production for live orders; use "
-"Stage only for testing with stage credentials."
+"Use Production for live orders; use Test only for trying it out with test "
+"credentials."
 msgstr ""
-"BOX NOW има две фиксирани среди. Използвайте Production за реални поръчки; "
-"използвайте Stage само за тестване с stage данни."
+"Използвайте Production за реални поръчки; използвайте Test само за пробване "
+"с тестови данни."
 
 #: includes/Admin/class-bgc-wc-settings.php:707
 msgid "Partner ID"
 msgstr "Partner ID"
 
 #: includes/Admin/class-bgc-wc-settings.php:708
-msgid "Warehouse ID"
-msgstr "Warehouse ID"
+msgid "Pickup location ID"
+msgstr "ID на мястото за приемане"
 
 #: includes/Admin/class-bgc-wc-settings.php:709
-msgid "Origin warehouse/location ID parcels ship from (from BoxNow)."
-msgstr "ID на склада/локацията, от която тръгват пратките (от BoxNow)."
+msgid ""
+"Your BOX NOW origin ID - the pickup point parcels are sent FROM (your "
+"warehouse, or where BOX NOW collects them). This is NOT the customer's "
+"delivery locker. You get it from your BOX NOW partner account."
+msgstr ""
+"ID на изходната точка в BOX NOW - мястото, ОТ което тръгват пратките (Вашият"
+" склад или откъдето BOX NOW ги взема). Това НЕ е автоматът за доставка на "
+"клиента. Взима се от Вашия BOX NOW партньорски акаунт."
 
 #: includes/Admin/class-bgc-wc-settings.php:710
 msgid "Sender contact phone"
@@ -1773,18 +1779,10 @@ msgid "Allow returns"
 msgstr "Разреши връщания"
 
 #: includes/Admin/class-bgc-wc-settings.php:713
-msgid ""
-"Let the recipient return the parcel via a BOX NOW locker (sets allowReturn "
-"on the shipment)."
-msgstr ""
-"Позволете на получателя да върне пратката чрез автомат на BOX NOW (задава "
-"allowReturn на пратката)."
-
-#: includes/Admin/class-bgc-wc-settings.php:714
 msgid "Webhook secret"
 msgstr "Webhook таен ключ"
 
-#: includes/Admin/class-bgc-wc-settings.php:715
+#: includes/Admin/class-bgc-wc-settings.php:714
 msgid ""
 "Verifies incoming BOX NOW parcel-event webhooks (HMAC-SHA256). Register this"
 " webhook URL in your BOX NOW account:"
@@ -1792,12 +1790,12 @@ msgstr ""
 "Проверява входящите webhook известия за събития от BOX NOW (HMAC-SHA256). "
 "Регистрирайте този webhook адрес във Вашия BOX NOW акаунт:"
 
-#: includes/Admin/class-bgc-wc-settings.php:717
-#: includes/Admin/class-bgc-wc-settings.php:732
+#: includes/Admin/class-bgc-wc-settings.php:716
+#: includes/Admin/class-bgc-wc-settings.php:731
 msgid "Delivery price"
 msgstr "Цена за доставка"
 
-#: includes/Admin/class-bgc-wc-settings.php:718
+#: includes/Admin/class-bgc-wc-settings.php:717
 msgid ""
 "Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the "
 "store currency."
@@ -1805,7 +1803,7 @@ msgstr ""
 "Фиксирана цена за доставка до автомат на BOX NOW (BoxNow няма API за живи "
 "тарифи). Във валутата на магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:720
+#: includes/Admin/class-bgc-wc-settings.php:719
 msgid ""
 "Ship BOX NOW free (you absorb the cost) when the order goods total (without "
 "shipping) reaches this amount. Positive to enable; empty/0 to disable. Store"
@@ -1815,7 +1813,7 @@ msgstr ""
 "стоките (без доставка) достигне тази сума. Положителна за включване; "
 "празно/0 за изключване. Валута на магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:722
+#: includes/Admin/class-bgc-wc-settings.php:721
 msgid ""
 "Enable only if your BOX NOW contract pays your наложен платеж out via "
 "пощенски паричен превод (ППП). BOX NOW does not offer ППП today, so leave "
@@ -1828,12 +1826,12 @@ msgstr ""
 "(вижте общата настройка „Наложен платеж“)."
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgc-wc-settings.php:731
+#: includes/Admin/class-bgc-wc-settings.php:730
 #, php-format
 msgid "Enable “%s”"
 msgstr "Активирай „%s“"
 
-#: includes/Admin/class-bgc-wc-settings.php:734
+#: includes/Admin/class-bgc-wc-settings.php:733
 msgid ""
 "Live price only - no fixed default (show the cached price until the address "
 "is chosen)"
@@ -1841,20 +1839,20 @@ msgstr ""
 "Само жива цена - без фиксирана резервна (показва кешираната цена, докато се "
 "избере адрес)"
 
-#: includes/Admin/class-bgc-wc-settings.php:735
+#: includes/Admin/class-bgc-wc-settings.php:734
 msgid "Live price, use the fixed price below only if the API is unavailable"
 msgstr ""
 "Жива цена, използвай фиксираната цена по-долу само ако API е недостъпен"
 
-#: includes/Admin/class-bgc-wc-settings.php:736
+#: includes/Admin/class-bgc-wc-settings.php:735
 msgid "Always the fixed price below - no live API calls at checkout"
 msgstr "Винаги фиксираната цена по-долу - без заявки към API при поръчка"
 
-#: includes/Admin/class-bgc-wc-settings.php:738
+#: includes/Admin/class-bgc-wc-settings.php:737
 msgid "Fixed / default price"
 msgstr "Фиксирана / резервна цена"
 
-#: includes/Admin/class-bgc-wc-settings.php:739
+#: includes/Admin/class-bgc-wc-settings.php:738
 msgid ""
 "Used by the “fixed” and “fallback” delivery-price modes above. In the store "
 "currency."
