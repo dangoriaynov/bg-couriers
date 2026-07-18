@@ -103,10 +103,10 @@ class BGC_WC_Settings extends WC_Settings_Page {
            table, per-method fields sit in a narrower card - without this their inputs align differently). */
         #wpbody .bgc-settings table.form-table td > select,
         #wpbody .bgc-settings table.form-table td > input:not([type=checkbox]):not([type=radio]) { width: 360px !important; max-width: 100% !important; box-sizing: border-box; float: none; margin: 0; display: inline-block; }
-        /* Every field description lives in a hover (i) tip. JS moves that tip out of the label cell to sit just
-           to the right of the field itself; both selectors keep it inline (never floated/overlapping). */
-        #wpbody .bgc-settings table.form-table th .woocommerce-help-tip,
-        #wpbody .bgc-settings table.form-table td .woocommerce-help-tip { float: none !important; position: static !important; display: inline-block; margin: 0 0 0 8px !important; vertical-align: middle; }
+        /* Every field description lives in a hover (i) tip shown right after the field label. JS lifts the
+           checkbox tips (WooCommerce prints those down in the value cell) up into the label cell so all field
+           types read the same; the icon stays inline, never floated or overlapping. */
+        #wpbody .bgc-settings table.form-table th .woocommerce-help-tip { float: none !important; position: static !important; display: inline-block; margin: 0 0 0 6px !important; vertical-align: middle; }
         /* One standardised red (disabled / error) + green (enabled / ok) palette, reused everywhere. */
         #wpbody .bgc-settings { --bgc-red-bg:#fcf0f1; --bgc-red-bg2:#f7dde0; --bgc-red-bd:#e6a2a5; --bgc-red-tx:#b32d2e;
             --bgc-green-bg:#eef9f1; --bgc-green-bg2:#dcf1e3; --bgc-green-bd:#c4e7cf; --bgc-green-tx:#1a7f37; }
@@ -186,18 +186,22 @@ class BGC_WC_Settings extends WC_Settings_Page {
         }
         echo '</div></div>';
 
-        // Field descriptions render as a hover (i) tip; WooCommerce puts that tip inside the label cell, so
-        // relocate each one to sit just to the right of its own input/select instead.
+        // Descriptions become a hover (i) tip right after each field label. Text/select/number fields already
+        // get WooCommerce's native tip (desc_tip) in the label cell; a checkbox instead prints its description
+        // as a raw text node inside its <label>, so lift that text out into a matching (i) tip on the label.
         // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- static inline JS, no dynamic values.
         echo '<script>' . "\n"
             . "(function(\$){\n"
             . "    \$(function(){\n"
             . "        \$('#wpbody .bgc-settings table.form-table > tbody > tr').each(function(){\n"
-            . "            var tr=\$(this), tip=tr.children('th').find('.woocommerce-help-tip').first();\n"
-            . "            if(!tip.length){ return; }\n"
-            . "            var td=tr.children('td').first(); if(!td.length){ return; }\n"
-            . "            var a=td.find('input:not([type=hidden]):not([type=checkbox]),select,textarea').last();\n"
-            . "            if(a.length){ tip.insertAfter(a); } else { td.append(tip); }\n"
+            . "            var tr=\$(this), th=tr.children('th').first(), td=tr.children('td.forminp-checkbox').first();\n"
+            . "            if(!th.length || !td.length || \$.trim(th.text())===''){ return; }\n"
+            . "            var label=td.find('label').first(); if(!label.length){ return; }\n"
+            . "            var text=\$.trim(label.text()); if(!text){ return; }\n"
+            . "            label.contents().filter(function(){ return this.nodeType===3; }).remove();\n"
+            . "            var tip=\$('<span class=\"woocommerce-help-tip\" tabindex=\"0\"></span>').attr('data-tip',text).attr('aria-label',text);\n"
+            . "            th.append(tip);\n"
+            . "            if(\$.fn.tipTip){ tip.tipTip({attribute:'data-tip',fadeIn:50,fadeOut:50,delay:200,keepAlive:true}); }\n"
             . "        });\n"
             . "    });\n"
             . "})(jQuery);\n"
@@ -310,21 +314,21 @@ class BGC_WC_Settings extends WC_Settings_Page {
      * Works for any courier id (speedy, econt, …).
      */
     /**
-     * Move each field's descriptive text into a hover tooltip on a (i) icon (WooCommerce desc_tip) so the
-     * form stays uncluttered - the caption shows on hover, not as permanent inline text. Applied centrally
-     * to every field list before output. Section intros (title/textarea section notes) and our custom
-     * banner/action rows are left untouched; a checkbox with no title keeps its desc as the visible label;
-     * a description that embeds copyable/interactive markup (the webhook URL, links) also stays inline; a
-     * field that already sets its own desc_tip is respected as-is.
+     * Move each non-checkbox field's descriptive text into a hover tooltip on a (i) icon (WooCommerce
+     * desc_tip), which WooCommerce renders right after the field label, so the form stays uncluttered - the
+     * caption shows on hover, not as permanent inline text. Checkboxes are excluded here: WooCommerce always
+     * prints a checkbox description as visible text (it never honours desc_tip for it), so those get an
+     * equivalent (i) tip built client-side instead. Section intros and our custom banner/action rows are
+     * left untouched; a description that embeds copyable/interactive markup (the webhook URL, links) stays
+     * inline; a field that already sets its own desc_tip is respected as-is.
      */
     private static function tipify(array $fields): array {
-        static $skip = ['title', 'sectionend', 'bgc_actions', 'bgc_ppp_notice', 'bgc_cred_hint', 'bgc_about', 'bgc_pigeon_pickup'];
+        static $skip = ['title', 'sectionend', 'checkbox', 'bgc_actions', 'bgc_ppp_notice', 'bgc_cred_hint', 'bgc_about', 'bgc_pigeon_pickup'];
         foreach ($fields as &$f) {
             $type = $f['type'] ?? '';
             if (in_array($type, $skip, true)) { continue; }
             $desc = $f['desc'] ?? '';
             if ($desc === '' || !empty($f['desc_tip'])) { continue; }
-            if ($type === 'checkbox' && empty($f['title'])) { continue; }
             if (strpos($desc, '<code') !== false || strpos($desc, '<br') !== false || strpos($desc, '<a ') !== false) { continue; }
             $f['desc_tip'] = true;
         }
