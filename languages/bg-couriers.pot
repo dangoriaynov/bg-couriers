@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-18 12:32+0300\n"
+"POT-Creation-Date: 2026-07-18 12:59+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,193 +17,196 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: includes/Admin/class-bgc-bulk-labels.php:20
-msgid "Print waybils A4"
+#: includes/class-bgc-plugin.php:10 includes/Admin/class-bgc-wc-settings.php:33
+#: includes/Shipping/class-bgc-method-speedy.php:8
+#: includes/Shipping/class-bgc-method-speedy.php:12
+msgid "Speedy"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:21
-msgid "Print waybils A6"
+#: includes/class-bgc-plugin.php:13 includes/Admin/class-bgc-wc-settings.php:34
+#: includes/Shipping/class-bgc-method-econt.php:8
+#: includes/Shipping/class-bgc-method-econt.php:12
+msgid "Econt"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:22
-msgid "Generate waybils"
+#: includes/class-bgc-plugin.php:16 includes/Admin/class-bgc-wc-settings.php:35
+#: includes/Shipping/class-bgc-method-pigeon.php:8
+#: includes/Shipping/class-bgc-method-pigeon.php:12
+msgid "Pigeon Express"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:23
-msgid "Cancel waybils"
+#: includes/class-bgc-plugin.php:22 includes/Admin/class-bgc-wc-settings.php:36
+#: includes/Shipping/class-bgc-method-boxnow.php:12
+#: includes/Shipping/class-bgc-method-boxnow.php:16
+msgid "BOX NOW"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:36
-msgid "Cancel the selected waybills?"
+#: includes/class-bgc-plugin.php:29 includes/Admin/class-bgc-wc-settings.php:37
+#: includes/Shipping/class-bgc-method-sameday.php:8
+#: includes/Shipping/class-bgc-method-sameday.php:12
+msgid "Sameday"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:37
+#. translators: 1: courier name, 2: status
+#: includes/Cache/class-bgc-tracking-poller.php:69
+#, php-format
+msgid "%1$s tracking update: %2$s"
+msgstr ""
+
+#: includes/Cache/class-bgc-tracking-poller.php:77
+msgid "BG Couriers: shipment delivered (auto status)."
+msgstr ""
+
+#: includes/Couriers/class-bgc-sameday.php:39
+msgid "No pickup point ID is set."
+msgstr ""
+
+#: includes/Couriers/class-bgc-sameday.php:40
 msgid ""
-"This voids the shipment label with the courier for every selected order. "
-"This cannot be undone."
+"Enter the “Pickup point ID” you ship from (required for quotes and labels)."
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:38
-msgid "Yes, cancel them"
+#: includes/Couriers/class-bgc-sameday.php:42
+msgid "to office"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:39
-msgid "Keep them"
+#: includes/Couriers/class-bgc-sameday.php:43
+msgid "to address"
 msgstr ""
 
-#. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:82
+#: includes/Couriers/class-bgc-sameday.php:44
+msgid "to locker (easyBox)"
+msgstr ""
+
+#. translators: %s: delivery type, e.g. "to office"
+#: includes/Couriers/class-bgc-sameday.php:50
 #, php-format
-msgid "BG Couriers bulk label failed: %s"
+msgid "No Sameday service ID for the enabled “%s” delivery type."
 msgstr ""
 
-#. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:105
-#, php-format
-msgid "BG Couriers bulk print - generate failed: %s"
+#: includes/Couriers/class-bgc-sameday.php:51
+msgid "Enter the matching “Service ID” below, or disable that delivery type."
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:114
-msgid "No labels to print (none could be generated)."
+#: includes/Couriers/abstract-bgc-courier.php:51
+msgid "API credentials are missing."
 msgstr ""
 
-#. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:132
-#, php-format
-msgid "BG Couriers bulk cancel failed: %s"
+#: includes/Couriers/abstract-bgc-courier.php:52
+msgid "Enter the username/key and password/secret, then click “Save changes”."
 msgstr ""
 
-#. translators: 1: cancelled 2: skipped 3: failed
-#: includes/Admin/class-bgc-bulk-labels.php:145
-#, php-format
-msgid "Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed."
+#: includes/Couriers/abstract-bgc-courier.php:56
+msgid "The API credentials have not been validated."
 msgstr ""
 
-#. translators: 1: generated 2: reused 3: skipped 4: failed
-#: includes/Admin/class-bgc-bulk-labels.php:156
-#, php-format
+#: includes/Couriers/abstract-bgc-courier.php:57
+msgid "Click “Validate credentials” and make sure the check succeeds."
+msgstr ""
+
+#: includes/Couriers/class-bgc-econt.php:24
+msgid "Cash on delivery is on, but no pay-out agreement is selected."
+msgstr ""
+
+#: includes/Couriers/class-bgc-econt.php:25
+msgid "Choose a “CD pay-out agreement” below, or turn off cash on delivery."
+msgstr ""
+
+#: includes/Couriers/class-bgc-econt.php:166
+msgid "postal money transfer"
+msgstr ""
+
+#: includes/Couriers/class-bgc-econt.php:414
+msgid "Shipping & fees"
+msgstr ""
+
+#: includes/Couriers/class-bgc-pigeon.php:29
+msgid "No pickup office ID is set."
+msgstr ""
+
+#: includes/Couriers/class-bgc-pigeon.php:30
 msgid ""
-"Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
+"Enter the “Pickup office ID” you ship from (used for quotes and labels)."
 msgstr ""
 
-#. translators: %d: number of labels
-#: includes/Admin/class-bgc-bulk-labels.php:167
-#, php-format
-msgid "Print %d on A4 (packed)"
-msgstr ""
-
-#: includes/Admin/class-bgc-bulk-labels.php:168
-msgid "A6 stickers"
-msgstr ""
-
-#. translators: %s: error message
-#: includes/Admin/class-bgc-labels.php:38
-#, php-format
-msgid "BG Couriers auto-label failed: %s"
-msgstr ""
-
-#: includes/Admin/class-bgc-labels.php:49
-#: includes/Admin/class-bgc-labels.php:160
-#: includes/Admin/class-bgc-labels.php:307
-msgid "Unknown courier for this order."
-msgstr ""
-
-#. translators: 1: courier name, 2: waybill number
-#: includes/Admin/class-bgc-labels.php:72
-#, php-format
-msgid "%1$s label generated: %2$s"
-msgstr ""
-
-#: includes/Admin/class-bgc-labels.php:141
-#: includes/Admin/class-bgc-labels.php:247
-msgid "Order not found."
-msgstr ""
-
-#. translators: %s: error message from the courier
-#: includes/Admin/class-bgc-labels.php:147
-#: includes/Admin/class-bgc-order-metabox.php:157
-#, php-format
-msgid "Label generation failed: %s"
-msgstr ""
-
-#: includes/Admin/class-bgc-labels.php:167
-msgid "The courier did not cancel the waybill."
-msgstr ""
-
-#. translators: %s: waybill number
-#: includes/Admin/class-bgc-labels.php:176
-#, php-format
+#: includes/Couriers/class-bgc-pigeon.php:439
 msgid ""
-"Shipment label %s was already cancelled at the courier; removed from the "
-"order."
+"Set your Pigeon pickup office ID in Settings > BG Couriers > Pigeon Express "
+"before generating a label."
 msgstr ""
 
-#. translators: %s: waybill number
-#: includes/Admin/class-bgc-labels.php:178
+#: includes/Couriers/class-bgc-pigeon.php:467
+msgid ""
+"Pigeon labels are only available at creation time and cannot be re-fetched. "
+"Regenerate the waybill to get a fresh label."
+msgstr ""
+
+#: includes/Couriers/class-bgc-boxnow.php:33
+msgid "No Partner ID is set."
+msgstr ""
+
+#: includes/Couriers/class-bgc-boxnow.php:34
+msgid ""
+"Enter the Partner ID from your BOX NOW account (a required header on every "
+"request)."
+msgstr ""
+
+#: includes/Couriers/class-bgc-boxnow.php:36
+msgid "No Warehouse ID is set."
+msgstr ""
+
+#: includes/Couriers/class-bgc-boxnow.php:37
+msgid "Enter the origin Warehouse ID parcels ship from (from BOX NOW)."
+msgstr ""
+
+#: includes/Couriers/class-bgc-boxnow.php:40
+msgid "The flat delivery price is not set."
+msgstr ""
+
+#: includes/Couriers/class-bgc-boxnow.php:41
+msgid "Enter a “Delivery price” greater than 0 - BOX NOW has no live rate API."
+msgstr ""
+
+#. translators: %s: human-readable parcel state, e.g. "delivered"
+#: includes/Couriers/class-bgc-boxnow-webhook.php:87
 #, php-format
-msgid "Shipment label %s cancelled."
+msgid "BOX NOW tracking update: %s"
 msgstr ""
 
-#. translators: %s: error message from the courier
-#: includes/Admin/class-bgc-labels.php:194
-#, php-format
-msgid "Auto-cancel of the waybill after a full refund failed: %s"
+#: includes/Couriers/class-bgc-boxnow-webhook.php:94
+msgid "registered"
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:208
-#: includes/Admin/class-bgc-labels.php:232
-msgid "Label cancellation failed"
+#: includes/Couriers/class-bgc-boxnow-webhook.php:95
+msgid "in transit"
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:219
-msgid "Label re-generation failed"
+#: includes/Couriers/class-bgc-boxnow-webhook.php:96
+msgid "in the locker - ready for pickup"
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:235
-msgid "Cancelled from the BG Couriers panel."
+#: includes/Couriers/class-bgc-boxnow-webhook.php:97
+msgid "delivered"
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:249
-msgid "Choose a courier."
+#: includes/Couriers/class-bgc-boxnow-webhook.php:98
+msgid "returned"
 msgstr ""
 
-#. translators: %s: error message
-#: includes/Admin/class-bgc-labels.php:259
-#, php-format
-msgid "Could not cancel the current waybill: %s"
+#: includes/Couriers/class-bgc-boxnow-webhook.php:99
+msgid "returned (not collected in time)"
 msgstr ""
 
-#. translators: %s: error message
-#: includes/Admin/class-bgc-labels.php:282
-#, php-format
-msgid "Saved, but issuing the new waybill failed: %s"
+#: includes/Couriers/class-bgc-boxnow-webhook.php:100
+msgid "canceled"
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:285
-msgid "Delivery updated and a new waybill issued."
+#: includes/Couriers/class-bgc-boxnow-webhook.php:101
+msgid "lost"
 msgstr ""
 
-#: includes/Admin/class-bgc-labels.php:285
-msgid "Delivery details saved."
-msgstr ""
-
-#: includes/Admin/class-bgc-labels.php:296
-msgid "Waybill cancelled."
-msgstr ""
-
-#: includes/Admin/class-bgc-labels.php:305
-msgid "No waybill found."
-msgstr ""
-
-#: includes/Admin/class-bgc-labels.php:321
-#: includes/Admin/class-bgc-labels.php:335
-msgid "No labels to print."
-msgstr ""
-
-#. translators: %s: error message
-#: includes/Admin/class-bgc-labels.php:334
-#, php-format
-msgid "Print failed: %s"
+#: includes/Couriers/class-bgc-boxnow-webhook.php:102
+msgid "missing"
 msgstr ""
 
 #: includes/Admin/class-bgc-order-columns.php:12
@@ -271,8 +274,8 @@ msgstr ""
 
 #: includes/Admin/class-bgc-order-metabox.php:19
 #: includes/Admin/class-bgc-order-metabox.php:231
-#: includes/Admin/class-bgc-settings.php:241
 #: includes/Admin/class-bgc-wc-settings.php:20
+#: includes/Admin/class-bgc-settings.php:241
 #: includes/Checkout/class-bgc-checkout.php:451
 #: includes/Support/class-bgc-icons.php:29
 msgid "To office"
@@ -280,8 +283,8 @@ msgstr ""
 
 #: includes/Admin/class-bgc-order-metabox.php:19
 #: includes/Admin/class-bgc-order-metabox.php:231
-#: includes/Admin/class-bgc-settings.php:242
 #: includes/Admin/class-bgc-wc-settings.php:21
+#: includes/Admin/class-bgc-settings.php:242
 #: includes/Checkout/class-bgc-checkout.php:451
 #: includes/Support/class-bgc-icons.php:27
 msgid "To address"
@@ -289,8 +292,8 @@ msgstr ""
 
 #: includes/Admin/class-bgc-order-metabox.php:19
 #: includes/Admin/class-bgc-order-metabox.php:231
-#: includes/Admin/class-bgc-settings.php:243
 #: includes/Admin/class-bgc-wc-settings.php:22
+#: includes/Admin/class-bgc-settings.php:243
 #: includes/Checkout/class-bgc-checkout.php:451
 #: includes/Support/class-bgc-icons.php:28
 msgid "To APS"
@@ -306,6 +309,13 @@ msgstr ""
 
 #: includes/Admin/class-bgc-order-metabox.php:133
 msgid "Cancel (void) label"
+msgstr ""
+
+#. translators: %s: error message from the courier
+#: includes/Admin/class-bgc-order-metabox.php:157
+#: includes/Admin/class-bgc-labels.php:147
+#, php-format
+msgid "Label generation failed: %s"
 msgstr ""
 
 #: includes/Admin/class-bgc-order-metabox.php:232
@@ -360,7 +370,7 @@ msgid "Search…"
 msgstr ""
 
 #: includes/Admin/class-bgc-order-metabox.php:244
-#: includes/Admin/class-bgc-wc-settings.php:311
+#: includes/Admin/class-bgc-wc-settings.php:365
 #: includes/Checkout/class-bgc-checkout.php:454
 msgid "Close"
 msgstr ""
@@ -466,6 +476,878 @@ msgstr ""
 msgid ""
 "A waybill exists. Saving voids it and issues a new one matching the new "
 "details."
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:20
+msgid "Print waybils A4"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:21
+msgid "Print waybils A6"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:22
+msgid "Generate waybils"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:23
+msgid "Cancel waybils"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:36
+msgid "Cancel the selected waybills?"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:37
+msgid ""
+"This voids the shipment label with the courier for every selected order. "
+"This cannot be undone."
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:38
+msgid "Yes, cancel them"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:39
+msgid "Keep them"
+msgstr ""
+
+#. translators: %s: error message
+#: includes/Admin/class-bgc-bulk-labels.php:82
+#, php-format
+msgid "BG Couriers bulk label failed: %s"
+msgstr ""
+
+#. translators: %s: error message
+#: includes/Admin/class-bgc-bulk-labels.php:105
+#, php-format
+msgid "BG Couriers bulk print - generate failed: %s"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:114
+msgid "No labels to print (none could be generated)."
+msgstr ""
+
+#. translators: %s: error message
+#: includes/Admin/class-bgc-bulk-labels.php:132
+#, php-format
+msgid "BG Couriers bulk cancel failed: %s"
+msgstr ""
+
+#. translators: 1: cancelled 2: skipped 3: failed
+#: includes/Admin/class-bgc-bulk-labels.php:145
+#, php-format
+msgid "Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed."
+msgstr ""
+
+#. translators: 1: generated 2: reused 3: skipped 4: failed
+#: includes/Admin/class-bgc-bulk-labels.php:156
+#, php-format
+msgid ""
+"Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
+msgstr ""
+
+#. translators: %d: number of labels
+#: includes/Admin/class-bgc-bulk-labels.php:167
+#, php-format
+msgid "Print %d on A4 (packed)"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:168
+msgid "A6 stickers"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:18
+msgid "BG Couriers"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:32
+msgid "General"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:38
+msgid "About"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:211
+#: includes/Admin/class-bgc-settings.php:635
+msgid "Saved"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:212
+msgid "Could not save - please try again."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:348
+msgid "enabled"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:349
+msgid "disabled"
+msgstr ""
+
+#. translators: %s: courier name
+#: includes/Admin/class-bgc-wc-settings.php:362
+#, php-format
+msgid "“%s” can’t be enabled yet"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:363
+msgid "Please fix the following, then enable it again:"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:364
+msgid "How to fix:"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:475
+msgid "Automatic (first / cheapest)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:479
+msgid "Checkout"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:480
+msgid ""
+"How the delivery picker behaves at checkout. The courier order is set by "
+"dragging the courier tabs above. Prices are always shown in the store "
+"currency."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:481
+msgid "Default courier"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:482
+msgid ""
+"Which courier is pre-selected at checkout. The default delivery option is "
+"the first one in each courier’s “Delivery option order”."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:484
+msgid "Checkout dropdown results"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:485
+msgid ""
+"How many city / office results to show in checkout dropdowns (search shows "
+"the same max). Default 5."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:487
+msgid "Preload city lists"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:488
+msgid ""
+"Embed each courier’s office/APS city list in the checkout page so those "
+"dropdowns open instantly with no loading. Address delivery still searches "
+"all cities live. Recommended on."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:489
+msgid "Address map picker"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:490
+msgid ""
+"Add a “Choose on map” button to address delivery - the customer drops a pin "
+"and the address fields fill in automatically (still editable). Uses free "
+"OpenStreetMap unless a Google key is set below."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:491
+msgid "Google Maps API key (optional)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:492
+msgid ""
+"Leave empty to use free OpenStreetMap. Paste a Google Maps API key for more "
+"accurate maps and address lookup. Get one at console.cloud.google.com → "
+"enable “Maps JavaScript API” + “Geocoding API” → create an API key."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:494
+msgid "Hide \"Country\" field"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:495
+msgid "Hidden checkout fields (CSS selectors)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:496
+msgid ""
+"Comma-separated CSS selectors to hide on checkout (e.g. "
+"#billing_company_field, .cart-subtotal)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:501
+msgid "Prices & display"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:502
+msgid "Enable 2 currencies"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:503
+msgid ""
+"Duplicate the checkout/cart delivery prices in BGN (лв.), next to the store "
+"currency. Fixed rate 1 EUR = 1.95583 BGN. Leave off to show only the store "
+"currency (e.g. if another plugin already displays лв.)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:504
+msgid "Shipping estimate on the cart"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:505
+msgid ""
+"On the cart page (before checkout), show a rough shipping price for each "
+"courier and delivery option, using the daily cached reference price (not a "
+"live, address-based quote). The exact price is calculated at checkout once "
+"the customer picks their city and office/address. Off by default."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:506
+msgid "Free shipping label"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:507
+msgid ""
+"Text shown for the shipping price when a method is free (e.g. “Free "
+"shipping”)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:510
+#: includes/Admin/class-bgc-wc-settings.php:636
+msgid "Cash on delivery (наложен платеж)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:511
+msgid ""
+"How you fiscalise the cash the courier collects. If you rely on the "
+"courier's postal money transfer (ППП / пощенски паричен превод) because you "
+"have no cash register, a courier that does NOT offer ППП cannot be used for "
+"COD - at checkout those couriers then require prepayment (or are hidden if "
+"your shop offers no prepaid payment method). Enable ППП per courier on each "
+"courier's tab."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:512
+msgid "COD fiscalisation"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:514
+msgid "I issue the receipt myself (I have a cash register)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:515
+msgid "I rely on the courier's postal money transfer / ППП (no cash register)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:520
+msgid "Label generation"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:522
+msgid "Auto-generate labels"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:523
+msgid ""
+"Automatically generate a shipping label when an order reaches the status "
+"below."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:524
+msgid "Trigger status"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:527
+msgid "Share customer email with courier"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:528
+msgid ""
+"Include the customer's e-mail on the shipment (for courier delivery "
+"notifications), when they provided one. The e-mail is optional at checkout."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:531
+msgid "Shipment tracking"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:532
+msgid ""
+"Automatically poll the couriers for tracking updates and note them on the "
+"order (BOX NOW already updates instantly via its webhook). Only shipments "
+"from the last 45 days that are not yet delivered / returned / cancelled are "
+"polled."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:533
+msgid "Auto-update tracking"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:535
+msgid "Off"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:536
+msgid "Every 30 minutes"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:537
+msgid "Hourly"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:538
+msgid "Twice a day"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:539
+msgid "Once a day"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:542
+msgid "On delivery, set order to"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:543
+msgid ""
+"Optionally advance the order to this status when tracking reports the "
+"shipment delivered. Leave \"Do not change\" to only add an order note."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:544
+msgid "Do not change (note only)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:548
+msgid "Emergency contact"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:549
+msgid ""
+"If a customer fails to place an order several times in a row at checkout, a "
+"one-time help box appears with a clickable phone link. Leave the phone empty "
+"to disable."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:550
+msgid "Help phone number"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:552
+msgid "Help message"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:553
+msgid "Shown above the phone link. Leave empty for a default message."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:564
+msgid "Enable Speedy"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:565
+#: includes/Admin/class-bgc-wc-settings.php:622
+msgid "API username"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:566
+#: includes/Admin/class-bgc-wc-settings.php:568
+#: includes/Admin/class-bgc-wc-settings.php:624
+#: includes/Admin/class-bgc-wc-settings.php:663
+#: includes/Admin/class-bgc-wc-settings.php:665
+#: includes/Admin/class-bgc-wc-settings.php:705
+#: includes/Admin/class-bgc-wc-settings.php:707
+#: includes/Admin/class-bgc-wc-settings.php:750
+#: includes/Admin/class-bgc-wc-settings.php:752
+msgid "leave blank to keep"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:567
+#: includes/Admin/class-bgc-wc-settings.php:623
+msgid "API password"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:570
+#: includes/Admin/class-bgc-wc-settings.php:725
+msgid "Label paper size"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:571
+#: includes/Admin/class-bgc-wc-settings.php:726
+msgid "A6 (label printer)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:571
+#: includes/Admin/class-bgc-wc-settings.php:726
+msgid "A4 (office printer)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:573
+#: includes/Admin/class-bgc-wc-settings.php:641
+#: includes/Admin/class-bgc-wc-settings.php:680
+#: includes/Admin/class-bgc-wc-settings.php:727
+#: includes/Admin/class-bgc-wc-settings.php:772
+msgid "Free-shipping threshold"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:574
+msgid ""
+"Ship Speedy free (you absorb the cost) when the order goods total (without "
+"shipping) reaches this amount - for all delivery types. Enter a positive "
+"amount to enable; leave empty or 0 to disable. In the store currency."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:575
+#: includes/Admin/class-bgc-wc-settings.php:682
+#: includes/Admin/class-bgc-wc-settings.php:729
+msgid "Who pays delivery"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:577
+#: includes/Admin/class-bgc-wc-settings.php:684
+#: includes/Admin/class-bgc-wc-settings.php:731
+msgid "Sender (you - already charged at checkout)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:578
+#: includes/Admin/class-bgc-wc-settings.php:685
+#: includes/Admin/class-bgc-wc-settings.php:732
+msgid "Recipient (pays the courier at delivery)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:580
+#: includes/Admin/class-bgc-wc-settings.php:687
+#: includes/Admin/class-bgc-wc-settings.php:734
+msgid ""
+"Sender: the merchant pays the courier; for COD orders the courier collects "
+"the full order total (goods + shipping) from the customer. Recipient: the "
+"courier collects the delivery fee from the customer at the door; for COD "
+"orders only the goods total is collected as наложен платеж (shipping "
+"excluded)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:582
+#: includes/Admin/class-bgc-wc-settings.php:650
+#: includes/Admin/class-bgc-wc-settings.php:689
+#: includes/Admin/class-bgc-wc-settings.php:736
+#: includes/Admin/class-bgc-wc-settings.php:774
+msgid "COD payout via ППП"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:583
+msgid ""
+"Speedy pays the collected cash-on-delivery out to you as a postal money "
+"transfer (пощенски паричен превод / ППП). Enable if your Speedy contract "
+"uses ППП - it lets you accept COD without your own cash register (the "
+"shipment is sent with processingType POSTAL_MONEY_TRANSFER; otherwise CASH)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:585
+msgid "Open before payment"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:587
+msgid "No"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:588
+msgid "Allow open before payment"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:589
+msgid "Allow test before payment"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:592
+msgid "Parcel contents (description)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:594
+msgid "Package type"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:596
+msgid "Box"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:597
+msgid "Envelope"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:598
+msgid "Pallet"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:606
+msgid "- none (COD off) -"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:607
+msgid "- automatic (first profile address) -"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:621
+msgid "Enable Econt"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:626
+msgid "Ship-from address"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:627
+msgid ""
+"The sender (ship-from) address printed on the waybill, loaded from your "
+"Econt profile. Leave automatic to use the first profile address."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:629
+msgid "Label format"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:630
+msgid ""
+"Econt issues labels in a single A4-landscape format (its API has no size "
+"option). Individual labels print at that native size; the bulk \"Print A4\" "
+"action packs several per sheet without scaling."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:631
+msgid "A4-landscape (fixed by Econt)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:633
+msgid "Parcel contents description"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:634
+msgid ""
+"Short text describing the contents on the Econt waybill (e.g. \"Хранителни "
+"добавки\"). Leave empty for a generic value."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:637
+msgid ""
+"Attach наложен платеж for the full order total + an item packing list (name, "
+"qty, weight, price) to every Econt order the customer paid cash-on-delivery, "
+"paid out to you via the agreement below (postal money transfer / пощенски "
+"паричен превод, or bank). Prepaid orders are never charged again."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:638
+msgid "CD pay-out agreement"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:639
+msgid ""
+"The наложен платеж agreement the money is paid out with (loaded from your "
+"Econt profile - e.g. postal money transfer / bank)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:642
+msgid ""
+"Ship Econt free (you absorb the cost) when the order goods total (without "
+"shipping) reaches this amount - for all delivery types. Enter a positive "
+"amount to enable; leave empty or 0 to disable. In the store currency."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:643
+msgid "SMS notification"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:644
+msgid "Send the recipient an SMS notification."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:645
+msgid "E-mail on delivery"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:646
+msgid ""
+"Notify this e-mail when the shipment is delivered (leave empty to disable)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:648
+msgid "Allow inspection before payment"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:649
+msgid "Let the recipient inspect the shipment before paying (преглед)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:651
+msgid ""
+"Econt pays your наложен платеж out via пощенски паричен превод (ППП) per the "
+"pay-out agreement above. Enable if that agreement is ППП - it lets you "
+"accept COD without your own cash register."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:661
+msgid "Enable Pigeon Express"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:662
+msgid "API Key"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:664
+msgid "API Secret"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:667
+msgid "Sandbox (test) account"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:668
+msgid ""
+"Use the Pigeon sandbox/test API (api-demo.pigeonexpress.com) with your test "
+"key & secret. Leave unchecked for the live production account."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:671
+msgid "Pickup office"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:672
+msgid ""
+"The Pigeon office you drop parcels off at. Search your city, then pick the "
+"office. Used for quotes and label creation."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:673
+msgid "Default parcel length (cm)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:674
+msgid ""
+"Pigeon requires parcel dimensions (length x width x height, in centimetres) "
+"on every quote and label. These defaults are used when an order has no "
+"dimensions of its own."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:676
+msgid "Default parcel width (cm)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:678
+msgid "Default parcel height (cm)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:681
+msgid ""
+"Ship Pigeon Express free (you absorb the cost) when the order goods total "
+"(without shipping) reaches this amount - for all delivery types. Enter a "
+"positive amount to enable; leave empty or 0 to disable. In the store "
+"currency."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:690
+msgid ""
+"Enable only if your Pigeon Express contract pays your наложен платеж out via "
+"пощенски паричен превод (ППП). When off, COD with Pigeon needs your own cash "
+"register (see the general Cash on delivery setting)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:702
+msgid "Enable Sameday"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:703
+msgid "Username"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:704
+msgid "Sameday API username (X-Auth-Username)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:706
+msgid "Password"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:709
+msgid "Sandbox (demo) mode"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:710
+msgid ""
+"Use the Sameday demo API (sameday-api.demo.zitec.com) instead of production. "
+"For testing without a live account."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:712
+msgid "Pickup point ID"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:713
+msgid ""
+"The Sameday pickup-point ID the merchant ships from. Required for quotes and "
+"labels."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:717
+msgid "Service IDs per delivery type"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:718
+msgid ""
+"Map each delivery type to a Sameday service ID from your contract (used for "
+"pricing and labels)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:719
+msgid "Service ID - to office"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:720
+msgid "Service ID - to address"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:721
+msgid "Service ID - to locker (easyBox)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:728
+msgid ""
+"Ship Sameday free (you absorb the cost) when the order goods total (without "
+"shipping) reaches this amount - for all delivery types. Enter a positive "
+"amount to enable; leave empty or 0 to disable. In the store currency."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:737
+msgid ""
+"Enable only if your Sameday contract pays your наложен платеж out via "
+"пощенски паричен превод (ППП). When off, COD with Sameday needs your own "
+"cash register (see the general Cash on delivery setting)."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:748
+msgid "Enable BOX NOW"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:749
+msgid "Client ID"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:751
+msgid "Client secret"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:754
+msgid "API environment"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:756
+msgid "Production"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:757
+msgid "Test"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:759
+msgid ""
+"Use Production for live orders; use Test only for trying it out with test "
+"credentials."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:761
+msgid "Partner ID"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:762
+msgid "Pickup location ID"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:763
+msgid ""
+"Your BOX NOW origin ID - the pickup point parcels are sent FROM (your "
+"warehouse, or where BOX NOW collects them). This is NOT the customer's "
+"delivery locker. You get it from your BOX NOW partner account."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:764
+msgid "Sender contact phone"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:765
+msgid ""
+"Your (the sender's) contact phone for the pickup/origin - BOX NOW puts this "
+"on the parcel as the origin contact. Leave empty to omit."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:766
+msgid "Allow returns"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:767
+msgid "Webhook secret"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:768
+msgid ""
+"You receive it after you register this webhook URL in your BOX NOW account:"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:770
+#: includes/Admin/class-bgc-wc-settings.php:785
+msgid "Delivery price"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:771
+msgid ""
+"Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the "
+"store currency."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:773
+msgid ""
+"Ship BOX NOW free (you absorb the cost) when the order goods total (without "
+"shipping) reaches this amount. Positive to enable; empty/0 to disable. Store "
+"currency."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:775
+msgid ""
+"Enable only if your BOX NOW contract pays your наложен платеж out via "
+"пощенски паричен превод (ППП). BOX NOW does not offer ППП today, so leave "
+"this off - COD with BOX NOW then needs your own cash register (see the "
+"general Cash on delivery setting)."
+msgstr ""
+
+#. translators: %s: courier name
+#: includes/Admin/class-bgc-wc-settings.php:784
+#, php-format
+msgid "Enable “%s”"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:787
+msgid ""
+"Live price only - no fixed default (show the cached price until the address "
+"is chosen)"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:788
+msgid "Live price, use the fixed price below only if the API is unavailable"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:789
+msgid "Always the fixed price below - no live API calls at checkout"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:791
+msgid "Fixed / default price"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:792
+msgid ""
+"Used by the “fixed” and “fallback” delivery-price modes above. In the store "
+"currency."
 msgstr ""
 
 #: includes/Admin/class-bgc-settings.php:197
@@ -758,11 +1640,6 @@ msgstr ""
 msgid "Settings unavailable."
 msgstr ""
 
-#: includes/Admin/class-bgc-settings.php:635
-#: includes/Admin/class-bgc-wc-settings.php:180
-msgid "Saved"
-msgstr ""
-
 #: includes/Admin/class-bgc-settings.php:663
 msgid "API check"
 msgstr ""
@@ -825,838 +1702,127 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:18
-msgid "BG Couriers"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:32
-msgid "General"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:33
-#: includes/Shipping/class-bgc-method-speedy.php:8
-#: includes/Shipping/class-bgc-method-speedy.php:12
-#: includes/class-bgc-plugin.php:10
-msgid "Speedy"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:34
-#: includes/Shipping/class-bgc-method-econt.php:8
-#: includes/Shipping/class-bgc-method-econt.php:12
-#: includes/class-bgc-plugin.php:13
-msgid "Econt"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:35
-#: includes/Shipping/class-bgc-method-pigeon.php:8
-#: includes/Shipping/class-bgc-method-pigeon.php:12
-#: includes/class-bgc-plugin.php:16
-msgid "Pigeon Express"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:36
-#: includes/Shipping/class-bgc-method-boxnow.php:12
-#: includes/Shipping/class-bgc-method-boxnow.php:16
-#: includes/class-bgc-plugin.php:22
-msgid "BOX NOW"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:37
-#: includes/Shipping/class-bgc-method-sameday.php:8
-#: includes/Shipping/class-bgc-method-sameday.php:12
-#: includes/class-bgc-plugin.php:29
-msgid "Sameday"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:38
-msgid "About"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:181
-msgid "Could not save - please try again."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:294
-msgid "enabled"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:295
-msgid "disabled"
-msgstr ""
-
-#. translators: %s: courier name
-#: includes/Admin/class-bgc-wc-settings.php:308
+#. translators: %s: error message
+#: includes/Admin/class-bgc-labels.php:38
 #, php-format
-msgid "“%s” can’t be enabled yet"
+msgid "BG Couriers auto-label failed: %s"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:309
-msgid "Please fix the following, then enable it again:"
+#: includes/Admin/class-bgc-labels.php:49
+#: includes/Admin/class-bgc-labels.php:160
+#: includes/Admin/class-bgc-labels.php:307
+msgid "Unknown courier for this order."
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:310
-msgid "How to fix:"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:421
-msgid "Automatic (first / cheapest)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:425
-msgid "Checkout"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:426
-msgid ""
-"How the delivery picker behaves at checkout. The courier order is set by "
-"dragging the courier tabs above. Prices are always shown in the store "
-"currency."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:427
-msgid "Default courier"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:428
-msgid ""
-"Which courier is pre-selected at checkout. The default delivery option is "
-"the first one in each courier’s “Delivery option order”."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:430
-msgid "Checkout dropdown results"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:431
-msgid ""
-"How many city / office results to show in checkout dropdowns (search shows "
-"the same max). Default 5."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:433
-msgid "Preload city lists"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:434
-msgid ""
-"Embed each courier’s office/APS city list in the checkout page so those "
-"dropdowns open instantly with no loading. Address delivery still searches "
-"all cities live. Recommended on."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:435
-msgid "Address map picker"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:436
-msgid ""
-"Add a “Choose on map” button to address delivery - the customer drops a pin "
-"and the address fields fill in automatically (still editable). Uses free "
-"OpenStreetMap unless a Google key is set below."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:437
-msgid "Google Maps API key (optional)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:438
-msgid ""
-"Leave empty to use free OpenStreetMap. Paste a Google Maps API key for more "
-"accurate maps and address lookup. Get one at console.cloud.google.com → "
-"enable “Maps JavaScript API” + “Geocoding API” → create an API key."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:440
-msgid "Hide \"Country\" field"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:441
-msgid "Hidden checkout fields (CSS selectors)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:442
-msgid ""
-"Comma-separated CSS selectors to hide on checkout (e.g. "
-"#billing_company_field, .cart-subtotal)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:447
-msgid "Prices & display"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:448
-msgid "Enable 2 currencies"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:449
-msgid ""
-"Duplicate the checkout/cart delivery prices in BGN (лв.), next to the store "
-"currency. Fixed rate 1 EUR = 1.95583 BGN. Leave off to show only the store "
-"currency (e.g. if another plugin already displays лв.)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:450
-msgid "Shipping estimate on the cart"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:451
-msgid ""
-"On the cart page (before checkout), show a rough shipping price for each "
-"courier and delivery option, using the daily cached reference price (not a "
-"live, address-based quote). The exact price is calculated at checkout once "
-"the customer picks their city and office/address. Off by default."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:452
-msgid "Free shipping label"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:453
-msgid ""
-"Text shown for the shipping price when a method is free (e.g. “Free "
-"shipping”)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:456
-#: includes/Admin/class-bgc-wc-settings.php:582
-msgid "Cash on delivery (наложен платеж)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:457
-msgid ""
-"How you fiscalise the cash the courier collects. If you rely on the "
-"courier's postal money transfer (ППП / пощенски паричен превод) because you "
-"have no cash register, a courier that does NOT offer ППП cannot be used for "
-"COD - at checkout those couriers then require prepayment (or are hidden if "
-"your shop offers no prepaid payment method). Enable ППП per courier on each "
-"courier's tab."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:458
-msgid "COD fiscalisation"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:460
-msgid "I issue the receipt myself (I have a cash register)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:461
-msgid "I rely on the courier's postal money transfer / ППП (no cash register)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:466
-msgid "Label generation"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:468
-msgid "Auto-generate labels"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:469
-msgid ""
-"Automatically generate a shipping label when an order reaches the status "
-"below."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:470
-msgid "Trigger status"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:473
-msgid "Share customer email with courier"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:474
-msgid ""
-"Include the customer's e-mail on the shipment (for courier delivery "
-"notifications), when they provided one. The e-mail is optional at checkout."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:477
-msgid "Shipment tracking"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:478
-msgid ""
-"Automatically poll the couriers for tracking updates and note them on the "
-"order (BOX NOW already updates instantly via its webhook). Only shipments "
-"from the last 45 days that are not yet delivered / returned / cancelled are "
-"polled."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:479
-msgid "Auto-update tracking"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:481
-msgid "Off"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:482
-msgid "Every 30 minutes"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:483
-msgid "Hourly"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:484
-msgid "Twice a day"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:485
-msgid "Once a day"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:488
-msgid "On delivery, set order to"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:489
-msgid ""
-"Optionally advance the order to this status when tracking reports the "
-"shipment delivered. Leave \"Do not change\" to only add an order note."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:490
-msgid "Do not change (note only)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:494
-msgid "Emergency contact"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:495
-msgid ""
-"If a customer fails to place an order several times in a row at checkout, a "
-"one-time help box appears with a clickable phone link. Leave the phone empty "
-"to disable."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:496
-msgid "Help phone number"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:498
-msgid "Help message"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:499
-msgid "Shown above the phone link. Leave empty for a default message."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:510
-msgid "Enable Speedy"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:511
-#: includes/Admin/class-bgc-wc-settings.php:568
-msgid "API username"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:512
-#: includes/Admin/class-bgc-wc-settings.php:514
-#: includes/Admin/class-bgc-wc-settings.php:570
-#: includes/Admin/class-bgc-wc-settings.php:609
-#: includes/Admin/class-bgc-wc-settings.php:611
-#: includes/Admin/class-bgc-wc-settings.php:651
-#: includes/Admin/class-bgc-wc-settings.php:653
-#: includes/Admin/class-bgc-wc-settings.php:696
-#: includes/Admin/class-bgc-wc-settings.php:698
-msgid "leave blank to keep"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:513
-#: includes/Admin/class-bgc-wc-settings.php:569
-msgid "API password"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:516
-#: includes/Admin/class-bgc-wc-settings.php:671
-msgid "Label paper size"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:517
-#: includes/Admin/class-bgc-wc-settings.php:672
-msgid "A6 (label printer)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:517
-#: includes/Admin/class-bgc-wc-settings.php:672
-msgid "A4 (office printer)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:519
-#: includes/Admin/class-bgc-wc-settings.php:587
-#: includes/Admin/class-bgc-wc-settings.php:626
-#: includes/Admin/class-bgc-wc-settings.php:673
-#: includes/Admin/class-bgc-wc-settings.php:718
-msgid "Free-shipping threshold"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:520
-msgid ""
-"Ship Speedy free (you absorb the cost) when the order goods total (without "
-"shipping) reaches this amount - for all delivery types. Enter a positive "
-"amount to enable; leave empty or 0 to disable. In the store currency."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:521
-#: includes/Admin/class-bgc-wc-settings.php:628
-#: includes/Admin/class-bgc-wc-settings.php:675
-msgid "Who pays delivery"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:523
-#: includes/Admin/class-bgc-wc-settings.php:630
-#: includes/Admin/class-bgc-wc-settings.php:677
-msgid "Sender (you - already charged at checkout)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:524
-#: includes/Admin/class-bgc-wc-settings.php:631
-#: includes/Admin/class-bgc-wc-settings.php:678
-msgid "Recipient (pays the courier at delivery)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:526
-#: includes/Admin/class-bgc-wc-settings.php:633
-#: includes/Admin/class-bgc-wc-settings.php:680
-msgid ""
-"Sender: the merchant pays the courier; for COD orders the courier collects "
-"the full order total (goods + shipping) from the customer. Recipient: the "
-"courier collects the delivery fee from the customer at the door; for COD "
-"orders only the goods total is collected as наложен платеж (shipping "
-"excluded)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:528
-#: includes/Admin/class-bgc-wc-settings.php:596
-#: includes/Admin/class-bgc-wc-settings.php:635
-#: includes/Admin/class-bgc-wc-settings.php:682
-#: includes/Admin/class-bgc-wc-settings.php:720
-msgid "COD payout via ППП"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:529
-msgid ""
-"Speedy pays the collected cash-on-delivery out to you as a postal money "
-"transfer (пощенски паричен превод / ППП). Enable if your Speedy contract "
-"uses ППП - it lets you accept COD without your own cash register (the "
-"shipment is sent with processingType POSTAL_MONEY_TRANSFER; otherwise CASH)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:531
-msgid "Open before payment"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:533
-msgid "No"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:534
-msgid "Allow open before payment"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:535
-msgid "Allow test before payment"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:538
-msgid "Parcel contents (description)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:540
-msgid "Package type"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:542
-msgid "Box"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:543
-msgid "Envelope"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:544
-msgid "Pallet"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:552
-msgid "- none (COD off) -"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:553
-msgid "- automatic (first profile address) -"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:567
-msgid "Enable Econt"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:572
-msgid "Ship-from address"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:573
-msgid ""
-"The sender (ship-from) address printed on the waybill, loaded from your "
-"Econt profile. Leave automatic to use the first profile address."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:575
-msgid "Label format"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:576
-msgid ""
-"Econt issues labels in a single A4-landscape format (its API has no size "
-"option). Individual labels print at that native size; the bulk \"Print A4\" "
-"action packs several per sheet without scaling."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:577
-msgid "A4-landscape (fixed by Econt)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:579
-msgid "Parcel contents description"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:580
-msgid ""
-"Short text describing the contents on the Econt waybill (e.g. \"Хранителни "
-"добавки\"). Leave empty for a generic value."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:583
-msgid ""
-"Attach наложен платеж for the full order total + an item packing list (name, "
-"qty, weight, price) to every Econt order the customer paid cash-on-delivery, "
-"paid out to you via the agreement below (postal money transfer / пощенски "
-"паричен превод, or bank). Prepaid orders are never charged again."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:584
-msgid "CD pay-out agreement"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:585
-msgid ""
-"The наложен платеж agreement the money is paid out with (loaded from your "
-"Econt profile - e.g. postal money transfer / bank)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:588
-msgid ""
-"Ship Econt free (you absorb the cost) when the order goods total (without "
-"shipping) reaches this amount - for all delivery types. Enter a positive "
-"amount to enable; leave empty or 0 to disable. In the store currency."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:589
-msgid "SMS notification"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:590
-msgid "Send the recipient an SMS notification."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:591
-msgid "E-mail on delivery"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:592
-msgid ""
-"Notify this e-mail when the shipment is delivered (leave empty to disable)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:594
-msgid "Allow inspection before payment"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:595
-msgid "Let the recipient inspect the shipment before paying (преглед)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:597
-msgid ""
-"Econt pays your наложен платеж out via пощенски паричен превод (ППП) per the "
-"pay-out agreement above. Enable if that agreement is ППП - it lets you "
-"accept COD without your own cash register."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:607
-msgid "Enable Pigeon Express"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:608
-msgid "API Key"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:610
-msgid "API Secret"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:613
-msgid "Sandbox (test) account"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:614
-msgid ""
-"Use the Pigeon sandbox/test API (api-demo.pigeonexpress.com) with your test "
-"key & secret. Leave unchecked for the live production account."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:617
-msgid "Pickup office"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:618
-msgid ""
-"The Pigeon office you drop parcels off at. Search your city, then pick the "
-"office. Used for quotes and label creation."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:619
-msgid "Default parcel length (cm)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:620
-msgid ""
-"Pigeon requires parcel dimensions (length x width x height, in centimetres) "
-"on every quote and label. These defaults are used when an order has no "
-"dimensions of its own."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:622
-msgid "Default parcel width (cm)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:624
-msgid "Default parcel height (cm)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:627
-msgid ""
-"Ship Pigeon Express free (you absorb the cost) when the order goods total "
-"(without shipping) reaches this amount - for all delivery types. Enter a "
-"positive amount to enable; leave empty or 0 to disable. In the store "
-"currency."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:636
-msgid ""
-"Enable only if your Pigeon Express contract pays your наложен платеж out via "
-"пощенски паричен превод (ППП). When off, COD with Pigeon needs your own cash "
-"register (see the general Cash on delivery setting)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:648
-msgid "Enable Sameday"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:649
-msgid "Username"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:650
-msgid "Sameday API username (X-Auth-Username)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:652
-msgid "Password"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:655
-msgid "Sandbox (demo) mode"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:656
-msgid ""
-"Use the Sameday demo API (sameday-api.demo.zitec.com) instead of production. "
-"For testing without a live account."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:658
-msgid "Pickup point ID"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:659
-msgid ""
-"The Sameday pickup-point ID the merchant ships from. Required for quotes and "
-"labels."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:663
-msgid "Service IDs per delivery type"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:664
-msgid ""
-"Map each delivery type to a Sameday service ID from your contract (used for "
-"pricing and labels)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:665
-msgid "Service ID - to office"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:666
-msgid "Service ID - to address"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:667
-msgid "Service ID - to locker (easyBox)"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:674
-msgid ""
-"Ship Sameday free (you absorb the cost) when the order goods total (without "
-"shipping) reaches this amount - for all delivery types. Enter a positive "
-"amount to enable; leave empty or 0 to disable. In the store currency."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:683
-msgid ""
-"Enable only if your Sameday contract pays your наложен платеж out via "
-"пощенски паричен превод (ППП). When off, COD with Sameday needs your own "
-"cash register (see the general Cash on delivery setting)."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:694
-msgid "Enable BOX NOW"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:695
-msgid "Client ID"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:697
-msgid "Client secret"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:700
-msgid "API environment"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:702
-msgid "Production"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:703
-msgid "Test"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:705
-msgid ""
-"Use Production for live orders; use Test only for trying it out with test "
-"credentials."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:707
-msgid "Partner ID"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:708
-msgid "Pickup location ID"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:709
-msgid ""
-"Your BOX NOW origin ID - the pickup point parcels are sent FROM (your "
-"warehouse, or where BOX NOW collects them). This is NOT the customer's "
-"delivery locker. You get it from your BOX NOW partner account."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:710
-msgid "Sender contact phone"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:711
-msgid ""
-"Your (the sender's) contact phone for the pickup/origin - BOX NOW puts this "
-"on the parcel as the origin contact. Leave empty to omit."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:712
-msgid "Allow returns"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:713
-msgid "Webhook secret"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:714
-msgid ""
-"Verifies incoming BOX NOW parcel-event webhooks (HMAC-SHA256). Register this "
-"webhook URL in your BOX NOW account:"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:716
-#: includes/Admin/class-bgc-wc-settings.php:731
-msgid "Delivery price"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:717
-msgid ""
-"Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the "
-"store currency."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:719
-msgid ""
-"Ship BOX NOW free (you absorb the cost) when the order goods total (without "
-"shipping) reaches this amount. Positive to enable; empty/0 to disable. Store "
-"currency."
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:721
-msgid ""
-"Enable only if your BOX NOW contract pays your наложен платеж out via "
-"пощенски паричен превод (ППП). BOX NOW does not offer ППП today, so leave "
-"this off - COD with BOX NOW then needs your own cash register (see the "
-"general Cash on delivery setting)."
-msgstr ""
-
-#. translators: %s: courier name
-#: includes/Admin/class-bgc-wc-settings.php:730
+#. translators: 1: courier name, 2: waybill number
+#: includes/Admin/class-bgc-labels.php:72
 #, php-format
-msgid "Enable “%s”"
+msgid "%1$s label generated: %2$s"
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:733
-msgid ""
-"Live price only - no fixed default (show the cached price until the address "
-"is chosen)"
+#: includes/Admin/class-bgc-labels.php:141
+#: includes/Admin/class-bgc-labels.php:247
+msgid "Order not found."
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:734
-msgid "Live price, use the fixed price below only if the API is unavailable"
+#: includes/Admin/class-bgc-labels.php:167
+msgid "The courier did not cancel the waybill."
 msgstr ""
 
-#: includes/Admin/class-bgc-wc-settings.php:735
-msgid "Always the fixed price below - no live API calls at checkout"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:737
-msgid "Fixed / default price"
-msgstr ""
-
-#: includes/Admin/class-bgc-wc-settings.php:738
-msgid ""
-"Used by the “fixed” and “fallback” delivery-price modes above. In the store "
-"currency."
-msgstr ""
-
-#. translators: 1: courier name, 2: status
-#: includes/Cache/class-bgc-tracking-poller.php:69
+#. translators: %s: waybill number
+#: includes/Admin/class-bgc-labels.php:176
 #, php-format
-msgid "%1$s tracking update: %2$s"
+msgid ""
+"Shipment label %s was already cancelled at the courier; removed from the "
+"order."
 msgstr ""
 
-#: includes/Cache/class-bgc-tracking-poller.php:77
-msgid "BG Couriers: shipment delivered (auto status)."
+#. translators: %s: waybill number
+#: includes/Admin/class-bgc-labels.php:178
+#, php-format
+msgid "Shipment label %s cancelled."
+msgstr ""
+
+#. translators: %s: error message from the courier
+#: includes/Admin/class-bgc-labels.php:194
+#, php-format
+msgid "Auto-cancel of the waybill after a full refund failed: %s"
+msgstr ""
+
+#: includes/Admin/class-bgc-labels.php:208
+#: includes/Admin/class-bgc-labels.php:232
+msgid "Label cancellation failed"
+msgstr ""
+
+#: includes/Admin/class-bgc-labels.php:219
+msgid "Label re-generation failed"
+msgstr ""
+
+#: includes/Admin/class-bgc-labels.php:235
+msgid "Cancelled from the BG Couriers panel."
+msgstr ""
+
+#: includes/Admin/class-bgc-labels.php:249
+msgid "Choose a courier."
+msgstr ""
+
+#. translators: %s: error message
+#: includes/Admin/class-bgc-labels.php:259
+#, php-format
+msgid "Could not cancel the current waybill: %s"
+msgstr ""
+
+#. translators: %s: error message
+#: includes/Admin/class-bgc-labels.php:282
+#, php-format
+msgid "Saved, but issuing the new waybill failed: %s"
+msgstr ""
+
+#: includes/Admin/class-bgc-labels.php:285
+msgid "Delivery updated and a new waybill issued."
+msgstr ""
+
+#: includes/Admin/class-bgc-labels.php:285
+msgid "Delivery details saved."
+msgstr ""
+
+#: includes/Admin/class-bgc-labels.php:296
+msgid "Waybill cancelled."
+msgstr ""
+
+#: includes/Admin/class-bgc-labels.php:305
+msgid "No waybill found."
+msgstr ""
+
+#: includes/Admin/class-bgc-labels.php:321
+#: includes/Admin/class-bgc-labels.php:335
+msgid "No labels to print."
+msgstr ""
+
+#. translators: %s: error message
+#: includes/Admin/class-bgc-labels.php:334
+#, php-format
+msgid "Print failed: %s"
+msgstr ""
+
+#: includes/Shipping/class-bgc-method-boxnow.php:13
+msgid "BOX NOW locker (APM) delivery (BG Couriers)"
+msgstr ""
+
+#: includes/Shipping/class-bgc-method-econt.php:9
+msgid "Econt shipping (BG Couriers)"
+msgstr ""
+
+#: includes/Shipping/class-bgc-method-pigeon.php:9
+msgid "Pigeon Express shipping (BG Couriers)"
+msgstr ""
+
+#: includes/Shipping/class-bgc-method-speedy.php:9
+msgid "Speedy shipping (BG Couriers)"
+msgstr ""
+
+#: includes/Shipping/class-bgc-method-sameday.php:9
+msgid "Sameday shipping (BG Couriers)"
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:117
@@ -1805,176 +1971,4 @@ msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:575
 msgid "Block"
-msgstr ""
-
-#: includes/Couriers/abstract-bgc-courier.php:51
-msgid "API credentials are missing."
-msgstr ""
-
-#: includes/Couriers/abstract-bgc-courier.php:52
-msgid "Enter the username/key and password/secret, then click “Save changes”."
-msgstr ""
-
-#: includes/Couriers/abstract-bgc-courier.php:56
-msgid "The API credentials have not been validated."
-msgstr ""
-
-#: includes/Couriers/abstract-bgc-courier.php:57
-msgid "Click “Validate credentials” and make sure the check succeeds."
-msgstr ""
-
-#. translators: %s: human-readable parcel state, e.g. "delivered"
-#: includes/Couriers/class-bgc-boxnow-webhook.php:87
-#, php-format
-msgid "BOX NOW tracking update: %s"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow-webhook.php:94
-msgid "registered"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow-webhook.php:95
-msgid "in transit"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow-webhook.php:96
-msgid "in the locker - ready for pickup"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow-webhook.php:97
-msgid "delivered"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow-webhook.php:98
-msgid "returned"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow-webhook.php:99
-msgid "returned (not collected in time)"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow-webhook.php:100
-msgid "canceled"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow-webhook.php:101
-msgid "lost"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow-webhook.php:102
-msgid "missing"
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow.php:33
-msgid "No Partner ID is set."
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow.php:34
-msgid ""
-"Enter the Partner ID from your BOX NOW account (a required header on every "
-"request)."
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow.php:36
-msgid "No Warehouse ID is set."
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow.php:37
-msgid "Enter the origin Warehouse ID parcels ship from (from BOX NOW)."
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow.php:40
-msgid "The flat delivery price is not set."
-msgstr ""
-
-#: includes/Couriers/class-bgc-boxnow.php:41
-msgid "Enter a “Delivery price” greater than 0 - BOX NOW has no live rate API."
-msgstr ""
-
-#: includes/Couriers/class-bgc-econt.php:24
-msgid "Cash on delivery is on, but no pay-out agreement is selected."
-msgstr ""
-
-#: includes/Couriers/class-bgc-econt.php:25
-msgid "Choose a “CD pay-out agreement” below, or turn off cash on delivery."
-msgstr ""
-
-#: includes/Couriers/class-bgc-econt.php:166
-msgid "postal money transfer"
-msgstr ""
-
-#: includes/Couriers/class-bgc-econt.php:414
-msgid "Shipping & fees"
-msgstr ""
-
-#: includes/Couriers/class-bgc-pigeon.php:29
-msgid "No pickup office ID is set."
-msgstr ""
-
-#: includes/Couriers/class-bgc-pigeon.php:30
-msgid ""
-"Enter the “Pickup office ID” you ship from (used for quotes and labels)."
-msgstr ""
-
-#: includes/Couriers/class-bgc-pigeon.php:439
-msgid ""
-"Set your Pigeon pickup office ID in Settings > BG Couriers > Pigeon Express "
-"before generating a label."
-msgstr ""
-
-#: includes/Couriers/class-bgc-pigeon.php:467
-msgid ""
-"Pigeon labels are only available at creation time and cannot be re-fetched. "
-"Regenerate the waybill to get a fresh label."
-msgstr ""
-
-#: includes/Couriers/class-bgc-sameday.php:39
-msgid "No pickup point ID is set."
-msgstr ""
-
-#: includes/Couriers/class-bgc-sameday.php:40
-msgid ""
-"Enter the “Pickup point ID” you ship from (required for quotes and labels)."
-msgstr ""
-
-#: includes/Couriers/class-bgc-sameday.php:42
-msgid "to office"
-msgstr ""
-
-#: includes/Couriers/class-bgc-sameday.php:43
-msgid "to address"
-msgstr ""
-
-#: includes/Couriers/class-bgc-sameday.php:44
-msgid "to locker (easyBox)"
-msgstr ""
-
-#. translators: %s: delivery type, e.g. "to office"
-#: includes/Couriers/class-bgc-sameday.php:50
-#, php-format
-msgid "No Sameday service ID for the enabled “%s” delivery type."
-msgstr ""
-
-#: includes/Couriers/class-bgc-sameday.php:51
-msgid "Enter the matching “Service ID” below, or disable that delivery type."
-msgstr ""
-
-#: includes/Shipping/class-bgc-method-boxnow.php:13
-msgid "BOX NOW locker (APM) delivery (BG Couriers)"
-msgstr ""
-
-#: includes/Shipping/class-bgc-method-econt.php:9
-msgid "Econt shipping (BG Couriers)"
-msgstr ""
-
-#: includes/Shipping/class-bgc-method-pigeon.php:9
-msgid "Pigeon Express shipping (BG Couriers)"
-msgstr ""
-
-#: includes/Shipping/class-bgc-method-sameday.php:9
-msgid "Sameday shipping (BG Couriers)"
-msgstr ""
-
-#: includes/Shipping/class-bgc-method-speedy.php:9
-msgid "Speedy shipping (BG Couriers)"
 msgstr ""

@@ -103,9 +103,10 @@ class BGC_WC_Settings extends WC_Settings_Page {
            table, per-method fields sit in a narrower card - without this their inputs align differently). */
         #wpbody .bgc-settings table.form-table td > select,
         #wpbody .bgc-settings table.form-table td > input:not([type=checkbox]):not([type=radio]) { width: 360px !important; max-width: 100% !important; box-sizing: border-box; float: none; margin: 0; display: inline-block; }
-        /* WooCommerce floats the (i) help tip to the right of the label cell, where our full-width input then
-           overlaps it. Keep it inline right after the label text so it is always fully visible. */
-        #wpbody .bgc-settings table.form-table th .woocommerce-help-tip { float: none !important; position: static !important; margin: 0 0 0 6px !important; vertical-align: middle; }
+        /* Every field description lives in a hover (i) tip. JS moves that tip out of the label cell to sit just
+           to the right of the field itself; both selectors keep it inline (never floated/overlapping). */
+        #wpbody .bgc-settings table.form-table th .woocommerce-help-tip,
+        #wpbody .bgc-settings table.form-table td .woocommerce-help-tip { float: none !important; position: static !important; display: inline-block; margin: 0 0 0 8px !important; vertical-align: middle; }
         /* One standardised red (disabled / error) + green (enabled / ok) palette, reused everywhere. */
         #wpbody .bgc-settings { --bgc-red-bg:#fcf0f1; --bgc-red-bg2:#f7dde0; --bgc-red-bd:#e6a2a5; --bgc-red-tx:#b32d2e;
             --bgc-green-bg:#eef9f1; --bgc-green-bg2:#dcf1e3; --bgc-green-bd:#c4e7cf; --bgc-green-tx:#1a7f37; }
@@ -143,9 +144,21 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider { background:var(--bgc-green-tx); }
         #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider:before { transform:translateX(20px); }
         #wpbody .bgc-settings .bgc-enable-text { font-size:13px; color:#1d2327; }
-        /* Credentials state: green when validated, red while editing/unverified; locked masked password + red change-× */
-        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td { background:var(--bgc-green-bg); }
-        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:var(--bgc-red-bg); }
+        /* Every setting checkbox renders as a red/green toggle switch (green = on, red = off), reusing the palette. */
+        #wpbody .bgc-settings .form-table td input[type=checkbox] { -webkit-appearance:none!important; appearance:none!important; position:relative; box-sizing:border-box; width:44px!important; height:24px!important; min-width:44px; margin:0 8px 0 0; padding:0; border:none!important; border-radius:24px; background:var(--bgc-red-tx)!important; box-shadow:none!important; cursor:pointer; transition:background .2s; vertical-align:middle; }
+        #wpbody .bgc-settings .form-table td input[type=checkbox]::before { content:""!important; position:absolute; top:3px; left:3px; width:18px; height:18px; margin:0; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 2px rgba(0,0,0,.25); }
+        #wpbody .bgc-settings .form-table td input[type=checkbox]:checked { background:var(--bgc-green-tx)!important; }
+        #wpbody .bgc-settings .form-table td input[type=checkbox]:checked::before { transform:translateX(20px); }
+        #wpbody .bgc-settings .form-table td input[type=checkbox]:focus { outline:none; box-shadow:0 0 0 2px rgba(34,113,177,.35)!important; }
+        /* Credentials state: green when validated, red while editing/unverified; locked masked password + red change-×.
+           The rows render as one clean full-bleed tinted band - a 16px horizontal box-shadow bridges the group
+           side padding so the colour reaches the panel edges instead of leaving an uneven inset frame. */
+        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td,
+        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { vertical-align:middle; }
+        #wpbody .bgc-settings tr.bgc-creds-ok > th { background:var(--bgc-green-bg); box-shadow:-16px 0 0 var(--bgc-green-bg); }
+        #wpbody .bgc-settings tr.bgc-creds-ok > td { background:var(--bgc-green-bg); box-shadow:16px 0 0 var(--bgc-green-bg); }
+        #wpbody .bgc-settings tr.bgc-creds-edit > th { background:var(--bgc-red-bg); box-shadow:-16px 0 0 var(--bgc-red-bg); }
+        #wpbody .bgc-settings tr.bgc-creds-edit > td { background:var(--bgc-red-bg); box-shadow:16px 0 0 var(--bgc-red-bg); }
         #wpbody .bgc-settings .bgc-cred-x { color:var(--bgc-red-tx); border-color:var(--bgc-red-bd) !important; margin-left:8px; font-weight:700; line-height:1.6; }
         #wpbody .bgc-settings input.bgc-cred-locked { background:#f0f0f1; color:#787c82; letter-spacing:2px; }
         #bgc-toasts { position:fixed; top:46px; right:22px; z-index:100001; display:flex; flex-direction:column; gap:9px; }
@@ -169,9 +182,27 @@ class BGC_WC_Settings extends WC_Settings_Page {
         } elseif ($current_section === 'sameday') {
             $this->output_courier('sameday');
         } else {
-            WC_Admin_Settings::output_fields($this->general_fields());
+            WC_Admin_Settings::output_fields(self::tipify($this->general_fields()));
         }
         echo '</div></div>';
+
+        // Field descriptions render as a hover (i) tip; WooCommerce puts that tip inside the label cell, so
+        // relocate each one to sit just to the right of its own input/select instead.
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- static inline JS, no dynamic values.
+        echo '<script>' . "\n"
+            . "(function(\$){\n"
+            . "    \$(function(){\n"
+            . "        \$('#wpbody .bgc-settings table.form-table > tbody > tr').each(function(){\n"
+            . "            var tr=\$(this), tip=tr.children('th').find('.woocommerce-help-tip').first();\n"
+            . "            if(!tip.length){ return; }\n"
+            . "            var td=tr.children('td').first(); if(!td.length){ return; }\n"
+            . "            var a=td.find('input:not([type=hidden]):not([type=checkbox]),select,textarea').last();\n"
+            . "            if(a.length){ tip.insertAfter(a); } else { td.append(tip); }\n"
+            . "        });\n"
+            . "    });\n"
+            . "})(jQuery);\n"
+            . '</script>';
+        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 
         // AJAX "Save changes" - save without a page reload, with a top-right toast (green ok / red error).
         $save_nonce = esc_js(wp_create_nonce('bgc_save'));
@@ -278,6 +309,29 @@ class BGC_WC_Settings extends WC_Settings_Page {
      * Render the courier settings section (courier fields + per-method sub-tabs).
      * Works for any courier id (speedy, econt, …).
      */
+    /**
+     * Move each field's descriptive text into a hover tooltip on a (i) icon (WooCommerce desc_tip) so the
+     * form stays uncluttered - the caption shows on hover, not as permanent inline text. Applied centrally
+     * to every field list before output. Section intros (title/textarea section notes) and our custom
+     * banner/action rows are left untouched; a checkbox with no title keeps its desc as the visible label;
+     * a description that embeds copyable/interactive markup (the webhook URL, links) also stays inline; a
+     * field that already sets its own desc_tip is respected as-is.
+     */
+    private static function tipify(array $fields): array {
+        static $skip = ['title', 'sectionend', 'bgc_actions', 'bgc_ppp_notice', 'bgc_cred_hint', 'bgc_about', 'bgc_pigeon_pickup'];
+        foreach ($fields as &$f) {
+            $type = $f['type'] ?? '';
+            if (in_array($type, $skip, true)) { continue; }
+            $desc = $f['desc'] ?? '';
+            if ($desc === '' || !empty($f['desc_tip'])) { continue; }
+            if ($type === 'checkbox' && empty($f['title'])) { continue; }
+            if (strpos($desc, '<code') !== false || strpos($desc, '<br') !== false || strpos($desc, '<a ') !== false) { continue; }
+            $f['desc_tip'] = true;
+        }
+        unset($f);
+        return $fields;
+    }
+
     private function output_courier(string $courier_id): void {
         $fields    = $this->{$courier_id . '_courier_fields'}();
         $enable_id = 'bgc_' . $courier_id . '_enabled';
@@ -299,7 +353,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . '</div>';
         BGC_Settings::ppp_notice_block($courier_id); // full-width, escaped internally
         BGC_Settings::cred_hint_block($courier_id);  // full-width, escaped internally
-        WC_Admin_Settings::output_fields($fields);
+        WC_Admin_Settings::output_fields(self::tipify($fields));
         $c_id    = esc_js($courier_id);
         $c_ajax  = esc_js(admin_url('admin-ajax.php'));
         $c_save  = esc_js(wp_create_nonce('bgc_save'));
@@ -374,7 +428,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                     return !(isset($f['id']) && $f['id'] === $en);
                 }));
                 echo '<div class="bgc-method-panel" data-bgc-panel="' . esc_attr($m) . '"' . ($first ? '' : ' style="display:none;"') . '>';
-                WC_Admin_Settings::output_fields($mf);
+                WC_Admin_Settings::output_fields(self::tipify($mf));
                 echo '</div>';
                 $first = false;
             }
@@ -711,7 +765,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Your (the sender\'s) contact phone for the pickup/origin - BOX NOW puts this on the parcel as the origin contact. Leave empty to omit.', 'bg-couriers'), 'autoload' => false],
             ['type' => 'checkbox', 'id' => 'bgc_boxnow_allow_returns', 'title' => __('Allow returns', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
-                'desc' => __('Verifies incoming BOX NOW parcel-event webhooks (HMAC-SHA256). Register this webhook URL in your BOX NOW account:', 'bg-couriers')
+                'desc' => __('You receive it after you register this webhook URL in your BOX NOW account:', 'bg-couriers')
                     . '<br><code>' . esc_html(BGC_Boxnow_Webhook::url()) . '</code>', 'autoload' => false],
             ['type' => 'text', 'id' => 'bgc_boxnow_flat_price', 'title' => __('Delivery price', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Flat BOX NOW locker delivery price (BoxNow has no live rate API). In the store currency.', 'bg-couriers'), 'default' => ''],
