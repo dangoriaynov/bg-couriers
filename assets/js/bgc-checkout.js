@@ -474,6 +474,13 @@
     });
   }
 
+  // Fade the chosen courier's fields in once they are fully built, instead of flashing raw selects on load.
+  // Only reveals the first time (persists across totals refreshes); re-reveals when you switch couriers.
+  function reveal($wrap) {
+    if ($wrap.hasClass('bgc-ready')) { return; }
+    window.requestAnimationFrame(function () { $wrap.addClass('bgc-ready'); });
+  }
+
   $(document.body).on('updated_checkout', function () {
     dimRates();
     if (!$('.bgc-fields').length) return;
@@ -481,10 +488,11 @@
     $('.bgc-fields').each(function () {
       var $wrap = $(this);
       var mine = $wrap.attr('data-courier') === chosen;
-      $wrap.toggle(mine); // show only the chosen courier's fields (multiple couriers can share a zone)
-      if (!mine) return;
-      if ($wrap.hasClass('bgc-boxnow')) { hideLoader($wrap); return; } // locker picked via the map widget - nothing to init
+      if (!mine) { $wrap.hide().removeClass('bgc-ready'); return; } // hide (and re-arm) the other couriers' fields
+      $wrap.show(); // show only the chosen courier's fields (multiple couriers can share a zone)
+      if ($wrap.hasClass('bgc-boxnow')) { hideLoader($wrap); reveal($wrap); return; } // locker picked via the map widget - nothing to init
       renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); hideLoader($wrap);
+      reveal($wrap);
     });
   });
 

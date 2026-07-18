@@ -1,5 +1,10 @@
 /* BG Couriers - checkout fields */
 .bgc-fields { position: relative; margin: 10px 0; }
+/* Reveal a courier's delivery fields only once they are fully initialised (select2 built, tabs + availability
+   ready), so the checkout shows the courier list first and the current courier's fields fade/slide in smoothly
+   instead of flashing raw <select>s while the page is still loading. */
+.bgc-fields { opacity: 0; transform: translateY(6px); transition: opacity .28s ease, transform .28s ease; }
+.bgc-fields.bgc-ready { opacity: 1; transform: none; }
 .bgc-fields, .bgc-fields * { box-sizing: border-box; }
 
 /* Kill theme list bullets / markers that leak into our rows */
