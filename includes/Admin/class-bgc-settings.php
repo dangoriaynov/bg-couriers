@@ -365,7 +365,10 @@ jQuery(function($){
         ];
         echo '<tr valign="top"><td colspan="2" class="forminp" style="padding-top:4px;">';
         echo '<div class="bgc-about" style="max-width:760px;line-height:1.6;">';
-        echo '<h3 style="margin:.2em 0 .4em;">' . esc_html__('BG Couriers for WooCommerce', 'bg-couriers') . '</h3>';
+        // Brand name - NOT translatable: if "BG Couriers for WooCommerce" is a translatable string, WordPress
+        // translates the plugin header too ("за WooCommerce"), which trips WP.org's trademark check (the name
+        // must keep the English "for woocommerce" pattern).
+        echo '<h3 style="margin:.2em 0 .4em;">' . esc_html('BG Couriers for WooCommerce') . '</h3>';
         echo '<p style="margin:.2em 0;">' . esc_html__('Free shipping integration for the Bulgarian couriers, built and maintained by an independent developer.', 'bg-couriers') . '</p>';
         echo '<h4 style="margin:.9em 0 .3em;">' . esc_html__('My other free plugins', 'bg-couriers') . '</h4>';
         echo '<ul style="margin:.2em 0 .2em 1.3em;list-style:disc;">';
