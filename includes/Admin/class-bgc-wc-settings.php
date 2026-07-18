@@ -114,8 +114,8 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-help:hover, #wpbody .bgc-settings .bgc-help:focus { background:#2271b1; outline:none; }
         #wpbody .bgc-settings .bgc-help:hover::after, #wpbody .bgc-settings .bgc-help:focus::after { content:attr(data-tip); position:absolute; left:0; top:calc(100% + 7px); width:300px; max-width:300px; white-space:normal; background:#1d2327; color:#fff; font:400 12px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif; font-style:normal; text-align:left; padding:9px 12px; border-radius:8px; box-shadow:0 5px 18px rgba(0,0,0,.28); z-index:1000; pointer-events:none; }
         /* One standardised red (disabled / error) + green (enabled / ok) palette, reused everywhere. */
-        #wpbody .bgc-settings { --bgc-red-bg:#fcf0f1; --bgc-red-bg2:#f7dde0; --bgc-red-bd:#e6a2a5; --bgc-red-tx:#b32d2e;
-            --bgc-green-bg:#eef9f1; --bgc-green-bg2:#dcf1e3; --bgc-green-bd:#c4e7cf; --bgc-green-tx:#1a7f37; }
+        #wpbody .bgc-settings { --bgc-red-bg:#fcf0f1; --bgc-red-bd:#e6a2a5; --bgc-red-tx:#b32d2e;
+            --bgc-green-bg:#eef9f1; --bgc-green-bd:#c4e7cf; --bgc-green-tx:#1a7f37; }
         #wpbody .bgc-settings .bgc-group { border: 1px solid #e2e6ea; border-radius: 10px; padding: 6px 16px 12px; margin: 0 0 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
         #wpbody .bgc-settings .bgc-group > h2 { font-size: 1.02em; margin: 12px 0 4px; }
         #wpbody .bgc-settings .bgc-group > p.description { margin-top: 0; }
@@ -123,11 +123,11 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .nav-tab-wrapper { border-bottom:none; margin:0 0 16px; display:flex; flex-wrap:wrap; gap:10px; padding:0; }
         #wpbody .bgc-settings .nav-tab { border:1px solid #dcdcde; border-radius:11px; padding:11px 26px; margin:0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.10); font-weight:500; line-height:1.2; color:#1d2327; transition:box-shadow .15s ease, transform .15s ease, background .15s ease; }
         #wpbody .bgc-settings .nav-tab:hover { box-shadow:0 3px 8px rgba(0,0,0,.16); }
-        #wpbody .bgc-settings .nav-tab.nav-tab-active { border-color:#8c8f94; box-shadow:0 5px 13px rgba(0,0,0,.20); transform:translateY(-1px); }
         #wpbody .bgc-settings .nav-tab.bgc-tab-on { background:var(--bgc-green-bg); border-color:var(--bgc-green-bd); }
         #wpbody .bgc-settings .nav-tab.bgc-tab-off { background:var(--bgc-red-bg); border-color:var(--bgc-red-bd); }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-on.nav-tab-active { background:var(--bgc-green-bg2); }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-off.nav-tab-active { background:var(--bgc-red-bg2); }
+        /* Active tab keeps the same green/red tint as its inactive twin - the lift + stronger shadow + neutral
+           border mark it active, so every red tab is one red and every green tab is one green. */
+        #wpbody .bgc-settings .nav-tab.nav-tab-active { border-color:#8c8f94; box-shadow:0 5px 13px rgba(0,0,0,.20); transform:translateY(-1px); }
         #wpbody .bgc-settings .bgc-courier-tabs { display:inline-flex; flex-wrap:wrap; gap:10px; }
         #wpbody .bgc-settings .nav-tab { display:inline-flex; align-items:center; gap:8px; }
         #wpbody .bgc-settings .bgc-courier-tab { padding-left:16px; padding-right:20px; cursor:move; }
