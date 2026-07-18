@@ -91,9 +91,11 @@ class BGC_WC_Settings extends WC_Settings_Page {
     public function output() {
         global $current_section;
         echo '<style>
-        #wpbody .bgc-settings table.form-table th { padding: 9px 12px 9px 0; width: 210px; }
+        #wpbody .bgc-settings table.form-table th { padding: 9px 18px 9px 0; width: 340px; vertical-align: middle; }
         #wpbody .bgc-settings table.form-table td { padding: 7px 0; }
-        #wpbody .bgc-settings table.form-table { margin: 0; width: 100% !important; }
+        /* Auto width (not 100%) so the table hugs its label + value columns instead of leaving a big empty
+           gap to the right of every field. */
+        #wpbody .bgc-settings table.form-table { margin: 0; width: auto !important; }
         /* Full-width banners (ППП notice, API-credentials hint) span the whole settings column, not just the
            auto-sized cell. */
         #wpbody .bgc-settings .bgc-ppp-notice,
