@@ -13,7 +13,7 @@ class BGC_Order_Columns {
 
     public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = ''): string {
         if ($waybill === '') {
-            return '<a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate waybill', 'bg-couriers') . '</a>';
+            return '<a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a>';
         }
         // One line of icon-only actions - copy (the waybill # is the tooltip + clipboard payload), print,
         // track, cancel. No visible text. The cancel link carries the order id + a cancel nonce + a generate
@@ -39,7 +39,7 @@ class BGC_Order_Columns {
             'no'           => __('Keep it', 'bg-couriers'),
             'cancelled'    => __('Waybill cancelled', 'bg-couriers'),
             'copied'       => __('Copied to clipboard', 'bg-couriers'),
-            'gen'          => __('Generate waybill', 'bg-couriers'),
+            'gen'          => __('Generate', 'bg-couriers'),
             'err'          => __('Could not cancel.', 'bg-couriers'),
         ];
         ?>

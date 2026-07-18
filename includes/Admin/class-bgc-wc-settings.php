@@ -229,8 +229,16 @@ class BGC_WC_Settings extends WC_Settings_Page {
     private function nav_pill(string $id, string $label, string $current, bool $courier): string {
         $url    = admin_url('admin.php?page=wc-settings&tab=bg_couriers' . ($id ? '&section=' . $id : ''));
         $active = $current === $id ? ' nav-tab-active' : '';
-        $tint   = $id !== '' ? (get_option('bgc_' . $id . '_enabled', 'no') === 'yes' ? ' bgc-tab-on' : ' bgc-tab-off') : '';
-        $cls    = 'nav-tab' . $active . $tint . ($courier ? ' bgc-courier-tab' : '');
+        // Green when the courier is enabled AND usable; red when disabled OR currently unusable (e.g. it can't
+        // do ППП and the shop has no prepaid method, so it won't appear at checkout).
+        $tint = '';
+        if ($id !== '') {
+            $on       = get_option('bgc_' . $id . '_enabled', 'no') === 'yes';
+            $notice   = BGC_Settings::ppp_courier_notice($id);
+            $unusable = $notice && $notice['level'] === 'error';
+            $tint     = ($on && !$unusable) ? ' bgc-tab-on' : ' bgc-tab-off';
+        }
+        $cls = 'nav-tab' . $active . $tint . ($courier ? ' bgc-courier-tab' : '');
         $ico    = $courier ? self::courier_icon($id) : '';
         return '<a class="' . $cls . '" href="' . esc_url($url) . '" data-courier="' . esc_attr($id) . '">' . $ico . '<span>' . esc_html($label) . '</span></a>';
     }
