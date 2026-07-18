@@ -694,6 +694,7 @@ jQuery(function($){
             . '    if(!p.length){ return; }' . "\n"
             . '    var vbtn=$(\'#bgc-validate\'), sbtn=$(\'#bgc-sync\'), st=$(\'#bgc-status\');' . "\n"
             . '    var rows=u.closest(\'tr\').add(p.closest(\'tr\')).add(vbtn.closest(\'tr\'));' . "\n"
+            . '    rows.closest(\'table\').addClass(\'bgc-cred-table\');' . "\n"
             . '    function tint(ok){ rows.toggleClass(\'bgc-creds-ok\',ok).toggleClass(\'bgc-creds-edit\',!ok); }' . "\n"
             . '    function ctl(fld){' . "\n"
             . '        if(!fld.length){ return {lock:function(){},unlock:function(){},editing:function(){return false;},xb:$()}; }' . "\n"

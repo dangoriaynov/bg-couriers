@@ -163,8 +163,12 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { vertical-align:middle; }
         #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td { background:var(--bgc-green-bg); }
         #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:var(--bgc-red-bg); }
+        /* The credentials table spans the full column width (like the enable bar + hint above it), so the
+           green/red tint reads as one clean full-width rectangle - not a narrow content-sized block with a
+           ragged right edge. border-collapse kills any theme row-spacing that would step the fill. */
+        #wpbody .bgc-settings table.form-table.bgc-cred-table { width:100% !important; border-collapse:collapse; }
         #wpbody .bgc-settings .bgc-cred-x { color:var(--bgc-red-tx); border-color:var(--bgc-red-bd) !important; margin-left:8px; font-weight:700; line-height:1.6; }
-        #wpbody .bgc-settings input.bgc-cred-locked { background:#f0f0f1; color:#787c82; letter-spacing:2px; }
+        #wpbody .bgc-settings input.bgc-cred-locked { background:#fff; color:#787c82; letter-spacing:2px; border-color:#c9ced3 !important; }
         #bgc-toasts { position:fixed; top:46px; right:22px; z-index:100001; display:flex; flex-direction:column; gap:9px; }
         #bgc-toasts .bgc-toast { padding:12px 18px; border-radius:9px; color:#fff; font-weight:600; font-size:13px; box-shadow:0 6px 18px rgba(0,0,0,.20); opacity:0; transform:translateY(-10px); transition:opacity .25s ease, transform .25s ease; max-width:360px; }
         #bgc-toasts .bgc-toast.show { opacity:1; transform:none; }
