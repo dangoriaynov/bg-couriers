@@ -106,6 +106,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings table.form-table td > select,
         #wpbody .bgc-settings table.form-table td > textarea,
         #wpbody .bgc-settings table.form-table td > input:not([type=checkbox]):not([type=radio]) { width: 400px !important; min-width: 0 !important; max-width: 100% !important; box-sizing: border-box; float: none; margin: 0; display: inline-block; vertical-align: top; }
+        /* Every field uses our own (i); the WooCommerce native help-tip is never used here, so hide it
+           outright - it must never float over or overlap an input. */
+        #wpbody .bgc-settings .woocommerce-help-tip { display:none !important; }
         /* Each field description collapses into a small (i) that sits inline right after the field label; the
            text appears in a self-contained CSS hover/focus tooltip. Fully independent of the WooCommerce
            help-tip so it can never float over or overlap the label. */
@@ -691,7 +694,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'title' => __('Pickup office', 'bg-couriers'),
                 'desc' => __('The Pigeon office you drop parcels at. Search your city, then pick the office.', 'bg-couriers')],
             ['type' => 'number', 'id' => 'bgc_pigeon_box_length', 'title' => __('Default parcel length (cm)', 'bg-couriers'),
-                'desc_tip' => __('Default parcel size (cm) Pigeon needs on every quote/label, used when an order has none of its own.', 'bg-couriers'),
+                'desc' => __('Default parcel size (cm) Pigeon needs on every quote/label, used when an order has none of its own.', 'bg-couriers'),
                 'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'number', 'id' => 'bgc_pigeon_box_width', 'title' => __('Default parcel width (cm)', 'bg-couriers'),
                 'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
