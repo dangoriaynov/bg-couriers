@@ -143,13 +143,16 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
     }
 
     /**
-     * 'sender' (default) or 'recipient' - who pays the courier delivery fee, per courier setting.
+     * 'sender' (default) or 'recipient' - who pays the courier delivery fee. Derived from the
+     * "Delivery in the order total" toggle so the waybill payer, the COD amount and the checkout
+     * rate cost can never disagree: charged with the order = sender pays the courier; not charged
+     * = the recipient pays the courier's own fee on delivery.
      *
      * @param string $courier Courier id (e.g. 'speedy', 'pigeon', 'sameday').
      * @return string 'sender' or 'recipient'.
      */
     protected static function service_payer(string $courier): string {
-        return get_option('bgc_' . $courier . '_service_payer', 'sender') === 'recipient' ? 'recipient' : 'sender';
+        return BGC_Settings::ship_in_total($courier) ? 'sender' : 'recipient';
     }
 
     /**

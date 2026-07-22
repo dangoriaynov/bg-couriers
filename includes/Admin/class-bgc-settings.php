@@ -169,6 +169,22 @@ class BGC_Settings {
         return self::cod_fiscalization() === 'cash_register' || self::courier_ppp_payout($courier);
     }
 
+    /**
+     * Whether this courier's delivery price is charged with the order at checkout (default) or only shown
+     * for information while the customer pays the courier's own fee on delivery. Drives BOTH the checkout
+     * rate cost (0 when off) and the waybill payer/COD amount (service_payer(): off = recipient pays,
+     * COD collects goods only). Econt and BOX NOW have no verified recipient-pays API field, so for them
+     * delivery is always charged with the order.
+     */
+    public static function ship_in_total(string $courier): bool {
+        if (!in_array($courier, ['speedy', 'pigeon', 'sameday'], true)) { return true; }
+        $v = (string) get_option('bgc_' . $courier . '_ship_in_total', '');
+        if ($v === '') { // pre-toggle installs: honor the old "Who pays delivery" select
+            return get_option('bgc_' . $courier . '_service_payer', 'sender') !== 'recipient';
+        }
+        return $v !== 'no';
+    }
+
     public static function is_cod_gateway(string $gid, $gw): bool {
         return $gid === 'cod' || (is_object($gw) && is_a($gw, 'WC_Gateway_COD'));
     }

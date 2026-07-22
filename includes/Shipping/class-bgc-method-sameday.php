@@ -37,8 +37,19 @@ class BGC_Method_Sameday extends WC_Shipping_Method {
         $quote = BGC_Pricing::checkout_quote($courier, $method, $site_id, $office, $packed, get_woocommerce_currency());
         $cost  = $quote->price;
 
-        // Free shipping (the merchant absorbs it) when the goods total (w/o shipping) reaches the threshold.
-        if (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGC_Settings::free_shipping('sameday'))) {
+        $included = BGC_Settings::ship_in_total('sameday');
+        $info     = 0.0;
+        if (!$included) {
+            // "Delivery in the order total" is off: nothing is charged with the order - the customer
+            // pays the courier's own fee on delivery. Keep the estimate (display-gross, like charged
+            // rates render) so the method label can still show it for information.
+            $info = (float) $cost;
+            if ($info > 0 && get_option('woocommerce_tax_display_cart') === 'incl') {
+                $info += array_sum(WC_Tax::calc_shipping_tax($info, WC_Tax::get_shipping_tax_rates()));
+            }
+            $cost = 0.0;
+        } elseif (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGC_Settings::free_shipping('sameday'))) {
+            // Free shipping (the merchant absorbs it) when the goods total (w/o shipping) reaches the threshold.
             $cost = 0.0;
         }
 
@@ -49,14 +60,14 @@ class BGC_Method_Sameday extends WC_Shipping_Method {
 
         $label = $this->title;
         $free  = BGC_Settings::free_shipping_label();
-        if ($cost <= 0 && $free !== '') { $label = $free; }
+        if ($included && $cost <= 0 && $free !== '') { $label = $free; }
 
         $this->add_rate([
             'id'    => $this->get_rate_id(),
             'label' => $label,
             'cost'  => $cost,
             'taxes' => '', // '' = let WC calculate shipping tax; only false disables it
-            'meta_data' => ['_bgc_source' => $quote->source, '_bgc_method' => $method],
+            'meta_data' => ['_bgc_source' => $quote->source, '_bgc_method' => $method, '_bgc_info_price' => $info],
         ]);
     }
 }

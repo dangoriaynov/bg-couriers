@@ -21,6 +21,7 @@ class BGC_Checkout {
                 echo '<style>.woocommerce-shipping-calculator{display:none!important;}.bgc-cart-note{font-size:.85em;color:#6b7280;margin:2px 0 8px;line-height:1.35;}</style>';
             }
         });
+        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_price_label'], 4, 2);     // "delivery not in the total": estimate instead of a price
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'logo_shipping_label'], 5, 2);  // courier brand logo before the name
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
@@ -118,15 +119,32 @@ class BGC_Checkout {
             'address' => __('to your address', 'bg-couriers'),
             'automat' => __('to an APS (locker)', 'bg-couriers'),
         ];
+        // "Delivery in the order total" off: the label already says the fee is paid to the courier - no note.
+        if (!BGC_Settings::ship_in_total($courier_id)) { return; }
         $type = $types[$m] ?? $types['office'];
         if (in_array('live_quote', $c->capabilities(), true)) {
             /* translators: %s = delivery type, e.g. "to an office" */
-            $note = sprintf(__('≈ estimate for delivery %s at this cart weight - choose your city and exact point at checkout for the final price.', 'bg-couriers'), $type);
+            $note = sprintf(__('≈ %s - final price at checkout.', 'bg-couriers'), $type);
         } else {
             /* translators: %s = delivery type */
-            $note = sprintf(__('Flat price for delivery %s - choose your exact locker at checkout.', 'bg-couriers'), $type);
+            $note = sprintf(__('Flat price %s.', 'bg-couriers'), $type);
         }
         echo '<div class="bgc-cart-note">' . esc_html($note) . '</div>';
+    }
+
+    /**
+     * "Delivery in the order total" off: the rate is 0 so WC would render the label alone (or "Free") -
+     * replace it with the informational estimate the customer will pay the courier on delivery.
+     * Runs BEFORE the logo (5) / dual-currency (20) filters; rebuilding from get_label() drops whatever
+     * suffix WC appended for the zero cost.
+     */
+    public function info_price_label($label, $method) {
+        if (!is_object($method) || !method_exists($method, 'get_meta_data')) { return $label; }
+        $meta = (array) $method->get_meta_data();
+        $info = (float) ($meta['_bgc_info_price'] ?? 0);
+        if ($info <= 0) { return $label; }
+        /* translators: %s = a formatted price, e.g. "2,58 €" */
+        return $method->get_label() . ': ' . sprintf(__('~%s - paid to the courier on delivery', 'bg-couriers'), BGC_Currency::dual_store($info));
     }
 
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
@@ -195,6 +213,8 @@ class BGC_Checkout {
     public static function free_notice_html(): string {
         $courier = self::chosen_courier();
         if (!$courier) { return '<div class="bgc-free-notice"></div>'; } // no bgc courier chosen
+        // Nothing to earn when this courier's delivery isn't charged with the order.
+        if (!BGC_Settings::ship_in_total($courier)) { return '<div class="bgc-free-notice"></div>'; }
         $cfg = BGC_Settings::free_shipping($courier);
         $subtotal = (function_exists('WC') && WC()->cart) ? (float) WC()->cart->get_subtotal() : 0.0;
         if (empty($cfg['enabled']) || (float) ($cfg['threshold'] ?? 0) <= 0) {

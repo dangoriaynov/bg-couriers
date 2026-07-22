@@ -587,18 +587,14 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'sectionend', 'id' => 'bgc_speedy_delivery'],
 
             ['type' => 'title', 'id' => 'bgc_speedy_pricing', 'title' => __('Pricing', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgc_speedy_ship_in_total', 'title' => __('Delivery in the order total', 'bg-couriers'),
+                'desc' => __('On: the customer pays delivery together with the order. Off: delivery is not charged at checkout - the estimated price is shown for information and the customer pays the courier on delivery; cash on delivery then collects only the goods total.', 'bg-couriers'),
+                'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Speedy free above this goods total (excluding shipping). Empty or 0 disables. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_speedy_pricing'],
 
             ['type' => 'title', 'id' => 'bgc_speedy_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
-            ['type' => 'select', 'id' => 'bgc_speedy_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
-                'options' => [
-                    'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
-                    'recipient' => __('Recipient (pays the courier at delivery)', 'bg-couriers'),
-                ],
-                'desc' => __('Sender: you pay the courier; COD collects the full total (goods + shipping). Recipient: customer pays delivery at the door; COD collects only the goods total.', 'bg-couriers'),
-                'default' => 'sender'],
             ['type' => 'select', 'id' => 'bgc_speedy_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
                 'options' => [
                     'no'   => __('No', 'bg-couriers'),
@@ -703,18 +699,14 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'sectionend', 'id' => 'bgc_pigeon_delivery'],
 
             ['type' => 'title', 'id' => 'bgc_pigeon_pricing', 'title' => __('Pricing', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgc_pigeon_ship_in_total', 'title' => __('Delivery in the order total', 'bg-couriers'),
+                'desc' => __('On: the customer pays delivery together with the order. Off: delivery is not charged at checkout - the estimated price is shown for information and the customer pays the courier on delivery; cash on delivery then collects only the goods total.', 'bg-couriers'),
+                'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_pigeon_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Pigeon free above this goods total (excluding shipping). Empty or 0 disables. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon_pricing'],
 
             ['type' => 'title', 'id' => 'bgc_pigeon_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
-            ['type' => 'select', 'id' => 'bgc_pigeon_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
-                'options' => [
-                    'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
-                    'recipient' => __('Recipient (pays the courier at delivery)', 'bg-couriers'),
-                ],
-                'desc' => __('Sender: you pay the courier; COD collects the full total (goods + shipping). Recipient: customer pays delivery at the door; COD collects only the goods total.', 'bg-couriers'),
-                'default' => 'sender'],
             ['type' => 'checkbox', 'id' => 'bgc_pigeon_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
                 'desc' => __('Enable if your Pigeon contract pays COD out via ППП (пощенски паричен превод). Off = COD needs your own cash register.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon_cod'],
@@ -753,18 +745,14 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'sectionend', 'id' => 'bgc_sameday_delivery'],
 
             ['type' => 'title', 'id' => 'bgc_sameday_pricing', 'title' => __('Pricing', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgc_sameday_ship_in_total', 'title' => __('Delivery in the order total', 'bg-couriers'),
+                'desc' => __('On: the customer pays delivery together with the order. Off: delivery is not charged at checkout - the estimated price is shown for information and the customer pays the courier on delivery; cash on delivery then collects only the goods total.', 'bg-couriers'),
+                'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_sameday_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
                 'desc' => __('Ship Sameday free above this goods total (excluding shipping). Empty or 0 disables. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_sameday_pricing'],
 
             ['type' => 'title', 'id' => 'bgc_sameday_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
-            ['type' => 'select', 'id' => 'bgc_sameday_service_payer', 'title' => __('Who pays delivery', 'bg-couriers'),
-                'options' => [
-                    'sender'    => __('Sender (you - already charged at checkout)', 'bg-couriers'),
-                    'recipient' => __('Recipient (pays the courier at delivery)', 'bg-couriers'),
-                ],
-                'desc' => __('Sender: you pay the courier; COD collects the full total (goods + shipping). Recipient: customer pays delivery at the door; COD collects only the goods total.', 'bg-couriers'),
-                'default' => 'sender'],
             ['type' => 'checkbox', 'id' => 'bgc_sameday_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
                 'desc' => __('Enable if your Sameday contract pays COD out via ППП (пощенски паричен превод). Off = COD needs your own cash register.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgc_sameday_cod'],
