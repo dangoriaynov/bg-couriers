@@ -8,7 +8,10 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgc-order-columns.php'
  * @group speedy
  */
 final class OrderColumnCellTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
+    protected function setUp(): void {
+        parent::setUp(); Monkey\setUp();
+        Functions\when('__')->returnArg(1);
+    }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     public function test_waybill_shows_print_and_track(): void {

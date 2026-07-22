@@ -11,6 +11,7 @@ final class PricingTest extends WP_UnitTestCase {
             public function id(): string { return 'speedy'; }
             public function label(): string { return 'Speedy'; }
             public function capabilities(): array { return ['address','office','automat','live_quote']; }
+            public function available_methods(): array { return $this->capabilities(); }
             public function check_credentials(): bool { return true; }
             public function fetch_cities(): array { return []; }
             public function fetch_offices(int $c): array { return []; }
@@ -19,7 +20,8 @@ final class PricingTest extends WP_UnitTestCase {
                 return new BGC_Quote(4.0, 0.8, 'BGN', 'live');
             }
             public function create_label(\WC_Order $o): BGC_Label { return new BGC_Label(''); }
-            public function get_label_pdf(string $w): string { return ''; }
+            public function label_formats(): array { return []; }
+            public function get_label_pdf(string $w, string $format = ''): string { return ''; }
             public function cancel_label(string $w): bool { return true; }
             public function track(string $w): BGC_Tracking { return new BGC_Tracking('','',[]); }
             public function tracking_url(string $w): string { return ''; }
@@ -60,6 +62,7 @@ final class PricingTest extends WP_UnitTestCase {
             public function id(): string { return 'speedy'; }
             public function label(): string { return 'Speedy'; }
             public function capabilities(): array { return ['office']; }
+            public function available_methods(): array { return $this->capabilities(); }
             public function check_credentials(): bool { return true; }
             public function fetch_cities(): array { return []; }
             public function fetch_offices(int $c): array { return []; }
@@ -67,7 +70,8 @@ final class PricingTest extends WP_UnitTestCase {
                 throw new \RuntimeException('quote() must not be called when live_quote capability is absent');
             }
             public function create_label(\WC_Order $o): BGC_Label { return new BGC_Label(''); }
-            public function get_label_pdf(string $w): string { return ''; }
+            public function label_formats(): array { return []; }
+            public function get_label_pdf(string $w, string $format = ''): string { return ''; }
             public function cancel_label(string $w): bool { return true; }
             public function track(string $w): BGC_Tracking { return new BGC_Tracking('','',[]); }
             public function tracking_url(string $w): string { return ''; }

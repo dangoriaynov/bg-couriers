@@ -10,7 +10,10 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php'
  * @group core
  */
 final class AbstractCourierTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
+    protected function setUp(): void {
+        parent::setUp(); Monkey\setUp();
+        Functions\when('esc_html')->returnArg(1); // exception messages are esc_html()'d (Plugin Check)
+    }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     public function test_post_json_parses_200(): void {
@@ -61,7 +64,7 @@ class BGC_Test_Courier extends BGC_Abstract_Courier {
     public function fetch_offices(int $city_id): array { return []; }
     public function quote(array $shipment): BGC_Quote { return new BGC_Quote(0,0,'BGN','live'); }
     public function create_label(\WC_Order $order): BGC_Label { return new BGC_Label(''); }
-    public function get_label_pdf(string $waybill): string { return ''; }
+    public function get_label_pdf(string $waybill, string $format = ''): string { return ''; }
     public function cancel_label(string $waybill): bool { return true; }
     public function track(string $waybill): BGC_Tracking { return new BGC_Tracking('','',[]); }
     public function tracking_url(string $waybill): string { return ''; }

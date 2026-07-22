@@ -11,6 +11,14 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-econt.php';
 
 /** @group econt */
 final class EcontQuoteTest extends TestCase {
+    protected function setUp(): void {
+        parent::setUp();
+        \Brain\Monkey\setUp();
+        // build_calculate_body reads options (shipment description) - default-return.
+        \Brain\Monkey\Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
+    }
+    protected function tearDown(): void { \Brain\Monkey\tearDown(); parent::tearDown(); }
+
     private function fx(string $f): array {
         return json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/econt/' . $f), true);
     }

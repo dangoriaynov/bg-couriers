@@ -21,7 +21,8 @@ final class CouriersRegistryTest extends TestCase {
             public function fetch_offices(int $city_id): array { return []; }
             public function quote(array $shipment): BGC_Quote { throw new RuntimeException('n/a'); }
             public function create_label(\WC_Order $order): BGC_Label { throw new RuntimeException('n/a'); }
-            public function get_label_pdf(string $waybill): string { return ''; }
+            public function label_formats(): array { return []; }
+            public function get_label_pdf(string $waybill, string $format = ''): string { return ''; }
             public function cancel_label(string $waybill): bool { return true; }
             public function track(string $waybill): BGC_Tracking { throw new RuntimeException('n/a'); }
             public function tracking_url(string $waybill): string { return ''; }

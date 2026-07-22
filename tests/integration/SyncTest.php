@@ -14,6 +14,7 @@ final class SyncTest extends WP_UnitTestCase {
             public function id(): string { return 'speedy'; }
             public function label(): string { return 'Speedy'; }
             public function capabilities(): array { return ['address','office','automat','live_quote']; }
+            public function available_methods(): array { return $this->capabilities(); }
             public function check_credentials(): bool { return true; }
             public function fetch_cities(): array { return $this->cities; }
             public function fetch_offices(int $c): array {
@@ -25,7 +26,8 @@ final class SyncTest extends WP_UnitTestCase {
             }
             public function quote(array $s): BGC_Quote { return new BGC_Quote(5.0, 1.0, 'BGN', 'live'); }
             public function create_label(\WC_Order $o): BGC_Label { return new BGC_Label(''); }
-            public function get_label_pdf(string $w): string { return ''; }
+            public function label_formats(): array { return []; }
+            public function get_label_pdf(string $w, string $format = ''): string { return ''; }
             public function cancel_label(string $w): bool { return true; }
             public function track(string $w): BGC_Tracking { return new BGC_Tracking('','',[]); }
             public function tracking_url(string $w): string { return ''; }

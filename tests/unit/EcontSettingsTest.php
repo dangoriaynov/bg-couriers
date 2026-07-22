@@ -28,6 +28,9 @@ final class EcontSettingsTest extends TestCase {
         // Stub WordPress translation and option functions used during construction.
         Functions\when('__')->returnArg(1);
         Functions\when('apply_filters')->returnArg(2);
+        // Field building reads options (creds_present gating, defaults) - default-return unless a test overrides.
+        Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
+        Functions\when('get_woocommerce_currency')->justReturn('EUR');
     }
 
     protected function tearDown(): void {
@@ -72,7 +75,7 @@ final class EcontSettingsTest extends TestCase {
             'bgc_econt_enabled',
             'bgc_econt_username',
             'bgc_econt_password',
-            'bgc_econt_paper_size',
+            'bgc_econt_label_paper_size',
             'bgc_econt_free_threshold',
         ];
 

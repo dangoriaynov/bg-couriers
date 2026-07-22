@@ -18,6 +18,9 @@ final class SamedaySettingsTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
         Functions\when('__')->returnArg(1);
+        // The adapter constructor reads options (sandbox host) - default-return unless a test overrides.
+        Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
+        Functions\when('get_woocommerce_currency')->justReturn('EUR');
         BGC_Couriers::reset();
         BGC_Couriers::register('sameday', __('Sameday', 'bg-couriers'), static function () {
             return new BGC_Sameday([]);

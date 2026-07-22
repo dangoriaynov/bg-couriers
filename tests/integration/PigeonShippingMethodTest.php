@@ -11,12 +11,14 @@ final class PigeonShippingMethodTest extends WP_UnitTestCase {
             public function id(): string { return 'pigeon'; }
             public function label(): string { return 'Pigeon Express'; }
             public function capabilities(): array { return ['address','office','automat','live_quote']; }
+            public function available_methods(): array { return $this->capabilities(); }
             public function check_credentials(): bool { return false; }
             public function fetch_cities(): array { return []; }
             public function fetch_offices(int $c): array { return []; }
             public function quote(array $s): BGC_Quote { throw new BGC_Api_Exception('down'); }
             public function create_label(\WC_Order $o): BGC_Label { return new BGC_Label(''); }
-            public function get_label_pdf(string $w): string { return ''; }
+            public function label_formats(): array { return []; }
+            public function get_label_pdf(string $w, string $format = ''): string { return ''; }
             public function cancel_label(string $w): bool { return true; }
             public function track(string $w): BGC_Tracking { return new BGC_Tracking('','',[]); }
             public function tracking_url(string $w): string { return ''; }

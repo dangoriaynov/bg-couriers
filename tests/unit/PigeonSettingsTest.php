@@ -28,6 +28,9 @@ final class PigeonSettingsTest extends TestCase {
         // Stub WordPress translation and option functions used during construction.
         Functions\when('__')->returnArg(1);
         Functions\when('apply_filters')->returnArg(2);
+        // Field building reads options (creds_present gating, defaults) - default-return unless a test overrides.
+        Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
+        Functions\when('get_woocommerce_currency')->justReturn('EUR');
     }
 
     protected function tearDown(): void {
@@ -73,7 +76,7 @@ final class PigeonSettingsTest extends TestCase {
             'bgc_pigeon_enabled',
             'bgc_pigeon_username',
             'bgc_pigeon_password',
-            'bgc_pigeon_sandbox',
+            'bgc_pigeon_live',
             'bgc_pigeon_pickup_office_id',
             'bgc_pigeon_free_threshold',
         ];
@@ -95,7 +98,7 @@ final class PigeonSettingsTest extends TestCase {
 
         $this->assertContains('bgc_pigeon_enabled', $ids);
         $this->assertContains('bgc_pigeon_password', $ids);
-        $this->assertContains('bgc_pigeon_sandbox', $ids);
+        $this->assertContains('bgc_pigeon_live', $ids);
         $this->assertContains('bgc_pigeon_pickup_office_id', $ids);
         // Per-method fields from method_fields('pigeon', 'office', …)
         $this->assertContains('bgc_pigeon_office_enabled', $ids);

@@ -138,6 +138,7 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $order->update_meta_data('_bgc_courier', 'econt');
         $order->update_meta_data('_bgc_method', 'office');
         $order->update_meta_data('_bgc_office_id', 100);
+        $order->set_payment_method('cod'); // the COD block requires an actually COD-paid order
         $order->calculate_totals();
         $order->save();
 

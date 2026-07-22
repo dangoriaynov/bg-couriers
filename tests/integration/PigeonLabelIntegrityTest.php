@@ -84,8 +84,8 @@ final class PigeonLabelIntegrityTest extends WP_UnitTestCase {
         $this->assertArrayNotHasKey('delivery_office_id', $body);
         $this->assertArrayHasKey('delivery_address', $body);
         $this->assertSame(68134, $body['delivery_address']['city_id']);
-        $this->assertSame('бул. Витоша', $body['delivery_address']['street_name']);
-        $this->assertSame('5', $body['delivery_address']['street_number']);
+        // The API takes the street as free text: additional_info = "street_name street_no".
+        $this->assertSame('бул. Витоша 5', $body['delivery_address']['additional_info']);
 
         // Receiver fields from order billing
         $this->assertSame('Иван Петров', $body['receiver_name']);

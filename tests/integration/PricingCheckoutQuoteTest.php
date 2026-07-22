@@ -18,12 +18,14 @@ final class PricingCheckoutQuoteTest extends WP_UnitTestCase {
             public function id(): string { return 'speedy'; }
             public function label(): string { return 'Stub'; }
             public function capabilities(): array { return ['office', 'automat', 'address', 'live_quote']; }
+            public function available_methods(): array { return $this->capabilities(); }
             public function check_credentials(): bool { return true; }
             public function fetch_cities(): array { return []; }
             public function fetch_offices(int $city_id): array { return []; }
             public function quote(array $shipment): BGC_Quote { $this->quote_called = true; return new BGC_Quote(9.99, 0.0, 'EUR', 'live'); }
             public function create_label(\WC_Order $order): BGC_Label { return new BGC_Label(''); }
-            public function get_label_pdf(string $waybill): string { return ''; }
+            public function label_formats(): array { return []; }
+            public function get_label_pdf(string $waybill, string $format = ''): string { return ''; }
             public function cancel_label(string $waybill): bool { return false; }
             public function track(string $waybill): BGC_Tracking { return new BGC_Tracking($waybill, '', []); }
             public function tracking_url(string $waybill): string { return ''; }

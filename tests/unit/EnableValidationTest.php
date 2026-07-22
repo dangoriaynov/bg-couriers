@@ -21,7 +21,11 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-sameday.php';
  * @group core
  */
 final class EnableValidationTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
+    protected function setUp(): void {
+        parent::setUp(); Monkey\setUp();
+        Functions\when('__')->returnArg(1);
+        Functions\when('esc_html')->returnArg(1);
+    }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function opts(array $map): void {
