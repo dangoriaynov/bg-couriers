@@ -12,7 +12,9 @@ defined('ABSPATH') || exit;
  *    number, items, totals, delivery card) for shops whose thank-you page is a custom WP page.
  *    It reads the order id + key from the URL WC passes along (?order=<id>&key=wc_order_...) and
  *    shows nothing unless the key matches the order, so a guessed order id reveals nothing.
- *    Attributes: heading="no" drops the heading, items="no" drops the items/totals block.
+ *    Attributes: heading="no" drops the heading, heading="number" shows just "Order #N · date"
+ *    (for pages whose own title already says thank-you), items="no" drops the items/totals block,
+ *    delivery="no" drops the delivery card - so one page can split the summary across sections.
  */
 class BGC_Thankyou {
     public function __construct() {
@@ -28,17 +30,21 @@ class BGC_Thankyou {
     }
 
     public function shortcode($atts = []): string {
-        $a = shortcode_atts(['heading' => 'yes', 'items' => 'yes'], (array) $atts, 'bgc_order_summary');
+        $a = shortcode_atts(['heading' => 'yes', 'items' => 'yes', 'delivery' => 'yes'], (array) $atts, 'bgc_order_summary');
         $order = self::order_from_request();
         if (!$order) { return ''; }
         self::styles();
         $html = '<div class="bgc-thankyou">';
-        if ($a['heading'] !== 'no') {
+        if ($a['heading'] === 'number') {
+            $date = $order->get_date_created() ? wc_format_datetime($order->get_date_created()) : '';
+            /* translators: 1: the order number, 2: the order date */
+            $html .= '<h2 class="bgc-ty-heading">' . esc_html(sprintf(__('Order #%1$s · %2$s', 'bg-couriers'), $order->get_order_number(), $date)) . '</h2>';
+        } elseif ($a['heading'] !== 'no') {
             /* translators: %s = the order number */
             $html .= '<h2 class="bgc-ty-heading">' . esc_html(sprintf(__('Thank you for your order #%s!', 'bg-couriers'), $order->get_order_number())) . '</h2>';
         }
         if ($a['items'] !== 'no') { $html .= self::items_block($order); }
-        if ((string) $order->get_meta('_bgc_courier') !== '') { $html .= self::delivery_card($order); }
+        if ($a['delivery'] !== 'no' && (string) $order->get_meta('_bgc_courier') !== '') { $html .= self::delivery_card($order); }
         $html .= '</div>';
         return wp_kses($html, self::TAGS);
     }
