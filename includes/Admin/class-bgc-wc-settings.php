@@ -693,8 +693,10 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Default parcel size (cm) Pigeon needs on every quote/label, used when an order has none of its own.', 'bg-couriers'),
                 'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'number', 'id' => 'bgc_pigeon_box_width', 'title' => __('Default parcel width (cm)', 'bg-couriers'),
+                'desc' => __('Default parcel size (cm) Pigeon needs on every quote/label, used when an order has none of its own.', 'bg-couriers'),
                 'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'number', 'id' => 'bgc_pigeon_box_height', 'title' => __('Default parcel height (cm)', 'bg-couriers'),
+                'desc' => __('Default parcel size (cm) Pigeon needs on every quote/label, used when an order has none of its own.', 'bg-couriers'),
                 'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon_delivery'],
 
