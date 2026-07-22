@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 00:08+0300\n"
+"POT-Creation-Date: 2026-07-23 00:31+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -281,6 +281,7 @@ msgstr "Неуспешно анулиране."
 #: includes/Admin/class-bgc-settings.php:257
 #: includes/Admin/class-bgc-wc-settings.php:20
 #: includes/Checkout/class-bgc-checkout.php:471
+#: includes/Checkout/class-bgc-thankyou.php:89
 #: includes/Support/class-bgc-icons.php:29
 msgid "To office"
 msgstr "До офис"
@@ -290,6 +291,7 @@ msgstr "До офис"
 #: includes/Admin/class-bgc-settings.php:258
 #: includes/Admin/class-bgc-wc-settings.php:21
 #: includes/Checkout/class-bgc-checkout.php:471
+#: includes/Checkout/class-bgc-thankyou.php:89
 #: includes/Support/class-bgc-icons.php:27
 msgid "To address"
 msgstr "До адрес"
@@ -299,6 +301,7 @@ msgstr "До адрес"
 #: includes/Admin/class-bgc-settings.php:259
 #: includes/Admin/class-bgc-wc-settings.php:22
 #: includes/Checkout/class-bgc-checkout.php:471
+#: includes/Checkout/class-bgc-thankyou.php:89
 #: includes/Support/class-bgc-icons.php:28
 msgid "To APS"
 msgstr "До автомат"
@@ -1942,6 +1945,24 @@ msgstr "Изберете от карта"
 #: includes/Checkout/class-bgc-checkout.php:595
 msgid "Block"
 msgstr "Блок"
+
+#. translators: %s = the order number
+#: includes/Checkout/class-bgc-thankyou.php:38
+#, php-format
+msgid "Thank you for your order #%s!"
+msgstr "Благодарим Ви за поръчката #%s!"
+
+#: includes/Checkout/class-bgc-thankyou.php:63
+msgid "Your order"
+msgstr "Вашата поръчка"
+
+#: includes/Checkout/class-bgc-thankyou.php:79
+msgid "The delivery fee is paid to the courier on delivery."
+msgstr "Доставката се заплаща на куриера при получаване."
+
+#: includes/Checkout/class-bgc-thankyou.php:96
+msgid "Delivery"
+msgstr "Доставка"
 
 #: includes/Couriers/abstract-bgc-courier.php:51
 msgid "API credentials are missing."

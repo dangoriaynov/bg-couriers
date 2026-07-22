@@ -79,6 +79,7 @@ class BGC_Plugin {
             return $methods;
         });
         new BGC_Checkout();
+        new BGC_Thankyou(); // order summary on the thank-you step (native hook + shortcode)
         new BGC_Ajax();
         new BGC_Labels(); // status-change hook must fire on front-end order transitions too
         new BGC_Boxnow_Webhook(); // REST receiver for BOX NOW parcel-event webhooks (front-end route)
