@@ -90,7 +90,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 = 0.2.0 =
 * BOX NOW courier (locker delivery + embedded GPS map widget).
-* Sameday courier (office/address/easyBox) - pending live verification.
+* Sameday courier (address/easyBox/Sameday Point) - services and pickup point auto-discovered from your account.
 * Econt cash on delivery (наложен платеж) with itemised packing list.
 * Interactive office/locker map picker (Leaflet + OpenStreetMap) for Speedy/Econt/Pigeon/Sameday.
 * Optional dual BGN/EUR price display.

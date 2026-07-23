@@ -1,6 +1,6 @@
 # Sameday test AWBs (BG DEMO env - sameday-api-bg.demo.zitec.com)
 
-Individual test environment issued to us by Sameday (user greenadditivesTEST); AWBs live only on the
+Individual test environment issued to us by Sameday (account name withheld per the no-creds-in-VCS rule); AWBs live only on the
 demo stack, no real pickups happen. All E2E waybills are CANCELLED right after the flow.
 
 | Date (EEST) | Order (dev) | AWB | Case | Result |
