@@ -243,6 +243,11 @@ class BGC_Speedy extends BGC_Abstract_Courier {
                     'processingType'       => $processing_type,
                     'ignoreIfNotApplicable' => true,
                 ];
+                // Per-delivery-option "card payment for COD" toggle: ON sends nothing (the Speedy
+                // account default applies), OFF forbids it (ShipmentCODAdditionalService.cardPaymentForbidden).
+                if (get_option('bgc_speedy_' . $method . '_card_payment', 'yes') !== 'yes') {
+                    $body['service']['additionalServices']['cod']['cardPaymentForbidden'] = true;
+                }
             }
         }
         // Open-before-payment (OBPD): allow/test inspection before the customer pays. Never sent for

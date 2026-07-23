@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 22:42+0300\n"
+"POT-Creation-Date: 2026-07-23 22:45+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1598,6 +1598,17 @@ msgstr ""
 msgid ""
 "Free delivery for THIS option above this goods total (excluding shipping). "
 "Applies only while the courier-level threshold is empty; empty or 0 disables."
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:834
+msgid "Card payment for COD"
+msgstr ""
+
+#: includes/Admin/class-bgc-wc-settings.php:835
+msgid ""
+"Let the customer pay the cash-on-delivery amount by card at handover (your "
+"Speedy account default). Off explicitly forbids card payment for this "
+"delivery option."
 msgstr ""
 
 #. translators: 1: courier name, 2: status

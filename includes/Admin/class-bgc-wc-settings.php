@@ -813,7 +813,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
 
     private function method_fields(string $courier, string $m, string $label): array {
         $p = "bgc_{$courier}_{$m}_";
-        return [
+        $fields = [
             ['type' => 'title', 'id' => $p . 'grp', 'title' => ''],
             ['type' => 'checkbox', 'id' => $p . 'enabled', /* translators: %s: courier name */ 'title' => sprintf(__('Enable “%s”', 'bg-couriers'), $label), 'default' => 'yes'],
             ['type' => 'select', 'id' => $p . 'price_mode', 'title' => __('Delivery price', 'bg-couriers'),
@@ -827,7 +827,15 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'text', 'id' => $p . 'free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Free delivery for THIS option above this goods total (excluding shipping). Applies only while the courier-level threshold is empty; empty or 0 disables.', 'bg-couriers'),
                 'default' => '', 'autoload' => false, 'class' => 'bgc-method-free'],
-            ['type' => 'sectionend', 'id' => $p . 'grp'],
         ];
+        // Only Speedy's API exposes a card-payment control on the COD service (cardPaymentForbidden);
+        // no dangling toggle for couriers that cannot honor it.
+        if ($courier === 'speedy') {
+            $fields[] = ['type' => 'checkbox', 'id' => $p . 'card_payment', 'title' => __('Card payment for COD', 'bg-couriers'),
+                'desc' => __('Let the customer pay the cash-on-delivery amount by card at handover (your Speedy account default). Off explicitly forbids card payment for this delivery option.', 'bg-couriers'),
+                'default' => 'yes'];
+        }
+        $fields[] = ['type' => 'sectionend', 'id' => $p . 'grp'];
+        return $fields;
     }
 }
