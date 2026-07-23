@@ -148,13 +148,9 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
         return array_merge($offices, $lockers);
     }
 
-    /** Default parcel box (cm) for quotes/labels; Pigeon requires length/width/height. Merchant-overridable. */
+    /** Default parcel box (cm) for quotes/labels; Pigeon requires length/width/height. Shared across couriers. */
     public static function default_box(): array {
-        return [
-            'length' => max(1, (int) get_option('bgc_pigeon_box_length', 40)),
-            'width'  => max(1, (int) get_option('bgc_pigeon_box_width', 40)),
-            'height' => max(1, (int) get_option('bgc_pigeon_box_height', 40)),
-        ];
+        return BGC_Settings::box_dims();
     }
 
     /**

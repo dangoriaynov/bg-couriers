@@ -48,7 +48,7 @@ class BGC_Method_Speedy extends WC_Shipping_Method {
                 $info += array_sum(WC_Tax::calc_shipping_tax($info, WC_Tax::get_shipping_tax_rates()));
             }
             $cost = 0.0;
-        } elseif (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGC_Settings::free_shipping('speedy'))) {
+        } elseif (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGC_Settings::free_shipping('speedy', $method))) {
             // Free shipping (the merchant absorbs it) when the order goods total (w/o shipping,
             // store currency, no conversion) reaches the Speedy method-level threshold.
             $cost = 0.0;

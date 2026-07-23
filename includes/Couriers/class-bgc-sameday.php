@@ -292,7 +292,7 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
             'insuredValue'    => 0,
             'thirdPartyPickup'=> 0,
             'currency'        => (string) ($s['currency'] ?? get_woocommerce_currency()),
-            'parcels'         => [['weight' => $w]],
+            'parcels'         => [array_merge(['weight' => $w], self::parcel_dims())],
             'awbRecipient'    => ['city' => $sid, 'countyString' => $county],
         ];
         if ($type === 'automat')      { $body['lockerLastMile'] = (int) ($s['office_id'] ?? 0); }
@@ -306,6 +306,12 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
      * currency (the shared demo tarifficator prices in RON) is NOT a usable live price - throw so the
      * pricing pipeline falls back to the reference/fixed price instead of charging a foreign number.
      */
+    /** Shared default parcel dimensions in Sameday's field names (width/length/height, cm). */
+    protected static function parcel_dims(): array {
+        $d = BGC_Settings::box_dims();
+        return ['width' => $d['width'], 'length' => $d['length'], 'height' => $d['height']];
+    }
+
     public static function parse_price(array $resp, string $currency): BGC_Quote {
         $amount = (float) ($resp['amount'] ?? $resp['cost'] ?? 0);
         $cur    = strtoupper((string) ($resp['currency'] ?? $currency));
@@ -360,7 +366,7 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
                 'address'      => $addr !== '' ? $addr : '-',
                 'postalCode'   => (string) $order->get_meta('_bgc_post_code'),
             ], static function ($v) { return $v !== ''; }),
-            'parcels'        => [['weight' => $w]],
+            'parcels'        => [array_merge(['weight' => $w], self::parcel_dims())],
         ];
         $office = (int) $order->get_meta('_bgc_office_id');
         if ($method === 'automat')    { $body['lockerLastMile'] = $office; }

@@ -219,12 +219,16 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         $package = in_array(get_option('bgc_speedy_package', 'BOX'), ['BOX', 'ENVELOPE', 'PALLET'], true)
             ? (string) get_option('bgc_speedy_package', 'BOX')
             : 'BOX';
-        $contents = ((string) get_option('bgc_speedy_contents', '')) ?: 'Goods';
+        $contents = BGC_Settings::shipment_contents();
+        $dims     = BGC_Settings::box_dims();
         $body = [
             'recipient' => $recipient,
             'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => 505],
             'content'   => ['parcelsCount' => 1, 'contents' => $contents, 'package' => $package,
-                            'totalWeight' => self::order_weight_kg($order, 2.0)],
+                            'totalWeight' => self::order_weight_kg($order, 2.0),
+                            // ShipmentParcelSize {width,height,depth} cm (schema-confirmed); lockers must fit.
+                            'parcels'     => [['seqNo' => 1, 'weight' => self::order_weight_kg($order, 2.0),
+                                               'size' => ['width' => $dims['width'], 'depth' => $dims['length'], 'height' => $dims['height']]]]],
             'payment'   => ['courierServicePayer' => $payer === 'recipient' ? 'RECIPIENT' : 'SENDER'],
             'ref1'      => 'ORDER ' . $order->get_order_number(),
         ];
@@ -241,9 +245,11 @@ class BGC_Speedy extends BGC_Abstract_Courier {
                 ];
             }
         }
-        // Open-before-payment (OBPD): allow/test inspection before the customer pays.
+        // Open-before-payment (OBPD): allow/test inspection before the customer pays. Never sent for
+        // locker (automat) deliveries - there is no courier at an APT to supervise an inspection, so the
+        // field stays at the API's own default there.
         $obpd_val = (string) get_option('bgc_speedy_open_before_pay', 'no');
-        if ($obpd_val === 'open' || $obpd_val === 'test') {
+        if ($method !== 'automat' && ($obpd_val === 'open' || $obpd_val === 'test')) {
             $body['service']['additionalServices']['obpd'] = [
                 'option'                  => strtoupper($obpd_val),
                 'returnShipmentServiceId' => 505,

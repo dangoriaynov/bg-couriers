@@ -43,4 +43,22 @@ final class FreeShippingTest extends TestCase {
         $this->assertFalse($f['enabled']);
         $this->assertSame(0.0, $f['threshold']);
     }
+
+    public function test_courier_level_threshold_overrides_the_per_method_one(): void {
+        Functions\when('get_option')->alias(function ($name, $default = false) {
+            return ['bgc_speedy_free_threshold' => '50', 'bgc_speedy_office_free_threshold' => '30'][$name] ?? $default;
+        });
+        $this->assertSame(50.0, BGC_Settings::free_shipping('speedy', 'office')['threshold']);
+    }
+
+    public function test_per_method_threshold_applies_only_when_courier_level_is_empty(): void {
+        Functions\when('get_option')->alias(function ($name, $default = false) {
+            return ['bgc_speedy_office_free_threshold' => '30'][$name] ?? $default;
+        });
+        $f = BGC_Settings::free_shipping('speedy', 'office');
+        $this->assertTrue($f['enabled']);
+        $this->assertSame(30.0, $f['threshold']);
+        // A sibling method without its own threshold stays paid.
+        $this->assertFalse(BGC_Settings::free_shipping('speedy', 'address')['enabled']);
+    }
 }

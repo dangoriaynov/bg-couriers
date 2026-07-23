@@ -39,7 +39,7 @@ class BGC_Method_Econt extends WC_Shipping_Method {
 
         // Free shipping (the merchant absorbs it) when the order goods total (w/o shipping,
         // store currency, no conversion) reaches the Econt method-level threshold.
-        if (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGC_Settings::free_shipping('econt'))) {
+        if (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGC_Settings::free_shipping('econt', $method))) {
             $cost = 0.0;
         }
 

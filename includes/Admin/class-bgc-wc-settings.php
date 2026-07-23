@@ -467,6 +467,19 @@ class BGC_WC_Settings extends WC_Settings_Page {
         var on=this.checked;
         $(this).closest('.bgc-method-tab').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on);
     });
+    // A courier-level free-shipping threshold overrides the per-option ones: while it holds a positive
+    // value, grey the per-option fields out (readonly, not disabled, so their saved values survive a save).
+    function bgcFreeSync(){
+        var lvl=$('input[id$="_free_threshold"]').not('.bgc-method-free').first();
+        if(!lvl.length){ return; }
+        var v=parseFloat(String(lvl.val()).replace(',','.'));
+        var on=!isNaN(v)&&v>0;
+        $('.bgc-method-free').each(function(){
+            $(this).prop('readonly',on).closest('tr').css({opacity:on?0.45:1});
+        });
+    }
+    $(document).on('input change','input[id$="_free_threshold"]',bgcFreeSync);
+    bgcFreeSync();
 })(jQuery);
 </script>
         <?php
@@ -528,6 +541,18 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'checkbox', 'id' => 'bgc_send_email',
                 'title' => __('Share customer email with courier', 'bg-couriers'),
                 'desc' => __('Put the customer’s e-mail on the shipment for courier notifications, when provided.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgc_shipment_contents', 'title' => __('Shipment contents (description)', 'bg-couriers'),
+                'desc' => __('Short description of the parcel contents, printed on every courier\'s waybill (e.g. “Хранителни добавки”). Empty = a generic value.', 'bg-couriers'),
+                'default' => '', 'custom_attributes' => ['placeholder' => 'Goods']],
+            ['type' => 'number', 'id' => 'bgc_box_length', 'title' => __('Default parcel length (cm)', 'bg-couriers'),
+                'desc' => __('Default parcel size sent to every courier whose API takes dimensions (a locker parcel must fit its box), used when an order has none of its own.', 'bg-couriers'),
+                'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
+            ['type' => 'number', 'id' => 'bgc_box_width', 'title' => __('Default parcel width (cm)', 'bg-couriers'),
+                'desc' => __('Default parcel size sent to every courier whose API takes dimensions (a locker parcel must fit its box), used when an order has none of its own.', 'bg-couriers'),
+                'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
+            ['type' => 'number', 'id' => 'bgc_box_height', 'title' => __('Default parcel height (cm)', 'bg-couriers'),
+                'desc' => __('Default parcel size sent to every courier whose API takes dimensions (a locker parcel must fit its box), used when an order has none of its own.', 'bg-couriers'),
+                'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'sectionend', 'id' => 'bgc_labels'],
 
             ['type' => 'title', 'id' => 'bgc_tracking', 'title' => __('Shipment tracking', 'bg-couriers'),
@@ -575,8 +600,6 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'select', 'id' => 'bgc_speedy_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
                 'default' => 'A6'],
-            ['type' => 'text', 'id' => 'bgc_speedy_contents', 'title' => __('Parcel contents (description)', 'bg-couriers'),
-                'custom_attributes' => ['placeholder' => 'Goods'], 'default' => ''],
             ['type' => 'select', 'id' => 'bgc_speedy_package', 'title' => __('Package type', 'bg-couriers'),
                 'options' => [
                     'BOX'      => __('Box', 'bg-couriers'),
@@ -591,7 +614,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('On: the customer pays delivery together with the order. Off: delivery is not charged at checkout - the estimated price is shown for information and the customer pays the courier on delivery; cash on delivery then collects only the goods total.', 'bg-couriers'),
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Ship Speedy free above this goods total (excluding shipping). Empty or 0 disables. Store currency.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Ship Speedy free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_speedy_pricing'],
 
             ['type' => 'title', 'id' => 'bgc_speedy_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
@@ -640,14 +663,11 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Econt labels are A4-landscape only (fixed by its API). The bulk “Print A4” packs several per sheet without scaling.', 'bg-couriers'),
                 'options' => ['A4' => __('A4-landscape (fixed by Econt)', 'bg-couriers')],
                 'default' => 'A4'],
-            ['type' => 'text', 'id' => 'bgc_econt_shipment_description', 'title' => __('Parcel contents description', 'bg-couriers'),
-                'desc' => __('Short contents text on the Econt waybill (e.g. “Хранителни добавки”). Empty = a generic value.', 'bg-couriers'),
-                'default' => '', 'autoload' => false],
             ['type' => 'sectionend', 'id' => 'bgc_econt_delivery'],
 
             ['type' => 'title', 'id' => 'bgc_econt_pricing', 'title' => __('Pricing', 'bg-couriers')],
             ['type' => 'text', 'id' => 'bgc_econt_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Ship Econt free above this goods total (excluding shipping). Empty or 0 disables. Store currency.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Ship Econt free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_econt_pricing'],
 
             ['type' => 'title', 'id' => 'bgc_econt_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
@@ -689,15 +709,6 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'bgc_pigeon_pickup', 'id' => 'bgc_pigeon_pickup_office_id',
                 'title' => __('Pickup office', 'bg-couriers'),
                 'desc' => __('The Pigeon office you drop parcels at. Search your city, then pick the office.', 'bg-couriers')],
-            ['type' => 'number', 'id' => 'bgc_pigeon_box_length', 'title' => __('Default parcel length (cm)', 'bg-couriers'),
-                'desc' => __('Default parcel size (cm) Pigeon needs on every quote/label, used when an order has none of its own.', 'bg-couriers'),
-                'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
-            ['type' => 'number', 'id' => 'bgc_pigeon_box_width', 'title' => __('Default parcel width (cm)', 'bg-couriers'),
-                'desc' => __('Default parcel size (cm) Pigeon needs on every quote/label, used when an order has none of its own.', 'bg-couriers'),
-                'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
-            ['type' => 'number', 'id' => 'bgc_pigeon_box_height', 'title' => __('Default parcel height (cm)', 'bg-couriers'),
-                'desc' => __('Default parcel size (cm) Pigeon needs on every quote/label, used when an order has none of its own.', 'bg-couriers'),
-                'default' => '40', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon_delivery'],
 
             ['type' => 'title', 'id' => 'bgc_pigeon_pricing', 'title' => __('Pricing', 'bg-couriers')],
@@ -705,7 +716,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('On: the customer pays delivery together with the order. Off: delivery is not charged at checkout - the estimated price is shown for information and the customer pays the courier on delivery; cash on delivery then collects only the goods total.', 'bg-couriers'),
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_pigeon_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Ship Pigeon free above this goods total (excluding shipping). Empty or 0 disables. Store currency.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Ship Pigeon free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_pigeon_pricing'],
 
             ['type' => 'title', 'id' => 'bgc_pigeon_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
@@ -747,7 +758,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 'desc' => __('On: the customer pays delivery together with the order. Off: delivery is not charged at checkout - the estimated price is shown for information and the customer pays the courier on delivery; cash on delivery then collects only the goods total.', 'bg-couriers'),
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgc_sameday_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
-                'desc' => __('Ship Sameday free above this goods total (excluding shipping). Empty or 0 disables. Store currency.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Ship Sameday free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_sameday_pricing'],
 
             ['type' => 'title', 'id' => 'bgc_sameday_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
@@ -813,6 +824,9 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 ], 'default' => 'fallback'],
             ['type' => 'text', 'id' => $p . 'price', 'title' => __('Fixed / default price', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Used by the “fixed” and “fallback” delivery-price modes above. In the store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'text', 'id' => $p . 'free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
+                'desc' => __('Free delivery for THIS option above this goods total (excluding shipping). Applies only while the courier-level threshold is empty; empty or 0 disables.', 'bg-couriers'),
+                'default' => '', 'autoload' => false, 'class' => 'bgc-method-free'],
             ['type' => 'sectionend', 'id' => $p . 'grp'],
         ];
     }

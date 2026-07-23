@@ -212,7 +212,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
             'packCount'           => 1,
             'weight'              => max(0.1, (float) ($s['weight_kg'] ?? 1.0)),
             'shipmentType'        => 'pack',
-            'shipmentDescription' => ((string) get_option('bgc_econt_shipment_description', '')) ?: 'Goods',
+            'shipmentDescription' => BGC_Settings::shipment_contents(),
         ];
 
         if (($s['method'] ?? 'address') === 'address') {
@@ -296,7 +296,7 @@ class BGC_Econt extends BGC_Abstract_Courier {
             'packCount'           => 1,
             'weight'              => max(0.1, self::order_weight_kg($order)),
             'shipmentType'        => 'pack',
-            'shipmentDescription' => ((string) get_option('bgc_econt_shipment_description', '')) ?: 'Goods',
+            'shipmentDescription' => BGC_Settings::shipment_contents(),
         ];
 
         $method = (string) $order->get_meta('_bgc_method');
@@ -344,7 +344,9 @@ class BGC_Econt extends BGC_Abstract_Courier {
         if ($notify_email !== '') {
             $services['emailOnDelivery'] = $notify_email;
         }
-        if (get_option('bgc_econt_pay_after_accept', 'no') === 'yes') {
+        // "Виж преди да платиш" needs a courier at handover - never sent for Econtomat (automat)
+        // deliveries; the API default applies there.
+        if ($method !== 'automat' && get_option('bgc_econt_pay_after_accept', 'no') === 'yes') {
             $services['payAfterAccept'] = true;
         }
 

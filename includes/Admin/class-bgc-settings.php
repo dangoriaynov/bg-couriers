@@ -93,12 +93,44 @@ class BGC_Settings {
      * Method-level free shipping (the merchant absorbs it) over a goods-total threshold.
      * Auto-enabled by a positive threshold - there is no separate on/off flag.
      */
-    public static function free_shipping(string $courier): array {
+    /**
+     * Free-shipping config for a courier (+optionally one of its delivery methods). Precedence:
+     * a COURIER-level threshold applies to every delivery option (the per-option fields are inactive
+     * in the UI while it is set); only when it is empty do the per-option thresholds take over.
+     */
+    public static function free_shipping(string $courier, string $method = ''): array {
         $threshold = (float) get_option('bgc_' . $courier . '_free_threshold', 0);
+        if ($threshold <= 0 && $method !== '') {
+            $threshold = (float) get_option('bgc_' . $courier . '_' . $method . '_free_threshold', 0);
+        }
         return [
             'enabled'   => $threshold > 0,
             'threshold' => $threshold,
         ];
+    }
+
+    /**
+     * Default parcel dimensions in cm - one set for ALL couriers whose APIs take a parcel size
+     * (a locker parcel must fit its box). Falls back to the old per-Pigeon options on installs
+     * that configured those before the fields moved to General.
+     */
+    public static function box_dims(): array {
+        $g = static function (string $k): int {
+            $v = (int) get_option('bgc_box_' . $k, 0);
+            if ($v <= 0) { $v = (int) get_option('bgc_pigeon_box_' . $k, 40); } // pre-move installs
+            return max(1, $v);
+        };
+        return ['length' => $g('length'), 'width' => $g('width'), 'height' => $g('height')];
+    }
+
+    /** One contents description for every courier's waybill (moved to General from per-courier fields). */
+    public static function shipment_contents(): string {
+        $v = trim((string) get_option('bgc_shipment_contents', ''));
+        if ($v === '') { // pre-move installs configured these per courier
+            $v = trim((string) get_option('bgc_speedy_contents', ''))
+                ?: trim((string) get_option('bgc_econt_shipment_description', ''));
+        }
+        return $v !== '' ? $v : 'Goods';
     }
 
     /** @return string[] delivery methods enabled for the courier (drives checkout options). */

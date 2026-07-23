@@ -215,7 +215,8 @@ class BGC_Checkout {
         if (!$courier) { return '<div class="bgc-free-notice"></div>'; } // no bgc courier chosen
         // Nothing to earn when this courier's delivery isn't charged with the order.
         if (!BGC_Settings::ship_in_total($courier)) { return '<div class="bgc-free-notice"></div>'; }
-        $cfg = BGC_Settings::free_shipping($courier);
+        $sel = BGC_Pricing::selection_for($courier);
+        $cfg = BGC_Settings::free_shipping($courier, (string) ($sel['method'] ?? ''));
         $subtotal = (function_exists('WC') && WC()->cart) ? (float) WC()->cart->get_subtotal() : 0.0;
         if (empty($cfg['enabled']) || (float) ($cfg['threshold'] ?? 0) <= 0) {
             return '<div class="bgc-free-notice"></div>';

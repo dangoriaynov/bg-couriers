@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 22:03+0300\n"
+"POT-Creation-Date: 2026-07-23 22:42+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -217,70 +217,75 @@ msgid "Waybill"
 msgstr "Товарителница"
 
 #: includes/Admin/class-bgc-order-columns.php:16
-#: includes/Admin/class-bgc-order-columns.php:42
+#: includes/Admin/class-bgc-order-columns.php:49
 msgid "Generate"
 msgstr "Генерирай"
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgc-order-columns.php:22
+#: includes/Admin/class-bgc-order-columns.php:23
 #: includes/Admin/class-bgc-order-metabox.php:146
 #, php-format
 msgid "Copy waybill %s"
 msgstr "Копирай товарителница %s"
 
-#: includes/Admin/class-bgc-order-columns.php:25
+#: includes/Admin/class-bgc-order-columns.php:31
 #: includes/Admin/class-bgc-order-metabox.php:130
 msgid "Print label"
 msgstr "Отпечатай етикет"
 
-#: includes/Admin/class-bgc-order-columns.php:26
+#: includes/Admin/class-bgc-order-columns.php:32
 #: includes/Admin/class-bgc-order-metabox.php:131
 msgid "Track shipment"
 msgstr "Проследи пратката"
 
-#: includes/Admin/class-bgc-order-columns.php:27
+#: includes/Admin/class-bgc-order-columns.php:33
+#: includes/Admin/class-bgc-order-metabox.php:114
+msgid "Edit delivery details"
+msgstr "Редактирай данните за доставка"
+
+#: includes/Admin/class-bgc-order-columns.php:34
 msgid "Cancel waybill"
 msgstr "Анулирай товарителницата"
 
-#: includes/Admin/class-bgc-order-columns.php:36
+#: includes/Admin/class-bgc-order-columns.php:43
 #: includes/Admin/class-bgc-order-metabox.php:235
 msgid "Cancel this waybill?"
 msgstr "Да анулирам ли товарителницата?"
 
-#: includes/Admin/class-bgc-order-columns.php:37
+#: includes/Admin/class-bgc-order-columns.php:44
 #: includes/Admin/class-bgc-order-metabox.php:236
 msgid "This voids the shipment label with the courier. This cannot be undone."
 msgstr ""
 "Това анулира етикета за доставка при куриера. Действието е необратимо."
 
-#: includes/Admin/class-bgc-order-columns.php:38
+#: includes/Admin/class-bgc-order-columns.php:45
 #: includes/Admin/class-bgc-order-metabox.php:237
 msgid "Yes, cancel it"
 msgstr "Да, анулирай"
 
-#: includes/Admin/class-bgc-order-columns.php:39
+#: includes/Admin/class-bgc-order-columns.php:46
 #: includes/Admin/class-bgc-order-metabox.php:238
 msgid "Keep it"
 msgstr "Запази"
 
-#: includes/Admin/class-bgc-order-columns.php:40
+#: includes/Admin/class-bgc-order-columns.php:47
 msgid "Waybill cancelled"
 msgstr "Товарителницата е анулирана"
 
-#: includes/Admin/class-bgc-order-columns.php:41
+#: includes/Admin/class-bgc-order-columns.php:48
 #: includes/Admin/class-bgc-order-metabox.php:234
 msgid "Copied to clipboard"
 msgstr "Копирано в клипборда"
 
-#: includes/Admin/class-bgc-order-columns.php:43
+#: includes/Admin/class-bgc-order-columns.php:50
 msgid "Could not cancel."
 msgstr "Неуспешно анулиране."
 
 #: includes/Admin/class-bgc-order-metabox.php:19
 #: includes/Admin/class-bgc-order-metabox.php:231
-#: includes/Admin/class-bgc-settings.php:257
+#: includes/Admin/class-bgc-settings.php:289
 #: includes/Admin/class-bgc-wc-settings.php:20
-#: includes/Checkout/class-bgc-checkout.php:471
+#: includes/Checkout/class-bgc-checkout.php:472
 #: includes/Checkout/class-bgc-thankyou.php:95
 #: includes/Support/class-bgc-icons.php:29
 msgid "To office"
@@ -288,9 +293,9 @@ msgstr "До офис"
 
 #: includes/Admin/class-bgc-order-metabox.php:19
 #: includes/Admin/class-bgc-order-metabox.php:231
-#: includes/Admin/class-bgc-settings.php:258
+#: includes/Admin/class-bgc-settings.php:290
 #: includes/Admin/class-bgc-wc-settings.php:21
-#: includes/Checkout/class-bgc-checkout.php:471
+#: includes/Checkout/class-bgc-checkout.php:472
 #: includes/Checkout/class-bgc-thankyou.php:95
 #: includes/Support/class-bgc-icons.php:27
 msgid "To address"
@@ -298,17 +303,13 @@ msgstr "До адрес"
 
 #: includes/Admin/class-bgc-order-metabox.php:19
 #: includes/Admin/class-bgc-order-metabox.php:231
-#: includes/Admin/class-bgc-settings.php:259
+#: includes/Admin/class-bgc-settings.php:291
 #: includes/Admin/class-bgc-wc-settings.php:22
-#: includes/Checkout/class-bgc-checkout.php:471
+#: includes/Checkout/class-bgc-checkout.php:472
 #: includes/Checkout/class-bgc-thankyou.php:95
 #: includes/Support/class-bgc-icons.php:28
 msgid "To APS"
 msgstr "До автомат"
-
-#: includes/Admin/class-bgc-order-metabox.php:114
-msgid "Edit delivery details"
-msgstr "Редактирай данните за доставка"
 
 #: includes/Admin/class-bgc-order-metabox.php:123
 msgid "Generate label"
@@ -320,7 +321,7 @@ msgstr "Анулирай етикета"
 
 #: includes/Admin/class-bgc-order-metabox.php:232
 #: includes/Admin/class-bgc-order-metabox.php:258
-#: includes/Checkout/class-bgc-checkout.php:573
+#: includes/Checkout/class-bgc-checkout.php:574
 msgid "City"
 msgstr "Град"
 
@@ -331,7 +332,7 @@ msgstr "Офис / Автомат"
 
 #: includes/Admin/class-bgc-order-metabox.php:232
 #: includes/Admin/class-bgc-order-metabox.php:263
-#: includes/Checkout/class-bgc-checkout.php:583
+#: includes/Checkout/class-bgc-checkout.php:584
 msgid "Street"
 msgstr "Улица"
 
@@ -345,34 +346,34 @@ msgstr "Неуспешно запазване."
 
 #: includes/Admin/class-bgc-order-metabox.php:239
 #: includes/Admin/class-bgc-order-metabox.php:259
-#: includes/Checkout/class-bgc-checkout.php:481
+#: includes/Checkout/class-bgc-checkout.php:482
 msgid "Pick from the map"
 msgstr "Изберете от картата"
 
 #: includes/Admin/class-bgc-order-metabox.php:240
-#: includes/Checkout/class-bgc-checkout.php:482
+#: includes/Checkout/class-bgc-checkout.php:483
 msgid "Choose this location"
 msgstr "Изберете тази локация"
 
 #: includes/Admin/class-bgc-order-metabox.php:241
-#: includes/Checkout/class-bgc-checkout.php:483
+#: includes/Checkout/class-bgc-checkout.php:484
 msgid "Show my location"
 msgstr "Покажи моето местоположение"
 
 #: includes/Admin/class-bgc-order-metabox.php:242
-#: includes/Checkout/class-bgc-checkout.php:484
+#: includes/Checkout/class-bgc-checkout.php:485
 msgid "No offices with a map location for this city yet - use the list."
 msgstr ""
 "Все още няма офиси с локация на картата за този град - използвайте списъка."
 
 #: includes/Admin/class-bgc-order-metabox.php:243
-#: includes/Checkout/class-bgc-checkout.php:475
+#: includes/Checkout/class-bgc-checkout.php:476
 msgid "Search…"
 msgstr "Търсене…"
 
 #: includes/Admin/class-bgc-order-metabox.php:244
 #: includes/Admin/class-bgc-wc-settings.php:367
-#: includes/Checkout/class-bgc-checkout.php:474
+#: includes/Checkout/class-bgc-checkout.php:475
 msgid "Close"
 msgstr "Затвори"
 
@@ -385,17 +386,17 @@ msgid "Click the map or drag the pin to the address."
 msgstr "Кликнете върху картата или преместете маркера до адреса."
 
 #: includes/Admin/class-bgc-order-metabox.php:247
-#: includes/Checkout/class-bgc-checkout.php:487
+#: includes/Checkout/class-bgc-checkout.php:488
 msgid "Use this address"
 msgstr "Използвай този адрес"
 
 #: includes/Admin/class-bgc-order-metabox.php:248
-#: includes/Checkout/class-bgc-checkout.php:488
+#: includes/Checkout/class-bgc-checkout.php:489
 msgid "No address found here - try another spot."
 msgstr "Тук не е намерен адрес - опитайте на друго място."
 
 #: includes/Admin/class-bgc-order-metabox.php:249
-#: includes/Checkout/class-bgc-checkout.php:580
+#: includes/Checkout/class-bgc-checkout.php:581
 msgid "Map"
 msgstr "Карта"
 
@@ -424,7 +425,7 @@ msgid "Delivery option"
 msgstr "Опция за доставка"
 
 #: includes/Admin/class-bgc-order-metabox.php:264
-#: includes/Checkout/class-bgc-checkout.php:584
+#: includes/Checkout/class-bgc-checkout.php:585
 msgid "No."
 msgstr "№"
 
@@ -433,7 +434,7 @@ msgid "Pick the address on the map"
 msgstr "Изберете адреса от картата"
 
 #: includes/Admin/class-bgc-order-metabox.php:267
-#: includes/Checkout/class-bgc-checkout.php:593
+#: includes/Checkout/class-bgc-checkout.php:594
 msgid "Quarter / complex"
 msgstr "Квартал / комплекс"
 
@@ -442,22 +443,22 @@ msgid "Bl."
 msgstr "Бл."
 
 #: includes/Admin/class-bgc-order-metabox.php:270
-#: includes/Checkout/class-bgc-checkout.php:596
+#: includes/Checkout/class-bgc-checkout.php:597
 msgid "Entr."
 msgstr "Вход"
 
 #: includes/Admin/class-bgc-order-metabox.php:271
-#: includes/Checkout/class-bgc-checkout.php:597
+#: includes/Checkout/class-bgc-checkout.php:598
 msgid "Floor"
 msgstr "Етаж"
 
 #: includes/Admin/class-bgc-order-metabox.php:272
-#: includes/Checkout/class-bgc-checkout.php:598
+#: includes/Checkout/class-bgc-checkout.php:599
 msgid "Apt."
 msgstr "Ап."
 
 #: includes/Admin/class-bgc-order-metabox.php:274
-#: includes/Checkout/class-bgc-checkout.php:600
+#: includes/Checkout/class-bgc-checkout.php:601
 msgid "Note"
 msgstr "Бележка"
 
@@ -485,7 +486,7 @@ msgstr ""
 "Съществува товарителница. Запазването я анулира и издава нова според новите "
 "данни."
 
-#: includes/Admin/class-bgc-settings.php:213
+#: includes/Admin/class-bgc-settings.php:245
 msgid ""
 "This courier does not offer ППП. Because your Cash on delivery setting "
 "relies on the courier's ППП, it can be used here only for PREPAID orders - "
@@ -495,7 +496,7 @@ msgstr ""
 "разчита на ППП на куриера, тук той може да се използва само за ПРЕДПЛАТЕНИ "
 "поръчки – наложеният платеж е изключен за него на плащане."
 
-#: includes/Admin/class-bgc-settings.php:215
+#: includes/Admin/class-bgc-settings.php:247
 msgid ""
 "This courier does not offer ППП and your shop has no prepaid (card / bank "
 "transfer) payment method, so it cannot take cash-on-delivery and will NOT "
@@ -507,50 +508,50 @@ msgstr ""
 "показва на плащане. Добавете метод за предплащане или задайте „Наложен "
 "платеж“ на „Имам касов апарат“."
 
-#: includes/Admin/class-bgc-settings.php:254
+#: includes/Admin/class-bgc-settings.php:286
 msgid "Drag to set the order couriers appear at checkout."
 msgstr ""
 "Плъзнете, за да зададете реда, в който куриерите се показват при поръчка."
 
-#: includes/Admin/class-bgc-settings.php:263
+#: includes/Admin/class-bgc-settings.php:295
 msgid "Drag to set the order delivery options appear at checkout."
 msgstr ""
 "Плъзнете, за да зададете реда, в който опциите за доставка се показват при "
 "поръчка."
 
-#: includes/Admin/class-bgc-settings.php:293
+#: includes/Admin/class-bgc-settings.php:325
 msgid "Search your city..."
 msgstr "Търсете вашия град..."
 
-#: includes/Admin/class-bgc-settings.php:294
+#: includes/Admin/class-bgc-settings.php:326
 msgid "Pick the pickup office"
 msgstr "Изберете офис за приемане"
 
 #. translators: %d: pickup office id
-#: includes/Admin/class-bgc-settings.php:313
+#: includes/Admin/class-bgc-settings.php:345
 #, php-format
 msgid "Current pickup office (#%d)"
 msgstr "Текущ офис за приемане (#%d)"
 
-#: includes/Admin/class-bgc-settings.php:372
-#: includes/Admin/class-bgc-settings.php:443
+#: includes/Admin/class-bgc-settings.php:404
+#: includes/Admin/class-bgc-settings.php:475
 msgid "This courier is currently unusable"
 msgstr "Този куриер в момента е неизползваем"
 
-#: includes/Admin/class-bgc-settings.php:372
-#: includes/Admin/class-bgc-settings.php:443
+#: includes/Admin/class-bgc-settings.php:404
+#: includes/Admin/class-bgc-settings.php:475
 msgid "Cash on delivery is off for this courier"
 msgstr "Наложеният платеж е изключен за този куриер"
 
-#: includes/Admin/class-bgc-settings.php:379
+#: includes/Admin/class-bgc-settings.php:411
 msgid "COD risk scoring for WooCommerce"
 msgstr "Оценка на риска при наложен платеж за WooCommerce"
 
-#: includes/Admin/class-bgc-settings.php:380
+#: includes/Admin/class-bgc-settings.php:412
 msgid "in review"
 msgstr "в процес на преглед"
 
-#: includes/Admin/class-bgc-settings.php:388
+#: includes/Admin/class-bgc-settings.php:420
 msgid ""
 "Free shipping integration for the Bulgarian couriers, built and maintained "
 "by an independent developer."
@@ -558,15 +559,15 @@ msgstr ""
 "Безплатна интеграция за доставка с българските куриери, създадена и "
 "поддържана от независим разработчик."
 
-#: includes/Admin/class-bgc-settings.php:389
+#: includes/Admin/class-bgc-settings.php:421
 msgid "My other free plugins"
 msgstr "Другите ми безплатни разширения"
 
-#: includes/Admin/class-bgc-settings.php:396
+#: includes/Admin/class-bgc-settings.php:428
 msgid "Support the work"
 msgstr "Подкрепете работата"
 
-#: includes/Admin/class-bgc-settings.php:397
+#: includes/Admin/class-bgc-settings.php:429
 msgid ""
 "These plugins are free. If they help your store, a small donation keeps more"
 " of them coming - thank you!"
@@ -574,26 +575,26 @@ msgstr ""
 "Тези разширения са безплатни. Ако помагат на магазина Ви, малко дарение "
 "помага да създавам още – благодаря!"
 
-#: includes/Admin/class-bgc-settings.php:398
+#: includes/Admin/class-bgc-settings.php:430
 msgid "Donate via Revolut"
 msgstr "Дарете чрез Revolut"
 
-#: includes/Admin/class-bgc-settings.php:399
+#: includes/Admin/class-bgc-settings.php:431
 msgid "Contact / feedback:"
 msgstr "Контакт / обратна връзка:"
 
-#: includes/Admin/class-bgc-settings.php:414
-#: includes/Admin/class-bgc-settings.php:454
+#: includes/Admin/class-bgc-settings.php:446
+#: includes/Admin/class-bgc-settings.php:486
 msgid "How do I get API credentials for this courier?"
 msgstr "Как да получа API данни за достъп за този куриер?"
 
-#: includes/Admin/class-bgc-settings.php:420
-#: includes/Admin/class-bgc-settings.php:460
+#: includes/Admin/class-bgc-settings.php:452
+#: includes/Admin/class-bgc-settings.php:492
 msgid "You receive:"
 msgstr "Получавате:"
 
-#: includes/Admin/class-bgc-settings.php:426
-#: includes/Admin/class-bgc-settings.php:466
+#: includes/Admin/class-bgc-settings.php:458
+#: includes/Admin/class-bgc-settings.php:498
 msgid ""
 "A courier can change its process - if a step differs, follow the courier's "
 "own instructions."
@@ -601,7 +602,7 @@ msgstr ""
 "Куриерът може да промени процеса си - ако някоя стъпка се различава, "
 "следвайте инструкциите на самия куриер."
 
-#: includes/Admin/class-bgc-settings.php:475
+#: includes/Admin/class-bgc-settings.php:507
 msgid ""
 "Speedy issues API access to registered business clients - there is no "
 "instant self-signup."
@@ -609,11 +610,11 @@ msgstr ""
 "Speedy предоставя API достъп на регистрирани бизнес клиенти - няма "
 "моментална самостоятелна регистрация."
 
-#: includes/Admin/class-bgc-settings.php:477
+#: includes/Admin/class-bgc-settings.php:509
 msgid "Have (or open) a Speedy business contract."
 msgstr "Имайте (или сключете) бизнес договор със Speedy."
 
-#: includes/Admin/class-bgc-settings.php:478
+#: includes/Admin/class-bgc-settings.php:510
 msgid ""
 "Request REST API access (ask for a test account first) from your Speedy "
 "account manager, or via the integration contact on the Speedy \"System "
@@ -623,25 +624,25 @@ msgstr ""
 " в Speedy или чрез контакта за интеграция на страницата \"Системна "
 "интеграция\" на Speedy по-долу."
 
-#: includes/Admin/class-bgc-settings.php:479
+#: includes/Admin/class-bgc-settings.php:511
 msgid "Speedy issues an API username + password for api.speedy.bg."
 msgstr "Speedy издава API потребителско име + парола за api.speedy.bg."
 
-#: includes/Admin/class-bgc-settings.php:480
+#: includes/Admin/class-bgc-settings.php:512
 msgid "Enter the username and password below, click Validate, then Sync."
 msgstr ""
 "Въведете потребителското име и паролата по-долу, натиснете \"Провери\", след"
 " това \"Синхронизирай\"."
 
-#: includes/Admin/class-bgc-settings.php:482
+#: includes/Admin/class-bgc-settings.php:514
 msgid "API username + password"
 msgstr "API потребителско име + парола"
 
-#: includes/Admin/class-bgc-settings.php:483
+#: includes/Admin/class-bgc-settings.php:515
 msgid "Speedy system integration:"
 msgstr "Системна интеграция на Speedy:"
 
-#: includes/Admin/class-bgc-settings.php:488
+#: includes/Admin/class-bgc-settings.php:520
 msgid ""
 "Econt's API uses your own e-Econt (\"Моят Еконт\") business account - there "
 "is no separate API key."
@@ -649,16 +650,16 @@ msgstr ""
 "API-то на Econt използва вашия собствен e-Econt (\"Моят Еконт\") бизнес "
 "акаунт - няма отделен API ключ."
 
-#: includes/Admin/class-bgc-settings.php:490
+#: includes/Admin/class-bgc-settings.php:522
 msgid "Register or open a business account in \"Моят Еконт\" at ee.econt.com."
 msgstr ""
 "Регистрирайте или отворете бизнес акаунт в \"Моят Еконт\" на ee.econt.com."
 
-#: includes/Admin/class-bgc-settings.php:491
+#: includes/Admin/class-bgc-settings.php:523
 msgid "Confirm with Econt that API access is enabled for your account."
 msgstr "Уверете се с Econt, че API достъпът е активиран за вашия акаунт."
 
-#: includes/Admin/class-bgc-settings.php:492
+#: includes/Admin/class-bgc-settings.php:524
 msgid ""
 "Your API username is your account e-mail; the password is your account "
 "password."
@@ -666,26 +667,26 @@ msgstr ""
 "Вашето API потребителско име е имейлът на акаунта ви; паролата е паролата на"
 " акаунта ви."
 
-#: includes/Admin/class-bgc-settings.php:493
+#: includes/Admin/class-bgc-settings.php:525
 msgid "Enter the e-mail and password below, click Validate, then Sync."
 msgstr ""
 "Въведете имейла и паролата по-долу, натиснете \"Провери\", след това "
 "\"Синхронизирай\"."
 
-#: includes/Admin/class-bgc-settings.php:495
+#: includes/Admin/class-bgc-settings.php:527
 msgid "account e-mail (username) + password"
 msgstr "имейл на акаунта (потребителско име) + парола"
 
-#: includes/Admin/class-bgc-settings.php:496
+#: includes/Admin/class-bgc-settings.php:528
 msgid "Моят Еконт:"
 msgstr "Моят Еконт:"
 
-#: includes/Admin/class-bgc-settings.php:501
+#: includes/Admin/class-bgc-settings.php:533
 msgid ""
 "Pigeon Express issues an API Key + Secret to business clients on request."
 msgstr "Pigeon Express издава API ключ + секрет на бизнес клиенти при заявка."
 
-#: includes/Admin/class-bgc-settings.php:503
+#: includes/Admin/class-bgc-settings.php:535
 msgid ""
 "Contact Pigeon Express and request API access (e-mail "
 "support@pigeonexpress.com, or via pigeonexpress.com)."
@@ -693,7 +694,7 @@ msgstr ""
 "Свържете се с Pigeon Express и заявете API достъп (имейл "
 "support@pigeonexpress.com или чрез pigeonexpress.com)."
 
-#: includes/Admin/class-bgc-settings.php:504
+#: includes/Admin/class-bgc-settings.php:536
 msgid ""
 "They issue an API Key + API Secret (production; ask for a sandbox/test key "
 "to test)."
@@ -701,14 +702,14 @@ msgstr ""
 "Те издават API ключ + API секрет (за продукция; поискайте sandbox/тестов "
 "ключ за тестване)."
 
-#: includes/Admin/class-bgc-settings.php:505
+#: includes/Admin/class-bgc-settings.php:537
 msgid ""
 "Ask them for your pickup office ID (the office you drop parcels off at)."
 msgstr ""
 "Поискайте от тях вашето ID на офис за приемане (офисът, в който предавате "
 "пратките)."
 
-#: includes/Admin/class-bgc-settings.php:506
+#: includes/Admin/class-bgc-settings.php:538
 msgid ""
 "Enter the Key, Secret and pickup office below, click Validate, then Sync. "
 "Tick \"Sandbox\" only for a test account."
@@ -716,19 +717,19 @@ msgstr ""
 "Въведете ключа, секрета и офиса за приемане по-долу, натиснете \"Провери\", "
 "след това \"Синхронизирай\". Отметнете \"Sandbox\" само за тестов акаунт."
 
-#: includes/Admin/class-bgc-settings.php:508
+#: includes/Admin/class-bgc-settings.php:540
 msgid "API Key + API Secret (+ your pickup office ID)"
 msgstr "API ключ + API секрет (+ вашето ID на офис за приемане)"
 
-#: includes/Admin/class-bgc-settings.php:509
+#: includes/Admin/class-bgc-settings.php:541
 msgid "Pigeon API docs:"
 msgstr "Документация на Pigeon API:"
 
-#: includes/Admin/class-bgc-settings.php:514
+#: includes/Admin/class-bgc-settings.php:546
 msgid "BOX NOW issues OAuth2 credentials through its integration team."
 msgstr "BOX NOW издава OAuth2 данни за достъп чрез екипа си по интеграции."
 
-#: includes/Admin/class-bgc-settings.php:516
+#: includes/Admin/class-bgc-settings.php:548
 msgid ""
 "E-mail integrationsupport@boxnow.bg with your company name, address, tax ID "
 "(ЕИК), contact details, and the phone numbers of the people who will use the"
@@ -738,7 +739,7 @@ msgstr ""
 " за контакт и телефонните номера на хората, които ще използват Partner "
 "Portal (нужни за OTP SMS вход)."
 
-#: includes/Admin/class-bgc-settings.php:517
+#: includes/Admin/class-bgc-settings.php:549
 msgid ""
 "They issue your OAuth2 Client ID + Client Secret and confirm your Warehouse "
 "ID and Partner ID."
@@ -746,7 +747,7 @@ msgstr ""
 "Те издават вашите OAuth2 Client ID + Client Secret и потвърждават вашите "
 "Warehouse ID и Partner ID."
 
-#: includes/Admin/class-bgc-settings.php:518
+#: includes/Admin/class-bgc-settings.php:550
 msgid ""
 "Enter the Client ID, Client Secret, Partner ID and Warehouse ID below; "
 "choose the Production environment (or Stage for testing)."
@@ -754,15 +755,15 @@ msgstr ""
 "Въведете Client ID, Client Secret, Partner ID и Warehouse ID по-долу; "
 "изберете среда Production (или Stage за тестване)."
 
-#: includes/Admin/class-bgc-settings.php:520
+#: includes/Admin/class-bgc-settings.php:552
 msgid "OAuth2 Client ID + Client Secret (+ Partner ID, Warehouse ID)"
 msgstr "OAuth2 Client ID + Client Secret (+ Partner ID, Warehouse ID)"
 
-#: includes/Admin/class-bgc-settings.php:521
+#: includes/Admin/class-bgc-settings.php:553
 msgid "BOX NOW:"
 msgstr "BOX NOW:"
 
-#: includes/Admin/class-bgc-settings.php:526
+#: includes/Admin/class-bgc-settings.php:558
 msgid ""
 "Sameday issues API credentials (username + password) to clients after a "
 "business contract."
@@ -770,7 +771,7 @@ msgstr ""
 "Sameday издава API данни за достъп (потребителско име + парола) на клиенти "
 "след сключване на бизнес договор."
 
-#: includes/Admin/class-bgc-settings.php:528
+#: includes/Admin/class-bgc-settings.php:560
 msgid ""
 "Sign a Sameday business contract (via sameday.bg or your Sameday account "
 "manager)."
@@ -778,11 +779,11 @@ msgstr ""
 "Сключете бизнес договор със Sameday (чрез sameday.bg или вашия мениджър в "
 "Sameday)."
 
-#: includes/Admin/class-bgc-settings.php:529
+#: includes/Admin/class-bgc-settings.php:561
 msgid "Request API / eAWB access; you receive a username + password."
 msgstr "Заявете API / eAWB достъп; получавате потребителско име + парола."
 
-#: includes/Admin/class-bgc-settings.php:530
+#: includes/Admin/class-bgc-settings.php:562
 msgid ""
 "Ask for your pickup-point ID and the service IDs for each delivery type "
 "(office / address / easyBox locker) from your contract."
@@ -790,7 +791,7 @@ msgstr ""
 "Поискайте вашето ID на точка за приемане и ID-тата на услугите за всеки тип "
 "доставка (офис / адрес / easyBox автомат) от вашия договор."
 
-#: includes/Admin/class-bgc-settings.php:531
+#: includes/Admin/class-bgc-settings.php:563
 msgid ""
 "Enter the username, password, pickup point and service IDs below; tick "
 "\"Sandbox\" to use the test environment (sameday-api.demo.zitec.com)."
@@ -799,55 +800,55 @@ msgstr ""
 "услугите по-долу; отметнете \"Sandbox\", за да използвате тестовата среда "
 "(sameday-api.demo.zitec.com)."
 
-#: includes/Admin/class-bgc-settings.php:533
+#: includes/Admin/class-bgc-settings.php:565
 msgid "username + password (+ pickup point and per-type service IDs)"
 msgstr ""
 "потребителско име + парола (+ точка за приемане и ID-та на услугите по тип)"
 
-#: includes/Admin/class-bgc-settings.php:534
+#: includes/Admin/class-bgc-settings.php:566
 msgid "Sameday Bulgaria:"
 msgstr "Sameday България:"
 
-#: includes/Admin/class-bgc-settings.php:582
-#: includes/Admin/class-bgc-settings.php:663
+#: includes/Admin/class-bgc-settings.php:614
+#: includes/Admin/class-bgc-settings.php:695
 msgid "No credentials saved"
 msgstr "Няма запазени данни за достъп"
 
-#: includes/Admin/class-bgc-settings.php:592
-#: includes/Admin/class-bgc-settings.php:631
+#: includes/Admin/class-bgc-settings.php:624
+#: includes/Admin/class-bgc-settings.php:663
 msgid "You are not allowed to do this."
 msgstr "Нямате право да извършите това действие."
 
-#: includes/Admin/class-bgc-settings.php:598
+#: includes/Admin/class-bgc-settings.php:630
 msgid "Unknown courier."
 msgstr "Неизвестен куриер."
 
-#: includes/Admin/class-bgc-settings.php:633
+#: includes/Admin/class-bgc-settings.php:665
 msgid "WooCommerce not available."
 msgstr "WooCommerce не е наличен."
 
-#: includes/Admin/class-bgc-settings.php:645
+#: includes/Admin/class-bgc-settings.php:677
 msgid "Settings unavailable."
 msgstr "Настройките са недостъпни."
 
-#: includes/Admin/class-bgc-settings.php:651
+#: includes/Admin/class-bgc-settings.php:683
 #: includes/Admin/class-bgc-wc-settings.php:236
 msgid "Saved"
 msgstr "Запазено"
 
-#: includes/Admin/class-bgc-settings.php:679
+#: includes/Admin/class-bgc-settings.php:711
 msgid "API check"
 msgstr "Проверка на API"
 
-#: includes/Admin/class-bgc-settings.php:681
+#: includes/Admin/class-bgc-settings.php:713
 msgid "Validate credentials"
 msgstr "Провери данните за достъп"
 
-#: includes/Admin/class-bgc-settings.php:682
+#: includes/Admin/class-bgc-settings.php:714
 msgid "Sync now"
 msgstr "Синхронизирай сега"
 
-#: includes/Admin/class-bgc-settings.php:685
+#: includes/Admin/class-bgc-settings.php:717
 msgid ""
 "Enter and save your API username and password, then Validate / Sync appear "
 "here."
@@ -855,47 +856,47 @@ msgstr ""
 "Въведете и запазете API потребител и парола, след което тук ще се появят "
 "„Провери“ / „Синхронизирай“."
 
-#: includes/Admin/class-bgc-settings.php:690
+#: includes/Admin/class-bgc-settings.php:722
 msgid "Validating…"
 msgstr "Проверка…"
 
-#: includes/Admin/class-bgc-settings.php:691
+#: includes/Admin/class-bgc-settings.php:723
 msgid "Syncing… this can take a moment"
 msgstr "Синхронизиране… това може да отнеме момент"
 
-#: includes/Admin/class-bgc-settings.php:692
+#: includes/Admin/class-bgc-settings.php:724
 msgid "Credentials valid"
 msgstr "Данните за достъп са валидни"
 
-#: includes/Admin/class-bgc-settings.php:693
+#: includes/Admin/class-bgc-settings.php:725
 msgid "Invalid credentials"
 msgstr "Невалидни данни за достъп"
 
-#: includes/Admin/class-bgc-settings.php:694
+#: includes/Admin/class-bgc-settings.php:726
 msgid "cities"
 msgstr "градове"
 
-#: includes/Admin/class-bgc-settings.php:695
+#: includes/Admin/class-bgc-settings.php:727
 msgid "offices"
 msgstr "офиси"
 
-#: includes/Admin/class-bgc-settings.php:696
+#: includes/Admin/class-bgc-settings.php:728
 msgid "rates"
 msgstr "тарифи"
 
-#: includes/Admin/class-bgc-settings.php:697
+#: includes/Admin/class-bgc-settings.php:729
 msgid "Request failed"
 msgstr "Заявката е неуспешна"
 
-#: includes/Admin/class-bgc-settings.php:698
+#: includes/Admin/class-bgc-settings.php:730
 msgid "Change credentials"
 msgstr "Промени данните за достъп"
 
-#: includes/Admin/class-bgc-settings.php:699
+#: includes/Admin/class-bgc-settings.php:731
 msgid "Save your changes first, then validate."
 msgstr "Първо запазете промените, след което проверете."
 
-#: includes/Admin/class-bgc-settings.php:752
+#: includes/Admin/class-bgc-settings.php:784
 msgid "Settings"
 msgstr "Настройки"
 
@@ -972,15 +973,15 @@ msgstr "Моля, коригирайте следното и опитайте д
 msgid "How to fix:"
 msgstr "Как да коригирате:"
 
-#: includes/Admin/class-bgc-wc-settings.php:477
+#: includes/Admin/class-bgc-wc-settings.php:490
 msgid "Automatic (first / cheapest)"
 msgstr "Автоматично (първи / най-евтин)"
 
-#: includes/Admin/class-bgc-wc-settings.php:481
+#: includes/Admin/class-bgc-wc-settings.php:494
 msgid "Checkout"
 msgstr "Поръчка"
 
-#: includes/Admin/class-bgc-wc-settings.php:482
+#: includes/Admin/class-bgc-wc-settings.php:495
 msgid ""
 "How the checkout delivery picker behaves. Reorder couriers by dragging their"
 " tabs above; prices show in the store currency."
@@ -988,11 +989,11 @@ msgstr ""
 "Как работи изборът на доставка при поръчка. Подредете куриерите чрез "
 "плъзгане на табовете им горе; цените са във валутата на магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:483
+#: includes/Admin/class-bgc-wc-settings.php:496
 msgid "Default courier"
 msgstr "Куриер по подразбиране"
 
-#: includes/Admin/class-bgc-wc-settings.php:484
+#: includes/Admin/class-bgc-wc-settings.php:497
 msgid ""
 "Which courier is pre-selected at checkout (its first delivery option is the "
 "default)."
@@ -1000,21 +1001,21 @@ msgstr ""
 "Кой куриер е предварително избран при поръчка (първата му опция за доставка "
 "е по подразбиране)."
 
-#: includes/Admin/class-bgc-wc-settings.php:486
+#: includes/Admin/class-bgc-wc-settings.php:499
 msgid "Checkout dropdown results"
 msgstr "Резултати в падащите менюта при поръчка"
 
-#: includes/Admin/class-bgc-wc-settings.php:487
+#: includes/Admin/class-bgc-wc-settings.php:500
 msgid "Max city / office results in checkout dropdowns. Default 5."
 msgstr ""
 "Макс. резултати за град / офис в падащите менюта при поръчка. По "
 "подразбиране 5."
 
-#: includes/Admin/class-bgc-wc-settings.php:489
+#: includes/Admin/class-bgc-wc-settings.php:502
 msgid "Preload city lists"
 msgstr "Предварително зареждане на списъците с градове"
 
-#: includes/Admin/class-bgc-wc-settings.php:490
+#: includes/Admin/class-bgc-wc-settings.php:503
 msgid ""
 "Embed each courier’s office/APS city list so those dropdowns open instantly."
 " Address search stays live. Recommended."
@@ -1022,11 +1023,11 @@ msgstr ""
 "Вгражда списъка с градове с офиси/автомати на всеки куриер, за да се отварят"
 " менютата мигновено. Търсенето по адрес остава на живо. Препоръчително."
 
-#: includes/Admin/class-bgc-wc-settings.php:491
+#: includes/Admin/class-bgc-wc-settings.php:504
 msgid "Address map picker"
 msgstr "Избор на адрес от карта"
 
-#: includes/Admin/class-bgc-wc-settings.php:492
+#: includes/Admin/class-bgc-wc-settings.php:505
 msgid ""
 "Adds a “Choose on map” pin picker to address delivery that fills the address"
 " automatically. Uses OpenStreetMap unless a Google key is set below."
@@ -1035,11 +1036,11 @@ msgstr ""
 "попълва адреса автоматично. Използва OpenStreetMap, освен ако по-долу не е "
 "зададен Google ключ."
 
-#: includes/Admin/class-bgc-wc-settings.php:493
+#: includes/Admin/class-bgc-wc-settings.php:506
 msgid "Google Maps API key (optional)"
 msgstr "Google Maps API ключ (по избор)"
 
-#: includes/Admin/class-bgc-wc-settings.php:494
+#: includes/Admin/class-bgc-wc-settings.php:507
 msgid ""
 "Optional Google Maps API key for better maps and address lookup (empty = "
 "free OpenStreetMap). Needs “Maps JavaScript API” + “Geocoding API”."
@@ -1048,15 +1049,15 @@ msgstr ""
 "(празно = безплатна OpenStreetMap). Изисква „Maps JavaScript API“ + "
 "„Geocoding API“."
 
-#: includes/Admin/class-bgc-wc-settings.php:496
+#: includes/Admin/class-bgc-wc-settings.php:509
 msgid "Hide \"Country\" field"
 msgstr "Скрий полето „Държава“"
 
-#: includes/Admin/class-bgc-wc-settings.php:497
+#: includes/Admin/class-bgc-wc-settings.php:510
 msgid "Hidden checkout fields (CSS selectors)"
 msgstr "Скрити полета при поръчка (CSS селектори)"
 
-#: includes/Admin/class-bgc-wc-settings.php:498
+#: includes/Admin/class-bgc-wc-settings.php:511
 msgid ""
 "Comma-separated CSS selectors to hide on checkout (e.g. "
 "#billing_company_field, .cart-subtotal)."
@@ -1064,15 +1065,15 @@ msgstr ""
 "CSS селектори, разделени със запетая, които да се скрият при поръчка (напр. "
 "#billing_company_field, .cart-subtotal)."
 
-#: includes/Admin/class-bgc-wc-settings.php:503
+#: includes/Admin/class-bgc-wc-settings.php:516
 msgid "Prices & display"
 msgstr "Цени и показване"
 
-#: includes/Admin/class-bgc-wc-settings.php:504
+#: includes/Admin/class-bgc-wc-settings.php:517
 msgid "Enable 2 currencies"
 msgstr "Активирай 2 валути"
 
-#: includes/Admin/class-bgc-wc-settings.php:505
+#: includes/Admin/class-bgc-wc-settings.php:518
 msgid ""
 "Also show delivery prices in BGN (лв.) next to the store currency. Fixed "
 "rate 1 EUR = 1.95583 BGN."
@@ -1080,11 +1081,11 @@ msgstr ""
 "Показвай цените за доставка и в лева (лв.) до валутата на магазина. Фиксиран"
 " курс 1 EUR = 1.95583 BGN."
 
-#: includes/Admin/class-bgc-wc-settings.php:506
+#: includes/Admin/class-bgc-wc-settings.php:519
 msgid "Shipping estimate on the cart"
 msgstr "Приблизителна доставка в количката"
 
-#: includes/Admin/class-bgc-wc-settings.php:507
+#: includes/Admin/class-bgc-wc-settings.php:520
 msgid ""
 "On the cart page, show a rough cached shipping price per courier/option (the"
 " exact price is calculated at checkout). Off by default."
@@ -1093,11 +1094,11 @@ msgstr ""
 "куриер/опция (точната цена се изчислява при поръчка). По подразбиране "
 "изключено."
 
-#: includes/Admin/class-bgc-wc-settings.php:508
+#: includes/Admin/class-bgc-wc-settings.php:521
 msgid "Free shipping label"
 msgstr "Етикет за безплатна доставка"
 
-#: includes/Admin/class-bgc-wc-settings.php:509
+#: includes/Admin/class-bgc-wc-settings.php:522
 msgid ""
 "Text shown for the shipping price when a method is free (e.g. “Free "
 "shipping”)."
@@ -1105,12 +1106,12 @@ msgstr ""
 "Текст, показван за цената на доставката, когато методът е безплатен (напр. "
 "„Безплатна доставка“)."
 
-#: includes/Admin/class-bgc-wc-settings.php:512
-#: includes/Admin/class-bgc-wc-settings.php:654
+#: includes/Admin/class-bgc-wc-settings.php:525
+#: includes/Admin/class-bgc-wc-settings.php:674
 msgid "Cash on delivery (наложен платеж)"
 msgstr "Наложен платеж"
 
-#: includes/Admin/class-bgc-wc-settings.php:513
+#: includes/Admin/class-bgc-wc-settings.php:526
 msgid ""
 "How you fiscalise collected COD. With ППП (no cash register), a courier that"
 " lacks ППП needs prepayment at checkout (or is hidden). Enable ППП per "
@@ -1120,28 +1121,28 @@ msgstr ""
 "ППП изисква предплащане при поръчка (или се скрива). Включете ППП за всеки "
 "куриер в неговия таб."
 
-#: includes/Admin/class-bgc-wc-settings.php:514
+#: includes/Admin/class-bgc-wc-settings.php:527
 msgid "COD fiscalisation"
 msgstr "Фискализация на наложен платеж"
 
-#: includes/Admin/class-bgc-wc-settings.php:516
+#: includes/Admin/class-bgc-wc-settings.php:529
 msgid "I issue the receipt myself (I have a cash register)"
 msgstr "Аз издавам касовата бележка (имам касов апарат)"
 
-#: includes/Admin/class-bgc-wc-settings.php:517
+#: includes/Admin/class-bgc-wc-settings.php:530
 msgid "I rely on the courier's postal money transfer / ППП (no cash register)"
 msgstr ""
 "Разчитам на пощенския паричен превод (ППП) на куриера (без касов апарат)"
 
-#: includes/Admin/class-bgc-wc-settings.php:522
+#: includes/Admin/class-bgc-wc-settings.php:535
 msgid "Label generation"
 msgstr "Генериране на етикети"
 
-#: includes/Admin/class-bgc-wc-settings.php:524
+#: includes/Admin/class-bgc-wc-settings.php:537
 msgid "Auto-generate labels"
 msgstr "Автоматично генериране на етикети"
 
-#: includes/Admin/class-bgc-wc-settings.php:525
+#: includes/Admin/class-bgc-wc-settings.php:538
 msgid ""
 "Automatically generate a shipping label when an order reaches the status "
 "below."
@@ -1149,15 +1150,15 @@ msgstr ""
 "Автоматично генерирай товарителница, когато поръчката достигне статуса по-"
 "долу."
 
-#: includes/Admin/class-bgc-wc-settings.php:526
+#: includes/Admin/class-bgc-wc-settings.php:539
 msgid "Trigger status"
 msgstr "Статус на задействане"
 
-#: includes/Admin/class-bgc-wc-settings.php:529
+#: includes/Admin/class-bgc-wc-settings.php:542
 msgid "Share customer email with courier"
 msgstr "Споделяй имейла на клиента с куриера"
 
-#: includes/Admin/class-bgc-wc-settings.php:530
+#: includes/Admin/class-bgc-wc-settings.php:543
 msgid ""
 "Put the customer’s e-mail on the shipment for courier notifications, when "
 "provided."
@@ -1165,11 +1166,46 @@ msgstr ""
 "Поставя имейла на клиента в пратката за известия от куриера, когато е "
 "наличен."
 
-#: includes/Admin/class-bgc-wc-settings.php:533
+#: includes/Admin/class-bgc-wc-settings.php:544
+msgid "Shipment contents (description)"
+msgstr "Описание на съдържанието на пратката"
+
+#: includes/Admin/class-bgc-wc-settings.php:545
+msgid ""
+"Short description of the parcel contents, printed on every courier's waybill"
+" (e.g. “Хранителни добавки”). Empty = a generic value."
+msgstr ""
+"Кратко описание на съдържанието, отпечатвано върху товарителницата на всеки "
+"куриер (напр. „Хранителни добавки“). Празно = обща стойност."
+
+#: includes/Admin/class-bgc-wc-settings.php:547
+msgid "Default parcel length (cm)"
+msgstr "Стандартна дължина на пратката (см)"
+
+#: includes/Admin/class-bgc-wc-settings.php:548
+#: includes/Admin/class-bgc-wc-settings.php:551
+#: includes/Admin/class-bgc-wc-settings.php:554
+msgid ""
+"Default parcel size sent to every courier whose API takes dimensions (a "
+"locker parcel must fit its box), used when an order has none of its own."
+msgstr ""
+"Размер на пратката по подразбиране, изпращан към всеки куриер, чието API "
+"приема размери (пратката за автомат трябва да се побере в клетката); "
+"използва се, когато поръчката няма собствени размери."
+
+#: includes/Admin/class-bgc-wc-settings.php:550
+msgid "Default parcel width (cm)"
+msgstr "Стандартна ширина на пратката (см)"
+
+#: includes/Admin/class-bgc-wc-settings.php:553
+msgid "Default parcel height (cm)"
+msgstr "Стандартна височина на пратката (см)"
+
+#: includes/Admin/class-bgc-wc-settings.php:558
 msgid "Shipment tracking"
 msgstr "Проследяване на пратки"
 
-#: includes/Admin/class-bgc-wc-settings.php:534
+#: includes/Admin/class-bgc-wc-settings.php:559
 msgid ""
 "Poll couriers for tracking updates and note them on the order (BOX NOW uses "
 "its webhook). Only active shipments from the last 45 days."
@@ -1177,35 +1213,35 @@ msgstr ""
 "Проверява куриерите за проследяване и отбелязва промените в поръчката (BOX "
 "NOW използва webhook). Само активни пратки от последните 45 дни."
 
-#: includes/Admin/class-bgc-wc-settings.php:535
+#: includes/Admin/class-bgc-wc-settings.php:560
 msgid "Auto-update tracking"
 msgstr "Автоматично обновяване на проследяването"
 
-#: includes/Admin/class-bgc-wc-settings.php:537
+#: includes/Admin/class-bgc-wc-settings.php:562
 msgid "Off"
 msgstr "Изключено"
 
-#: includes/Admin/class-bgc-wc-settings.php:538
+#: includes/Admin/class-bgc-wc-settings.php:563
 msgid "Every 30 minutes"
 msgstr "На всеки 30 минути"
 
-#: includes/Admin/class-bgc-wc-settings.php:539
+#: includes/Admin/class-bgc-wc-settings.php:564
 msgid "Hourly"
 msgstr "На всеки час"
 
-#: includes/Admin/class-bgc-wc-settings.php:540
+#: includes/Admin/class-bgc-wc-settings.php:565
 msgid "Twice a day"
 msgstr "Два пъти на ден"
 
-#: includes/Admin/class-bgc-wc-settings.php:541
+#: includes/Admin/class-bgc-wc-settings.php:566
 msgid "Once a day"
 msgstr "Веднъж на ден"
 
-#: includes/Admin/class-bgc-wc-settings.php:544
+#: includes/Admin/class-bgc-wc-settings.php:569
 msgid "On delivery, set order to"
 msgstr "При доставка задай статус на поръчката"
 
-#: includes/Admin/class-bgc-wc-settings.php:545
+#: includes/Admin/class-bgc-wc-settings.php:570
 msgid ""
 "Optionally move the order to this status when tracking reports delivery. “Do"
 " not change” only adds a note."
@@ -1213,15 +1249,15 @@ msgstr ""
 "По избор премества поръчката в този статус, когато проследяването отчете "
 "доставка. „Не променяй“ само добавя бележка."
 
-#: includes/Admin/class-bgc-wc-settings.php:546
+#: includes/Admin/class-bgc-wc-settings.php:571
 msgid "Do not change (note only)"
 msgstr "Не променяй (само бележка)"
 
-#: includes/Admin/class-bgc-wc-settings.php:550
+#: includes/Admin/class-bgc-wc-settings.php:575
 msgid "Emergency contact"
 msgstr "Спешен контакт"
 
-#: includes/Admin/class-bgc-wc-settings.php:551
+#: includes/Admin/class-bgc-wc-settings.php:576
 msgid ""
 "After repeated failed checkout attempts, show a one-time help box with a "
 "phone link. Empty phone = disabled."
@@ -1229,106 +1265,102 @@ msgstr ""
 "След няколко неуспешни опита за поръчка показва еднократна помощна кутия с "
 "телефонен линк. Празен телефон = изключено."
 
-#: includes/Admin/class-bgc-wc-settings.php:552
+#: includes/Admin/class-bgc-wc-settings.php:577
 msgid "Help phone number"
 msgstr "Телефон за помощ"
 
-#: includes/Admin/class-bgc-wc-settings.php:554
+#: includes/Admin/class-bgc-wc-settings.php:579
 msgid "Help message"
 msgstr "Помощно съобщение"
 
-#: includes/Admin/class-bgc-wc-settings.php:555
+#: includes/Admin/class-bgc-wc-settings.php:580
 msgid "Shown above the phone link. Leave empty for a default message."
 msgstr ""
 "Показва се над телефонния номер. Оставете празно за съобщение по "
 "подразбиране."
 
-#: includes/Admin/class-bgc-wc-settings.php:566
+#: includes/Admin/class-bgc-wc-settings.php:591
 msgid "Enable Speedy"
 msgstr "Активирай Speedy"
 
-#: includes/Admin/class-bgc-wc-settings.php:567
-#: includes/Admin/class-bgc-wc-settings.php:629
+#: includes/Admin/class-bgc-wc-settings.php:592
+#: includes/Admin/class-bgc-wc-settings.php:652
 msgid "API username"
 msgstr "API потребител"
 
-#: includes/Admin/class-bgc-wc-settings.php:568
-#: includes/Admin/class-bgc-wc-settings.php:570
-#: includes/Admin/class-bgc-wc-settings.php:631
-#: includes/Admin/class-bgc-wc-settings.php:679
-#: includes/Admin/class-bgc-wc-settings.php:681
-#: includes/Admin/class-bgc-wc-settings.php:728
-#: includes/Admin/class-bgc-wc-settings.php:730
-#: includes/Admin/class-bgc-wc-settings.php:768
-#: includes/Admin/class-bgc-wc-settings.php:770
+#: includes/Admin/class-bgc-wc-settings.php:593
+#: includes/Admin/class-bgc-wc-settings.php:595
+#: includes/Admin/class-bgc-wc-settings.php:654
+#: includes/Admin/class-bgc-wc-settings.php:699
+#: includes/Admin/class-bgc-wc-settings.php:701
+#: includes/Admin/class-bgc-wc-settings.php:739
+#: includes/Admin/class-bgc-wc-settings.php:741
+#: includes/Admin/class-bgc-wc-settings.php:779
+#: includes/Admin/class-bgc-wc-settings.php:781
 msgid "leave blank to keep"
 msgstr "оставете празно, за да запазите текущата"
 
-#: includes/Admin/class-bgc-wc-settings.php:569
-#: includes/Admin/class-bgc-wc-settings.php:630
+#: includes/Admin/class-bgc-wc-settings.php:594
+#: includes/Admin/class-bgc-wc-settings.php:653
 msgid "API password"
 msgstr "API парола"
 
-#: includes/Admin/class-bgc-wc-settings.php:574
-#: includes/Admin/class-bgc-wc-settings.php:635
-#: includes/Admin/class-bgc-wc-settings.php:688
-#: includes/Admin/class-bgc-wc-settings.php:737
-#: includes/Admin/class-bgc-wc-settings.php:781
+#: includes/Admin/class-bgc-wc-settings.php:599
+#: includes/Admin/class-bgc-wc-settings.php:658
+#: includes/Admin/class-bgc-wc-settings.php:708
+#: includes/Admin/class-bgc-wc-settings.php:748
+#: includes/Admin/class-bgc-wc-settings.php:792
 msgid "Delivery & label"
 msgstr "Доставка и етикет"
 
-#: includes/Admin/class-bgc-wc-settings.php:575
-#: includes/Admin/class-bgc-wc-settings.php:741
+#: includes/Admin/class-bgc-wc-settings.php:600
+#: includes/Admin/class-bgc-wc-settings.php:752
 msgid "Label paper size"
 msgstr "Размер на хартията за етикет"
 
-#: includes/Admin/class-bgc-wc-settings.php:576
-#: includes/Admin/class-bgc-wc-settings.php:742
+#: includes/Admin/class-bgc-wc-settings.php:601
+#: includes/Admin/class-bgc-wc-settings.php:753
 msgid "A6 (label printer)"
 msgstr "A6 (етикетен принтер)"
 
-#: includes/Admin/class-bgc-wc-settings.php:576
-#: includes/Admin/class-bgc-wc-settings.php:742
+#: includes/Admin/class-bgc-wc-settings.php:601
+#: includes/Admin/class-bgc-wc-settings.php:753
 msgid "A4 (office printer)"
 msgstr "A4 (офис принтер)"
 
-#: includes/Admin/class-bgc-wc-settings.php:578
-msgid "Parcel contents (description)"
-msgstr "Съдържание на пратката (описание)"
-
-#: includes/Admin/class-bgc-wc-settings.php:580
+#: includes/Admin/class-bgc-wc-settings.php:603
 msgid "Package type"
 msgstr "Вид опаковка"
 
-#: includes/Admin/class-bgc-wc-settings.php:582
+#: includes/Admin/class-bgc-wc-settings.php:605
 msgid "Box"
 msgstr "Кутия"
 
-#: includes/Admin/class-bgc-wc-settings.php:583
+#: includes/Admin/class-bgc-wc-settings.php:606
 msgid "Envelope"
 msgstr "Плик"
 
-#: includes/Admin/class-bgc-wc-settings.php:584
+#: includes/Admin/class-bgc-wc-settings.php:607
 msgid "Pallet"
 msgstr "Палет"
 
-#: includes/Admin/class-bgc-wc-settings.php:589
-#: includes/Admin/class-bgc-wc-settings.php:648
-#: includes/Admin/class-bgc-wc-settings.php:703
-#: includes/Admin/class-bgc-wc-settings.php:745
-#: includes/Admin/class-bgc-wc-settings.php:789
+#: includes/Admin/class-bgc-wc-settings.php:612
+#: includes/Admin/class-bgc-wc-settings.php:668
+#: includes/Admin/class-bgc-wc-settings.php:714
+#: includes/Admin/class-bgc-wc-settings.php:756
+#: includes/Admin/class-bgc-wc-settings.php:800
 msgid "Pricing"
 msgstr "Цени"
 
-#: includes/Admin/class-bgc-wc-settings.php:590
-#: includes/Admin/class-bgc-wc-settings.php:704
-#: includes/Admin/class-bgc-wc-settings.php:746
+#: includes/Admin/class-bgc-wc-settings.php:613
+#: includes/Admin/class-bgc-wc-settings.php:715
+#: includes/Admin/class-bgc-wc-settings.php:757
 msgid "Delivery in the order total"
 msgstr "Доставка в цената на поръчката"
 
-#: includes/Admin/class-bgc-wc-settings.php:591
-#: includes/Admin/class-bgc-wc-settings.php:705
-#: includes/Admin/class-bgc-wc-settings.php:747
+#: includes/Admin/class-bgc-wc-settings.php:614
+#: includes/Admin/class-bgc-wc-settings.php:716
+#: includes/Admin/class-bgc-wc-settings.php:758
 msgid ""
 "On: the customer pays delivery together with the order. Off: delivery is not"
 " charged at checkout - the estimated price is shown for information and the "
@@ -1340,55 +1372,59 @@ msgstr ""
 "информация и клиентът я плаща на куриера при получаване; наложеният платеж "
 "тогава събира само стойността на стоките."
 
-#: includes/Admin/class-bgc-wc-settings.php:593
-#: includes/Admin/class-bgc-wc-settings.php:649
-#: includes/Admin/class-bgc-wc-settings.php:707
-#: includes/Admin/class-bgc-wc-settings.php:749
-#: includes/Admin/class-bgc-wc-settings.php:792
+#: includes/Admin/class-bgc-wc-settings.php:616
+#: includes/Admin/class-bgc-wc-settings.php:669
+#: includes/Admin/class-bgc-wc-settings.php:718
+#: includes/Admin/class-bgc-wc-settings.php:760
+#: includes/Admin/class-bgc-wc-settings.php:803
+#: includes/Admin/class-bgc-wc-settings.php:827
 msgid "Free-shipping threshold"
 msgstr "Праг за безплатна доставка"
 
-#: includes/Admin/class-bgc-wc-settings.php:594
+#: includes/Admin/class-bgc-wc-settings.php:617
 msgid ""
-"Ship Speedy free above this goods total (excluding shipping). Empty or 0 "
-"disables. Store currency."
+"Ship Speedy free above this goods total (excluding shipping). Set here it "
+"applies to ALL delivery options (their own thresholds become inactive); "
+"leave empty to set thresholds per delivery option. Store currency."
 msgstr ""
-"Безплатна доставка със Speedy над тази сума на стоките (без доставка). "
-"Празно или 0 изключва. Валута на магазина."
+"Безплатна доставка със Speedy над тази стойност на стоките (без доставката)."
+" Зададен тук, прагът важи за ВСИЧКИ опции за доставка (собствените им "
+"прагове стават неактивни); оставете празно, за да задавате праг за всяка "
+"опция поотделно. Във валутата на магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:597
-#: includes/Admin/class-bgc-wc-settings.php:653
-#: includes/Admin/class-bgc-wc-settings.php:711
-#: includes/Admin/class-bgc-wc-settings.php:753
-#: includes/Admin/class-bgc-wc-settings.php:796
+#: includes/Admin/class-bgc-wc-settings.php:620
+#: includes/Admin/class-bgc-wc-settings.php:673
+#: includes/Admin/class-bgc-wc-settings.php:722
+#: includes/Admin/class-bgc-wc-settings.php:764
+#: includes/Admin/class-bgc-wc-settings.php:807
 msgid "Cash on delivery"
 msgstr "Наложен платеж"
 
-#: includes/Admin/class-bgc-wc-settings.php:598
+#: includes/Admin/class-bgc-wc-settings.php:621
 msgid "Open before payment"
 msgstr "Отваряне преди плащане"
 
-#: includes/Admin/class-bgc-wc-settings.php:600
+#: includes/Admin/class-bgc-wc-settings.php:623
 msgid "No"
 msgstr "Не"
 
-#: includes/Admin/class-bgc-wc-settings.php:601
+#: includes/Admin/class-bgc-wc-settings.php:624
 msgid "Allow open before payment"
 msgstr "Разреши отваряне преди плащане"
 
-#: includes/Admin/class-bgc-wc-settings.php:602
+#: includes/Admin/class-bgc-wc-settings.php:625
 msgid "Allow test before payment"
 msgstr "Разреши тест преди плащане"
 
-#: includes/Admin/class-bgc-wc-settings.php:605
-#: includes/Admin/class-bgc-wc-settings.php:666
-#: includes/Admin/class-bgc-wc-settings.php:712
-#: includes/Admin/class-bgc-wc-settings.php:754
-#: includes/Admin/class-bgc-wc-settings.php:797
+#: includes/Admin/class-bgc-wc-settings.php:628
+#: includes/Admin/class-bgc-wc-settings.php:686
+#: includes/Admin/class-bgc-wc-settings.php:723
+#: includes/Admin/class-bgc-wc-settings.php:765
+#: includes/Admin/class-bgc-wc-settings.php:808
 msgid "COD payout via ППП"
 msgstr "Изплащане на наложен платеж чрез ППП"
 
-#: includes/Admin/class-bgc-wc-settings.php:606
+#: includes/Admin/class-bgc-wc-settings.php:629
 msgid ""
 "Enable if your Speedy contract pays COD out via ППП (пощенски паричен "
 "превод) - lets you accept COD with no cash register."
@@ -1396,23 +1432,23 @@ msgstr ""
 "Включете, ако договорът Ви със Speedy изплаща наложения платеж чрез ППП "
 "(пощенски паричен превод) - позволява наложен платеж без касов апарат."
 
-#: includes/Admin/class-bgc-wc-settings.php:613
+#: includes/Admin/class-bgc-wc-settings.php:636
 msgid "- none (COD off) -"
 msgstr "- няма (наложен платеж изкл.) -"
 
-#: includes/Admin/class-bgc-wc-settings.php:614
+#: includes/Admin/class-bgc-wc-settings.php:637
 msgid "- automatic (first profile address) -"
 msgstr "- автоматично (първи адрес от профила) -"
 
-#: includes/Admin/class-bgc-wc-settings.php:628
+#: includes/Admin/class-bgc-wc-settings.php:651
 msgid "Enable Econt"
 msgstr "Активирай Econt"
 
-#: includes/Admin/class-bgc-wc-settings.php:636
+#: includes/Admin/class-bgc-wc-settings.php:659
 msgid "Ship-from address"
 msgstr "Адрес на изпращача"
 
-#: includes/Admin/class-bgc-wc-settings.php:637
+#: includes/Admin/class-bgc-wc-settings.php:660
 msgid ""
 "The ship-from address on the waybill (from your Econt profile). Automatic = "
 "the first profile address."
@@ -1420,11 +1456,11 @@ msgstr ""
 "Адресът на изпращача върху товарителницата (от Вашия Econt профил). "
 "Автоматично = първият адрес в профила."
 
-#: includes/Admin/class-bgc-wc-settings.php:639
+#: includes/Admin/class-bgc-wc-settings.php:662
 msgid "Label format"
 msgstr "Формат на етикета"
 
-#: includes/Admin/class-bgc-wc-settings.php:640
+#: includes/Admin/class-bgc-wc-settings.php:663
 msgid ""
 "Econt labels are A4-landscape only (fixed by its API). The bulk “Print A4” "
 "packs several per sheet without scaling."
@@ -1432,31 +1468,22 @@ msgstr ""
 "Етикетите на Econt са само A4-хоризонтално (фиксирано от API). Груповото "
 "„Печат A4“ подрежда няколко на лист без мащабиране."
 
-#: includes/Admin/class-bgc-wc-settings.php:641
+#: includes/Admin/class-bgc-wc-settings.php:664
 msgid "A4-landscape (fixed by Econt)"
 msgstr "A4 хоризонтален (фиксиран от Econt)"
 
-#: includes/Admin/class-bgc-wc-settings.php:643
-msgid "Parcel contents description"
-msgstr "Описание на съдържанието на пратката"
-
-#: includes/Admin/class-bgc-wc-settings.php:644
+#: includes/Admin/class-bgc-wc-settings.php:670
 msgid ""
-"Short contents text on the Econt waybill (e.g. “Хранителни добавки”). Empty "
-"= a generic value."
+"Ship Econt free above this goods total (excluding shipping). Set here it "
+"applies to ALL delivery options (their own thresholds become inactive); "
+"leave empty to set thresholds per delivery option. Store currency."
 msgstr ""
-"Кратко описание на съдържанието върху товарителницата на Econt (напр. "
-"„Хранителни добавки“). Празно = обща стойност."
+"Безплатна доставка с Econt над тази стойност на стоките (без доставката). "
+"Зададен тук, прагът важи за ВСИЧКИ опции за доставка (собствените им прагове"
+" стават неактивни); оставете празно, за да задавате праг за всяка опция "
+"поотделно. Във валутата на магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:650
-msgid ""
-"Ship Econt free above this goods total (excluding shipping). Empty or 0 "
-"disables. Store currency."
-msgstr ""
-"Безплатна доставка с Econt над тази сума на стоките (без доставка). Празно "
-"или 0 изключва. Валута на магазина."
-
-#: includes/Admin/class-bgc-wc-settings.php:655
+#: includes/Admin/class-bgc-wc-settings.php:675
 msgid ""
 "Attach наложен платеж (full total + packing list) to every COD Econt order, "
 "paid out via the agreement below. Prepaid orders are never charged again."
@@ -1465,42 +1492,42 @@ msgstr ""
 " с наложен платеж, изплащан чрез договора по-долу. Предплатените поръчки не "
 "се таксуват повторно."
 
-#: includes/Admin/class-bgc-wc-settings.php:656
+#: includes/Admin/class-bgc-wc-settings.php:676
 msgid "CD pay-out agreement"
 msgstr "Договор за изплащане на наложен платеж"
 
-#: includes/Admin/class-bgc-wc-settings.php:657
+#: includes/Admin/class-bgc-wc-settings.php:677
 msgid "The наложен платеж pay-out agreement (from your Econt profile)."
 msgstr "Договорът за изплащане на наложения платеж (от Вашия Econt профил)."
 
-#: includes/Admin/class-bgc-wc-settings.php:659
+#: includes/Admin/class-bgc-wc-settings.php:679
 msgid "Allow inspection before payment"
 msgstr "Разреши преглед преди плащане"
 
-#: includes/Admin/class-bgc-wc-settings.php:660
+#: includes/Admin/class-bgc-wc-settings.php:680
 msgid "Let the recipient inspect the shipment before paying (преглед)."
 msgstr "Позволете на получателя да прегледа пратката преди плащане (преглед)."
 
-#: includes/Admin/class-bgc-wc-settings.php:661
+#: includes/Admin/class-bgc-wc-settings.php:681
 msgid "SMS notification"
 msgstr "SMS известяване"
 
-#: includes/Admin/class-bgc-wc-settings.php:662
+#: includes/Admin/class-bgc-wc-settings.php:682
 msgid "Send the recipient an SMS notification."
 msgstr "Изпращане на SMS известие до получателя."
 
-#: includes/Admin/class-bgc-wc-settings.php:663
+#: includes/Admin/class-bgc-wc-settings.php:683
 msgid "E-mail on delivery"
 msgstr "Имейл при доставка"
 
-#: includes/Admin/class-bgc-wc-settings.php:664
+#: includes/Admin/class-bgc-wc-settings.php:684
 msgid ""
 "Notify this e-mail when the shipment is delivered (leave empty to disable)."
 msgstr ""
 "Известяване на този имейл при доставяне на пратката (оставете празно за "
 "изключване)."
 
-#: includes/Admin/class-bgc-wc-settings.php:667
+#: includes/Admin/class-bgc-wc-settings.php:687
 msgid ""
 "Enable if your Econt pay-out agreement above is ППП (пощенски паричен "
 "превод) - lets you accept COD with no cash register."
@@ -1508,25 +1535,25 @@ msgstr ""
 "Включете, ако договорът за изплащане по-горе е ППП (пощенски паричен превод)"
 " - позволява наложен платеж без касов апарат."
 
-#: includes/Admin/class-bgc-wc-settings.php:677
+#: includes/Admin/class-bgc-wc-settings.php:697
 msgid "Enable Pigeon Express"
 msgstr "Активирай Pigeon Express"
 
-#: includes/Admin/class-bgc-wc-settings.php:678
+#: includes/Admin/class-bgc-wc-settings.php:698
 msgid "API Key"
 msgstr "API ключ"
 
-#: includes/Admin/class-bgc-wc-settings.php:680
+#: includes/Admin/class-bgc-wc-settings.php:700
 msgid "API Secret"
 msgstr "API таен ключ"
 
-#: includes/Admin/class-bgc-wc-settings.php:683
-#: includes/Admin/class-bgc-wc-settings.php:732
-#: includes/Admin/class-bgc-wc-settings.php:772
+#: includes/Admin/class-bgc-wc-settings.php:703
+#: includes/Admin/class-bgc-wc-settings.php:743
+#: includes/Admin/class-bgc-wc-settings.php:783
 msgid "Live mode"
 msgstr "Реален режим"
 
-#: includes/Admin/class-bgc-wc-settings.php:684
+#: includes/Admin/class-bgc-wc-settings.php:704
 msgid ""
 "On = the live Pigeon production account. Off = the demo/test API (api-"
 "demo.pigeonexpress.com) with test credentials."
@@ -1534,11 +1561,11 @@ msgstr ""
 "Включено = реалният производствен акаунт на Pigeon. Изключено = "
 "демо/тестовия API (api-demo.pigeonexpress.com) с тестови данни за достъп."
 
-#: includes/Admin/class-bgc-wc-settings.php:690
+#: includes/Admin/class-bgc-wc-settings.php:710
 msgid "Pickup office"
 msgstr "Офис за приемане"
 
-#: includes/Admin/class-bgc-wc-settings.php:691
+#: includes/Admin/class-bgc-wc-settings.php:711
 msgid ""
 "The Pigeon office you drop parcels at. Search your city, then pick the "
 "office."
@@ -1546,37 +1573,18 @@ msgstr ""
 "Офисът на Pigeon, в който предавате пратките. Потърсете града си, след това "
 "изберете офиса."
 
-#: includes/Admin/class-bgc-wc-settings.php:692
-msgid "Default parcel length (cm)"
-msgstr "Стандартна дължина на пратката (см)"
-
-#: includes/Admin/class-bgc-wc-settings.php:693
-#: includes/Admin/class-bgc-wc-settings.php:696
-#: includes/Admin/class-bgc-wc-settings.php:699
+#: includes/Admin/class-bgc-wc-settings.php:719
 msgid ""
-"Default parcel size (cm) Pigeon needs on every quote/label, used when an "
-"order has none of its own."
+"Ship Pigeon free above this goods total (excluding shipping). Set here it "
+"applies to ALL delivery options (their own thresholds become inactive); "
+"leave empty to set thresholds per delivery option. Store currency."
 msgstr ""
-"Размер на пратката по подразбиране (см), който Pigeon изисква при всяка "
-"оферта/етикет, използван когато поръчката няма собствени размери."
+"Безплатна доставка с Pigeon над тази стойност на стоките (без доставката). "
+"Зададен тук, прагът важи за ВСИЧКИ опции за доставка (собствените им прагове"
+" стават неактивни); оставете празно, за да задавате праг за всяка опция "
+"поотделно. Във валутата на магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:695
-msgid "Default parcel width (cm)"
-msgstr "Стандартна ширина на пратката (см)"
-
-#: includes/Admin/class-bgc-wc-settings.php:698
-msgid "Default parcel height (cm)"
-msgstr "Стандартна височина на пратката (см)"
-
-#: includes/Admin/class-bgc-wc-settings.php:708
-msgid ""
-"Ship Pigeon free above this goods total (excluding shipping). Empty or 0 "
-"disables. Store currency."
-msgstr ""
-"Безплатна доставка с Pigeon над тази сума на стоките (без доставка). Празно "
-"или 0 изключва. Валута на магазина."
-
-#: includes/Admin/class-bgc-wc-settings.php:713
+#: includes/Admin/class-bgc-wc-settings.php:724
 msgid ""
 "Enable if your Pigeon contract pays COD out via ППП (пощенски паричен "
 "превод). Off = COD needs your own cash register."
@@ -1585,23 +1593,23 @@ msgstr ""
 "(пощенски паричен превод). Изключено = наложеният платеж изисква Ваш касов "
 "апарат."
 
-#: includes/Admin/class-bgc-wc-settings.php:725
+#: includes/Admin/class-bgc-wc-settings.php:736
 msgid "Enable Sameday"
 msgstr "Активирай Sameday"
 
-#: includes/Admin/class-bgc-wc-settings.php:726
+#: includes/Admin/class-bgc-wc-settings.php:737
 msgid "Username"
 msgstr "Потребител"
 
-#: includes/Admin/class-bgc-wc-settings.php:727
+#: includes/Admin/class-bgc-wc-settings.php:738
 msgid "Sameday API username (X-Auth-Username)."
 msgstr "Потребител за Sameday API (X-Auth-Username)."
 
-#: includes/Admin/class-bgc-wc-settings.php:729
+#: includes/Admin/class-bgc-wc-settings.php:740
 msgid "Password"
 msgstr "Парола"
 
-#: includes/Admin/class-bgc-wc-settings.php:733
+#: includes/Admin/class-bgc-wc-settings.php:744
 msgid ""
 "On = the live Sameday account. Off = the demo/test API (sameday-"
 "api.demo.zitec.com)."
@@ -1609,11 +1617,11 @@ msgstr ""
 "Включено = реалният акаунт на Sameday. Изключено = демо/тестовия API "
 "(sameday-api.demo.zitec.com)."
 
-#: includes/Admin/class-bgc-wc-settings.php:738
+#: includes/Admin/class-bgc-wc-settings.php:749
 msgid "Pickup point ID (optional)"
 msgstr "ID на точка за взимане (по избор)"
 
-#: includes/Admin/class-bgc-wc-settings.php:739
+#: includes/Admin/class-bgc-wc-settings.php:750
 msgid ""
 "Leave empty to ship from your Sameday account's default pickup point; enter "
 "an ID only to use a different one. Delivery services (24H / locker / PUDO) "
@@ -1623,15 +1631,18 @@ msgstr ""
 "вашия Sameday акаунт; въведете ID само ако искате друга. Услугите за "
 "доставка (24H / автомат / PUDO) се откриват автоматично от акаунта ви."
 
-#: includes/Admin/class-bgc-wc-settings.php:750
+#: includes/Admin/class-bgc-wc-settings.php:761
 msgid ""
-"Ship Sameday free above this goods total (excluding shipping). Empty or 0 "
-"disables. Store currency."
+"Ship Sameday free above this goods total (excluding shipping). Set here it "
+"applies to ALL delivery options (their own thresholds become inactive); "
+"leave empty to set thresholds per delivery option. Store currency."
 msgstr ""
-"Безплатна доставка със Sameday над тази сума на стоките (без доставка). "
-"Празно или 0 изключва. Валута на магазина."
+"Безплатна доставка със Sameday над тази стойност на стоките (без "
+"доставката). Зададен тук, прагът важи за ВСИЧКИ опции за доставка "
+"(собствените им прагове стават неактивни); оставете празно, за да задавате "
+"праг за всяка опция поотделно. Във валутата на магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:755
+#: includes/Admin/class-bgc-wc-settings.php:766
 msgid ""
 "Enable if your Sameday contract pays COD out via ППП (пощенски паричен "
 "превод). Off = COD needs your own cash register."
@@ -1640,19 +1651,19 @@ msgstr ""
 "(пощенски паричен превод). Изключено = наложеният платеж изисква Ваш касов "
 "апарат."
 
-#: includes/Admin/class-bgc-wc-settings.php:766
+#: includes/Admin/class-bgc-wc-settings.php:777
 msgid "Enable BOX NOW"
 msgstr "Активирай BOX NOW"
 
-#: includes/Admin/class-bgc-wc-settings.php:767
+#: includes/Admin/class-bgc-wc-settings.php:778
 msgid "Client ID"
 msgstr "Client ID"
 
-#: includes/Admin/class-bgc-wc-settings.php:769
+#: includes/Admin/class-bgc-wc-settings.php:780
 msgid "Client secret"
 msgstr "Client secret"
 
-#: includes/Admin/class-bgc-wc-settings.php:773
+#: includes/Admin/class-bgc-wc-settings.php:784
 msgid ""
 "On = the live BOX NOW production account. Off = the stage/test API (api-"
 "stage.boxnow.bg) with test credentials."
@@ -1660,26 +1671,26 @@ msgstr ""
 "Включено = реалният производствен акаунт на BOX NOW. Изключено = "
 "стейджинг/тестовия API (api-stage.boxnow.bg) с тестови данни за достъп."
 
-#: includes/Admin/class-bgc-wc-settings.php:775
+#: includes/Admin/class-bgc-wc-settings.php:786
 msgid "Partner ID"
 msgstr "Partner ID"
 
-#: includes/Admin/class-bgc-wc-settings.php:776
+#: includes/Admin/class-bgc-wc-settings.php:787
 msgid "Webhook secret"
 msgstr "Webhook таен ключ"
 
-#: includes/Admin/class-bgc-wc-settings.php:777
+#: includes/Admin/class-bgc-wc-settings.php:788
 msgid ""
 "You receive it after you register this webhook URL in your BOX NOW account:"
 msgstr ""
 "Ще го получите, след като регистрирате този webhook адрес във Вашия акаунт в"
 " BOX NOW:"
 
-#: includes/Admin/class-bgc-wc-settings.php:782
+#: includes/Admin/class-bgc-wc-settings.php:793
 msgid "Pickup location ID"
 msgstr "ID на мястото за приемане"
 
-#: includes/Admin/class-bgc-wc-settings.php:783
+#: includes/Admin/class-bgc-wc-settings.php:794
 msgid ""
 "Your BOX NOW origin/pickup ID (where parcels ship FROM, not the customer’s "
 "locker). From your BOX NOW partner account."
@@ -1687,11 +1698,11 @@ msgstr ""
 "Вашето BOX NOW ID за подаване (откъдето тръгват пратките, не автоматът на "
 "клиента). От Вашия BOX NOW партньорски акаунт."
 
-#: includes/Admin/class-bgc-wc-settings.php:784
+#: includes/Admin/class-bgc-wc-settings.php:795
 msgid "Sender contact phone"
 msgstr "Телефон за контакт на подателя"
 
-#: includes/Admin/class-bgc-wc-settings.php:785
+#: includes/Admin/class-bgc-wc-settings.php:796
 msgid ""
 "Your contact phone for the pickup/origin, printed on the parcel. Leave empty"
 " to omit."
@@ -1699,22 +1710,22 @@ msgstr ""
 "Вашият телефон за връзка при подаването, отпечатан върху пратката. Оставете "
 "празно, за да се пропусне."
 
-#: includes/Admin/class-bgc-wc-settings.php:786
+#: includes/Admin/class-bgc-wc-settings.php:797
 msgid "Allow returns"
 msgstr "Разреши връщания"
 
-#: includes/Admin/class-bgc-wc-settings.php:790
-#: includes/Admin/class-bgc-wc-settings.php:808
+#: includes/Admin/class-bgc-wc-settings.php:801
+#: includes/Admin/class-bgc-wc-settings.php:819
 msgid "Delivery price"
 msgstr "Цена за доставка"
 
-#: includes/Admin/class-bgc-wc-settings.php:791
+#: includes/Admin/class-bgc-wc-settings.php:802
 msgid "Flat BOX NOW locker price (no live rate API). Store currency."
 msgstr ""
 "Фиксирана цена за BOX NOW автомат (няма API за цени на живо). Валута на "
 "магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:793
+#: includes/Admin/class-bgc-wc-settings.php:804
 msgid ""
 "Ship BOX NOW free above this goods total (excluding shipping). Empty or 0 "
 "disables. Store currency."
@@ -1722,7 +1733,7 @@ msgstr ""
 "Безплатна доставка с BOX NOW над тази сума на стоките (без доставка). Празно"
 " или 0 изключва. Валута на магазина."
 
-#: includes/Admin/class-bgc-wc-settings.php:798
+#: includes/Admin/class-bgc-wc-settings.php:809
 msgid ""
 "Enable if your BOX NOW contract pays COD out via ППП. BOX NOW has no ППП "
 "today, so leave off - COD then needs your own cash register."
@@ -1732,12 +1743,12 @@ msgstr ""
 "изисква Ваш касов апарат."
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgc-wc-settings.php:807
+#: includes/Admin/class-bgc-wc-settings.php:818
 #, php-format
 msgid "Enable “%s”"
 msgstr "Активирай „%s“"
 
-#: includes/Admin/class-bgc-wc-settings.php:810
+#: includes/Admin/class-bgc-wc-settings.php:821
 msgid ""
 "Live price only - no fixed default (show the cached price until the address "
 "is chosen)"
@@ -1745,26 +1756,36 @@ msgstr ""
 "Само жива цена - без фиксирана резервна (показва кешираната цена, докато се "
 "избере адрес)"
 
-#: includes/Admin/class-bgc-wc-settings.php:811
+#: includes/Admin/class-bgc-wc-settings.php:822
 msgid "Live price, use the fixed price below only if the API is unavailable"
 msgstr ""
 "Жива цена, използвай фиксираната цена по-долу само ако API е недостъпен"
 
-#: includes/Admin/class-bgc-wc-settings.php:812
+#: includes/Admin/class-bgc-wc-settings.php:823
 msgid "Always the fixed price below - no live API calls at checkout"
 msgstr "Винаги фиксираната цена по-долу - без заявки към API при поръчка"
 
-#: includes/Admin/class-bgc-wc-settings.php:814
+#: includes/Admin/class-bgc-wc-settings.php:825
 msgid "Fixed / default price"
 msgstr "Фиксирана / резервна цена"
 
-#: includes/Admin/class-bgc-wc-settings.php:815
+#: includes/Admin/class-bgc-wc-settings.php:826
 msgid ""
 "Used by the “fixed” and “fallback” delivery-price modes above. In the store "
 "currency."
 msgstr ""
 "Използва се от режимите „фиксирана“ и „резервна“ за цена на доставка по-"
 "горе. Във валутата на магазина."
+
+#: includes/Admin/class-bgc-wc-settings.php:828
+msgid ""
+"Free delivery for THIS option above this goods total (excluding shipping). "
+"Applies only while the courier-level threshold is empty; empty or 0 "
+"disables."
+msgstr ""
+"Безплатна доставка за ТАЗИ опция над тази стойност на стоките (без "
+"доставката). Важи само докато прагът на ниво куриер е празен; празно или 0 "
+"изключва."
 
 #. translators: 1: courier name, 2: status
 #: includes/Cache/class-bgc-tracking-poller.php:69
@@ -1823,18 +1844,18 @@ msgid "Estimated shipping (exact price at checkout)"
 msgstr "Приблизителна доставка (точна цена при поръчката)"
 
 #. translators: %s is the courier name.
-#: includes/Checkout/class-bgc-checkout.php:228
+#: includes/Checkout/class-bgc-checkout.php:229
 #, php-format
 msgid "You have free %s delivery! 🎉"
 msgstr "Имате безплатна доставка %s! 🎉"
 
 #. translators: 1: a formatted price, 2: the courier name.
-#: includes/Checkout/class-bgc-checkout.php:231
+#: includes/Checkout/class-bgc-checkout.php:232
 #, php-format
 msgid "Add %1$s more for free %2$s delivery"
 msgstr "Добавете още %1$s за безплатна доставка %2$s"
 
-#: includes/Checkout/class-bgc-checkout.php:312
+#: includes/Checkout/class-bgc-checkout.php:313
 msgid ""
 "Please enter a valid Bulgarian phone number (e.g. 0888 123 456) so the "
 "courier can reach the recipient."
@@ -1843,90 +1864,90 @@ msgstr ""
 " може куриерът да се свърже с получателя."
 
 #. translators: %s: courier name
-#: includes/Checkout/class-bgc-checkout.php:319
+#: includes/Checkout/class-bgc-checkout.php:320
 #, php-format
 msgid "Please choose your %s delivery point before placing the order."
 msgstr "Моля, изберете точка за доставка с %s, преди да направите поръчката."
 
-#: includes/Checkout/class-bgc-checkout.php:325
+#: includes/Checkout/class-bgc-checkout.php:326
 msgid "Please choose a BOX NOW locker before placing the order."
 msgstr "Моля, изберете автомат на BOX NOW, преди да направите поръчката."
 
 #. translators: %s: courier name
-#: includes/Checkout/class-bgc-checkout.php:333
+#: includes/Checkout/class-bgc-checkout.php:334
 #, php-format
 msgid "Please choose a city for %s delivery."
 msgstr "Моля, изберете град за доставка с %s."
 
 #. translators: %s: courier name
-#: includes/Checkout/class-bgc-checkout.php:340
+#: includes/Checkout/class-bgc-checkout.php:341
 #, php-format
 msgid "Please enter a street and number for %s address delivery."
 msgstr "Моля, въведете улица и номер за доставка до адрес с %s."
 
 #. translators: %s: courier name
-#: includes/Checkout/class-bgc-checkout.php:344
+#: includes/Checkout/class-bgc-checkout.php:345
 #, php-format
 msgid "Please choose an office/APS for %s."
 msgstr "Моля, изберете офис/автомат за %s."
 
-#: includes/Checkout/class-bgc-checkout.php:472
-#: includes/Checkout/class-bgc-checkout.php:558
+#: includes/Checkout/class-bgc-checkout.php:473
+#: includes/Checkout/class-bgc-checkout.php:559
 msgid "Office"
 msgstr "Офис"
 
-#: includes/Checkout/class-bgc-checkout.php:472
-#: includes/Checkout/class-bgc-checkout.php:557
+#: includes/Checkout/class-bgc-checkout.php:473
+#: includes/Checkout/class-bgc-checkout.php:558
 msgid "APS (locker)"
 msgstr "Автомат"
 
-#: includes/Checkout/class-bgc-checkout.php:473
+#: includes/Checkout/class-bgc-checkout.php:474
 msgid "Having trouble placing your order? We can help - call us:"
 msgstr "Имате проблем с поръчката? Можем да помогнем - обадете ни се:"
 
-#: includes/Checkout/class-bgc-checkout.php:475
+#: includes/Checkout/class-bgc-checkout.php:476
 msgid "Type a city…"
 msgstr "Въведете град…"
 
-#: includes/Checkout/class-bgc-checkout.php:475
+#: includes/Checkout/class-bgc-checkout.php:476
 msgid "Type a street…"
 msgstr "Въведете улица…"
 
-#: includes/Checkout/class-bgc-checkout.php:476
+#: includes/Checkout/class-bgc-checkout.php:477
 msgid "Not available in this city"
 msgstr "Не е налично в този град"
 
-#: includes/Checkout/class-bgc-checkout.php:477
+#: includes/Checkout/class-bgc-checkout.php:478
 msgid "Select a city first"
 msgstr "Първо изберете град"
 
-#: includes/Checkout/class-bgc-checkout.php:478
-#: includes/Checkout/class-bgc-checkout.php:620
+#: includes/Checkout/class-bgc-checkout.php:479
+#: includes/Checkout/class-bgc-checkout.php:621
 msgid "Choose a BOX NOW locker"
 msgstr "Изберете автомат на BOX NOW"
 
-#: includes/Checkout/class-bgc-checkout.php:479
+#: includes/Checkout/class-bgc-checkout.php:480
 msgid "Change locker"
 msgstr "Смени автомата"
 
-#: includes/Checkout/class-bgc-checkout.php:480
-#: includes/Checkout/class-bgc-checkout.php:578
+#: includes/Checkout/class-bgc-checkout.php:481
+#: includes/Checkout/class-bgc-checkout.php:579
 msgid "View on map"
 msgstr "Виж на картата"
 
-#: includes/Checkout/class-bgc-checkout.php:485
+#: includes/Checkout/class-bgc-checkout.php:486
 msgid "Choose your address on the map"
 msgstr "Изберете адреса си от картата"
 
-#: includes/Checkout/class-bgc-checkout.php:486
+#: includes/Checkout/class-bgc-checkout.php:487
 msgid "Click the map or drag the pin to your address."
 msgstr "Кликнете върху картата или преместете маркера до Вашия адрес."
 
-#: includes/Checkout/class-bgc-checkout.php:588
+#: includes/Checkout/class-bgc-checkout.php:589
 msgid "Choose on map"
 msgstr "Изберете от карта"
 
-#: includes/Checkout/class-bgc-checkout.php:595
+#: includes/Checkout/class-bgc-checkout.php:596
 msgid "Block"
 msgstr "Блок"
 
@@ -2060,7 +2081,7 @@ msgstr ""
 msgid "postal money transfer"
 msgstr "пощенски паричен превод"
 
-#: includes/Couriers/class-bgc-econt.php:414
+#: includes/Couriers/class-bgc-econt.php:416
 msgid "Shipping & fees"
 msgstr "Доставка и такси"
 
@@ -2075,7 +2096,7 @@ msgstr ""
 "Въведете „ID на офис за приемане“, от който изпращате (използва се за оферти"
 " и етикети)."
 
-#: includes/Couriers/class-bgc-pigeon.php:439
+#: includes/Couriers/class-bgc-pigeon.php:435
 msgid ""
 "Set your Pigeon pickup office ID in Settings > BG Couriers > Pigeon Express "
 "before generating a label."
@@ -2083,7 +2104,7 @@ msgstr ""
 "Задайте вашето ID на офис за приемане на Pigeon в Настройки > BG Couriers > "
 "Pigeon Express, преди да генерирате товарителница."
 
-#: includes/Couriers/class-bgc-pigeon.php:467
+#: includes/Couriers/class-bgc-pigeon.php:463
 msgid ""
 "Pigeon labels are only available at creation time and cannot be re-fetched. "
 "Regenerate the waybill to get a fresh label."
@@ -2147,6 +2168,54 @@ msgstr "Доставка със Sameday (BG Couriers)"
 #: includes/Shipping/class-bgc-method-speedy.php:9
 msgid "Speedy shipping (BG Couriers)"
 msgstr "Доставка със Speedy (BG Couriers)"
+
+#~ msgid "Parcel contents (description)"
+#~ msgstr "Съдържание на пратката (описание)"
+
+#~ msgid "Parcel contents description"
+#~ msgstr "Описание на съдържанието на пратката"
+
+#~ msgid ""
+#~ "Short contents text on the Econt waybill (e.g. “Хранителни добавки”). Empty "
+#~ "= a generic value."
+#~ msgstr ""
+#~ "Кратко описание на съдържанието върху товарителницата на Econt (напр. "
+#~ "„Хранителни добавки“). Празно = обща стойност."
+
+#~ msgid ""
+#~ "Default parcel size (cm) Pigeon needs on every quote/label, used when an "
+#~ "order has none of its own."
+#~ msgstr ""
+#~ "Размер на пратката по подразбиране (см), който Pigeon изисква при всяка "
+#~ "оферта/етикет, използван когато поръчката няма собствени размери."
+
+#~ msgid ""
+#~ "Ship Speedy free above this goods total (excluding shipping). Empty or 0 "
+#~ "disables. Store currency."
+#~ msgstr ""
+#~ "Безплатна доставка със Speedy над тази сума на стоките (без доставка). "
+#~ "Празно или 0 изключва. Валута на магазина."
+
+#~ msgid ""
+#~ "Ship Econt free above this goods total (excluding shipping). Empty or 0 "
+#~ "disables. Store currency."
+#~ msgstr ""
+#~ "Безплатна доставка с Econt над тази сума на стоките (без доставка). Празно "
+#~ "или 0 изключва. Валута на магазина."
+
+#~ msgid ""
+#~ "Ship Pigeon free above this goods total (excluding shipping). Empty or 0 "
+#~ "disables. Store currency."
+#~ msgstr ""
+#~ "Безплатна доставка с Pigeon над тази сума на стоките (без доставка). Празно "
+#~ "или 0 изключва. Валута на магазина."
+
+#~ msgid ""
+#~ "Ship Sameday free above this goods total (excluding shipping). Empty or 0 "
+#~ "disables. Store currency."
+#~ msgstr ""
+#~ "Безплатна доставка със Sameday над тази сума на стоките (без доставка). "
+#~ "Празно или 0 изключва. Валута на магазина."
 
 #~ msgid "Pickup point ID"
 #~ msgstr "ID на точка за приемане"
