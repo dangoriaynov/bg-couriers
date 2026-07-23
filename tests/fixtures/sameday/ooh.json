@@ -1,5 +1,4 @@
-{
-  "data": [
-    {"id": 701, "name": "Sameday офис София", "address": "ул. Раковски 10", "cityId": 161}
-  ]
-}
+{"total":2,"currentPage":1,"pages":1,"perPage":100,"data":[
+  {"oohId":501,"oohType":0,"name":"easyBox София Мол","address":"бул. България 1","cityId":161,"lat":42.66,"lng":23.29},
+  {"oohId":701,"oohType":1,"name":"Sameday Point София","address":"ул. Раковски 10","cityId":161}
+]}

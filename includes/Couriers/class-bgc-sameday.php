@@ -13,8 +13,10 @@ defined('ABSPATH') || exit;
  *   Token is passed on subsequent requests as header: X-AUTH-TOKEN
  */
 class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface {
-    const PROD = 'https://api.sameday.ro';
-    const DEMO = 'https://sameday-api.demo.zitec.com';
+    // Bulgarian instance hosts (per-country envs, from the official samedaycourier-shipping plugin's
+    // env map: BG prod api.sameday.bg, BG demo sameday-api-bg.demo.zitec.com; the .ro pair is Romania's).
+    const PROD = 'https://api.sameday.bg';
+    const DEMO = 'https://sameday-api-bg.demo.zitec.com';
 
     /** @var array */
     private $config;
@@ -143,11 +145,26 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
     }
 
     // ── Nomenclature ─────────────────────────────────────────────────────────
-    // NOTE: shapes are from the Sameday php-sdk; the exact JSON keys (data wrapper, cityId vs city.id)
-    // must be confirmed against the sandbox before production (built without live creds, 2026-07-08).
+    // Shapes LIVE-CONFIRMED on the BG demo env (sameday-api-bg.demo.zitec.com, 2026-07-23):
+    // paginated {total,currentPage,pages,perPage,data:[...]}; lockers carry lockerId, OOH points oohId.
+
+    /** Merge every page of a paginated listing into one data[] array. */
+    protected function get_paged(string $path): array {
+        $sep = strpos($path, '?') === false ? '?' : '&';
+        $out = [];
+        for ($page = 1; $page <= 200; $page++) {
+            $j = $this->get_json($path . $sep . 'countPerPage=500&page=' . $page);
+            $rows = (array) ($j['data'] ?? []);
+            $out = array_merge($out, $rows);
+            $pages = (int) ($j['pages'] ?? 1);
+            if ($page >= $pages || !$rows) { break; }
+        }
+        return $out;
+    }
 
     public function fetch_cities(): array {
-        return self::parse_cities($this->get_json('/api/geolocation/city'));
+        // 5398 BG localities, paginated (a bare GET returns only the first page).
+        return self::parse_cities($this->get_paged('/api/geolocation/city'));
     }
 
     /** cities -> framework rows ['city_id','name','post_code','region'] (Sameday cities live under counties). */
@@ -166,21 +183,28 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
     }
 
     public function fetch_offices(int $city_id): array {
-        $rows = self::parse_offices($this->get_json('/api/client/lockers'), $this->get_json('/api/client/ooh-locations'));
+        $rows = self::parse_offices($this->get_paged('/api/client/lockers'), $this->get_paged('/api/client/ooh-locations'));
         return $city_id > 0
             ? array_values(array_filter($rows, static function ($o) use ($city_id) { return (int) $o['city_id'] === $city_id; }))
             : $rows;
     }
 
-    /** easyBox lockers -> 'automat', out-of-home points -> 'office'. Framework row shape. */
+    /**
+     * easyBox lockers -> 'automat', out-of-home points -> 'office'. Framework row shape.
+     * Live shapes: lockers carry `lockerId`, OOH points `oohId` (no plain `id`), and the OOH listing
+     * INCLUDES the easyboxes - those are deduped away so only true PUDO points become 'office'.
+     */
     public static function parse_offices(array $lockers, array $ooh): array {
         $out = [];
-        $map = static function ($rows, $type) use (&$out) {
+        $seen = [];
+        $map = static function ($rows, $type) use (&$out, &$seen) {
             foreach (($rows['data'] ?? $rows) as $o) {
-                if (empty($o['id'])) { continue; }
+                $id = (int) ($o['id'] ?? $o['lockerId'] ?? $o['oohId'] ?? 0);
+                if (!$id || isset($seen[$id])) { continue; }
+                $seen[$id] = true;
                 $out[] = [
-                    'office_id' => (int) $o['id'],
-                    'code'      => (string) $o['id'],
+                    'office_id' => $id,
+                    'code'      => (string) $id,
                     'city_id'   => (int) ($o['cityId'] ?? $o['city']['id'] ?? 0),
                     'type'      => $type,
                     'name'      => (string) ($o['name'] ?? ''),
@@ -202,30 +226,56 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
 
+    /**
+     * Estimate body - field names LIVE-CONFIRMED against the BG demo env (its 400 names each field):
+     * packageNumber + thirdPartyPickup are required, and the recipient takes `city` (an id, NOT `cityId`)
+     * plus `county`/`countyString` (the county resolves from countyString = our stored region name).
+     */
     public static function build_estimate_body(array $s): array {
         $type = $s['method'] ?? 'address';
         $w    = max(0.1, (float) ($s['weight_kg'] ?? 1.0));
+        $sid  = (int) ($s['site_id'] ?? 0);
+        $county = (string) ($s['region'] ?? '');
+        if ($county === '' && $sid && class_exists('BGC_Nomenclature')) {
+            $county = (string) (BGC_Nomenclature::city_by_id('sameday', $sid)['region'] ?? '');
+        }
         $body = [
-            'pickupPoint'   => (int) get_option('bgc_sameday_pickup_point', 0),
-            'service'       => (string) get_option('bgc_sameday_service_' . $type, ''),
-            'packageType'   => 0,
-            'packageWeight' => $w,
-            'awbPayment'    => 1, // client (sender) pays the delivery
-            'cashOnDelivery'=> 0,
-            'insuredValue'  => 0,
-            'currency'      => (string) ($s['currency'] ?? get_woocommerce_currency()),
-            'parcels'       => [['weight' => $w]],
-            'awbRecipient'  => ['cityId' => (int) ($s['site_id'] ?? 0)],
+            'pickupPoint'     => (int) get_option('bgc_sameday_pickup_point', 0),
+            'service'         => (string) get_option('bgc_sameday_service_' . $type, ''),
+            'packageType'     => 0,
+            'packageNumber'   => 1,
+            'packageWeight'   => $w,
+            'awbPayment'      => 1, // client (sender) pays the delivery
+            'cashOnDelivery'  => 0,
+            'insuredValue'    => 0,
+            'thirdPartyPickup'=> 0,
+            'currency'        => (string) ($s['currency'] ?? get_woocommerce_currency()),
+            'parcels'         => [['weight' => $w]],
+            'awbRecipient'    => ['city' => $sid, 'countyString' => $county],
         ];
         if ($type === 'automat')      { $body['lockerLastMile'] = (int) ($s['office_id'] ?? 0); }
         elseif ($type === 'office')   { $body['oohLastMile']    = (int) ($s['office_id'] ?? 0); }
         return $body;
     }
 
-    /** estimate-cost -> BGC_Quote. Response carries `cost` + `currency` (net). */
+    /**
+     * estimate-cost -> BGC_Quote. LIVE shape: {"amount":15.81,"currency":"Ron","time":96} (amount, not cost).
+     * The store is Bulgarian (EUR/BGN): a BGN<->EUR mismatch converts over the fixed peg; any OTHER
+     * currency (the shared demo tarifficator prices in RON) is NOT a usable live price - throw so the
+     * pricing pipeline falls back to the reference/fixed price instead of charging a foreign number.
+     */
     public static function parse_price(array $resp, string $currency): BGC_Quote {
-        $amount = (float) ($resp['cost'] ?? 0);
-        return new BGC_Quote(round($amount, 2), 0.0, (string) ($resp['currency'] ?? $currency), 'live');
+        $amount = (float) ($resp['amount'] ?? $resp['cost'] ?? 0);
+        $cur    = strtoupper((string) ($resp['currency'] ?? $currency));
+        $store  = strtoupper($currency);
+        if ($cur !== $store && in_array($cur, ['BGN', 'EUR'], true) && in_array($store, ['BGN', 'EUR'], true)) {
+            $amount = BGC_Currency::convert($amount, $cur, $store);
+            $cur    = $store;
+        }
+        if ($cur !== $store) {
+            throw new BGC_Api_Exception('Sameday quote currency does not match the store currency');
+        }
+        return new BGC_Quote(round($amount, 2), 0.0, $store, 'live');
     }
 
     // ── Label ────────────────────────────────────────────────────────────────
@@ -240,6 +290,9 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         $w      = max(0.1, self::order_weight_kg($order));
         $is_cod = $order->get_payment_method() === 'cod';
         $payer  = self::service_payer('sameday');
+        $sid    = (int) $order->get_meta('_bgc_site_id');
+        $county = class_exists('BGC_Nomenclature') ? (string) (BGC_Nomenclature::city_by_id('sameday', $sid)['region'] ?? '') : '';
+        $addr   = trim((string) $order->get_meta('_bgc_street_name') . ' ' . (string) $order->get_meta('_bgc_street_no'));
         $body = [
             'pickupPoint'    => (int) get_option('bgc_sameday_pickup_point', 0),
             'service'        => (string) get_option('bgc_sameday_service_' . $method, ''),
@@ -249,13 +302,20 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
             'packageWeight'  => $w,
             'cashOnDelivery' => $is_cod ? self::cod_for_payer($order, $payer) : 0,
             'insuredValue'   => 0,
+            'thirdPartyPickup' => 0,
+            // AWBs must carry a unique clientInternalReference - even a CANCELLED one keeps its reference
+            // forever, so a bare order id would break regeneration; suffix with a timestamp.
+            'clientInternalReference' => $order->get_id() . '-' . time(),
             'awbRecipient'   => array_filter([
                 'name'        => $order->get_formatted_billing_full_name(),
                 'phoneNumber' => (string) $order->get_billing_phone(),
                 'email'       => BGC_Settings::label_email($order), // empty unless sharing is enabled
                 'personType'  => 0, // individual
-                'cityId'      => (int) $order->get_meta('_bgc_site_id'),
-                'address'     => trim((string) $order->get_meta('_bgc_street_name') . ' ' . (string) $order->get_meta('_bgc_street_no')),
+                // LIVE-CONFIRMED names (the API's own 400 details): `city` id + county via countyString.
+                'city'         => $sid,
+                'countyString' => $county,
+                'address'      => $addr !== '' ? $addr : '-',
+                'postalCode'   => (string) $order->get_meta('_bgc_post_code'),
             ], static function ($v) { return $v !== ''; }),
             'parcels'        => [['weight' => $w]],
         ];
@@ -299,17 +359,23 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         return self::parse_tracking($this->get_json('/api/client/awb/' . rawurlencode($waybill) . '/status'), $waybill);
     }
 
+    /**
+     * LIVE shape (BG demo, 2026-07-23): { expeditionSummary:{delivered,canceled,...},
+     * expeditionStatus:{statusId,status(BG),statusLabel(RO),statusState,statusDate,...},
+     * expeditionHistory:[{statusId,status,statusDate,...}] }. `status` is already localised Bulgarian.
+     */
     public static function parse_tracking(array $resp, string $waybill): BGC_Tracking {
-        $history = $resp['awbHistory'] ?? $resp['data'] ?? $resp;
-        $events  = [];
-        foreach ($history as $h) {
+        $events = [];
+        foreach ((array) ($resp['expeditionHistory'] ?? $resp['awbHistory'] ?? []) as $h) {
             if (!is_array($h)) { continue; }
             $events[] = [
-                'name' => (string) ($h['statusState'] ?? $h['status'] ?? $h['reason'] ?? ''),
-                'time' => (string) ($h['statusDate'] ?? $h['date'] ?? ''),
+                'code' => (string) ($h['statusId'] ?? ''),
+                'name' => (string) ($h['status'] ?? $h['statusState'] ?? $h['reason'] ?? ''),
+                'date' => (string) ($h['statusDate'] ?? $h['date'] ?? ''),
             ];
         }
-        $status = $events ? $events[count($events) - 1]['name'] : (string) ($resp['status'] ?? 'unknown');
+        $cur    = (array) ($resp['expeditionStatus'] ?? []);
+        $status = (string) ($cur['status'] ?? ($events ? $events[count($events) - 1]['name'] : 'unknown'));
         return new BGC_Tracking($waybill, $status, $events);
     }
 

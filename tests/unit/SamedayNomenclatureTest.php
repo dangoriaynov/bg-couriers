@@ -30,15 +30,18 @@ final class SamedayNomenclatureTest extends TestCase {
     }
 
     public function test_parse_offices_lockers_are_automat_ooh_are_office(): void {
+        // Live shapes: lockers carry lockerId, OOH points oohId, and the OOH listing INCLUDES the
+        // easyboxes - the duplicate (501) must be deduped so only the true PUDO becomes 'office'.
         $rows = BGC_Sameday::parse_offices($this->fx('lockers.json'), $this->fx('ooh.json'));
-        $this->assertCount(3, $rows); // 2 lockers + 1 ooh
+        $this->assertCount(3, $rows); // 2 lockers + 1 PUDO (easybox duplicate dropped)
         $this->assertSame(['office_id', 'code', 'city_id', 'type', 'name', 'address', 'lat', 'lng'], array_keys($rows[0]));
         // lockers first → automat
         $this->assertSame('automat', $rows[0]['type']);
         $this->assertSame(501, $rows[0]['office_id']);
         $this->assertSame(161, $rows[0]['city_id']);
-        // ooh appended after → office
+        // ooh appended after → office; the easybox that also appears in ooh stays an automat
         $this->assertSame('office', $rows[2]['type']);
         $this->assertSame(701, $rows[2]['office_id']);
+        $this->assertSame(['automat', 'automat', 'office'], array_column($rows, 'type'));
     }
 }
