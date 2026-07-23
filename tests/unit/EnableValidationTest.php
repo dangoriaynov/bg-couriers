@@ -78,8 +78,15 @@ final class EnableValidationTest extends TestCase {
         $this->assertEmpty((new BGC_Boxnow(['api_url' => '', 'partner_id' => '', 'warehouse_id' => '']))->enable_problems());
     }
 
-    public function test_sameday_missing_pickup_and_services_blocks(): void {
+    public function test_sameday_account_without_pickup_or_services_blocks(): void {
+        // Services + pickup point are auto-discovered from the ACCOUNT now (no typed-in ids) - an
+        // account that carries neither must still block enabling.
         $this->opts($this->ok('sameday') + ['bgc_sameday_pickup_point' => '']);
-        $this->assertNotEmpty((new BGC_Sameday([]))->enable_problems());
+        $c = new class([]) extends BGC_Sameday {
+            public function check_credentials(): bool { return true; }
+            public function pickup_point_id(): int { return 0; }
+            public function service_id(string $type): int { return 0; }
+        };
+        $this->assertNotEmpty($c->enable_problems());
     }
 }

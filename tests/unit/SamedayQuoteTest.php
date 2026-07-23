@@ -50,7 +50,8 @@ final class SamedayQuoteTest extends TestCase {
     public function test_build_estimate_body_locker_sets_locker_last_mile(): void {
         Functions\when('get_option')->justReturn('55');
         Functions\when('get_woocommerce_currency')->justReturn('BGN');
-        $body = BGC_Sameday::build_estimate_body(['method' => 'automat', 'office_id' => 501, 'site_id' => 161, 'weight_kg' => 1.2, 'currency' => 'BGN', 'region' => 'София-град']);
+        $body = BGC_Sameday::build_estimate_body(['method' => 'automat', 'office_id' => 501, 'site_id' => 161, 'weight_kg' => 1.2, 'currency' => 'BGN', 'region' => 'София-град', 'service_id' => 15]);
+        $this->assertSame('15', $body['service']); // auto-discovered from the account, not a typed-in setting
         $this->assertSame(501, $body['lockerLastMile']);
         $this->assertArrayNotHasKey('oohLastMile', $body);
         $this->assertEqualsWithDelta(1.2, $body['packageWeight'], 0.001);

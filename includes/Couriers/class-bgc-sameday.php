@@ -35,24 +35,63 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
     public function label(): string { return 'Sameday'; }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
 
+    /** Stable Sameday service codes per delivery type (24H home / Locker NextDay / PUDO). */
+    const SERVICE_CODES = ['address' => '24', 'automat' => 'LN', 'office' => 'PP'];
+
+    /**
+     * The account's service id for a delivery type, discovered from /api/client/services by its stable
+     * serviceCode (cached a day). The merchant never types ids - Sameday's own plugin imports them too.
+     */
+    public function service_id(string $type): int {
+        $map = get_transient('bgc_sameday_services');
+        if (!is_array($map) || !$map) {
+            $map = [];
+            foreach ($this->get_paged('/api/client/services') as $s) {
+                $map[(string) ($s['serviceCode'] ?? '')] = (int) ($s['id'] ?? 0);
+            }
+            if ($map) { set_transient('bgc_sameday_services', $map, DAY_IN_SECONDS); }
+        }
+        return (int) ($map[self::SERVICE_CODES[$type] ?? ''] ?? 0);
+    }
+
+    /** The sender pickup point: the option when set, else the account's DEFAULT pickup point (cached a day). */
+    public function pickup_point_id(): int {
+        $opt = (int) get_option('bgc_sameday_pickup_point', 0);
+        if ($opt > 0) { return $opt; }
+        $id = (int) get_transient('bgc_sameday_pickup_default');
+        if ($id > 0) { return $id; }
+        foreach ($this->get_paged('/api/client/pickup-points') as $pp) {
+            if (!empty($pp['defaultPickupPoint'])) { $id = (int) ($pp['id'] ?? 0); break; }
+            if (!$id) { $id = (int) ($pp['id'] ?? 0); } // fall back to the first one
+        }
+        if ($id > 0) { set_transient('bgc_sameday_pickup_default', $id, DAY_IN_SECONDS); }
+        return $id;
+    }
+
     public function enable_problems(): array {
         $p = parent::enable_problems();
-        $this->need_option($p, 'bgc_sameday_pickup_point',
-            __('No pickup point ID is set.', 'bg-couriers'),
-            __('Enter the “Pickup point ID” you ship from (required for quotes and labels).', 'bg-couriers'));
+        if (!$this->check_credentials()) { return $p; } // creds problems are already reported by the parent
         $labels = [
             'office'  => __('to office', 'bg-couriers'),
             'address' => __('to address', 'bg-couriers'),
             'automat' => __('to locker (easyBox)', 'bg-couriers'),
         ];
-        foreach (BGC_Settings::enabled_methods('sameday') as $m) {
-            if (!isset($labels[$m]) || trim((string) get_option('bgc_sameday_service_' . $m, '')) !== '') { continue; }
-            $p[] = [
-                /* translators: %s: delivery type, e.g. "to office" */
-                'msg' => sprintf(__('No Sameday service ID for the enabled “%s” delivery type.', 'bg-couriers'), $labels[$m]),
-                'fix' => __('Enter the matching “Service ID” below, or disable that delivery type.', 'bg-couriers'),
-            ];
-        }
+        try {
+            if ($this->pickup_point_id() <= 0) {
+                $p[] = [
+                    'msg' => __('Your Sameday account has no pickup point.', 'bg-couriers'),
+                    'fix' => __('Add a pickup point in the Sameday eAWB portal (or enter its ID below).', 'bg-couriers'),
+                ];
+            }
+            foreach (BGC_Settings::enabled_methods('sameday') as $m) {
+                if (!isset($labels[$m]) || $this->service_id($m) > 0) { continue; }
+                $p[] = [
+                    /* translators: %s: delivery type, e.g. "to office" */
+                    'msg' => sprintf(__('Your Sameday account has no service for the enabled “%s” delivery type.', 'bg-couriers'), $labels[$m]),
+                    'fix' => __('Ask Sameday to enable that service on your contract, or disable the delivery type.', 'bg-couriers'),
+                ];
+            }
+        } catch (\Exception $e) { /* API hiccup - credential/API problems surface elsewhere */ }
         return $p;
     }
 
@@ -222,6 +261,9 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
     // ── Quote (live, weight-based) ───────────────────────────────────────────
 
     public function quote(array $shipment): BGC_Quote {
+        // Service + pickup point come from the ACCOUNT (auto-discovered), not from typed-in settings.
+        $shipment['service_id']   = $this->service_id((string) ($shipment['method'] ?? 'address'));
+        $shipment['pickup_point'] = $this->pickup_point_id();
         $resp = $this->post_json('/api/awb/estimate-cost', self::build_estimate_body($shipment));
         return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
@@ -240,8 +282,8 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
             $county = (string) (BGC_Nomenclature::city_by_id('sameday', $sid)['region'] ?? '');
         }
         $body = [
-            'pickupPoint'     => (int) get_option('bgc_sameday_pickup_point', 0),
-            'service'         => (string) get_option('bgc_sameday_service_' . $type, ''),
+            'pickupPoint'     => (int) ($s['pickup_point'] ?? get_option('bgc_sameday_pickup_point', 0)),
+            'service'         => (string) ($s['service_id'] ?? ''),
             'packageType'     => 0,
             'packageNumber'   => 1,
             'packageWeight'   => $w,
@@ -281,11 +323,12 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
     // ── Label ────────────────────────────────────────────────────────────────
 
     public function create_label(\WC_Order $order): BGC_Label {
-        $resp = $this->post_json('/api/awb', self::build_awb_body($order));
+        $method = (string) $order->get_meta('_bgc_method');
+        $resp = $this->post_json('/api/awb', self::build_awb_body($order, $this->service_id($method), $this->pickup_point_id()));
         return new BGC_Label(self::parse_awb_id($resp));
     }
 
-    public static function build_awb_body(\WC_Order $order): array {
+    public static function build_awb_body(\WC_Order $order, int $service_id = 0, int $pickup_point = 0): array {
         $method = (string) $order->get_meta('_bgc_method');
         $w      = max(0.1, self::order_weight_kg($order));
         $is_cod = $order->get_payment_method() === 'cod';
@@ -294,8 +337,8 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         $county = class_exists('BGC_Nomenclature') ? (string) (BGC_Nomenclature::city_by_id('sameday', $sid)['region'] ?? '') : '';
         $addr   = trim((string) $order->get_meta('_bgc_street_name') . ' ' . (string) $order->get_meta('_bgc_street_no'));
         $body = [
-            'pickupPoint'    => (int) get_option('bgc_sameday_pickup_point', 0),
-            'service'        => (string) get_option('bgc_sameday_service_' . $method, ''),
+            'pickupPoint'    => $pickup_point ?: (int) get_option('bgc_sameday_pickup_point', 0),
+            'service'        => (string) ($service_id ?: ''),
             'awbPayment'     => $payer === 'recipient' ? 2 : 1, // 1=CLIENT/sender, 2=RECIPIENT
             'packageType'    => 0,
             'packageNumber'  => 1,
