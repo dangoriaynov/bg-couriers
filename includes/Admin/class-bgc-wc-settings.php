@@ -25,6 +25,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
     }
 
     protected function get_own_sections() { return $this->sections(); }
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce's own documented filter pattern for a WC_Settings_Page (woocommerce_get_sections_<page id>), required for WC extensions to hook our sections.
     public function get_sections() { return apply_filters('woocommerce_get_sections_' . $this->id, $this->sections()); }
 
     private function sections(): array {
