@@ -125,13 +125,17 @@ class BGC_WC_Settings extends WC_Settings_Page {
         #wpbody .bgc-settings .bgc-group > p.description { margin-top: 0; }
         /* Nice wide rounded shadowed tabs - applies to both the courier nav and the per-method nav. */
         #wpbody .bgc-settings .nav-tab-wrapper { border-bottom:none; margin:0 0 16px; display:flex; flex-wrap:wrap; gap:10px; padding:0; }
-        #wpbody .bgc-settings .nav-tab { border:1px solid #dcdcde; border-radius:11px; padding:11px 26px; margin:0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.10); font-weight:500; line-height:1.2; color:#1d2327; transition:box-shadow .15s ease, transform .15s ease, background .15s ease; }
+        #wpbody .bgc-settings .nav-tab { position:relative; border:1px solid #dcdcde; border-radius:11px; padding:11px 26px; margin:0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.10); font-weight:500; line-height:1.2; color:#1d2327; transition:box-shadow .15s ease, transform .15s ease, background .15s ease, opacity .15s ease; }
         #wpbody .bgc-settings .nav-tab:hover { box-shadow:0 3px 8px rgba(0,0,0,.16); }
         #wpbody .bgc-settings .nav-tab.bgc-tab-on { background:var(--bgc-green-bg); border-color:var(--bgc-green-bd); }
         #wpbody .bgc-settings .nav-tab.bgc-tab-off { background:var(--bgc-red-bg); border-color:var(--bgc-red-bd); }
-        /* Active tab keeps the same green/red tint as its inactive twin - the lift + stronger shadow + neutral
-           border mark it active, so every red tab is one red and every green tab is one green. */
-        #wpbody .bgc-settings .nav-tab.nav-tab-active { border-color:#8c8f94; box-shadow:0 5px 13px rgba(0,0,0,.20); transform:translateY(-1px); }
+        /* Active tab keeps the same green/red tint as its inactive twin (one red + one green everywhere).
+           It is marked by a dark double ring (inset shadow = no layout shift), bold text, an underline bar
+           and a lift, while INACTIVE tabs step back a little - unmistakable at a glance. */
+        #wpbody .bgc-settings .nav-tab:not(.nav-tab-active) { opacity:.7; }
+        #wpbody .bgc-settings .nav-tab:not(.nav-tab-active):hover { opacity:1; }
+        #wpbody .bgc-settings .nav-tab.nav-tab-active { border-color:#1d2327; font-weight:700; box-shadow:inset 0 0 0 1px #1d2327, 0 5px 13px rgba(0,0,0,.20); transform:translateY(-1px); }
+        #wpbody .bgc-settings .nav-tab.nav-tab-active::after { content:""; position:absolute; left:14px; right:14px; bottom:5px; height:3px; border-radius:2px; background:#1d2327; }
         #wpbody .bgc-settings .bgc-courier-tabs { display:inline-flex; flex-wrap:wrap; gap:10px; }
         #wpbody .bgc-settings .nav-tab { display:inline-flex; align-items:center; gap:8px; }
         #wpbody .bgc-settings .bgc-courier-tab { padding-left:16px; padding-right:20px; cursor:move; }
