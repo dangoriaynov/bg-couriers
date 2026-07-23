@@ -95,6 +95,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Interactive office/locker map picker (Leaflet + OpenStreetMap) for Speedy/Econt/Pigeon/Sameday.
 * Optional dual BGN/EUR price display.
 * Courier-aware checkout validation and full Bulgarian translation.
+* Per-courier "Delivery in the order total" toggle - or let the customer pay the courier on delivery (COD then collects only the goods total).
+* Thank-you page order summary: [bgc_order_summary] shortcode for custom pages + a delivery card on the native order-received page.
+* Speedy batch printing uses Speedy's own 4-labels-per-A4 layout.
+* Automatic shipment-status tracking (WP-Cron) with order notes.
 
 = 0.1.0 =
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
