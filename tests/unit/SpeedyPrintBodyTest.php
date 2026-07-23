@@ -21,4 +21,8 @@ final class SpeedyPrintBodyTest extends TestCase {
     public function test_build_print_body_defaults_invalid_size_to_a6(): void {
         $this->assertSame('A6', BGC_Speedy::build_print_body(['1'], 'A3')['paperSize']);
     }
+    public function test_build_print_body_accepts_the_multi_label_a4_grid(): void {
+        // Speedy's own batch layout: an A4 page carrying four A6 labels (used by batch_label_pdf for A4).
+        $this->assertSame('A4_4xA6', BGC_Speedy::build_print_body(['1', '2'], 'A4_4xA6')['paperSize']);
+    }
 }

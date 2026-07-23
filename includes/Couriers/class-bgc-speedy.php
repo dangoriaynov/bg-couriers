@@ -265,7 +265,7 @@ class BGC_Speedy extends BGC_Abstract_Courier {
             // Print the label in Bulgarian (the /print API defaults to the account language, which was giving
             // English text). BG couriers/recipients -> BG. Ref: https://api.speedy.bg/web-api.html (language BG|EN).
             'language'  => 'BG',
-            'paperSize' => in_array($paper_size, ['A6', 'A4'], true) ? $paper_size : 'A6',
+            'paperSize' => in_array($paper_size, ['A6', 'A4', 'A4_4xA6'], true) ? $paper_size : 'A6',
             'parcels'   => array_values(array_map(static fn($id) => ['parcel' => ['id' => (string) $id]], $parcel_ids)),
             'additionalWaybillSenderCopy' => 'NONE',
         ];
@@ -280,6 +280,9 @@ class BGC_Speedy extends BGC_Abstract_Courier {
 
     public function batch_label_pdf(array $waybills, string $format = ''): string {
         $paper = in_array($format, ['A6', 'A4'], true) ? $format : BGC_Settings::label_paper_size('speedy');
+        // On A4 sheets ask for Speedy's own multi-label layout 'A4_4xA6' (four A6 labels per page, same
+        // orientation). Plain 'A4' renders ONE full waybill form per page - half the landscape sheet empty.
+        if ($paper === 'A4') { $paper = 'A4_4xA6'; }
         return $this->print_labels(array_values(array_filter(array_map('strval', $waybills))), $paper);
     }
 
