@@ -52,8 +52,12 @@ final class OrderColumnCellTest extends TestCase {
         Functions\when('wc_get_order')->justReturn($stub);
         $h = BGC_Order_Columns::cell_html('W123', 'http://p', 'http://t', 'http://g', 7);
         $this->assertStringContainsString('http://edit#bgc-edit', $h);
+        $this->assertSame(2, substr_count($h, 'class="bgc-row"')); // row 1 logo+pencil, row 2 actions
+        $this->assertLessThan(strpos($h, 'bgc-copy'), strpos($h, 'bgc-edit-lnk')); // pencil in row 1
         $g = BGC_Order_Columns::cell_html('', 'http://p', 'http://t', 'http://g', 7);
         $this->assertStringContainsString('http://edit#bgc-edit', $g); // pencil also without a waybill
+        $this->assertSame(2, substr_count($g, 'class="bgc-row"'));
+        $this->assertLessThan(strpos($g, 'bgc-gen'), strpos($g, 'bgc-edit-lnk')); // pencil above Generate
         $this->assertStringContainsString('bgc-gen', $g);
     }
     public function test_no_waybill_shows_generate(): void {
