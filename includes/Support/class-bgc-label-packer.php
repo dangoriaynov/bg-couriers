@@ -126,13 +126,24 @@ class BGC_Label_Packer {
      * Pair half-sheet waybill forms two-up onto landscape A4 sheets. Made for Speedy's plain-A4 print:
      * every page is a landscape A4 with ONE waybill form in the LEFT half and the right half empty -
      * exactly how the courier prints them one by one. Consecutive such pages are combined onto one
-     * sheet (first left, second shifted so ITS left half fills the right half; the shifted template's
-     * empty right half falls outside the page and is clipped). Nothing is ever scaled. Pages that are
-     * not landscape-A4 pass through on their own native page.
+     * sheet: the first stays left, the second is shifted so its form sits MIRRORED against the RIGHT
+     * edge - same outer margins on both sides (the merchant cuts down the middle, and it matches how
+     * a half-printed sheet looks when fed through the printer again). The shifted template's empty
+     * remainder falls outside the page and is clipped. Nothing is ever scaled. Pages that are not
+     * landscape-A4 pass through on their own native page.
      *
      * @param string[] $pdfs Raw PDF byte strings.
      * @return string Combined PDF bytes, or '' if nothing could be imported (caller falls back).
      */
+
+    /**
+     * Speedy's plain-A4 waybill form paints from 5.6 mm to 97.5 mm (measured off the live /print
+     * output; the form is a fixed-width table, identical on every sample). Shifting the second
+     * template by 297 - 97.5 - 5.6 puts its form at 199.5..291.4 mm - flush right with the SAME
+     * 5.6 mm margin the left form has. Also keeps the two forms far apart (97.5 vs 199.5).
+     */
+    const TWO_UP_MIRROR_SHIFT = 193.9;
+
     public static function two_up(array $pdfs): string {
         if (!self::available()) { return ''; }
         $pdf = new \setasign\Fpdi\Fpdi('L', 'mm', 'A4');
@@ -167,7 +178,7 @@ class BGC_Label_Packer {
             if (!$pending) { $pending = $it; continue; }
             $pdf->AddPage('L', 'A4');
             $pdf->useTemplate($pending['tpl'], 0, 0, $pending['w'], $pending['h']);
-            $pdf->useTemplate($it['tpl'], 148.5, 0, $it['w'], $it['h']); // its left half lands on the right half
+            $pdf->useTemplate($it['tpl'], self::TWO_UP_MIRROR_SHIFT, 0, $it['w'], $it['h']); // mirrored to the right edge
             $pending = null;
         }
         $flush();

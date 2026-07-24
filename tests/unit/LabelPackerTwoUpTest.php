@@ -16,12 +16,12 @@ final class LabelPackerTwoUpTest extends TestCase {
         if (!BGC_Label_Packer::available()) { $this->markTestSkipped('bundled FPDI unavailable'); }
     }
 
-    /** One landscape-A4 page with a rect in the left half, like Speedy's plain-A4 print. */
+    /** One landscape-A4 page with the form in the left half (5.6..97.5 mm), like Speedy's plain-A4 print. */
     private function half_sheet(string $mark): string {
         $f = new \FPDF('L', 'mm', 'A4');
         $f->AddPage();
         $f->SetFont('Helvetica', 'B', 12);
-        $f->Rect(5, 5, 138, 200);
+        $f->Rect(5.6, 8, 91.9, 192);
         $f->Text(10, 15, $mark);
         return $f->Output('S');
     }
