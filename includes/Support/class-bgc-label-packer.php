@@ -123,6 +123,58 @@ class BGC_Label_Packer {
     }
 
     /**
+     * Pair half-sheet waybill forms two-up onto landscape A4 sheets. Made for Speedy's plain-A4 print:
+     * every page is a landscape A4 with ONE waybill form in the LEFT half and the right half empty -
+     * exactly how the courier prints them one by one. Consecutive such pages are combined onto one
+     * sheet (first left, second shifted so ITS left half fills the right half; the shifted template's
+     * empty right half falls outside the page and is clipped). Nothing is ever scaled. Pages that are
+     * not landscape-A4 pass through on their own native page.
+     *
+     * @param string[] $pdfs Raw PDF byte strings.
+     * @return string Combined PDF bytes, or '' if nothing could be imported (caller falls back).
+     */
+    public static function two_up(array $pdfs): string {
+        if (!self::available()) { return ''; }
+        $pdf = new \setasign\Fpdi\Fpdi('L', 'mm', 'A4');
+        $pdf->SetMargins(0, 0, 0);
+        $pdf->SetAutoPageBreak(false);
+        $items = [];
+        foreach ($pdfs as $bytes) {
+            if (!is_string($bytes) || $bytes === '') { continue; }
+            try {
+                $reader = \setasign\Fpdi\PdfParser\StreamReader::createByString($bytes);
+                $count  = $pdf->setSourceFile($reader);
+            } catch (\Throwable $e) { continue; }
+            for ($p = 1; $p <= $count; $p++) {
+                try {
+                    $tpl = $pdf->importPage($p);
+                    $s   = $pdf->getTemplateSize($tpl);
+                    $items[] = ['tpl' => $tpl, 'w' => (float) $s['width'], 'h' => (float) $s['height']];
+                } catch (\Throwable $e) { /* skip an unreadable page */ }
+            }
+        }
+        if (!$items) { return ''; }
+        $eps = 5.0; // mm tolerance on the landscape-A4 check
+        $isHalfSheet = static function (array $it) use ($eps): bool {
+            return abs($it['w'] - 297.0) <= $eps && abs($it['h'] - 210.0) <= $eps;
+        };
+        $pending = null; // a half-sheet page waiting for its right-hand partner
+        $flush = static function () use ($pdf, &$pending): void {
+            if ($pending) { $pdf->AddPage('L', 'A4'); $pdf->useTemplate($pending['tpl'], 0, 0, $pending['w'], $pending['h']); $pending = null; }
+        };
+        foreach ($items as $it) {
+            if (!$isHalfSheet($it)) { $flush(); self::add_native_page($pdf, $it); continue; }
+            if (!$pending) { $pending = $it; continue; }
+            $pdf->AddPage('L', 'A4');
+            $pdf->useTemplate($pending['tpl'], 0, 0, $pending['w'], $pending['h']);
+            $pdf->useTemplate($it['tpl'], 148.5, 0, $it['w'], $it['h']); // its left half lands on the right half
+            $pending = null;
+        }
+        $flush();
+        return $pdf->PageNo() > 0 ? $pdf->Output('S') : '';
+    }
+
+    /**
      * Next-fit shelf packing of pre-ordered items onto pages: each item goes into the first row (shelf) on
      * the current page that still has width and is tall enough, else a new row, else a new page.
      *

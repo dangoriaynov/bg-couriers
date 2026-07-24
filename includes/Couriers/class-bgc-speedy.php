@@ -299,10 +299,16 @@ class BGC_Speedy extends BGC_Abstract_Courier {
 
     public function batch_label_pdf(array $waybills, string $format = ''): string {
         $paper = in_array($format, ['A6', 'A4'], true) ? $format : BGC_Settings::label_paper_size('speedy');
-        // On A4 sheets ask for Speedy's own multi-label layout 'A4_4xA6' (four A6 labels per page, same
-        // orientation). Plain 'A4' renders ONE full waybill form per page - half the landscape sheet empty.
-        if ($paper === 'A4') { $paper = 'A4_4xA6'; }
-        return $this->print_labels(array_values(array_filter(array_map('strval', $waybills))), $paper);
+        $ids   = array_values(array_filter(array_map('strval', $waybills)));
+        if ($paper !== 'A4') { return $this->print_labels($ids, $paper); }
+        // A4 batch = how the merchant already prints them one by one: Speedy's plain 'A4' renders ONE
+        // full-size waybill form in the LEFT half of a landscape sheet - so fetch those native pages
+        // and pair them two-up (left + right) onto single sheets, never scaling. If the bundled FPDI
+        // can't combine them, fall back to Speedy's own 'A4_4xA6' grid (4 smaller A6 labels per page).
+        $pdf = $this->print_labels($ids, 'A4');
+        $two = BGC_Label_Packer::two_up([$pdf]);
+        if ($two !== '') { return $two; }
+        return $this->print_labels($ids, 'A4_4xA6');
     }
 
     public function print_labels(array $parcel_ids, string $paper_size): string {

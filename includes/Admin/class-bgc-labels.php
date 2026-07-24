@@ -376,9 +376,17 @@ class BGC_Labels {
                 try { $b = $courier->batch_label_pdf(array_values($map), $format); if ($b !== '') { $sheets[] = $b; } }
                 catch (\Exception $e) { /* skip this courier */ }
             } else {
-                // Stored per-label files (no re-fetch - Pigeon can't re-fetch), concatenated at native size.
+                // Stored per-label files (no re-fetch - Pigeon can't re-fetch). On A4 the labels are
+                // PLACED on real A4 pages at native size (a sticker-sized PDF page would otherwise be
+                // blown up to the paper by the print dialog); labels larger than A4 keep their own
+                // native page. On A6 (sticker roll) the native pages pass through unchanged.
                 $per = self::collect_label_pdfs(array_keys($map), $format);
-                if ($per) { $sheets[] = count($per) === 1 ? $per[0] : BGC_Label_Packer::concat($per); }
+                if (!$per) { continue; }
+                if (strtoupper($format) === 'A4') {
+                    $packed = BGC_Label_Packer::pack($per, 'A4');
+                    if ($packed !== '') { $sheets[] = $packed; continue; }
+                }
+                $sheets[] = count($per) === 1 ? $per[0] : BGC_Label_Packer::concat($per);
             }
         }
         if (!$sheets) { return ''; }
