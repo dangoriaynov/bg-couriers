@@ -187,7 +187,15 @@ class BGC_Speedy extends BGC_Abstract_Courier {
     public function create_label(\WC_Order $order): BGC_Label {
         $body = $this->auth($this->build_shipment_body($order));
         $resp = $this->post_json($this->base . '/shipment', $body);
-        return new BGC_Label(self::parse_shipment_id($resp));
+        // Speedy reports validation failures as HTTP 200 + an `error` object (e.g. parcel size vs the
+        // APS compartment) - surface it instead of letting an empty waybill through (same 200+error
+        // contract cancel_label already handles).
+        if (!empty($resp['error'])) {
+            throw new BGC_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message'] ?? 'shipment rejected')));
+        }
+        $id = self::parse_shipment_id($resp);
+        if ($id === '') { throw new BGC_Api_Exception('Speedy: no shipment id in the response'); }
+        return new BGC_Label($id);
     }
 
     private function build_shipment_body(\WC_Order $order): array {
@@ -302,7 +310,13 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         if (is_wp_error($res) || (int) wp_remote_retrieve_response_code($res) !== 200) {
             throw new BGC_Api_Exception('Speedy print failed');
         }
-        return (string) wp_remote_retrieve_body($res); // binary PDF
+        $body = (string) wp_remote_retrieve_body($res);
+        // A 200 whose body is not a PDF is Speedy's JSON error payload (same 200+error contract as /shipment).
+        if (strncmp($body, '%PDF', 4) !== 0) {
+            $j = json_decode($body, true);
+            throw new BGC_Api_Exception(esc_html('Speedy print failed: ' . (string) ($j['error']['message'] ?? 'response is not a PDF')));
+        }
+        return $body;
     }
 
     public function label_formats(): array { return ['A6', 'A4']; }

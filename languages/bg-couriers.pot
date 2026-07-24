@@ -108,6 +108,10 @@ msgstr ""
 msgid "Unknown courier for this order."
 msgstr ""
 
+#: includes/Admin/class-bgc-labels.php:54
+msgid "The courier returned no waybill number."
+msgstr ""
+
 #. translators: 1: courier name, 2: waybill number
 #: includes/Admin/class-bgc-labels.php:72
 #, php-format

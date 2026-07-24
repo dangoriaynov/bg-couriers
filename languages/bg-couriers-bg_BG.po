@@ -111,6 +111,10 @@ msgstr "Автоматичен етикет (BG Couriers) е неуспешен:
 msgid "Unknown courier for this order."
 msgstr "Неизвестен куриер за тази поръчка."
 
+#: includes/Admin/class-bgc-labels.php:54
+msgid "The courier returned no waybill number."
+msgstr "Куриерът не върна номер на товарителница."
+
 #. translators: 1: courier name, 2: waybill number
 #: includes/Admin/class-bgc-labels.php:72
 #, php-format

@@ -48,6 +48,11 @@ class BGC_Labels {
         $courier = $courier_id ? BGC_Couriers::get($courier_id) : null;
         if (!$courier) { throw new BGC_Api_Exception(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
         $label = $courier->create_label($order);
+        // Never store an empty waybill: a courier API that "succeeded" without returning a shipment id
+        // did NOT create a shipment (guards every courier against 200-with-error-body responses).
+        if ((string) $label->waybill === '') {
+            throw new BGC_Api_Exception(esc_html__('The courier returned no waybill number.', 'bg-couriers'));
+        }
         $order->update_meta_data('_bgc_waybill', $label->waybill);
 
         // The format the PRIMARY stored label should be in - the merchant's per-courier size setting for
@@ -65,8 +70,13 @@ class BGC_Labels {
         } else {
             $pdf = $courier->get_label_pdf($label->waybill, $primary);
         }
-        $url = self::store_label_file($courier->id(), (string) $label->waybill, $pdf);
-        $order->update_meta_data('_bgc_label_url', $url);
+        // Only store real PDF bytes. The shipment already exists at the courier, so on a bad/empty body
+        // we keep the waybill and leave the URL empty - printing re-fetches the label on demand.
+        $url = '';
+        if (strncmp($pdf, '%PDF', 4) === 0) {
+            $url = self::store_label_file($courier->id(), (string) $label->waybill, $pdf);
+            $order->update_meta_data('_bgc_label_url', $url);
+        }
         $order->update_meta_data('_bgc_label_paper_size', $primary);
         /* translators: 1: courier name, 2: waybill number */
         $order->add_order_note(sprintf(__('%1$s label generated: %2$s', 'bg-couriers'), $courier->label(), $label->waybill));
