@@ -16,26 +16,30 @@ class BGC_Order_Columns {
         $logo_tile = $courier_logo !== ''
             ? '<span class="bgc-ltile" data-tip="' . esc_attr($courier_label) . '"><img class="bgc-clogo" src="' . esc_url($courier_logo) . '" alt="' . esc_attr($courier_label) . '"></span>'
             : '';
+        // The pencil shows in BOTH states (with or without a waybill). #bgc-edit makes the order
+        // screen auto-open the delivery-details editor (bgc-order-admin.js), no second click needed.
+        $edit_ico = '';
+        if ($order_id && function_exists('wc_get_order')) {
+            $o = wc_get_order($order_id);
+            if ($o) {
+                $edit_ico = '<a class="bgc-ico bgc-edit-lnk" href="' . esc_url($o->get_edit_order_url() . '#bgc-edit') . '" data-tip="' . esc_attr__('Edit delivery details', 'bg-couriers') . '" aria-label="' . esc_attr__('Edit delivery details', 'bg-couriers') . '"><span class="dashicons dashicons-edit"></span></a>';
+            }
+        }
         if ($waybill === '') {
-            return '<span class="bgc-cell">' . $logo_tile . '<a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a></span>';
+            return '<span class="bgc-cell">' . $logo_tile . '<a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a>' . $edit_ico . '</span>';
         }
         // Compact icon-only tiles that wrap inside the column, SAME look and order as the
         // order-screen shipment panel: courier logo (hint) then copy (stands in for the waybill
         // number, which is the panel's copy control) then Print (primary) / Track / Edit / Cancel.
         // The cancel link carries the order id + a cancel nonce + a generate nonce; JS voids the
-        // waybill over AJAX and swaps the cell back to Generate (keeping the logo tile).
+        // waybill over AJAX and swaps the cell back to Generate (keeping the logo + pencil tiles).
         /* translators: %s: waybill number */
         $copy_label = sprintf(__('Copy waybill %s', 'bg-couriers'), $waybill);
-        $edit_url   = '';
-        if ($order_id && function_exists('wc_get_order')) {
-            $o = wc_get_order($order_id);
-            if ($o) { $edit_url = $o->get_edit_order_url(); }
-        }
         return '<span class="bgc-cell">' . $logo_tile
             . '<button type="button" class="bgc-ico bgc-copy" data-wb="' . esc_attr($waybill) . '" data-tip="' . esc_attr($waybill) . '" aria-label="' . esc_attr($copy_label) . '"><span class="dashicons dashicons-clipboard"></span></button>'
             . '<a class="bgc-ico bgc-primary" target="_blank" href="' . esc_url($print_url) . '" data-tip="' . esc_attr__('Print label', 'bg-couriers') . '" aria-label="' . esc_attr__('Print label', 'bg-couriers') . '"><span class="dashicons dashicons-printer"></span></a>'
             . '<a class="bgc-ico" target="_blank" href="' . esc_url($track_url) . '" data-tip="' . esc_attr__('Track shipment', 'bg-couriers') . '" aria-label="' . esc_attr__('Track shipment', 'bg-couriers') . '"><span class="dashicons dashicons-location"></span></a>'
-            . ($edit_url !== '' ? '<a class="bgc-ico" href="' . esc_url($edit_url) . '" data-tip="' . esc_attr__('Edit delivery details', 'bg-couriers') . '" aria-label="' . esc_attr__('Edit delivery details', 'bg-couriers') . '"><span class="dashicons dashicons-edit"></span></a>' : '')
+            . $edit_ico
             . '<a href="#" class="bgc-ico bgc-danger bgc-wb-cancel" data-id="' . (int) $order_id . '" data-nonce="' . esc_attr($cancel_nonce) . '" data-gennonce="' . esc_attr($generate_nonce) . '" data-tip="' . esc_attr__('Cancel waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Cancel waybill', 'bg-couriers') . '"><span class="dashicons dashicons-no-alt"></span></a>'
             . '</span>';
     }
@@ -124,7 +128,8 @@ class BGC_Order_Columns {
         if (j && j.success) {
           var g = AP + '?action=bgc_generate_label&order_id=' + encodeURIComponent(id) + '&_wpnonce=' + encodeURIComponent(gn);
           var logo = cell.querySelector ? cell.querySelector('.bgc-ltile') : null;
-          cell.innerHTML = (logo ? logo.outerHTML : '') + '<a class="button button-small bgc-gen" href="' + g + '">' + esc(M.gen) + '</a>';
+          var ed   = cell.querySelector ? cell.querySelector('.bgc-edit-lnk') : null;
+          cell.innerHTML = (logo ? logo.outerHTML : '') + '<a class="button button-small bgc-gen" href="' + g + '">' + esc(M.gen) + '</a>' + (ed ? ed.outerHTML : '');
           toast(M.cancelled);
         } else { x.style.pointerEvents = ''; toast((j && j.data && j.data.msg) || M.err); }
       })

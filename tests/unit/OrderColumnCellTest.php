@@ -42,6 +42,20 @@ final class OrderColumnCellTest extends TestCase {
         $this->assertStringContainsString('bgc-ltile', $g);
         $this->assertStringContainsString('bgc-gen', $g);
     }
+    public function test_edit_pencil_shows_in_both_states_with_autoopen_marker(): void {
+        Functions\when('esc_html')->alias('trim');
+        Functions\when('esc_html__')->alias('trim');
+        Functions\when('esc_attr')->alias('trim');
+        Functions\when('esc_attr__')->alias('trim');
+        Functions\when('esc_url')->alias('trim');
+        $stub = new class { public function get_edit_order_url(): string { return 'http://edit'; } };
+        Functions\when('wc_get_order')->justReturn($stub);
+        $h = BGC_Order_Columns::cell_html('W123', 'http://p', 'http://t', 'http://g', 7);
+        $this->assertStringContainsString('http://edit#bgc-edit', $h);
+        $g = BGC_Order_Columns::cell_html('', 'http://p', 'http://t', 'http://g', 7);
+        $this->assertStringContainsString('http://edit#bgc-edit', $g); // pencil also without a waybill
+        $this->assertStringContainsString('bgc-gen', $g);
+    }
     public function test_no_waybill_shows_generate(): void {
         Functions\when('esc_html')->alias('trim');
         Functions\when('esc_html__')->alias('trim');

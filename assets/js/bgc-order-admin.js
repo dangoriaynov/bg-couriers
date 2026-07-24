@@ -86,6 +86,15 @@
     if ($form.is(':visible')) { $form[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
   });
 
+  // Opened via the orders-list pencil (#bgc-edit): auto-open the editor, no second click needed.
+  if (window.location.hash === '#bgc-edit') {
+    var $auto = $('.bgc-ed-form');
+    if ($auto.length) {
+      $auto.show();
+      setTimeout(function () { $auto[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 150);
+    }
+  }
+
   // --- the editor itself ------------------------------------------------------------------------
   var $panel = $('.bgc-ed');
   if (!$panel.length) { return; }
