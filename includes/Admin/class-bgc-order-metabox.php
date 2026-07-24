@@ -147,7 +147,7 @@ class BGC_Order_Metabox {
             /* translators: %s: waybill number */
             $copy_lbl = sprintf(__('Copy waybill %s', 'bg-couriers'), $waybill);
             $body .= '<button type="button" class="bgc-wb bgc-wb-copy" data-wb="' . esc_attr($waybill) . '" data-tip="' . esc_attr($waybill)
-                . '" aria-label="' . esc_attr($copy_lbl) . '"><span class="dashicons dashicons-clipboard"></span></button>';
+                . '" aria-label="' . esc_attr($copy_lbl) . '"><span class="dashicons dashicons-admin-page"></span></button>';
         }
         $body .= '<span class="bgc-hd-acts">' . $actions . '</span></div>';
 
