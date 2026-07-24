@@ -65,11 +65,13 @@ class BGC_Order_Columns {
 /* Two fixed rows (logo+pencil / actions), each wrapping inside the fixed-width Waybill column. */
 .bgc-cell{display:flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:100%;}
 .bgc-cell .bgc-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px;max-width:100%;}
-/* Same tile look as the order-screen shipment panel (.bgc-act), just compact for the list table. */
-.bgc-ico{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;margin:0;border:1px solid #c9ced6;border-radius:6px;background:#fff;color:#2b3440;cursor:pointer;text-decoration:none;box-shadow:none;transition:all .12s;flex:0 0 auto;box-sizing:border-box;}
-.bgc-ico:hover{background:#f4f6f9;border-color:#a2acb8;box-shadow:0 1px 2px rgba(0,0,0,.07);color:#2b3440;}
+/* Same tile look as the order-screen shipment panel (.bgc-act), just compact for the list table.
+   Geometry is !important: other plugins' admin CSS styles bare <button> elements (the copy tile is
+   the one BUTTON among anchors) and was blowing its size/spacing up on some installs. */
+.bgc-ico{display:inline-flex!important;align-items:center;justify-content:center;width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important;padding:0!important;margin:0!important;border:1px solid #c9ced6!important;border-radius:6px!important;background:#fff;color:#2b3440;cursor:pointer;text-decoration:none;box-shadow:none;transition:all .12s;flex:0 0 auto;box-sizing:border-box!important;line-height:1!important;vertical-align:middle;-webkit-appearance:none;appearance:none;}
+.bgc-ico:hover{background:#f4f6f9;border-color:#a2acb8!important;box-shadow:0 1px 2px rgba(0,0,0,.07);color:#2b3440;}
 .bgc-ico:focus{outline:none;box-shadow:0 0 0 2px rgba(34,113,177,.35);}
-.bgc-ico .dashicons{font-size:14px;width:14px;height:14px;line-height:1;}
+.bgc-ico .dashicons{font-size:14px!important;width:14px!important;height:14px!important;line-height:1!important;margin:0!important;padding:0!important;}
 /* Courier logo tile (hover hint carries the courier name), like the shipment-panel header. */
 .bgc-ltile{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #c9ced6;border-radius:6px;background:#fff;box-sizing:border-box;cursor:default;flex:0 0 auto;}
 .bgc-clogo{max-width:17px;max-height:17px;width:auto;height:auto;object-fit:contain;display:block;}
@@ -77,10 +79,10 @@ class BGC_Order_Columns {
 .bgc-cell [data-tip]{position:relative;}
 .bgc-cell [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#1d2327;color:#fff;font-size:11px;font-weight:500;line-height:1;padding:6px 8px;border-radius:6px;pointer-events:none;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.2);}
 .bgc-cell [data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1d2327;z-index:30;}
-.bgc-ico.bgc-primary{background:#2271b1;border-color:#2271b1;color:#fff;}
-.bgc-ico.bgc-primary:hover{background:#1c5d92;border-color:#1c5d92;color:#fff;}
-.bgc-ico.bgc-danger{color:#b32d2e;border-color:#e6a2a5;}
-.bgc-ico.bgc-danger:hover{background:#fcecec;border-color:#cf6a6f;color:#8a1f2b;}
+.bgc-ico.bgc-primary{background:#2271b1;border-color:#2271b1!important;color:#fff;}
+.bgc-ico.bgc-primary:hover{background:#1c5d92;border-color:#1c5d92!important;color:#fff;}
+.bgc-ico.bgc-danger{color:#b32d2e;border-color:#e6a2a5!important;}
+.bgc-ico.bgc-danger:hover{background:#fcecec;border-color:#cf6a6f!important;color:#8a1f2b;}
 .bgc-ltoast{position:fixed;z-index:100001;left:50%;bottom:32px;transform:translateX(-50%) translateY(6px);background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;}
 .bgc-ltoast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .bgc-lmodal-ov{position:fixed;inset:0;background:rgba(20,24,28,.5);z-index:100000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
