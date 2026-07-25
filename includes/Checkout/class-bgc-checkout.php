@@ -14,13 +14,9 @@ class BGC_Checkout {
         // Hide WC's generic cart shipping calculator (Country/Region/City/Postcode) - deliveries are
         // Bulgaria-only and the real office/APS/address is chosen at checkout, so those fields only confuse.
         // The calculator is gated by the *option* (not a filter), so short-circuit it to 'no'; a CSS net
-        // covers themes (e.g. Shoptimizer) that render the calculator from a custom template regardless.
+        // (bgc-cart.css, enqueued in assets()) covers themes (e.g. Shoptimizer) that render the calculator
+        // from a custom template regardless.
         add_filter('pre_option_woocommerce_enable_shipping_calc', static function () { return 'no'; });
-        add_action('wp_head', static function () {
-            if (function_exists('is_cart') && is_cart()) {
-                echo '<style>.woocommerce-shipping-calculator{display:none!important;}.bgc-cart-note{font-size:.85em;color:#6b7280;margin:2px 0 8px;line-height:1.35;}</style>';
-            }
-        });
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_price_label'], 4, 2);     // "delivery not in the total": estimate instead of a price
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'logo_shipping_label'], 5, 2);  // courier brand logo before the name
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
@@ -199,8 +195,6 @@ class BGC_Checkout {
         }
         if (!$rows) { return; }
         echo '<div class="bgc-cart-estimate"><div class="bgc-cart-est-title">' . esc_html__('Estimated shipping (exact price at checkout)', 'bg-couriers') . '</div>' . implode('', $rows) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $rows entries are built with esc_html/wp_kses_post above
-        echo '<style>.bgc-cart-estimate{margin-top:12px;padding:12px 14px;border:1px solid #e2e6ea;border-radius:10px;background:#fafbfc;font-size:.92em;}'
-            . '.bgc-cart-est-title{font-weight:600;margin-bottom:6px;}.bgc-cart-est-row{margin:3px 0;color:#555;}</style>';
     }
 
     /** Amount still needed to reach the Speedy free-shipping threshold (0 if disabled or already met). */
@@ -431,6 +425,11 @@ class BGC_Checkout {
         $order->set_shipping_last_name($order->get_billing_last_name());
     }
     public function assets(): void {
+        // Cart page: only the small static stylesheet (calculator hide + estimate box + rate notes).
+        if (function_exists('is_cart') && is_cart()) {
+            $cart_css = BGC_PATH . 'assets/css/bgc-cart.css';
+            wp_enqueue_style('bgc-cart', BGC_URL . 'assets/css/bgc-cart.css', [], is_file($cart_css) ? (string) filemtime($cart_css) : BGC_VERSION);
+        }
         if (!function_exists('is_checkout') || !is_checkout()) { return; }
         wp_enqueue_style('select2');
         // Version by file mtime so every asset change busts the browser cache automatically.

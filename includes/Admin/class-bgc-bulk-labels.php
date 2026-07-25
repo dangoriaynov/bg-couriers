@@ -13,7 +13,6 @@ class BGC_Bulk_Labels {
             add_filter("handle_bulk_actions-{$screen}", [$this, 'handle'], 10, 3);
         }
         add_action('admin_notices', [$this, 'notice']);
-        add_action('admin_footer', [$this, 'confirm_script']);
     }
 
     public function register(array $actions): array {
@@ -24,39 +23,8 @@ class BGC_Bulk_Labels {
         return $actions;
     }
 
-    /**
-     * Guard the bulk "Cancel waybils" action behind the same custom confirm dialog the rest of the plugin
-     * uses (window.bgcConfirmDialog, defined by BGC_Order_Columns on the same screen). Intercepts the
-     * Apply click, and only lets the bulk form submit once the merchant confirms.
-     */
-    public function confirm_script(): void {
-        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
-        if (!$screen || !in_array($screen->id, ['woocommerce_page_wc-orders', 'edit-shop_order'], true)) { return; }
-        $msg = [
-            'title' => __('Cancel the selected waybills?', 'bg-couriers'),
-            'body'  => __('This voids the shipment label with the courier for every selected order. This cannot be undone.', 'bg-couriers'),
-            'yes'   => __('Yes, cancel them', 'bg-couriers'),
-            'no'    => __('Keep them', 'bg-couriers'),
-        ];
-        ?>
-<script>
-(function () {
-  var CANCEL = <?php echo wp_json_encode(self::CANCEL); ?>, M = <?php echo wp_json_encode($msg); ?>, going = false;
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest('#doaction, #doaction2');
-    if (!btn || going) { return; }
-    var sel = document.getElementById(btn.id === 'doaction' ? 'bulk-action-selector-top' : 'bulk-action-selector-bottom');
-    if (!sel || sel.value !== CANCEL) { return; }
-    e.preventDefault(); e.stopPropagation();
-    var run = function () { going = true; btn.click(); };
-    if (typeof window.bgcConfirmDialog === 'function') {
-      window.bgcConfirmDialog({ title: M.title, body: M.body, yes: M.yes, no: M.no, onYes: run });
-    } else if (window.confirm(M.title)) { run(); }
-  }, true);
-})();
-</script>
-        <?php
-    }
+    // The bulk "Cancel waybils" confirmation lives in assets/js/bgc-orders-list.js (enqueued with
+    // its config by BGC_Order_Columns::enqueue_assets on the same screens).
 
     public static function summary(array $results): array {
         $c = ['generated' => 0, 'reused' => 0, 'skipped' => 0, 'failed' => 0];

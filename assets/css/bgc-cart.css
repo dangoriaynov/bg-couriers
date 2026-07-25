@@ -1,0 +1,7 @@
+/* Cart-page bits: hide WC's generic shipping calculator (deliveries are Bulgaria-only; the real
+   office/APS/address is chosen at checkout) + the per-rate estimate note + the estimate box. */
+.woocommerce-shipping-calculator{display:none!important;}
+.bgc-cart-note{font-size:.85em;color:#6b7280;margin:2px 0 8px;line-height:1.35;}
+.bgc-cart-estimate{margin-top:12px;padding:12px 14px;border:1px solid #e2e6ea;border-radius:10px;background:#fafbfc;font-size:.92em;}
+.bgc-cart-est-title{font-weight:600;margin-bottom:6px;}
+.bgc-cart-est-row{margin:3px 0;color:#555;}

@@ -1,0 +1,84 @@
+/* Shipment panel on the order edit screen (BGC_Order_Metabox). */
+.bgc-order-panel{margin-top:8px;padding:10px 11px;border:1px solid #e6e9ec;border-radius:9px;background:#fff;}
+.bgc-order-panel .bgc-hd{display:flex;align-items:center;gap:7px;margin:0 0 8px;flex-wrap:wrap;}
+.bgc-order-panel .bgc-hd b{font-size:13px;color:#1d2327;}
+.bgc-order-panel .bgc-logo{max-width:20px;max-height:20px;width:auto;height:auto;object-fit:contain;display:block;}
+/* Logo + delivery-type icon share the SAME 31x31 tile as the action buttons, so the whole row is one size. */
+.bgc-order-panel .bgc-tile{width:31px;height:31px;padding:0;border:1px solid #c9ced6;border-radius:7px;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;cursor:default;}
+.bgc-order-panel .bgc-hd-acts{margin-left:auto;display:inline-flex;align-items:center;gap:6px;}
+.bgc-order-panel .bgc-chip{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}
+/* The waybill number IS the copy button: clicking the field copies it to the clipboard. */
+/* Geometry is !important: other plugins' admin CSS styles bare <button> elements (this copy */
+/* chip and the .bgc-act buttons) and was blowing their size/spacing up on some installs. */
+.bgc-order-panel .bgc-mtype .bgc-mtype-ico{display:block;color:#3c434a;}
+.bgc-order-panel .bgc-wb{display:inline-flex!important;align-items:center;justify-content:center;width:28px!important;height:24px!important;min-width:28px!important;min-height:24px!important;padding:0!important;margin:0!important;border-radius:7px!important;background:#f0f6fc;border:1px solid #d7e3f1!important;color:#2271b1;cursor:pointer;transition:all .12s;box-sizing:border-box!important;line-height:1!important;vertical-align:middle;-webkit-appearance:none;appearance:none;}
+.bgc-order-panel .bgc-wb .dashicons{font-size:16px!important;width:16px!important;height:16px!important;line-height:1!important;margin:0!important;padding:0!important;}
+.bgc-order-panel .bgc-wb:hover{border-color:#9fb6cf!important;background:#e9f2fb;}
+.bgc-order-panel .bgc-wb.copied{border-color:#8fcea5!important;background:#eaf7ee;color:#1a7f37;}
+/* One cohesive row of icon-only actions (print / track / edit / cancel), 40px squares. */
+.bgc-order-panel .bgc-la{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.bgc-order-panel .bgc-act{display:inline-flex!important;align-items:center;justify-content:center;width:31px!important;height:31px!important;min-width:31px!important;min-height:31px!important;padding:0!important;margin:0!important;border:1px solid #c9ced6!important;border-radius:7px!important;background:#fff;color:#2b3440;cursor:pointer;text-decoration:none;box-shadow:none;transition:all .12s;box-sizing:border-box!important;line-height:1!important;vertical-align:middle;-webkit-appearance:none;appearance:none;}
+.bgc-order-panel .bgc-act:hover{background:#f4f6f9;border-color:#a2acb8!important;box-shadow:0 1px 2px rgba(0,0,0,.07);}
+.bgc-order-panel .bgc-act:focus{outline:none;box-shadow:0 0 0 2px rgba(34,113,177,.35);}
+.bgc-order-panel .bgc-act .dashicons{font-size:16px!important;width:16px!important;height:16px!important;line-height:1!important;margin:0!important;padding:0!important;}
+.bgc-order-panel .bgc-act.bgc-primary{background:#2271b1;border-color:#2271b1!important;color:#fff;}
+.bgc-order-panel .bgc-act.bgc-primary:hover{background:#1c5d92;border-color:#1c5d92!important;}
+.bgc-order-panel .bgc-act.bgc-danger{color:#b32d2e;border-color:#e6a2a5!important;}
+.bgc-order-panel .bgc-act.bgc-danger:hover{background:#fcecec;border-color:#cf6a6f!important;color:#8a1f2b;}
+.bgc-order-panel .bgc-act.bgc-gen{width:auto!important;padding:0 11px!important;gap:6px;font-size:12px;font-weight:600;}
+/* Hover hint bubbles for every element carrying data-tip. */
+.bgc-order-panel [data-tip]{position:relative;}
+.bgc-order-panel [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#1d2327;color:#fff;font-size:11px;font-weight:500;line-height:1;padding:6px 8px;border-radius:6px;pointer-events:none;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.2);}
+.bgc-order-panel [data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1d2327;z-index:30;}
+.bgc-order-panel .bgc-ed{margin-top:8px;}
+/* Editor form: force a uniform 32px height on native selects + select2 + inputs (WC/theme give */
+/* the native selects a taller height, so !important + the .bgc-order-panel prefix are needed). */
+.bgc-order-panel .bgc-ed-form p{margin:0 0 7px;}
+.bgc-order-panel .bgc-ed-form label{color:#50575e;font-weight:600;font-size:12px;}
+.bgc-order-panel .bgc-ed-form select,.bgc-order-panel .bgc-ed-form input[type=text],.bgc-order-panel .bgc-ed-form input:not([type]){height:32px!important;min-height:32px!important;box-sizing:border-box!important;margin:0!important;padding:0 8px!important;font-size:13px!important;line-height:1.2!important;vertical-align:middle;}
+/* The four full-row dropdowns (courier / option / city / office) all fill the form width so their */
+/* widths match - the native courier/option selects were narrower than the full-width select2 */
+/* city/office (which already init at width:100%). Scoped so the inline street+No. row is untouched. */
+.bgc-order-panel .bgc-ed-form .bgc-ed-courier,.bgc-order-panel .bgc-ed-form .bgc-ed-method{width:100%!important;min-width:0!important;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-city-row .select2-container{width:100%!important;}
+/* Office row: leave room for the inline map icon so it sits to the RIGHT of the select, not below. */
+.bgc-order-panel .bgc-ed-form .bgc-ed-office-row .select2-container{width:calc(100% - 42px)!important;display:inline-block!important;}
+.bgc-order-panel .bgc-ed-form .select2-container{vertical-align:middle;min-height:32px;margin:0!important;}
+.bgc-order-panel .bgc-ed-form .select2-selection--single{height:32px!important;min-height:32px!important;box-sizing:border-box!important;}
+.bgc-order-panel .bgc-ed-form .select2-selection--single .select2-selection__rendered{line-height:30px!important;font-size:13px!important;padding-left:8px!important;}
+.bgc-order-panel .bgc-ed-form .select2-selection--single .select2-selection__arrow{height:30px!important;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn{height:32px!important;min-height:32px!important;width:34px!important;min-width:34px!important;padding:0!important;margin:0 0 0 4px!important;vertical-align:middle;display:inline-flex!important;align-items:center;justify-content:center;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn .dashicons{font-size:17px;width:17px;height:17px;line-height:1;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-save.button-primary{height:34px!important;min-height:34px!important;width:auto!important;min-width:0!important;max-width:100%;display:inline-block!important;flex:none;box-sizing:border-box;margin-top:10px!important;border-radius:7px!important;padding:0 22px!important;font-weight:600;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-avail{display:none;margin:2px 0 0;color:#b32d2e;font-size:12px;}
+/* Address block: label-above-input fields (bgc-ed-fld) that never wrap raggedly; the small */
+/* Bl./Entr./Floor/Apt. sit in an even 4-column grid, and Street+No.+map share one aligned row. */
+.bgc-order-panel .bgc-ed-form .bgc-ed-fld{display:flex;flex-direction:column;min-width:0;margin:0 0 7px;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-fld > label{margin:0 0 3px;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-fld > input,.bgc-order-panel .bgc-ed-form .bgc-ed-fld > select{width:100%!important;min-width:0!important;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-row{display:flex;gap:8px;align-items:flex-end;margin:0 0 7px;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-grow{flex:1 1 auto;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-no{width:66px;flex:0 0 66px;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .select2-container{width:100%!important;}
+/* Map button sits in its own cell with a hidden spacer label, so it lines up with the No. INPUT */
+/* (not the taller select2 street field) - the row aligns cell bottoms and every cell is label+control. */
+.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-mapcell{flex:0 0 34px;align-items:flex-start;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-mapcell > label{visibility:hidden;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-mapbtn{margin:0!important;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end;}
+.bgc-order-panel .bgc-ed-form .bgc-ed-grid4 .bgc-ed-fld{margin:0;}
+.bgc-order-panel .bgc-ed-form .description{margin:6px 0 0;font-size:12px;color:#646970;}
+/* Copied-to-clipboard toast + custom cancel confirmation dialog (global, not panel-scoped). */
+.bgc-toast{position:fixed;z-index:100001;background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;}
+.bgc-toast.show{opacity:1;transform:translateY(0);}
+.bgc-modal-ov{position:fixed;inset:0;background:rgba(20,24,28,.5);z-index:100000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
+.bgc-modal-ov.show{opacity:1;}
+.bgc-modal{background:#fff;border-radius:14px;max-width:400px;width:calc(100% - 40px);padding:22px 22px 18px;box-shadow:0 12px 40px rgba(0,0,0,.3);transform:translateY(8px) scale(.98);transition:transform .15s;}
+.bgc-modal-ov.show .bgc-modal{transform:none;}
+.bgc-modal h3{margin:0 0 8px;font-size:16px;color:#1d2327;display:flex;align-items:center;gap:8px;}
+.bgc-modal h3 .dashicons{color:#b32d2e;font-size:22px;width:22px;height:22px;}
+.bgc-modal p{margin:0 0 18px;color:#50575e;font-size:13px;line-height:1.5;}
+.bgc-modal-actions{display:flex;justify-content:flex-end;gap:10px;}
+.bgc-modal .button{border-radius:8px;height:36px;display:inline-flex;align-items:center;padding:0 16px;}
+.bgc-modal .bgc-btn-danger{background:#b32d2e!important;border-color:#b32d2e!important;color:#fff!important;box-shadow:none!important;}
+.bgc-modal .bgc-btn-danger:hover{background:#8a1f2b!important;border-color:#8a1f2b!important;}

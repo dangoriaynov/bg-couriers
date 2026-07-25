@@ -111,26 +111,13 @@ class BGC_Thankyou {
         return $html . '</div>';
     }
 
-    /** Card styles, printed once next to the first rendered block (static CSS, theme-neutral). */
+    /** Card styles: enqueued when the first block renders (late enqueue - WP prints it in the footer). */
     private static function styles(): void {
         static $done = false;
         if ($done) { return; }
         $done = true;
-        echo '<style>
-        .bgc-thankyou{margin:1.2em 0}
-        .bgc-ty-heading{margin:0 0 .8em;text-align:center}
-        .bgc-ty-box{border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;margin:0 auto 14px;max-width:560px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04);text-align:left}
-        .bgc-ty-title{font-weight:600;margin-bottom:8px;font-size:1.05em}
-        .bgc-ty-row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px dashed #eef0f3}
-        .bgc-ty-row:last-child{border-bottom:0}
-        .bgc-ty-row.bgc-ty-total{border-top:1px solid #e5e7eb;border-bottom:0;margin-top:4px;padding-top:8px;font-weight:700}
-        .bgc-ty-qty{color:#6b7280;font-size:.92em}
-        .bgc-ty-amount{white-space:nowrap}
-        .bgc-ty-note{color:#6b7280;font-size:.9em;margin-top:6px}
-        .bgc-ty-courier{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-        .bgc-ty-logo{width:20px;height:20px;object-fit:contain}
-        .bgc-ty-line{color:#374151;line-height:1.45}
-        </style>';
+        $css = BGC_PATH . 'assets/css/bgc-thankyou.css';
+        wp_enqueue_style('bgc-thankyou', BGC_URL . 'assets/css/bgc-thankyou.css', [], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
     }
 
     /** Allowed markup for the summary (incl. wc_price spans/bdi and the courier logo img). */

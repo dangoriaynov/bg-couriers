@@ -21,7 +21,18 @@ class BGC_WC_Settings extends WC_Settings_Page {
             'address' => __('To address', 'bg-couriers'),
             'automat' => __('To APS', 'bg-couriers'),
         ];
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         parent::__construct();
+    }
+
+    /** Static stylesheet + behaviors of our settings tab, enqueued on the WC settings screen. */
+    public function enqueue_assets(): void {
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        if (!$screen || $screen->id !== 'woocommerce_page_wc-settings') { return; }
+        $css = BGC_PATH . 'assets/css/bgc-settings-admin.css';
+        $js  = BGC_PATH . 'assets/js/bgc-settings-admin.js';
+        wp_enqueue_style('bgc-settings-admin', BGC_URL . 'assets/css/bgc-settings-admin.css', [], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
+        wp_enqueue_script('bgc-settings-admin', BGC_URL . 'assets/js/bgc-settings-admin.js', ['jquery'], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
     }
 
     protected function get_own_sections() { return $this->sections(); }
@@ -91,98 +102,6 @@ class BGC_WC_Settings extends WC_Settings_Page {
 
     public function output() {
         global $current_section;
-        echo '<style>
-        #wpbody .bgc-settings table.form-table th { padding: 9px 18px 9px 0; width: 340px; vertical-align: middle; }
-        #wpbody .bgc-settings table.form-table td { padding: 7px 0; }
-        /* Auto width (not 100%) so the table hugs its label + value columns instead of leaving a big empty
-           gap to the right of every field. */
-        #wpbody .bgc-settings table.form-table { margin: 0; width: auto !important; }
-        /* Full-width banners (ППП notice, API-credentials hint) span the whole settings column, not just the
-           auto-sized cell. */
-        #wpbody .bgc-settings .bgc-ppp-notice,
-        #wpbody .bgc-settings .bgc-cred-hint { display: block; width: 100%; max-width: none; box-sizing: border-box; }
-        #wpbody .bgc-settings table.form-table td[colspan] { width: auto; }
-        /* Consistent field width + left alignment for EVERY field (courier-level fields fill a full-width
-           table, per-method fields sit in a narrower card - without this their inputs align differently). */
-        #wpbody .bgc-settings table.form-table td > select,
-        #wpbody .bgc-settings table.form-table td > textarea,
-        #wpbody .bgc-settings table.form-table td > input:not([type=checkbox]):not([type=radio]) { width: 400px !important; min-width: 0 !important; max-width: 100% !important; box-sizing: border-box; float: none; margin: 0; display: inline-block; vertical-align: top; }
-        /* Every field uses our own (i); the WooCommerce native help-tip is never used here, so hide it
-           outright - it must never float over or overlap an input. */
-        #wpbody .bgc-settings .woocommerce-help-tip { display:none !important; }
-        /* Each field description collapses into a small (i) that sits inline right after the field label; the
-           text appears in a self-contained CSS hover/focus tooltip. Fully independent of the WooCommerce
-           help-tip so it can never float over or overlap the label. */
-        #wpbody .bgc-settings .bgc-help { display:inline-block; box-sizing:border-box; width:16px; height:16px; margin:0 0 0 6px; border-radius:50%; background:#c3c8ce; color:#fff; font:italic 700 11px/16px Georgia, serif; text-align:center; vertical-align:middle; cursor:help; position:relative; }
-        #wpbody .bgc-settings .bgc-help::before { content:"i"; }
-        #wpbody .bgc-settings .bgc-help:hover, #wpbody .bgc-settings .bgc-help:focus { background:#2271b1; outline:none; }
-        #wpbody .bgc-settings .bgc-help:hover::after, #wpbody .bgc-settings .bgc-help:focus::after { content:attr(data-tip); position:absolute; left:0; top:calc(100% + 7px); width:300px; max-width:300px; white-space:normal; background:#1d2327; color:#fff; font:400 12px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif; font-style:normal; text-align:left; padding:9px 12px; border-radius:8px; box-shadow:0 5px 18px rgba(0,0,0,.28); z-index:1000; pointer-events:none; }
-        /* One standardised red (disabled / error) + green (enabled / ok) palette, reused everywhere. */
-        #wpbody .bgc-settings { --bgc-red-bg:#fcf0f1; --bgc-red-bd:#e6a2a5; --bgc-red-tx:#b32d2e;
-            --bgc-green-bg:#eef9f1; --bgc-green-bd:#c4e7cf; --bgc-green-tx:#1a7f37; }
-        #wpbody .bgc-settings .bgc-group { border: 1px solid #e2e6ea; border-radius: 10px; padding: 6px 16px 12px; margin: 0 0 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-        #wpbody .bgc-settings .bgc-group > h2 { font-size: 1.02em; margin: 12px 0 4px; }
-        #wpbody .bgc-settings .bgc-group > p.description { margin-top: 0; }
-        /* Nice wide rounded shadowed tabs - applies to both the courier nav and the per-method nav. */
-        #wpbody .bgc-settings .nav-tab-wrapper { border-bottom:none; margin:0 0 16px; display:flex; flex-wrap:wrap; gap:10px; padding:0; }
-        #wpbody .bgc-settings .nav-tab { position:relative; border:1px solid #dcdcde; border-radius:11px; padding:11px 26px; margin:0; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.10); font-weight:500; line-height:1.2; color:#1d2327; transition:box-shadow .15s ease, transform .15s ease, background .15s ease, opacity .15s ease; }
-        #wpbody .bgc-settings .nav-tab:hover { box-shadow:0 3px 8px rgba(0,0,0,.16); }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-on { background:var(--bgc-green-bg); border-color:var(--bgc-green-bd); }
-        #wpbody .bgc-settings .nav-tab.bgc-tab-off { background:var(--bgc-red-bg); border-color:var(--bgc-red-bd); }
-        /* Active tab keeps the same green/red tint as its inactive twin (one red + one green everywhere).
-           It is marked by a dark double ring (inset shadow = no layout shift), bold text, an underline bar
-           and a lift, while INACTIVE tabs step back a little - unmistakable at a glance. */
-        #wpbody .bgc-settings .nav-tab:not(.nav-tab-active) { opacity:.7; }
-        #wpbody .bgc-settings .nav-tab:not(.nav-tab-active):hover { opacity:1; }
-        #wpbody .bgc-settings .nav-tab.nav-tab-active { border-color:#1d2327; font-weight:700; box-shadow:inset 0 0 0 1px #1d2327, 0 5px 13px rgba(0,0,0,.20); transform:translateY(-1px); }
-        #wpbody .bgc-settings .nav-tab.nav-tab-active::after { content:""; position:absolute; left:14px; right:14px; bottom:5px; height:3px; border-radius:2px; background:#1d2327; }
-        #wpbody .bgc-settings .bgc-courier-tabs { display:inline-flex; flex-wrap:wrap; gap:10px; }
-        #wpbody .bgc-settings .nav-tab { display:inline-flex; align-items:center; gap:8px; }
-        #wpbody .bgc-settings .bgc-courier-tab { padding-left:16px; padding-right:20px; cursor:move; }
-        #wpbody .bgc-settings .bgc-tab-ico { flex:0 0 auto; display:block; width:16px; height:16px; object-fit:contain; }
-        #wpbody .bgc-settings .ui-sortable-helper { box-shadow:0 8px 22px rgba(0,0,0,.28); }
-        #wpbody .bgc-settings .ui-sortable-placeholder { visibility:visible !important; background:#f0f0f1; border:1px dashed #b0b3b8; box-shadow:none; }
-        #wpbody .bgc-settings .bgc-enable-toggle { display:flex; align-items:center; gap:12px; padding:11px 14px; margin:2px 0 14px; border-radius:10px; border:1px solid #e2e6ea; }
-        #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-on { background:var(--bgc-green-bg); border-color:var(--bgc-green-bd); }
-        #wpbody .bgc-settings .bgc-enable-toggle.bgc-enable-off { background:var(--bgc-red-bg); border-color:var(--bgc-red-bd); }
-        .bgc-enable-modal { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100001; display:flex; align-items:center; justify-content:center; padding:16px; }
-        .bgc-enable-box { background:#fff; border-radius:10px; max-width:540px; width:100%; padding:18px 22px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
-        .bgc-enable-box h3 { margin:0 0 6px; color:#b32d2e; }
-        .bgc-enable-box ul { margin:12px 0 16px; padding-left:18px; }
-        .bgc-enable-box li { margin-bottom:10px; }
-        .bgc-enable-box .bgc-fix { color:#50575e; }
-        #wpbody .bgc-settings .bgc-switch { position:relative; display:inline-block; width:46px; height:26px; flex:0 0 auto; }
-        #wpbody .bgc-settings .bgc-switch input { opacity:0; width:0; height:0; margin:0; }
-        #wpbody .bgc-settings .bgc-slider { position:absolute; cursor:pointer; inset:0; background:#c9ced3; border-radius:26px; transition:.2s; }
-        #wpbody .bgc-settings .bgc-slider:before { content:""; position:absolute; height:20px; width:20px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
-        #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider { background:var(--bgc-green-tx); }
-        #wpbody .bgc-settings .bgc-switch input:checked + .bgc-slider:before { transform:translateX(20px); }
-        #wpbody .bgc-settings .bgc-enable-text { font-size:13px; color:#1d2327; }
-        /* Every setting checkbox renders as a red/green toggle switch (green = on, red = off), reusing the palette. */
-        #wpbody .bgc-settings .form-table td input[type=checkbox] { -webkit-appearance:none!important; appearance:none!important; position:relative; box-sizing:border-box; width:44px!important; height:24px!important; min-width:44px; margin:0 8px 0 0; padding:0; border:none!important; border-radius:24px; background:var(--bgc-red-tx)!important; box-shadow:none!important; cursor:pointer; transition:background .2s; vertical-align:middle; }
-        #wpbody .bgc-settings .form-table td input[type=checkbox]::before { content:""!important; position:absolute; top:3px; left:3px; width:18px; height:18px; margin:0; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 2px rgba(0,0,0,.25); }
-        #wpbody .bgc-settings .form-table td input[type=checkbox]:checked { background:var(--bgc-green-tx)!important; }
-        #wpbody .bgc-settings .form-table td input[type=checkbox]:checked::before { transform:translateX(20px); }
-        #wpbody .bgc-settings .form-table td input[type=checkbox]:focus { outline:none; box-shadow:0 0 0 2px rgba(34,113,177,.35)!important; }
-        /* Credentials band: green when validated, red while editing. One solid full-width rectangle - the table
-           is full width (like the enable bar + hint above it), borders are collapsed and every cell border is
-           removed (some come from the theme and would otherwise draw white lines between rows), and the tint is
-           forced so the last row (the API-check buttons) fills edge to edge with no gaps. */
-        #wpbody .bgc-settings table.form-table.bgc-cred-table { width:100% !important; border-collapse:collapse !important; border-spacing:0 !important; }
-        #wpbody .bgc-settings table.form-table.bgc-cred-table > tbody > tr > th,
-        #wpbody .bgc-settings table.form-table.bgc-cred-table > tbody > tr > td { border:0 !important; }
-        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td,
-        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { vertical-align:middle; border:0 !important; box-shadow:none !important; }
-        #wpbody .bgc-settings tr.bgc-creds-ok > th, #wpbody .bgc-settings tr.bgc-creds-ok > td { background:var(--bgc-green-bg) !important; }
-        #wpbody .bgc-settings tr.bgc-creds-edit > th, #wpbody .bgc-settings tr.bgc-creds-edit > td { background:var(--bgc-red-bg) !important; }
-        #wpbody .bgc-settings .bgc-cred-x { color:var(--bgc-red-tx); border-color:var(--bgc-red-bd) !important; margin-left:8px; font-weight:700; line-height:1.6; }
-        #wpbody .bgc-settings input.bgc-cred-locked { background:#fff; color:#787c82; letter-spacing:2px; border-color:#c9ced3 !important; }
-        #bgc-toasts { position:fixed; top:46px; right:22px; z-index:100001; display:flex; flex-direction:column; gap:9px; }
-        #bgc-toasts .bgc-toast { padding:12px 18px; border-radius:9px; color:#fff; font-weight:600; font-size:13px; box-shadow:0 6px 18px rgba(0,0,0,.20); opacity:0; transform:translateY(-10px); transition:opacity .25s ease, transform .25s ease; max-width:360px; }
-        #bgc-toasts .bgc-toast.show { opacity:1; transform:none; }
-        #bgc-toasts .bgc-toast-ok { background:#1a7f37; }
-        #bgc-toasts .bgc-toast-err { background:#b32d2e; }
-        </style>';
         echo '<div class="bgc-settings">';
         $this->section_nav((string) $current_section);
 
@@ -206,33 +125,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         // select / number fields print their description as a <span class="description"> in the value cell; a
         // checkbox prints it as a raw text node inside its <label>. Pull that text out into a (i) on the label
         // and drop the inline copy. Descriptions with a link or <code> (e.g. the webhook URL) are left inline.
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- static inline JS, no dynamic values.
-        echo '<script>' . "\n"
-            . "(function(\$){\n"
-            . "    \$(function(){\n"
-            . "        \$('#wpbody .bgc-settings table.form-table > tbody > tr').each(function(){\n"
-            . "            var tr=\$(this), th=tr.children('th').first(), td=tr.children('td').first();\n"
-            . "            if(!th.length || !td.length || \$.trim(th.text())===''){ return; }\n"
-            . "            var text='', label=null;\n"
-            . "            if(td.hasClass('forminp-checkbox')){\n"
-            . "                label=td.find('label').first(); if(!label.length){ return; }\n"
-            . "                text=\$.trim(label.text());\n"
-            . "            } else {\n"
-            . "                var d=td.find('.description').first();\n"
-            . "                if(!d.length || d.find('code,a').length){ return; }\n"
-            . "                text=\$.trim(d.text());\n"
-            . "            }\n"
-            . "            if(!text){ return; }\n"
-            . "            var tip=\$('<span class=\"bgc-help\" tabindex=\"0\" role=\"img\"></span>').attr('data-tip',text).attr('aria-label',text);\n"
-            . "            var thl=th.find('label').first();\n"
-            . "            (thl.length ? thl : th).append(tip);\n"
-            . "            if(label){ label.contents().filter(function(){ return this.nodeType===3; }).remove(); }\n"
-            . "            else { td.find('.description').first().remove(); }\n"
-            . "        });\n"
-            . "    });\n"
-            . "})(jQuery);\n"
-            . '</script>';
-        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+        // (implemented in assets/js/bgc-settings-admin.js)
 
         // AJAX "Save changes" - save without a page reload, with a top-right toast (green ok / red error).
         $save_nonce = esc_js(wp_create_nonce('bgc_save'));
@@ -240,8 +133,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         $sect       = esc_js((string) $current_section);
         $i_saved    = esc_js(__('Saved', 'bg-couriers'));
         $i_failed   = esc_js(__('Could not save - please try again.', 'bg-couriers'));
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- inline admin JS; every interpolated value is esc_js()'d.
-        echo '<script>' . "\n"
+        BGC_Settings::inline_js("\n"
             . "(function(\$){\n"
             . "    var ajaxurl='" . $ajaxurl . "', nonce='" . $save_nonce . "', section='" . $sect . "';\n"
             . "    function toast(msg,type,ms){ var c=\$('#bgc-toasts'); if(!c.length){ c=\$('<div id=\"bgc-toasts\"></div>').appendTo('body'); }\n"
@@ -260,8 +152,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . "        }).fail(function(){ toast('" . $i_failed . "','err',7000); }).always(function(){ busy(save,false); });\n"
             . "    });\n"
             . "})(jQuery);\n"
-            . '</script>';
-        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+        );
     }
 
     /** Brand colour per courier - original, trademark-safe (not the couriers' logos). */
@@ -316,8 +207,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         wp_enqueue_script('jquery-ui-sortable');
         $ajax  = esc_js(admin_url('admin-ajax.php'));
         $nonce = esc_js(wp_create_nonce('bgc_admin'));
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- inline admin JS; every interpolated value is esc_js()'d.
-        echo '<script>' . "\n"
+        BGC_Settings::inline_js("\n"
             . "jQuery(function(\$){\n"
             . "    var c = \$('.bgc-courier-tabs'); if (!c.length || !\$.fn.sortable) { return; }\n"
             . "    var dragged = false;\n"
@@ -331,8 +221,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . "    });\n"
             . "    c.on('click', '.bgc-courier-tab', function(e){ if (dragged) { e.preventDefault(); } });\n"
             . "});\n"
-            . '</script>';
-        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+        );
     }
 
     /**
@@ -370,8 +259,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
         $i_intro = esc_js(__('Please fix the following, then enable it again:', 'bg-couriers'));
         $i_fix   = esc_js(__('How to fix:', 'bg-couriers'));
         $i_close = esc_js(__('Close', 'bg-couriers'));
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- inline admin JS; every interpolated value is esc_js()'d.
-        echo '<script>' . "\n"
+        BGC_Settings::inline_js("\n"
             . "(function(\$){\n"
             . "    var courier='" . $c_id . "', ajaxurl='" . $c_ajax . "', saveNonce='" . $c_save . "', adminNonce='" . $c_admin . "', section='" . $c_id . "';\n"
             . "    function esc(s){ return \$('<i>').text(s==null?'':s).html(); }\n"
@@ -399,8 +287,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             . "        });\n"
             . "    });\n"
             . "})(jQuery);\n"
-            . '</script>';
-        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+        );
 
         // Delivery-method sub-tabs - only the methods this courier actually offers (available_methods() =
         // capabilities pruned by real synced point counts, so e.g. Pigeon shows no "to APS" tab: no lockers).
@@ -440,54 +327,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
                 $first = false;
             }
         }
-        ?>
-<style>
-.bgc-method-nav{padding-bottom:0;}
-.bgc-method-nav .bgc-method-tab{display:inline-flex;align-items:center;gap:8px;cursor:move;}
-.bgc-method-nav .ui-sortable-helper{box-shadow:0 6px 16px rgba(0,0,0,.22);}
-.bgc-method-panel{border:1px solid #e2e6ea;border-radius:12px;padding:8px 18px 14px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.07);margin:0 0 10px;}
-#wpbody .bgc-settings .bgc-switch-sm{width:32px;height:18px;}
-#wpbody .bgc-settings .bgc-switch-sm .bgc-slider:before{height:12px;width:12px;left:3px;bottom:3px;}
-#wpbody .bgc-settings .bgc-switch-sm input:checked + .bgc-slider:before{transform:translateX(14px);}
-.bgc-method-panel table.form-table{margin-top:.5em;}
-.bgc-method-panel h2{display:none;} /* method name lives in the tab, hide the empty group title */
-</style>
-<script>
-(function($){
-    var mn=$('.bgc-method-nav');
-    function switchTo(t){ mn.find('.nav-tab').removeClass('nav-tab-active'); mn.find('[data-bgc-tab="'+t+'"]').addClass('nav-tab-active');
-        $('.bgc-method-panel').hide().filter('[data-bgc-panel="'+t+'"]').show(); }
-    var dragged=false;
-    if (mn.length && $.fn.sortable) {
-        mn.sortable({ items:'> .bgc-method-tab', distance:6, tolerance:'pointer', cursor:'move', opacity:.85,
-            start:function(){ dragged=true; }, stop:function(){ setTimeout(function(){ dragged=false; },0); },
-            update:function(){
-                var order=mn.children('.bgc-method-tab').map(function(){ return $(this).data('bgc-tab'); }).get().join(',');
-                $.post(ajaxurl,{ action:'bgc_save_order', nonce: mn.data('nonce'), courier: mn.data('courier'), order: order });
-            }
-        });
-    }
-    mn.on('click','.nav-tab',function(e){ e.preventDefault(); if(dragged){return;} switchTo($(this).data('bgc-tab')); }); // a drag isn't a tab switch
-    $(document).on('change','.bgc-method-tab input[type=checkbox]',function(){
-        var on=this.checked;
-        $(this).closest('.bgc-method-tab').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on);
-    });
-    // A courier-level free-shipping threshold overrides the per-option ones: while it holds a positive
-    // value, grey the per-option fields out (readonly, not disabled, so their saved values survive a save).
-    function bgcFreeSync(){
-        var lvl=$('input[id$="_free_threshold"]').not('.bgc-method-free').first();
-        if(!lvl.length){ return; }
-        var v=parseFloat(String(lvl.val()).replace(',','.'));
-        var on=!isNaN(v)&&v>0;
-        $('.bgc-method-free').each(function(){
-            $(this).prop('readonly',on).closest('tr').css({opacity:on?0.45:1});
-        });
-    }
-    $(document).on('input change','input[id$="_free_threshold"]',bgcFreeSync);
-    bgcFreeSync();
-})(jQuery);
-</script>
-        <?php
+        // (method-nav styles + behaviors live in assets/css|js/bgc-settings-admin.*)
     }
 
     private function general_fields(): array {

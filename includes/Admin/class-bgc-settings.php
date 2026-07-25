@@ -8,6 +8,20 @@ defined('ABSPATH') || exit;
  * UI rendered by BGC_WC_Settings (a WooCommerce Settings tab).
  */
 class BGC_Settings {
+
+    /**
+     * Queue a piece of admin inline JS the wp_enqueue way: attached to a registered no-src holder
+     * handle (footer, jquery dep) via wp_add_inline_script instead of echoing a <script> tag.
+     * Callable any time before the admin footer prints; snippets keep their call order.
+     */
+    public static function inline_js(string $js): void {
+        if (!wp_script_is('bgc-admin-inline', 'registered')) {
+            wp_register_script('bgc-admin-inline', false, ['jquery'], defined('BGC_VERSION') ? BGC_VERSION : '1', true);
+        }
+        wp_enqueue_script('bgc-admin-inline');
+        wp_add_inline_script('bgc-admin-inline', $js);
+    }
+
     const METHODS = ['office', 'address', 'automat'];
 
     public function __construct() {
@@ -307,8 +321,7 @@ class BGC_Settings {
         echo '<input type="hidden" name="' . esc_attr($id) . '" id="' . esc_attr($id) . '" value="' . esc_attr(implode(',', $items)) . '">';
         echo '<p class="description">' . esc_html($desc) . '</p>';
         $sid = esc_js($id);
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $sid is esc_js($id)
-        echo "<script>jQuery(function($){ $('#bgc-sort-{$sid}').sortable({update:function(){ $('#{$sid}').val($(this).children().map(function(){return $(this).data('m');}).get().join(',')); }}); });</script>";
+        self::inline_js("jQuery(function($){ $('#bgc-sort-{$sid}').sortable({update:function(){ $('#{$sid}').val($(this).children().map(function(){return $(this).data('m');}).get().join(',')); }}); });");
         echo '</td></tr>';
     }
 
@@ -354,8 +367,7 @@ class BGC_Settings {
         echo '<select id="bgc_pickup_office" style="min-width:300px;margin-top:6px;"></select>';
         echo '<input type="hidden" id="' . esc_attr($id) . '" name="' . esc_attr($id) . '" value="' . esc_attr((string) $current) . '">';
         echo '<p class="description">' . esc_html($field['desc'] ?? '') . '</p>';
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- all interpolated vars are esc_js()'d above
-        echo "<script>
+        self::inline_js("
 jQuery(function($){
   var \$c=$('#bgc_pickup_city'), \$o=$('#bgc_pickup_office'), \$h=$('#{$idjs}');
   var cur=\$h.val();
@@ -379,7 +391,7 @@ jQuery(function($){
   });
   \$o.on('change', function(){ if($(this).val()){ \$h.val($(this).val()); } });
 });
-</script>";
+");
         echo '</td></tr>';
     }
 
@@ -736,8 +748,7 @@ jQuery(function($){
         $validated_js = $validated ? 'true' : 'false';
 
         $courier_js = esc_js($courier);
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- inline admin JS; every interpolated value ($ajax, $nonce, $courier_js, $t[...]) is esc_js()'d above.
-        echo '<script>' . "\n"
+        self::inline_js("\n"
             . '(function($){' . "\n"
             . '    var ajaxurl=\'' . $ajax . '\', nonce=\'' . $nonce . '\', courier=\'' . $courier_js . '\', present=' . $present_js . ', validated=' . $validated_js . ';' . "\n"
             . '    var u=$(\'#bgc_\'+courier+\'_username\'), p=$(\'#bgc_\'+courier+\'_password\');' . "\n"
@@ -777,8 +788,7 @@ jQuery(function($){
             . '            else { err((r&&r.data&&r.data.msg)||\'' . $t['fail'] . '\'); }' . "\n"
             . '        }).fail(function(){ err(\'' . $t['fail'] . '\'); }).always(function(){ sbtn.prop(\'disabled\',false); syncV(); }); });' . "\n"
             . '})(jQuery);' . "\n"
-            . '</script>';
-        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+        );
     }
 
     public function action_links($links): array {
