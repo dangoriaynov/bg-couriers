@@ -1651,10 +1651,8 @@ msgstr ""
 msgid "Flat price %s."
 msgstr ""
 
-#. translators: %s = a formatted price, e.g. "2,58 €"
-#: includes/Checkout/class-bgc-checkout.php:147
-#, php-format
-msgid "~%s - paid to the courier on delivery"
+#: includes/Checkout/class-bgc-checkout.php:152
+msgid "Paid to the courier on delivery."
 msgstr ""
 
 #: includes/Checkout/class-bgc-checkout.php:185

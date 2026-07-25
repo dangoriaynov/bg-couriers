@@ -20,6 +20,7 @@ class BGC_Checkout {
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_price_label'], 4, 2);     // "delivery not in the total": estimate instead of a price
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'logo_shipping_label'], 5, 2);  // courier brand logo before the name
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
+        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_tip_label'], 30, 2);      // (i) hover hint LAST, so the row stays one short line
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
         // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
         // recalculation via WC's fragment mechanism (server computes the remaining; no DOM parsing).
@@ -139,8 +140,19 @@ class BGC_Checkout {
         $meta = (array) $method->get_meta_data();
         $info = (float) ($meta['_bgc_info_price'] ?? 0);
         if ($info <= 0) { return $label; }
-        /* translators: %s = a formatted price, e.g. "2,58 €" */
-        return $method->get_label() . ': ' . sprintf(__('~%s - paid to the courier on delivery', 'bg-couriers'), BGC_Currency::dual_store($info));
+        // Just "~price" here - the "paid to the courier on delivery" explanation lives in the (i)
+        // hover tip appended by info_tip_label, so the rate row never wraps into an ugly mess.
+        return $method->get_label() . ': ~' . BGC_Currency::dual_store($info);
+    }
+
+    /** A small (i) at the end of a "delivery paid to the courier" rate label (checkout + cart);
+     *  the explanation sits in its hover/focus tooltip instead of bloating the row text. */
+    public function info_tip_label($label, $method) {
+        if (!is_object($method) || !method_exists($method, 'get_meta_data')) { return $label; }
+        $meta = (array) $method->get_meta_data();
+        if ((float) ($meta['_bgc_info_price'] ?? 0) <= 0) { return $label; }
+        $tip = __('Paid to the courier on delivery.', 'bg-couriers');
+        return $label . ' <span class="bgc-info-tip" tabindex="0" role="img" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '"></span>';
     }
 
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }

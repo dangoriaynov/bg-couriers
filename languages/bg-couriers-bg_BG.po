@@ -1842,11 +1842,9 @@ msgstr "≈ %s - крайна цена при поръчката."
 msgid "Flat price %s."
 msgstr "Фиксирана цена %s."
 
-#. translators: %s = a formatted price, e.g. "2,58 €"
-#: includes/Checkout/class-bgc-checkout.php:147
-#, php-format
-msgid "~%s - paid to the courier on delivery"
-msgstr "~%s - плаща се на куриера при получаване"
+#: includes/Checkout/class-bgc-checkout.php:152
+msgid "Paid to the courier on delivery."
+msgstr "Плаща се на куриера при получаване."
 
 #: includes/Checkout/class-bgc-checkout.php:185
 msgid "office"
