@@ -457,7 +457,7 @@ class BGC_Checkout {
             'currency' => get_woocommerce_currency(),
             'preloadCities' => $preload,
             'cityIndex' => $city_index,
-            'addressMap' => get_option('bgc_address_map', 'yes') === 'yes',
+            'addressMap' => get_option('bgc_address_map', 'no') === 'yes',
             'googleKey' => (string) get_option('bgc_google_maps_key', ''), // set => Google map + geocoding; else OSM
             'leaflet_images' => BGC_URL . 'assets/lib/leaflet/images/', // bundled Leaflet marker icons
             'icons' => BGC_Icons::map(), // same delivery-type glyphs as the admin, shown with text on the tabs
@@ -490,11 +490,14 @@ class BGC_Checkout {
             ],
         ]);
 
-        // Hide configured checkout fields (CSS selectors from settings).
+        // Hide configured checkout fields (CSS selectors from settings). The selectors are a
+        // merchant-entered setting: strip every character that could break out of the CSS context
+        // (braces, angle brackets, slashes, ampersands) so only plain selector syntax is printed.
         $hidden = trim(BGC_Settings::hidden_fields());
         if ($hidden !== '') {
             $selectors = implode(',', array_filter(array_map('trim', explode(',', $hidden))));
-            if ($selectors !== '') {
+            $selectors = (string) preg_replace('/[^a-zA-Z0-9_\-#.,:\s\[\]="\'~>+*()]/', '', $selectors);
+            if (trim($selectors, ', ') !== '') {
                 wp_add_inline_style('bgc-checkout', $selectors . '{display:none !important;}');
             }
         }
@@ -580,10 +583,10 @@ class BGC_Checkout {
            . '<svg class="bgc-map-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
            . '<span>' . esc_html__('Map', 'bg-couriers') . '</span></button></div></div>'
            . '<div class="bgc-address-rows"' . $addr_style . '>'
-           . '<div class="bgc-grid' . (get_option('bgc_address_map', 'yes') === 'yes' ? ' bgc-grid-map' : '') . '">'
+           . '<div class="bgc-grid' . (get_option('bgc_address_map', 'no') === 'yes' ? ' bgc-grid-map' : '') . '">'
            . '<div class="bgc-field bgc-street-field"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select></div>'
            . '<div class="bgc-field bgc-streetno-field"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></div>'
-           . (get_option('bgc_address_map', 'yes') === 'yes'
+           . (get_option('bgc_address_map', 'no') === 'yes'
                // Small map-pin icon next to No. (same generic style as the order editor), not a full-width button.
                ? '<div class="bgc-field bgc-addr-map-cell"><label aria-hidden="true">&nbsp;</label>'
                  . '<button type="button" class="bgc-map-btn bgc-addr-map-btn bgc-addr-map-icon" title="' . esc_attr__('Choose on map', 'bg-couriers') . '" aria-label="' . esc_attr__('Choose on map', 'bg-couriers') . '">'

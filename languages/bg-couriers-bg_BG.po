@@ -1034,11 +1034,14 @@ msgstr "Избор на адрес от карта"
 #: includes/Admin/class-bgc-wc-settings.php:505
 msgid ""
 "Adds a “Choose on map” pin picker to address delivery that fills the address"
-" automatically. Uses OpenStreetMap unless a Google key is set below."
+" automatically. When a customer drops a pin, its coordinates are sent to "
+"OpenStreetMap Nominatim (or Google, if a key is set below) to look up the "
+"address. Off by default."
 msgstr ""
 "Добавя избор от карта „Изберете от карта“ към доставката до адрес, който "
-"попълва адреса автоматично. Използва OpenStreetMap, освен ако по-долу не е "
-"зададен Google ключ."
+"попълва адреса автоматично. Когато клиентът постави маркер, координатите му "
+"се изпращат към OpenStreetMap Nominatim (или Google, ако по-долу е зададен "
+"ключ) за определяне на адреса. Изключено по подразбиране."
 
 #: includes/Admin/class-bgc-wc-settings.php:506
 msgid "Google Maps API key (optional)"

@@ -47,11 +47,11 @@ This plugin relies on the online APIs of the couriers you enable to calculate sh
 
 * **Speedy** - api.speedy.bg. Terms: https://www.speedy.bg/en/terms-and-conditions · Privacy: https://www.speedy.bg/en/privacy-policy
 * **Econt** - ee.econt.com. Terms: https://www.econt.com/en/terms · Privacy: https://www.econt.com/en/privacy-policy
-* **Pigeon Express** - api.pigeonexpress.com. Terms/Privacy: https://pigeonexpress.com
-* **BOX NOW** - api-production.boxnow.bg, and the locker-selection **map widget map.boxnow.bg**, which is loaded in an iframe **only when the customer opens the BOX NOW locker picker**. Terms/Privacy: https://boxnow.bg
-* **Sameday** - api.sameday.ro (or the demo host sameday-api.demo.zitec.com in test mode). Terms/Privacy: https://sameday.bg
+* **Pigeon Express** - api.pigeonexpress.com (demo host api-demo.pigeonexpress.com in test mode). Terms: https://pigeonexpress.com/terms · Privacy: https://pigeonexpress.com/privacy
+* **BOX NOW** - api-production.boxnow.bg (stage host api-stage.boxnow.bg in test mode), and the locker-selection **map widget map.boxnow.bg**, which is loaded in an iframe **only when the customer opens the BOX NOW locker picker**. Terms: https://boxnow.bg/terms-of-use-for-shipping-services · Privacy: https://boxnow.bg/personal-data-processing-notice
+* **Sameday** - api.sameday.bg (demo host sameday-api-bg.demo.zitec.com in test mode). Terms: https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/ · Privacy: https://sameday.bg/politika-za-poveritelnost/
 
-**Maps:** the map pickers (office/locker, and the address picker) load map tiles from **OpenStreetMap (tile.openstreetmap.org)** and reverse-geocode a picked point via **OpenStreetMap Nominatim (nominatim.openstreetmap.org)** - only when the customer opens a map / drops a pin. OSM tile policy: https://operations.osmfoundation.org/policies/tiles/ · Nominatim policy: https://operations.osmfoundation.org/policies/nominatim/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
+**Maps:** the office/locker map picker loads map tiles from **OpenStreetMap (tile.openstreetmap.org)** - only when the customer chooses to open the map. The optional **address map picker is DISABLED by default**; if the merchant enables it in the settings, it additionally reverse-geocodes a point via **OpenStreetMap Nominatim (nominatim.openstreetmap.org)** - only the coordinates of the pin the customer drops, only when they drop it, never automatically. OSM tile policy: https://operations.osmfoundation.org/policies/tiles/ · Nominatim policy: https://operations.osmfoundation.org/policies/nominatim/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
 If the merchant sets a **Google Maps API key** (optional), the address picker instead uses **Google Maps Geocoding (maps.googleapis.com)** for that lookup - sending only the picked coordinates. Google terms: https://cloud.google.com/maps-platform/terms · Privacy: https://policies.google.com/privacy
 
 No data is sent to any service the merchant has not configured, and the plugin sends nothing to the plugin author.

@@ -955,7 +955,9 @@ msgstr ""
 #: includes/Admin/class-bgc-wc-settings.php:505
 msgid ""
 "Adds a “Choose on map” pin picker to address delivery that fills the address "
-"automatically. Uses OpenStreetMap unless a Google key is set below."
+"automatically. When a customer drops a pin, its coordinates are sent to "
+"OpenStreetMap Nominatim (or Google, if a key is set below) to look up the "
+"address. Off by default."
 msgstr ""
 
 #: includes/Admin/class-bgc-wc-settings.php:506

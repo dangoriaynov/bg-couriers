@@ -507,7 +507,7 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'checkbox', 'id' => 'bgc_preload_cities', 'title' => __('Preload city lists', 'bg-couriers'),
                 'desc' => __('Embed each courier’s office/APS city list so those dropdowns open instantly. Address search stays live. Recommended.', 'bg-couriers'), 'default' => 'yes'],
             ['type' => 'checkbox', 'id' => 'bgc_address_map', 'title' => __('Address map picker', 'bg-couriers'),
-                'desc' => __('Adds a “Choose on map” pin picker to address delivery that fills the address automatically. Uses OpenStreetMap unless a Google key is set below.', 'bg-couriers'), 'default' => 'yes'],
+                'desc' => __('Adds a “Choose on map” pin picker to address delivery that fills the address automatically. When a customer drops a pin, its coordinates are sent to OpenStreetMap Nominatim (or Google, if a key is set below) to look up the address. Off by default.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgc_google_maps_key', 'title' => __('Google Maps API key (optional)', 'bg-couriers'),
                 'desc' => __('Optional Google Maps API key for better maps and address lookup (empty = free OpenStreetMap). Needs “Maps JavaScript API” + “Geocoding API”.', 'bg-couriers'),
                 'default' => '', 'autoload' => false],
