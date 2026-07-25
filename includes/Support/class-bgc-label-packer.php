@@ -123,66 +123,99 @@ class BGC_Label_Packer {
     }
 
     /**
-     * Pair half-sheet waybill forms two-up onto landscape A4 sheets. Made for Speedy's plain-A4 print:
-     * every page is a landscape A4 with ONE waybill form in the LEFT half and the right half empty -
-     * exactly how the courier prints them one by one. Consecutive such pages are combined onto one
-     * sheet: the first stays left, the second is shifted so its form sits MIRRORED against the RIGHT
-     * edge - same outer margins on both sides (the merchant cuts down the middle, and it matches how
-     * a half-printed sheet looks when fed through the printer again). The shifted template's empty
-     * remainder falls outside the page and is clipped. Nothing is ever scaled. Pages that are not
-     * landscape-A4 pass through on their own native page.
-     *
-     * @param string[] $pdfs Raw PDF byte strings.
-     * @return string Combined PDF bytes, or '' if nothing could be imported (caller falls back).
-     */
-
-    /**
      * Speedy's plain-A4 waybill form paints from 5.6 mm to 97.5 mm (measured off the live /print
      * output; the form is a fixed-width table, identical on every sample). Shifting the second
      * template by 297 - 97.5 - 5.6 puts its form at 199.5..291.4 mm - flush right with the SAME
      * 5.6 mm margin the left form has. Also keeps the two forms far apart (97.5 vs 199.5).
      */
     const TWO_UP_MIRROR_SHIFT = 193.9;
+    const HALF_COL_X0     = 5.6;   // the form's own left margin - small fillers mirror it on the right
+    const HALF_COL_TOP    = 8.0;   // the form's own top margin
+    const HALF_COL_BOTTOM = 202.0; // 210 - 8 bottom margin
+    const HALF_COL_MAX_W  = 143.0; // 148.5 column minus the 5.6 outer margin
 
-    public static function two_up(array $pdfs): string {
-        if (!self::available()) { return ''; }
+    /**
+     * Compose the A4 batch: half-sheet waybill forms (Speedy's plain-A4 print - one form in the
+     * LEFT half of a landscape sheet, right half empty) are paired two per sheet, the second one
+     * MIRRORED against the right edge so both have equal outer margins (the merchant cuts down the
+     * middle, like a re-fed half-printed sheet). A leftover half column is then FILLED with
+     * sticker-size labels from other couriers (right-aligned, stacked top-down) instead of wasting
+     * a sheet on them. Nothing is ever scaled; pages that are not landscape-A4 half-sheets keep
+     * their own native page.
+     *
+     * @param string[] $half_pdfs  PDFs whose landscape-A4 pages carry a form in the left half.
+     * @param string[] $small_pdfs Individual small-label PDFs (single sticker-size page each).
+     * @return array{pdf:string, leftover:string[]} pdf='' if nothing was rendered; leftover = the
+     *                small PDFs that found no half column (the caller packs them onto A4 pages).
+     */
+    public static function compose_a4(array $half_pdfs, array $small_pdfs = []): array {
+        if (!self::available()) { return ['pdf' => '', 'leftover' => array_values($small_pdfs)]; }
         $pdf = new \setasign\Fpdi\Fpdi('L', 'mm', 'A4');
         $pdf->SetMargins(0, 0, 0);
         $pdf->SetAutoPageBreak(false);
-        $items = [];
-        foreach ($pdfs as $bytes) {
-            if (!is_string($bytes) || $bytes === '') { continue; }
+        $import = static function (string $bytes) use ($pdf): array {
+            $out = [];
             try {
                 $reader = \setasign\Fpdi\PdfParser\StreamReader::createByString($bytes);
                 $count  = $pdf->setSourceFile($reader);
-            } catch (\Throwable $e) { continue; }
+            } catch (\Throwable $e) { return []; }
             for ($p = 1; $p <= $count; $p++) {
                 try {
                     $tpl = $pdf->importPage($p);
                     $s   = $pdf->getTemplateSize($tpl);
-                    $items[] = ['tpl' => $tpl, 'w' => (float) $s['width'], 'h' => (float) $s['height']];
+                    $out[] = ['tpl' => $tpl, 'w' => (float) $s['width'], 'h' => (float) $s['height']];
                 } catch (\Throwable $e) { /* skip an unreadable page */ }
             }
+            return $out;
+        };
+
+        $halves = []; $others = [];
+        foreach ($half_pdfs as $bytes) {
+            if (!is_string($bytes) || $bytes === '') { continue; }
+            foreach ($import($bytes) as $it) {
+                $isHalf = abs($it['w'] - 297.0) <= 5.0 && abs($it['h'] - 210.0) <= 5.0;
+                if ($isHalf) { $halves[] = $it; } else { $others[] = $it; }
+            }
         }
-        if (!$items) { return ''; }
-        $eps = 5.0; // mm tolerance on the landscape-A4 check
-        $isHalfSheet = static function (array $it) use ($eps): bool {
-            return abs($it['w'] - 297.0) <= $eps && abs($it['h'] - 210.0) <= $eps;
+        // Small fillers: only single-page sticker-size PDFs qualify for a half column; the rest is
+        // returned to the caller untouched.
+        $fillers = []; $leftover = [];
+        foreach ($small_pdfs as $bytes) {
+            if (!is_string($bytes) || $bytes === '') { continue; }
+            $pages = $import($bytes);
+            if (count($pages) === 1 && $pages[0]['w'] <= self::HALF_COL_MAX_W
+                && $pages[0]['h'] <= self::HALF_COL_BOTTOM - self::HALF_COL_TOP) {
+                $fillers[] = ['bytes' => $bytes] + $pages[0];
+            } else {
+                $leftover[] = $bytes;
+            }
+        }
+
+        // Fill one half column (x = left edge of the column) with as many fillers as stack, each
+        // mirrored to the right sheet edge with the form's own outer margins.
+        $fill_column = static function () use ($pdf, &$fillers): void {
+            $y = self::HALF_COL_TOP;
+            while ($fillers && $y + $fillers[0]['h'] <= self::HALF_COL_BOTTOM) {
+                $f = array_shift($fillers);
+                $pdf->useTemplate($f['tpl'], 297.0 - self::HALF_COL_X0 - $f['w'], $y, $f['w'], $f['h']);
+                $y += $f['h'] + 6.0;
+            }
         };
-        $pending = null; // a half-sheet page waiting for its right-hand partner
-        $flush = static function () use ($pdf, &$pending): void {
-            if ($pending) { $pdf->AddPage('L', 'A4'); $pdf->useTemplate($pending['tpl'], 0, 0, $pending['w'], $pending['h']); $pending = null; }
-        };
-        foreach ($items as $it) {
-            if (!$isHalfSheet($it)) { $flush(); self::add_native_page($pdf, $it); continue; }
-            if (!$pending) { $pending = $it; continue; }
+
+        for ($i = 0; $i < count($halves); $i += 2) {
             $pdf->AddPage('L', 'A4');
-            $pdf->useTemplate($pending['tpl'], 0, 0, $pending['w'], $pending['h']);
-            $pdf->useTemplate($it['tpl'], self::TWO_UP_MIRROR_SHIFT, 0, $it['w'], $it['h']); // mirrored to the right edge
-            $pending = null;
+            $pdf->useTemplate($halves[$i]['tpl'], 0, 0, $halves[$i]['w'], $halves[$i]['h']);
+            if (isset($halves[$i + 1])) {
+                $pdf->useTemplate($halves[$i + 1]['tpl'], self::TWO_UP_MIRROR_SHIFT, 0, $halves[$i + 1]['w'], $halves[$i + 1]['h']);
+            } else {
+                $fill_column(); // odd form: give its empty right half to the small labels
+            }
         }
-        $flush();
-        return $pdf->PageNo() > 0 ? $pdf->Output('S') : '';
+        foreach ($others as $it) { self::add_native_page($pdf, $it); }
+
+        // Fillers that found no half column go back to the caller as raw PDFs.
+        foreach ($fillers as $f) { $leftover[] = $f['bytes']; }
+        return ['pdf' => $pdf->PageNo() > 0 ? $pdf->Output('S') : '', 'leftover' => $leftover];
     }
 
     /**

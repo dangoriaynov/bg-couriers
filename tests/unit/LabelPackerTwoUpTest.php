@@ -4,8 +4,10 @@ use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-label-packer.php';
 
 /**
- * two_up pairs Speedy's plain-A4 half-sheet waybill pages (label in the LEFT half of a landscape A4)
- * two per sheet - left + right - without scaling. Uses the bundled FPDF/FPDI, no WP needed.
+ * compose_a4 pairs Speedy's plain-A4 half-sheet waybill pages (form in the LEFT half of a
+ * landscape A4) two per sheet - the second mirrored to the right edge - and fills a leftover
+ * half column with sticker-size labels from other couriers. Never scales anything.
+ * Uses the bundled FPDF/FPDI, no WP needed.
  *
  * @group speedy
  */
@@ -26,6 +28,15 @@ final class LabelPackerTwoUpTest extends TestCase {
         return $f->Output('S');
     }
 
+    /** A sticker-size single-page label PDF, like Pigeon's 100x90. FPDF normalizes the size array
+     *  to portrait, so pick the orientation that yields the exact requested w x h. */
+    private function sticker(float $w = 100, float $h = 90): string {
+        $f = new \FPDF($w >= $h ? 'L' : 'P', 'mm', [min($w, $h), max($w, $h)]);
+        $f->AddPage();
+        $f->Rect(1, 1, $w - 2, $h - 2);
+        return $f->Output('S');
+    }
+
     private function sizes(string $pdf): array {
         $r = new \setasign\Fpdi\Fpdi();
         $n = $r->setSourceFile(\setasign\Fpdi\PdfParser\StreamReader::createByString($pdf));
@@ -38,22 +49,40 @@ final class LabelPackerTwoUpTest extends TestCase {
     }
 
     public function test_two_half_sheets_become_one_landscape_a4(): void {
-        $out = BGC_Label_Packer::two_up([$this->half_sheet('L1'), $this->half_sheet('L2')]);
-        $this->assertNotSame('', $out);
-        $this->assertSame([[297.0, 210.0]], $this->sizes($out));
+        $res = BGC_Label_Packer::compose_a4([$this->half_sheet('L1'), $this->half_sheet('L2')]);
+        $this->assertSame([], $res['leftover']);
+        $this->assertSame([[297.0, 210.0]], $this->sizes($res['pdf']));
     }
 
-    public function test_odd_count_leaves_last_label_alone_on_its_sheet(): void {
-        $out = BGC_Label_Packer::two_up([$this->half_sheet('1'), $this->half_sheet('2'), $this->half_sheet('3')]);
-        $this->assertSame([[297.0, 210.0], [297.0, 210.0]], $this->sizes($out)); // 2+1 across two sheets
+    public function test_odd_half_column_is_filled_with_stickers(): void {
+        // 3 forms + 2 stickers: sheet 2's empty right half takes BOTH stickers (90+90+gap fits 210).
+        $res = BGC_Label_Packer::compose_a4(
+            [$this->half_sheet('1'), $this->half_sheet('2'), $this->half_sheet('3')],
+            [$this->sticker(), $this->sticker()]
+        );
+        $this->assertSame([], $res['leftover']);
+        $this->assertSame([[297.0, 210.0], [297.0, 210.0]], $this->sizes($res['pdf']));
+    }
+
+    public function test_smalls_without_a_free_half_column_come_back_as_leftover(): void {
+        // 2 forms pair up - no free column, so the sticker must go back to the caller for pack().
+        $sticker = $this->sticker();
+        $res = BGC_Label_Packer::compose_a4([$this->half_sheet('A'), $this->half_sheet('B')], [$sticker]);
+        $this->assertSame([[297.0, 210.0]], $this->sizes($res['pdf']));
+        $this->assertSame([$sticker], $res['leftover']);
+    }
+
+    public function test_oversized_small_is_never_squeezed_into_a_column(): void {
+        // 160mm wide does not fit the 148.5mm half column -> leftover, never scaled or clipped.
+        $big = $this->sticker(160, 200);
+        $res = BGC_Label_Packer::compose_a4([$this->half_sheet('A')], [$big]);
+        $this->assertSame([[297.0, 210.0]], $this->sizes($res['pdf']));
+        $this->assertSame([$big], $res['leftover']);
     }
 
     public function test_non_half_sheet_pages_keep_their_own_native_page(): void {
-        $f = new \FPDF('P', 'mm', [100, 150]); // sticker-sized page must NOT be paired or scaled
-        $f->AddPage();
-        $sticker = $f->Output('S');
-        $out = BGC_Label_Packer::two_up([$this->half_sheet('A'), $sticker, $this->half_sheet('B')]);
-        // A waits, sticker flushes A to its own sheet then passes through, B gets its own sheet.
-        $this->assertSame([[297.0, 210.0], [100.0, 150.0], [297.0, 210.0]], $this->sizes($out));
+        $res = BGC_Label_Packer::compose_a4([$this->half_sheet('A'), $this->sticker(100, 150), $this->half_sheet('B')]);
+        // A and B pair on one sheet; the odd page passes through at its own native size.
+        $this->assertSame([[297.0, 210.0], [100.0, 150.0]], $this->sizes($res['pdf']));
     }
 }

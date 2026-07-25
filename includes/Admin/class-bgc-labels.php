@@ -367,12 +367,20 @@ class BGC_Labels {
             if ($wb === '' || $cid === '') { continue; }
             $groups[$cid][(int) $oid] = $wb;
         }
-        $sheets = [];
+        $a4 = strtoupper($format) === 'A4' && BGC_Label_Packer::available();
+        $sheets = []; $halfs = []; $smalls = [];
         foreach ($groups as $cid => $map) {
             $courier = BGC_Couriers::get($cid);
             if (!$courier) { continue; }
             if ($courier->has_native_batch()) {
-                // The courier lays out the whole batch itself (Speedy A4).
+                // On A4 fetch Speedy's RAW half-sheet pages so they can be composed below TOGETHER
+                // with other couriers' sticker labels (a leftover half column gets filled instead
+                // of wasting a nearly-empty sheet on one sticker).
+                if ($a4 && $courier instanceof BGC_Speedy) {
+                    try { $halfs[] = $courier->print_labels(array_values($map), 'A4'); continue; }
+                    catch (\Exception $e) { /* fall through to the courier's own batch */ }
+                }
+                // The courier lays out the whole batch itself.
                 try { $b = $courier->batch_label_pdf(array_values($map), $format); if ($b !== '') { $sheets[] = $b; } }
                 catch (\Exception $e) { /* skip this courier */ }
             } else {
@@ -382,11 +390,18 @@ class BGC_Labels {
                 // native page. On A6 (sticker roll) the native pages pass through unchanged.
                 $per = self::collect_label_pdfs(array_keys($map), $format);
                 if (!$per) { continue; }
-                if (strtoupper($format) === 'A4') {
-                    $packed = BGC_Label_Packer::pack($per, 'A4');
-                    if ($packed !== '') { $sheets[] = $packed; continue; }
-                }
+                if ($a4) { foreach ($per as $p) { $smalls[] = $p; } continue; }
                 $sheets[] = count($per) === 1 ? $per[0] : BGC_Label_Packer::concat($per);
+            }
+        }
+        if ($a4 && ($halfs || $smalls)) {
+            $res = BGC_Label_Packer::compose_a4($halfs, $smalls);
+            if ($res['pdf'] !== '') { $sheets[] = $res['pdf']; }
+            if ($res['leftover']) {
+                $packed = BGC_Label_Packer::pack($res['leftover'], 'A4');
+                if ($packed !== '') { $sheets[] = $packed; }
+                elseif (count($res['leftover']) === 1) { $sheets[] = $res['leftover'][0]; }
+                else { $sheets[] = BGC_Label_Packer::concat($res['leftover']); }
             }
         }
         if (!$sheets) { return ''; }
