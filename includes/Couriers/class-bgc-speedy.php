@@ -238,7 +238,10 @@ class BGC_Speedy extends BGC_Abstract_Courier {
                             'parcels'     => [['seqNo' => 1, 'weight' => self::order_weight_kg($order),
                                                'size' => ['width' => $dims['width'], 'depth' => $dims['length'], 'height' => $dims['height']]]]],
             'payment'   => ['courierServicePayer' => $payer === 'recipient' ? 'RECIPIENT' : 'SENDER'],
-            'ref1'      => 'ORDER ' . $order->get_order_number(),
+            // Printed on the waybill as the merchant's own reference, so it is read by Bulgarian staff and
+            // the recipient - translatable rather than a hardcoded English "ORDER".
+            /* translators: %s: order number, printed on the waybill as the sender's reference */
+            'ref1'      => sprintf(__('Order %s', 'bg-couriers'), $order->get_order_number()),
         ];
         // COD only for orders actually paid cash-on-delivery (never re-collect on a prepaid order). Speedy
         // pays the collected amount out per the merchant's Speedy contract (postal money transfer / bank).

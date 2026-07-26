@@ -334,6 +334,16 @@ class BGC_WC_Settings extends WC_Settings_Page {
         $statuses = function_exists('wc_get_order_statuses') ? wc_get_order_statuses() : ['wc-processing' => 'Processing'];
         $courier_opts = ['' => __('Automatic (first / cheapest)', 'bg-couriers')];
         foreach ($this->sections() as $sid => $slabel) { if ($sid !== '') { $courier_opts[$sid] = $slabel; } }
+        // One colour picker per courier for the orders-list row tint, generated from the registry so a new
+        // courier gets its field automatically. Defaults live on BGC_Order_Columns (single source of truth).
+        $row_colors = [];
+        foreach (BGC_Couriers::all() as $cid => $clabel) {
+            $row_colors[] = ['type' => 'color', 'id' => 'bgc_' . $cid . '_row_color',
+                /* translators: %s: courier name */
+                'title' => sprintf(__('%s row colour', 'bg-couriers'), $clabel),
+                'default' => BGC_Order_Columns::ROW_COLORS[$cid] ?? '#cccccc',
+                'css' => 'width:6em;', 'autoload' => false];
+        }
         return [
             // --- Checkout experience ---
             ['type' => 'title', 'id' => 'bgc_checkout', 'title' => __('Checkout', 'bg-couriers'),
@@ -366,6 +376,14 @@ class BGC_WC_Settings extends WC_Settings_Page {
             ['type' => 'text', 'id' => 'bgc_free_shipping_label', 'title' => __('Free shipping label', 'bg-couriers'),
                 'desc' => __('Text shown for the shipping price when a method is free (e.g. “Free shipping”).', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgc_pricing'],
+
+            // --- Orders list ---
+            ['type' => 'title', 'id' => 'bgc_orderslist', 'title' => __('Orders list', 'bg-couriers'),
+                'desc' => __('Colour each order row by its courier, so the mix of couriers in the list is readable at a glance. Pick a normal, saturated colour - the row is painted with a pale version of it, keeping the text readable. Clear a colour to leave that courier untinted.', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgc_row_tint', 'title' => __('Colour orders by courier', 'bg-couriers'),
+                'desc' => __('Tint each row in the orders list with its courier’s colour.', 'bg-couriers'), 'default' => 'yes'],
+            ...$row_colors,
+            ['type' => 'sectionend', 'id' => 'bgc_orderslist'],
 
             ['type' => 'title', 'id' => 'bgc_cod', 'title' => __('Cash on delivery (наложен платеж)', 'bg-couriers'),
                 'desc' => __('How you fiscalise collected COD. With ППП (no cash register), a courier that lacks ППП needs prepayment at checkout (or is hidden). Enable ППП per courier on its tab.', 'bg-couriers')],

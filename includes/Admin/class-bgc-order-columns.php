@@ -2,12 +2,84 @@
 defined('ABSPATH') || exit;
 
 class BGC_Order_Columns {
+    /**
+     * Default row colour per courier - distinct hues, deliberately SATURATED: the merchant picks a normal
+     * colour and the row is painted with a pale version of it (see TINT_ALPHA), so no one has to hunt for
+     * a pastel hex that stays readable behind black text.
+     */
+    const ROW_COLORS = [
+        'speedy'  => '#d63638', // red
+        'econt'   => '#2271b1', // blue
+        'pigeon'  => '#00a32a', // green
+        'boxnow'  => '#8c4bd6', // violet
+        'sameday' => '#e08a00', // amber
+    ];
+    /** How much of the chosen colour actually reaches the row: resting, and under the cursor. */
+    const TINT_ALPHA       = 0.13;
+    const TINT_ALPHA_HOVER = 0.20;
+
     public function __construct() {
         add_filter('manage_woocommerce_page_wc-orders_columns', [$this, 'col']);
         add_filter('manage_edit-shop_order_columns', [$this, 'col']);
         add_action('manage_woocommerce_page_wc-orders_custom_column', [$this, 'render'], 10, 2);
         add_action('manage_shop_order_posts_custom_column', [$this, 'render_legacy'], 10, 2);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
+        // Tag every order row with its courier so the stylesheet can tint it. HPOS has its own filter
+        // (WC 7.8+); the legacy post-based table goes through get_post_class().
+        add_filter('woocommerce_shop_order_list_table_order_css_classes', [$this, 'row_classes'], 10, 2);
+        add_filter('post_class', [$this, 'legacy_row_classes'], 10, 3);
+    }
+
+    /** HPOS orders table row classes. */
+    public function row_classes($classes, $order) {
+        $cid = $order instanceof \WC_Order ? (string) $order->get_meta('_bgc_courier') : '';
+        if ($cid !== '') { $classes[] = 'bgc-courier-' . sanitize_html_class($cid); }
+        return $classes;
+    }
+
+    /**
+     * Legacy orders table row classes. post_class also fires for every front-end post, so bail unless this
+     * is an admin request for a shop_order - never load an order object on a shop page for nothing.
+     */
+    public function legacy_row_classes($classes, $class = '', $post_id = 0) {
+        if (!is_admin() || !$post_id || get_post_type($post_id) !== 'shop_order') { return $classes; }
+        $order = function_exists('wc_get_order') ? wc_get_order($post_id) : null;
+        $cid   = $order instanceof \WC_Order ? (string) $order->get_meta('_bgc_courier') : '';
+        if ($cid !== '') { $classes[] = 'bgc-courier-' . sanitize_html_class($cid); }
+        return $classes;
+    }
+
+    /**
+     * Per-courier row tints for the orders list, as CSS. Empty when the feature is switched off or no
+     * courier has a usable colour. The colour is applied to the cells rather than the row because WP's
+     * striping paints the <tr>, and at a low alpha so the row reads as a tint, not a block of colour.
+     */
+    public static function row_tint_css(): string {
+        if (get_option('bgc_row_tint', 'yes') !== 'yes') { return ''; }
+        $css = '';
+        foreach (array_keys(BGC_Couriers::all()) as $cid) {
+            $rgb = self::hex_to_rgb((string) get_option('bgc_' . $cid . '_row_color', self::ROW_COLORS[$cid] ?? ''));
+            if ($rgb === null) { continue; } // unusable value -> no rule at all, never a guessed colour
+            $sel  = '.wp-list-table tr.bgc-courier-' . sanitize_html_class($cid);
+            $rgb  = implode(',', $rgb);
+            $css .= $sel . ' > td,' . $sel . ' > th{background-color:rgba(' . $rgb . ',' . self::TINT_ALPHA . ');}';
+            $css .= $sel . ':hover > td,' . $sel . ':hover > th{background-color:rgba(' . $rgb . ',' . self::TINT_ALPHA_HOVER . ');}';
+        }
+        return $css;
+    }
+
+    /**
+     * [r,g,b] for a #rgb / #rrggbb colour, or null for anything else. This is also the escaping gate for
+     * the inline stylesheet - the value comes from an option, so nothing but three integers reaches the CSS.
+     *
+     * @return int[]|null
+     */
+    private static function hex_to_rgb(string $hex): ?array {
+        $hex = trim($hex);
+        if (!preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6})$/i', $hex)) { return null; }
+        $h = substr($hex, 1);
+        if (strlen($h) === 3) { $h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2]; }
+        return [(int) hexdec(substr($h, 0, 2)), (int) hexdec(substr($h, 2, 2)), (int) hexdec(substr($h, 4, 2))];
     }
     public function col($cols) { $cols['bgc_shipping'] = __('Waybill', 'bg-couriers'); return $cols; }
 
@@ -65,6 +137,10 @@ class BGC_Order_Columns {
         $css = BGC_PATH . 'assets/css/bgc-orders-list.css';
         $js  = BGC_PATH . 'assets/js/bgc-orders-list.js';
         wp_enqueue_style('bgc-orders-list', BGC_URL . 'assets/css/bgc-orders-list.css', [], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
+        // Built here, not at load time: the colours are per-courier options and this is the only place we
+        // know the screen is an orders list (and that the handle above is actually enqueued).
+        $tint = self::row_tint_css();
+        if ($tint !== '') { wp_add_inline_style('bgc-orders-list', $tint); }
         wp_enqueue_script('bgc-orders-list', BGC_URL . 'assets/js/bgc-orders-list.js', [], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
         wp_localize_script('bgc-orders-list', 'BGC_LIST', [
             'i18n' => [
