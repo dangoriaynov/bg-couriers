@@ -94,7 +94,7 @@ class BGC_Order_Columns {
                 ],
                 BGC_Bulk_Labels::REGEN => [
                     'title' => __('Re-issue the selected waybills?', 'bg-couriers'),
-                    'body'  => __('For every selected order that has a waybill, the current one is voided with the courier and a new one is issued from that order\'s current delivery details, products and settings. Orders without a waybill are skipped. This cannot be undone.', 'bg-couriers'),
+                    'body'  => __('Every selected order ends up with a fresh waybill, issued from that order\'s current delivery details, products and settings. Where a waybill already exists it is voided with the courier first. This cannot be undone.', 'bg-couriers'),
                     'yes'   => __('Yes, re-issue them', 'bg-couriers'),
                     'no'    => __('Keep them', 'bg-couriers'),
                 ],

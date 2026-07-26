@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 22:50+0300\n"
+"POT-Creation-Date: 2026-07-26 23:16+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -53,44 +53,45 @@ msgid "No labels to print (none could be generated)."
 msgstr "Няма етикети за печат (нито един не можа да се генерира)."
 
 #. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:127
+#: includes/Admin/class-bgc-bulk-labels.php:128
 #, php-format
 msgid "BG Couriers bulk re-issue failed: %s"
 msgstr "Групово преиздаване на BG Couriers се провали: %s"
 
 #. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:144
+#: includes/Admin/class-bgc-bulk-labels.php:145
 #, php-format
 msgid "BG Couriers bulk cancel failed: %s"
 msgstr "Груповото анулиране на BG Couriers беше неуспешно: %s"
 
 #. translators: %d: number of labels
-#: includes/Admin/class-bgc-bulk-labels.php:162
+#: includes/Admin/class-bgc-bulk-labels.php:163
 #, php-format
 msgid "Print %d on A4 (packed)"
 msgstr "Печат на %d върху A4 (подредени)"
 
-#: includes/Admin/class-bgc-bulk-labels.php:163
+#: includes/Admin/class-bgc-bulk-labels.php:164
 msgid "A6 stickers"
 msgstr "A6 стикери"
 
-#. translators: 1: re-issued 2: skipped (no waybill to re-issue) 3: failed
-#: includes/Admin/class-bgc-bulk-labels.php:173
+#. translators: 1: re-issued (had a waybill) 2: newly generated (had none) 3: skipped 4: failed
+#: includes/Admin/class-bgc-bulk-labels.php:174
 #, php-format
 msgid ""
-"Shipping labels: %1$d re-issued, %2$d skipped (no waybill), %3$d failed."
+"Shipping labels: %1$d re-issued, %2$d newly generated, %3$d skipped, %4$d "
+"failed."
 msgstr ""
-"Товарителници: %1$d преиздадени, %2$d пропуснати (без товарителница), %3$d "
+"Товарителници: %1$d преиздадени, %2$d новоиздадени, %3$d пропуснати, %4$d "
 "неуспешни."
 
 #. translators: 1: cancelled 2: skipped 3: failed
-#: includes/Admin/class-bgc-bulk-labels.php:187
+#: includes/Admin/class-bgc-bulk-labels.php:188
 #, php-format
 msgid "Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed."
 msgstr "Товарителници: %1$d анулирани, %2$d пропуснати, %3$d неуспешни."
 
 #. translators: 1: generated 2: reused 3: skipped 4: failed
-#: includes/Admin/class-bgc-bulk-labels.php:198
+#: includes/Admin/class-bgc-bulk-labels.php:199
 #, php-format
 msgid ""
 "Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
@@ -336,15 +337,14 @@ msgstr "Да се преиздадат ли избраните товарите�
 
 #: includes/Admin/class-bgc-order-columns.php:97
 msgid ""
-"For every selected order that has a waybill, the current one is voided with "
-"the courier and a new one is issued from that order's current delivery "
-"details, products and settings. Orders without a waybill are skipped. This "
-"cannot be undone."
+"Every selected order ends up with a fresh waybill, issued from that order's "
+"current delivery details, products and settings. Where a waybill already "
+"exists it is voided with the courier first. This cannot be undone."
 msgstr ""
-"За всяка избрана поръчка с товарителница текущата се анулира при куриера и "
-"се издава нова според актуалните данни за доставка, продуктите и "
-"настройките на поръчката. Поръчките без товарителница се пропускат. Това не "
-"може да бъде отменено."
+"За всяка избрана поръчка се издава нова товарителница според актуалните "
+"данни за доставка, продуктите и настройките на поръчката. Където вече има "
+"товарителница, тя първо се анулира при куриера. Това не може да бъде "
+"отменено."
 
 #: includes/Admin/class-bgc-order-columns.php:98
 msgid "Yes, re-issue them"
@@ -2261,6 +2261,24 @@ msgstr "Доставка със Sameday (BG Couriers)"
 #: includes/Shipping/class-bgc-method-speedy.php:9
 msgid "Speedy shipping (BG Couriers)"
 msgstr "Доставка със Speedy (BG Couriers)"
+
+#, php-format
+#~ msgid ""
+#~ "Shipping labels: %1$d re-issued, %2$d skipped (no waybill), %3$d failed."
+#~ msgstr ""
+#~ "Товарителници: %1$d преиздадени, %2$d пропуснати (без товарителница), "
+#~ "%3$d неуспешни."
+
+#~ msgid ""
+#~ "For every selected order that has a waybill, the current one is voided "
+#~ "with the courier and a new one is issued from that order's current "
+#~ "delivery details, products and settings. Orders without a waybill are "
+#~ "skipped. This cannot be undone."
+#~ msgstr ""
+#~ "За всяка избрана поръчка с товарителница текущата се анулира при куриера "
+#~ "и се издава нова според актуалните данни за доставка, продуктите и "
+#~ "настройките на поръчката. Поръчките без товарителница се пропускат. Това "
+#~ "не може да бъде отменено."
 
 #~ msgid "Parcel contents (description)"
 #~ msgstr "Съдържание на пратката (описание)"

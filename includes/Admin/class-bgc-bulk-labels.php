@@ -102,24 +102,25 @@ class BGC_Bulk_Labels {
     }
 
     /**
-     * Bulk re-issue: for each selected order that HAS a waybill, void it and issue a fresh one from the
-     * order's current delivery details, products and settings - the bulk twin of the panel's re-issue
-     * button. Orders WITHOUT a waybill are skipped rather than labelled: nothing to re-issue there, and
-     * 'Generate waybils' is the action for those, so this one can never create an unexpected shipment.
-     * A cancel that succeeds but whose re-generate then fails leaves the order unlabelled - counted as
-     * failed, with the courier's message on the order, and 'Generate waybils' recovers it.
+     * Bulk re-issue: EVERY selected order ends up with a fresh waybill. Where one already exists it is
+     * voided with the courier first, then a new one is issued from the order's current delivery details,
+     * products and settings; an order with no waybill simply gets one. Only orders that are not ours (no
+     * BGC courier) are skipped, since there is nothing to issue them with.
+     *
+     * A cancel that succeeds but whose generate then fails leaves that order unlabelled - counted as
+     * failed, with the courier's message on the order, and running this (or Generate) again recovers it.
      */
     private function handle_regen($redirect, $ids) {
-        $c = ['regenerated' => 0, 'skipped' => 0, 'failed' => 0];
+        $c = ['regenerated' => 0, 'generated' => 0, 'skipped' => 0, 'failed' => 0];
         $print_ids = [];
         foreach (array_map('intval', (array) $ids) as $oid) {
             $order = wc_get_order($oid);
             if (!$order || !BGC_Labels::order_courier($order)) { $c['skipped']++; continue; }
-            if ((string) $order->get_meta('_bgc_waybill') === '') { $c['skipped']++; continue; }
+            $had = (string) $order->get_meta('_bgc_waybill') !== '';
             try {
-                BGC_Labels::cancel($oid);
+                if ($had) { BGC_Labels::cancel($oid); } // void the old one before issuing its replacement
                 BGC_Labels::generate($oid);
-                $c['regenerated']++;
+                $c[$had ? 'regenerated' : 'generated']++;
                 $print_ids[] = $oid;
             } catch (\Exception $e) {
                 $c['failed']++;
@@ -166,16 +167,16 @@ class BGC_Bulk_Labels {
     public function notice(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only redirect param, no state change
         if (!empty($_GET['bgc_bulk_regen'])) {
-            $rc = ['regenerated' => 0, 'skipped' => 0, 'failed' => 0];
+            $rc = ['regenerated' => 0, 'generated' => 0, 'skipped' => 0, 'failed' => 0];
             foreach ($rc as $k => $_) { $rc[$k] = (int) wp_unslash($_GET[$k] ?? 0); } // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast read-only redirect param
             $msg = sprintf(
-                /* translators: 1: re-issued 2: skipped (no waybill to re-issue) 3: failed */
-                esc_html__('Shipping labels: %1$d re-issued, %2$d skipped (no waybill), %3$d failed.', 'bg-couriers'),
-                $rc['regenerated'], $rc['skipped'], $rc['failed']
+                /* translators: 1: re-issued (had a waybill) 2: newly generated (had none) 3: skipped 4: failed */
+                esc_html__('Shipping labels: %1$d re-issued, %2$d newly generated, %3$d skipped, %4$d failed.', 'bg-couriers'),
+                $rc['regenerated'], $rc['generated'], $rc['skipped'], $rc['failed']
             );
             $cls = $rc['failed'] ? 'notice-warning' : 'notice-success';
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $msg is esc_html__()'d, print_links() returns pre-escaped HTML
-            echo '<div class="notice ' . esc_attr($cls) . ' is-dismissible"><p>' . $msg . $this->print_links($rc['regenerated']) . '</p></div>';
+            echo '<div class="notice ' . esc_attr($cls) . ' is-dismissible"><p>' . $msg . $this->print_links($rc['regenerated'] + $rc['generated']) . '</p></div>';
             return;
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only redirect param, no state change
