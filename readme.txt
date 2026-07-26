@@ -101,6 +101,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Automatic shipment-status tracking (WP-Cron) with order notes.
 * One-click waybill re-issue from the orders list and the order screen - voids the current waybill and issues a new one from the order's current details; also available as a bulk action that re-issues every selected order.
 * Orders list rows tinted by courier, with a colour per courier in the settings.
+* Unsaved-changes indicator on the settings screen, with a warning before you navigate away.
 * Bulk actions grouped under their own section in the orders-list dropdown; bulk generate and bulk print only create the MISSING waybills and never touch existing ones.
 * Free-shipping thresholds per delivery option (a courier-level threshold overrides them), shared parcel dimensions, weight and contents description for all couriers, per-option card-payment control for Speedy COD.
 

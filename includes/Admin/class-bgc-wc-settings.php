@@ -33,6 +33,14 @@ class BGC_WC_Settings extends WC_Settings_Page {
         $js  = BGC_PATH . 'assets/js/bgc-settings-admin.js';
         wp_enqueue_style('bgc-settings-admin', BGC_URL . 'assets/css/bgc-settings-admin.css', [], is_file($css) ? (string) filemtime($css) : BGC_VERSION);
         wp_enqueue_script('bgc-settings-admin', BGC_URL . 'assets/js/bgc-settings-admin.js', ['jquery'], is_file($js) ? (string) filemtime($js) : BGC_VERSION, true);
+        wp_localize_script('bgc-settings-admin', 'BGC_SET', [
+            'i18n' => [
+                'unsaved' => __('Unsaved changes', 'bg-couriers'),
+                // Browsers show their own wording for the leave-page prompt and ignore this; it is here
+                // for the few that still honour a custom message.
+                'leave'   => __('You have unsaved changes in the BG Couriers settings. Leave without saving?', 'bg-couriers'),
+            ],
+        ]);
     }
 
     protected function get_own_sections() { return $this->sections(); }

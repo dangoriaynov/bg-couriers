@@ -101,3 +101,15 @@
 #wpbody .bgc-settings .bgc-switch-sm input:checked + .bgc-slider:before{transform:translateX(14px);}
 .bgc-method-panel table.form-table{margin-top:.5em;}
 .bgc-method-panel h2{display:none;} /* method name lives in the tab, hide the empty group title */
+
+/* Unsaved-changes indicator: a pill next to Save plus a ring on the button itself, so a pending change
+   is visible without hunting for which field changed. Both appear only while the form differs from what
+   is stored (assets/js/bgc-settings-admin.js). */
+.bgc-unsaved{display:none;margin-right:10px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;
+  line-height:1.6;color:#8a5700;background:#fcf3e3;border:1px solid #e6c07b;vertical-align:middle;}
+.bgc-has-unsaved .bgc-unsaved{display:inline-block;}
+.woocommerce-save-button.bgc-dirty{box-shadow:0 0 0 3px rgba(224,138,0,.35);}
+.woocommerce-save-button.bgc-dirty:focus{box-shadow:0 0 0 3px rgba(224,138,0,.55);}
+@media (prefers-reduced-motion:no-preference){
+  .woocommerce-save-button.bgc-dirty{transition:box-shadow .15s ease-in-out;}
+}

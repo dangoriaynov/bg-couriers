@@ -69,3 +69,57 @@
         bgcFreeSync();
     });
 })(jQuery);
+
+/* Unsaved-changes indicator for the settings form.
+   WooCommerce only un-disables its Save button on the first change and then latches a leave-page warning
+   that never clears - undo every edit and it still nags, and the button gives no real signal that
+   something is pending. This compares the form against a snapshot instead, so the state is the TRUTH:
+   revert your edits and the highlight and the warning both go away. */
+(function ($) {
+    $(function () {
+        var C = (window.BGC_SET || {}).i18n || {};
+        var $form = $('form#mainform');
+        if (!$form.length || !$('.bgc-settings').length) { return; } // only our settings tab
+        var $save = $form.find('.woocommerce-save-button, button[name="save"]').first();
+        if (!$save.length) { return; }
+
+        var base = $form.serialize();
+        var dirty = false;
+        var touched = false; // has the merchant actually interacted yet?
+        var $pill = $('<span class="bgc-unsaved" aria-live="polite"></span>')
+            .text(C.unsaved || 'Unsaved changes').insertBefore($save);
+
+        function apply(now) {
+            if (now === dirty) { return; }
+            dirty = now;
+            $save.toggleClass('bgc-dirty', dirty);
+            if (dirty) { $save.removeAttr('disabled'); }
+            $form.toggleClass('bgc-has-unsaved', dirty);
+            // Same property WooCommerce uses, so there is one prompt, not two - and clearing it here is
+            // what lets a reverted form stop warning.
+            window.onbeforeunload = dirty ? function () { return C.leave || 'You have unsaved changes.'; } : null;
+        }
+
+        function check() {
+            // Before the first real interaction, any change is the page setting itself up (select2
+            // pre-selects, the pickup-office loader filling in its value) - re-baseline instead of
+            // reporting unsaved changes on a form nobody has touched.
+            if (!touched) { base = $form.serialize(); apply(false); return; }
+            apply($form.serialize() !== base);
+        }
+
+        $(document).on('pointerdown keydown', function (e) {
+            // select2 renders its dropdown outside the form, so watch the document, not just the form.
+            if (e.type === 'keydown' && (e.key === 'Tab' || e.key === 'Shift')) { return; }
+            touched = true;
+        });
+        $form.on('change input', check);
+        // Colour pickers and select2 fire late / outside the normal flow.
+        $(document).on('select2:select select2:unselect', check);
+        $(document).on('click', '.iris-picker', function () { touched = true; setTimeout(check, 0); });
+
+        // Saving (or any submit) is leaving on purpose - never prompt for that.
+        $form.on('submit', function () { window.onbeforeunload = null; });
+        $form.find('.submit :input, button[name="save"]').on('click', function () { window.onbeforeunload = null; });
+    });
+})(jQuery);
