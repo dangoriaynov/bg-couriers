@@ -118,12 +118,14 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
 
     /**
      * The order's parcel weight in kg for a waybill: an explicit _bgc_weight_kg override if set, else the sum
-     * of the line items' product weights (converted to kg) x quantity, else the fallback (default 1 kg). This
-     * is what every courier should send as the shipment weight - the raw meta is never populated on its own.
+     * of the line items' product weights (converted to kg) x quantity, else the shop-wide default from
+     * Settings. This is what every courier should send as the shipment weight - the raw meta is never
+     * populated on its own. The result is clamped to 0.1 kg: courier APIs reject lighter parcels, and a
+     * gram-priced shop can legitimately total less than that (2 x 10 g = 0.02 kg).
      */
-    public static function order_weight_kg(\WC_Order $order, float $fallback = 1.0): float {
+    public static function order_weight_kg(\WC_Order $order): float {
         $manual = (float) $order->get_meta('_bgc_weight_kg');
-        if ($manual > 0) { return $manual; }
+        if ($manual > 0) { return max(0.1, round($manual, 3)); }
         $total = 0.0;
         foreach ($order->get_items() as $item) {
             $product = method_exists($item, 'get_product') ? $item->get_product() : null;
@@ -132,7 +134,10 @@ abstract class BGC_Abstract_Courier implements BGC_Courier_Interface {
             if ($w === '' || $w === null) { continue; }
             $total += (float) wc_get_weight((float) $w, 'kg') * max(1, (int) $item->get_quantity());
         }
-        return $total > 0 ? round($total, 3) : $fallback;
+        if ($total <= 0) {
+            return class_exists('BGC_Settings') ? BGC_Settings::default_weight_kg() : 1.0;
+        }
+        return max(0.1, round($total, 3));
     }
 
     /** Helper for overrides: append a problem when a saved option is empty. */

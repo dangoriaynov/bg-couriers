@@ -139,6 +139,15 @@ class BGC_Settings {
         return ['length' => $g('length'), 'width' => $g('width'), 'height' => $g('height')];
     }
 
+    /**
+     * Default parcel weight in kg, declared on a waybill when the order's products carry no weight of
+     * their own. One value for ALL couriers - a per-courier fallback made the same order weigh different
+     * amounts depending on who shipped it. Clamped to the 0.1 kg floor every courier API enforces.
+     */
+    public static function default_weight_kg(): float {
+        return max(0.1, round((float) get_option('bgc_default_weight_kg', 1.0), 3));
+    }
+
     /** One contents description for every courier's waybill (moved to General from per-courier fields). */
     public static function shipment_contents(): string {
         $v = trim((string) get_option('bgc_shipment_contents', ''));
