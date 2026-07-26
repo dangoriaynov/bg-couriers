@@ -178,7 +178,15 @@ class BGC_Labels {
             }
             $already = true;
         }
-        self::delete_label_file((string) $order->get_meta('_bgc_label_url')); // remove the PII PDF for the voided shipment
+        // Remove the PII PDFs for the voided shipment - the primary AND every alternate-size variant
+        // label_pdf_for_print() may have cached (_bgc_label_url_A4 / _A6). Missing the variants let a
+        // later print of that size serve the OLD waybill number from cache on a re-issued shipment.
+        self::delete_label_file((string) $order->get_meta('_bgc_label_url'));
+        foreach ($courier->label_formats() as $fmt) {
+            $key = '_bgc_label_url_' . $fmt;
+            self::delete_label_file((string) $order->get_meta($key));
+            $order->delete_meta_data($key);
+        }
         $order->delete_meta_data('_bgc_waybill');
         $order->delete_meta_data('_bgc_label_url');
         $order->add_order_note($already
