@@ -11,7 +11,7 @@ class BGC_Order_Columns {
     }
     public function col($cols) { $cols['bgc_shipping'] = __('Waybill', 'bg-couriers'); return $cols; }
 
-    public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = '', string $courier_label = '', string $courier_logo = ''): string {
+    public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = '', string $courier_label = '', string $courier_logo = '', string $regenerate_url = ''): string {
         // Courier logo tile with a data-tip hover hint, SAME as the order-screen shipment panel header.
         $logo_tile = $courier_logo !== ''
             ? '<span class="bgc-ltile" data-tip="' . esc_attr($courier_label) . '"><img class="bgc-clogo" src="' . esc_url($courier_logo) . '" alt="' . esc_attr($courier_label) . '"></span>'
@@ -25,9 +25,18 @@ class BGC_Order_Columns {
                 $edit_ico = '<a class="bgc-ico bgc-edit-lnk" href="' . esc_url($o->get_edit_order_url() . '#bgc-edit') . '" data-tip="' . esc_attr__('Edit delivery details', 'bg-couriers') . '" aria-label="' . esc_attr__('Edit delivery details', 'bg-couriers') . '"><span class="dashicons dashicons-edit"></span></a>';
             }
         }
-        // Two fixed rows: row 1 = courier logo + pencil (always), row 2 = Generate OR the
-        // waybill actions (copy / print / track / cancel). JS cancel-swap only touches row 2.
-        $row1 = '<span class="bgc-row">' . $logo_tile . $edit_ico . '</span>';
+        // Re-issue sits right of the pencil and only exists once a waybill does: one click voids the
+        // current waybill and issues a fresh one from the order's CURRENT details and settings, instead
+        // of cancel-then-generate. JS confirms first (bgc-orders-list.js) - it voids a real shipment.
+        $regen_ico = '';
+        if ($waybill !== '' && $regenerate_url !== '') {
+            $regen_tip = __('Re-issue waybill (voids the current one)', 'bg-couriers');
+            $regen_ico = '<a class="bgc-ico bgc-regen" href="' . esc_url($regenerate_url) . '" data-tip="' . esc_attr($regen_tip) . '" aria-label="' . esc_attr($regen_tip) . '"><span class="dashicons dashicons-update"></span></a>';
+        }
+        // Two fixed rows: row 1 = courier logo + pencil (always) + re-issue (only with a waybill),
+        // row 2 = Generate OR the waybill actions (copy / print / track / cancel). The JS cancel-swap
+        // replaces row 2 and must also drop .bgc-regen from row 1, or it outlives its waybill.
+        $row1 = '<span class="bgc-row">' . $logo_tile . $edit_ico . $regen_ico . '</span>';
         if ($waybill === '') {
             return '<span class="bgc-cell">' . $row1
                 . '<span class="bgc-row"><a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a></span></span>';
@@ -67,6 +76,9 @@ class BGC_Order_Columns {
                 'copied'       => __('Copied to clipboard', 'bg-couriers'),
                 'gen'          => __('Generate', 'bg-couriers'),
                 'err'          => __('Could not cancel.', 'bg-couriers'),
+                'regenTitle'   => __('Re-issue this waybill?', 'bg-couriers'),
+                'regenBody'    => __('The current waybill is voided with the courier and a new one is issued from this order\'s current delivery details, products and settings. This cannot be undone.', 'bg-couriers'),
+                'regenYes'     => __('Yes, re-issue it', 'bg-couriers'),
             ],
             'bulkCancel' => BGC_Bulk_Labels::CANCEL,
             'bulk' => [
@@ -87,13 +99,14 @@ class BGC_Order_Columns {
         $print = wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id, 'bgc_print_batch');
         $track = wp_nonce_url($base . '?action=bgc_track&order_id=' . $id, 'bgc_track_' . $id);
         $gen   = wp_nonce_url($base . '?action=bgc_generate_label&order_id=' . $id, 'bgc_generate_label_' . $id);
+        $regen = wp_nonce_url($base . '?action=bgc_regenerate&order_id=' . $id, 'bgc_regenerate_' . $id);
         // Echoed directly (not wp_kses_post) so the cancel link keeps its data-* attributes; every dynamic
         // field inside cell_html is individually escaped (esc_html / esc_attr / esc_url).
         // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- cell_html escapes each field internally
         echo self::cell_html(
             (string) $order->get_meta('_bgc_waybill'), $print, $track, $gen, $id,
             wp_create_nonce('bgc_cancel_label_' . $id), wp_create_nonce('bgc_generate_label_' . $id),
-            $courier->label(), BGC_Couriers::logo_url($courier->id())
+            $courier->label(), BGC_Couriers::logo_url($courier->id()), $regen
         );
         // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
     }

@@ -40,6 +40,9 @@
           var rows = cell.querySelectorAll ? cell.querySelectorAll('.bgc-row') : [];
           if (rows.length > 1) { rows[rows.length - 1].innerHTML = gen; } // row 1 (logo+pencil) stays
           else { cell.innerHTML = gen; }
+          // Re-issue lives in row 1 and only makes sense with a waybill - drop it now that there is none.
+          var rg = cell.querySelector ? cell.querySelector('.bgc-regen') : null;
+          if (rg) { rg.remove(); }
           toast(M.cancelled);
         } else { x.style.pointerEvents = ''; toast((j && j.data && j.data.msg) || M.err); }
       })
@@ -51,6 +54,15 @@
       e.preventDefault(); e.stopPropagation();
       var wb = c.getAttribute('data-wb') || '';
       if (wb && navigator.clipboard) { navigator.clipboard.writeText(wb).then(function () { toast(M.copied); }); }
+      return;
+    }
+    // Re-issue: confirm, then follow the admin-post link (voids the waybill and issues a fresh one).
+    var r = e.target.closest('.bgc-regen');
+    if (r) {
+      e.preventDefault(); e.stopPropagation();
+      var href = r.getAttribute('href') || '';
+      if (!href) { return; }
+      confirmDlg({ title: M.regenTitle, body: M.regenBody, yes: M.regenYes, no: M.no, onYes: function () { window.location.href = href; } });
       return;
     }
     var x = e.target.closest('.bgc-wb-cancel');

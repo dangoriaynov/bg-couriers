@@ -60,6 +60,41 @@ final class OrderColumnCellTest extends TestCase {
         $this->assertLessThan(strpos($g, 'bgc-gen'), strpos($g, 'bgc-edit-lnk')); // pencil above Generate
         $this->assertStringContainsString('bgc-gen', $g);
     }
+    /**
+     * The re-issue icon sits right of the pencil in row 1, and ONLY when a waybill exists - without one
+     * there is nothing to void, and the cell already offers Generate.
+     */
+    public function test_reissue_icon_only_with_a_waybill_and_right_of_the_pencil(): void {
+        Functions\when('esc_html')->alias('trim');
+        Functions\when('esc_html__')->alias('trim');
+        Functions\when('esc_attr')->alias('trim');
+        Functions\when('esc_attr__')->alias('trim');
+        Functions\when('esc_url')->alias('trim');
+        $stub = new class { public function get_edit_order_url(): string { return 'http://edit'; } };
+        Functions\when('wc_get_order')->justReturn($stub);
+
+        $h = BGC_Order_Columns::cell_html('W123', 'http://p', 'http://t', 'http://g', 7, '', '', '', '', 'http://re');
+        $this->assertStringContainsString('bgc-regen', $h);
+        $this->assertStringContainsString('http://re', $h);
+        $this->assertStringContainsString('dashicons-update', $h);
+        $this->assertLessThan(strpos($h, 'bgc-regen'), strpos($h, 'bgc-edit-lnk')); // pencil, then re-issue
+        $this->assertLessThan(strpos($h, 'bgc-copy'), strpos($h, 'bgc-regen'));     // both still in row 1
+        $this->assertSame(2, substr_count($h, 'class="bgc-row"'));
+
+        $g = BGC_Order_Columns::cell_html('', 'http://p', 'http://t', 'http://g', 7, '', '', '', '', 'http://re');
+        $this->assertStringNotContainsString('bgc-regen', $g);
+        $this->assertStringNotContainsString('http://re', $g);
+    }
+    /** Callers that pass no re-issue URL (or none at all) must not render a dead button. */
+    public function test_reissue_icon_absent_without_a_url(): void {
+        Functions\when('esc_html')->alias('trim');
+        Functions\when('esc_html__')->alias('trim');
+        Functions\when('esc_attr')->alias('trim');
+        Functions\when('esc_attr__')->alias('trim');
+        Functions\when('esc_url')->alias('trim');
+        $h = BGC_Order_Columns::cell_html('W123', 'http://p', 'http://t', 'http://g');
+        $this->assertStringNotContainsString('bgc-regen', $h);
+    }
     public function test_no_waybill_shows_generate(): void {
         Functions\when('esc_html')->alias('trim');
         Functions\when('esc_html__')->alias('trim');

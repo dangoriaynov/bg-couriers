@@ -53,7 +53,12 @@ class BGC_Order_Metabox {
             $print  = esc_url(wp_nonce_url($base . '?action=bgc_print_batch&order_id=' . $id . '&paper=' . $paper, 'bgc_print_batch'));
             $track  = $nonce_url('bgc_track', 'bgc_track_');
             $cancel = $nonce_url('bgc_cancel_label', 'bgc_cancel_label_');
-            $actions = $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary')
+            // Re-issue: one click voids the current waybill and issues a fresh one from the order's CURRENT
+            // details/settings (weights, parcel dims, contents), instead of cancel-then-generate. Sits first
+            // in the action group so it follows the waybill-copy button. JS confirms (bgc-order-admin.js).
+            $regen  = $nonce_url('bgc_regenerate', 'bgc_regenerate_');
+            $actions = $act('button', 'update', __('Re-issue waybill (voids the current one)', 'bg-couriers'), 'type="button" data-regen-url="' . $regen . '"', 'bgc-regen')
+                . $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary')
                 . $act('a', 'location', __('Track shipment', 'bg-couriers'), 'href="' . $track . '" target="_blank"')
                 . $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle')
                 . $act('button', 'no-alt', __('Cancel (void) label', 'bg-couriers'), 'type="button" data-cancel-url="' . $cancel . '"', 'bgc-danger bgc-cancel');
@@ -99,7 +104,7 @@ class BGC_Order_Metabox {
         'b'      => [],
         'img'    => ['class' => true, 'src' => true, 'alt' => true, 'data-tip' => true],
         'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'aria-label' => true, 'data-tip' => true],
-        'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true],
+        'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true, 'data-regen-url' => true],
         'svg'    => ['class' => true, 'viewbox' => true, 'width' => true, 'height' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'aria-hidden' => true],
         'path'   => ['d' => true],
         'rect'   => ['x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true],
@@ -162,6 +167,9 @@ class BGC_Order_Metabox {
                           'cancelBody'  => __('This voids the shipment label with the courier. This cannot be undone.', 'bg-couriers'),
                           'cancelYes'   => __('Yes, cancel it', 'bg-couriers'),
                           'cancelNo'    => __('Keep it', 'bg-couriers'),
+                          'regenTitle'  => __('Re-issue this waybill?', 'bg-couriers'),
+                          'regenBody'   => __('The current waybill is voided with the courier and a new one is issued from this order\'s current delivery details, products and settings. This cannot be undone.', 'bg-couriers'),
+                          'regenYes'    => __('Yes, re-issue it', 'bg-couriers'),
                           'map_title'   => __('Pick from the map', 'bg-couriers'),
                           'map_choose'  => __('Choose this location', 'bg-couriers'),
                           'map_locate'  => __('Show my location', 'bg-couriers'),

@@ -26,7 +26,7 @@
     clearTimeout(toast._t);
     toast._t = setTimeout(function () { $toast.removeClass('show'); }, 1400);
   }
-  $(document).on('mousedown', '.bgc-wb-copy,.bgc-cancel', function (e) { toast._e = e; });
+  $(document).on('mousedown', '.bgc-wb-copy,.bgc-cancel,.bgc-regen', function (e) { toast._e = e; });
 
   function confirmDialog(opts) {
     var $ov = $('<div class="bgc-modal-ov"></div>');
@@ -73,6 +73,21 @@
       title: I.cancelTitle || 'Cancel this waybill?',
       body: I.cancelBody || 'This voids the shipment label with the courier.',
       yes: I.cancelYes || 'Yes, cancel it',
+      no: I.cancelNo || 'Keep it',
+      onYes: function () { window.location.href = url; }
+    });
+  });
+
+  // --- re-issue the waybill (void the current one + generate a fresh one) in one click -----------
+  // Behind the same confirmation as cancel: this really does void a shipment at the courier.
+  $(document).on('click', '.bgc-regen', function (e) {
+    e.preventDefault();
+    var url = String($(this).data('regen-url') || '');
+    if (!url) { return; }
+    confirmDialog({
+      title: I.regenTitle || 'Re-issue this waybill?',
+      body: I.regenBody || 'The current waybill is voided and a new one is issued.',
+      yes: I.regenYes || 'Yes, re-issue it',
       no: I.cancelNo || 'Keep it',
       onYes: function () { window.location.href = url; }
     });
