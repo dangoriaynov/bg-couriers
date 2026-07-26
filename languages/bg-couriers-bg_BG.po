@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 22:19+0300\n"
+"POT-Creation-Date: 2026-07-26 22:50+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -16,68 +16,87 @@ msgstr ""
 "X-Domain: bg-couriers\n"
 "X-Generator: WP-CLI 2.12.0\n"
 
-#: includes/Admin/class-bgc-bulk-labels.php:19
+#: includes/Admin/class-bgc-bulk-labels.php:25
 msgid "Print waybils A4"
 msgstr "Печат на товарителници A4"
 
-#: includes/Admin/class-bgc-bulk-labels.php:20
+#: includes/Admin/class-bgc-bulk-labels.php:26
 msgid "Print waybils A6"
 msgstr "Печат на товарителници A6"
 
-#: includes/Admin/class-bgc-bulk-labels.php:21
+#: includes/Admin/class-bgc-bulk-labels.php:27
 msgid "Generate waybils"
 msgstr "Генериране на товарителници"
 
-#: includes/Admin/class-bgc-bulk-labels.php:22
+#: includes/Admin/class-bgc-bulk-labels.php:28
+msgid "Re-issue waybils"
+msgstr "Преиздаване на товарителници"
+
+#: includes/Admin/class-bgc-bulk-labels.php:29
 msgid "Cancel waybils"
 msgstr "Анулиране на товарителници"
 
 #. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:50
+#: includes/Admin/class-bgc-bulk-labels.php:62
 #, php-format
 msgid "BG Couriers bulk label failed: %s"
 msgstr "Групово генериране на етикети (BG Couriers) е неуспешно: %s"
 
 #. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:73
+#: includes/Admin/class-bgc-bulk-labels.php:87
 #, php-format
 msgid "BG Couriers bulk print - generate failed: %s"
 msgstr "BG Couriers групов печат - неуспешно генериране: %s"
 
-#: includes/Admin/class-bgc-bulk-labels.php:82
+#: includes/Admin/class-bgc-bulk-labels.php:96
 msgid "No labels to print (none could be generated)."
 msgstr "Няма етикети за печат (нито един не можа да се генерира)."
 
 #. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:100
+#: includes/Admin/class-bgc-bulk-labels.php:127
+#, php-format
+msgid "BG Couriers bulk re-issue failed: %s"
+msgstr "Групово преиздаване на BG Couriers се провали: %s"
+
+#. translators: %s: error message
+#: includes/Admin/class-bgc-bulk-labels.php:144
 #, php-format
 msgid "BG Couriers bulk cancel failed: %s"
 msgstr "Груповото анулиране на BG Couriers беше неуспешно: %s"
 
+#. translators: %d: number of labels
+#: includes/Admin/class-bgc-bulk-labels.php:162
+#, php-format
+msgid "Print %d on A4 (packed)"
+msgstr "Печат на %d върху A4 (подредени)"
+
+#: includes/Admin/class-bgc-bulk-labels.php:163
+msgid "A6 stickers"
+msgstr "A6 стикери"
+
+#. translators: 1: re-issued 2: skipped (no waybill to re-issue) 3: failed
+#: includes/Admin/class-bgc-bulk-labels.php:173
+#, php-format
+msgid ""
+"Shipping labels: %1$d re-issued, %2$d skipped (no waybill), %3$d failed."
+msgstr ""
+"Товарителници: %1$d преиздадени, %2$d пропуснати (без товарителница), %3$d "
+"неуспешни."
+
 #. translators: 1: cancelled 2: skipped 3: failed
-#: includes/Admin/class-bgc-bulk-labels.php:113
+#: includes/Admin/class-bgc-bulk-labels.php:187
 #, php-format
 msgid "Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed."
 msgstr "Товарителници: %1$d анулирани, %2$d пропуснати, %3$d неуспешни."
 
 #. translators: 1: generated 2: reused 3: skipped 4: failed
-#: includes/Admin/class-bgc-bulk-labels.php:124
+#: includes/Admin/class-bgc-bulk-labels.php:198
 #, php-format
 msgid ""
 "Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
 msgstr ""
 "Етикети за доставка: %1$d генерирани, %2$d повторно използвани, %3$d "
 "пропуснати, %4$d неуспешни."
-
-#. translators: %d: number of labels
-#: includes/Admin/class-bgc-bulk-labels.php:135
-#, php-format
-msgid "Print %d on A4 (packed)"
-msgstr "Печат на %d върху A4 (подредени)"
-
-#: includes/Admin/class-bgc-bulk-labels.php:136
-msgid "A6 stickers"
-msgstr "A6 стикери"
 
 #. translators: %s: error message
 #: includes/Admin/class-bgc-labels.php:38
@@ -290,11 +309,11 @@ msgstr ""
 msgid "Yes, re-issue it"
 msgstr "Да, преиздай я"
 
-#: includes/Admin/class-bgc-order-columns.php:85
+#: includes/Admin/class-bgc-order-columns.php:90
 msgid "Cancel the selected waybills?"
 msgstr "Да анулирам ли избраните товарителници?"
 
-#: includes/Admin/class-bgc-order-columns.php:86
+#: includes/Admin/class-bgc-order-columns.php:91
 msgid ""
 "This voids the shipment label with the courier for every selected order. "
 "This cannot be undone."
@@ -302,13 +321,34 @@ msgstr ""
 "Това анулира етикета за доставка при куриера за всяка избрана поръчка. "
 "Действието е необратимо."
 
-#: includes/Admin/class-bgc-order-columns.php:87
+#: includes/Admin/class-bgc-order-columns.php:92
 msgid "Yes, cancel them"
 msgstr "Да, анулирай ги"
 
-#: includes/Admin/class-bgc-order-columns.php:88
+#: includes/Admin/class-bgc-order-columns.php:93
+#: includes/Admin/class-bgc-order-columns.php:99
 msgid "Keep them"
 msgstr "Запази ги"
+
+#: includes/Admin/class-bgc-order-columns.php:96
+msgid "Re-issue the selected waybills?"
+msgstr "Да се преиздадат ли избраните товарителници?"
+
+#: includes/Admin/class-bgc-order-columns.php:97
+msgid ""
+"For every selected order that has a waybill, the current one is voided with "
+"the courier and a new one is issued from that order's current delivery "
+"details, products and settings. Orders without a waybill are skipped. This "
+"cannot be undone."
+msgstr ""
+"За всяка избрана поръчка с товарителница текущата се анулира при куриера и "
+"се издава нова според актуалните данни за доставка, продуктите и "
+"настройките на поръчката. Поръчките без товарителница се пропускат. Това не "
+"може да бъде отменено."
+
+#: includes/Admin/class-bgc-order-columns.php:98
+msgid "Yes, re-issue them"
+msgstr "Да, преиздай ги"
 
 #: includes/Admin/class-bgc-order-metabox.php:28
 #: includes/Admin/class-bgc-order-metabox.php:162

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 22:19+0300\n"
+"POT-Creation-Date: 2026-07-26 22:50+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,65 +17,82 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: includes/Admin/class-bgc-bulk-labels.php:19
+#: includes/Admin/class-bgc-bulk-labels.php:25
 msgid "Print waybils A4"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:20
+#: includes/Admin/class-bgc-bulk-labels.php:26
 msgid "Print waybils A6"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:21
+#: includes/Admin/class-bgc-bulk-labels.php:27
 msgid "Generate waybils"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:22
+#: includes/Admin/class-bgc-bulk-labels.php:28
+msgid "Re-issue waybils"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:29
 msgid "Cancel waybils"
 msgstr ""
 
 #. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:50
+#: includes/Admin/class-bgc-bulk-labels.php:62
 #, php-format
 msgid "BG Couriers bulk label failed: %s"
 msgstr ""
 
 #. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:73
+#: includes/Admin/class-bgc-bulk-labels.php:87
 #, php-format
 msgid "BG Couriers bulk print - generate failed: %s"
 msgstr ""
 
-#: includes/Admin/class-bgc-bulk-labels.php:82
+#: includes/Admin/class-bgc-bulk-labels.php:96
 msgid "No labels to print (none could be generated)."
 msgstr ""
 
 #. translators: %s: error message
-#: includes/Admin/class-bgc-bulk-labels.php:100
+#: includes/Admin/class-bgc-bulk-labels.php:127
+#, php-format
+msgid "BG Couriers bulk re-issue failed: %s"
+msgstr ""
+
+#. translators: %s: error message
+#: includes/Admin/class-bgc-bulk-labels.php:144
 #, php-format
 msgid "BG Couriers bulk cancel failed: %s"
 msgstr ""
 
+#. translators: %d: number of labels
+#: includes/Admin/class-bgc-bulk-labels.php:162
+#, php-format
+msgid "Print %d on A4 (packed)"
+msgstr ""
+
+#: includes/Admin/class-bgc-bulk-labels.php:163
+msgid "A6 stickers"
+msgstr ""
+
+#. translators: 1: re-issued 2: skipped (no waybill to re-issue) 3: failed
+#: includes/Admin/class-bgc-bulk-labels.php:173
+#, php-format
+msgid ""
+"Shipping labels: %1$d re-issued, %2$d skipped (no waybill), %3$d failed."
+msgstr ""
+
 #. translators: 1: cancelled 2: skipped 3: failed
-#: includes/Admin/class-bgc-bulk-labels.php:113
+#: includes/Admin/class-bgc-bulk-labels.php:187
 #, php-format
 msgid "Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed."
 msgstr ""
 
 #. translators: 1: generated 2: reused 3: skipped 4: failed
-#: includes/Admin/class-bgc-bulk-labels.php:124
+#: includes/Admin/class-bgc-bulk-labels.php:198
 #, php-format
 msgid ""
 "Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
-msgstr ""
-
-#. translators: %d: number of labels
-#: includes/Admin/class-bgc-bulk-labels.php:135
-#, php-format
-msgid "Print %d on A4 (packed)"
-msgstr ""
-
-#: includes/Admin/class-bgc-bulk-labels.php:136
-msgid "A6 stickers"
 msgstr ""
 
 #. translators: %s: error message
@@ -283,22 +300,39 @@ msgstr ""
 msgid "Yes, re-issue it"
 msgstr ""
 
-#: includes/Admin/class-bgc-order-columns.php:85
+#: includes/Admin/class-bgc-order-columns.php:90
 msgid "Cancel the selected waybills?"
 msgstr ""
 
-#: includes/Admin/class-bgc-order-columns.php:86
+#: includes/Admin/class-bgc-order-columns.php:91
 msgid ""
 "This voids the shipment label with the courier for every selected order. "
 "This cannot be undone."
 msgstr ""
 
-#: includes/Admin/class-bgc-order-columns.php:87
+#: includes/Admin/class-bgc-order-columns.php:92
 msgid "Yes, cancel them"
 msgstr ""
 
-#: includes/Admin/class-bgc-order-columns.php:88
+#: includes/Admin/class-bgc-order-columns.php:93
+#: includes/Admin/class-bgc-order-columns.php:99
 msgid "Keep them"
+msgstr ""
+
+#: includes/Admin/class-bgc-order-columns.php:96
+msgid "Re-issue the selected waybills?"
+msgstr ""
+
+#: includes/Admin/class-bgc-order-columns.php:97
+msgid ""
+"For every selected order that has a waybill, the current one is voided with "
+"the courier and a new one is issued from that order's current delivery "
+"details, products and settings. Orders without a waybill are skipped. This "
+"cannot be undone."
+msgstr ""
+
+#: includes/Admin/class-bgc-order-columns.php:98
+msgid "Yes, re-issue them"
 msgstr ""
 
 #: includes/Admin/class-bgc-order-metabox.php:28

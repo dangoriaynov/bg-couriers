@@ -101,18 +101,20 @@
     else { group(); }
   })();
 
-  // Bulk "Cancel waybils": intercept the Apply click and only submit once the merchant confirms.
+  // Bulk actions that void live shipments (Cancel / Re-issue): intercept the Apply click and only
+  // submit once the merchant confirms. Driven by BGC_LIST.confirmBulk, keyed by action value - an
+  // action that is not listed there submits normally, so adding one here is a PHP-side change.
   (function () {
-    var CANCEL = C.bulkCancel || '', B = C.bulk || {}, going = false;
-    if (!CANCEL) { return; }
+    var MAP = C.confirmBulk || {}, going = false;
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('#doaction, #doaction2');
       if (!btn || going) { return; }
       var sel = document.getElementById(btn.id === 'doaction' ? 'bulk-action-selector-top' : 'bulk-action-selector-bottom');
-      if (!sel || sel.value !== CANCEL) { return; }
+      var d = sel ? MAP[sel.value] : null;
+      if (!d) { return; }
       e.preventDefault(); e.stopPropagation();
       var run = function () { going = true; btn.click(); };
-      confirmDlg({ title: B.title, body: B.body, yes: B.yes, no: B.no, onYes: run });
+      confirmDlg({ title: d.title, body: d.body, yes: d.yes, no: d.no, onYes: run });
     }, true);
   })();
 })();

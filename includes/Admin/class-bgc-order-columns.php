@@ -80,15 +80,24 @@ class BGC_Order_Columns {
                 'regenBody'    => __('The current waybill is voided with the courier and a new one is issued from this order\'s current delivery details, products and settings. This cannot be undone.', 'bg-couriers'),
                 'regenYes'     => __('Yes, re-issue it', 'bg-couriers'),
             ],
-            'bulkCancel' => BGC_Bulk_Labels::CANCEL,
             // Our bulk actions are gathered under one labelled section in the dropdown (see the JS). The
             // exact action values are passed so the JS moves only OUR options, never a prefix guess.
             'group' => ['label' => 'BG Couriers', 'actions' => BGC_Bulk_Labels::actions()],
-            'bulk' => [
-                'title' => __('Cancel the selected waybills?', 'bg-couriers'),
-                'body'  => __('This voids the shipment label with the courier for every selected order. This cannot be undone.', 'bg-couriers'),
-                'yes'   => __('Yes, cancel them', 'bg-couriers'),
-                'no'    => __('Keep them', 'bg-couriers'),
+            // Bulk actions that void live shipments and so must be confirmed before Apply submits,
+            // keyed by their action value. Anything not listed here submits straight away.
+            'confirmBulk' => [
+                BGC_Bulk_Labels::CANCEL => [
+                    'title' => __('Cancel the selected waybills?', 'bg-couriers'),
+                    'body'  => __('This voids the shipment label with the courier for every selected order. This cannot be undone.', 'bg-couriers'),
+                    'yes'   => __('Yes, cancel them', 'bg-couriers'),
+                    'no'    => __('Keep them', 'bg-couriers'),
+                ],
+                BGC_Bulk_Labels::REGEN => [
+                    'title' => __('Re-issue the selected waybills?', 'bg-couriers'),
+                    'body'  => __('For every selected order that has a waybill, the current one is voided with the courier and a new one is issued from that order\'s current delivery details, products and settings. Orders without a waybill are skipped. This cannot be undone.', 'bg-couriers'),
+                    'yes'   => __('Yes, re-issue them', 'bg-couriers'),
+                    'no'    => __('Keep them', 'bg-couriers'),
+                ],
             ],
         ]);
     }
