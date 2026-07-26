@@ -389,15 +389,26 @@ jQuery(function($){
     processResults:function(d){ return {results:(d||[]).map(function(c){ return {id:c.city_id, text:(c.name||'')+(c.region?(' ('+c.region+')'):'')}; })}; }
   }});
   \$o.select2({ width:'300px', placeholder:'{$ph_off}' });
-  \$c.on('select2:select', function(e){
-    var cid=e.params.data.id; \$o.prop('disabled',true);
+  // The office select2 searches its OWN options (no ajax), so the list has to be in the DOM before the
+  // merchant types. Load it for the saved city on page load too - not only when a city is re-picked -
+  // otherwise the dropdown holds just the one saved office and every search says \"No results found\".
+  function loadOffices(cid, keep){
+    if(!cid || cid==='0'){ return; }
+    \$o.prop('disabled',true);
     $.getJSON(ajaxurl, {action:'bgc_offices', courier:'{$cour_js}', city_id:cid, type:'office', all:1}, function(rows){
+      rows = rows || [];
       \$o.empty();
-      (rows||[]).forEach(function(r){ \$o.append(new Option((r.name||'')+(r.address?(' - '+r.address):''), r.office_id)); });
-      \$o.prop('disabled',false).trigger('change');
-      if((rows||[]).length){ \$h.val(rows[0].office_id); }
+      rows.forEach(function(r){ \$o.append(new Option((r.name||'')+(r.address?(' - '+r.address):''), r.office_id)); });
+      \$o.prop('disabled',false);
+      // Keep the saved office selected when it is in this city; otherwise fall back to the first one.
+      var found = keep && rows.some(function(r){ return String(r.office_id)===String(keep); });
+      var want  = found ? String(keep) : (rows.length ? String(rows[0].office_id) : '');
+      if(want){ \$o.val(want); \$h.val(want); }
+      \$o.trigger('change');
     });
-  });
+  }
+  loadOffices(curCity, cur);
+  \$c.on('select2:select', function(e){ loadOffices(e.params.data.id, null); });
   \$o.on('change', function(){ if($(this).val()){ \$h.val($(this).val()); } });
 });
 ");
