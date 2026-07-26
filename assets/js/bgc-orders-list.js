@@ -71,6 +71,36 @@
     confirmDlg({ title: M.confirmTitle, body: M.confirmBody, yes: M.yes, no: M.no, onYes: function () { doCancel(x); } });
   });
 
+  // Gather our four bulk actions under one labelled <optgroup>, so they read as a section of the
+  // dropdown instead of four loose entries among WooCommerce's. WordPress builds that <select> from
+  // the bulk_actions-* filter, which is a flat value => label map with no way to express a group, so
+  // the optgroup has to be assembled client-side - the same approach Print Invoices/Packing Lists
+  // takes. Only the nesting changes: the option values stay identical, so the bulk-cancel confirm
+  // below (and WP's own submit handling) keep matching on select.value.
+  (function () {
+    var G = C.group || {}, vals = G.actions || [];
+    if (!vals.length || !G.label) { return; }
+    function group() {
+      var sels = document.querySelectorAll('.bulkactions select'); // top AND bottom selectors
+      for (var i = 0; i < sels.length; i++) {
+        var sel = sels[i];
+        if (sel.querySelector('optgroup.bgc-optgroup')) { continue; } // already grouped
+        // Snapshot before moving anything - sel.options is live. DOM order == registration order.
+        var mine = Array.prototype.filter.call(sel.querySelectorAll('option'), function (o) {
+          return vals.indexOf(o.value) !== -1;
+        });
+        if (!mine.length) { continue; }
+        var og = document.createElement('optgroup');
+        og.className = 'bgc-optgroup';
+        og.setAttribute('label', G.label);
+        for (var k = 0; k < mine.length; k++) { og.appendChild(mine[k]); } // appendChild MOVES the option
+        sel.appendChild(og);
+      }
+    }
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', group); }
+    else { group(); }
+  })();
+
   // Bulk "Cancel waybils": intercept the Apply click and only submit once the merchant confirms.
   (function () {
     var CANCEL = C.bulkCancel || '', B = C.bulk || {}, going = false;

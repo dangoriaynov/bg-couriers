@@ -15,6 +15,11 @@ class BGC_Bulk_Labels {
         add_action('admin_notices', [$this, 'notice']);
     }
 
+    /** Our bulk-action values, in the order they are registered (drives the dropdown grouping in JS). */
+    public static function actions(): array {
+        return [self::PRINT_A4, self::PRINT_A6, self::ACTION, self::CANCEL];
+    }
+
     public function register(array $actions): array {
         $actions[self::PRINT_A4] = __('Print waybils A4', 'bg-couriers');
         $actions[self::PRINT_A6] = __('Print waybils A6', 'bg-couriers');

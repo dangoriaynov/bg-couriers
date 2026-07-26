@@ -81,6 +81,9 @@ class BGC_Order_Columns {
                 'regenYes'     => __('Yes, re-issue it', 'bg-couriers'),
             ],
             'bulkCancel' => BGC_Bulk_Labels::CANCEL,
+            // Our bulk actions are gathered under one labelled section in the dropdown (see the JS). The
+            // exact action values are passed so the JS moves only OUR options, never a prefix guess.
+            'group' => ['label' => 'BG Couriers', 'actions' => BGC_Bulk_Labels::actions()],
             'bulk' => [
                 'title' => __('Cancel the selected waybills?', 'bg-couriers'),
                 'body'  => __('This voids the shipment label with the courier for every selected order. This cannot be undone.', 'bg-couriers'),
