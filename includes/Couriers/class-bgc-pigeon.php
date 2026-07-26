@@ -143,9 +143,45 @@ class BGC_Pigeon extends BGC_Abstract_Courier {
     public function fetch_offices(int $city_id): array {
         // /v1/offices returns ONLY the requested `type`; lockers/APS are a separate type (not in the default
         // office list), so fetch both and merge - parse_offices maps type 'locker' -> 'automat'.
-        $offices = self::parse_offices($this->get_json('/v1/offices', ['city_id' => $city_id, 'type' => 'office']));
-        $lockers = self::parse_offices($this->get_json('/v1/offices', ['city_id' => $city_id, 'type' => 'locker']));
-        return array_merge($offices, $lockers);
+        return array_merge(
+            $this->fetch_offices_of_type($city_id, 'office'),
+            $this->fetch_offices_of_type($city_id, 'locker')
+        );
+    }
+
+    /**
+     * One office type, ALL pages. /v1/offices is paginated exactly like /v1/cities - 100 per page with a
+     * `meta.last_page` - and the sync fetches country-wide (city_id 0). Requesting a single page silently
+     * kept only the first 100 of Bulgaria's 180 offices, so every office after that was invisible in the
+     * checkout and settings dropdowns even though the courier serves it. Accumulates until the last page
+     * or the safety cap, same shape as fetch_cities().
+     *
+     * @param int    $city_id Pigeon city id, or 0 for country-wide.
+     * @param string $type    'office' or 'locker'.
+     * @return array[]        Parsed office rows.
+     */
+    private function fetch_offices_of_type(int $city_id, string $type): array {
+        $out      = [];
+        $page     = 1;
+        $per_page = 100;
+        $cap      = 60; // defensive safety cap
+
+        do {
+            $resp = $this->get_json('/v1/offices', ['city_id' => $city_id, 'type' => $type, 'per_page' => $per_page, 'page' => $page]);
+            $out  = array_merge($out, self::parse_offices($resp));
+            $meta = $resp['meta'] ?? null;
+            if ($meta === null && class_exists('BGC_Logger')) {
+                BGC_Logger::debug('pigeon: offices page missing meta - pagination may be incomplete', ['page' => $page, 'type' => $type]);
+            }
+            $last_page = (int) ($meta['last_page'] ?? 1);
+            $curr_page = (int) ($meta['current_page'] ?? $page);
+            $page++;
+        } while ($curr_page < $last_page && $page <= $cap);
+
+        if ($page > $cap && $curr_page < $last_page && class_exists('BGC_Logger')) {
+            BGC_Logger::debug('pigeon: offices pagination hit the safety cap', ['cap' => $cap, 'last_page' => $last_page, 'type' => $type]);
+        }
+        return $out;
     }
 
     /** Default parcel box (cm) for quotes/labels; Pigeon requires length/width/height. Shared across couriers. */
