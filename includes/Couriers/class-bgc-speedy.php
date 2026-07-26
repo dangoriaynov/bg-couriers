@@ -358,7 +358,9 @@ class BGC_Speedy extends BGC_Abstract_Courier {
             'date' => (string) ($o['dateTime'] ?? ''),
         ], $ops);
         $status = $events ? end($events)['code'] : 'UNKNOWN';
-        return new BGC_Tracking((string) ($parcel['parcelId'] ?? ''), $status, $events);
+        // trackPhase is an unambiguous lifecycle enum, but Speedy omits it on every parcel we have seen -
+        // pass it through when it IS there and let BGC_Tracking fall back to the text when it is not.
+        return new BGC_Tracking((string) ($parcel['parcelId'] ?? ''), $status, $events, (string) ($parcel['trackPhase'] ?? ''));
     }
 
     public function cancel_label(string $waybill): bool {

@@ -68,7 +68,7 @@ class BGC_Tracking_Poller {
         /* translators: 1: courier name, 2: status */
         $order->add_order_note(sprintf(__('%1$s tracking update: %2$s', 'bg-couriers'), $courier->label(), $human));
 
-        $stage = BGC_Tracking::classify($human);
+        $stage = $t->stage();
         if (in_array($stage, ['delivered', 'cancelled', 'returned'], true)) {
             $order->update_meta_data('_bgc_track_done', 'yes'); // terminal - stop polling this waybill
         }
