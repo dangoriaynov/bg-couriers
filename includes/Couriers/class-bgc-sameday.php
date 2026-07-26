@@ -352,6 +352,10 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
             'cashOnDelivery' => $is_cod ? self::cod_for_payer($order, $payer) : 0,
             'insuredValue'   => 0,
             'thirdPartyPickup' => 0,
+            // Sameday's free-text remark on the AWB - the only place it takes a contents description
+            // (POST /api/awb has observation/priceObservation/clientObservation and no contents field).
+            // Same shop-wide description Speedy and Econt print.
+            'observation'    => BGC_Settings::shipment_contents(),
             // AWBs must carry a unique clientInternalReference - even a CANCELLED one keeps its reference
             // forever, so a bare order id would break regeneration; suffix with a timestamp.
             'clientInternalReference' => $order->get_id() . '-' . time(),

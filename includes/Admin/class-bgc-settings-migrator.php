@@ -2,13 +2,26 @@
 defined('ABSPATH') || exit;
 
 class BGC_Settings_Migrator {
-    const VERSION = 2;
+    const VERSION = 3;
 
     public static function migrate(): void {
         $current = (int) get_option('bgc_settings_version', 0);
         if ($current >= self::VERSION) { return; }
         if ($current < 2) { self::migrate_to_flat_options(); }
+        if ($current < 3) { self::migrate_shipment_contents(); }
         update_option('bgc_settings_version', self::VERSION);
+    }
+
+    /**
+     * The parcel-contents description moved from per-courier fields to one General field, but the read
+     * silently fell back to the old options - so the General field looked empty while waybills kept
+     * printing the legacy value, with no way to tell where it came from. Copy it across once.
+     */
+    private static function migrate_shipment_contents(): void {
+        if (trim((string) get_option('bgc_shipment_contents', '')) !== '') { return; }
+        $legacy = trim((string) get_option('bgc_speedy_contents', ''))
+            ?: trim((string) get_option('bgc_econt_shipment_description', ''));
+        if ($legacy !== '') { update_option('bgc_shipment_contents', $legacy); }
     }
 
     /** v1 stored serialized bgc_speedy_settings/bgc_global_settings arrays; v2 uses flat options. */
