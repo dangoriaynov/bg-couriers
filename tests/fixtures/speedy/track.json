@@ -1,1 +1,1 @@
-{"parcels":[{"id":"299999990","operations":[{"operationCode":"DELIVERED","name":"Delivered","date":"2026-06-21T10:00:00"}]}]}
+{"parcels":[{"parcelId":"299999990","trackPhase":"DELIVERED","operations":[{"operationCode":1,"dateTime":"2026-06-20T14:05:00","description":"Приета пратка","place":"София"},{"operationCode":16,"dateTime":"2026-06-21T10:00:00","description":"Доставена пратка","place":"Пловдив"}]}]}

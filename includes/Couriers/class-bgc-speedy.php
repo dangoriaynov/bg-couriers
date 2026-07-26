@@ -233,9 +233,9 @@ class BGC_Speedy extends BGC_Abstract_Courier {
             'recipient' => $recipient,
             'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => 505],
             'content'   => ['parcelsCount' => 1, 'contents' => $contents, 'package' => $package,
-                            'totalWeight' => self::order_weight_kg($order, 2.0),
+                            'totalWeight' => self::order_weight_kg($order),
                             // ShipmentParcelSize {width,height,depth} cm (schema-confirmed); lockers must fit.
-                            'parcels'     => [['seqNo' => 1, 'weight' => self::order_weight_kg($order, 2.0),
+                            'parcels'     => [['seqNo' => 1, 'weight' => self::order_weight_kg($order),
                                                'size' => ['width' => $dims['width'], 'depth' => $dims['length'], 'height' => $dims['height']]]]],
             'payment'   => ['courierServicePayer' => $payer === 'recipient' ? 'RECIPIENT' : 'SENDER'],
             'ref1'      => 'ORDER ' . $order->get_order_number(),
@@ -339,14 +339,26 @@ class BGC_Speedy extends BGC_Abstract_Courier {
         return self::parse_tracking($resp);
     }
 
+    /**
+     * Parse a /track response. Field names are Speedy's own (api.speedy.bg/v1/schema): TrackedParcel
+     * {parcelId, operations, trackPhase} and TrackedParcelOperation {operationCode, dateTime, description,
+     * comment, place}. There is no `name`, `date` or `id` on the response side - reading those left every
+     * event unnamed, so order notes printed the bare numeric operationCode ("Speedy tracking update: 148")
+     * and BGC_Tracking::classify() never saw the Bulgarian text it matches on. The REQUEST side does use
+     * `id` (TrackShipmentParcelRef) - that part was right.
+     */
     public static function parse_tracking(array $resp): BGC_Tracking {
         $parcel = $resp['parcels'][0] ?? [];
         $ops = $parcel['operations'] ?? [];
         $events = array_map(static fn($o) => [
-            'code' => (string) ($o['operationCode'] ?? ''), 'name' => (string) ($o['name'] ?? ''), 'date' => (string) ($o['date'] ?? ''),
+            'code' => (string) ($o['operationCode'] ?? ''),
+            // description is the operation name (Bulgarian - auth() defaults language=BG); comment is the
+            // next-best text. Both empty leaves the name blank and human() falls back to the code.
+            'name' => (string) (($o['description'] ?? '') ?: ($o['comment'] ?? '')),
+            'date' => (string) ($o['dateTime'] ?? ''),
         ], $ops);
         $status = $events ? end($events)['code'] : 'UNKNOWN';
-        return new BGC_Tracking((string) ($parcel['id'] ?? ''), $status, $events);
+        return new BGC_Tracking((string) ($parcel['parcelId'] ?? ''), $status, $events);
     }
 
     public function cancel_label(string $waybill): bool {
