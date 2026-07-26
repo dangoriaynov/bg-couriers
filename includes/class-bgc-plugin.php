@@ -62,12 +62,15 @@ class BGC_Plugin {
         add_action('init', ['BGC_Tracking_Poller', 'schedule']);
         add_action(BGC_Tracking_Poller::HOOK, ['BGC_Tracking_Poller', 'run']);
         add_action('update_option_bgc_tracking_poll', ['BGC_Tracking_Poller', 'schedule']); // re-schedule on change
-        // Hide our internal shipping-line meta from the admin order screen. New orders store it under the
-        // underscore-prefixed keys WC hides automatically (admin + customer emails/pages); this covers legacy
-        // orders that stored the unprefixed keys.
+        // Hide our internal shipping-line meta from the admin order screen. The front end (emails, order
+        // pages) hides underscore-prefixed keys on its own, but the admin order editor renders item meta via
+        // get_formatted_meta_data('') - no prefix hiding - so every key must be listed here explicitly. Both
+        // the current underscore-prefixed keys and the unprefixed ones legacy orders stored.
         add_filter('woocommerce_hidden_order_itemmeta', static function ($keys) {
-            $keys[] = 'bgc_source';
-            $keys[] = 'bgc_method';
+            foreach (['bgc_source', 'bgc_method', 'bgc_info_price'] as $k) {
+                $keys[] = $k;
+                $keys[] = '_' . $k;
+            }
             return $keys;
         });
         add_filter('woocommerce_shipping_methods', function ($methods) {
