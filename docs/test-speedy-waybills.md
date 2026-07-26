@@ -14,3 +14,5 @@ New test shipments are appended here as they are created.
 | 63681572425 | 2026-07-24 | #214 | Batch-print layout test (to office 816, В. Търново; COD 18 as postal money transfer) - CANCELLED 2026-07-24 by owner |
 | 63681572559 | 2026-07-24 | #216 | Batch-print layout test (to address, ул. Витоша 5, Sofia) - CANCELLED 2026-07-24 by owner |
 | 63681603820 | 2026-07-24 | #215 | Batch-print layout test (to automat 9480, Sofia; created after the 200-with-error fix + 30x20x10 dims) - CANCELLED 2026-07-24 by owner |
+| 63682897258 | 2026-07-26 | dev 218 | Re-issue-button E2E, step 1: generate (to office 190, site 151) - CANCELLED by the re-issue itself |
+| 63682897289 | 2026-07-26 | dev 218 | Re-issue-button E2E, step 2: the waybill the re-issue created - CANCELLED by the script at the end |

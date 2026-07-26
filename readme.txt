@@ -99,6 +99,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Thank-you page order summary: [bgc_order_summary] shortcode for custom pages + a delivery card on the native order-received page.
 * Speedy batch printing uses Speedy's own 4-labels-per-A4 layout.
 * Automatic shipment-status tracking (WP-Cron) with order notes.
+* One-click waybill re-issue from the orders list and the order screen - voids the current waybill and issues a new one from the order's current details.
 * Free-shipping thresholds per delivery option (a courier-level threshold overrides them), shared parcel dimensions, weight and contents description for all couriers, per-option card-payment control for Speedy COD.
 
 = 0.1.0 =
