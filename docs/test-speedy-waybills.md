@@ -16,3 +16,6 @@ New test shipments are appended here as they are created.
 | 63681603820 | 2026-07-24 | #215 | Batch-print layout test (to automat 9480, Sofia; created after the 200-with-error fix + 30x20x10 dims) - CANCELLED 2026-07-24 by owner |
 | 63682897258 | 2026-07-26 | dev 218 | Re-issue-button E2E, step 1: generate (to office 190, site 151) - CANCELLED by the re-issue itself |
 | 63682897289 | 2026-07-26 | dev 218 | Re-issue-button E2E, step 2: the waybill the re-issue created - CANCELLED by the script at the end |
+| 63682905549 | 2026-07-26 | dev 219 | Bulk-behaviour E2E: pre-label, then proved bulk Generate + Print leave it untouched - CANCELLED by the bulk re-issue |
+| 63682905554 | 2026-07-26 | dev 220 | Bulk-behaviour E2E: the only waybill bulk Generate created (the missing one) - CANCELLED by the script |
+| 63682905565 | 2026-07-26 | dev 219 | Bulk-behaviour E2E: created by bulk Re-issue - CANCELLED by the script at the end |
