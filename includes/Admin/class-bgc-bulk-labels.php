@@ -63,8 +63,28 @@ class BGC_Bulk_Labels {
             }
         }
         if ($print_ids) { set_transient('bgc_print_batch_' . get_current_user_id(), $print_ids, 5 * MINUTE_IN_SECONDS); }
-        $c = self::summary($results);
-        return add_query_arg(array_merge(['bgc_bulk' => 1, 'bgc_print' => $print_ids ? 1 : 0], $c), $redirect);
+        self::stash_notice(['kind' => 'generate', 'print' => (bool) $print_ids] + self::summary($results));
+        return $redirect;
+    }
+
+    /**
+     * Hand the bulk result to the admin notice through a ONE-SHOT transient rather than query args.
+     * Query args survive a page refresh and get copied into the list table's pagination / filter links, so
+     * the same "9 re-issued" notice kept reappearing and read as if the action had run again - it had not,
+     * because the action only ever runs on the POSTed form (WooCommerce redirects to the plain referer,
+     * which carries neither `action` nor `id[]`). Read once, then deleted.
+     */
+    private static function stash_notice(array $payload): void {
+        set_transient('bgc_bulk_notice_' . get_current_user_id(), $payload, 5 * MINUTE_IN_SECONDS);
+    }
+
+    /** @return array|null the pending bulk result, consumed so it can never render twice */
+    private static function take_notice(): ?array {
+        $key     = 'bgc_bulk_notice_' . get_current_user_id();
+        $payload = get_transient($key);
+        if (!is_array($payload) || empty($payload['kind'])) { return null; }
+        delete_transient($key);
+        return $payload;
     }
 
     /**
@@ -129,7 +149,8 @@ class BGC_Bulk_Labels {
             }
         }
         if ($print_ids) { set_transient('bgc_print_batch_' . get_current_user_id(), $print_ids, 5 * MINUTE_IN_SECONDS); }
-        return add_query_arg(array_merge(['bgc_bulk_regen' => 1, 'bgc_print' => $print_ids ? 1 : 0], $c), $redirect);
+        self::stash_notice(['kind' => 'regen', 'print' => (bool) $print_ids] + $c);
+        return $redirect;
     }
 
     /** Bulk-cancel each selected order's waybill (via BGC_Labels::cancel, which voids + clears it). */
@@ -145,16 +166,16 @@ class BGC_Bulk_Labels {
                 $order->add_order_note(sprintf(__('BG Couriers bulk cancel failed: %s', 'bg-couriers'), $e->getMessage()));
             }
         }
-        return add_query_arg(array_merge(['bgc_bulk_cancel' => 1], $c), $redirect);
+        self::stash_notice(['kind' => 'cancel'] + $c);
+        return $redirect;
     }
 
     /**
      * "Print N on A4 / A6 stickers" buttons for the batch just generated or re-issued (the order ids are
      * in the bgc_print_batch transient). Returns pre-escaped HTML, or '' when there is nothing to print.
      */
-    private function print_links(int $total): string {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only redirect param
-        if (empty($_GET['bgc_print']) || $total <= 0) { return ''; }
+    private function print_links(bool $offer, int $total): string {
+        if (!$offer || $total <= 0) { return ''; }
         $base = admin_url('admin-post.php?action=bgc_print_batch');
         $a4   = esc_url(wp_nonce_url($base . '&paper=a4', 'bgc_print_batch'));
         $a6   = esc_url(wp_nonce_url($base . '&paper=a6', 'bgc_print_batch'));
@@ -164,43 +185,40 @@ class BGC_Bulk_Labels {
             . ' <a class="button" target="_blank" href="' . $a6 . '">' . esc_html__('A6 stickers', 'bg-couriers') . '</a>';
     }
 
+    /**
+     * Render the result of the last bulk action, exactly once. The payload comes from a transient that is
+     * consumed on read, so refreshing the page (or paging / filtering, which used to carry the counters
+     * along in the URL) no longer replays a notice that reads like the action ran again.
+     */
     public function notice(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only redirect param, no state change
-        if (!empty($_GET['bgc_bulk_regen'])) {
-            $rc = ['regenerated' => 0, 'generated' => 0, 'skipped' => 0, 'failed' => 0];
-            foreach ($rc as $k => $_) { $rc[$k] = (int) wp_unslash($_GET[$k] ?? 0); } // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast read-only redirect param
+        $p = self::take_notice();
+        if ($p === null) { return; }
+        $n = static function (string $k) use ($p): int { return (int) ($p[$k] ?? 0); };
+        $link = '';
+
+        if ($p['kind'] === 'regen') {
             $msg = sprintf(
                 /* translators: 1: re-issued (had a waybill) 2: newly generated (had none) 3: skipped 4: failed */
                 esc_html__('Shipping labels: %1$d re-issued, %2$d newly generated, %3$d skipped, %4$d failed.', 'bg-couriers'),
-                $rc['regenerated'], $rc['generated'], $rc['skipped'], $rc['failed']
+                $n('regenerated'), $n('generated'), $n('skipped'), $n('failed')
             );
-            $cls = $rc['failed'] ? 'notice-warning' : 'notice-success';
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $msg is esc_html__()'d, print_links() returns pre-escaped HTML
-            echo '<div class="notice ' . esc_attr($cls) . ' is-dismissible"><p>' . $msg . $this->print_links($rc['regenerated'] + $rc['generated']) . '</p></div>';
-            return;
-        }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only redirect param, no state change
-        if (!empty($_GET['bgc_bulk_cancel'])) {
-            $cc = ['cancelled' => 0, 'skipped' => 0, 'failed' => 0];
-            foreach ($cc as $k => $_) { $cc[$k] = (int) wp_unslash($_GET[$k] ?? 0); } // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast read-only redirect param
+            $link = $this->print_links(!empty($p['print']), $n('regenerated') + $n('generated'));
+        } elseif ($p['kind'] === 'cancel') {
             $msg = sprintf(
                 /* translators: 1: cancelled 2: skipped 3: failed */
                 esc_html__('Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed.', 'bg-couriers'),
-                $cc['cancelled'], $cc['skipped'], $cc['failed']
+                $n('cancelled'), $n('skipped'), $n('failed')
             );
-            echo '<div class="notice ' . ($cc['failed'] ? 'notice-warning' : 'notice-success') . ' is-dismissible"><p>' . esc_html($msg) . '</p></div>';
-            return;
+        } else {
+            $msg = sprintf(
+                /* translators: 1: generated 2: reused 3: skipped 4: failed */
+                esc_html__('Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed.', 'bg-couriers'),
+                $n('generated'), $n('reused'), $n('skipped'), $n('failed')
+            );
+            $link = $this->print_links(!empty($p['print']), $n('generated') + $n('reused'));
         }
-        if (empty($_GET['bgc_bulk'])) { return; } // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only redirect param
-        $c = ['generated' => 0, 'reused' => 0, 'skipped' => 0, 'failed' => 0];
-        foreach ($c as $k => $_) { $c[$k] = (int) wp_unslash($_GET[$k] ?? 0); } // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast read-only redirect param
-        $msg = sprintf(
-            /* translators: 1: generated 2: reused 3: skipped 4: failed */
-            esc_html__('Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed.', 'bg-couriers'),
-            $c['generated'], $c['reused'], $c['skipped'], $c['failed']
-        );
-        $link = $this->print_links($c['generated'] + $c['reused']);
-        $cls  = $c['failed'] ? 'notice-warning' : 'notice-success';
+
+        $cls = $n('failed') ? 'notice-warning' : 'notice-success';
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $msg is esc_html__()'d, $link is pre-escaped HTML (esc_url/esc_html)
         echo '<div class="notice ' . esc_attr($cls) . ' is-dismissible"><p>' . $msg . $link . '</p></div>';
     }
