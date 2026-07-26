@@ -19,3 +19,6 @@ New test shipments are appended here as they are created.
 | 63682905549 | 2026-07-26 | dev 219 | Bulk-behaviour E2E: pre-label, then proved bulk Generate + Print leave it untouched - CANCELLED by the bulk re-issue |
 | 63682905554 | 2026-07-26 | dev 220 | Bulk-behaviour E2E: the only waybill bulk Generate created (the missing one) - CANCELLED by the script |
 | 63682905565 | 2026-07-26 | dev 219 | Bulk-behaviour E2E: created by bulk Re-issue - CANCELLED by the script at the end |
+| 63682911736 | 2026-07-26 | dev 221 | Bulk re-issue (new semantics) E2E: pre-label - CANCELLED by the re-issue |
+| 63682911743 | 2026-07-26 | dev 221 | Bulk re-issue (new semantics) E2E: the replacement - CANCELLED by the script |
+| 63682911801 | 2026-07-26 | dev 222 | Bulk re-issue (new semantics) E2E: order that had NO waybill and now gets one - CANCELLED by the script |
