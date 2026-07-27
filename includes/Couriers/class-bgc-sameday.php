@@ -43,13 +43,14 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
      * serviceCode (cached a day). The merchant never types ids - Sameday's own plugin imports them too.
      */
     public function service_id(string $type): int {
-        $map = get_transient('bgc_sameday_services');
+        $ckey = $this->cache_key('services');
+        $map  = get_transient($ckey);
         if (!is_array($map) || !$map) {
             $map = [];
             foreach ($this->get_paged('/api/client/services') as $s) {
                 $map[(string) ($s['serviceCode'] ?? '')] = (int) ($s['id'] ?? 0);
             }
-            if ($map) { set_transient('bgc_sameday_services', $map, DAY_IN_SECONDS); }
+            if ($map) { set_transient($ckey, $map, DAY_IN_SECONDS); }
         }
         return (int) ($map[self::SERVICE_CODES[$type] ?? ''] ?? 0);
     }
@@ -58,13 +59,14 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
     public function pickup_point_id(): int {
         $opt = (int) get_option('bgc_sameday_pickup_point', 0);
         if ($opt > 0) { return $opt; }
-        $id = (int) get_transient('bgc_sameday_pickup_default');
+        $ckey = $this->cache_key('pickup_default');
+        $id   = (int) get_transient($ckey);
         if ($id > 0) { return $id; }
         foreach ($this->get_paged('/api/client/pickup-points') as $pp) {
             if (!empty($pp['defaultPickupPoint'])) { $id = (int) ($pp['id'] ?? 0); break; }
             if (!$id) { $id = (int) ($pp['id'] ?? 0); } // fall back to the first one
         }
-        if ($id > 0) { set_transient('bgc_sameday_pickup_default', $id, DAY_IN_SECONDS); }
+        if ($id > 0) { set_transient($ckey, $id, DAY_IN_SECONDS); }
         return $id;
     }
 
@@ -98,6 +100,18 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
     // ── Auth ─────────────────────────────────────────────────────────────────
 
     /**
+     * Cache key for anything that belongs to ONE account on ONE environment - the auth token, the
+     * discovered service map, the default pickup point. Without the account+host in the key, switching
+     * the credentials or flipping Live mode kept serving the previous account's cached values: the old
+     * token went to the new host and every call came back HTTP 401, and the service ids / pickup point
+     * silently stayed those of the other account. Changing either now simply misses the cache.
+     */
+    private function cache_key(string $suffix): string {
+        $who = $this->base . '|' . (string) ($this->config['username'] ?? '');
+        return 'bgc_sameday_' . $suffix . '_' . substr(md5($who), 0, 12);
+    }
+
+    /**
      * Return a valid X-Auth-Token, fetching a new one when absent/expired.
      *
      * Request shape confirmed from SDK:
@@ -107,7 +121,8 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
      *   JSON { "token": "...", "expire_at": "YYYY-MM-DD HH:MM" }
      */
     protected function auth_token(): string {
-        $tok = get_transient('bgc_sameday_token');
+        $key = $this->cache_key('token');
+        $tok = get_transient($key);
         if (is_string($tok) && $tok !== '') {
             return $tok;
         }
@@ -131,7 +146,7 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
             throw new BGC_Api_Exception('Sameday authentication failed: no token in response');
         }
         // expire_at is "YYYY-MM-DD HH:MM"; token TTL ~1h, refresh 10 min early.
-        set_transient('bgc_sameday_token', $tok, 50 * MINUTE_IN_SECONDS);
+        set_transient($key, $tok, 50 * MINUTE_IN_SECONDS);
         return $tok;
     }
 
@@ -167,7 +182,9 @@ class BGC_Sameday extends BGC_Abstract_Courier implements BGC_Courier_Interface 
         // Sameday returns 4xx/5xx with a JSON error body; without a status check those would be treated as a
         // successful (empty) response and produce a blank waybill. Throw so the caller surfaces the real error.
         if ($code < 200 || $code >= 300) {
-            $msg = is_array($data) ? ($data['message'] ?? $data['error'] ?? substr($raw, 0, 300)) : substr($raw, 0, 300);
+            $msg = is_array($data) ? ($data['message'] ?? $data['error'] ?? $raw) : $raw;
+            if (!is_scalar($msg)) { $msg = wp_json_encode($msg); } // nested field errors arrive as arrays
+            $msg = substr((string) $msg, 0, 300);
             throw new BGC_Api_Exception(esc_html('Sameday HTTP ' . $code . ': ' . $msg));
         }
         return is_array($data) ? $data : [];

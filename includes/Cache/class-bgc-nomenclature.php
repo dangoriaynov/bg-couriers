@@ -16,7 +16,9 @@ class BGC_Nomenclature {
                  VALUES (%s,%d,%s,%s,%s,%s,%s,NOW())
                  ON DUPLICATE KEY UPDATE name=VALUES(name),name_lat=VALUES(name_lat),
                  post_code=VALUES(post_code),region=VALUES(region),sync_run=VALUES(sync_run),updated_at=NOW()",
-                $courier, $r['city_id'], $r['name'], $r['name_lat'], $r['post_code'], $r['region'], $run
+                // Not every courier supplies every column - Sameday's city rows carry no Latin name and
+                // no region, and reading them unguarded filled the sync log with PHP warnings.
+                $courier, $r['city_id'], $r['name'], $r['name_lat'] ?? '', $r['post_code'] ?? '', $r['region'] ?? '', $run
             ));
             $n++;
         }
