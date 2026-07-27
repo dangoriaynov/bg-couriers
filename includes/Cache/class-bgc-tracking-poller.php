@@ -77,6 +77,40 @@ class BGC_Tracking_Poller {
             $order->update_status($target, __('BG Couriers: shipment delivered (auto status).', 'bg-couriers')); // saves the order
             return;
         }
+        if ($stage === 'transit' && self::mark_shipped($order, $t)) { return; } // update_status() saved it
         $order->save();
+    }
+
+    /**
+     * Move the order to the configured "shipped" status the first time the courier has actually taken the
+     * parcel. Returns true when the status was changed (which saves the order). Public because this single
+     * decision is the whole feature and is worth testing directly.
+     *
+     * "Taken" means the shipment moved BEYOND being registered: creating a waybill only hands the courier
+     * the data, and every courier reports that as its own first tracking event (Speedy's 148 "Получена
+     * информация за пратка" is exactly this). So a second event - or a status different from the very
+     * first one we recorded, for couriers with a thin event list - is the signal that it is on its way.
+     */
+    public static function mark_shipped(\WC_Order $order, BGC_Tracking $t): bool {
+        $target = (string) get_option('bgc_autostatus_on_shipped', '');
+        $target = strpos($target, 'wc-') === 0 ? substr($target, 3) : $target;
+        if ($target === '') { return false; }                                  // feature is off
+        if ($order->get_meta('_bgc_shipped_marked') === 'yes') { return false; } // only ever once
+        // Never drag an order backwards out of a state the merchant (or the delivered rule) already set.
+        if (in_array($order->get_status(), [$target, 'completed', 'cancelled', 'refunded', 'failed'], true)) { return false; }
+
+        $first = (string) $order->get_meta('_bgc_track_first');
+        if ($first === '') {
+            // First time we have seen this waybill: remember where it started and wait for it to move,
+            // unless the history already shows more than the registration event.
+            $order->update_meta_data('_bgc_track_first', $t->status);
+            if (count($t->events) <= 1) { return false; }
+        } elseif ($t->status === $first && count($t->events) <= 1) {
+            return false; // still only registered
+        }
+
+        $order->update_meta_data('_bgc_shipped_marked', 'yes');
+        $order->update_status($target, __('BG Couriers: the courier has picked up the shipment (auto status).', 'bg-couriers'));
+        return true;
     }
 }

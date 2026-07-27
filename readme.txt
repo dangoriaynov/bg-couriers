@@ -98,7 +98,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Per-courier "Delivery in the order total" toggle - or let the customer pay the courier on delivery (COD then collects only the goods total).
 * Thank-you page order summary: [bgc_order_summary] shortcode for custom pages + a delivery card on the native order-received page.
 * Speedy batch printing uses Speedy's own 4-labels-per-A4 layout.
-* Automatic shipment-status tracking (WP-Cron) with order notes.
+* Automatic shipment-status tracking (WP-Cron) with order notes, and an optional “Shipped” order status set automatically once the courier actually picks the parcel up (and “Completed” on delivery).
 * One-click waybill re-issue from the orders list and the order screen - voids the current waybill and issues a new one from the order's current details; also available as a bulk action that re-issues every selected order.
 * Orders list rows tinted by courier, with a colour per courier in the settings.
 * Unsaved-changes indicator on the settings screen, with a warning before you navigate away.
