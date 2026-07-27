@@ -1,12 +1,12 @@
 <?php
 use PHPUnit\Framework\TestCase;
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-api-exception.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-quote.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-label.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-tracking.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-sameday.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.php';
 
 /**
  * Sameday nomenclature parsers must produce the framework row shape so the shared checkout
@@ -20,7 +20,7 @@ final class SamedayNomenclatureTest extends TestCase {
     }
 
     public function test_parse_cities_shape_and_first_row(): void {
-        $rows = BGC_Sameday::parse_cities($this->fx('cities.json'));
+        $rows = BGCouriers_Sameday::parse_cities($this->fx('cities.json'));
         $this->assertNotEmpty($rows);
         $this->assertSame(['city_id', 'name', 'post_code', 'region'], array_keys($rows[0]));
         $this->assertSame(161, $rows[0]['city_id']);
@@ -32,7 +32,7 @@ final class SamedayNomenclatureTest extends TestCase {
     public function test_parse_offices_lockers_are_automat_ooh_are_office(): void {
         // Live shapes: lockers carry lockerId, OOH points oohId, and the OOH listing INCLUDES the
         // easyboxes - the duplicate (501) must be deduped so only the true PUDO becomes 'office'.
-        $rows = BGC_Sameday::parse_offices($this->fx('lockers.json'), $this->fx('ooh.json'));
+        $rows = BGCouriers_Sameday::parse_offices($this->fx('lockers.json'), $this->fx('ooh.json'));
         $this->assertCount(3, $rows); // 2 lockers + 1 PUDO (easybox duplicate dropped)
         $this->assertSame(['office_id', 'code', 'city_id', 'type', 'name', 'address', 'lat', 'lng'], array_keys($rows[0]));
         // lockers first → automat

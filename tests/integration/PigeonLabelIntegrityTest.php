@@ -11,7 +11,7 @@
 final class PigeonLabelIntegrityTest extends WP_UnitTestCase {
     /** Invoke build_shipment_body via reflection (it is static). */
     private function build(WC_Order $order, int $pickup_office_id): array {
-        $m = new ReflectionMethod('BGC_Pigeon', 'build_shipment_body');
+        $m = new ReflectionMethod('BGCouriers_Pigeon', 'build_shipment_body');
         $m->setAccessible(true);
         return $m->invoke(null, $order, $pickup_office_id);
     }
@@ -27,14 +27,14 @@ final class PigeonLabelIntegrityTest extends WP_UnitTestCase {
         $order->set_billing_last_name('Иванова');
         $order->set_billing_phone('0888000001');
         $order->set_billing_email('m@example.bg');
-        $order->update_meta_data('_bgc_courier', 'pigeon');
-        $order->update_meta_data('_bgc_method', 'office');
-        $order->update_meta_data('_bgc_office_id', 2001);
-        $order->update_meta_data('_bgc_site_id', 68134);
-        $order->update_meta_data('_bgc_weight_kg', 1.5);
+        $order->update_meta_data('_bgcouriers_courier', 'pigeon');
+        $order->update_meta_data('_bgcouriers_method', 'office');
+        $order->update_meta_data('_bgcouriers_office_id', 2001);
+        $order->update_meta_data('_bgcouriers_site_id', 68134);
+        $order->update_meta_data('_bgcouriers_weight_kg', 1.5);
         $order->save();
 
-        update_option('bgc_send_email', 'yes'); // opt in to forwarding the customer e-mail to the courier
+        update_option('bgcouriers_send_email', 'yes'); // opt in to forwarding the customer e-mail to the courier
         $body = $this->build($order, 1001);
 
         // Pickup always office
@@ -69,15 +69,15 @@ final class PigeonLabelIntegrityTest extends WP_UnitTestCase {
         $order->set_billing_last_name('Петров');
         $order->set_billing_phone('0888123456');
         $order->set_billing_email('i@example.bg');
-        $order->update_meta_data('_bgc_courier', 'pigeon');
-        $order->update_meta_data('_bgc_method', 'address');
-        $order->update_meta_data('_bgc_site_id', 68134);
-        $order->update_meta_data('_bgc_street_name', 'бул. Витоша');
-        $order->update_meta_data('_bgc_street_no', '5');
-        $order->update_meta_data('_bgc_weight_kg', 2.0);
+        $order->update_meta_data('_bgcouriers_courier', 'pigeon');
+        $order->update_meta_data('_bgcouriers_method', 'address');
+        $order->update_meta_data('_bgcouriers_site_id', 68134);
+        $order->update_meta_data('_bgcouriers_street_name', 'бул. Витоша');
+        $order->update_meta_data('_bgcouriers_street_no', '5');
+        $order->update_meta_data('_bgcouriers_weight_kg', 2.0);
         $order->save();
 
-        update_option('bgc_send_email', 'yes'); // opt in to forwarding the customer e-mail to the courier
+        update_option('bgcouriers_send_email', 'yes'); // opt in to forwarding the customer e-mail to the courier
         $body = $this->build($order, 1001);
 
         $this->assertSame('address', $body['delivery_type']);
@@ -108,10 +108,10 @@ final class PigeonLabelIntegrityTest extends WP_UnitTestCase {
         $order->set_billing_last_name('Купувач');
         $order->set_billing_phone('0700000001');
         $order->set_billing_email('t@example.bg');
-        $order->update_meta_data('_bgc_courier', 'pigeon');
-        $order->update_meta_data('_bgc_method', 'office');
-        $order->update_meta_data('_bgc_office_id', 2001);
-        $order->update_meta_data('_bgc_weight_kg', 1.0);
+        $order->update_meta_data('_bgcouriers_courier', 'pigeon');
+        $order->update_meta_data('_bgcouriers_method', 'office');
+        $order->update_meta_data('_bgcouriers_office_id', 2001);
+        $order->update_meta_data('_bgcouriers_weight_kg', 1.0);
         $order->add_product($product, 3);
         $order->save();
 

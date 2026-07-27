@@ -1,13 +1,13 @@
 <?php
 // tests/unit/PigeonQuoteTest.php
 use PHPUnit\Framework\TestCase;
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-api-exception.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-quote.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-label.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-tracking.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-pigeon.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-pigeon.php';
 
 /** @group pigeon */
 final class PigeonQuoteTest extends TestCase {
@@ -15,11 +15,11 @@ final class PigeonQuoteTest extends TestCase {
         return json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/pigeon/' . $f), true);
     }
 
-    // (a) parse_price returns BGC_Quote with price=13.26, source='live', currency='EUR'
+    // (a) parse_price returns BGCouriers_Quote with price=13.26, source='live', currency='EUR'
     public function test_parse_price_returns_quote(): void {
         $resp = $this->fx('calculate.json');
-        $q    = BGC_Pigeon::parse_price($resp, 'EUR');
-        $this->assertInstanceOf(BGC_Quote::class, $q);
+        $q    = BGCouriers_Pigeon::parse_price($resp, 'EUR');
+        $this->assertInstanceOf(BGCouriers_Quote::class, $q);
         $this->assertGreaterThan(0, $q->price);
         $this->assertEqualsWithDelta(13.26, $q->price, 0.001);
         $this->assertSame('EUR', $q->currency);
@@ -35,7 +35,7 @@ final class PigeonQuoteTest extends TestCase {
             'weight_kg'  => 1.5,
             'cod_amount' => 0,
         ];
-        $body = BGC_Pigeon::build_calculate_body($s, 1001);
+        $body = BGCouriers_Pigeon::build_calculate_body($s, 1001);
 
         $this->assertSame('office', $body['pickup_type']);
         $this->assertSame(1001, $body['pickup_office_id']);
@@ -62,7 +62,7 @@ final class PigeonQuoteTest extends TestCase {
             'office_id' => 3001,
             'weight_kg' => 0.5,
         ];
-        $body = BGC_Pigeon::build_calculate_body($s, 1001);
+        $body = BGCouriers_Pigeon::build_calculate_body($s, 1001);
 
         $this->assertSame('locker', $body['delivery_type']);
         $this->assertSame(3001, $body['delivery_office_id']);
@@ -78,7 +78,7 @@ final class PigeonQuoteTest extends TestCase {
             'street_no'   => '1',
             'weight_kg'   => 2.0,
         ];
-        $body = BGC_Pigeon::build_calculate_body($s, 1001);
+        $body = BGCouriers_Pigeon::build_calculate_body($s, 1001);
 
         $this->assertSame('address', $body['delivery_type']);
         $this->assertArrayNotHasKey('delivery_office_id', $body);
@@ -98,7 +98,7 @@ final class PigeonQuoteTest extends TestCase {
             'weight_kg'  => 1.0,
             'cod_amount' => 49.99,
         ];
-        $body = BGC_Pigeon::build_calculate_body($s, 1001);
+        $body = BGCouriers_Pigeon::build_calculate_body($s, 1001);
 
         $this->assertArrayHasKey('service_codes', $body);
         $this->assertEqualsWithDelta(49.99, $body['service_codes']['cod_amount'], 0.001);
@@ -107,7 +107,7 @@ final class PigeonQuoteTest extends TestCase {
     // (f) weight below minimum is clamped to 0.1
     public function test_build_calculate_body_min_weight(): void {
         $s = ['method' => 'office', 'office_id' => 2001, 'weight_kg' => 0.0];
-        $body = BGC_Pigeon::build_calculate_body($s, 1001);
+        $body = BGCouriers_Pigeon::build_calculate_body($s, 1001);
         $this->assertSame(0.1, $body['packages'][0]['weight']);
     }
 }

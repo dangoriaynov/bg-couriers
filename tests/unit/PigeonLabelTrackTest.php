@@ -1,16 +1,16 @@
 <?php
 // tests/unit/PigeonLabelTrackTest.php
 use PHPUnit\Framework\TestCase;
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-api-exception.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-quote.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-label.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-tracking.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-pigeon.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-pigeon.php';
 
 /**
- * Pure parser tests for BGC_Pigeon label creation and tracking responses.
+ * Pure parser tests for BGCouriers_Pigeon label creation and tracking responses.
  *
  * @group pigeon
  */
@@ -21,36 +21,36 @@ final class PigeonLabelTrackTest extends TestCase {
 
     public function test_parse_shipment_id_returns_reference_number(): void {
         $resp = $this->fx('create.json');
-        $this->assertSame('455791936383', BGC_Pigeon::parse_shipment_id($resp));
+        $this->assertSame('455791936383', BGCouriers_Pigeon::parse_shipment_id($resp));
     }
 
     public function test_parse_tracking_returns_bgc_tracking_instance(): void {
         $resp = $this->fx('track.json');
-        $t    = BGC_Pigeon::parse_tracking($resp);
-        $this->assertInstanceOf(BGC_Tracking::class, $t);
+        $t    = BGCouriers_Pigeon::parse_tracking($resp);
+        $this->assertInstanceOf(BGCouriers_Tracking::class, $t);
     }
 
     public function test_parse_tracking_waybill(): void {
         $resp = $this->fx('track.json');
-        $t    = BGC_Pigeon::parse_tracking($resp);
+        $t    = BGCouriers_Pigeon::parse_tracking($resp);
         $this->assertSame('455791936383', $t->waybill);
     }
 
     public function test_parse_tracking_status(): void {
         $resp = $this->fx('track.json');
-        $t    = BGC_Pigeon::parse_tracking($resp);
+        $t    = BGCouriers_Pigeon::parse_tracking($resp);
         $this->assertSame('Доставена', $t->status);
     }
 
     public function test_parse_tracking_event_count(): void {
         $resp = $this->fx('track.json');
-        $t    = BGC_Pigeon::parse_tracking($resp);
+        $t    = BGCouriers_Pigeon::parse_tracking($resp);
         $this->assertCount(2, $t->events);
     }
 
     public function test_parse_tracking_first_event_fields(): void {
         $resp = $this->fx('track.json');
-        $t    = BGC_Pigeon::parse_tracking($resp);
+        $t    = BGCouriers_Pigeon::parse_tracking($resp);
         $e0   = $t->events[0];
         $this->assertSame('registered', $e0['code']);
         $this->assertSame('Регистрирана пратка', $e0['name']);
@@ -59,7 +59,7 @@ final class PigeonLabelTrackTest extends TestCase {
 
     public function test_parse_tracking_second_event_fields(): void {
         $resp = $this->fx('track.json');
-        $t    = BGC_Pigeon::parse_tracking($resp);
+        $t    = BGCouriers_Pigeon::parse_tracking($resp);
         $e1   = $t->events[1];
         $this->assertSame('delivered', $e1['code']);
         $this->assertSame('Доставена', $e1['name']);

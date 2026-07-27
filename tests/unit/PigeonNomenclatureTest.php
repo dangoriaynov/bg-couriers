@@ -1,7 +1,7 @@
 <?php
 // tests/unit/PigeonNomenclatureTest.php
 use PHPUnit\Framework\TestCase;
-require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-pigeon.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-pigeon.php';
 
 /** @group pigeon */
 final class PigeonNomenclatureTest extends TestCase {
@@ -10,7 +10,7 @@ final class PigeonNomenclatureTest extends TestCase {
     }
 
     public function test_parse_cities_keys_and_first_row(): void {
-        $rows = BGC_Pigeon::parse_cities($this->fx('cities.json'));
+        $rows = BGCouriers_Pigeon::parse_cities($this->fx('cities.json'));
         $this->assertNotEmpty($rows);
         $r = $rows[0];
         $this->assertSame(['city_id', 'name', 'name_lat', 'post_code', 'region'], array_keys($r));
@@ -19,7 +19,7 @@ final class PigeonNomenclatureTest extends TestCase {
     }
 
     public function test_parse_cities_name_and_post_code(): void {
-        $rows = BGC_Pigeon::parse_cities($this->fx('cities.json'));
+        $rows = BGCouriers_Pigeon::parse_cities($this->fx('cities.json'));
         $r = $rows[0];
         $this->assertSame('Абланица', $r['name']);
         $this->assertSame('5574', $r['post_code']);
@@ -27,7 +27,7 @@ final class PigeonNomenclatureTest extends TestCase {
     }
 
     public function test_parse_offices_keys_and_type_mapping(): void {
-        $rows = BGC_Pigeon::parse_offices($this->fx('offices.json'));
+        $rows = BGCouriers_Pigeon::parse_offices($this->fx('offices.json'));
         $this->assertCount(2, $rows);
         $this->assertSame(['office_id', 'code', 'city_id', 'type', 'name', 'address', 'lat', 'lng'], array_keys($rows[0]));
         // office row
@@ -47,7 +47,7 @@ final class PigeonNomenclatureTest extends TestCase {
     }
 
     public function test_parse_streets_keys_and_label(): void {
-        $rows = BGC_Pigeon::parse_streets($this->fx('streets.json'));
+        $rows = BGCouriers_Pigeon::parse_streets($this->fx('streets.json'));
         $this->assertNotEmpty($rows);
         $this->assertSame(['id', 'name', 'type', 'label'], array_keys($rows[0]));
         // Find the boulevard row (type='булевард', name='ВИТОША')
@@ -63,7 +63,7 @@ final class PigeonNomenclatureTest extends TestCase {
     }
 
     public function test_pigeon_id_label_capabilities(): void {
-        $pigeon = new BGC_Pigeon([]);
+        $pigeon = new BGCouriers_Pigeon([]);
         $this->assertSame('pigeon', $pigeon->id());
         $this->assertSame('Pigeon Express', $pigeon->label());
         $this->assertSame(['address', 'office', 'automat', 'live_quote'], $pigeon->capabilities());

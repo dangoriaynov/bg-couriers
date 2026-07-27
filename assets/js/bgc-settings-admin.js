@@ -29,7 +29,7 @@
     });
 })(jQuery);
 
-/* Delivery-method sub-tabs: JS-switched panels, drag-to-reorder (saves via bgc_save_order with the
+/* Delivery-method sub-tabs: JS-switched panels, drag-to-reorder (saves via bgcouriers_save_order with the
    nonce/courier carried on the nav's data- attributes), per-method enable toggle tinting, and the
    courier-level free threshold greying out the per-option ones. */
 (function ($) {
@@ -45,7 +45,7 @@
                 start: function () { dragged = true; }, stop: function () { setTimeout(function () { dragged = false; }, 0); },
                 update: function () {
                     var order = mn.children('.bgc-method-tab').map(function () { return $(this).data('bgc-tab'); }).get().join(',');
-                    $.post(ajaxurl, { action: 'bgc_save_order', nonce: mn.data('nonce'), courier: mn.data('courier'), order: order });
+                    $.post(ajaxurl, { action: 'bgcouriers_save_order', nonce: mn.data('nonce'), courier: mn.data('courier'), order: order });
                 }
             });
         }
@@ -77,7 +77,7 @@
    revert your edits and the highlight and the warning both go away. */
 (function ($) {
     $(function () {
-        var C = (window.BGC_SET || {}).i18n || {};
+        var C = (window.BGCOURIERS_SET || {}).i18n || {};
         var $form = $('form#mainform');
         if (!$form.length || !$('.bgc-settings').length) { return; } // only our settings tab
         var $save = $form.find('.woocommerce-save-button, button[name="save"]').first();

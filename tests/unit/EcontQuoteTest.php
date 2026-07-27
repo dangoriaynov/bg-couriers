@@ -1,13 +1,13 @@
 <?php
 // tests/unit/EcontQuoteTest.php
 use PHPUnit\Framework\TestCase;
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-api-exception.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-quote.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-label.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-tracking.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-econt.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-econt.php';
 
 /** @group econt */
 final class EcontQuoteTest extends TestCase {
@@ -23,11 +23,11 @@ final class EcontQuoteTest extends TestCase {
         return json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/econt/' . $f), true);
     }
 
-    // (a) parse_price returns BGC_Quote with price=4.68, source='live', currency='EUR'
+    // (a) parse_price returns BGCouriers_Quote with price=4.68, source='live', currency='EUR'
     public function test_parse_price_returns_quote(): void {
         $resp = $this->fx('calculate.json');
-        $q = BGC_Econt::parse_price($resp, 'EUR');
-        $this->assertInstanceOf(BGC_Quote::class, $q);
+        $q = BGCouriers_Econt::parse_price($resp, 'EUR');
+        $this->assertInstanceOf(BGCouriers_Quote::class, $q);
         $this->assertGreaterThan(0, $q->price);
         $this->assertEqualsWithDelta(4.68, $q->price, 0.001);
         $this->assertSame('EUR', $q->currency);
@@ -46,7 +46,7 @@ final class EcontQuoteTest extends TestCase {
             'client'  => ['name' => 'S', 'phones' => ['1']],
             'address' => ['city' => ['id' => 41], 'street' => 'x', 'num' => '1'],
         ];
-        $body = BGC_Econt::build_calculate_body($s, $sender);
+        $body = BGCouriers_Econt::build_calculate_body($s, $sender);
 
         $this->assertSame('calculate', $body['mode']);
         $this->assertSame('1000', $body['label']['receiverOfficeCode']);
@@ -67,7 +67,7 @@ final class EcontQuoteTest extends TestCase {
             'client'  => ['name' => 'S', 'phones' => ['1']],
             'address' => ['city' => ['id' => 41], 'street' => 'x', 'num' => '1'],
         ];
-        $body = BGC_Econt::build_calculate_body($s, $sender);
+        $body = BGCouriers_Econt::build_calculate_body($s, $sender);
 
         $this->assertSame('calculate', $body['mode']);
         $this->assertSame(41, $body['label']['receiverAddress']['city']['id']);

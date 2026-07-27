@@ -4,7 +4,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 /**
- * Minimal stub for WC_Settings_Page so that class-bgc-wc-settings.php can be loaded
+ * Minimal stub for WC_Settings_Page so that class-bgcouriers-wc-settings.php can be loaded
  * in the unit suite without a running WordPress/WooCommerce environment.
  */
 if (!class_exists('WC_Settings_Page')) {
@@ -15,7 +15,7 @@ if (!class_exists('WC_Settings_Page')) {
     }
 }
 
-require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgc-wc-settings.php';
+require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-wc-settings.php';
 
 /**
  * @group pigeon
@@ -39,11 +39,11 @@ final class PigeonSettingsTest extends TestCase {
     }
 
     // -----------------------------------------------------------------------
-    // Helper: invoke a private method on a BGC_WC_Settings instance.
+    // Helper: invoke a private method on a BGCouriers_WC_Settings instance.
     // -----------------------------------------------------------------------
     private function invoke(string $method, array $args = []) {
-        $instance = new BGC_WC_Settings();
-        $rm = new ReflectionMethod(BGC_WC_Settings::class, $method);
+        $instance = new BGCouriers_WC_Settings();
+        $rm = new ReflectionMethod(BGCouriers_WC_Settings::class, $method);
         $rm->setAccessible(true);
         return $rm->invokeArgs($instance, $args);
     }
@@ -73,12 +73,12 @@ final class PigeonSettingsTest extends TestCase {
         $ids = array_column($fields, 'id');
 
         $required = [
-            'bgc_pigeon_enabled',
-            'bgc_pigeon_username',
-            'bgc_pigeon_password',
-            'bgc_pigeon_live',
-            'bgc_pigeon_pickup_office_id',
-            'bgc_pigeon_free_threshold',
+            'bgcouriers_pigeon_enabled',
+            'bgcouriers_pigeon_username',
+            'bgcouriers_pigeon_password',
+            'bgcouriers_pigeon_live',
+            'bgcouriers_pigeon_pickup_office_id',
+            'bgcouriers_pigeon_free_threshold',
         ];
 
         foreach ($required as $id) {
@@ -91,43 +91,43 @@ final class PigeonSettingsTest extends TestCase {
     // get_settings('pigeon') must return the pigeon fields merged with per-method fields
     // -----------------------------------------------------------------------
     public function test_get_settings_pigeon_includes_pigeon_fields(): void {
-        $instance = new BGC_WC_Settings();
+        $instance = new BGCouriers_WC_Settings();
         $settings = $instance->get_settings('pigeon');
 
         $ids = array_column($settings, 'id');
 
-        $this->assertContains('bgc_pigeon_enabled', $ids);
-        $this->assertContains('bgc_pigeon_password', $ids);
-        $this->assertContains('bgc_pigeon_live', $ids);
-        $this->assertContains('bgc_pigeon_pickup_office_id', $ids);
+        $this->assertContains('bgcouriers_pigeon_enabled', $ids);
+        $this->assertContains('bgcouriers_pigeon_password', $ids);
+        $this->assertContains('bgcouriers_pigeon_live', $ids);
+        $this->assertContains('bgcouriers_pigeon_pickup_office_id', $ids);
         // Per-method fields from method_fields('pigeon', 'office', …)
-        $this->assertContains('bgc_pigeon_office_enabled', $ids);
-        $this->assertContains('bgc_pigeon_address_enabled', $ids);
-        $this->assertContains('bgc_pigeon_automat_enabled', $ids);
+        $this->assertContains('bgcouriers_pigeon_office_enabled', $ids);
+        $this->assertContains('bgcouriers_pigeon_address_enabled', $ids);
+        $this->assertContains('bgcouriers_pigeon_automat_enabled', $ids);
     }
 
     // -----------------------------------------------------------------------
     // get_settings('speedy') and get_settings('econt') must be unchanged
     // -----------------------------------------------------------------------
     public function test_get_settings_speedy_unchanged(): void {
-        $instance = new BGC_WC_Settings();
+        $instance = new BGCouriers_WC_Settings();
         $settings = $instance->get_settings('speedy');
 
         $ids = array_column($settings, 'id');
 
-        $this->assertContains('bgc_speedy_enabled', $ids);
-        $this->assertContains('bgc_speedy_password', $ids);
-        $this->assertContains('bgc_speedy_office_enabled', $ids);
+        $this->assertContains('bgcouriers_speedy_enabled', $ids);
+        $this->assertContains('bgcouriers_speedy_password', $ids);
+        $this->assertContains('bgcouriers_speedy_office_enabled', $ids);
     }
 
     public function test_get_settings_econt_unchanged(): void {
-        $instance = new BGC_WC_Settings();
+        $instance = new BGCouriers_WC_Settings();
         $settings = $instance->get_settings('econt');
 
         $ids = array_column($settings, 'id');
 
-        $this->assertContains('bgc_econt_enabled', $ids);
-        $this->assertContains('bgc_econt_password', $ids);
-        $this->assertContains('bgc_econt_office_enabled', $ids);
+        $this->assertContains('bgcouriers_econt_enabled', $ids);
+        $this->assertContains('bgcouriers_econt_password', $ids);
+        $this->assertContains('bgcouriers_econt_office_enabled', $ids);
     }
 }

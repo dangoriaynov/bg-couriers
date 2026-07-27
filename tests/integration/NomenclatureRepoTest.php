@@ -3,35 +3,35 @@
  * @group core
  */
 final class NomenclatureRepoTest extends WP_UnitTestCase {
-    public function set_up() { parent::set_up(); BGC_Schema::create(); }
+    public function set_up() { parent::set_up(); BGCouriers_Schema::create(); }
 
     public function test_upsert_search_and_prune(): void {
-        BGC_Nomenclature::upsert_cities('speedy', [
+        BGCouriers_Nomenclature::upsert_cities('speedy', [
             ['city_id'=>1,'name'=>'Sofia','name_lat'=>'Sofia','post_code'=>'1000','region'=>'Sofia'],
             ['city_id'=>2,'name'=>'Dobrich','name_lat'=>'Dobrich','post_code'=>'9300','region'=>'Dobrich'],
         ], 'run1');
-        $this->assertSame(2, BGC_Nomenclature::count('speedy'));
-        $this->assertSame('Sofia', BGC_Nomenclature::city_by_postcode('speedy','1000')['name']);
-        $this->assertCount(1, BGC_Nomenclature::search_cities('speedy','Dob'));
+        $this->assertSame(2, BGCouriers_Nomenclature::count('speedy'));
+        $this->assertSame('Sofia', BGCouriers_Nomenclature::city_by_postcode('speedy','1000')['name']);
+        $this->assertCount(1, BGCouriers_Nomenclature::search_cities('speedy','Dob'));
 
         // Re-run with only city 1 present -> prune should remove city 2.
-        BGC_Nomenclature::upsert_cities('speedy', [
+        BGCouriers_Nomenclature::upsert_cities('speedy', [
             ['city_id'=>1,'name'=>'Sofia','name_lat'=>'Sofia','post_code'=>'1000','region'=>'Sofia'],
         ], 'run2');
-        $this->assertSame(1, BGC_Nomenclature::prune('speedy','run2'));
-        $this->assertSame(1, BGC_Nomenclature::count('speedy'));
+        $this->assertSame(1, BGCouriers_Nomenclature::prune('speedy','run2'));
+        $this->assertSame(1, BGCouriers_Nomenclature::count('speedy'));
     }
 
     public function test_offices_persist_code(): void {
-        BGC_Nomenclature::upsert_offices('econt', [
+        BGCouriers_Nomenclature::upsert_offices('econt', [
             ['office_id'=>34024,'code'=>'8015','city_id'=>2,'type'=>'automat','name'=>'Еконтомат','address'=>'ул. Марица 2','lat'=>43.849,'lng'=>25.954],
             ['office_id'=>1053,'code'=>'7538','city_id'=>2,'type'=>'office','name'=>'Айдемир','address'=>'ул. Тест 1'],
         ], 'run1');
-        $this->assertSame('8015', BGC_Nomenclature::office_by_id('econt', 34024)['code']);
+        $this->assertSame('8015', BGCouriers_Nomenclature::office_by_id('econt', 34024)['code']);
         // coordinates round-trip through storage (they feed the map picker)
-        $this->assertEqualsWithDelta(43.849, (float) BGC_Nomenclature::office_by_id('econt', 34024)['lat'], 0.001);
-        $this->assertEqualsWithDelta(25.954, (float) BGC_Nomenclature::office_by_id('econt', 34024)['lng'], 0.001);
-        $codes = array_column(BGC_Nomenclature::offices('econt', 2), 'code');
+        $this->assertEqualsWithDelta(43.849, (float) BGCouriers_Nomenclature::office_by_id('econt', 34024)['lat'], 0.001);
+        $this->assertEqualsWithDelta(25.954, (float) BGCouriers_Nomenclature::office_by_id('econt', 34024)['lng'], 0.001);
+        $codes = array_column(BGCouriers_Nomenclature::offices('econt', 2), 'code');
         $this->assertContains('8015', $codes);
         $this->assertContains('7538', $codes);
     }

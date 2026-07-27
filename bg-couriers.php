@@ -16,21 +16,21 @@
  */
 defined('ABSPATH') || exit;
 
-define('BGC_VERSION', '0.2.0');
-define('BGC_FILE', __FILE__);
-define('BGC_PATH', plugin_dir_path(__FILE__));
-define('BGC_URL', plugin_dir_url(__FILE__));
+define('BGCOURIERS_VERSION', '0.2.0');
+define('BGCOURIERS_FILE', __FILE__);
+define('BGCOURIERS_PATH', plugin_dir_path(__FILE__));
+define('BGCOURIERS_URL', plugin_dir_url(__FILE__));
 
-require_once BGC_PATH . 'includes/class-bgc-autoloader.php';
-BGC_Autoloader::register();
+require_once BGCOURIERS_PATH . 'includes/class-bgcouriers-autoloader.php';
+BGCouriers_Autoloader::register();
 
 // Translations: WordPress auto-loads them just-in-time from /languages (bg_BG ships there) for the
 // plugin's own text domain, so no manual load_plugin_textdomain() call is needed (discouraged since WP 4.6).
 
 register_activation_hook(__FILE__, function () {
-    require_once BGC_PATH . 'includes/class-bgc-autoloader.php';
-    BGC_Autoloader::register();
-    BGC_Schema::create();
+    require_once BGCOURIERS_PATH . 'includes/class-bgcouriers-autoloader.php';
+    BGCouriers_Autoloader::register();
+    BGCouriers_Schema::create();
 });
 
 add_action('before_woocommerce_init', function () {
@@ -43,9 +43,9 @@ add_action('plugins_loaded', function () {
     if (!class_exists('WooCommerce')) { return; }
     // Run schema upgrades on version change (dbDelta is idempotent - adds new columns like office lat/lng
     // to existing installs, since the activation hook doesn't fire on a plugin update).
-    if (get_option('bgc_db_version') !== BGC_VERSION) {
-        BGC_Schema::create();
-        update_option('bgc_db_version', BGC_VERSION);
+    if (get_option('bgcouriers_db_version') !== BGCOURIERS_VERSION) {
+        BGCouriers_Schema::create();
+        update_option('bgcouriers_db_version', BGCOURIERS_VERSION);
     }
-    BGC_Plugin::instance();
+    BGCouriers_Plugin::instance();
 });

@@ -2,12 +2,12 @@
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
   // Bulgarian Cyrillic -> Latin transliteration, so a customer can type the city/office/APS in Latin letters
   // and still match the Cyrillic-named entries (official Наредба scheme).
-  var BGC_TR = { 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
+  var BGCOURIERS_TR = { 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
     'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
     'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sht', 'ъ': 'a', 'ь': 'y', 'ю': 'yu', 'я': 'ya' };
   function bgcTranslit(s) {
     var l = (s == null ? '' : String(s)).toLowerCase(), out = '';
-    for (var i = 0; i < l.length; i++) { out += (BGC_TR[l[i]] !== undefined ? BGC_TR[l[i]] : l[i]); }
+    for (var i = 0; i < l.length; i++) { out += (BGCOURIERS_TR[l[i]] !== undefined ? BGCOURIERS_TR[l[i]] : l[i]); }
     return out;
   }
   // True if `text` matches an already-lowercased `term` directly (Cyrillic) or via its Latin transliteration.
@@ -34,7 +34,7 @@
   function method($wrap) { return $wrap.attr('data-method') || caps($wrap)[0] || 'office'; }
   function showLoader($wrap) { $wrap.addClass('bgc-loading'); }
   function hideLoader($wrap) { $wrap.removeClass('bgc-loading'); }
-  function officeLabel(m) { return m === 'automat' ? (BGC.i18n.automat_label || 'Automat') : (BGC.i18n.office_label || 'Office'); }
+  function officeLabel(m) { return m === 'automat' ? (BGCOURIERS.i18n.automat_label || 'Automat') : (BGCOURIERS.i18n.office_label || 'Office'); }
 
   // Delivery-type tabs ------------------------------------------------------
   function renderTabs($wrap) {
@@ -42,10 +42,10 @@
     if (!$wrap.attr('data-method')) { $wrap.attr('data-method', types[0]); }
     var sel = method($wrap);
     if ($wrap.find('.bgc-tab').length) { syncMethodUI($wrap); return; }
-    var icons = BGC.icons || {};
+    var icons = BGCOURIERS.icons || {};
     var html = types.map(function (t) {
       return '<button type="button" class="bgc-tab' + (t === sel ? ' active' : '') + '" data-method="' + t + '">'
-        + (icons[t] || '') + '<span class="bgc-tab-txt">' + esc(BGC.i18n[t]) + '</span></button>';
+        + (icons[t] || '') + '<span class="bgc-tab-txt">' + esc(BGCOURIERS.i18n[t]) + '</span></button>';
     }).join('');
     $wrap.find('.bgc-tabs').html(html);
   }
@@ -85,8 +85,8 @@
   function methodOk(av, m) { return m === 'address' || (m === 'office' && av.office) || (m === 'automat' && av.automat); }
   // Derive availability from the preloaded index (no AJAX) when the switch is on; else null -> AJAX below.
   function cityAvailLocal($wrap, city) {
-    if (!BGC.preloadCities) { return null; }
-    var idx = BGC.cityIndex && BGC.cityIndex[courier($wrap)];
+    if (!BGCOURIERS.preloadCities) { return null; }
+    var idx = BGCOURIERS.cityIndex && BGCOURIERS.cityIndex[courier($wrap)];
     if (!idx) { return null; }
     function has(list) { var a = idx[list] || []; for (var i = 0; i < a.length; i++) { if (a[i][0] == city) { return true; } } return false; }
     return { office: has('office'), automat: has('automat') };
@@ -99,7 +99,7 @@
       var local = cityAvailLocal($wrap, city);
       if (local) { availCache[key] = local; }
       else {
-        $.get(BGC.ajax, { action: 'bgc_city_avail', courier: courier($wrap), city_id: city }, function (res) {
+        $.get(BGCOURIERS.ajax, { action: 'bgcouriers_city_avail', courier: courier($wrap), city_id: city }, function (res) {
           availCache[key] = { office: !!(res && res.office), automat: !!(res && res.automat) };
           applyAvail($wrap);
         });
@@ -109,7 +109,7 @@
     var av = availCache[key], firstOk = null;
     $wrap.find('.bgc-tab').each(function () {
       var $t = $(this), m = $t.data('method'), ok = methodOk(av, m);
-      $t.toggleClass('bgc-tab-na', !ok).prop('disabled', !ok).attr('title', ok ? '' : (BGC.i18n.na_city || ''));
+      $t.toggleClass('bgc-tab-na', !ok).prop('disabled', !ok).attr('title', ok ? '' : (BGCOURIERS.i18n.na_city || ''));
       if (ok && firstOk === null) { firstOk = m; }
     });
     if (!methodOk(av, method($wrap)) && firstOk) { setMethod($wrap, firstOk); } // active option unavailable -> switch
@@ -120,16 +120,16 @@
     var $city = $wrap.find('.bgc-city');
     if ($city.hasClass('select2-hidden-accessible')) { return; }
     sel2($city, {
-      width: '100%', allowClear: true, placeholder: (BGC.i18n && BGC.i18n.city_ph) || '', minimumInputLength: 0,
+      width: '100%', allowClear: true, placeholder: (BGCOURIERS.i18n && BGCOURIERS.i18n.city_ph) || '', minimumInputLength: 0,
       ajax: {
-        url: BGC.ajax, dataType: 'json', delay: 250,
+        url: BGCOURIERS.ajax, dataType: 'json', delay: 250,
         // When "preload cities" is on (default) + we have the index, office/automat searches the preloaded
         // cities-with-offices locally (instant, no AJAX). Otherwise - and always for address - the original
         // AJAX path (noAbortTransport) runs unchanged.
         transport: function (params, success, failure) {
           var m = method($wrap), cour = courier($wrap);
-          var idx = BGC.cityIndex && BGC.cityIndex[cour];
-          if (BGC.preloadCities && m !== 'address' && idx && idx[m]) {
+          var idx = BGCOURIERS.cityIndex && BGCOURIERS.cityIndex[cour];
+          if (BGCOURIERS.preloadCities && m !== 'address' && idx && idx[m]) {
             var term = ((params.data && params.data.term) || '').toLowerCase(), rows = idx[m], out = [];
             for (var i = 0; i < rows.length && out.length < 200; i++) {
               var a = rows[i]; // [city_id, name, post_code, name_lat]
@@ -143,7 +143,7 @@
           }
           return noAbortTransport(params, success, failure); // original AJAX path, untouched
         },
-        data: function (params) { return { action: 'bgc_search_cities', courier: courier($wrap), term: params.term || '' }; },
+        data: function (params) { return { action: 'bgcouriers_search_cities', courier: courier($wrap), term: params.term || '' }; },
         processResults: function (rows) {
           var counts = {};
           rows.forEach(function (r) { counts[r.name] = (counts[r.name] || 0) + 1; });
@@ -164,7 +164,7 @@
     // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
     $city.on('select2:clear', function () {
       $wrap.find('.bgc-postcode').val('');
-      $wrap.find('.bgc-map-btn').prop('disabled', true).attr('title', (BGC.i18n && BGC.i18n.office_need_city) || '');
+      $wrap.find('.bgc-map-btn').prop('disabled', true).attr('title', (BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || '');
       resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
     });
   }
@@ -176,7 +176,7 @@
     if (!city || m === 'address') { return; }
     var key = courier($wrap) + ':' + city + ':' + m;
     if (officeCache[key] !== undefined) { return; }
-    $.get(BGC.ajax, { action: 'bgc_offices', courier: courier($wrap), city_id: city, type: m, all: 1 },
+    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: courier($wrap), city_id: city, type: m, all: 1 },
       function (rows) { officeCache[key] = rows || []; });
   }
 
@@ -184,11 +184,11 @@
     var $office = $wrap.find('.bgc-office');
     var hasCity = !!$wrap.find('.bgc-city').val();
     // The map picker plots a city's offices, so it needs a city first (same as the office dropdown).
-    $wrap.find('.bgc-map-btn').prop('disabled', !hasCity).attr('title', hasCity ? '' : ((BGC.i18n && BGC.i18n.office_need_city) || ''));
+    $wrap.find('.bgc-map-btn').prop('disabled', !hasCity).attr('title', hasCity ? '' : ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || ''));
     if ($office.hasClass('select2-hidden-accessible')) { return; }
     $office.prop('disabled', !hasCity); // no office search until a city is chosen
     sel2($office, {
-      width: '100%', allowClear: true, minimumInputLength: 0, placeholder: hasCity ? ((BGC.i18n && BGC.i18n.office_ph) || '') : ((BGC.i18n && BGC.i18n.office_need_city) || ''),
+      width: '100%', allowClear: true, minimumInputLength: 0, placeholder: hasCity ? ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_ph) || '') : ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || ''),
       ajax: {
         delay: 0,
         transport: function (params, success, failure) {
@@ -201,7 +201,7 @@
             }) : rows);
           }
           if (officeCache[key] !== undefined) { done(officeCache[key]); return { abort: function () {} }; } // local
-          var req = $.get(BGC.ajax, { action: 'bgc_offices', courier: d.courier, city_id: d.city_id, type: d.type, all: 1 });
+          var req = $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: d.courier, city_id: d.city_id, type: d.type, all: 1 });
           req.done(function (rows) { officeCache[key] = rows || []; done(officeCache[key]); });
           req.fail(function (x, status) { if (status !== 'abort') { failure(); } });
           return req;
@@ -224,7 +224,7 @@
   var mapIconsSet = false, bgcMap = null;
   function setMapIcons() {
     if (mapIconsSet || !window.L) { return; }
-    var base = BGC.leaflet_images || '';
+    var base = BGCOURIERS.leaflet_images || '';
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({ iconRetinaUrl: base + 'marker-icon-2x.png', iconUrl: base + 'marker-icon.png', shadowUrl: base + 'marker-shadow.png' });
     mapIconsSet = true;
@@ -234,7 +234,7 @@
     if (!city || m === 'address') { cb([]); return; }
     var key = courier($wrap) + ':' + city + ':' + m;
     if (officeCache[key] !== undefined) { cb(officeCache[key]); return; }
-    $.get(BGC.ajax, { action: 'bgc_offices', courier: courier($wrap), city_id: city, type: m, all: 1 },
+    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: courier($wrap), city_id: city, type: m, all: 1 },
       function (rows) { officeCache[key] = rows || []; cb(officeCache[key]); });
   }
   function pickMapOffice($wrap, o) {
@@ -246,7 +246,7 @@
   function openMap($wrap) {
     if (!window.L) { return; }
     officesFor($wrap, function (rows) {
-      var i18n = BGC.i18n || {};
+      var i18n = BGCOURIERS.i18n || {};
       var pts = (rows || []).filter(function (o) { return Number(o.lat) !== 0 || Number(o.lng) !== 0; });
       var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box bgc-map-box-wide">'
         + '<div class="bgc-map-head"><strong>' + esc(i18n.map_title || 'Map') + '</strong>'
@@ -320,7 +320,7 @@
   var geoT;
   function reverseGeocode(lat, lng, cb) {
     clearTimeout(geoT);
-    geoT = setTimeout(function () { $.get(BGC.ajax, { action: 'bgc_geocode', lat: lat, lng: lng }, function (r) { cb(r || {}); }); }, 350);
+    geoT = setTimeout(function () { $.get(BGCOURIERS.ajax, { action: 'bgcouriers_geocode', lat: lat, lng: lng }, function (r) { cb(r || {}); }); }, 350);
   }
   function fillAddress($wrap, geo) {
     var $city = $wrap.find('.bgc-city');
@@ -335,7 +335,7 @@
     }
     function findCity(term, cb) {
       if (!term) { cb(null); return; }
-      $.get(BGC.ajax, { action: 'bgc_search_cities', courier: courier($wrap), term: term }, function (rows) {
+      $.get(BGCOURIERS.ajax, { action: 'bgcouriers_search_cities', courier: courier($wrap), term: term }, function (rows) {
         cb((rows && rows.length) ? rows[0] : null);
       });
     }
@@ -352,7 +352,7 @@
   }
   function openAddressMap($wrap) {
     if (!window.L) { return; }
-    var i18n = BGC.i18n || {};
+    var i18n = BGCOURIERS.i18n || {};
     var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box">'
       + '<div class="bgc-map-head"><strong>' + esc(i18n.addr_map_title || 'Map') + '</strong>'
       + '<button type="button" class="bgc-map-close" aria-label="' + esc(i18n.close || 'Close') + '">×</button></div>'
@@ -389,10 +389,10 @@
     var $street = $wrap.find('.bgc-street');
     if (!$street.length || $street[0].tagName !== 'SELECT' || $street.hasClass('select2-hidden-accessible')) { return; }
     sel2($street, {
-      width: '100%', tags: true, allowClear: true, minimumInputLength: 2, placeholder: (BGC.i18n && BGC.i18n.street_ph) || '',
+      width: '100%', tags: true, allowClear: true, minimumInputLength: 2, placeholder: (BGCOURIERS.i18n && BGCOURIERS.i18n.street_ph) || '',
       ajax: {
-        url: BGC.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
-        data: function (params) { return { action: 'bgc_streets', courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
+        url: BGCOURIERS.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
+        data: function (params) { return { action: 'bgcouriers_streets', courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
         processResults: function (rows) { return { results: rows.map(function (s) { return { id: s.name, text: s.label || s.name }; }) }; }
       },
       createTag: function (params) { var t = (params.term || '').trim(); return t ? { id: t, text: t } : null; }
@@ -403,7 +403,7 @@
   // Save the selection ------------------------------------------------------
   function selectionData($wrap) {
     return {
-      action: 'bgc_set_selection', nonce: BGC.nonce, courier: courier($wrap), method: method($wrap),
+      action: 'bgcouriers_set_selection', nonce: BGCOURIERS.nonce, courier: courier($wrap), method: method($wrap),
       site_id: $wrap.find('.bgc-city').val() || 0,
       office_id: $wrap.find('.bgc-office').val() || 0,
       post_code: $wrap.find('.bgc-postcode').val() || '',
@@ -413,12 +413,12 @@
       apartment: $wrap.find('.bgc-apartment').val() || '', address_note: $wrap.find('.bgc-note').val() || ''
     };
   }
-  function pushSelection($wrap) { showLoader($wrap); $.post(BGC.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
-  function saveSelection($wrap) { $.post(BGC.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
+  function pushSelection($wrap) { showLoader($wrap); $.post(BGCOURIERS.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
+  function saveSelection($wrap) { $.post(BGCOURIERS.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
 
   // BOX NOW locker picker - the official map widget (built-in GPS "nearest to me") ---------
   function boxnowUrl() {
-    var c = BGC.boxnow || {}, p = [];
+    var c = BGCOURIERS.boxnow || {}, p = [];
     if (c.partnerId) { p.push('partnerId=' + encodeURIComponent(c.partnerId)); }
     p.push('countryCode=' + encodeURIComponent(c.country || 'bg'));
     p.push('language=' + encodeURIComponent(c.country || 'bg'));
@@ -429,7 +429,7 @@
   function openBoxnow($wrap) {
     boxnowWrap = $wrap;
     var $ov = $('<div class="bgc-boxnow-overlay"><div class="bgc-boxnow-modal">'
-      + '<button type="button" class="bgc-boxnow-close" aria-label="' + esc(BGC.i18n && BGC.i18n.close) + '">×</button>'
+      + '<button type="button" class="bgc-boxnow-close" aria-label="' + esc(BGCOURIERS.i18n && BGCOURIERS.i18n.close) + '">×</button>'
       + '<iframe class="bgc-boxnow-frame" src="' + esc(boxnowUrl()) + '" allow="geolocation"></iframe>'
       + '</div></div>');
     $ov.on('click', function (e) { if (e.target === $ov[0] || $(e.target).hasClass('bgc-boxnow-close')) { $ov.remove(); } });
@@ -445,7 +445,7 @@
     $wrap.find('.bgc-boxnow-addr').text(addr ? ' ' + addr : '');
     $wrap.find('.bgc-boxnow-selected').show();
     closeBoxnow(); showLoader($wrap);
-    $.post(BGC.ajax, { action: 'bgc_set_selection', nonce: BGC.nonce, courier: 'boxnow', method: 'automat', office_id: d.boxnowLockerId, boxnow_name: name, boxnow_addr: addr },
+    $.post(BGCOURIERS.ajax, { action: 'bgcouriers_set_selection', nonce: BGCOURIERS.nonce, courier: 'boxnow', method: 'automat', office_id: d.boxnowLockerId, boxnow_name: name, boxnow_addr: addr },
       function () { $(document.body).trigger('update_checkout'); });
   }
   window.addEventListener('message', function (event) {
@@ -459,11 +459,11 @@
   $(document.body).on('click', '.bgc-boxnow-pick', function (e) { e.preventDefault(); openBoxnow($(this).closest('.bgc-fields')); });
 
   // Wiring ------------------------------------------------------------------
-  // The chosen bgc_<id> shipping method's courier id (each courier renders its own .bgc-fields).
+  // The chosen bgcouriers_<id> shipping method's courier id (each courier renders its own .bgc-fields).
   function chosenCourier() {
     var v = $('input[name^="shipping_method"]:checked').val()
          || $('input[name^="shipping_method"][type="hidden"]').val() || '';
-    var m = String(v).match(/^bgc_([a-z0-9]+)/);
+    var m = String(v).match(/^bgcouriers_([a-z0-9]+)/);
     return m ? m[1] : '';
   }
 
@@ -522,9 +522,9 @@
 
   // Emergency help: after repeated checkout failures, show a one-time help box with a phone link.
   (function () {
-    var e = (window.BGC && BGC.emergency) || {};
+    var e = (window.BGCOURIERS && BGCOURIERS.emergency) || {};
     if (!e.phone) { return; }
-    var THRESH = 2, SHOWN = 'bgc_emerg_shown', CNT = 'bgc_fail_count';
+    var THRESH = 2, SHOWN = 'bgcouriers_emerg_shown', CNT = 'bgcouriers_fail_count';
     $(document.body).on('checkout_error', function () {
       try { if (localStorage.getItem(SHOWN)) { return; } } catch (x) {}
       var n = (parseInt(sessionStorage.getItem(CNT) || '0', 10) || 0) + 1;
@@ -533,11 +533,11 @@
     });
     function showEmergency() {
       if ($('#bgc-emergency').length) { return; }
-      var msg = e.message || (BGC.i18n && BGC.i18n.emerg_default) || '';
+      var msg = e.message || (BGCOURIERS.i18n && BGCOURIERS.i18n.emerg_default) || '';
       var tel = String(e.phone).replace(/[^\d+]/g, '');
       $('body').append(
         '<div id="bgc-emergency" class="bgc-emerg-overlay"><div class="bgc-emerg-box">' +
-        '<button type="button" class="bgc-emerg-close" aria-label="' + esc(BGC.i18n && BGC.i18n.close) + '">×</button>' +
+        '<button type="button" class="bgc-emerg-close" aria-label="' + esc(BGCOURIERS.i18n && BGCOURIERS.i18n.close) + '">×</button>' +
         '<p class="bgc-emerg-msg">' + esc(msg) + '</p>' +
         '<a class="bgc-emerg-tel" href="tel:' + esc(tel) + '">' + esc(e.phone) + '</a>' +
         '</div></div>'

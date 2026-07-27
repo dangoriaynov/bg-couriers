@@ -1,7 +1,7 @@
 /* Orders-list waybill actions: copy to clipboard + AJAX cancel (custom confirm, no page reload),
-   plus the bulk "Cancel waybils" confirmation. Config/i18n come from BGC_LIST (wp_localize_script). */
+   plus the bulk "Cancel waybils" confirmation. Config/i18n come from BGCOURIERS_LIST (wp_localize_script). */
 (function () {
-  var C = window.BGC_LIST || {};
+  var C = window.BGCOURIERS_LIST || {};
   var M = C.i18n || {};
   var AP = (typeof ajaxurl === 'string') ? ajaxurl.replace('admin-ajax.php', 'admin-post.php') : '';
   function esc(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; }
@@ -30,12 +30,12 @@
     var id = x.getAttribute('data-id'), nonce = x.getAttribute('data-nonce'), gn = x.getAttribute('data-gennonce');
     var cell = x.closest('.bgc-cell') || x.parentNode;
     x.style.pointerEvents = 'none';
-    var body = 'action=bgc_ajax_cancel_label&order_id=' + encodeURIComponent(id) + '&nonce=' + encodeURIComponent(nonce);
+    var body = 'action=bgcouriers_ajax_cancel_label&order_id=' + encodeURIComponent(id) + '&nonce=' + encodeURIComponent(nonce);
     fetch(ajaxurl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
         if (j && j.success) {
-          var g = AP + '?action=bgc_generate_label&order_id=' + encodeURIComponent(id) + '&_wpnonce=' + encodeURIComponent(gn);
+          var g = AP + '?action=bgcouriers_generate_label&order_id=' + encodeURIComponent(id) + '&_wpnonce=' + encodeURIComponent(gn);
           var gen = '<a class="button button-small bgc-gen" href="' + g + '">' + esc(M.gen) + '</a>';
           var rows = cell.querySelectorAll ? cell.querySelectorAll('.bgc-row') : [];
           if (rows.length > 1) { rows[rows.length - 1].innerHTML = gen; } // row 1 (logo+pencil) stays
@@ -102,7 +102,7 @@
   })();
 
   // Bulk actions that void live shipments (Cancel / Re-issue): intercept the Apply click and only
-  // submit once the merchant confirms. Driven by BGC_LIST.confirmBulk, keyed by action value - an
+  // submit once the merchant confirms. Driven by BGCOURIERS_LIST.confirmBulk, keyed by action value - an
   // action that is not listed there submits normally, so adding one here is a PHP-side change.
   (function () {
     var MAP = C.confirmBulk || {}, going = false;

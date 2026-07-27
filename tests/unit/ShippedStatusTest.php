@@ -2,7 +2,7 @@
 use PHPUnit\Framework\TestCase;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-tracking.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 
 if (!class_exists('WC_Order')) {
     /** Minimal stand-in for the bits of WC_Order that mark_shipped() touches. */
@@ -18,7 +18,7 @@ if (!class_exists('WC_Order')) {
         public function save() {}
     }
 }
-require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgc-tracking-poller.php';
+require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-tracking-poller.php';
 
 /**
  * "Shipped" must mean the courier actually took the parcel. Creating a waybill only hands over the data,
@@ -36,16 +36,16 @@ final class ShippedStatusTest extends TestCase {
 
     private function opt(string $target): void {
         Functions\when('get_option')->alias(static function ($n, $d = false) use ($target) {
-            return $n === 'bgc_autostatus_on_shipped' ? $target : $d;
+            return $n === 'bgcouriers_autostatus_on_shipped' ? $target : $d;
         });
     }
-    private function call(WC_Order $o, BGC_Tracking $t): bool {
-        return BGC_Tracking_Poller::mark_shipped($o, $t);
+    private function call(WC_Order $o, BGCouriers_Tracking $t): bool {
+        return BGCouriers_Tracking_Poller::mark_shipped($o, $t);
     }
-    private function tracking(string $status, int $events): BGC_Tracking {
+    private function tracking(string $status, int $events): BGCouriers_Tracking {
         $e = [];
         for ($i = 0; $i < $events; $i++) { $e[] = ['code' => (string) $i, 'name' => 'op ' . $i, 'date' => '']; }
-        return new BGC_Tracking('W1', $status, $e);
+        return new BGCouriers_Tracking('W1', $status, $e);
     }
 
     public function test_off_by_default_does_nothing(): void {
@@ -61,18 +61,18 @@ final class ShippedStatusTest extends TestCase {
         $o = new WC_Order();
         $this->assertFalse($this->call($o, $this->tracking('148', 1)));
         $this->assertSame('processing', $o->status);
-        $this->assertSame('148', $o->meta['_bgc_track_first'], 'remembers where it started');
-        $this->assertArrayNotHasKey('_bgc_shipped_marked', $o->meta);
+        $this->assertSame('148', $o->meta['_bgcouriers_track_first'], 'remembers where it started');
+        $this->assertArrayNotHasKey('_bgcouriers_shipped_marked', $o->meta);
     }
 
     /** Next poll, the status has moved on -> the courier has it. */
     public function test_moving_past_the_first_status_marks_shipped(): void {
         $this->opt('wc-bgc-shipped');
         $o = new WC_Order();
-        $o->meta['_bgc_track_first'] = '148';
+        $o->meta['_bgcouriers_track_first'] = '148';
         $this->assertTrue($this->call($o, $this->tracking('2', 2)));
         $this->assertSame('bgc-shipped', $o->status, 'the wc- prefix is stripped for update_status');
-        $this->assertSame('yes', $o->meta['_bgc_shipped_marked']);
+        $this->assertSame('yes', $o->meta['_bgcouriers_shipped_marked']);
     }
 
     /** Polling twice a day, the history can already show movement the very first time we look. */
@@ -87,7 +87,7 @@ final class ShippedStatusTest extends TestCase {
     public function test_unchanged_registration_status_never_marks(): void {
         $this->opt('wc-bgc-shipped');
         $o = new WC_Order();
-        $o->meta['_bgc_track_first'] = '148';
+        $o->meta['_bgcouriers_track_first'] = '148';
         $this->assertFalse($this->call($o, $this->tracking('148', 1)));
         $this->assertSame('processing', $o->status);
     }
@@ -95,8 +95,8 @@ final class ShippedStatusTest extends TestCase {
     public function test_marks_only_once(): void {
         $this->opt('wc-bgc-shipped');
         $o = new WC_Order();
-        $o->meta['_bgc_track_first']   = '148';
-        $o->meta['_bgc_shipped_marked'] = 'yes';
+        $o->meta['_bgcouriers_track_first']   = '148';
+        $o->meta['_bgcouriers_shipped_marked'] = 'yes';
         $o->status = 'completed'; // merchant moved it on afterwards
         $this->assertFalse($this->call($o, $this->tracking('5', 4)));
         $this->assertSame('completed', $o->status, 'never dragged back to Shipped');
@@ -108,7 +108,7 @@ final class ShippedStatusTest extends TestCase {
             $this->opt('wc-bgc-shipped');
             $o = new WC_Order();
             $o->status = $st;
-            $o->meta['_bgc_track_first'] = '148';
+            $o->meta['_bgcouriers_track_first'] = '148';
             $this->assertFalse($this->call($o, $this->tracking('9', 3)), $st);
             $this->assertSame($st, $o->status, $st);
         }
@@ -119,7 +119,7 @@ final class ShippedStatusTest extends TestCase {
         $this->opt('wc-bgc-shipped');
         $o = new WC_Order();
         $o->status = 'bgc-shipped';
-        $o->meta['_bgc_track_first'] = '148';
+        $o->meta['_bgcouriers_track_first'] = '148';
         $this->assertFalse($this->call($o, $this->tracking('9', 3)));
         $this->assertNull($o->transition);
     }
@@ -128,7 +128,7 @@ final class ShippedStatusTest extends TestCase {
     public function test_a_custom_target_status_is_honoured(): void {
         $this->opt('wc-on-hold');
         $o = new WC_Order();
-        $o->meta['_bgc_track_first'] = '148';
+        $o->meta['_bgcouriers_track_first'] = '148';
         $this->assertTrue($this->call($o, $this->tracking('2', 2)));
         $this->assertSame('on-hold', $o->status);
     }

@@ -9,7 +9,7 @@
 final class EcontLabelIntegrityTest extends WP_UnitTestCase {
     /** Invoke build_label_body via reflection (it is static). */
     private function build(WC_Order $order, array $sender, string $office_code): array {
-        $m = new ReflectionMethod('BGC_Econt', 'build_label_body');
+        $m = new ReflectionMethod('BGCouriers_Econt', 'build_label_body');
         $m->setAccessible(true);
         return $m->invoke(null, $order, $sender, $office_code);
     }
@@ -23,9 +23,9 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $order->set_billing_last_name('Иванова');
         $order->set_billing_phone('0888000001');
         $order->set_billing_email('m@example.bg');
-        $order->update_meta_data('_bgc_courier', 'econt');
-        $order->update_meta_data('_bgc_method', 'office');
-        $order->update_meta_data('_bgc_office_id', 100);
+        $order->update_meta_data('_bgcouriers_courier', 'econt');
+        $order->update_meta_data('_bgcouriers_method', 'office');
+        $order->update_meta_data('_bgcouriers_office_id', 100);
         $order->save();
 
         $sender = [
@@ -55,11 +55,11 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $order->set_billing_last_name('Петров');
         $order->set_billing_phone('0888123456');
         $order->set_billing_email('i@example.bg');
-        $order->update_meta_data('_bgc_courier', 'econt');
-        $order->update_meta_data('_bgc_method', 'address');
-        $order->update_meta_data('_bgc_site_id', 41);
-        $order->update_meta_data('_bgc_street_name', 'Витоша');
-        $order->update_meta_data('_bgc_street_no', '5');
+        $order->update_meta_data('_bgcouriers_courier', 'econt');
+        $order->update_meta_data('_bgcouriers_method', 'address');
+        $order->update_meta_data('_bgcouriers_site_id', 41);
+        $order->update_meta_data('_bgcouriers_street_name', 'Витоша');
+        $order->update_meta_data('_bgcouriers_street_no', '5');
         $order->save();
 
         $sender = [
@@ -94,8 +94,8 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $order->set_billing_last_name('Потребител');
         $order->set_billing_phone('0700000000');
         $order->set_billing_email('t@example.bg');
-        $order->update_meta_data('_bgc_courier', 'econt');
-        $order->update_meta_data('_bgc_method', 'office');
+        $order->update_meta_data('_bgcouriers_courier', 'econt');
+        $order->update_meta_data('_bgcouriers_method', 'office');
         $order->save();
 
         $sender = [
@@ -119,8 +119,8 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
             $this->markTestSkipped('WC not loaded');
         }
         update_option('woocommerce_weight_unit', 'kg');
-        update_option('bgc_econt_cod_enabled', 'yes');
-        update_option('bgc_econt_cd_num', 'CD139879'); // the moneyTransfer agreement (пощенски паричен превод)
+        update_option('bgcouriers_econt_cod_enabled', 'yes');
+        update_option('bgcouriers_econt_cd_num', 'CD139879'); // the moneyTransfer agreement (пощенски паричен превод)
 
         $product = new WC_Product_Simple();
         $product->set_name('Тест продукт');
@@ -135,9 +135,9 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $order->set_billing_phone('0888000001');
         $order->set_currency('EUR');
         $order->add_product($product, 2);
-        $order->update_meta_data('_bgc_courier', 'econt');
-        $order->update_meta_data('_bgc_method', 'office');
-        $order->update_meta_data('_bgc_office_id', 100);
+        $order->update_meta_data('_bgcouriers_courier', 'econt');
+        $order->update_meta_data('_bgcouriers_method', 'office');
+        $order->update_meta_data('_bgcouriers_office_id', 100);
         $order->set_payment_method('cod'); // the COD block requires an actually COD-paid order
         $order->calculate_totals();
         $order->save();
@@ -171,20 +171,20 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $sum = 0.0; foreach ($label['packingList'] as $pl) { $sum += (float) $pl['price'] * (int) $pl['count']; }
         $this->assertEqualsWithDelta((float) $label['services']['cdAmount'], $sum, 0.01);
 
-        update_option('bgc_econt_cod_enabled', 'no');
-        update_option('bgc_econt_cd_num', '');
+        update_option('bgcouriers_econt_cod_enabled', 'no');
+        update_option('bgcouriers_econt_cd_num', '');
     }
 
     /** COD disabled: no наложен платеж / packing list / payment-sender leaks onto the label. */
     public function test_cod_disabled_payload_has_no_cod_fields(): void {
         if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
-        update_option('bgc_econt_cod_enabled', 'no');
+        update_option('bgcouriers_econt_cod_enabled', 'no');
 
         $order = wc_create_order();
         $order->set_billing_first_name('Иван');
         $order->set_billing_last_name('Петров');
-        $order->update_meta_data('_bgc_courier', 'econt');
-        $order->update_meta_data('_bgc_method', 'office');
+        $order->update_meta_data('_bgcouriers_courier', 'econt');
+        $order->update_meta_data('_bgcouriers_method', 'office');
         $order->save();
 
         $sender = ['client' => ['name' => 'X', 'phones' => ['0700123456']], 'address' => ['city' => ['id' => 41], 'street' => 's', 'num' => '1']];

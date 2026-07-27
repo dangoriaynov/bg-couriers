@@ -4,7 +4,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 /**
- * Minimal stub for WC_Settings_Page so that class-bgc-wc-settings.php can be loaded
+ * Minimal stub for WC_Settings_Page so that class-bgcouriers-wc-settings.php can be loaded
  * in the unit suite without a running WordPress/WooCommerce environment.
  */
 if (!class_exists('WC_Settings_Page')) {
@@ -15,7 +15,7 @@ if (!class_exists('WC_Settings_Page')) {
     }
 }
 
-require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgc-wc-settings.php';
+require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-wc-settings.php';
 
 /**
  * @group econt
@@ -39,11 +39,11 @@ final class EcontSettingsTest extends TestCase {
     }
 
     // -----------------------------------------------------------------------
-    // Helper: invoke a private method on a BGC_WC_Settings instance.
+    // Helper: invoke a private method on a BGCouriers_WC_Settings instance.
     // -----------------------------------------------------------------------
     private function invoke(string $method, array $args = []) {
-        $instance = new BGC_WC_Settings();
-        $rm = new ReflectionMethod(BGC_WC_Settings::class, $method);
+        $instance = new BGCouriers_WC_Settings();
+        $rm = new ReflectionMethod(BGCouriers_WC_Settings::class, $method);
         $rm->setAccessible(true);
         return $rm->invokeArgs($instance, $args);
     }
@@ -72,11 +72,11 @@ final class EcontSettingsTest extends TestCase {
         $ids = array_column($fields, 'id');
 
         $required = [
-            'bgc_econt_enabled',
-            'bgc_econt_username',
-            'bgc_econt_password',
-            'bgc_econt_label_paper_size',
-            'bgc_econt_free_threshold',
+            'bgcouriers_econt_enabled',
+            'bgcouriers_econt_username',
+            'bgcouriers_econt_password',
+            'bgcouriers_econt_label_paper_size',
+            'bgcouriers_econt_free_threshold',
         ];
 
         foreach ($required as $id) {
@@ -89,30 +89,30 @@ final class EcontSettingsTest extends TestCase {
     // get_settings('econt') must return the econt fields merged with per-method fields
     // -----------------------------------------------------------------------
     public function test_get_settings_econt_includes_econt_fields(): void {
-        $instance = new BGC_WC_Settings();
+        $instance = new BGCouriers_WC_Settings();
         $settings = $instance->get_settings('econt');
 
         $ids = array_column($settings, 'id');
 
-        $this->assertContains('bgc_econt_enabled', $ids);
-        $this->assertContains('bgc_econt_password', $ids);
+        $this->assertContains('bgcouriers_econt_enabled', $ids);
+        $this->assertContains('bgcouriers_econt_password', $ids);
         // Per-method fields from method_fields('econt', 'office', …)
-        $this->assertContains('bgc_econt_office_enabled', $ids);
-        $this->assertContains('bgc_econt_address_enabled', $ids);
-        $this->assertContains('bgc_econt_automat_enabled', $ids);
+        $this->assertContains('bgcouriers_econt_office_enabled', $ids);
+        $this->assertContains('bgcouriers_econt_address_enabled', $ids);
+        $this->assertContains('bgcouriers_econt_automat_enabled', $ids);
     }
 
     // -----------------------------------------------------------------------
     // get_settings('speedy') must be unchanged (Speedy section not broken)
     // -----------------------------------------------------------------------
     public function test_get_settings_speedy_unchanged(): void {
-        $instance = new BGC_WC_Settings();
+        $instance = new BGCouriers_WC_Settings();
         $settings = $instance->get_settings('speedy');
 
         $ids = array_column($settings, 'id');
 
-        $this->assertContains('bgc_speedy_enabled', $ids);
-        $this->assertContains('bgc_speedy_password', $ids);
-        $this->assertContains('bgc_speedy_office_enabled', $ids);
+        $this->assertContains('bgcouriers_speedy_enabled', $ids);
+        $this->assertContains('bgcouriers_speedy_password', $ids);
+        $this->assertContains('bgcouriers_speedy_office_enabled', $ids);
     }
 }

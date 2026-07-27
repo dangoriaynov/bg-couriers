@@ -1,6 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
-require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-speedy.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-speedy.php';
 
 /**
  * @group speedy
@@ -12,7 +12,7 @@ final class SpeedyStreetTest extends TestCase {
             ['id' => 1312, 'siteId' => 68134, 'type' => 'бул.', 'name' => 'ВИТОША'],
             ['id' => 0, 'name' => ''], // skipped (no name)
         ]];
-        $rows = BGC_Speedy::parse_streets($resp);
+        $rows = BGCouriers_Speedy::parse_streets($resp);
         $this->assertCount(2, $rows);
         $this->assertSame('ВИТА', $rows[0]['name']);
         $this->assertSame('ул. ВИТА', $rows[0]['label']);

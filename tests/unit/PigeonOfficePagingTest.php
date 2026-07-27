@@ -1,12 +1,12 @@
 <?php
 use PHPUnit\Framework\TestCase;
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-api-exception.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-quote.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-label.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgc-tracking.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgc-courier.php';
-require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-pigeon.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-pigeon.php';
 
 /**
  * /v1/offices is paginated at 100 per page. Fetching one page kept only the first 100 of Bulgaria's 180
@@ -16,7 +16,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgc-pigeon.php';
  */
 final class PigeonOfficePagingTest extends TestCase {
     public function test_every_page_is_accumulated(): void {
-        $c = new BGC_Pigeon_Paging_Spy([
+        $c = new BGCouriers_Pigeon_Paging_Spy([
             // type=office: 2 pages, 100 + 80, mirroring the live BG account
             'office' => [
                 ['data' => self::rows(1, 100),   'meta' => ['current_page' => 1, 'per_page' => 100, 'total' => 180, 'last_page' => 2]],
@@ -39,7 +39,7 @@ final class PigeonOfficePagingTest extends TestCase {
 
     /** A response with no meta must be treated as the only page, not looped forever. */
     public function test_missing_meta_stops_after_one_page(): void {
-        $c = new BGC_Pigeon_Paging_Spy([
+        $c = new BGCouriers_Pigeon_Paging_Spy([
             'office' => [['data' => self::rows(1, 3)]],
             'locker' => [['data' => []]],
         ]);
@@ -49,7 +49,7 @@ final class PigeonOfficePagingTest extends TestCase {
 
     /** The locker type is mapped to our 'automat', whichever page it arrives on. */
     public function test_locker_type_maps_to_automat(): void {
-        $c = new BGC_Pigeon_Paging_Spy([
+        $c = new BGCouriers_Pigeon_Paging_Spy([
             'office' => [['data' => []]],
             'locker' => [['data' => [['id' => 7, 'name' => 'APS', 'type' => 'locker', 'city' => ['id' => 759]]]]],
         ]);
@@ -69,7 +69,7 @@ final class PigeonOfficePagingTest extends TestCase {
 }
 
 /** Serves canned /v1/offices pages per type and counts the requests. */
-final class BGC_Pigeon_Paging_Spy extends BGC_Pigeon {
+final class BGCouriers_Pigeon_Paging_Spy extends BGCouriers_Pigeon {
     /** @var array<string,array[]> */
     private array $pages;
     /** @var array<string,int> */

@@ -1,6 +1,6 @@
 /* On-order delivery editor + shipment-panel actions (WooCommerce order edit screen). */
 (function ($) {
-  var C = window.BGC_ED || {};
+  var C = window.BGCOURIERS_ED || {};
   var I = C.i18n || {};
 
   // Delivery is edited through our panel's "Edit delivery details", so hide WooCommerce's native SHIPPING
@@ -142,7 +142,7 @@
 
   sel2($city, { width: '100%', allowClear: true, placeholder: I.city, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
-      data: function (params) { return { action: 'bgc_search_cities', courier: courier(), term: params.term || '' }; },
+      data: function (params) { return { action: 'bgcouriers_search_cities', courier: courier(), term: params.term || '' }; },
       processResults: function (rows) { return { results: (rows || []).map(function (r) {
         return { id: r.city_id, text: r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), post_code: r.post_code }; }) }; }
     }
@@ -165,7 +165,7 @@
   function loadOffices() {
     var c = courier(), city = $city.val() || 0, m = $method.val();
     if (!city || m === 'address' || c === 'boxnow') { officeRows = []; updateAvail(); return; }
-    $.get(C.ajax, { action: 'bgc_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) {
+    $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) {
       officeRows = rows || [];
       var cur = $office.val();
       $office.empty().append('<option></option>');
@@ -180,7 +180,7 @@
 
   sel2($street, { width: '100%', allowClear: true, tags: true, placeholder: I.street, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
-      data: function (params) { return { action: 'bgc_streets', courier: courier(), city_id: $city.val() || 0, term: params.term || '' }; },
+      data: function (params) { return { action: 'bgcouriers_streets', courier: courier(), city_id: $city.val() || 0, term: params.term || '' }; },
       processResults: function (rows) { return { results: (rows || []).map(function (s) { return { id: s.name, text: s.name }; }) }; }
     }
   });
@@ -195,7 +195,7 @@
   function reResolveCity() {
     var name = cityName();
     if (!name) { loadOffices(); return; }
-    $.get(C.ajax, { action: 'bgc_search_cities', courier: courier(), term: name }, function (rows) {
+    $.get(C.ajax, { action: 'bgcouriers_search_cities', courier: courier(), term: name }, function (rows) {
       rows = rows || [];
       var lc = name.toLowerCase();
       var m = null, i;
@@ -236,7 +236,7 @@
   function officesFor(cb) {
     var c = courier(), city = $city.val() || 0, m = $method.val();
     if (!city || m === 'address' || c === 'boxnow') { cb([]); return; }
-    $.get(C.ajax, { action: 'bgc_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) { cb(rows || []); }, 'json');
+    $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) { cb(rows || []); }, 'json');
   }
   function openMap() {
     if (!window.L) { return; }
@@ -300,7 +300,7 @@
   }
   // Address map: click/drag a pin -> reverse-geocode -> fill the editor's city/street/№.
   var geoT;
-  function reverseGeocode(lat, lng, cb) { clearTimeout(geoT); geoT = setTimeout(function () { $.get(C.ajax, { action: 'bgc_geocode', lat: lat, lng: lng }, function (r) { cb(r || {}); }); }, 350); }
+  function reverseGeocode(lat, lng, cb) { clearTimeout(geoT); geoT = setTimeout(function () { $.get(C.ajax, { action: 'bgcouriers_geocode', lat: lat, lng: lng }, function (r) { cb(r || {}); }); }, 350); }
   function fillEditorAddress(geo) {
     function fields(pc) {
       if (pc) { $panel.find('.bgc-ed-postcode').val(pc); }
@@ -308,7 +308,7 @@
       if (geo.number) { $panel.find('.bgc-ed-streetno').val(geo.number); }
     }
     function pick(r) { $city.empty().append(new Option(r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), r.city_id, true, true)).trigger('change.select2'); }
-    function find(term, cb) { if (!term) { cb(null); return; } $.get(C.ajax, { action: 'bgc_search_cities', courier: courier(), term: term }, function (rows) { cb((rows && rows.length) ? rows[0] : null); }); }
+    function find(term, cb) { if (!term) { cb(null); return; } $.get(C.ajax, { action: 'bgcouriers_search_cities', courier: courier(), term: term }, function (rows) { cb((rows && rows.length) ? rows[0] : null); }); }
     find(geo.city, function (r) {
       if (r) { pick(r); fields(geo.postcode || r.post_code || ''); return; }
       find(geo.postcode, function (r2) { if (r2) { pick(r2); fields(geo.postcode || r2.post_code || ''); } else { $city.val(null).trigger('change.select2'); fields(geo.postcode || ''); } });
@@ -356,7 +356,7 @@
     var $b = $(this), $msg = $panel.find('.bgc-ed-msg');
     $b.prop('disabled', true); $msg.text('').css('color', '#50575e').text(I.saving);
     var data = {
-      action: 'bgc_order_save_delivery', nonce: C.nonce, order_id: C.orderId,
+      action: 'bgcouriers_order_save_delivery', nonce: C.nonce, order_id: C.orderId,
       courier: courier(), method: $method.val(),
       site_id: $city.val() || 0, office_id: $office.val() || 0, post_code: $panel.find('.bgc-ed-postcode').val() || '',
       street_name: $street.val() || '', street_no: $panel.find('.bgc-ed-streetno').val() || '',
