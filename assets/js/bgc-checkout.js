@@ -504,6 +504,16 @@
 
   $(document.body).on('change', 'input[name^="shipping_method"]', dimRates);
 
+  // Let the WHOLE courier row select it, not just the name - a much bigger target, which matters most
+  // on a phone. The row of the CHOSEN courier also contains its delivery form, so any click on a real
+  // control (or on the label/radio, where the browser already does the right thing) is left alone.
+  $(document.body).on('click', 'ul#shipping_method > li', function (e) {
+    var $radio = $(this).find('> input[name^="shipping_method"]').first();
+    if (!$radio.length || $radio.prop('checked') || $radio.prop('disabled')) { return; }
+    if ($(e.target).closest('label, a, button, input, select, textarea, .bgc-fields, .select2-container, .bgc-tip').length) { return; }
+    $radio.prop('checked', true).trigger('change');
+  });
+
   var addrT;
   $(document.body).on('input', '.bgc-address-rows input', function () {
     var $wrap = $(this).closest('.bgc-fields');

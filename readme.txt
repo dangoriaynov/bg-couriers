@@ -29,6 +29,7 @@ Deliveries are Bulgaria-only.
 
 * Live prices per courier and delivery type, with a daily reference baseline and a configurable fallback.
 * Interactive map picker for offices/lockers (geolocation "nearest to me").
+* Tap anywhere on a courier row at checkout to choose it - a full-width target on phones.
 * Per-order and bulk label generation to a combined PDF (A6 / A4), tracking links.
 * Optional dual BGN + EUR price display (fixed peg 1 EUR = 1.95583 BGN).
 * Per-courier settings: only the fields each courier actually needs.

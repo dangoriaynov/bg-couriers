@@ -145,5 +145,13 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 
 /* The CHOSEN courier and its delivery fields sit together in one rounded card, so it is obvious
    the fields belong to that courier (not a loose sheet of controls). Unselected rows stay plain. */
-.woocommerce-checkout ul#shipping_method > li{list-style:none;padding:4px 0;}
+.woocommerce-checkout ul#shipping_method > li{list-style:none;padding:12px 10px;margin:2px 0;border-radius:12px;
+  cursor:pointer;transition:background-color .12s;-webkit-tap-highlight-color:transparent;}
+/* The whole row is the tap target (see bgc-checkout.js), so say so on hover - but not on the chosen
+   row, which is already a card and holds the delivery form. */
+.woocommerce-checkout ul#shipping_method > li:hover{background:#f4f6f9;}
+.woocommerce-checkout ul#shipping_method > li:has(> input.shipping_method:checked),
+.woocommerce-checkout ul#shipping_method > li:has(> input.shipping_method:checked):hover{cursor:default;}
+.woocommerce-checkout ul#shipping_method > li .bgc-fields{cursor:default;}
+.woocommerce-checkout ul#shipping_method > li label{cursor:pointer;}
 .woocommerce-checkout ul#shipping_method > li:has(> input.shipping_method:checked){border:1px solid #dbe1e8;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:12px 14px;margin:8px 0 12px;}
