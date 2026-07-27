@@ -206,10 +206,10 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     private function section_nav(string $current): void {
         $sections = $this->sections();
         echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper bgc-section-nav">';
-        if (array_key_exists('', $sections)) { echo $this->nav_pill('', $sections[''], $current, false); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nav_pill() escapes all fields internally
+        if (array_key_exists('', $sections)) { echo wp_kses($this->nav_pill('', $sections[''], $current, false), BGCouriers_Kses::admin_actions()); }
         echo '<span class="bgc-courier-tabs">'; // draggable couriers, in the saved order
         foreach (BGCouriers_Settings::courier_order() as $cid) {
-            if (isset($sections[$cid])) { echo $this->nav_pill($cid, $sections[$cid], $current, true); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nav_pill() escapes all fields internally
+            if (isset($sections[$cid])) { echo wp_kses($this->nav_pill($cid, $sections[$cid], $current, true), BGCouriers_Kses::admin_actions()); }
         }
         echo '</span></nav>';
         wp_enqueue_script('jquery-ui-sortable');

@@ -1,5 +1,8 @@
 <?php
-// phpcs:ignoreFile -- bundled third-party library (FPDF/FPDI), shipped unmodified.
+// phpcs:ignoreFile -- bundled third-party library (FPDF), otherwise unmodified.
+// PREFIXED for WordPress.org: FPDF declares a global `class FPDF` and reads a global FPDF_FONTPATH, so two
+// plugins bundling it fight over the name and whichever loads first wins - possibly at a version the other
+// cannot use. The class is BGCouriers_FPDF and the font path BGCOURIERS_FPDF_FONTPATH; nothing else changed.
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 /*******************************************************************************
 * FPDF                                                                         *
@@ -9,7 +12,7 @@ if (!defined('ABSPATH')) { exit; } // direct-access protection
 * Author:  Olivier PLATHEY                                                     *
 *******************************************************************************/
 
-class FPDF
+class BGCouriers_FPDF
 {
 const VERSION = '1.86';
 protected $page;               // current page number
@@ -104,8 +107,8 @@ function __construct($orientation='P', $unit='mm', $size='A4')
 	$this->ws = 0;
 	$this->iconv = function_exists('iconv');
 	// Font path
-	if(defined('FPDF_FONTPATH'))
-		$this->fontpath = FPDF_FONTPATH;
+	if(defined('BGCOURIERS_FPDF_FONTPATH'))
+		$this->fontpath = BGCOURIERS_FPDF_FONTPATH;
 	else
 		$this->fontpath = dirname(__FILE__).'/font/';
 	// Core fonts

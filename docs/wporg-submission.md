@@ -9,7 +9,7 @@ Speedy A4_4xA6 batch, tracking poller).
 - [ ] `wp-admin (dev) → Tools → Plugin Check` on the CURRENT deploy - must be clean (fix + redeploy otherwise).
 - [ ] Versions agree: `bg-couriers.php` header `Version` == readme.txt `Stable tag` (now 0.2.0).
 - [ ] readme.txt `Tested up to` == current WP major.minor (7.0 today; check https://api.wordpress.org/core/version-check/1.7/).
-- [ ] Translation fresh: `msgfmt --statistics languages/bg-couriers-bg_BG.po` shows 0 untranslated.
+- [ ] Translation fresh: `msgfmt --statistics languages/bg-couriers-bg_BG.po` shows 0 untranslated (kept in the repo for our own sites; NOT shipped in the zip - see below).
 - [ ] Build the zip (below) and install it once on a CLEAN dev/wp-env site - activates without notices.
 
 ## 2. Build the zip
@@ -21,11 +21,21 @@ rsync -a --exclude '.git' --exclude '.gitignore' --exclude '.superpowers' --excl
   --exclude 'vendor' --exclude 'docs' --exclude 'bin' --exclude 'e2e' \
   --exclude '.wp-env.json' --exclude 'composer.*' --exclude 'phpunit.xml.dist' \
   --exclude '.wordpress-org' --exclude '.distignore' --exclude '.github' --exclude 'README.md' \
-  --exclude '.DS_Store' ./ "$STAGE/"
+  --exclude '.DS_Store' --exclude 'languages' ./ "$STAGE/"
 (cd "$STAGE/.." && zip -qr ~/Downloads/bg-couriers-0.2.0.zip bg-couriers)
 ```
 
-The zip root must contain exactly: `bg-couriers.php  readme.txt  LICENSE  includes/  assets/  languages/`.
+The zip root must contain exactly: `bg-couriers.php  readme.txt  LICENSE  includes/  assets/`.
+
+**`languages/` is deliberately NOT in the zip.** The Plugins Team asked for it out: plugins on
+WordPress.org get their translations from translate.wordpress.org, generated per locale and delivered by
+the normal update system. It stays in the REPO, because dev.dobavki.club and dobavki.club deploy by rsync
+from the repo (`bin/deploy.sh`) and would otherwise lose Bulgarian.
+
+Consequence to remember: a site that ever updates the plugin **from wordpress.org** gets no bundled .mo,
+so Bulgarian is only there once translate.wordpress.org has it. After approval, upload
+`languages/bg-couriers-bg_BG.po` at `https://translate.wordpress.org/projects/wp-plugins/bg-couriers/`
+as the plugin author, and it becomes the community-maintained source of truth.
 
 ## 3. Submit
 

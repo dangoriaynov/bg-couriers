@@ -1,5 +1,6 @@
 <?php
-// phpcs:ignoreFile -- bundled third-party library (FPDF/FPDI), shipped unmodified.
+// phpcs:ignoreFile -- bundled third-party library (FPDI); only the parent class name is changed, to the
+// prefixed BGCouriers_FPDF (see includes/lib/pdf/fpdf/fpdf.php).
 
 /**
  * This file is part of FPDI
@@ -17,7 +18,7 @@ if (!defined('ABSPATH')) { exit; } // direct-access protection
  *
  * This class adds a templating feature to FPDF.
  */
-class FpdfTpl extends \FPDF
+class FpdfTpl extends \BGCouriers_FPDF
 {
     use FpdfTplTrait;
 }

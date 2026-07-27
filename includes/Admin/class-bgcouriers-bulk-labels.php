@@ -114,10 +114,14 @@ class BGCouriers_Bulk_Labels {
         // layout), then the sheets are concatenated - no re-packing or scaling on our side.
         $out = BGCouriers_Labels::batch_pdf($ok, $paper);
         if ($out === '') { wp_die(esc_html__('No labels to print (none could be generated).', 'bg-couriers')); }
+        // A PDF byte stream is the one thing that must NOT be escaped - escaping it corrupts the file. So
+        // instead of trusting it, refuse to stream anything that is not actually a PDF: that makes the raw
+        // echo below safe by construction rather than by convention.
+        if (strncmp($out, '%PDF', 4) !== 0) { wp_die(esc_html__('The generated file is not a valid PDF.', 'bg-couriers')); }
         nocache_headers();
         header('Content-Type: application/pdf');
         header('Content-Disposition: inline; filename="labels-' . strtolower($paper) . '.pdf"');
-        echo $out; // phpcs:ignore WordPress.Security.EscapeOutput -- binary PDF
+        echo $out; // phpcs:ignore WordPress.Security.EscapeOutput -- raw PDF bytes, verified above to start with %PDF; escaping would corrupt the file
         exit;
     }
 
@@ -219,7 +223,7 @@ class BGCouriers_Bulk_Labels {
         }
 
         $cls = $n('failed') ? 'notice-warning' : 'notice-success';
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $msg is esc_html__()'d, $link is pre-escaped HTML (esc_url/esc_html)
-        echo '<div class="notice ' . esc_attr($cls) . ' is-dismissible"><p>' . $msg . $link . '</p></div>';
+        echo wp_kses('<div class="notice ' . esc_attr($cls) . ' is-dismissible"><p>' . $msg . $link . '</p></div>',
+            BGCouriers_Kses::admin_actions());
     }
 }

@@ -188,15 +188,14 @@ class BGCouriers_Order_Columns {
         $track = wp_nonce_url($base . '?action=bgcouriers_track&order_id=' . $id, 'bgcouriers_track_' . $id);
         $gen   = wp_nonce_url($base . '?action=bgcouriers_generate_label&order_id=' . $id, 'bgcouriers_generate_label_' . $id);
         $regen = wp_nonce_url($base . '?action=bgcouriers_regenerate&order_id=' . $id, 'bgcouriers_regenerate_' . $id);
-        // Echoed directly (not wp_kses_post) so the cancel link keeps its data-* attributes; every dynamic
-        // field inside cell_html is individually escaped (esc_html / esc_attr / esc_url).
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- cell_html escapes each field internally
-        echo self::cell_html(
+        // Escaped at the point of output: every field inside cell_html is already esc_html/esc_attr/esc_url'd,
+        // and wp_kses() then restricts the result to the tags and data-* attributes these tiles actually use
+        // (wp_kses_post would strip the data-* the copy/cancel/re-issue buttons need).
+        echo wp_kses(self::cell_html(
             (string) $order->get_meta('_bgcouriers_waybill'), $print, $track, $gen, $id,
             wp_create_nonce('bgcouriers_cancel_label_' . $id), wp_create_nonce('bgcouriers_generate_label_' . $id),
             $courier->label(), BGCouriers_Couriers::logo_url($courier->id()), $regen
-        );
-        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+        ), BGCouriers_Kses::admin_actions());
     }
     public function render_legacy($column, $post_id): void {
         if ($column !== 'bgcouriers_shipping') { return; }

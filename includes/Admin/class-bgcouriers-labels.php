@@ -351,11 +351,14 @@ class BGCouriers_Labels {
         /* translators: %s: error message */
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         if ($out === '') { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
+        // See the note in BGCouriers_Bulk_Labels::handle_print - a PDF must be streamed unescaped, so the
+        // payload is verified to BE a PDF first.
+        if (strncmp($out, '%PDF', 4) !== 0) { wp_die(esc_html__('The generated file is not a valid PDF.', 'bg-couriers')); }
 
         nocache_headers();
         header('Content-Type: application/pdf');
         header('Content-Disposition: inline; filename="labels-' . strtolower($paper) . '.pdf"');
-        echo $out; // phpcs:ignore WordPress.Security.EscapeOutput -- binary PDF
+        echo $out; // phpcs:ignore WordPress.Security.EscapeOutput -- raw PDF bytes, verified above to start with %PDF; escaping would corrupt the file
         exit;
     }
 

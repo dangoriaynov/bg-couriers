@@ -206,7 +206,10 @@ class BGCouriers_Checkout {
             }
         }
         if (!$rows) { return; }
-        echo '<div class="bgc-cart-estimate"><div class="bgc-cart-est-title">' . esc_html__('Estimated shipping (exact price at checkout)', 'bg-couriers') . '</div>' . implode('', $rows) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $rows entries are built with esc_html/wp_kses_post above
+        // wp_kses_post: the rows carry wc_price() markup (<span class="amount"><bdi>), which it allows.
+        echo wp_kses_post('<div class="bgc-cart-estimate"><div class="bgc-cart-est-title">'
+            . esc_html__('Estimated shipping (exact price at checkout)', 'bg-couriers') . '</div>'
+            . implode('', $rows) . '</div>');
     }
 
     /** Amount still needed to reach the Speedy free-shipping threshold (0 if disabled or already met). */
@@ -575,8 +578,9 @@ class BGCouriers_Checkout {
         // Only the chosen courier's block is visible from the server - the others render hidden so the page
         // doesn't briefly show every courier's fields expanded before the JS hides them. JS keeps this in sync.
         $hide = self::chosen_courier() !== $courier ? ' style="display:none;"' : '';
-        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- all interpolated vars pre-escaped: $hide/$office_style/$addr_style are static strings; $city_option/$office_option/$street_option built with esc_attr/esc_html; $office_label=esc_html__(); $av()=esc_attr()
-        echo '<div class="bgc-fields" data-courier="' . esc_attr($courier) . '" data-method="' . esc_attr($sel_method) . '"'
+        // Built up first, then escaped once at output - every field inside is already esc_attr/esc_html'd,
+        // and wp_kses() restricts the result to the tags this form is made of.
+        $html = '<div class="bgc-fields" data-courier="' . esc_attr($courier) . '" data-method="' . esc_attr($sel_method) . '"'
            . ' data-methods="' . esc_attr(implode(',', BGCouriers_Settings::enabled_methods($courier))) . '"'
            . ' data-order="' . esc_attr(implode(',', BGCouriers_Settings::method_order($courier))) . '"' . $hide . '>'
            . '<div class="bgc-loader" aria-hidden="true"><span class="bgc-spinner"></span></div>'
@@ -616,7 +620,7 @@ class BGCouriers_Checkout {
            . '</div>'
            . '</div>'
            . '</div>';
-        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo wp_kses($html, BGCouriers_Kses::checkout_fields());
     }
 
     /** BOX NOW checkout: a locker chosen on the BoxNow map widget (no city/office dropdowns). */
@@ -629,8 +633,7 @@ class BGCouriers_Checkout {
         $addr   = $mine ? (string) $s->get('bgcouriers_boxnow_addr', '') : '';
         $has    = $locker > 0;
         $hide   = self::chosen_courier() !== 'boxnow' ? ' style="display:none;"' : ''; // hidden unless BoxNow is the chosen courier
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $hide is a static style string, not user input
-        echo '<div class="bgc-fields bgc-boxnow" data-courier="boxnow" data-method="automat" data-methods="automat" data-order="automat"' . $hide . '>'
+        $html = '<div class="bgc-fields bgc-boxnow" data-courier="boxnow" data-method="automat" data-methods="automat" data-order="automat"' . $hide . '>'
            . '<div class="bgc-panel">'
            . '<button type="button" class="button bgc-boxnow-pick">' . esc_html__('Choose a BOX NOW locker', 'bg-couriers') . '</button>'
            . '<div class="bgc-boxnow-selected"' . ($has ? '' : ' style="display:none;"') . '>'
@@ -639,5 +642,6 @@ class BGCouriers_Checkout {
            . '</div>'
            . '<input type="hidden" class="bgc-boxnow-id" value="' . esc_attr($has ? (string) $locker : '') . '">'
            . '</div></div>';
+        echo wp_kses($html, BGCouriers_Kses::checkout_fields());
     }
 }

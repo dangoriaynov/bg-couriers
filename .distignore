@@ -1,0 +1,23 @@
+# Files kept in the repository but never shipped in the WordPress.org package.
+.git
+.gitignore
+.github
+.claude
+.superpowers
+.wordpress-org
+.wp-env.json
+.distignore
+.phpunit.result.cache
+.DS_Store
+README.md
+composer.json
+composer.lock
+phpunit.xml.dist
+bin
+docs
+e2e
+tests
+vendor
+# Translations come from translate.wordpress.org for wordpress.org installs (Plugins Team, round 2).
+# Kept in the repo because our own dev/prod sites deploy by rsync and need the compiled .mo.
+languages
