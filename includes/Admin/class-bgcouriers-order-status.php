@@ -14,9 +14,9 @@ defined('ABSPATH') || exit;
  */
 class BGCouriers_Order_Status {
     /** Full status key, as WooCommerce stores it. */
-    const STATUS = 'wc-bgc-shipped';
+    const STATUS = 'wc-bgcouriers-shipped';
     /** The same key without WooCommerce's `wc-` prefix, which is what WC_Order::get_status() returns. */
-    const SLUG = 'bgc-shipped';
+    const SLUG = 'bgcouriers-shipped';
 
     public function __construct() {
         add_action('init', [$this, 'register']);
