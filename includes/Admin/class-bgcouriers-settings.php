@@ -276,6 +276,30 @@ class BGCouriers_Settings {
         return (string) get_option('bgcouriers_hidden_fields', '');
     }
 
+    /**
+     * The merchant's "hide these checkout fields" setting, reduced to a CSS selector list that is safe to
+     * print into a stylesheet. This is the escaping gate for that option: it ends up inside a stylesheet,
+     * where the danger is a value that closes the selector and opens its own rule.
+     *
+     * Each entry is validated on its own and DROPPED if it is not a plain selector - deliberately not
+     * "stripped clean", because silently rewriting someone's selector into a different one that happens to
+     * match other elements is worse than ignoring it. Anything that could terminate the selector or start a
+     * declaration ({ } ; @ \ / < > and friends) simply fails the pattern.
+     *
+     * @return string comma-joined selectors, or '' when nothing usable remains
+     */
+    public static function hidden_field_selectors(): string {
+        $out = [];
+        foreach (explode(',', wp_strip_all_tags(self::hidden_fields())) as $sel) {
+            $sel = trim($sel);
+            if ($sel === '' || strlen($sel) > 200) { continue; }
+            // tag / .class / #id / * to start, then selector syntax only: [attr="v"], :pseudo, combinators.
+            if (!preg_match('/^[A-Za-z0-9_\-#.*:\[][A-Za-z0-9_\-#.*\[\]="\':()\s>+~]*$/', $sel)) { continue; }
+            $out[] = $sel;
+        }
+        return implode(',', $out);
+    }
+
     /** Emergency help shown after repeated checkout failures. */
     public static function emergency(): array {
         return [

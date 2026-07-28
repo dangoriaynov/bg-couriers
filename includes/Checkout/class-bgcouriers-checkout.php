@@ -504,16 +504,12 @@ class BGCouriers_Checkout {
             ],
         ]);
 
-        // Hide configured checkout fields (CSS selectors from settings). The selectors are a
-        // merchant-entered setting: strip every character that could break out of the CSS context
-        // (braces, angle brackets, slashes, ampersands) so only plain selector syntax is printed.
-        $hidden = trim(BGCouriers_Settings::hidden_fields());
-        if ($hidden !== '') {
-            $selectors = implode(',', array_filter(array_map('trim', explode(',', $hidden))));
-            $selectors = (string) preg_replace('/[^a-zA-Z0-9_\-#.,:\s\[\]="\'~>+*()]/', '', $selectors);
-            if (trim($selectors, ', ') !== '') {
-                wp_add_inline_style('bgc-checkout', $selectors . '{display:none !important;}');
-            }
+        // Hide configured checkout fields. The selectors are a merchant-entered setting printed into a
+        // stylesheet, so they go through hidden_field_selectors(), which validates each entry and drops
+        // anything that is not a plain selector.
+        $selectors = BGCouriers_Settings::hidden_field_selectors();
+        if ($selectors !== '') {
+            wp_add_inline_style('bgc-checkout', $selectors . '{display:none !important;}');
         }
         // Hide the Country/Region field (BG-only store) when enabled in settings.
         if (get_option('bgcouriers_hide_country', 'no') === 'yes') {
