@@ -340,8 +340,11 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
 
     private function general_fields(): array {
         $statuses = function_exists('wc_get_order_statuses') ? wc_get_order_statuses() : ['wc-processing' => 'Processing'];
+        // From the courier REGISTRY, not from sections() - those are the settings TABS, and skipping only
+        // '' (General) let the "About" tab through as a selectable default courier. The registry is the
+        // single source of truth, so a new courier appears here on its own and no tab can leak in again.
         $courier_opts = ['' => __('Automatic (first / cheapest)', 'bg-couriers')];
-        foreach ($this->sections() as $sid => $slabel) { if ($sid !== '') { $courier_opts[$sid] = $slabel; } }
+        foreach (BGCouriers_Couriers::all() as $cid => $clabel) { $courier_opts[$cid] = $clabel; }
         // One colour picker per courier for the orders-list row tint, generated from the registry so a new
         // courier gets its field automatically. Defaults live on BGCouriers_Order_Columns (single source of truth).
         $row_colors = [];
