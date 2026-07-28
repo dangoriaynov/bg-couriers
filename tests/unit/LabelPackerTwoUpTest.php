@@ -20,7 +20,7 @@ final class LabelPackerTwoUpTest extends TestCase {
 
     /** One landscape-A4 page with the form in the left half (5.6..97.5 mm), like Speedy's plain-A4 print. */
     private function half_sheet(string $mark): string {
-        $f = new \FPDF('L', 'mm', 'A4');
+        $f = new \BGCouriers_FPDF('L', 'mm', 'A4');
         $f->AddPage();
         $f->SetFont('Helvetica', 'B', 12);
         $f->Rect(5.6, 8, 91.9, 192);
@@ -31,7 +31,7 @@ final class LabelPackerTwoUpTest extends TestCase {
     /** A sticker-size single-page label PDF, like Pigeon's 100x90. FPDF normalizes the size array
      *  to portrait, so pick the orientation that yields the exact requested w x h. */
     private function sticker(float $w = 100, float $h = 90): string {
-        $f = new \FPDF($w >= $h ? 'L' : 'P', 'mm', [min($w, $h), max($w, $h)]);
+        $f = new \BGCouriers_FPDF($w >= $h ? 'L' : 'P', 'mm', [min($w, $h), max($w, $h)]);
         $f->AddPage();
         $f->Rect(1, 1, $w - 2, $h - 2);
         return $f->Output('S');
