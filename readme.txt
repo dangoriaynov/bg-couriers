@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,6 +89,17 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.2.1 =
+* New "Shipped" order status, set automatically once tracking shows the courier has actually collected the parcel (optional, off by default; pairs with the existing on-delivery status rule).
+* One-click waybill re-issue on the orders list and the order screen, and as a bulk action - voids the current waybill and issues a new one from the order's current details.
+* Orders list: rows tinted by courier (colour per courier in the settings), and the plugin's bulk actions grouped under their own section.
+* Checkout: tap anywhere on a courier row to choose it - a full-width target on phones.
+* Settings: an unsaved-changes indicator, with a warning before you navigate away.
+* Shared default parcel weight for every courier, and a per-courier parcel-contents description that Sameday now sends too.
+* Fixed: Pigeon office lists were truncated to the first 100 offices, so most of the country's offices could not be picked.
+* Fixed: Speedy tracking showed raw status codes instead of the courier's own wording, and never recognised delivery.
+* Fixed: cancelling a waybill left cached alternate-size labels behind, so a later print could show the voided number.
+
 = 0.2.0 =
 * BOX NOW courier (locker delivery + embedded GPS map widget).
 * Sameday courier (address/easyBox/Sameday Point) - services and pickup point auto-discovered from your account.
@@ -110,6 +121,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
 
 == Upgrade Notice ==
+
+= 0.2.1 =
+Adds an optional "Shipped" order status driven by courier tracking, one-click waybill re-issue, courier-coloured order rows, and fixes Pigeon office lists and Speedy tracking statuses.
 
 = 0.2.0 =
 Adds BOX NOW, Sameday, cash on delivery, a map picker and Bulgarian translation.

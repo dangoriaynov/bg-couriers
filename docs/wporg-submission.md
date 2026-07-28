@@ -7,7 +7,7 @@ Speedy A4_4xA6 batch, tracking poller).
 ## 1. Pre-flight (each item ~1 min)
 
 - [ ] `wp-admin (dev) → Tools → Plugin Check` on the CURRENT deploy - must be clean (fix + redeploy otherwise).
-- [ ] Versions agree: `bg-couriers.php` header `Version` == readme.txt `Stable tag` (now 0.2.0).
+- [ ] Versions agree: `bg-couriers.php` header `Version` == readme.txt `Stable tag` (now 0.2.1).
 - [ ] readme.txt `Tested up to` == current WP major.minor (7.0 today; check https://api.wordpress.org/core/version-check/1.7/).
 - [ ] Translation fresh: `msgfmt --statistics languages/bg-couriers-bg_BG.po` shows 0 untranslated (kept in the repo for our own sites; NOT shipped in the zip - see below).
 - [ ] Build the zip (below) and install it once on a CLEAN dev/wp-env site - activates without notices.
@@ -22,7 +22,7 @@ rsync -a --exclude '.git' --exclude '.gitignore' --exclude '.superpowers' --excl
   --exclude '.wp-env.json' --exclude 'composer.*' --exclude 'phpunit.xml.dist' \
   --exclude '.wordpress-org' --exclude '.distignore' --exclude '.github' --exclude 'README.md' \
   --exclude '.DS_Store' --exclude 'languages' ./ "$STAGE/"
-(cd "$STAGE/.." && zip -qr ~/Downloads/bg-couriers-0.2.0.zip bg-couriers)
+(cd "$STAGE/.." && zip -qr ~/Downloads/bg-couriers-0.2.1.zip bg-couriers)
 ```
 
 The zip root must contain exactly: `bg-couriers.php  readme.txt  LICENSE  includes/  assets/`.
@@ -40,7 +40,7 @@ as the plugin author, and it becomes the community-maintained source of truth.
 ## 3. Submit
 
 1. Log in on wordpress.org as **winter2007d**.
-2. https://wordpress.org/plugins/developers/add/ - upload `bg-couriers-0.2.0.zip`.
+2. https://wordpress.org/plugins/developers/add/ - upload `bg-couriers-0.2.1.zip`.
 3. The requested slug will be derived from the plugin name (`bg-couriers`); keep it - it becomes permanent.
 4. Wait for the review e-mail (usually days; replies go to the account e-mail). Reviewers may ask about:
    - external services -> already disclosed in readme.txt (couriers' APIs, BOX NOW widget, OSM/Nominatim, optional Google Geocoding);
@@ -54,8 +54,8 @@ svn co https://plugins.svn.wordpress.org/bg-couriers svn-bgc && cd svn-bgc
 # plugin files -> trunk/  (same file set as the zip)
 # .wordpress-org/{icon,banner,screenshot}-*.png -> assets/   (screenshots are NOT inside the zip)
 svn add --force trunk assets
-svn ci -m 'Initial 0.2.0 release'
-svn cp trunk tags/0.2.0 && svn ci -m 'Tag 0.2.0'
+svn ci -m 'Initial 0.2.1 release'
+svn cp trunk tags/0.2.1 && svn ci -m 'Tag 0.2.1'
 ```
 
 - Screenshot captions come from readme.txt `== Screenshots ==` (numbered 1..6 = screenshot-N.png).
