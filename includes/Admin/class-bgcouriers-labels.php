@@ -2,6 +2,9 @@
 defined('ABSPATH') || exit;
 
 class BGCouriers_Labels {
+    /** Cron hook that re-attempts an automatic label after a courier was unreachable. */
+    const RETRY_HOOK = 'bgcouriers_retry_autolabel';
+
     /** The registered courier for a BGCOURIERS order, or null if it isn't one of ours. */
     public static function order_courier($order): ?BGCouriers_Courier_Interface {
         if (!$order instanceof \WC_Order) { return null; }
@@ -22,6 +25,7 @@ class BGCouriers_Labels {
         add_action('wp_ajax_bgcouriers_order_save_delivery', [$this, 'handle_save_delivery']);
         add_action('wp_ajax_bgcouriers_ajax_cancel_label', [$this, 'ajax_cancel_label']);
         add_action('woocommerce_order_status_changed', [$this, 'maybe_auto_generate'], 20, 4);
+        add_action(self::RETRY_HOOK, [__CLASS__, 'attempt_auto_label'], 10, 1);
         add_action('woocommerce_order_refunded', [$this, 'maybe_cancel_on_refund'], 20, 2);
         // Editing an order can invalidate a waybill that is already at the courier - a different address,
         // a different COD amount, different contents/weight. Both hooks are needed: the Update button and
@@ -37,10 +41,45 @@ class BGCouriers_Labels {
         if ('wc-' . $new_status !== $cfg['status']) { return; }
         if (!self::order_courier($order)) { return; } // any BGCOURIERS courier, not just Speedy
         if ($order->get_meta('_bgcouriers_waybill') !== '') { return; }
-        try { self::generate((int) $order_id); }
-        catch (\Exception $e) {
-            /* translators: %s: error message */
-            $order->add_order_note(sprintf(__('BG Couriers auto-label failed: %s', 'bg-couriers'), $e->getMessage()));
+        self::attempt_auto_label((int) $order_id);
+    }
+
+    /** Minutes to wait before each retry. A courier outage is usually over long before the last one. */
+    const AUTOLABEL_RETRIES = [5, 20, 60, 180];
+
+    /**
+     * Try to issue the automatic label, and if the courier could not be reached, schedule another go.
+     *
+     * A courier API returning 503 for a minute used to lose the label silently: the order sat with no
+     * waybill until somebody noticed. Retrying is safe because generate() refuses to act when a waybill
+     * already exists, so a late retry can never produce a second shipment.
+     */
+    public static function attempt_auto_label(int $order_id): void {
+        $order = wc_get_order($order_id);
+        if (!$order || (string) $order->get_meta('_bgcouriers_waybill') !== '') { return; }
+        try {
+            self::generate($order_id);
+            $order = wc_get_order($order_id);
+            $order->delete_meta_data('_bgcouriers_autolabel_try');
+            $order->save();
+            return;
+        } catch (\Exception $e) {
+            $try  = (int) $order->get_meta('_bgcouriers_autolabel_try');
+            $wait = self::AUTOLABEL_RETRIES[$try] ?? null;
+            if ($wait === null) {
+                /* translators: 1: number of attempts, 2: error message */
+                $order->add_order_note(sprintf(__('BG Couriers auto-label gave up after %1$d attempts: %2$s', 'bg-couriers'),
+                    $try + 1, $e->getMessage()));
+                $order->delete_meta_data('_bgcouriers_autolabel_try');
+                $order->save();
+                return;
+            }
+            $order->update_meta_data('_bgcouriers_autolabel_try', $try + 1);
+            $order->save();
+            wp_schedule_single_event(time() + $wait * MINUTE_IN_SECONDS, self::RETRY_HOOK, [$order_id]);
+            /* translators: 1: error message, 2: minutes until the next attempt */
+            $order->add_order_note(sprintf(__('BG Couriers auto-label failed: %1$s - retrying in %2$d min.', 'bg-couriers'),
+                $e->getMessage(), $wait));
         }
     }
     public static function generate(int $order_id): BGCouriers_Label {

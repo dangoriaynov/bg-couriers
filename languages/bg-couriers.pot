@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 15:01+0300\n"
+"POT-Creation-Date: 2026-07-29 21:09+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -55,7 +55,7 @@ msgid "No labels to print (none could be generated)."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-bulk-labels.php:120
-#: includes/Admin/class-bgcouriers-labels.php:429
+#: includes/Admin/class-bgcouriers-labels.php:468
 msgid "The generated file is not a valid PDF."
 msgstr ""
 
@@ -102,42 +102,48 @@ msgid ""
 "Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
 msgstr ""
 
-#. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:43
+#. translators: 1: number of attempts, 2: error message
+#: includes/Admin/class-bgcouriers-labels.php:71
 #, php-format
-msgid "BG Couriers auto-label failed: %s"
+msgid "BG Couriers auto-label gave up after %1$d attempts: %2$s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:54
-#: includes/Admin/class-bgcouriers-labels.php:243
-#: includes/Admin/class-bgcouriers-labels.php:398
+#. translators: 1: error message, 2: minutes until the next attempt
+#: includes/Admin/class-bgcouriers-labels.php:81
+#, php-format
+msgid "BG Couriers auto-label failed: %1$s - retrying in %2$d min."
+msgstr ""
+
+#: includes/Admin/class-bgcouriers-labels.php:93
+#: includes/Admin/class-bgcouriers-labels.php:282
+#: includes/Admin/class-bgcouriers-labels.php:437
 msgid "Unknown courier for this order."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:59
+#: includes/Admin/class-bgcouriers-labels.php:98
 msgid "The courier returned no waybill number."
 msgstr ""
 
 #. translators: 1: courier name, 2: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:89
+#: includes/Admin/class-bgcouriers-labels.php:128
 #, php-format
 msgid "%1$s label generated: %2$s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:158
-#: includes/Admin/class-bgcouriers-labels.php:338
+#: includes/Admin/class-bgcouriers-labels.php:197
+#: includes/Admin/class-bgcouriers-labels.php:377
 msgid "Order not found."
 msgstr ""
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:164
+#: includes/Admin/class-bgcouriers-labels.php:203
 #: includes/Admin/class-bgcouriers-order-metabox.php:88
 #, php-format
 msgid "Label generation failed: %s"
 msgstr ""
 
 #. translators: %s: the previous waybill number
-#: includes/Admin/class-bgcouriers-labels.php:228
+#: includes/Admin/class-bgcouriers-labels.php:267
 #, php-format
 msgid ""
 "The order changed, so waybill %s was voided and a new one issued "
@@ -145,17 +151,17 @@ msgid ""
 msgstr ""
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:231
+#: includes/Admin/class-bgcouriers-labels.php:270
 #, php-format
 msgid "Automatic re-issue after an order change failed: %s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:250
+#: includes/Admin/class-bgcouriers-labels.php:289
 msgid "The courier did not cancel the waybill."
 msgstr ""
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:267
+#: includes/Admin/class-bgcouriers-labels.php:306
 #, php-format
 msgid ""
 "Shipment label %s was already cancelled at the courier; removed from the "
@@ -163,69 +169,69 @@ msgid ""
 msgstr ""
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:269
+#: includes/Admin/class-bgcouriers-labels.php:308
 #, php-format
 msgid "Shipment label %s cancelled."
 msgstr ""
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:285
+#: includes/Admin/class-bgcouriers-labels.php:324
 #, php-format
 msgid "Auto-cancel of the waybill after a full refund failed: %s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:299
-#: includes/Admin/class-bgcouriers-labels.php:323
+#: includes/Admin/class-bgcouriers-labels.php:338
+#: includes/Admin/class-bgcouriers-labels.php:362
 msgid "Label cancellation failed"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:310
+#: includes/Admin/class-bgcouriers-labels.php:349
 msgid "Label re-generation failed"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:326
+#: includes/Admin/class-bgcouriers-labels.php:365
 msgid "Cancelled from the BG Couriers panel."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:340
+#: includes/Admin/class-bgcouriers-labels.php:379
 msgid "Choose a courier."
 msgstr ""
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:350
+#: includes/Admin/class-bgcouriers-labels.php:389
 #, php-format
 msgid "Could not cancel the current waybill: %s"
 msgstr ""
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:373
+#: includes/Admin/class-bgcouriers-labels.php:412
 #, php-format
 msgid "Saved, but issuing the new waybill failed: %s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:376
+#: includes/Admin/class-bgcouriers-labels.php:415
 msgid "Delivery details saved."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:376
+#: includes/Admin/class-bgcouriers-labels.php:415
 msgid "Delivery updated and a new waybill issued."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:387
+#: includes/Admin/class-bgcouriers-labels.php:426
 msgid "Waybill cancelled."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:396
+#: includes/Admin/class-bgcouriers-labels.php:435
 msgid "No waybill found."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:412
-#: includes/Admin/class-bgcouriers-labels.php:426
+#: includes/Admin/class-bgcouriers-labels.php:451
+#: includes/Admin/class-bgcouriers-labels.php:465
 msgid "No labels to print."
 msgstr ""
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:425
+#: includes/Admin/class-bgcouriers-labels.php:464
 #, php-format
 msgid "Print failed: %s"
 msgstr ""
