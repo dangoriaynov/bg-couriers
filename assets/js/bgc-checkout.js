@@ -16,7 +16,13 @@
     var t = (text == null ? '' : String(text)).toLowerCase();
     return t.indexOf(term) !== -1 || bgcTranslit(t).indexOf(term) !== -1;
   }
-  function sel2($el, opts) { return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts)); }
+  // select2 renders its dropdown at the end of <body>, outside .bgc-fields, so our stylesheet cannot
+  // reach it by nesting. Tag every dropdown we open with a class of our own and style that - otherwise
+  // the search box inside keeps select2's default height and looks squashed next to our 38px fields.
+  function sel2($el, opts) {
+    opts = $.extend({ dropdownCssClass: 'bgc-drop' }, opts || {});
+    return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts));
+  }
   // Suppress select2's "results could not be loaded" flash when it aborts an in-flight search on fast typing.
   function noAbortTransport(params, success, failure) {
     var req = $.ajax(params);

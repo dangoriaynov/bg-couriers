@@ -20,6 +20,7 @@ class BGCouriers_Checkout {
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
+        add_filter('woocommerce_shipping_package_name', [$this, 'package_name'], 10, 3);
         add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
         // Hide WC's generic cart shipping calculator (Country/Region/City/Postcode) - deliveries are
         // Bulgaria-only and the real office/APS/address is chosen at checkout, so those fields only confuse.
@@ -284,6 +285,23 @@ class BGCouriers_Checkout {
      * of the package WC hashes to cache shipping rates. Inject it so the cache busts when the
      * customer changes courier office/city - otherwise WC serves a stale rate from the first calc.
      */
+    /**
+     * WooCommerce 10.x renamed the heading above the shipping methods to "Shipment", and several locales -
+     * bg_BG among them - have no translation for that string yet, so a fully Bulgarian checkout shows one
+     * English word directly above our courier picker.
+     *
+     * Fall back to WooCommerce's OWN long-standing translated string rather than inventing a translation,
+     * and only while the new string really is untranslated: the moment the locale catches up, or if the
+     * site is in a language that already has it, we leave core alone. Multi-package names ("Shipment %d")
+     * are untouched.
+     */
+    public function package_name($name, $index = 0, $package = []) {
+        $untranslated = _x('Shipment', 'shipping packages', 'woocommerce');
+        if ($untranslated !== 'Shipment' || $name !== $untranslated) { return $name; }
+        $fallback = __('Shipping', 'woocommerce');
+        return $fallback !== 'Shipping' ? $fallback : $name;
+    }
+
     public function package_hash($packages) {
         $s = WC()->session;
         if (!$s) { return $packages; }
