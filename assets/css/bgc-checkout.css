@@ -155,8 +155,14 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 
 /* The CHOSEN courier and its delivery fields sit together in one rounded card, so it is obvious
    the fields belong to that courier (not a loose sheet of controls). Unselected rows stay plain. */
-.woocommerce-checkout ul#shipping_method > li{list-style:none;padding:12px 10px;margin:2px 0;border-radius:12px;
+.woocommerce-checkout ul#shipping_method{margin:0;padding:0;}
+.woocommerce-checkout ul#shipping_method > li{list-style:none;padding:9px 10px;margin:0;border-radius:12px;
+  min-height:44px;box-sizing:border-box;line-height:1.45;
   cursor:pointer;transition:background-color .12s;-webkit-tap-highlight-color:transparent;}
+/* Themes routinely give the rate label its own block margins and a tall line-height; stacked over four
+   couriers that is most of a phone screen. Keep the row itself the only thing setting the spacing. */
+.woocommerce-checkout ul#shipping_method > li > label{margin:0;padding:0;line-height:inherit;}
+.woocommerce-checkout ul#shipping_method > li > input.shipping_method{margin:0 6px 0 0;}
 /* The whole row is the tap target (see bgc-checkout.js), so say so on hover - but not on the chosen
    row, which is already a card and holds the delivery form. */
 .woocommerce-checkout ul#shipping_method > li:hover{background:#f4f6f9;}
@@ -164,4 +170,9 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 .woocommerce-checkout ul#shipping_method > li:has(> input.shipping_method:checked):hover{cursor:default;}
 .woocommerce-checkout ul#shipping_method > li .bgc-fields{cursor:default;}
 .woocommerce-checkout ul#shipping_method > li label{cursor:pointer;}
-.woocommerce-checkout ul#shipping_method > li:has(> input.shipping_method:checked){border:1px solid #dbe1e8;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:12px 14px;margin:8px 0 12px;}
+.woocommerce-checkout ul#shipping_method > li:has(> input.shipping_method:checked){border:1px solid #dbe1e8;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:10px 12px;margin:4px 0 8px;}
+
+/* The package heading is empty on purpose (see BGCouriers_Checkout::package_name) - collapse the space
+   the theme still reserves for it, otherwise an invisible label keeps pushing the couriers down. */
+.woocommerce-checkout .woocommerce-shipping-totals > th:empty,
+.woocommerce-checkout tr.shipping > th:empty{padding:0;margin:0;border:0;height:0;line-height:0;font-size:0;}

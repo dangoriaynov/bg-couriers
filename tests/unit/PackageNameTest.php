@@ -22,21 +22,17 @@ final class PackageNameTest extends TestCase {
         return new BGCouriers_Checkout();
     }
 
-    public function test_substitutes_only_when_the_new_string_is_untranslated(): void {
-        $c = $this->withCatalogue(['Shipping' => 'Доставка']); // "Shipment" missing, as on bg_BG today
-        $this->assertSame('Доставка', $c->package_name('Shipment', 0, []));
+    /** The default heading is dropped - our picker underneath already says what it is. */
+    public function test_the_default_heading_is_removed(): void {
+        $this->assertSame('', $this->withCatalogue(['Shipping' => 'Доставка'])->package_name('Shipment', 0, []));
+        $this->assertSame('', $this->withCatalogue([])->package_name('Shipment', 0, []));
     }
 
-    /** Once WooCommerce ships a translation, theirs wins - we stop interfering. */
-    public function test_leaves_core_alone_once_it_is_translated(): void {
+    /** Also when the locale HAS translated it - it is still the default heading. */
+    public function test_a_translated_default_is_removed_too(): void {
         $c = $this->withCatalogue(['Shipment' => 'Пратка', 'Shipping' => 'Доставка']);
-        $this->assertSame('Пратка', $c->package_name('Пратка', 0, []));
-    }
-
-    /** An English site must keep reading "Shipment", not be pushed back to "Shipping". */
-    public function test_english_site_is_untouched(): void {
-        $c = $this->withCatalogue([]);
-        $this->assertSame('Shipment', $c->package_name('Shipment', 0, []));
+        $this->assertSame('', $c->package_name('Пратка', 0, []));
+        $this->assertSame('', $c->package_name('Доставка', 0, []));
     }
 
     /** Numbered names for multi-package carts are never rewritten. */

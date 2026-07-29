@@ -296,10 +296,13 @@ class BGCouriers_Checkout {
      * are untouched.
      */
     public function package_name($name, $index = 0, $package = []) {
+        // Our courier picker sits directly under this heading and already says what it is, so the word
+        // above it is pure repetition eating vertical space - which matters most on a phone, where the
+        // shipping block can fill the screen. Dropped for the single-package case only; a cart split
+        // into several packages still needs "Shipment 1 / 2" to tell them apart.
         $untranslated = _x('Shipment', 'shipping packages', 'woocommerce');
-        if ($untranslated !== 'Shipment' || $name !== $untranslated) { return $name; }
-        $fallback = __('Shipping', 'woocommerce');
-        return $fallback !== 'Shipping' ? $fallback : $name;
+        $default      = ($name === $untranslated) || ($name === __('Shipping', 'woocommerce'));
+        return $default ? '' : $name;   // anything another plugin set is left alone
     }
 
     public function package_hash($packages) {
