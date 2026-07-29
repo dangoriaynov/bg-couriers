@@ -13,16 +13,17 @@
 .bgc-ltile{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #c9ced6;border-radius:6px;background:#fff;box-sizing:border-box;cursor:default;flex:0 0 auto;}
 .bgc-clogo{max-width:17px;max-height:17px;width:auto;height:auto;object-fit:contain;display:block;}
 /* data-tip hover bubbles, same as the order-screen shipment panel. */
+.bgc-cell,.bgc-cell .bgc-row{overflow:visible;}
 .bgc-cell [data-tip]{position:relative;}
-.bgc-cell [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#1d2327;color:#fff;font-size:11px;font-weight:500;line-height:1;padding:6px 8px;border-radius:6px;pointer-events:none;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.2);}
-.bgc-cell [data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1d2327;z-index:30;}
+.bgc-cell [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#1d2327;color:#fff;font-size:11px;font-weight:500;line-height:1;padding:6px 8px;border-radius:6px;pointer-events:none;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);max-width:230px;white-space:normal;width:max-content;}
+.bgc-cell [data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1d2327;z-index:9999;}
 .bgc-ico.bgc-primary{background:#2271b1;border-color:#2271b1!important;color:#fff;}
 .bgc-ico.bgc-primary:hover{background:#1c5d92;border-color:#1c5d92!important;color:#fff;}
 .bgc-ico.bgc-danger{color:#b32d2e;border-color:#e6a2a5!important;}
 .bgc-ico.bgc-danger:hover{background:#fcecec;border-color:#cf6a6f!important;color:#8a1f2b;}
-.bgc-ltoast{position:fixed;z-index:100001;left:50%;bottom:32px;transform:translateX(-50%) translateY(6px);background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;}
+.bgc-ltoast{position:fixed;z-index:1000001;left:50%;bottom:32px;transform:translateX(-50%) translateY(6px);background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;}
 .bgc-ltoast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.bgc-lmodal-ov{position:fixed;inset:0;background:rgba(20,24,28,.5);z-index:100000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
+.bgc-lmodal-ov{position:fixed;inset:0;background:rgba(20,24,28,.5);z-index:1000000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
 .bgc-lmodal-ov.show{opacity:1;}
 .bgc-lmodal{background:#fff;border-radius:14px;max-width:400px;width:calc(100% - 40px);padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.3);transform:translateY(8px) scale(.98);transition:transform .15s;}
 .bgc-lmodal-ov.show .bgc-lmodal{transform:none;}
@@ -32,3 +33,6 @@
 .bgc-lmodal .button{border-radius:8px;}
 .bgc-lmodal .bgc-lyes{background:#b32d2e!important;border-color:#b32d2e!important;color:#fff!important;box-shadow:none!important;}
 .bgc-lmodal .bgc-lyes:hover{background:#8a1f2b!important;border-color:#8a1f2b!important;}
+
+/* The Waybill column sits at the right of the table, so its last tiles' hints must not run off the edge. */
+.bgc-cell .bgc-row > *:nth-last-child(-n+2)[data-tip]:hover::after{left:auto;right:0;transform:none;}

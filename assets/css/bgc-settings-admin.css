@@ -23,7 +23,7 @@
 #wpbody .bgc-settings .bgc-help { display:inline-block; box-sizing:border-box; width:16px; height:16px; margin:0 0 0 6px; border-radius:50%; background:#c3c8ce; color:#fff; font:italic 700 11px/16px Georgia, serif; text-align:center; vertical-align:middle; cursor:help; position:relative; }
 #wpbody .bgc-settings .bgc-help::before { content:"i"; }
 #wpbody .bgc-settings .bgc-help:hover, #wpbody .bgc-settings .bgc-help:focus { background:#2271b1; outline:none; }
-#wpbody .bgc-settings .bgc-help:hover::after, #wpbody .bgc-settings .bgc-help:focus::after { content:attr(data-tip); position:absolute; left:0; top:calc(100% + 7px); width:300px; max-width:300px; white-space:normal; background:#1d2327; color:#fff; font:400 12px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif; font-style:normal; text-align:left; padding:9px 12px; border-radius:8px; box-shadow:0 5px 18px rgba(0,0,0,.28); z-index:1000; pointer-events:none; }
+#wpbody .bgc-settings .bgc-help:hover::after, #wpbody .bgc-settings .bgc-help:focus::after { content:attr(data-tip); position:absolute; left:0; top:calc(100% + 7px); width:300px; max-width:300px; white-space:normal; background:#1d2327; color:#fff; font:400 12px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif; font-style:normal; text-align:left; padding:9px 12px; border-radius:8px; box-shadow:0 5px 18px rgba(0,0,0,.28); z-index:9999; pointer-events:none; }
 /* One standardised red (disabled / error) + green (enabled / ok) palette, reused everywhere. */
 #wpbody .bgc-settings { --bgc-red-bg:#fcf0f1; --bgc-red-bd:#e6a2a5; --bgc-red-tx:#b32d2e;
     --bgc-green-bg:#eef9f1; --bgc-green-bd:#c4e7cf; --bgc-green-tx:#1a7f37; }
@@ -113,3 +113,9 @@
 @media (prefers-reduced-motion:no-preference){
   .woocommerce-save-button.bgc-dirty{transition:box-shadow .15s ease-in-out;}
 }
+
+/* Settings-page hints: the form table cells clip, so let them through and keep the bubble on top. */
+#wpbody .bgc-settings table.form-table,
+#wpbody .bgc-settings table.form-table th,
+#wpbody .bgc-settings table.form-table td,
+#wpbody .bgc-settings .bgc-help { overflow:visible; }

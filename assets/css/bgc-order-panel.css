@@ -3,9 +3,9 @@
    button and the action buttons were three different sizes, and with 8 controls they no longer fitted the
    narrow order sidebar, so the row wrapped and the second line jumped right. Everything below derives from
    these two custom properties - change the size in one place, not four. */
-.bgc-order-panel{margin-top:8px;padding:10px 11px;border:1px solid #e6e9ec;border-radius:9px;background:#fff;
+.bgc-order-panel{overflow:visible;margin-top:8px;padding:10px 11px;border:1px solid #e6e9ec;border-radius:9px;background:#fff;
   --bgc-tile:28px;--bgc-gap:4px;}
-.bgc-order-panel .bgc-hd{display:flex;align-items:center;gap:var(--bgc-gap);margin:0 0 8px;flex-wrap:nowrap;}
+.bgc-order-panel .bgc-hd{overflow:visible;display:flex;align-items:center;gap:var(--bgc-gap);margin:0 0 8px;flex-wrap:nowrap;}
 .bgc-order-panel .bgc-hd b{font-size:13px;color:#1d2327;}
 .bgc-order-panel .bgc-logo{max-width:18px;max-height:18px;width:auto;height:auto;object-fit:contain;display:block;}
 /* Logo + delivery-type icon share the SAME 31x31 tile as the action buttons, so the whole row is one size. */
@@ -32,9 +32,14 @@
 .bgc-order-panel .bgc-act.bgc-danger:hover{background:#fcecec;border-color:#cf6a6f!important;color:#8a1f2b;}
 .bgc-order-panel .bgc-act.bgc-gen{width:auto!important;padding:0 11px!important;gap:6px;font-size:12px;font-weight:600;}
 /* Hover hint bubbles for every element carrying data-tip. */
+/* Hover hints must never be clipped by the panel they live in, and must never run off its right edge.
+   Three parts, applied wherever we show a hint: (1) the containers do not clip; (2) the bubble stacks
+   above everything nearby; (3) the hints on the LAST controls in a row anchor to their right edge instead
+   of centring, because a centred bubble on the rightmost button always overflows the panel. */
+.bgc-order-panel,.bgc-order-panel .bgc-hd,.bgc-order-panel .bgc-hd-acts{overflow:visible;}
 .bgc-order-panel [data-tip]{position:relative;}
-.bgc-order-panel [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#1d2327;color:#fff;font-size:11px;font-weight:500;line-height:1;padding:6px 8px;border-radius:6px;pointer-events:none;z-index:30;box-shadow:0 2px 6px rgba(0,0,0,.2);}
-.bgc-order-panel [data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1d2327;z-index:30;}
+.bgc-order-panel [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#1d2327;color:#fff;font-size:11px;font-weight:500;line-height:1;padding:6px 8px;border-radius:6px;pointer-events:none;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);max-width:230px;white-space:normal;width:max-content;}
+.bgc-order-panel [data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1d2327;z-index:9999;}
 .bgc-order-panel .bgc-ed{margin-top:8px;}
 /* Editor form: force a uniform 32px height on native selects + select2 + inputs (WC/theme give */
 /* the native selects a taller height, so !important + the .bgc-order-panel prefix are needed). */
@@ -74,9 +79,11 @@
 .bgc-order-panel .bgc-ed-form .bgc-ed-grid4 .bgc-ed-fld{margin:0;}
 .bgc-order-panel .bgc-ed-form .description{margin:6px 0 0;font-size:12px;color:#646970;}
 /* Copied-to-clipboard toast + custom cancel confirmation dialog (global, not panel-scoped). */
-.bgc-toast{position:fixed;z-index:100001;background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;}
+/* Above everything on the order screen. 100000 was not enough - some control on that page stacks higher
+   and showed THROUGH the dimmed overlay. */
+.bgc-toast{position:fixed;z-index:1000001;background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;}
 .bgc-toast.show{opacity:1;transform:translateY(0);}
-.bgc-modal-ov{position:fixed;inset:0;background:rgba(20,24,28,.5);z-index:100000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
+.bgc-modal-ov{position:fixed;inset:0;background:rgba(20,24,28,.5);z-index:1000000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
 .bgc-modal-ov.show{opacity:1;}
 .bgc-modal{background:#fff;border-radius:14px;max-width:400px;width:calc(100% - 40px);padding:22px 22px 18px;box-shadow:0 12px 40px rgba(0,0,0,.3);transform:translateY(8px) scale(.98);transition:transform .15s;}
 .bgc-modal-ov.show .bgc-modal{transform:none;}
@@ -87,3 +94,6 @@
 .bgc-modal .button{border-radius:8px;height:36px;display:inline-flex;align-items:center;padding:0 16px;}
 .bgc-modal .bgc-btn-danger{background:#b32d2e!important;border-color:#b32d2e!important;color:#fff!important;box-shadow:none!important;}
 .bgc-modal .bgc-btn-danger:hover{background:#8a1f2b!important;border-color:#8a1f2b!important;}
+
+/* Right-edge hints: anchor the bubble to the control's right edge so it stays inside the panel. */
+.bgc-order-panel .bgc-hd-acts > *:nth-last-child(-n+3)[data-tip]:hover::after{left:auto;right:0;transform:none;}
