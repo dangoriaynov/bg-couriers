@@ -300,8 +300,12 @@ class BGCouriers_Checkout {
         // above it is pure repetition eating vertical space - which matters most on a phone, where the
         // shipping block can fill the screen. Dropped for the single-package case only; a cart split
         // into several packages still needs "Shipment 1 / 2" to tell them apart.
-        $untranslated = _x('Shipment', 'shipping packages', 'woocommerce');
-        $default      = ($name === $untranslated) || ($name === __('Shipping', 'woocommerce'));
+        // These two strings belong to WooCommerce, not to us - we only need to recognise ITS defaults. The
+        // msgids are held in variables so string extraction does not pull WooCommerce's wording into this
+        // plugin's own translation catalogue, where it has no business being.
+        $shipment = 'Shipment';
+        $shipping = 'Shipping';
+        $default  = ($name === _x($shipment, 'shipping packages', 'woocommerce')) || ($name === __($shipping, 'woocommerce'));
         return $default ? '' : $name;   // anything another plugin set is left alone
     }
 

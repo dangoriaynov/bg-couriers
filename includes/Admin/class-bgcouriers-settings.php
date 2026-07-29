@@ -91,10 +91,21 @@ class BGCouriers_Settings {
         ];
     }
 
-    /** How many results to show in checkout city/office dropdowns (shared across couriers). */
+    /** Default number of results in the checkout city / street search. */
+    const DROPDOWN_LIMIT = 20;
+
+    /**
+     * How many results a checkout search returns. This bounds the CITY search (only when the city lists
+     * are not preloaded - with preloading the search is local and shows everything) and the STREET search.
+     * Office lists are never limited: they are fetched whole for the chosen city.
+     *
+     * Not unlimited on purpose. A two-letter term matches hundreds of streets in a big city and thousands
+     * of villages nationwide; sending and rendering that on every keystroke is slow exactly on the phones
+     * where it hurts most. 20 is far past "my town is missing" while staying small.
+     */
     public static function dropdown_limit(): int {
-        $raw = get_option('bgcouriers_dropdown_limit', 5);
-        if ($raw === '' || (int) $raw <= 0) { return 5; } // empty / invalid falls back to the default 5
+        $raw = get_option('bgcouriers_dropdown_limit', self::DROPDOWN_LIMIT);
+        if ($raw === '' || (int) $raw <= 0) { return self::DROPDOWN_LIMIT; }
         return (int) $raw;
     }
 
