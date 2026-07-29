@@ -4,20 +4,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 
-if (!class_exists('WC_Order')) {
-    /** Minimal stand-in for the bits of WC_Order that mark_shipped() touches. */
-    class WC_Order {
-        public array $meta = [];
-        public string $status = 'processing';
-        /** @var array{0:string,1:string}|null */
-        public $transition = null;
-        public function get_meta($k) { return $this->meta[$k] ?? ''; }
-        public function update_meta_data($k, $v) { $this->meta[$k] = $v; }
-        public function get_status() { return $this->status; }
-        public function update_status($s, $note = '') { $this->status = $s; $this->transition = [$s, $note]; }
-        public function save() {}
-    }
-}
+require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-tracking-poller.php';
 
 /**

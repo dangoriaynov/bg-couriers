@@ -23,6 +23,11 @@ class BGCouriers_Labels {
         add_action('wp_ajax_bgcouriers_ajax_cancel_label', [$this, 'ajax_cancel_label']);
         add_action('woocommerce_order_status_changed', [$this, 'maybe_auto_generate'], 20, 4);
         add_action('woocommerce_order_refunded', [$this, 'maybe_cancel_on_refund'], 20, 2);
+        // Editing an order can invalidate a waybill that is already at the courier - a different address,
+        // a different COD amount, different contents/weight. Both hooks are needed: the Update button and
+        // the AJAX line-item editor are separate paths.
+        add_action('woocommerce_process_shop_order_meta', [$this, 'maybe_regenerate_on_change'], 90, 1);
+        add_action('woocommerce_saved_order_items', [$this, 'maybe_regenerate_on_change'], 90, 1);
     }
 
     /** Auto-generate a label when an order reaches the configured status. */
@@ -78,6 +83,8 @@ class BGCouriers_Labels {
             $order->update_meta_data('_bgcouriers_label_url', $url);
         }
         $order->update_meta_data('_bgcouriers_label_paper_size', $primary);
+        // Snapshot what this label was built from, so a later edit can tell whether it still matches.
+        $order->update_meta_data('_bgcouriers_label_fp', self::label_fingerprint($order));
         /* translators: 1: courier name, 2: waybill number */
         $order->add_order_note(sprintf(__('%1$s label generated: %2$s', 'bg-couriers'), $courier->label(), $label->waybill));
         $order->save();
@@ -160,6 +167,72 @@ class BGCouriers_Labels {
         wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
         exit;
     }
+    /**
+     * Everything on an order that a waybill actually depends on, as one comparable string. Recorded when a
+     * label is issued and re-checked when the order is edited, so "has this changed?" is answered by the
+     * data itself rather than by guessing which hook fired.
+     *
+     * Deliberately narrow: the order status, notes, dates and internal flags are NOT in here - changing
+     * them must never void a live shipment.
+     */
+    public static function label_fingerprint(\WC_Order $order): string {
+        $parts = [];
+        foreach (['courier', 'method', 'site_id', 'office_id', 'post_code', 'street_name', 'street_no',
+                  'complex', 'block', 'entrance', 'floor', 'apartment', 'address_note',
+                  'boxnow_name', 'boxnow_addr', 'weight_kg'] as $k) {
+            $parts[] = $k . '=' . (string) $order->get_meta('_bgcouriers_' . $k);
+        }
+        $parts[] = 'name=' . $order->get_formatted_billing_full_name();
+        $parts[] = 'phone=' . $order->get_billing_phone();
+        // What the courier collects, and what it carries.
+        $parts[] = 'pay=' . $order->get_payment_method();
+        $parts[] = 'total=' . wc_format_decimal($order->get_total(), 2);
+        $parts[] = 'ship=' . wc_format_decimal($order->get_shipping_total(), 2);
+        $parts[] = 'weight=' . BGCouriers_Abstract_Courier::order_weight_kg($order);
+        foreach ($order->get_items() as $item) {
+            $parts[] = 'i:' . $item->get_product_id() . 'x' . $item->get_quantity() . '@' . wc_format_decimal($item->get_total(), 2);
+        }
+        return md5(implode('|', $parts));
+    }
+
+    /**
+     * Re-issue the waybill when an edit actually changed something the courier needs. Off unless the
+     * merchant enables it (default on): it voids a real shipment, so it must never fire on a save that
+     * changed nothing - hence the fingerprint rather than "the order was saved".
+     */
+    public function maybe_regenerate_on_change($order_id): void {
+        static $running = false;
+        if ($running) { return; }                                        // generate() saves the order again
+        if (get_option('bgcouriers_autoregen_on_change', 'yes') !== 'yes') { return; }
+        $order = wc_get_order((int) $order_id);
+        if (!$order || (string) $order->get_meta('_bgcouriers_waybill') === '') { return; } // nothing to re-issue
+        if (!self::order_courier($order)) { return; }
+
+        $now  = self::label_fingerprint($order);
+        $were = (string) $order->get_meta('_bgcouriers_label_fp');
+        if ($were === '' || $were === $now) {
+            // No stored fingerprint means the label predates this feature - record it and change nothing.
+            if ($were === '') { $order->update_meta_data('_bgcouriers_label_fp', $now); $order->save(); }
+            return;
+        }
+
+        $running = true;
+        $old = (string) $order->get_meta('_bgcouriers_waybill');
+        try {
+            self::cancel((int) $order_id);
+            self::generate((int) $order_id);
+            $fresh = wc_get_order((int) $order_id);
+            $fresh->update_meta_data('_bgcouriers_label_fp', self::label_fingerprint($fresh));
+            $fresh->save();
+            /* translators: %s: the previous waybill number */
+            $fresh->add_order_note(sprintf(__('The order changed, so waybill %s was voided and a new one issued automatically.', 'bg-couriers'), $old));
+        } catch (\Exception $e) {
+            /* translators: %s: error message from the courier */
+            $order->add_order_note(sprintf(__('Automatic re-issue after an order change failed: %s', 'bg-couriers'), $e->getMessage()));
+        }
+        $running = false;
+    }
+
     /** Void the courier waybill and clear it from the order (throws on courier failure). */
     public static function cancel(int $order_id): void {
         $order = wc_get_order($order_id);
