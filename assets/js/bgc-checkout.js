@@ -180,24 +180,70 @@
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
       $wrap.find('.bgc-map-btn').prop('disabled', false).attr('title', '');
       resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
+      idle(function () { prefetchOtherCouriers($wrap.find('.bgc-city').val() || 0, method($wrap)); });
     });
     // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
     $city.on('select2:clear', function () {
       $wrap.find('.bgc-postcode').val('');
       $wrap.find('.bgc-map-btn').prop('disabled', true).attr('title', (BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || '');
       resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
+      idle(function () { prefetchOtherCouriers($wrap.find('.bgc-city').val() || 0, method($wrap)); });
     });
   }
 
   // Office / automat - preloaded per city+method, cached client-side until refresh; search is then local.
   var officeCache = {}; // 'courier:city:type' -> all office rows for that city+type
+
+  /* Office lists are cached per TAB in sessionStorage, not preloaded for the whole country: every city
+     for every courier is ~137 KB gzipped, which no shopper needs - they pick one city. Caching what was
+     actually fetched means going back to a city, or reloading the checkout, costs no request at all, and
+     sessionStorage bounds how stale it can get (it dies with the tab; the server also caches 6h). */
+  var OFFICE_STORE = 'bgcouriers_off:';
+  function cacheGet(key) {
+    if (officeCache[key] !== undefined) { return officeCache[key]; }
+    try {
+      var raw = window.sessionStorage && sessionStorage.getItem(OFFICE_STORE + key);
+      if (raw) { officeCache[key] = JSON.parse(raw); return officeCache[key]; }
+    } catch (e) { /* private mode / bad JSON - fall through to a fetch */ }
+    return undefined;
+  }
+  function cacheSet(key, rows) {
+    officeCache[key] = rows || [];
+    try { window.sessionStorage && sessionStorage.setItem(OFFICE_STORE + key, JSON.stringify(officeCache[key])); }
+    catch (e) { /* quota or private mode - the in-memory cache still does its job */ }
+  }
+  function idle(fn) {
+    if (window.requestIdleCallback) { requestIdleCallback(fn, { timeout: 2000 }); } else { setTimeout(fn, 400); }
+  }
+
   function preloadOffices($wrap) {
     var city = $wrap.find('.bgc-city').val() || 0, m = method($wrap);
     if (!city || m === 'address') { return; }
     var key = courier($wrap) + ':' + city + ':' + m;
-    if (officeCache[key] !== undefined) { return; }
+    if (cacheGet(key) !== undefined) { return; }
     $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: courier($wrap), city_id: city, type: m, all: 1 },
-      function (rows) { officeCache[key] = rows || []; });
+      function (rows) { cacheSet(key, rows); });
+  }
+
+  /* Once a city is known, quietly fetch the SAME city for the other couriers on the page, so switching
+     courier is instant instead of costing a round-trip. Runs at idle, one request at a time, and skips
+     anything already cached - it is a nicety, never allowed to compete with what the shopper is doing. */
+  function prefetchOtherCouriers(city, m) {
+    if (!city || m === 'address') { return; }
+    var seen = {}, queue = [];
+    $('.bgc-fields').each(function () {
+      var c = $(this).attr('data-courier');
+      if (!c || seen[c]) { return; }
+      seen[c] = 1;
+      if (cacheGet(c + ':' + city + ':' + m) === undefined) { queue.push(c); }
+    });
+    (function next() {
+      if (!queue.length) { return; }
+      var c = queue.shift();
+      $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: c, city_id: city, type: m, all: 1 })
+        .done(function (rows) { cacheSet(c + ':' + city + ':' + m, rows); })
+        .always(function () { idle(next); });
+    })();
   }
 
   function initOffice($wrap) {
@@ -220,9 +266,10 @@
               return bgcTextMatch(o.name, term) || (String(o.office_id).indexOf(term) !== -1) || bgcTextMatch(o.address, term);
             }) : rows);
           }
-          if (officeCache[key] !== undefined) { done(officeCache[key]); return { abort: function () {} }; } // local
+          var hit = cacheGet(key);
+          if (hit !== undefined) { done(hit); return { abort: function () {} }; } // cached: no request at all
           var req = $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: d.courier, city_id: d.city_id, type: d.type, all: 1 });
-          req.done(function (rows) { officeCache[key] = rows || []; done(officeCache[key]); });
+          req.done(function (rows) { cacheSet(key, rows); done(officeCache[key]); });
           req.fail(function (x, status) { if (status !== 'abort') { failure(); } });
           return req;
         },
