@@ -22,3 +22,6 @@ New test shipments are appended here as they are created.
 | 63682911736 | 2026-07-26 | dev 221 | Bulk re-issue (new semantics) E2E: pre-label - CANCELLED by the re-issue |
 | 63682911743 | 2026-07-26 | dev 221 | Bulk re-issue (new semantics) E2E: the replacement - CANCELLED by the script |
 | 63682911801 | 2026-07-26 | dev 222 | Bulk re-issue (new semantics) E2E: order that had NO waybill and now gets one - CANCELLED by the script |
+| 63687409977 | 2026-07-29 | dev 223 | Auto re-issue E2E (first run, invalid office fed by the probe) - CANCELLED |
+| 63687411548 | 2026-07-29 | dev 224 | Auto re-issue E2E: original label - CANCELLED by the automatic re-issue |
+| 63687411678 | 2026-07-29 | dev 224 | Auto re-issue E2E: issued automatically after the office changed - CANCELLED by the script |
