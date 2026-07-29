@@ -2,6 +2,16 @@
 defined('ABSPATH') || exit;
 
 class BGCouriers_Checkout {
+    /**
+     * Shipping-method id prefix. Rate ids look like "bgcouriers_speedy:12", and the courier id is what
+     * follows it. NEVER hardcode the offset: it used to be substr($id, 4) for the old "bgc_" prefix, and
+     * when the prefix was renamed the number stayed behind - every rate then resolved to a courier that
+     * does not exist, and the checkout lost all of its shipping methods.
+     */
+    const METHOD_PREFIX = 'bgcouriers_';
+    /** Length of METHOD_PREFIX, for substr() offsets. */
+    private const PREFIX_LEN = 11;
+
     public function __construct() {
         add_action('woocommerce_after_shipping_rate', [$this, 'render_fields'], 10, 2);
         add_action('woocommerce_after_shipping_rate', [$this, 'cart_rate_note'], 11, 2); // cart-only: explain the estimate basis
@@ -82,9 +92,9 @@ class BGCouriers_Checkout {
 
     /** 'bgcouriers_econt:8' / 'bgcouriers_econt' -> 'econt'; '' for non-BGCOURIERS method ids. */
     private static function courier_from_rate_id(string $id): string {
-        if (strpos($id, 'bgcouriers_') !== 0) { return ''; }
+        if (strpos($id, self::METHOD_PREFIX) !== 0) { return ''; }
         $mid = explode(':', $id)[0]; // strip the instance id
-        return substr($mid, 4);
+        return substr($mid, self::PREFIX_LEN);
     }
 
     /** Pre-select the configured default courier when the customer hasn't chosen a shipping method yet. */
@@ -106,7 +116,7 @@ class BGCouriers_Checkout {
     public function cart_rate_note($rate, $index): void {
         if (!function_exists('is_cart') || !is_cart()) { return; }
         if (!is_object($rate) || strpos((string) $rate->get_method_id(), 'bgcouriers_') !== 0) { return; }
-        $courier_id = substr((string) $rate->get_method_id(), 4);
+        $courier_id = substr((string) $rate->get_method_id(), self::PREFIX_LEN);
         $c = BGCouriers_Couriers::get($courier_id);
         if (!$c) { return; }
         $meta = method_exists($rate, 'get_meta_data') ? (array) $rate->get_meta_data() : [];
@@ -164,7 +174,7 @@ class BGCouriers_Checkout {
         if (!is_object($method) || !method_exists($method, 'get_method_id')) { return $label; }
         $mid = (string) $method->get_method_id();
         if (strpos($mid, 'bgcouriers_') !== 0) { return $label; }
-        $url = BGCouriers_Couriers::logo_url(substr($mid, 4));
+        $url = BGCouriers_Couriers::logo_url(substr($mid, self::PREFIX_LEN));
         if ($url === '') { return $label; }
         return '<img class="bgc-ship-logo" src="' . esc_url($url) . '" alt="" aria-hidden="true" width="16" height="16"> ' . $label;
     }
@@ -288,7 +298,7 @@ class BGCouriers_Checkout {
         $pos = array_flip(BGCouriers_Settings::courier_order());
         $key = static function ($r) use ($pos) {
             $mid = (is_object($r) && method_exists($r, 'get_method_id')) ? (string) $r->get_method_id() : '';
-            return strpos($mid, 'bgcouriers_') === 0 ? ($pos[substr($mid, 4)] ?? 900) : 1000; // non-bgc rates keep to the end
+            return strpos($mid, self::METHOD_PREFIX) === 0 ? ($pos[substr($mid, self::PREFIX_LEN)] ?? 900) : 1000; // other plugins' rates keep to the end
         };
         uasort($rates, static function ($a, $b) use ($key) { return $key($a) <=> $key($b); });
         return $rates;
@@ -521,7 +531,7 @@ class BGCouriers_Checkout {
         // The interactive pickers belong to checkout (their JS/CSS only load there). On the cart page keep
         // the rate row clean - the customer picks the destination at checkout (the cart shows the estimate).
         if (function_exists('is_cart') && is_cart()) { return; }
-        $courier = substr((string) $method->get_method_id(), 4); // 'bgcouriers_speedy' -> 'speedy'
+        $courier = substr((string) $method->get_method_id(), self::PREFIX_LEN); // 'bgcouriers_speedy' -> 'speedy'
         if (!BGCouriers_Couriers::get($courier)) { return; }
         if ($courier === 'boxnow') { $this->render_boxnow_fields(WC()->session); return; } // locker chosen on the map widget
         // Stateful: re-render the session selection so update_checkout recalcs don't wipe the fields.
