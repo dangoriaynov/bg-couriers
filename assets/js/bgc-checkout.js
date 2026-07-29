@@ -113,12 +113,26 @@
       }
     }
     var av = availCache[key], firstOk = null;
+    var settled = $wrap.data('bgc-availed');
     $wrap.find('.bgc-tab').each(function () {
       var $t = $(this), m = $t.data('method'), ok = methodOk(av, m);
       $t.toggleClass('bgc-tab-na', !ok).prop('disabled', !ok).attr('title', ok ? '' : (BGCOURIERS.i18n.na_city || ''));
       if (ok && firstOk === null) { firstOk = m; }
     });
-    if (!methodOk(av, method($wrap)) && firstOk) { setMethod($wrap, firstOk); } // active option unavailable -> switch
+    if (methodOk(av, method($wrap)) || !firstOk) { $wrap.data('bgc-availed', true); return; }
+    // The active delivery option is not available here, so move to one that is. On the FIRST render this
+    // fires while the checkout is still settling and setMethod() would trigger a second full
+    // update_checkout - a second spinner and a second round of live courier price calls, which is the
+    // long wait customers were seeing. Nothing is priced yet at that point anyway (no city chosen), so
+    // switch the UI and save the choice quietly; the price is recalculated as soon as a city is picked.
+    if (settled) {
+        setMethod($wrap, firstOk);            // a later, user-driven change: recalculate as usual
+    } else {
+        $wrap.attr('data-method', firstOk);
+        syncMethodUI($wrap);
+        saveSelection($wrap);                  // remember it without a checkout round-trip
+    }
+    $wrap.data('bgc-availed', true);
   }
 
   // City (searchable, server-limited) --------------------------------------
