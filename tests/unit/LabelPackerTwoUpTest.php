@@ -85,4 +85,36 @@ final class LabelPackerTwoUpTest extends TestCase {
         // A and B pair on one sheet; the odd page passes through at its own native size.
         $this->assertSame([[297.0, 210.0], [100.0, 150.0]], $this->sizes($res['pdf']));
     }
+
+    /**
+     * The whole point of the owner's complaint: Econt hands over the SAME landscape-A4 form as Speedy,
+     * but it used to arrive through the "small labels" path and every one of them wasted a full sheet
+     * with a blank right half. Half-sheets are now recognised by geometry alone, whoever sent them.
+     */
+    public function test_another_couriers_half_sheet_pairs_up_instead_of_wasting_a_sheet(): void {
+        // Both arrive as "small" labels - i.e. stored per-label PDFs, not a native batch.
+        $res = BGCouriers_Label_Packer::compose_a4([], [$this->half_sheet('ECONT-1'), $this->half_sheet('ECONT-2')]);
+        $this->assertSame([], $res['leftover'], 'neither may fall through to the leftovers');
+        $sizes = $this->sizes($res['pdf']);
+        $this->assertCount(1, $sizes, 'two half-sheet forms must share ONE sheet');
+        $this->assertEqualsWithDelta(297.0, $sizes[0][0], 1.0, 'landscape A4 sheet');
+        $this->assertEqualsWithDelta(210.0, $sizes[0][1], 1.0);
+    }
+
+    /** Mixed couriers pair with each other, not only with their own kind. */
+    public function test_a_speedy_half_and_another_couriers_half_share_one_sheet(): void {
+        $res = BGCouriers_Label_Packer::compose_a4([$this->half_sheet('SPEEDY')], [$this->half_sheet('ECONT')]);
+        $this->assertSame([], $res['leftover']);
+        $this->assertCount(1, $this->sizes($res['pdf']), 'one Speedy + one Econt form = one sheet');
+    }
+
+    /** Three half-sheets: two paired, the third alone with its free column open to stickers. */
+    public function test_an_odd_half_sheet_still_takes_sticker_fillers(): void {
+        $res = BGCouriers_Label_Packer::compose_a4(
+            [$this->half_sheet('A')],
+            [$this->half_sheet('B'), $this->half_sheet('C'), $this->sticker(100, 90)]
+        );
+        $this->assertSame([], $res['leftover'], 'the sticker must fit the odd form\'s empty half');
+        $this->assertCount(2, $this->sizes($res['pdf']), '3 forms = 2 sheets');
+    }
 }

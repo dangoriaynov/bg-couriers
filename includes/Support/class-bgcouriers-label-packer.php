@@ -173,8 +173,7 @@ class BGCouriers_Label_Packer {
         foreach ($half_pdfs as $bytes) {
             if (!is_string($bytes) || $bytes === '') { continue; }
             foreach ($import($bytes) as $it) {
-                $isHalf = abs($it['w'] - 297.0) <= 5.0 && abs($it['h'] - 210.0) <= 5.0;
-                if ($isHalf) { $halves[] = $it; } else { $others[] = $it; }
+                if (self::is_half_sheet($it)) { $halves[] = $it; } else { $others[] = $it; }
             }
         }
         // Small fillers: only single-page sticker-size PDFs qualify for a half column; the rest is
@@ -183,7 +182,12 @@ class BGCouriers_Label_Packer {
         foreach ($small_pdfs as $bytes) {
             if (!is_string($bytes) || $bytes === '') { continue; }
             $pages = $import($bytes);
-            if (count($pages) === 1 && $pages[0]['w'] <= self::HALF_COL_MAX_W
+            // A courier that hands over a full LANDSCAPE A4 form with its content in the left half - Econt
+            // does exactly what Speedy does - belongs in the two-up pool. Routing it to the leftovers, as
+            // before, spent a whole sheet on every such label with the right half blank.
+            if (count($pages) === 1 && self::is_half_sheet($pages[0])) {
+                $halves[] = $pages[0];
+            } elseif (count($pages) === 1 && $pages[0]['w'] <= self::HALF_COL_MAX_W
                 && $pages[0]['h'] <= self::HALF_COL_BOTTOM - self::HALF_COL_TOP) {
                 $fillers[] = ['bytes' => $bytes] + $pages[0];
             } else {
@@ -216,6 +220,17 @@ class BGCouriers_Label_Packer {
         // Fillers that found no half column go back to the caller as raw PDFs.
         foreach ($fillers as $f) { $leftover[] = $f['bytes']; }
         return ['pdf' => $pdf->PageNo() > 0 ? $pdf->Output('S') : '', 'leftover' => $leftover];
+    }
+
+    /**
+     * Is this page a courier form that occupies a landscape A4 sheet with its content in the left half?
+     * Speedy and Econt both hand those over, so two of them fit on one sheet side by side at native size.
+     * Geometry only - no courier is named here, so a new courier with the same form pairs up for free.
+     *
+     * @param array{w:float,h:float} $page
+     */
+    private static function is_half_sheet(array $page): bool {
+        return abs($page['w'] - 297.0) <= 5.0 && abs($page['h'] - 210.0) <= 5.0;
     }
 
     /**
