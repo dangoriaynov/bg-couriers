@@ -281,6 +281,26 @@ class BGCouriers_Settings {
      *
      * @return array{level:string,msg:string}|null
      */
+    /**
+     * Why this courier cannot be used as currently configured, if there is a reason. Drives both the red
+     * tab tint and the notice on the courier's own settings page, so a courier that will fail is visible
+     * before an order runs into it rather than after.
+     *
+     * @param string $courier Courier id.
+     * @return array{level:string,msg:string}|null
+     */
+    public static function courier_blocker(string $courier): ?array {
+        // Sameday refuses recipient-paid delivery unless the contract covers it, and when it refuses no
+        // waybill is created AT ALL - every order with this courier fails. We only know once Sameday has
+        // said so (there is no way to ask up front), so this reads the flag that its rejection sets.
+        if ($courier === 'sameday'
+            && get_option(BGCouriers_Sameday::NO_RECIPIENT_PAY, '') === 'yes'
+            && !self::ship_in_total('sameday')) {
+            return ['level' => 'error', 'msg' => __('Sameday does not support “the recipient pays the delivery” on this account, so NO waybill can be created while it is set that way. Turn on “Delivery in the order total” below, or ask Sameday to allow recipient payment on your contract.', 'bg-couriers')];
+        }
+        return self::ppp_courier_notice($courier);
+    }
+
     public static function ppp_courier_notice(string $courier): ?array {
         if ($courier === '' || self::cod_fiscalization() !== 'ppp' || self::courier_ppp_payout($courier)) {
             return null;
@@ -469,7 +489,7 @@ jQuery(function($){
      * prepaid gateway) so it won't appear at checkout. Renders nothing when there's nothing to warn about.
      */
     public function render_ppp_notice($field): void {
-        $notice = self::ppp_courier_notice((string) ($field['courier'] ?? ''));
+        $notice = self::courier_blocker((string) ($field['courier'] ?? ''));
         if (!$notice) { return; }
         $is_err = $notice['level'] === 'error';
         $bg  = $is_err ? 'var(--bgc-red-bg)' : '#fef8e7'; // red = error, amber = warning (intentionally distinct)
@@ -541,7 +561,7 @@ jQuery(function($){
      * like the enable toggle). Echoes nothing when there is no notice to show.
      */
     public static function ppp_notice_block(string $courier): void {
-        $notice = self::ppp_courier_notice($courier);
+        $notice = self::courier_blocker($courier);
         if (!$notice) { return; }
         $is_err = $notice['level'] === 'error';
         $bg  = $is_err ? 'var(--bgc-red-bg)' : '#fef8e7'; // red = error, amber = warning (intentionally distinct)

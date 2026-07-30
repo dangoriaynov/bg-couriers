@@ -72,6 +72,14 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     public function enable_problems(): array {
         $p = parent::enable_problems();
+        // Reported before the credential check: this one is about the contract, not the connection, and
+        // it is fatal - with it unresolved Sameday creates no waybill at all for any order.
+        if (get_option(self::NO_RECIPIENT_PAY, '') === 'yes' && !BGCouriers_Settings::ship_in_total('sameday')) {
+            $p[] = [
+                'msg' => __('Sameday does not support “the recipient pays the delivery” on this account - no waybill can be created while that is how it is set.', 'bg-couriers'),
+                'fix' => __('Turn on “Delivery in the order total” for Sameday, or ask Sameday to allow recipient payment on your contract.', 'bg-couriers'),
+            ];
+        }
         if (!$this->check_credentials()) { return $p; } // creds problems are already reported by the parent
         $labels = [
             'office'  => __('to office', 'bg-couriers'),
@@ -372,15 +380,22 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     // ── Label ────────────────────────────────────────────────────────────────
 
+    /** Set once Sameday has refused a recipient-paid shipment, so the settings screen can warn up front. */
+    const NO_RECIPIENT_PAY = 'bgcouriers_sameday_no_recipient_pay';
+
     public function create_label(\WC_Order $order): BGCouriers_Label {
         $method = (string) $order->get_meta('_bgcouriers_method');
+        $recipient_pays = self::service_payer('sameday') === 'recipient';
         try {
             $resp = $this->post_json('/api/awb', self::build_awb_body($order, $this->service_id($method), $this->pickup_point_id()));
         } catch (BGCouriers_Api_Exception $e) {
             // Not every Sameday contract allows the delivery to be charged to the recipient. When it does
-            // not, the API rejects awbPayment outright and no waybill is created at all - so say which
-            // setting causes it instead of passing on "The selected choice is invalid".
+            // not, the API rejects awbPayment outright and NO waybill is created - every order with this
+            // courier simply fails. Remember it, so the settings screen can flag the courier before the
+            // merchant discovers it one unshippable order at a time, and say which setting causes it
+            // instead of passing on Sameday's "The selected choice is invalid".
             if (strpos($e->getMessage(), 'awbPayment') !== false) {
+                update_option(self::NO_RECIPIENT_PAY, 'yes');
                 throw new BGCouriers_Api_Exception(esc_html__(
                     'Sameday refused "the recipient pays the delivery" - this account is not contracted for it. Turn on "Delivery in the order total" for Sameday, or ask Sameday to enable recipient payment.',
                     'bg-couriers'
@@ -388,6 +403,9 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             }
             throw $e;
         }
+        // It worked with the recipient paying, so whatever we learned before no longer holds - a contract
+        // can be extended, and a stale warning is its own kind of wrong.
+        if ($recipient_pays && get_option(self::NO_RECIPIENT_PAY, '') !== '') { delete_option(self::NO_RECIPIENT_PAY); }
         return new BGCouriers_Label(self::parse_awb_id($resp));
     }
 

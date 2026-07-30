@@ -194,7 +194,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $tint = '';
         if ($id !== '') {
             $on       = get_option('bgcouriers_' . $id . '_enabled', 'no') === 'yes';
-            $notice   = BGCouriers_Settings::ppp_courier_notice($id);
+            $notice   = BGCouriers_Settings::courier_blocker($id);
             $unusable = $notice && $notice['level'] === 'error';
             $tint     = ($on && !$unusable) ? ' bgc-tab-on' : ' bgc-tab-off';
         }
