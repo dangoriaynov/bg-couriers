@@ -53,15 +53,19 @@ class BGCouriers_Tracking {
         $s = function_exists('mb_strtolower') ? mb_strtolower($status) : strtolower($status);
         foreach (['отказ', 'анулир', 'cancel'] as $k) { if (strpos($s, $k) !== false) { return 'cancelled'; } }
         foreach (['върн', 'връщ', 'return'] as $k) { if (strpos($s, $k) !== false) { return 'returned'; } }
-        // 'достав' is also inside phrasings that mean the parcel is still MOVING - "Предадена за доставка",
-        // "Опит за доставка", "Готова за доставка", "out for delivery". Reading those as delivered would set
-        // _bgcouriers_track_done for good (the poller never clears it) and, with auto-status on, complete the order
-        // on a failed delivery attempt. The delivered forms are the participle ("Доставена"), never "за
-        // доставка", so guard the noun phrasings out first.
-        foreach (['за доставка', 'опит', 'for delivery', 'attempt'] as $k) {
+        // Explicit negations, before anything else can match the positive form.
+        foreach (['недостав', 'not delivered', 'undelivered', 'unsuccessful', 'неуспешн'] as $k) {
             if (strpos($s, $k) !== false) { return 'transit'; }
         }
-        foreach (['достав', 'deliver'] as $k) { if (strpos($s, $k) !== false) { return 'delivered'; } }
+        // ONLY the participle means delivered: "Доставена пратка", "Доставено", "Delivered to office".
+        // Every courier also emits statuses where delivery is a NOUN and the parcel has not been handed
+        // over yet or is still moving - Econt's very first event is literally "Awaiting delivery to
+        // Econt" / "Очаква предаване към Еконт", and there are "Предадена за доставка", "Опит за
+        // доставка", "out for delivery". A substring test for 'достав'/'deliver' matched all of those:
+        // that is what completed a freshly created order and set _bgcouriers_track_done (which is never
+        // cleared, so the parcel was never polled again). Match the participle, never the noun.
+        if (preg_match('/достав(ен|ена|ено|ени)/u', $s) === 1) { return 'delivered'; }
+        if (preg_match('/\bdelivered\b/', $s) === 1) { return 'delivered'; }
         return 'transit';
     }
 }

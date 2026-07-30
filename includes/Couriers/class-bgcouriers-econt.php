@@ -489,7 +489,12 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $status = $last ? (string) ($last['name'] ?? 'UNKNOWN') : 'UNKNOWN';
         }
 
-        return new BGCouriers_Tracking((string) ($st['shipmentNumber'] ?? ''), $status, $events);
+        // deliveryTime is Econt's own answer to "has this been delivered": null for the entire journey,
+        // a timestamp once the receiver has it. Prefer it over reading the status text, which is prose and
+        // says things like "Awaiting delivery to Econt" while the parcel is still on the merchant's desk.
+        $phase = ((string) ($st['deliveryTime'] ?? '')) !== '' ? 'DELIVERED' : '';
+
+        return new BGCouriers_Tracking((string) ($st['shipmentNumber'] ?? ''), $status, $events, $phase);
     }
 
     /**

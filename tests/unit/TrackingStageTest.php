@@ -17,12 +17,45 @@ final class TrackingStageTest extends TestCase {
     }
 
     /**
-     * Regression: 'достав' is a substring of phrasings that mean the parcel is still moving. Reading
-     * those as delivered would end tracking on a mere delivery attempt.
+     * Regression: 'достав'/'deliver' are substrings of phrasings that mean the parcel is still moving.
+     * Reading those as delivered would end tracking on a mere delivery attempt.
      */
     public function test_in_flight_delivery_phrasings_are_not_delivered(): void {
         foreach (['Предадена за доставка', 'Опит за доставка', 'Готова за доставка',
                   'Неуспешен опит за доставка', 'Out for delivery', 'Delivery attempt failed'] as $s) {
+            $this->assertSame('transit', BGCouriers_Tracking::classify($s), $s);
+        }
+    }
+
+    /**
+     * Regression, live incident: Econt's FIRST tracking event on order 11178 was "Awaiting delivery to
+     * Econt" (event code 'prepared') - the parcel had not even been handed to the courier. 'deliver'
+     * matched inside 'delivery', so the order was completed the day after it was placed and marked
+     * terminal, which also stopped it ever being polled again. Both languages, both real strings.
+     */
+    public function test_awaiting_handover_is_not_delivered(): void {
+        foreach (['Awaiting delivery to Econt', 'Очаква предаване към Еконт',
+                  'Awaiting delivery', 'Ready for delivery', 'Preparing for delivery',
+                  'Delivery scheduled for tomorrow', 'Очаква се доставка'] as $s) {
+            $this->assertSame('transit', BGCouriers_Tracking::classify($s), $s);
+        }
+    }
+
+    /** Every courier goes through classify(), so each one's real delivered wording has to pass. */
+    public function test_delivered_wording_of_each_courier(): void {
+        foreach (['Доставена пратка',            // Speedy
+                  'Delivered to office',          // Econt (English feed)
+                  'Доставена на получателя',      // Econt (Bulgarian feed)
+                  'delivered',                    // Pigeon / Sameday lowercase feeds
+                  'AWB delivered'] as $s) {
+            $this->assertSame('delivered', BGCouriers_Tracking::classify($s), $s);
+        }
+    }
+
+    /** An explicit negation must never read as the positive it contains. */
+    public function test_negated_delivery_is_not_delivered(): void {
+        foreach (['Недоставена пратка', 'Not delivered', 'Undelivered - receiver absent',
+                  'Unsuccessful delivery attempt'] as $s) {
             $this->assertSame('transit', BGCouriers_Tracking::classify($s), $s);
         }
     }
