@@ -551,6 +551,9 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'sectionend', 'id' => 'bgcouriers_econt_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_econt_pricing', 'title' => __('Pricing', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgcouriers_econt_ship_in_total', 'title' => __('Delivery in the order total', 'bg-couriers'),
+                'desc' => __('On: the customer pays delivery together with the order. Off: delivery is not charged at checkout - the estimated price is shown for information and the customer pays the courier on delivery; cash on delivery then collects only the goods total.', 'bg-couriers'),
+                'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgcouriers_econt_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Econt free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgcouriers_econt_pricing'],

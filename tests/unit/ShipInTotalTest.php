@@ -56,11 +56,24 @@ final class ShipInTotalTest extends TestCase {
         $this->assertSame('recipient', self::payer('sameday'));
     }
 
-    public function test_unsupported_couriers_always_included(): void {
-        // Econt / BOX NOW have no verified recipient-pays API field - the toggle must not apply.
-        $this->options(['bgcouriers_econt_ship_in_total' => 'no', 'bgcouriers_boxnow_ship_in_total' => 'no']);
-        $this->assertTrue(BGCouriers_Settings::ship_in_total('econt'));
+    /**
+     * BOX NOW has no field for it at all - its delivery-request payload cannot shift the courier fee to
+     * the recipient, so the toggle must never apply there however it is set.
+     */
+    public function test_boxnow_is_always_charged_with_the_order(): void {
+        $this->options(['bgcouriers_boxnow_ship_in_total' => 'no']);
         $this->assertTrue(BGCouriers_Settings::ship_in_total('boxnow'));
+        $this->assertSame('sender', self::payer('boxnow'));
+    }
+
+    /** Econt does support it (paymentReceiverMethod), verified live - so the toggle is honoured. */
+    public function test_econt_honours_the_toggle(): void {
+        $this->options(['bgcouriers_econt_ship_in_total' => 'no']);
+        $this->assertFalse(BGCouriers_Settings::ship_in_total('econt'));
+        $this->assertSame('recipient', self::payer('econt'));
+
+        $this->options(['bgcouriers_econt_ship_in_total' => 'yes']);
+        $this->assertTrue(BGCouriers_Settings::ship_in_total('econt'));
         $this->assertSame('sender', self::payer('econt'));
     }
 }

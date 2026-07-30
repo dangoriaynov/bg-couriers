@@ -249,11 +249,9 @@ class BGCouriers_Settings {
         // is orderNumber/invoiceValue/paymentMode/amountToBeCollected/allowReturn/origin/destination/items,
         // and paymentMode+amountToBeCollected are the cash-on-delivery of the GOODS - the courier fee is
         // billed to the merchant by contract. So for BOX NOW delivery is always charged with the order.
-        // Econt CAN do it (paymentReceiverMethod + paymentReceiverAmountIsPercent, verified live against
-        // ee.econt.com: the 5.54 EUR fee moves from senderDueAmount to receiverDueAmount) - it is not
-        // offered yet only because cdAmount here is still the full order total and the packing list is
-        // built to match it, so enabling it without changing both would collect the delivery twice.
-        if (!in_array($courier, ['speedy', 'pigeon', 'sameday'], true)) { return true; }
+        // Econt does support it - paymentReceiverMethod + paymentReceiverAmountIsPercent, verified live
+        // against ee.econt.com: the whole fee moves from senderDueAmount to receiverDueAmount.
+        if (!in_array($courier, ['speedy', 'pigeon', 'sameday', 'econt'], true)) { return true; }
         $v = (string) get_option('bgcouriers_' . $courier . '_ship_in_total', '');
         if ($v === '') { // pre-toggle installs: honor the old "Who pays delivery" select
             return get_option('bgcouriers_' . $courier . '_service_payer', 'sender') !== 'recipient';

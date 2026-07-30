@@ -11,6 +11,8 @@ if (!class_exists('WC_Order')) {
         public array $items = [];
         public float $total = 0.0;
         public float $shipping_total = 0.0;
+        public float $shipping_tax = 0.0;
+        public string $currency = 'EUR';
         public string $payment_method = 'cod';
         public string $name = 'Иван Иванов';
         public string $phone = '0888123456';
@@ -28,6 +30,9 @@ if (!class_exists('WC_Order')) {
         public function get_items() { return $this->items; }
         public function get_total() { return $this->total; }
         public function get_shipping_total() { return $this->shipping_total; }
+        public function get_shipping_tax() { return $this->shipping_tax; }
+        public function get_currency() { return $this->currency; }
+        public function get_order_number() { return '1'; }
         public function get_payment_method() { return $this->payment_method; }
         public function get_formatted_billing_full_name() { return $this->name; }
         public function get_billing_phone() { return $this->phone; }
@@ -35,10 +40,15 @@ if (!class_exists('WC_Order')) {
 }
 if (!class_exists('WC_Order_Item_Stub')) {
     class WC_Order_Item_Stub {
-        public function __construct(private int $pid, private int $qty, private float $tot) {}
+        public function __construct(
+            private int $pid, private int $qty, private float $tot,
+            private float $tax = 0.0, private string $name = 'Продукт'
+        ) {}
         public function get_product_id() { return $this->pid; }
         public function get_quantity() { return $this->qty; }
         public function get_total() { return $this->tot; }
+        public function get_total_tax() { return $this->tax; }
+        public function get_name() { return $this->name; }
         public function get_product() { return null; }
     }
 }

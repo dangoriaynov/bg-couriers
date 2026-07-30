@@ -37,9 +37,20 @@ class BGCouriers_Method_Econt extends WC_Shipping_Method {
         $quote = BGCouriers_Pricing::checkout_quote($courier, $method, $site_id, $office, $packed, get_woocommerce_currency());
         $cost  = $quote->price;
 
-        // Free shipping (the merchant absorbs it) when the order goods total (w/o shipping,
-        // store currency, no conversion) reaches the Econt method-level threshold.
-        if (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGCouriers_Settings::free_shipping('econt', $method))) {
+        $included = BGCouriers_Settings::ship_in_total('econt');
+        $info     = 0.0;
+        if (!$included) {
+            // "Delivery in the order total" is off: nothing is charged with the order - the customer pays
+            // Econt's own fee on delivery (the label carries paymentReceiverMethod). Keep the estimate
+            // (display-gross, like charged rates render) so the method label can still show it.
+            $info = (float) $cost;
+            if ($info > 0 && get_option('woocommerce_tax_display_cart') === 'incl') {
+                $info += array_sum(WC_Tax::calc_shipping_tax($info, WC_Tax::get_shipping_tax_rates()));
+            }
+            $cost = 0.0;
+        } elseif (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGCouriers_Settings::free_shipping('econt', $method))) {
+            // Free shipping (the merchant absorbs it) when the order goods total (w/o shipping,
+            // store currency, no conversion) reaches the Econt method-level threshold.
             $cost = 0.0;
         }
 
@@ -50,14 +61,14 @@ class BGCouriers_Method_Econt extends WC_Shipping_Method {
 
         $label = $this->title;
         $free  = BGCouriers_Settings::free_shipping_label();
-        if ($cost <= 0 && $free !== '') { $label = $free; }
+        if ($included && $cost <= 0 && $free !== '') { $label = $free; }
 
         $this->add_rate([
             'id'    => $this->get_rate_id(),
             'label' => $label,
             'cost'  => $cost,
             'taxes' => '', // '' = let WC calculate shipping tax; only false disables it
-            'meta_data' => ['_bgcouriers_source' => $quote->source, '_bgcouriers_method' => $method],
+            'meta_data' => ['_bgcouriers_source' => $quote->source, '_bgcouriers_method' => $method, '_bgcouriers_info_price' => $info],
         ]);
     }
 }

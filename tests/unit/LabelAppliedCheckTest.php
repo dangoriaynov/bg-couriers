@@ -73,15 +73,21 @@ final class LabelAppliedCheckTest extends TestCase {
     }
 
     /**
-     * The payer check is deliberately inert for Econt TODAY: ship_in_total() hardcodes Econt to
-     * "charged with the order", so the sender being billed is the expected outcome, not a fault. The
-     * check is already in place so that it starts reporting the moment recipient-pays is offered for
-     * Econt (the API supports it - paymentReceiverMethod - the plugin does not send it yet).
+     * With recipient-pays configured, Econt billing the sender anyway means the shop quietly ate the
+     * delivery on an order whose customer was told they would pay the courier. Report it.
      */
-    public function test_econt_does_not_flag_the_payer_while_the_merchant_is_meant_to_pay(): void {
-        $this->econt(true); // even with the option set, ship_in_total() still forces merchant-pays
+    public function test_econt_flags_delivery_billed_to_the_sender_when_the_recipient_should_pay(): void {
+        $this->econt(true);
+        $p = BGCouriers_Econt::check_applied(['label' => []],
+            ['label' => ['services' => [], 'receiverDueAmount' => 0]]);
+        $this->assertCount(1, $p);
+    }
+
+    /** ...and says nothing when Econt did charge the recipient, as asked. */
+    public function test_econt_accepts_a_delivery_billed_to_the_recipient(): void {
+        $this->econt(true);
         $this->assertSame([], BGCouriers_Econt::check_applied(['label' => []],
-            ['label' => ['services' => [], 'receiverDueAmount' => 0]]));
+            ['label' => ['services' => [['type' => 'C', 'paymentSide' => 'RECEIVER']], 'receiverDueAmount' => 4.94]]));
     }
 
     /** Speedy charges a premium for COD, so a non-zero premium proves the service was applied. */

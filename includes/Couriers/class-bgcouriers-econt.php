@@ -352,18 +352,34 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
 
         // Наложен платеж (COD) + packing list - only when enabled in the Econt settings AND the order is
         // actually paid cash-on-delivery (so a prepaid order is never charged again on delivery).
+        // Who pays the courier fee. Econt CAN charge the recipient - paymentReceiverMethod with the amount
+        // as a percentage - which was verified live against ee.econt.com: the whole fee moves from
+        // senderDueAmount to receiverDueAmount. paymentSenderMethod is still never set: 'credit' makes
+        // Econt demand a payer client number the profile does not carry ("грешен клиентски номер за платец
+        // подател"), and leaving it unset already means "bill the API client", which is what we want when
+        // the merchant pays.
+        $payer = self::service_payer('econt');
+        if ($payer === 'recipient') {
+            $label['paymentReceiverMethod']          = 'cash';
+            $label['paymentReceiverAmountIsPercent'] = true;
+            $label['paymentReceiverAmount']          = 100;
+        }
+
+        // Наложен платеж (COD) + packing list - only when enabled in the Econt settings AND the order is
+        // actually paid cash-on-delivery (so a prepaid order is never charged again on delivery).
         if (get_option('bgcouriers_econt_cod_enabled', 'no') === 'yes' && $order->get_payment_method() === 'cod') {
-            $services['cdAmount']             = round((float) $order->get_total(), 2);
+            // Goods-only when the recipient pays the courier at the door (they must not be charged the
+            // delivery twice - once in the COD and again as the courier's own fee); the full total when
+            // the merchant already charged shipping at checkout.
+            $cod = self::cod_for_payer($order, $payer);
+            $services['cdAmount']             = $cod;
             $services['cdType']               = 'get'; // collect from the receiver
             $services['cdCurrency']           = $order->get_currency();
             $services['cdPayOptionsTemplate'] = (string) get_option('bgcouriers_econt_cd_num', '');
-            // Who pays the delivery (за чий рахунок): left to Econt's default - the API client (the
-            // sender/merchant, ЗЕЛЕНИ ДОБАВКИ) is billed on their own account. Setting
-            // paymentSenderMethod='credit' explicitly makes Econt demand a payer client number the
-            // profile doesn't carry → rejected ("грешен клиентски номер за платец подател"). The COD
-            // (goods + VAT) still returns to the merchant in full via ППП (the cdPayOptionsTemplate above).
+            // Econt totals the опис as sum(price x count) and REJECTS the label unless it equals cdAmount,
+            // so the list has to balance to whatever we are collecting, not to the order total.
             $label['packingListType'] = 'digital';
-            $label['packingList']     = self::packing_list($order);
+            $label['packingList']     = self::packing_list($order, $cod);
         }
 
         if (!empty($services)) {
@@ -391,7 +407,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
      * Econt requires that опис total to equal the наложен платеж (cdAmount = order total), so any
      * remainder (shipping, fees, rounding) is folded into one balancing line.
      */
-    private static function packing_list(\WC_Order $order): array {
+    private static function packing_list(\WC_Order $order, float $cod_total): array {
         $out = []; $i = 0; $sum = 0.0;
         foreach ($order->get_items() as $item) {
             $i++;
@@ -409,7 +425,10 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
                 'price'        => $unit,
             ];
         }
-        $remainder = round((float) $order->get_total() - $sum, 2); // shipping + fees + rounding
+        // Whatever is left between the item lines and the amount actually being collected: the delivery
+        // and any fees when the merchant charged them, or just rounding when the recipient pays the
+        // courier directly and only the goods are collected.
+        $remainder = round($cod_total - $sum, 2);
         if (abs($remainder) >= 0.01) {
             $out[] = [
                 'inventoryNum' => 'S',
@@ -566,9 +585,16 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
                 ['shipmentNumbers' => [$waybill]]
             );
             if (!empty($resp['error'])) { return false; }
-            // deleteLabels reports per-shipment results; a per-shipment error (e.g. "не е открита") means it
-            // was not cancelled by this call - is_cancelled() then decides whether it was already gone.
-            foreach (($resp['results'] ?? []) as $res) { if (!empty($res['error'])) { return false; } }
+            // deleteLabels reports per-shipment results. "Пратка ... не е открита" is not a failure: the
+            // shipment is not there any more, which is exactly what cancelling was for - a second attempt
+            // (or a cancel of something Econt already dropped) must not report failure and leave the
+            // merchant unable to re-issue. Anything else IS a failure.
+            foreach (($resp['results'] ?? []) as $res) {
+                if (empty($res['error'])) { continue; }
+                $m = mb_strtolower((string) ($res['error']['message'] ?? ''));
+                if (mb_strpos($m, 'не е откри') !== false || strpos($m, 'not found') !== false) { continue; }
+                return false;
+            }
             return true;
         } catch (BGCouriers_Api_Exception $e) {
             return false;
