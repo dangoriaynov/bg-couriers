@@ -49,21 +49,44 @@ class BGCouriers_Tracking {
      * 'transit'. Keyword-based (Bulgarian + English) so it works across couriers - Speedy operation names now
      * come back in Bulgarian, and Econt/Pigeon/Sameday statuses are already Bulgarian.
      */
+    /**
+     * Statuses that are still in flight even though they contain a word that looks terminal. Every one of
+     * these is a string a courier really sent us, not a hypothetical:
+     *   "Awaiting delivery to Econt"        Econt, first event - the parcel is still on the merchant's desk
+     *   "Уточняване на доставка"            Speedy 136 - arranging the delivery
+     *   "Подготовка за предаване на клиент" Speedy 134 - being prepared for handover
+     *   "Отказ от преглед/тестване"         Speedy 195 - the customer declined to INSPECT it; this fires
+     *                                       one second before the actual delivery, so reading its "отказ"
+     *                                       as a cancellation would end tracking right at the finish line
+     * @var string[]
+     */
+    private const IN_FLIGHT = [
+        'отказ от преглед', 'уточняване', 'подготовка', 'очаква', 'awaiting', 'prepared',
+        'за доставка', 'опит', 'for delivery', 'attempt',
+        'недостав', 'not delivered', 'undelivered', 'unsuccessful', 'неуспешн',
+    ];
+
+    /**
+     * Wordings that really do mean the receiver has the parcel. Couriers disagree on how to say it, and
+     * none of them says it the way the others do:
+     *   "Доставка на клиент"       Speedy, operation -14
+     *   "Взета от получателя"      Pigeon (its API sends no events at all - the text is all there is)
+     *   "Доставена пратка"         the participle, used by Speedy and Econt's Bulgarian feed
+     * @var string[]
+     */
+    private const DELIVERED_PHRASES = ['доставка на клиент', 'взета от получателя',
+        'получена от получателя', 'предадена на получателя'];
+
     public static function classify(string $status): string {
         $s = function_exists('mb_strtolower') ? mb_strtolower($status) : strtolower($status);
+        // Guards first: these phrases contain words the rules below would otherwise match.
+        foreach (self::IN_FLIGHT as $k) { if (strpos($s, $k) !== false) { return 'transit'; } }
         foreach (['отказ', 'анулир', 'cancel'] as $k) { if (strpos($s, $k) !== false) { return 'cancelled'; } }
         foreach (['върн', 'връщ', 'return'] as $k) { if (strpos($s, $k) !== false) { return 'returned'; } }
-        // Explicit negations, before anything else can match the positive form.
-        foreach (['недостав', 'not delivered', 'undelivered', 'unsuccessful', 'неуспешн'] as $k) {
-            if (strpos($s, $k) !== false) { return 'transit'; }
-        }
-        // ONLY the participle means delivered: "Доставена пратка", "Доставено", "Delivered to office".
-        // Every courier also emits statuses where delivery is a NOUN and the parcel has not been handed
-        // over yet or is still moving - Econt's very first event is literally "Awaiting delivery to
-        // Econt" / "Очаква предаване към Еконт", and there are "Предадена за доставка", "Опит за
-        // доставка", "out for delivery". A substring test for 'достав'/'deliver' matched all of those:
-        // that is what completed a freshly created order and set _bgcouriers_track_done (which is never
-        // cleared, so the parcel was never polled again). Match the participle, never the noun.
+        foreach (self::DELIVERED_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'delivered'; } }
+        // The participle - "Доставена", "Доставено", "Delivered to office" - never the noun. A substring
+        // test for 'достав'/'deliver' also matched "delivery"/"доставка", which is how an order was
+        // completed while its parcel had not left the shop.
         if (preg_match('/достав(ен|ена|ено|ени)/u', $s) === 1) { return 'delivered'; }
         if (preg_match('/\bdelivered\b/', $s) === 1) { return 'delivered'; }
         return 'transit';

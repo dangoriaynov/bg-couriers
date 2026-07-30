@@ -44,11 +44,44 @@ final class TrackingStageTest extends TestCase {
     /** Every courier goes through classify(), so each one's real delivered wording has to pass. */
     public function test_delivered_wording_of_each_courier(): void {
         foreach (['Доставена пратка',            // Speedy
+                  'Доставка на клиент',           // Speedy, operation -14 - the real final event
+                  'Взета от получателя',          // Pigeon - its API sends no events, only this text
                   'Delivered to office',          // Econt (English feed)
                   'Доставена на получателя',      // Econt (Bulgarian feed)
                   'delivered',                    // Pigeon / Sameday lowercase feeds
                   'AWB delivered'] as $s) {
             $this->assertSame('delivered', BGCouriers_Tracking::classify($s), $s);
+        }
+    }
+
+    /**
+     * The full operation list of two real Speedy parcels, in order. Only the last one is terminal - and
+     * "Отказ от преглед/тестване" (declining to INSPECT the parcel) fires one second before delivery, so
+     * reading its "отказ" as a cancellation would end tracking right at the finish line.
+     */
+    public function test_a_whole_speedy_journey_reads_correctly(): void {
+        $journey = [
+            'Получена информация за пратка'                => 'transit',
+            'Приемане от подател'                          => 'transit',
+            'Приемане от куриер/служител'                  => 'transit',
+            'Изпращане от офис'                            => 'transit',
+            'Пристигане в офис'                            => 'transit',
+            'Подготовка за предаване на клиент в офис'     => 'transit',
+            'Изпратено известие за пратка в офис/автомат'  => 'transit',
+            'Уточняване на доставка'                       => 'transit',
+            'Отказ от преглед/тестване'                    => 'transit',
+            'Доставка на клиент'                           => 'delivered',
+        ];
+        foreach ($journey as $text => $want) {
+            $this->assertSame($want, BGCouriers_Tracking::classify($text), $text);
+        }
+    }
+
+    /** Econt's in-flight events are place names and prose; none of them may read as terminal. */
+    public function test_econt_in_flight_events_are_transit(): void {
+        foreach (['Awaiting delivery to Econt', 'Travelling on line', 'Sofia - Sofia',
+                  'Sofia Emil Markov Nov', 'Order № 260730044625 for: adding cash on delivery'] as $s) {
+            $this->assertSame('transit', BGCouriers_Tracking::classify($s), $s);
         }
     }
 

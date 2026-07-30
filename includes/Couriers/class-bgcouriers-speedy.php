@@ -4,6 +4,8 @@ defined('ABSPATH') || exit;
 class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     const BG_COUNTRY_ID = 100;
     const BASE = 'https://api.speedy.bg/v1'; // Speedy has no separate demo/sandbox host
+    /** Operation code of "Доставка на клиент" - the final operation on a delivered parcel. */
+    const OP_DELIVERED = '-14';
 
     private string $user; private string $pass; private string $base; private array $sender;
 
@@ -362,8 +364,12 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         ], $ops);
         $status = $events ? end($events)['code'] : 'UNKNOWN';
         // trackPhase is an unambiguous lifecycle enum, but Speedy omits it on every parcel we have seen -
-        // pass it through when it IS there and let BGCouriers_Tracking fall back to the text when it is not.
-        return new BGCouriers_Tracking((string) ($parcel['parcelId'] ?? ''), $status, $events, (string) ($parcel['trackPhase'] ?? ''));
+        // pass it through when it IS there, and otherwise fall back to the operation code, which is still
+        // a machine value rather than prose: -14 is "Доставка на клиент" and is the last operation on
+        // every delivered parcel on this account. Only then does BGCouriers_Tracking read the text.
+        $phase = (string) ($parcel['trackPhase'] ?? '');
+        if ($phase === '' && $events && (string) end($events)['code'] === self::OP_DELIVERED) { $phase = 'DELIVERED'; }
+        return new BGCouriers_Tracking((string) ($parcel['parcelId'] ?? ''), $status, $events, $phase);
     }
 
     public function cancel_label(string $waybill): bool {
