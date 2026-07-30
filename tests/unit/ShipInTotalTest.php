@@ -24,10 +24,13 @@ final class ShipInTotalTest extends TestCase {
         });
     }
 
+    /**
+     * service_payer() is protected, so reach it through a subclass rather than reflection:
+     * ReflectionMethod::setAccessible() is deprecated as of PHP 8.5 and raises there, which nulled
+     * every assertion in this file.
+     */
     private static function payer(string $courier): string {
-        $m = new ReflectionMethod(BGCouriers_Abstract_Courier::class, 'service_payer');
-        $m->setAccessible(true);
-        return $m->invoke(null, $courier);
+        return BGCouriers_Payer_Probe::payer_of($courier);
     }
 
     public function test_defaults_to_included(): void {
@@ -60,4 +63,21 @@ final class ShipInTotalTest extends TestCase {
         $this->assertTrue(BGCouriers_Settings::ship_in_total('boxnow'));
         $this->assertSame('sender', self::payer('econt'));
     }
+}
+
+/** Minimal concrete courier whose only job is to expose the protected payer rule to the test. */
+final class BGCouriers_Payer_Probe extends BGCouriers_Abstract_Courier {
+    public static function payer_of(string $courier): string { return self::service_payer($courier); }
+    public function id(): string { return 'probe'; }
+    public function label(): string { return 'Probe'; }
+    public function capabilities(): array { return []; }
+    public function fetch_cities(): array { return []; }
+    public function fetch_offices(int $city_id): array { return []; }
+    public function quote(array $shipment): BGCouriers_Quote { throw new \RuntimeException('n/a'); }
+    public function create_label(\WC_Order $order): BGCouriers_Label { throw new \RuntimeException('n/a'); }
+    public function get_label_pdf(string $waybill, string $format = ''): string { return ''; }
+    public function track(string $waybill): BGCouriers_Tracking { throw new \RuntimeException('n/a'); }
+    public function tracking_url(string $waybill): string { return ''; }
+    public function cancel_label(string $waybill): bool { return false; }
+    public function check_credentials(): bool { return true; }
 }

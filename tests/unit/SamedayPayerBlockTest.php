@@ -63,7 +63,14 @@ final class SamedayPayerBlockTest extends TestCase {
             'bgcouriers_cod_fiscalization'    => 'ppp',
             'bgcouriers_boxnow_ppp_payout'    => 'no',
         ]);
-        Functions\when('wc_get_payment_gateway_by_order')->justReturn(null);
+        // The ППП branch asks whether the shop has a prepaid gateway, which walks
+        // WC()->payment_gateways()->payment_gateways(). None enabled = the fatal branch.
+        $gateways = new class { public function payment_gateways(): array { return []; } };
+        Functions\when('WC')->justReturn(new class($gateways) {
+            private $g;
+            public function __construct($g) { $this->g = $g; }
+            public function payment_gateways() { return $this->g; }
+        });
         $n = BGCouriers_Settings::courier_blocker('boxnow');
         $this->assertIsArray($n);
         $this->assertContains($n['level'], ['error', 'warning']);
