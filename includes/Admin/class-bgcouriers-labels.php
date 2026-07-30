@@ -262,6 +262,19 @@ class BGCouriers_Labels {
         $order = wc_get_order((int) $order_id);
         if (!$order || (string) $order->get_meta('_bgcouriers_waybill') === '') { return; } // nothing to re-issue
         if (!self::order_courier($order)) { return; }
+        // Once the courier holds the parcel, re-issuing would void a waybill that is travelling with it -
+        // the courier keeps delivering against the original either way. Say so rather than silently
+        // skipping, because the merchant just changed something believing the label would follow.
+        if (self::is_locked($order)) {
+            $fp = self::label_fingerprint($order);
+            if ((string) $order->get_meta('_bgcouriers_label_fp') !== $fp) {
+                $order->add_order_note(__('⚠ The order changed, but the waybill was NOT re-issued: the courier already collected this shipment. Arrange the change with the courier.', 'bg-couriers'));
+                // Record the new state, so the warning marks each change once instead of every save.
+                $order->update_meta_data('_bgcouriers_label_fp', $fp);
+                $order->save();
+            }
+            return;
+        }
 
         $now  = self::label_fingerprint($order);
         $were = (string) $order->get_meta('_bgcouriers_label_fp');
@@ -346,12 +359,42 @@ class BGCouriers_Labels {
         if ($o = wc_get_order($id)) { $o->add_order_note($context . ': ' . $msg); }
     }
 
+    /**
+     * Has the courier already taken this parcel? Once it has, the waybill is a document in someone else's
+     * hands and a physical parcel on a van: voiding it, re-issuing it or editing the address changes only
+     * OUR copy, while the courier keeps delivering against the original. So those actions stop here.
+     *
+     * A cancelled shipment is deliberately NOT locked - that one is void and re-issuing is the way out.
+     *
+     * @param \WC_Order $order The order to test.
+     * @return bool True when the waybill must no longer be changed.
+     */
+    public static function is_locked(\WC_Order $order): bool {
+        if ((string) $order->get_meta('_bgcouriers_handover') === 'yes') { return true; }
+        return in_array((string) $order->get_meta('_bgcouriers_track_stage'), ['delivered', 'returned'], true);
+    }
+
+    /** The one sentence every blocked action says, so the reason reads the same wherever it surfaces. */
+    public static function locked_message(): string {
+        return __('The courier has already collected this shipment - the waybill can no longer be cancelled, re-issued or edited. Arrange it with the courier instead.', 'bg-couriers');
+    }
+
+    /** @return \WC_Order|null The order when the action may proceed; null when it is locked. */
+    private static function unlocked_order(int $id): ?\WC_Order {
+        $order = wc_get_order($id);
+        return ($order && !self::is_locked($order)) ? $order : null;
+    }
+
     public function handle_cancel_label(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgcouriers_cancel_label_' . $id);
-        try { self::cancel($id); }
-        catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label cancellation failed', 'bg-couriers')); }
+        if (!self::unlocked_order($id)) {
+            $this->fail_note($id, self::locked_message(), __('Label cancellation refused', 'bg-couriers'));
+        } else {
+            try { self::cancel($id); }
+            catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label cancellation failed', 'bg-couriers')); }
+        }
         wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
         exit;
     }
@@ -361,8 +404,12 @@ class BGCouriers_Labels {
         if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgcouriers_regenerate_' . $id);
-        try { self::cancel($id); self::generate($id); }
-        catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label re-generation failed', 'bg-couriers')); }
+        if (!self::unlocked_order($id)) {
+            $this->fail_note($id, self::locked_message(), __('Re-issue refused', 'bg-couriers'));
+        } else {
+            try { self::cancel($id); self::generate($id); }
+            catch (\Exception $e) { $this->fail_note($id, $e->getMessage(), __('Label re-generation failed', 'bg-couriers')); }
+        }
         wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
         exit;
     }
@@ -391,6 +438,7 @@ class BGCouriers_Labels {
         $id = absint(wp_unslash($_POST['order_id'] ?? 0));
         $order = wc_get_order($id);
         if (!$order) { wp_send_json_error(['msg' => __('Order not found.', 'bg-couriers')]); }
+        if (self::is_locked($order)) { wp_send_json_error(['msg' => self::locked_message()]); }
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? ''));
         if ($courier === '' || !BGCouriers_Couriers::get($courier)) { wp_send_json_error(['msg' => __('Choose a courier.', 'bg-couriers')]); }
 
@@ -437,6 +485,7 @@ class BGCouriers_Labels {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         $id = absint(wp_unslash($_POST['order_id'] ?? 0));
         check_ajax_referer('bgcouriers_cancel_label_' . $id, 'nonce');
+        if (!self::unlocked_order($id)) { wp_send_json_error(['msg' => self::locked_message()]); }
         try { self::cancel($id); }
         catch (\Exception $e) { wp_send_json_error(['msg' => $e->getMessage()]); }
         wp_send_json_success(['msg' => __('Waybill cancelled.', 'bg-couriers')]);

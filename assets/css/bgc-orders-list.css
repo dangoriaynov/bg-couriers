@@ -36,3 +36,12 @@
 
 /* The Waybill column sits at the right of the table, so its last tiles' hints must not run off the edge. */
 .bgc-cell .bgc-row > *:nth-last-child(-n+2)[data-tip]:hover::after{left:auto;right:0;transform:none;}
+
+/* The courier's own last word about the shipment, under the waybill actions. Scanned, not read: the
+   coloured dot carries the verdict (moving / delivered / returned) so a row reads at a glance. */
+.bgc-track { display:inline-flex; align-items:center; gap:5px; max-width:100%; margin-top:2px;
+  font-size:11px; line-height:1.3; color:#50575e; }
+.bgc-track-dot { flex:0 0 auto; width:7px; height:7px; border-radius:50%; }
+.bgc-track-txt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Waybill locked: the courier has the parcel, so cancel and re-issue are gone from the row. */
+.bgc-lock { flex:0 0 auto; font-size:13px; width:13px; height:13px; color:#8c8f94; cursor:help; }

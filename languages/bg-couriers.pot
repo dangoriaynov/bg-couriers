@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bg-couriers\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 00:19+0300\n"
+"POT-Creation-Date: 2026-07-31 00:25+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -54,7 +54,7 @@ msgid "No labels to print (none could be generated)."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-bulk-labels.php:120
-#: includes/Admin/class-bgcouriers-labels.php:484
+#: includes/Admin/class-bgcouriers-labels.php:533
 msgid "The generated file is not a valid PDF."
 msgstr ""
 
@@ -114,8 +114,8 @@ msgid "BG Couriers auto-label failed: %1$s - retrying in %2$d min."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-labels.php:93
-#: includes/Admin/class-bgcouriers-labels.php:298
-#: includes/Admin/class-bgcouriers-labels.php:453
+#: includes/Admin/class-bgcouriers-labels.php:311
+#: includes/Admin/class-bgcouriers-labels.php:502
 msgid "Unknown courier for this order."
 msgstr ""
 
@@ -138,7 +138,7 @@ msgid "%1$s label generated: %2$s"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-labels.php:213
-#: includes/Admin/class-bgcouriers-labels.php:393
+#: includes/Admin/class-bgcouriers-labels.php:440
 msgid "Order not found."
 msgstr ""
 
@@ -149,8 +149,14 @@ msgstr ""
 msgid "Label generation failed: %s"
 msgstr ""
 
+#: includes/Admin/class-bgcouriers-labels.php:271
+msgid ""
+"⚠ The order changed, but the waybill was NOT re-issued: the courier already "
+"collected this shipment. Arrange the change with the courier."
+msgstr ""
+
 #. translators: %s: the previous waybill number
-#: includes/Admin/class-bgcouriers-labels.php:283
+#: includes/Admin/class-bgcouriers-labels.php:296
 #, php-format
 msgid ""
 "The order changed, so waybill %s was voided and a new one issued "
@@ -158,17 +164,17 @@ msgid ""
 msgstr ""
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:286
+#: includes/Admin/class-bgcouriers-labels.php:299
 #, php-format
 msgid "Automatic re-issue after an order change failed: %s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:305
+#: includes/Admin/class-bgcouriers-labels.php:318
 msgid "The courier did not cancel the waybill."
 msgstr ""
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:322
+#: includes/Admin/class-bgcouriers-labels.php:335
 #, php-format
 msgid ""
 "Shipment label %s was already cancelled at the courier; removed from the "
@@ -176,69 +182,83 @@ msgid ""
 msgstr ""
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:324
+#: includes/Admin/class-bgcouriers-labels.php:337
 #, php-format
 msgid "Shipment label %s cancelled."
 msgstr ""
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:340
+#: includes/Admin/class-bgcouriers-labels.php:353
 #, php-format
 msgid "Auto-cancel of the waybill after a full refund failed: %s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:354
-#: includes/Admin/class-bgcouriers-labels.php:378
+#: includes/Admin/class-bgcouriers-labels.php:379
+msgid ""
+"The courier has already collected this shipment - the waybill can no longer "
+"be cancelled, re-issued or edited. Arrange it with the courier instead."
+msgstr ""
+
+#: includes/Admin/class-bgcouriers-labels.php:393
+msgid "Label cancellation refused"
+msgstr ""
+
+#: includes/Admin/class-bgcouriers-labels.php:396
+#: includes/Admin/class-bgcouriers-labels.php:425
 msgid "Label cancellation failed"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:365
+#: includes/Admin/class-bgcouriers-labels.php:408
+msgid "Re-issue refused"
+msgstr ""
+
+#: includes/Admin/class-bgcouriers-labels.php:411
 msgid "Label re-generation failed"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:381
+#: includes/Admin/class-bgcouriers-labels.php:428
 msgid "Cancelled from the BG Couriers panel."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:395
+#: includes/Admin/class-bgcouriers-labels.php:443
 msgid "Choose a courier."
 msgstr ""
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:405
+#: includes/Admin/class-bgcouriers-labels.php:453
 #, php-format
 msgid "Could not cancel the current waybill: %s"
 msgstr ""
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:428
+#: includes/Admin/class-bgcouriers-labels.php:476
 #, php-format
 msgid "Saved, but issuing the new waybill failed: %s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:431
+#: includes/Admin/class-bgcouriers-labels.php:479
 msgid "Delivery updated and a new waybill issued."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:431
+#: includes/Admin/class-bgcouriers-labels.php:479
 msgid "Delivery details saved."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:442
+#: includes/Admin/class-bgcouriers-labels.php:491
 msgid "Waybill cancelled."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:451
+#: includes/Admin/class-bgcouriers-labels.php:500
 msgid "No waybill found."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-labels.php:467
-#: includes/Admin/class-bgcouriers-labels.php:481
+#: includes/Admin/class-bgcouriers-labels.php:516
+#: includes/Admin/class-bgcouriers-labels.php:530
 msgid "No labels to print."
 msgstr ""
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:480
+#: includes/Admin/class-bgcouriers-labels.php:529
 #, php-format
 msgid "Print failed: %s"
 msgstr ""
@@ -247,81 +267,87 @@ msgstr ""
 msgid "Waybill"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:97
+#. translators: %s: human-readable time difference, e.g. "2 hours"
+#: includes/Admin/class-bgcouriers-order-columns.php:107
+#, php-format
+msgid "Updated %s ago"
+msgstr ""
+
+#: includes/Admin/class-bgcouriers-order-columns.php:133
 #: includes/Admin/class-bgcouriers-order-metabox.php:40
 msgid "Edit delivery details"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:105
+#: includes/Admin/class-bgcouriers-order-columns.php:141
 #: includes/Admin/class-bgcouriers-order-metabox.php:60
 msgid "Re-issue waybill (voids the current one)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:114
-#: includes/Admin/class-bgcouriers-order-columns.php:153
+#: includes/Admin/class-bgcouriers-order-columns.php:150
+#: includes/Admin/class-bgcouriers-order-columns.php:190
 msgid "Generate"
 msgstr ""
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-order-columns.php:121
+#: includes/Admin/class-bgcouriers-order-columns.php:158
 #: includes/Admin/class-bgcouriers-order-metabox.php:77
 #, php-format
 msgid "Copy waybill %s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:124
+#: includes/Admin/class-bgcouriers-order-columns.php:161
 #: includes/Admin/class-bgcouriers-order-metabox.php:61
 msgid "Print label"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:125
+#: includes/Admin/class-bgcouriers-order-columns.php:162
 #: includes/Admin/class-bgcouriers-order-metabox.php:62
 msgid "Track shipment"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:126
+#: includes/Admin/class-bgcouriers-order-columns.php:163
 msgid "Cancel waybill"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:147
+#: includes/Admin/class-bgcouriers-order-columns.php:184
 #: includes/Admin/class-bgcouriers-order-metabox.php:166
 msgid "Cancel this waybill?"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:148
+#: includes/Admin/class-bgcouriers-order-columns.php:185
 #: includes/Admin/class-bgcouriers-order-metabox.php:167
 msgid "This voids the shipment label with the courier. This cannot be undone."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:149
+#: includes/Admin/class-bgcouriers-order-columns.php:186
 #: includes/Admin/class-bgcouriers-order-metabox.php:168
 msgid "Yes, cancel it"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:150
+#: includes/Admin/class-bgcouriers-order-columns.php:187
 #: includes/Admin/class-bgcouriers-order-metabox.php:169
 msgid "Keep it"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:151
+#: includes/Admin/class-bgcouriers-order-columns.php:188
 msgid "Waybill cancelled"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:152
+#: includes/Admin/class-bgcouriers-order-columns.php:189
 #: includes/Admin/class-bgcouriers-order-metabox.php:165
 msgid "Copied to clipboard"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:154
+#: includes/Admin/class-bgcouriers-order-columns.php:191
 msgid "Could not cancel."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:155
+#: includes/Admin/class-bgcouriers-order-columns.php:192
 #: includes/Admin/class-bgcouriers-order-metabox.php:170
 msgid "Re-issue this waybill?"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:156
+#: includes/Admin/class-bgcouriers-order-columns.php:193
 #: includes/Admin/class-bgcouriers-order-metabox.php:171
 msgid ""
 "The current waybill is voided with the courier and a new one is issued from "
@@ -329,42 +355,42 @@ msgid ""
 "undone."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:157
+#: includes/Admin/class-bgcouriers-order-columns.php:194
 #: includes/Admin/class-bgcouriers-order-metabox.php:172
 msgid "Yes, re-issue it"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:166
+#: includes/Admin/class-bgcouriers-order-columns.php:203
 msgid "Cancel the selected waybills?"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:167
+#: includes/Admin/class-bgcouriers-order-columns.php:204
 msgid ""
 "This voids the shipment label with the courier for every selected order. "
 "This cannot be undone."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:168
+#: includes/Admin/class-bgcouriers-order-columns.php:205
 msgid "Yes, cancel them"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:169
-#: includes/Admin/class-bgcouriers-order-columns.php:175
+#: includes/Admin/class-bgcouriers-order-columns.php:206
+#: includes/Admin/class-bgcouriers-order-columns.php:212
 msgid "Keep them"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:172
+#: includes/Admin/class-bgcouriers-order-columns.php:209
 msgid "Re-issue the selected waybills?"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:173
+#: includes/Admin/class-bgcouriers-order-columns.php:210
 msgid ""
 "Every selected order ends up with a fresh waybill, issued from that order's "
 "current delivery details, products and settings. Where a waybill already "
 "exists it is voided with the courier first. This cannot be undone."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:174
+#: includes/Admin/class-bgcouriers-order-columns.php:211
 msgid "Yes, re-issue them"
 msgstr ""
 
@@ -1804,16 +1830,16 @@ msgid ""
 msgstr ""
 
 #. translators: 1: courier name, 2: status
-#: includes/Cache/class-bgcouriers-tracking-poller.php:69
+#: includes/Cache/class-bgcouriers-tracking-poller.php:80
 #, php-format
 msgid "%1$s tracking update: %2$s"
 msgstr ""
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:77
+#: includes/Cache/class-bgcouriers-tracking-poller.php:88
 msgid "BG Couriers: shipment delivered (auto status)."
 msgstr ""
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:122
+#: includes/Cache/class-bgcouriers-tracking-poller.php:133
 msgid "BG Couriers: the courier has picked up the shipment (auto status)."
 msgstr ""
 

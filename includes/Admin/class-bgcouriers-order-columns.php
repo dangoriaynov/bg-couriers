@@ -83,7 +83,43 @@ class BGCouriers_Order_Columns {
     }
     public function col($cols) { $cols['bgcouriers_shipping'] = __('Waybill', 'bg-couriers'); return $cols; }
 
-    public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = '', string $courier_label = '', string $courier_logo = '', string $regenerate_url = ''): string {
+
+    /**
+     * Colour for a tracking stage. Not decoration: the orders list is scanned, not read, and "returned"
+     * has to stand out from "delivered" at a glance.
+     *
+     * @var array<string,string>
+     */
+    const STAGE_COLORS = ['transit' => '#2271b1', 'delivered' => '#00814f', 'returned' => '#b32d2e', 'cancelled' => '#6b7280'];
+
+    /**
+     * The courier's own last word about this shipment, as one short line under the waybill actions.
+     * Empty until the poller has actually heard something - an empty line is better than a made-up one.
+     */
+    public static function status_html(\WC_Order $order): string {
+        $text = trim((string) $order->get_meta('_bgcouriers_track_text'));
+        if ($text === '') { return ''; }
+        $stage   = (string) $order->get_meta('_bgcouriers_track_stage');
+        $color   = self::STAGE_COLORS[$stage] ?? '#6b7280';
+        $updated = (int) $order->get_meta('_bgcouriers_track_updated');
+        $tip     = $updated > 0
+            /* translators: %s: human-readable time difference, e.g. "2 hours" */
+            ? sprintf(__('Updated %s ago', 'bg-couriers'), human_time_diff($updated, time()))
+            : '';
+        $lock = BGCouriers_Labels::is_locked($order)
+            ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
+            : '';
+        return '<span class="bgc-track" data-tip="' . esc_attr($tip) . '">'
+            . '<span class="bgc-track-dot" style="background:' . esc_attr($color) . '"></span>'
+            . '<span class="bgc-track-txt">' . esc_html($text) . '</span>' . $lock . '</span>';
+    }
+
+    public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = '', string $courier_label = '', string $courier_logo = '', string $regenerate_url = '', $order = null): string {
+        // Once the courier holds the parcel, cancelling and re-issuing would only change our copy of the
+        // waybill - the courier delivers against the one travelling with the parcel. Drop those controls
+        // rather than leave them there to be clicked and refused.
+        $locked = ($order instanceof \WC_Order) && BGCouriers_Labels::is_locked($order);
+        $status = ($order instanceof \WC_Order) ? self::status_html($order) : '';
         // Courier logo tile with a data-tip hover hint, SAME as the order-screen shipment panel header.
         $logo_tile = $courier_logo !== ''
             ? '<span class="bgc-ltile" data-tip="' . esc_attr($courier_label) . '"><img class="bgc-clogo" src="' . esc_url($courier_logo) . '" alt="' . esc_attr($courier_label) . '"></span>'
@@ -101,7 +137,7 @@ class BGCouriers_Order_Columns {
         // current waybill and issues a fresh one from the order's CURRENT details and settings, instead
         // of cancel-then-generate. JS confirms first (bgc-orders-list.js) - it voids a real shipment.
         $regen_ico = '';
-        if ($waybill !== '' && $regenerate_url !== '') {
+        if ($waybill !== '' && $regenerate_url !== '' && !$locked) {
             $regen_tip = __('Re-issue waybill (voids the current one)', 'bg-couriers');
             $regen_ico = '<a class="bgc-ico bgc-regen" href="' . esc_url($regenerate_url) . '" data-tip="' . esc_attr($regen_tip) . '" aria-label="' . esc_attr($regen_tip) . '"><span class="dashicons dashicons-update"></span></a>';
         }
@@ -111,7 +147,8 @@ class BGCouriers_Order_Columns {
         $row1 = '<span class="bgc-row">' . $logo_tile . $edit_ico . $regen_ico . '</span>';
         if ($waybill === '') {
             return '<span class="bgc-cell">' . $row1
-                . '<span class="bgc-row"><a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a></span></span>';
+                . '<span class="bgc-row"><a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a></span>'
+                . ($status !== '' ? '<span class="bgc-row">' . $status . '</span>' : '') . '</span>';
         }
         // Same tile look and order as the order-screen shipment panel: copy (stands in for the
         // waybill number, which is the panel's copy control) then Print (primary) / Track / Cancel.
@@ -123,8 +160,8 @@ class BGCouriers_Order_Columns {
             . '<button type="button" class="bgc-ico bgc-copy" data-wb="' . esc_attr($waybill) . '" data-tip="' . esc_attr($waybill) . '" aria-label="' . esc_attr($copy_label) . '"><span class="dashicons dashicons-admin-page"></span></button>'
             . '<a class="bgc-ico bgc-primary" target="_blank" href="' . esc_url($print_url) . '" data-tip="' . esc_attr__('Print label', 'bg-couriers') . '" aria-label="' . esc_attr__('Print label', 'bg-couriers') . '"><span class="dashicons dashicons-printer"></span></a>'
             . '<a class="bgc-ico" target="_blank" href="' . esc_url($track_url) . '" data-tip="' . esc_attr__('Track shipment', 'bg-couriers') . '" aria-label="' . esc_attr__('Track shipment', 'bg-couriers') . '"><span class="dashicons dashicons-location"></span></a>'
-            . '<a href="#" class="bgc-ico bgc-danger bgc-wb-cancel" data-id="' . (int) $order_id . '" data-nonce="' . esc_attr($cancel_nonce) . '" data-gennonce="' . esc_attr($generate_nonce) . '" data-tip="' . esc_attr__('Cancel waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Cancel waybill', 'bg-couriers') . '"><span class="dashicons dashicons-no-alt"></span></a>'
-            . '</span></span>';
+            . ($locked ? '' : '<a href="#" class="bgc-ico bgc-danger bgc-wb-cancel" data-id="' . (int) $order_id . '" data-nonce="' . esc_attr($cancel_nonce) . '" data-gennonce="' . esc_attr($generate_nonce) . '" data-tip="' . esc_attr__('Cancel waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Cancel waybill', 'bg-couriers') . '"><span class="dashicons dashicons-no-alt"></span></a>')
+            . '</span>' . ($status !== '' ? '<span class="bgc-row">' . $status . '</span>' : '') . '</span>';
     }
 
     /**
@@ -194,7 +231,7 @@ class BGCouriers_Order_Columns {
         echo wp_kses(self::cell_html(
             (string) $order->get_meta('_bgcouriers_waybill'), $print, $track, $gen, $id,
             wp_create_nonce('bgcouriers_cancel_label_' . $id), wp_create_nonce('bgcouriers_generate_label_' . $id),
-            $courier->label(), BGCouriers_Couriers::logo_url($courier->id()), $regen
+            $courier->label(), BGCouriers_Couriers::logo_url($courier->id()), $regen, $order
         ), BGCouriers_Kses::admin_actions());
     }
     public function render_legacy($column, $post_id): void {

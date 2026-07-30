@@ -59,11 +59,22 @@ class BGCouriers_Tracking_Poller {
         if (!$courier) { return; }
         try { $t = $courier->track($wb); } catch (\Exception $e) { return; } // transient error - retry next run
 
+        // Recorded before the change check: once the courier holds the parcel it stays held, and the
+        // waybill lock depends on knowing that even on a poll where nothing else moved.
+        if ($t->handover === true && (string) $order->get_meta('_bgcouriers_handover') !== 'yes') {
+            $order->update_meta_data('_bgcouriers_handover', 'yes');
+            $order->save();
+        }
+
         $key = $t->status;
         if ($key === '' || $key === (string) $order->get_meta('_bgcouriers_track_status')) { return; } // no change
 
         $human = $t->human();
         $order->update_meta_data('_bgcouriers_track_status', $key);
+        // The readable status and the verdict, for the orders list. _track_status is the courier's own key
+        // (Speedy's is an operation code like "-14") and exists to detect change - it is not for showing.
+        $order->update_meta_data('_bgcouriers_track_text', $human);
+        $order->update_meta_data('_bgcouriers_track_stage', $t->stage());
         $order->update_meta_data('_bgcouriers_track_updated', time());
         /* translators: 1: courier name, 2: status */
         $order->add_order_note(sprintf(__('%1$s tracking update: %2$s', 'bg-couriers'), $courier->label(), $human));
