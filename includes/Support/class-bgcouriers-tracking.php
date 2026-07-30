@@ -14,12 +14,19 @@ class BGCouriers_Tracking {
     public array $events;
     /** Courier-supplied lifecycle phase, when the API has one ('' for couriers that don't). */
     public string $phase;
+    /**
+     * Has the courier physically taken the parcel? true/false when the API answers that outright
+     * (Econt's sendTime, Speedy's acceptance operations), null when it does not and the caller has to
+     * guess from the event history.
+     */
+    public ?bool $handover;
 
-    public function __construct(string $waybill, string $status, array $events = [], string $phase = '') {
-        $this->waybill = $waybill;
-        $this->status  = $status;
-        $this->events  = $events;
-        $this->phase   = $phase;
+    public function __construct(string $waybill, string $status, array $events = [], string $phase = '', ?bool $handover = null) {
+        $this->waybill  = $waybill;
+        $this->status   = $status;
+        $this->events   = $events;
+        $this->phase    = $phase;
+        $this->handover = $handover;
     }
 
     /** A human-readable status: the last event's name if available, else the raw status (a code for Speedy). */

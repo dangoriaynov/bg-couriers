@@ -4,8 +4,10 @@ defined('ABSPATH') || exit;
 class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     const BG_COUNTRY_ID = 100;
     const BASE = 'https://api.speedy.bg/v1'; // Speedy has no separate demo/sandbox host
-    /** Operation code of "Доставка на клиент" - the final operation on a delivered parcel. */
+    /** Operation code of "Доставка на клиент" - the operation logged when the customer receives it. */
     const OP_DELIVERED = '-14';
+    /** Operations that mean the parcel is physically with Speedy: accepted from sender / by a courier. */
+    const OPS_PICKED_UP = ['39', '11'];
 
     private string $user; private string $pass; private string $base; private array $sender;
 
@@ -367,9 +369,16 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         // pass it through when it IS there, and otherwise fall back to the operation code, which is still
         // a machine value rather than prose: -14 is "Доставка на клиент" and is the last operation on
         // every delivered parcel on this account. Only then does BGCouriers_Tracking read the text.
+        $codes = array_map(static fn($e) => (string) $e['code'], $events);
         $phase = (string) ($parcel['trackPhase'] ?? '');
-        if ($phase === '' && $events && (string) end($events)['code'] === self::OP_DELIVERED) { $phase = 'DELIVERED'; }
-        return new BGCouriers_Tracking((string) ($parcel['parcelId'] ?? ''), $status, $events, $phase);
+        // Search the WHOLE history, not just the last event: on parcel 63682912875 Speedy appended
+        // operation 195 ("Отказ от преглед/тестване") one second AFTER -14, so the delivery was no
+        // longer the final entry and testing only the last event would have missed it.
+        if ($phase === '' && in_array(self::OP_DELIVERED, $codes, true)) { $phase = 'DELIVERED'; }
+        // Handed to the courier: accepted from the sender (39) or collected by a courier/clerk (11).
+        // 148 - the first operation - only means the label was registered; nothing has been collected.
+        $handover = (bool) array_intersect(self::OPS_PICKED_UP, $codes);
+        return new BGCouriers_Tracking((string) ($parcel['parcelId'] ?? ''), $status, $events, $phase, $handover);
     }
 
     public function cancel_label(string $waybill): bool {

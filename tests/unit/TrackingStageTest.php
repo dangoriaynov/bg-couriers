@@ -125,4 +125,19 @@ final class TrackingStageTest extends TestCase {
         $ev = [['code' => '128', 'name' => 'Анулиране', 'date' => '']];
         $this->assertSame('cancelled', (new BGCouriers_Tracking('1', '128', $ev, 'IN_TRANSIT'))->stage());
     }
+
+    /**
+     * The handover flag is what decides "Изпратена", and it must be false while the label merely exists.
+     * Speedy's first operation (148 "Получена информация за пратка") and Econt's first event ("Awaiting
+     * delivery to Econt") both fire before anything is collected.
+     */
+    public function test_handover_is_unknown_by_default(): void {
+        $t = new BGCouriers_Tracking('1', 'X', [['code' => '148', 'name' => 'Получена информация за пратка', 'date' => '']]);
+        $this->assertNull($t->handover, 'couriers that do not say leave it unknown');
+    }
+
+    public function test_handover_can_be_stated_either_way(): void {
+        $this->assertFalse((new BGCouriers_Tracking('1', 'X', [], '', false))->handover);
+        $this->assertTrue((new BGCouriers_Tracking('1', 'X', [], '', true))->handover);
+    }
 }
