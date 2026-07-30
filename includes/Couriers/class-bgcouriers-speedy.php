@@ -188,9 +188,31 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return new BGCouriers_Quote($base, $vat, (string) ($p['currency'] ?? $currency), 'live');
     }
 
+    /**
+     * Did Speedy actually apply the cash-on-delivery we asked for?
+     *
+     * The COD service is sent with `ignoreIfNotApplicable`, which means Speedy is entitled to drop it and
+     * still accept the shipment - the waybill then prints with nothing to collect and the goods leave for
+     * free. Speedy charges a premium for COD, so its presence in the price breakdown is the proof that the
+     * service was applied; a dropped COD leaves codPremium at zero.
+     *
+     * @param array $body The request we sent (before auth is merged in).
+     * @param array $resp Speedy's create response.
+     * @return string[] Problems, empty when everything we asked for was applied.
+     */
+    public static function check_applied(array $body, array $resp): array {
+        $want = (float) ($body['service']['additionalServices']['cod']['amount'] ?? 0);
+        if ($want <= 0) { return []; }
+        $premium = (float) ($resp['price']['details']['codPremium']['amount'] ?? 0);
+        if ($premium > 0) { return []; }
+        /* translators: %s: the cash-on-delivery amount that was requested */
+        return [sprintf(__('Cash on delivery of %s was sent but Speedy did not apply it - the waybill collects nothing.', 'bg-couriers'), (string) $want)];
+    }
+
     public function create_label(\WC_Order $order): BGCouriers_Label {
-        $body = $this->auth($this->build_shipment_body($order));
-        $resp = $this->post_json($this->base . '/shipment', $body);
+        $plain = $this->build_shipment_body($order);
+        $body  = $this->auth($plain);
+        $resp  = $this->post_json($this->base . '/shipment', $body);
         // Speedy reports validation failures as HTTP 200 + an `error` object (e.g. parcel size vs the
         // APS compartment) - surface it instead of letting an empty waybill through (same 200+error
         // contract cancel_label already handles).
@@ -199,7 +221,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         }
         $id = self::parse_shipment_id($resp);
         if ($id === '') { throw new BGCouriers_Api_Exception('Speedy: no shipment id in the response'); }
-        return new BGCouriers_Label($id);
+        return new BGCouriers_Label($id, '', self::check_applied($plain, $resp));
     }
 
     private function build_shipment_body(\WC_Order $order): array {

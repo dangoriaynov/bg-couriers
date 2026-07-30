@@ -99,6 +99,22 @@ class BGCouriers_Labels {
         }
         $order->update_meta_data('_bgcouriers_waybill', $label->waybill);
 
+        // A courier can accept a shipment and quietly drop part of it (Speedy's COD carries
+        // ignoreIfNotApplicable by design). The waybill then prints with nothing to collect, and since
+        // nobody re-reads a printed label the shop only finds out when the goods are already gone. Record
+        // it on the order, loudly, and keep a flag the admin screens can show.
+        if ($label->problems) {
+            $order->update_meta_data('_bgcouriers_label_warning', implode(' ', $label->problems));
+            $order->add_order_note(sprintf(
+                /* translators: 1: courier name, 2: what the courier did not apply */
+                __('⚠ %1$s: the waybill was created but NOT everything was applied. %2$s Check the shipment before handing it over.', 'bg-couriers'),
+                $courier->label(),
+                implode(' ', $label->problems)
+            ));
+        } else {
+            $order->delete_meta_data('_bgcouriers_label_warning');
+        }
+
         // The format the PRIMARY stored label should be in - the merchant's per-courier size setting for
         // size-aware couriers (Speedy/Sameday), else the courier's single native format, else '' (no choice).
         $primary = self::courier_primary_format($courier);

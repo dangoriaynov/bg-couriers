@@ -172,6 +172,29 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return $this->decode($r);
     }
 
+    /**
+     * Flatten Sameday's nested validation errors into "field: reason" lines.
+     *
+     * The shape is {errors: {children: {awbRecipient: {children: {phoneNumber: {errors: ["..."]}}}}}} -
+     * arbitrarily deep, and only the leaves carry the message that says what to fix.
+     *
+     * @param array  $node  An `errors` node (or any `children` node below it).
+     * @param string $path  Field path accumulated so far.
+     * @return string[]     One entry per leaf error.
+     */
+    public static function field_errors(array $node, string $path = ''): array {
+        $out = [];
+        foreach ((array) ($node['errors'] ?? []) as $e) {
+            if (is_scalar($e)) { $out[] = ($path !== '' ? $path . ': ' : '') . (string) $e; }
+        }
+        foreach ((array) ($node['children'] ?? []) as $name => $child) {
+            if (is_array($child)) {
+                $out = array_merge($out, self::field_errors($child, $path === '' ? (string) $name : $path . '.' . $name));
+            }
+        }
+        return $out;
+    }
+
     private function decode($r): array {
         if (is_wp_error($r)) {
             throw new BGCouriers_Api_Exception(esc_html($r->get_error_message()));
@@ -184,7 +207,11 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         if ($code < 200 || $code >= 300) {
             $msg = is_array($data) ? ($data['message'] ?? $data['error'] ?? $raw) : $raw;
             if (!is_scalar($msg)) { $msg = wp_json_encode($msg); } // nested field errors arrive as arrays
-            $msg = substr((string) $msg, 0, 300);
+            // Sameday answers a rejected shipment with a bare "Validation Failed" and puts the actual
+            // reason in errors.children.<field>.errors[] - without digging that out, the merchant is told
+            // only that something was wrong, and there is no way to tell WHICH field the courier rejected.
+            $fields = is_array($data) ? self::field_errors((array) ($data['errors'] ?? [])) : [];
+            $msg = substr((string) $msg, 0, 300) . ($fields ? ' (' . implode('; ', array_slice($fields, 0, 6)) . ')' : '');
             throw new BGCouriers_Api_Exception(esc_html('Sameday HTTP ' . $code . ': ' . $msg));
         }
         return is_array($data) ? $data : [];
@@ -347,7 +374,20 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     public function create_label(\WC_Order $order): BGCouriers_Label {
         $method = (string) $order->get_meta('_bgcouriers_method');
-        $resp = $this->post_json('/api/awb', self::build_awb_body($order, $this->service_id($method), $this->pickup_point_id()));
+        try {
+            $resp = $this->post_json('/api/awb', self::build_awb_body($order, $this->service_id($method), $this->pickup_point_id()));
+        } catch (BGCouriers_Api_Exception $e) {
+            // Not every Sameday contract allows the delivery to be charged to the recipient. When it does
+            // not, the API rejects awbPayment outright and no waybill is created at all - so say which
+            // setting causes it instead of passing on "The selected choice is invalid".
+            if (strpos($e->getMessage(), 'awbPayment') !== false) {
+                throw new BGCouriers_Api_Exception(esc_html__(
+                    'Sameday refused "the recipient pays the delivery" - this account is not contracted for it. Turn on "Delivery in the order total" for Sameday, or ask Sameday to enable recipient payment.',
+                    'bg-couriers'
+                ));
+            }
+            throw $e;
+        }
         return new BGCouriers_Label(self::parse_awb_id($resp));
     }
 

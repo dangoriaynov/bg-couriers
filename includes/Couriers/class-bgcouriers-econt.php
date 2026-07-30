@@ -441,12 +441,50 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             (int) $order->get_meta('_bgcouriers_site_id'),
             (int) $order->get_meta('_bgcouriers_office_id')
         );
-        $resp = $this->post_json(
-            $this->base . '/Shipments/LabelService.createLabel.json',
-            self::build_label_body($order, $sender, $office_code)
-        );
+        $body = self::build_label_body($order, $sender, $office_code);
+        $resp = $this->post_json($this->base . '/Shipments/LabelService.createLabel.json', $body);
         // The create response already carries the label PDF URL, so hand it back and skip a second call.
-        return new BGCouriers_Label(self::parse_shipment_id($resp), (string) ($resp['label']['pdfURL'] ?? ''));
+        return new BGCouriers_Label(
+            self::parse_shipment_id($resp),
+            (string) ($resp['label']['pdfURL'] ?? ''),
+            self::check_applied($body, $resp)
+        );
+    }
+
+    /**
+     * Compare what Econt ACTUALLY put on the shipment against what we asked for.
+     *
+     * Econt echoes the applied services back on create - each one a {type, description, count, price,
+     * paymentSide} row - so the cash-on-delivery can be confirmed without a second call: it is the row
+     * with type 'CD', whose `count` is the amount to collect. A waybill that prints "НП: 0.00" has no
+     * such row, and that is exactly the failure nobody notices until the parcel is already gone.
+     *
+     * @param array $body The request we sent.
+     * @param array $resp Econt's create response.
+     * @return string[] Problems, empty when everything we asked for was applied.
+     */
+    public static function check_applied(array $body, array $resp): array {
+        $problems = [];
+        $want_cd  = (float) ($body['label']['services']['cdAmount'] ?? 0);
+        $services = (array) ($resp['label']['services'] ?? []);
+        $got_cd   = null;
+        foreach ($services as $s) {
+            if (is_array($s) && (string) ($s['type'] ?? '') === 'CD') { $got_cd = (float) ($s['count'] ?? 0); break; }
+        }
+        if ($want_cd > 0 && $got_cd === null) {
+            /* translators: %s: the cash-on-delivery amount that was requested */
+            $problems[] = sprintf(__('Cash on delivery of %s was sent but Econt did not apply it - the waybill collects nothing.', 'bg-couriers'), (string) $want_cd);
+        } elseif ($want_cd > 0 && abs($got_cd - $want_cd) > 0.01) {
+            /* translators: 1: requested amount, 2: amount the courier applied */
+            $problems[] = sprintf(__('Cash on delivery mismatch: %1$s requested, %2$s on the waybill.', 'bg-couriers'), (string) $want_cd, (string) $got_cd);
+        }
+        // Who pays the courier. Econt states it per service row and again as the due amounts.
+        $want_recipient = !BGCouriers_Settings::ship_in_total('econt');
+        $receiver_due   = (float) ($resp['label']['receiverDueAmount'] ?? 0);
+        if ($want_recipient && $receiver_due <= 0) {
+            $problems[] = __('The recipient was supposed to pay the delivery, but Econt billed the sender.', 'bg-couriers');
+        }
+        return $problems;
     }
 
     /**
