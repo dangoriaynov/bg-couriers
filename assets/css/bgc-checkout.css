@@ -83,11 +83,9 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 .bgc-boxnow-close { position: absolute; top: 6px; right: 10px; z-index: 2; border: 0; background: rgba(255,255,255,.92); border-radius: 50%; width: 32px; height: 32px; font-size: 22px; line-height: 1; cursor: pointer; }
 .bgc-boxnow-frame { width: 100%; height: 100%; border: 0; }
 
-/* Courier brand logo before the shipping-method name */
+/* Courier brand logo outside a rate row (free-shipping notices and the like); inside the rate list
+   bgc-rates.css takes over. */
 .bgc-ship-logo { width: 16px; height: 16px; object-fit: contain; vertical-align: -3px; margin-right: 5px; display: inline-block; }
-
-/* Dual BGN/EUR display */
-.bgc-dual { color: #6b7280; font-size: .92em; white-space: nowrap; }
 /* Notices sit on a theme-colored panel and the theme picks a legible text color for it - force every
    nested span (theme-styled .woocommerce-Price-amount, our .bgc-dual) to inherit that color instead of
    its own accent, which may match the panel background (e.g. blue-on-blue). Opacity keeps the secondary
@@ -145,44 +143,5 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
   .bgc-map-body .bgc-map-canvas { height: 46vh; }
 }
 
-/* Round (i) hint on "delivery paid to the courier" rate rows - the explanation lives in a
-   hover/focus bubble so the courier row itself stays one short line. */
-.bgc-info-tip{display:inline-block;box-sizing:border-box;width:15px;height:15px;border-radius:50%;background:#c3c8ce;color:#fff;font:italic 700 10px/15px Georgia,serif;text-align:center;vertical-align:middle;cursor:help;position:relative;}
-.bgc-info-tip::before{content:"i";}
-.bgc-info-tip:hover,.bgc-info-tip:focus{background:#2271b1;outline:none;}
-.bgc-info-tip:hover::after,.bgc-info-tip:focus::after{content:attr(data-tip);position:absolute;right:-6px;bottom:calc(100% + 7px);width:max-content;max-width:240px;white-space:normal;background:#1d2327;color:#fff;font:400 12px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif;font-style:normal;text-align:left;padding:8px 11px;border-radius:7px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:1000;pointer-events:none;}
-.bgc-info-tip:hover::before{content:"i";}
-
-/* The CHOSEN courier and its delivery fields sit together in one rounded card, so it is obvious
-   the fields belong to that courier (not a loose sheet of controls). Unselected rows stay plain. */
-ul#shipping_method{margin:0;padding:0;}
-ul#shipping_method > li{list-style:none;padding:9px 10px;margin:0;border-radius:12px;
-  min-height:44px;box-sizing:border-box;line-height:1.45;
-  cursor:pointer;transition:background-color .12s;-webkit-tap-highlight-color:transparent;}
-/* Themes routinely give the rate label its own block margins and a tall line-height; stacked over four
-   couriers that is most of a phone screen. Keep the row itself the only thing setting the spacing. */
-ul#shipping_method > li > label{margin:0;padding:0;line-height:inherit;}
-ul#shipping_method > li > input.shipping_method{margin:0 6px 0 0;}
-/* The whole row is the tap target (see bgc-checkout.js), so say so on hover - but not on the chosen
-   row, which is already a card and holds the delivery form. */
-ul#shipping_method > li:hover{background:#f4f6f9;}
-ul#shipping_method > li:has(> input.shipping_method:checked),
-ul#shipping_method > li:has(> input.shipping_method:checked):hover{cursor:default;}
-ul#shipping_method > li .bgc-fields{cursor:default;}
-ul#shipping_method > li label{cursor:pointer;}
-ul#shipping_method > li:has(> input.shipping_method:checked){border:1px solid #dbe1e8;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);padding:10px 12px;margin:4px 0 8px;}
-
-/* The package heading is empty on purpose (see BGCouriers_Checkout::package_name) - collapse the space
-   the theme still reserves for it, otherwise an invisible label keeps pushing the couriers down. */
-.woocommerce-checkout .woocommerce-shipping-totals > th:empty,
-.woocommerce-checkout tr.shipping > th:empty{padding:0;margin:0;border:0;height:0;line-height:0;font-size:0;}
-
-/* The courier logo inside the rate label. It had NO styling at all: on checkout the theme happened to
-   keep it inline, but on the cart page (img{display:block} in most themes) it broke the label onto its
-   own line and the radio, logo, name and price ended up stacked. Pin it inline wherever it appears. */
-ul#shipping_method .bgc-ship-logo{display:inline-block!important;width:16px;height:16px;
-  object-fit:contain;vertical-align:-3px;margin:0 6px 0 0;}
-ul#shipping_method > li > input.shipping_method{display:inline-block;vertical-align:middle;}
-ul#shipping_method > li > label{display:inline;}
-/* The chosen courier's fields always take the full width under the label, never beside it. */
-ul#shipping_method > li > .bgc-fields{display:block;width:100%;}
+/* The courier rate rows themselves (list, hidden radio, logo, price, chosen-row card) and the (i) hint
+   live in bgc-rates.css - the cart renders the same list, so those rules have to load on both pages. */

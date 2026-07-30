@@ -14,7 +14,6 @@ class BGCouriers_Checkout {
 
     public function __construct() {
         add_action('woocommerce_after_shipping_rate', [$this, 'render_fields'], 10, 2);
-        add_action('woocommerce_after_shipping_rate', [$this, 'cart_rate_note'], 11, 2); // cart-only: explain the estimate basis
         add_action('wp_enqueue_scripts', [$this, 'assets']);
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
@@ -111,33 +110,40 @@ class BGCouriers_Checkout {
     }
 
     /**
-     * Cart-only note under each courier rate that explains what the shown price actually is -
-     * which delivery type it's quoted for, and that live/weight-based couriers finalise it at checkout.
+     * What the (i) at the end of a courier row says. Every courier gets one, so the rows read the same
+     * way: the explanation is always in the same place instead of some couriers carrying an (i) and
+     * others a full sentence on a line of their own.
+     *
+     * @param \WC_Shipping_Rate $rate The rate being rendered.
+     * @return string Tip text, or '' for a rate that needs no explanation.
      */
-    public function cart_rate_note($rate, $index): void {
-        if (!function_exists('is_cart') || !is_cart()) { return; }
-        if (!is_object($rate) || strpos((string) $rate->get_method_id(), 'bgcouriers_') !== 0) { return; }
+    private function rate_tip($rate): string {
+        $meta = method_exists($rate, 'get_meta_data') ? (array) $rate->get_meta_data() : [];
+        // "Delivery in the order total" off: the row shows an estimate the courier collects at the door.
+        if ((float) ($meta['_bgcouriers_info_price'] ?? 0) > 0) {
+            return __('Paid to the courier on delivery.', 'bg-couriers');
+        }
         $courier_id = substr((string) $rate->get_method_id(), self::PREFIX_LEN);
         $c = BGCouriers_Couriers::get($courier_id);
-        if (!$c) { return; }
-        $meta = method_exists($rate, 'get_meta_data') ? (array) $rate->get_meta_data() : [];
+        if (!$c) { return ''; }
+        // On the cart nothing has been chosen yet, so say which delivery type the price is quoted for
+        // and whether it can still move. At checkout the choice is made and the price is already final.
+        if (!function_exists('is_cart') || !is_cart()) {
+            return __('Delivery is included in the order total.', 'bg-couriers');
+        }
         $m = (string) ($meta['bgcouriers_method'] ?? (BGCouriers_Settings::enabled_methods($courier_id)[0] ?? 'office'));
         $types = [
             'office'  => __('to an office', 'bg-couriers'),
             'address' => __('to your address', 'bg-couriers'),
             'automat' => __('to an APS (locker)', 'bg-couriers'),
         ];
-        // "Delivery in the order total" off: the label already says the fee is paid to the courier - no note.
-        if (!BGCouriers_Settings::ship_in_total($courier_id)) { return; }
         $type = $types[$m] ?? $types['office'];
         if (in_array('live_quote', $c->capabilities(), true)) {
             /* translators: %s = delivery type, e.g. "to an office" */
-            $note = sprintf(__('≈ %s - final price at checkout.', 'bg-couriers'), $type);
-        } else {
-            /* translators: %s = delivery type */
-            $note = sprintf(__('Flat price %s.', 'bg-couriers'), $type);
+            return sprintf(__('≈ %s - final price at checkout.', 'bg-couriers'), $type);
         }
-        echo '<div class="bgc-cart-note">' . esc_html($note) . '</div>';
+        /* translators: %s = delivery type */
+        return sprintf(__('Flat price %s.', 'bg-couriers'), $type);
     }
 
     /**
@@ -156,13 +162,13 @@ class BGCouriers_Checkout {
         return $method->get_label() . ': ~' . BGCouriers_Currency::dual_store($info);
     }
 
-    /** A small (i) at the end of a "delivery paid to the courier" rate label (checkout + cart);
-     *  the explanation sits in its hover/focus tooltip instead of bloating the row text. */
+    /** A small (i) at the end of every courier rate label (checkout + cart); the explanation sits in its
+     *  hover/focus tooltip instead of bloating the row text or taking a line of its own. */
     public function info_tip_label($label, $method) {
-        if (!is_object($method) || !method_exists($method, 'get_meta_data')) { return $label; }
-        $meta = (array) $method->get_meta_data();
-        if ((float) ($meta['_bgcouriers_info_price'] ?? 0) <= 0) { return $label; }
-        $tip = __('Paid to the courier on delivery.', 'bg-couriers');
+        if (!is_object($method) || !method_exists($method, 'get_method_id')) { return $label; }
+        if (strpos((string) $method->get_method_id(), self::METHOD_PREFIX) !== 0) { return $label; }
+        $tip = $this->rate_tip($method);
+        if ($tip === '') { return $label; }
         return $label . ' <span class="bgc-info-tip" tabindex="0" role="img" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '"></span>';
     }
 
@@ -475,12 +481,20 @@ class BGCouriers_Checkout {
         $order->set_shipping_last_name($order->get_billing_last_name());
     }
     public function assets(): void {
-        // Cart page: only the small static stylesheet (calculator hide + estimate box + rate notes).
-        if (function_exists('is_cart') && is_cart()) {
+        $on_cart     = function_exists('is_cart') && is_cart();
+        $on_checkout = function_exists('is_checkout') && is_checkout();
+        if (!$on_cart && !$on_checkout) { return; }
+        // The courier rate rows are the same markup on both pages, so their stylesheet loads on both.
+        // Without this the cart had no row styling at all and the theme stacked radio, logo, name and
+        // price on separate lines.
+        $rates_css = BGCOURIERS_PATH . 'assets/css/bgc-rates.css';
+        wp_enqueue_style('bgc-rates', BGCOURIERS_URL . 'assets/css/bgc-rates.css', [], is_file($rates_css) ? (string) filemtime($rates_css) : BGCOURIERS_VERSION);
+        // Cart page: plus the small static stylesheet (calculator hide + estimate box).
+        if ($on_cart) {
             $cart_css = BGCOURIERS_PATH . 'assets/css/bgc-cart.css';
-            wp_enqueue_style('bgc-cart', BGCOURIERS_URL . 'assets/css/bgc-cart.css', [], is_file($cart_css) ? (string) filemtime($cart_css) : BGCOURIERS_VERSION);
+            wp_enqueue_style('bgc-cart', BGCOURIERS_URL . 'assets/css/bgc-cart.css', ['bgc-rates'], is_file($cart_css) ? (string) filemtime($cart_css) : BGCOURIERS_VERSION);
         }
-        if (!function_exists('is_checkout') || !is_checkout()) { return; }
+        if (!$on_checkout) { return; }
         wp_enqueue_style('select2');
         // Version by file mtime so every asset change busts the browser cache automatically.
         $css = BGCOURIERS_PATH . 'assets/css/bgc-checkout.css';
@@ -488,7 +502,7 @@ class BGCouriers_Checkout {
         // Leaflet (bundled locally - no CDN, WP.org-safe) powers the office/APS map picker.
         wp_enqueue_style('bgc-leaflet', BGCOURIERS_URL . 'assets/lib/leaflet/leaflet.css', [], '1.9.4');
         wp_enqueue_script('bgc-leaflet', BGCOURIERS_URL . 'assets/lib/leaflet/leaflet.js', [], '1.9.4', true);
-        wp_enqueue_style('bgc-checkout', BGCOURIERS_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet'], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
+        wp_enqueue_style('bgc-checkout', BGCOURIERS_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet', 'bgc-rates'], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
         wp_enqueue_script('bgc-checkout', BGCOURIERS_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo', 'bgc-leaflet'], is_file($js) ? (string) filemtime($js) : BGCOURIERS_VERSION, true);
         // When enabled (default), preload each enabled courier's cities-with-offices (office/automat) so the
         // checkout city dropdown needs no AJAX and availability is derived client-side. The AJAX path stays

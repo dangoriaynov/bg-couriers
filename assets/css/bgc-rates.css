@@ -1,0 +1,88 @@
+/**
+ * The courier rate list - ONE stylesheet for both the cart calculator and the checkout review panel.
+ *
+ * Both pages render the very same <ul id="shipping_method">, so the row layout has to live in a file both
+ * of them load. It used to sit in bgc-checkout.css scoped to .woocommerce-checkout, which is why the cart
+ * looked broken: the rules were not merely inactive there, the file was never enqueued on the cart at all.
+ *
+ * What the theme does to this markup (measured on Shoptimizer, cart + checkout, 390px and 1200px):
+ *   - input[type=radio] -> position:absolute, so it does not sit in the row's flow
+ *   - label::before      -> a 7x7 inline-block that pushes the first line along
+ *   - .bgc-ship-logo     -> display:block (img{display:block}), which broke the label onto its own line
+ *   - .woocommerce-Price-amount -> display:block + float:right, inside the label
+ *   - tr.shipping > td   -> 15-22px side padding, which is what made the rows narrower than the panel
+ * Every rule below answers one of those.
+ */
+
+/* Full panel width. The totals table pads its cell, so the courier rows started ~21px inside the panel
+   while "Total" in the same table started at its edge - the arbitrary-looking indent. The row keeps its
+   own padding, so the text still has breathing room; only the wasted outer inset goes.
+   !important because this is a fight with whatever table padding the active theme ships (Shoptimizer
+   uses 15-22px depending on breakpoint) and we cannot out-specify every theme by hand. Scoped to the
+   shipping row, so no other cell in the totals table is affected. */
+tr.woocommerce-shipping-totals > td,
+tr.shipping > td { padding-left: 0 !important; padding-right: 0 !important; }
+
+/* The package heading is empty on purpose (see BGCouriers_Checkout::package_name) - collapse the space
+   the theme still reserves for it, otherwise an invisible label keeps pushing the couriers down. */
+tr.woocommerce-shipping-totals > th:empty,
+tr.shipping > th:empty { padding: 0; margin: 0; border: 0; height: 0; line-height: 0; font-size: 0; }
+
+ul#shipping_method { margin: 0; padding: 0; list-style: none; }
+ul#shipping_method > li {
+  list-style: none; margin: 0; padding: 8px 12px; box-sizing: border-box;
+  border: 1px solid transparent; border-radius: 10px; line-height: 1.4;
+  cursor: pointer; transition: background-color .12s; -webkit-tap-highlight-color: transparent;
+}
+
+/* The radio circle is dropped on purpose: it decorated the row without adding information, since the
+   chosen courier is already the bold one in a raised card. The input STAYS in the DOM - it is what
+   WooCommerce reads on submit and what the click handler toggles - just visually hidden rather than
+   display:none, so it keeps its place in the tab order for keyboard users. */
+ul#shipping_method > li > input.shipping_method {
+  position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; border: 0;
+  clip: rect(0 0 0 0); clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+}
+ul#shipping_method > li > label::before { display: none; } /* theme's 7px marker before the logo */
+
+/* One line per courier: logo + name (+ the second currency + the (i) hint) packed left, price hard right.
+   The label is the flex container because that is where the theme puts the price, and a float is ignored
+   inside a flex container - so margin-left:auto, not float, decides where the price sits. */
+ul#shipping_method > li > label {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px;
+  width: 100%; margin: 0; padding: 0; line-height: inherit; cursor: pointer;
+}
+ul#shipping_method .bgc-ship-logo {
+  display: block; flex: 0 0 auto; width: 16px; height: 16px; object-fit: contain; margin: 0;
+}
+/* order:9 moves the price to the end of the row whatever its position in the markup, so the second
+   currency and the (i) stay next to the courier name instead of trailing the price. */
+ul#shipping_method > li > label > .woocommerce-Price-amount {
+  order: 9; float: none; margin-left: auto; white-space: nowrap;
+}
+ul#shipping_method > li > label > .bgc-info-tip { flex: 0 0 auto; }
+
+/* The CHOSEN courier and its delivery fields sit together in one raised card, so it is obvious the
+   fields belong to that courier. Padding compensates for the border, keeping every row the same height. */
+ul#shipping_method > li:hover { background: #f4f6f9; }
+ul#shipping_method > li:has(> input.shipping_method:checked) {
+  border-color: #dbe1e8; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  padding: 7px 11px; margin: 4px 0 6px; cursor: default;
+}
+ul#shipping_method > li:has(> input.shipping_method:checked):hover { background: #fff; }
+ul#shipping_method > li:has(> input.shipping_method:checked) > label { font-weight: 600; cursor: default; }
+/* With the radio hidden there is nothing left to show keyboard focus - put it on the row itself. */
+ul#shipping_method > li:has(> input.shipping_method:focus-visible) { outline: 2px solid #2271b1; outline-offset: 1px; }
+/* The chosen courier's fields always take the full width under the label, never beside it. */
+ul#shipping_method > li > .bgc-fields { display: block; width: 100%; cursor: default; }
+
+/* Round (i) hint carrying whatever needs saying about this rate - what the price covers, or that it is
+   paid to the courier. It lives in a hover/focus bubble so the courier row stays one short line. */
+.bgc-info-tip{display:inline-block;box-sizing:border-box;width:15px;height:15px;border-radius:50%;background:#c3c8ce;color:#fff;font:italic 700 10px/15px Georgia,serif;text-align:center;vertical-align:middle;cursor:help;position:relative;}
+.bgc-info-tip::before{content:"i";}
+.bgc-info-tip:hover,.bgc-info-tip:focus{background:#2271b1;outline:none;}
+.bgc-info-tip:hover::after,.bgc-info-tip:focus::after{content:attr(data-tip);position:absolute;right:-6px;bottom:calc(100% + 7px);width:max-content;max-width:240px;white-space:normal;background:#1d2327;color:#fff;font:400 12px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif;font-style:normal;text-align:left;padding:8px 11px;border-radius:7px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:1000;pointer-events:none;}
+.bgc-info-tip:hover::before{content:"i";}
+
+/* Dual BGN/EUR display next to the courier name. */
+.bgc-dual { color: #6b7280; font-size: .92em; white-space: nowrap; }
