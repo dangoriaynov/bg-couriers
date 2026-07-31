@@ -502,9 +502,26 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
                 'date' => (string) ($h['statusDate'] ?? $h['date'] ?? ''),
             ];
         }
-        $cur    = (array) ($resp['expeditionStatus'] ?? []);
-        $status = (string) ($cur['status'] ?? ($events ? $events[count($events) - 1]['name'] : 'unknown'));
-        return new BGCouriers_Tracking($waybill, $status, $events);
+        // Sameday returns its history NEWEST FIRST. Everything downstream - human(), classify(), the status
+        // shown in the orders list - reads the LAST entry as the current one, so an unsorted list reports
+        // the moment the label was created forever: a cancelled shipment still read "Създадена
+        // товарителница". Sort ascending so the newest really is last.
+        usort($events, static function ($a, $b) {
+            return strcmp((string) $a['date'], (string) $b['date']) ?: 0;
+        });
+        // Same-second entries (a create and its cancellation can share a timestamp) keep API order, which
+        // is newest-first - so reverse those back. Compare on the statusId, which grows with the lifecycle.
+        usort($events, static function ($a, $b) {
+            $d = strcmp((string) $a['date'], (string) $b['date']);
+            return $d !== 0 ? $d : ((int) $a['code'] <=> (int) $b['code']);
+        });
+
+        $cur     = (array) ($resp['expeditionStatus'] ?? []);
+        $summary = (array) ($resp['expeditionSummary'] ?? []);
+        $status  = (string) ($cur['status'] ?? ($events ? $events[count($events) - 1]['name'] : 'unknown'));
+        // Sameday states the outcome outright, so the verdict does not depend on reading Bulgarian prose.
+        $phase = !empty($summary['delivered']) ? 'DELIVERED' : '';
+        return new BGCouriers_Tracking($waybill, $status, $events, $phase);
     }
 
     public function tracking_url(string $waybill): string {
