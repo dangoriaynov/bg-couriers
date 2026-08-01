@@ -46,7 +46,16 @@ class BGCouriers_Tracking {
      * Cancellation has no trackPhase of its own, so that one verdict still comes from the text.
      */
     public function stage(): string {
-        if ($this->phase === '') { return self::classify($this->human()); }
+        if ($this->phase === '') {
+            $verdict = self::classify($this->human());
+            // The last event's code is a machine value where the courier publishes one; Speedy's 134/1134
+            // mean "waiting at the office/locker" regardless of how the description is worded.
+            if ($verdict === 'transit' && $this->events) {
+                $last = end($this->events);
+                if (in_array((string) ($last['code'] ?? ''), self::READY_CODES, true)) { return 'ready'; }
+            }
+            return $verdict;
+        }
         if (isset(self::PHASES[$this->phase])) { return self::PHASES[$this->phase]; }
         return self::classify($this->human()) === 'cancelled' ? 'cancelled' : 'transit';
     }
@@ -68,7 +77,7 @@ class BGCouriers_Tracking {
      * @var string[]
      */
     private const IN_FLIGHT = [
-        'отказ от преглед', 'уточняване', 'подготовка', 'очаква', 'awaiting', 'prepared',
+        'отказ от преглед', 'очаква', 'awaiting', 'prepared',
         'за доставка', 'опит', 'for delivery', 'attempt',
         'недостав', 'not delivered', 'undelivered', 'unsuccessful', 'неуспешн',
     ];
@@ -84,18 +93,56 @@ class BGCouriers_Tracking {
     private const DELIVERED_PHRASES = ['доставка на клиент', 'взета от получателя',
         'получена от получателя', 'предадена на получателя'];
 
+    /**
+     * Wordings that mean the parcel has ARRIVED and is waiting for the customer to collect it - the step
+     * between "on its way" and "handed over". Real strings: Speedy notifies the recipient with
+     * "Изпратено известие за пратка в офис/автомат" (operation 1134) after "Подготовка за предаване на
+     * клиент в офис" (134).
+     * @var string[]
+     */
+    private const READY_PHRASES = ['известие за пратка', 'готова за получаване', 'готова за взимане',
+        'подготовка за предаване', 'ready for pickup', 'ready for collection', 'available for pickup'];
+
+    /** Speedy operations that mean the same thing, checked before any text. @var string[] */
+    public const READY_CODES = ['134', '1134'];
+
     public static function classify(string $status): string {
         $s = function_exists('mb_strtolower') ? mb_strtolower($status) : strtolower($status);
         // Guards first: these phrases contain words the rules below would otherwise match.
         foreach (self::IN_FLIGHT as $k) { if (strpos($s, $k) !== false) { return 'transit'; } }
         foreach (['отказ', 'анулир', 'cancel'] as $k) { if (strpos($s, $k) !== false) { return 'cancelled'; } }
-        foreach (['върн', 'връщ', 'return'] as $k) { if (strpos($s, $k) !== false) { return 'returned'; } }
+        // Speedy says a return two ways: "Връщане към подателя" (111) and "Предаване обратно на подател"
+        // (124). Only the first matched, so a parcel coming back read as still travelling to the customer.
+        foreach (['върн', 'връщ', 'return', 'обратно на подател', 'обратно към подател',
+                  'към подателя', 'back to sender'] as $k) {
+            if (strpos($s, $k) !== false) { return 'returned'; }
+        }
         foreach (self::DELIVERED_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'delivered'; } }
         // The participle - "Доставена", "Доставено", "Delivered to office" - never the noun. A substring
         // test for 'достав'/'deliver' also matched "delivery"/"доставка", which is how an order was
         // completed while its parcel had not left the shop.
         if (preg_match('/достав(ен|ена|ено|ени)/u', $s) === 1) { return 'delivered'; }
         if (preg_match('/\bdelivered\b/', $s) === 1) { return 'delivered'; }
+        // Arrived and waiting to be collected - checked after the terminal verdicts so a delivered or
+        // cancelled parcel can never be reported as merely waiting.
+        foreach (self::READY_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'ready'; } }
         return 'transit';
+    }
+
+    /**
+     * What to call a stage in the admin. The raw verdicts are internal; these are what the merchant reads
+     * on the order and in the orders list.
+     *
+     * @param string $stage One of transit|ready|delivered|returned|cancelled.
+     * @return string Translated label.
+     */
+    public static function stage_label(string $stage): string {
+        switch ($stage) {
+            case 'ready':     return __('Ready for collection', 'bg-couriers');
+            case 'delivered': return __('Delivered', 'bg-couriers');
+            case 'returned':  return __('Being returned', 'bg-couriers');
+            case 'cancelled': return __('Cancelled', 'bg-couriers');
+            default:          return __('On its way', 'bg-couriers');
+        }
     }
 }

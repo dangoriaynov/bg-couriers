@@ -76,8 +76,13 @@ class BGCouriers_Tracking_Poller {
         $order->update_meta_data('_bgcouriers_track_text', $human);
         $order->update_meta_data('_bgcouriers_track_stage', $t->stage());
         $order->update_meta_data('_bgcouriers_track_updated', time());
-        /* translators: 1: courier name, 2: status */
-        $order->add_order_note(sprintf(__('%1$s tracking update: %2$s', 'bg-couriers'), $courier->label(), $human));
+        // A courier that answered without a usable status ("UNKNOWN" is what our parsers fall back to)
+        // has told us nothing worth writing on the order - the note only ever confused whoever read it.
+        if ($human !== '' && strcasecmp($human, 'UNKNOWN') !== 0) {
+            /* translators: 1: courier name, 2: what stage the shipment is at, 3: the courier's own wording */
+            $order->add_order_note(sprintf(__('%1$s - %2$s: "%3$s"', 'bg-couriers'),
+                $courier->label(), BGCouriers_Tracking::stage_label($t->stage()), $human));
+        }
 
         $stage = $t->stage();
         if (in_array($stage, ['delivered', 'cancelled', 'returned'], true)) {
@@ -88,7 +93,7 @@ class BGCouriers_Tracking_Poller {
             $order->update_status($target, __('BG Couriers: shipment delivered (auto status).', 'bg-couriers')); // saves the order
             return;
         }
-        if ($stage === 'transit' && self::mark_shipped($order, $t)) { return; } // update_status() saved it
+        if (in_array($stage, ['transit', 'ready'], true) && self::mark_shipped($order, $t)) { return; } // update_status() saved it
         $order->save();
     }
 

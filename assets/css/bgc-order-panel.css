@@ -97,3 +97,12 @@
 
 /* Right-edge hints: anchor the bubble to the control's right edge so it stays inside the panel. */
 .bgc-order-panel .bgc-hd-acts > *:nth-last-child(-n+3)[data-tip]:hover::after{left:auto;right:0;transform:none;}
+
+/* Where the shipment is, on the order screen itself. The orders list had it; the one screen you open to
+   look at a single order did not, so the answer was always one click away in the wrong direction. */
+.bgc-shipstate { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:8px 0 0;
+  padding:7px 10px; border:1px solid #e2e6ea; border-radius:8px; background:#fafbfc; font-size:12px; line-height:1.4; }
+.bgc-shipstate .bgc-track-dot { flex:0 0 auto; width:8px; height:8px; border-radius:50%; }
+.bgc-shipstate-txt { color:#50575e; }
+.bgc-shipstate-when { color:#8c8f94; margin-left:auto; white-space:nowrap; }
+.bgc-shipstate .bgc-lock { flex:0 0 auto; font-size:15px; width:15px; height:15px; color:#8c8f94; cursor:help; }

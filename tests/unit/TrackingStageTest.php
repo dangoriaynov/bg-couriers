@@ -1,5 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use Brain\Monkey;
+use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 
 /**
@@ -10,6 +12,9 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.
  * @group core
  */
 final class TrackingStageTest extends TestCase {
+    protected function setUp(): void { parent::setUp(); Monkey\setUp(); Functions\when('__')->returnArg(1); }
+    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+
     /** Real Speedy operation descriptions observed live on the account. */
     public function test_observed_speedy_operations(): void {
         $this->assertSame('transit', BGCouriers_Tracking::classify('Получена информация за пратка'));
@@ -66,8 +71,10 @@ final class TrackingStageTest extends TestCase {
             'Приемане от куриер/служител'                  => 'transit',
             'Изпращане от офис'                            => 'transit',
             'Пристигане в офис'                            => 'transit',
-            'Подготовка за предаване на клиент в офис'     => 'transit',
-            'Изпратено известие за пратка в офис/автомат'  => 'transit',
+            // The parcel has arrived and the customer has been told to come for it - its own stage,
+            // between "on its way" and "handed over".
+            'Подготовка за предаване на клиент в офис'     => 'ready',
+            'Изпратено известие за пратка в офис/автомат'  => 'ready',
             'Уточняване на доставка'                       => 'transit',
             'Отказ от преглед/тестване'                    => 'transit',
             'Доставка на клиент'                           => 'delivered',
@@ -139,5 +146,46 @@ final class TrackingStageTest extends TestCase {
     public function test_handover_can_be_stated_either_way(): void {
         $this->assertFalse((new BGCouriers_Tracking('1', 'X', [], '', false))->handover);
         $this->assertTrue((new BGCouriers_Tracking('1', 'X', [], '', true))->handover);
+    }
+
+    /** The middle stage: arrived, waiting for the customer. Never confused with delivered or cancelled. */
+    public function test_ready_for_collection_is_its_own_stage(): void {
+        foreach (['Изпратено известие за пратка в офис/автомат',
+                  'Подготовка за предаване на клиент в офис',
+                  'Готова за получаване',
+                  'Ready for pickup'] as $s) {
+            $this->assertSame('ready', BGCouriers_Tracking::classify($s), $s);
+        }
+        // ...and a delivered or cancelled parcel is never demoted back to "waiting".
+        $this->assertSame('delivered', BGCouriers_Tracking::classify('Доставка на клиент'));
+        $this->assertSame('cancelled', BGCouriers_Tracking::classify('Анулиране'));
+    }
+
+    /** Speedy states it with an operation code too, which must win over however the text reads. */
+    public function test_ready_from_the_operation_code(): void {
+        $ev = [['code' => '1134', 'name' => 'Some wording we have never seen', 'date' => '']];
+        $this->assertSame('ready', (new BGCouriers_Tracking('1', '1134', $ev))->stage());
+        $done = [['code' => '-14', 'name' => 'Доставка на клиент', 'date' => '']];
+        $this->assertSame('delivered', (new BGCouriers_Tracking('1', '-14', $done))->stage());
+    }
+
+    /** Every stage has a label a merchant can read - no raw verdicts leak into the admin. */
+    public function test_every_stage_has_a_label(): void {
+        foreach (['transit', 'ready', 'delivered', 'returned', 'cancelled'] as $stage) {
+            $this->assertNotSame('', BGCouriers_Tracking::stage_label($stage), $stage);
+        }
+    }
+
+    /**
+     * Regression, live: order 11182 came back - the customer refused it - and the admin still said the
+     * parcel was on its way, because Speedy words a return two ways and we knew only one. "Връщане към
+     * подателя" (111) matched; "Предаване обратно на подател" (124), which is what the last event said,
+     * did not.
+     */
+    public function test_both_speedy_wordings_for_a_return(): void {
+        foreach (['Връщане към подателя', 'Предаване обратно на подател', 'Върната пратка',
+                  'Returned back to sender'] as $s) {
+            $this->assertSame('returned', BGCouriers_Tracking::classify($s), $s);
+        }
     }
 }

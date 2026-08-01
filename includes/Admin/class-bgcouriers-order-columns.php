@@ -90,7 +90,7 @@ class BGCouriers_Order_Columns {
      *
      * @var array<string,string>
      */
-    const STAGE_COLORS = ['transit' => '#2271b1', 'delivered' => '#00814f', 'returned' => '#b32d2e', 'cancelled' => '#6b7280'];
+    const STAGE_COLORS = ['transit' => '#2271b1', 'ready' => '#b26b00', 'delivered' => '#00814f', 'returned' => '#b32d2e', 'cancelled' => '#6b7280'];
 
     /**
      * The courier's own last word about this shipment, as one short line under the waybill actions.
@@ -105,7 +105,7 @@ class BGCouriers_Order_Columns {
         // The status itself goes in the hover bubble too: courier wordings are long ("Изпратено известие
         // за пратка в офис/автомат") and the waybill column is narrow, so the line wraps to two and the
         // full sentence stays one hover away instead of ending in an ellipsis nobody can resolve.
-        $tip = $text;
+        $tip = BGCouriers_Tracking::stage_label($stage) . ' - ' . $text;
         if ($updated > 0) {
             /* translators: %s: human-readable time difference, e.g. "2 hours" */
             $tip .= ' - ' . sprintf(__('updated %s ago', 'bg-couriers'), human_time_diff($updated, time()));
@@ -115,7 +115,8 @@ class BGCouriers_Order_Columns {
             : '';
         return '<span class="bgc-track" data-tip="' . esc_attr($tip) . '">'
             . '<span class="bgc-track-dot" style="background:' . esc_attr($color) . '"></span>'
-            . '<span class="bgc-track-txt">' . esc_html($text) . '</span>' . $lock . '</span>';
+            . '<span class="bgc-track-txt"><strong>' . esc_html(BGCouriers_Tracking::stage_label($stage)) . '</strong> '
+            . esc_html($text) . '</span>' . $lock . '</span>';
     }
 
     public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = '', string $courier_label = '', string $courier_logo = '', string $regenerate_url = '', $order = null): string {

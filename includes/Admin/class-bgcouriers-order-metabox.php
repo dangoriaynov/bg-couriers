@@ -80,6 +80,26 @@ class BGCouriers_Order_Metabox {
         }
         $body .= '<span class="bgc-hd-acts">' . $actions . '</span></div>';
 
+        // Where the shipment actually is, on the order itself. It used to live only in the orders list, so
+        // the one screen a merchant opens to look at a single order was the one place that did not say.
+        $stage = (string) $order->get_meta('_bgcouriers_track_stage');
+        $text  = trim((string) $order->get_meta('_bgcouriers_track_text'));
+        if ($text !== '') {
+            $when = (int) $order->get_meta('_bgcouriers_track_updated');
+            $body .= '<div class="bgc-shipstate bgc-stage-' . esc_attr(sanitize_html_class($stage ?: 'transit')) . '">'
+                . '<span class="bgc-track-dot" style="background:' . esc_attr(BGCouriers_Order_Columns::STAGE_COLORS[$stage] ?? '#6b7280') . '"></span>'
+                . '<strong>' . esc_html(BGCouriers_Tracking::stage_label($stage)) . '</strong> '
+                . '<span class="bgc-shipstate-txt">' . esc_html($text) . '</span>'
+                . ($when > 0
+                    /* translators: %s: human-readable time difference, e.g. "2 hours" */
+                    ? '<span class="bgc-shipstate-when">' . esc_html(sprintf(__('updated %s ago', 'bg-couriers'), human_time_diff($when, time()))) . '</span>'
+                    : '')
+                . (BGCouriers_Labels::is_locked($order)
+                    ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
+                    : '')
+                . '</div>';
+        }
+
         // Surface the last generation error (handle_generate stores it in a transient, then redirects here).
         $err = get_transient('bgcouriers_admin_error_' . $id);
         if ($err) {
@@ -99,7 +119,7 @@ class BGCouriers_Order_Metabox {
     /** Allowed tags/attributes for the shipment-panel body passed through wp_kses. */
     const PANEL_TAGS = [
         'div'    => ['class' => true, 'style' => true],
-        'span'   => ['class' => true, 'data-wb' => true, 'data-tip' => true, 'role' => true, 'tabindex' => true, 'aria-label' => true],
+        'span'   => ['class' => true, 'style' => true, 'data-wb' => true, 'data-tip' => true, 'role' => true, 'tabindex' => true, 'aria-label' => true],
         'strong' => ['class' => true],
         'b'      => [],
         'img'    => ['class' => true, 'src' => true, 'alt' => true, 'data-tip' => true],
