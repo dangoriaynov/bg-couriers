@@ -102,10 +102,14 @@ class BGCouriers_Order_Columns {
         $stage   = (string) $order->get_meta('_bgcouriers_track_stage');
         $color   = self::STAGE_COLORS[$stage] ?? '#6b7280';
         $updated = (int) $order->get_meta('_bgcouriers_track_updated');
-        $tip     = $updated > 0
+        // The status itself goes in the hover bubble too: courier wordings are long ("Изпратено известие
+        // за пратка в офис/автомат") and the waybill column is narrow, so the line wraps to two and the
+        // full sentence stays one hover away instead of ending in an ellipsis nobody can resolve.
+        $tip = $text;
+        if ($updated > 0) {
             /* translators: %s: human-readable time difference, e.g. "2 hours" */
-            ? sprintf(__('Updated %s ago', 'bg-couriers'), human_time_diff($updated, time()))
-            : '';
+            $tip .= ' - ' . sprintf(__('updated %s ago', 'bg-couriers'), human_time_diff($updated, time()));
+        }
         $lock = BGCouriers_Labels::is_locked($order)
             ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
             : '';

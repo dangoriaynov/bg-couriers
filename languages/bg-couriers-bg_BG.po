@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-31 00:25+0300\n"
+"POT-Creation-Date: 2026-08-02 00:24+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -160,7 +160,9 @@ msgstr "Генерирането на етикет е неуспешно: %s"
 msgid ""
 "⚠ The order changed, but the waybill was NOT re-issued: the courier already "
 "collected this shipment. Arrange the change with the courier."
-msgstr "⚠ Поръчката е променена, но товарителницата НЕ е преиздадена: куриерът вече е взел пратката. Уговорете промяната с куриера."
+msgstr ""
+"⚠ Поръчката е променена, но товарителницата НЕ е преиздадена: куриерът вече "
+"е взел пратката. Уговорете промяната с куриера."
 
 #. translators: %s: the previous waybill number
 #: includes/Admin/class-bgcouriers-labels.php:296
@@ -209,7 +211,9 @@ msgstr ""
 msgid ""
 "The courier has already collected this shipment - the waybill can no longer "
 "be cancelled, re-issued or edited. Arrange it with the courier instead."
-msgstr "Куриерът вече е взел пратката - товарителницата не може повече да се анулира, преиздава или редактира. Уговорете промяната директно с куриера."
+msgstr ""
+"Куриерът вече е взел пратката - товарителницата не може повече да се "
+"анулира, преиздава или редактира. Уговорете промяната директно с куриера."
 
 #: includes/Admin/class-bgcouriers-labels.php:393
 msgid "Label cancellation refused"
@@ -280,86 +284,86 @@ msgid "Waybill"
 msgstr "Товарителница"
 
 #. translators: %s: human-readable time difference, e.g. "2 hours"
-#: includes/Admin/class-bgcouriers-order-columns.php:107
+#: includes/Admin/class-bgcouriers-order-columns.php:111
 #, php-format
-msgid "Updated %s ago"
-msgstr "Обновено преди %s"
+msgid "updated %s ago"
+msgstr "обновено преди %s"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:133
+#: includes/Admin/class-bgcouriers-order-columns.php:137
 #: includes/Admin/class-bgcouriers-order-metabox.php:40
 msgid "Edit delivery details"
 msgstr "Редактирай данните за доставка"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:141
+#: includes/Admin/class-bgcouriers-order-columns.php:145
 #: includes/Admin/class-bgcouriers-order-metabox.php:60
 msgid "Re-issue waybill (voids the current one)"
 msgstr "Преиздаване на товарителница (анулира текущата)"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:150
-#: includes/Admin/class-bgcouriers-order-columns.php:190
+#: includes/Admin/class-bgcouriers-order-columns.php:154
+#: includes/Admin/class-bgcouriers-order-columns.php:194
 msgid "Generate"
 msgstr "Генерирай"
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-order-columns.php:158
+#: includes/Admin/class-bgcouriers-order-columns.php:162
 #: includes/Admin/class-bgcouriers-order-metabox.php:77
 #, php-format
 msgid "Copy waybill %s"
 msgstr "Копирай товарителница %s"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:161
+#: includes/Admin/class-bgcouriers-order-columns.php:165
 #: includes/Admin/class-bgcouriers-order-metabox.php:61
 msgid "Print label"
 msgstr "Отпечатай етикет"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:162
+#: includes/Admin/class-bgcouriers-order-columns.php:166
 #: includes/Admin/class-bgcouriers-order-metabox.php:62
 msgid "Track shipment"
 msgstr "Проследи пратката"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:163
+#: includes/Admin/class-bgcouriers-order-columns.php:167
 msgid "Cancel waybill"
 msgstr "Анулирай товарителницата"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:184
+#: includes/Admin/class-bgcouriers-order-columns.php:188
 #: includes/Admin/class-bgcouriers-order-metabox.php:166
 msgid "Cancel this waybill?"
 msgstr "Да анулирам ли товарителницата?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:185
+#: includes/Admin/class-bgcouriers-order-columns.php:189
 #: includes/Admin/class-bgcouriers-order-metabox.php:167
 msgid "This voids the shipment label with the courier. This cannot be undone."
 msgstr "Това анулира етикета за доставка при куриера. Действието е необратимо."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:186
+#: includes/Admin/class-bgcouriers-order-columns.php:190
 #: includes/Admin/class-bgcouriers-order-metabox.php:168
 msgid "Yes, cancel it"
 msgstr "Да, анулирай"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:187
+#: includes/Admin/class-bgcouriers-order-columns.php:191
 #: includes/Admin/class-bgcouriers-order-metabox.php:169
 msgid "Keep it"
 msgstr "Запази"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:188
+#: includes/Admin/class-bgcouriers-order-columns.php:192
 msgid "Waybill cancelled"
 msgstr "Товарителницата е анулирана"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:189
+#: includes/Admin/class-bgcouriers-order-columns.php:193
 #: includes/Admin/class-bgcouriers-order-metabox.php:165
 msgid "Copied to clipboard"
 msgstr "Копирано в клипборда"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:191
+#: includes/Admin/class-bgcouriers-order-columns.php:195
 msgid "Could not cancel."
 msgstr "Неуспешно анулиране."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:192
+#: includes/Admin/class-bgcouriers-order-columns.php:196
 #: includes/Admin/class-bgcouriers-order-metabox.php:170
 msgid "Re-issue this waybill?"
 msgstr "Да се преиздаде ли тази товарителница?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:193
+#: includes/Admin/class-bgcouriers-order-columns.php:197
 #: includes/Admin/class-bgcouriers-order-metabox.php:171
 msgid ""
 "The current waybill is voided with the courier and a new one is issued from "
@@ -370,16 +374,16 @@ msgstr ""
 "актуалните данни за доставка, продуктите и настройките на тази поръчка. Това "
 "не може да бъде отменено."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:194
+#: includes/Admin/class-bgcouriers-order-columns.php:198
 #: includes/Admin/class-bgcouriers-order-metabox.php:172
 msgid "Yes, re-issue it"
 msgstr "Да, преиздай я"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:203
+#: includes/Admin/class-bgcouriers-order-columns.php:207
 msgid "Cancel the selected waybills?"
 msgstr "Да анулирам ли избраните товарителници?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:204
+#: includes/Admin/class-bgcouriers-order-columns.php:208
 msgid ""
 "This voids the shipment label with the courier for every selected order. "
 "This cannot be undone."
@@ -387,20 +391,20 @@ msgstr ""
 "Това анулира етикета за доставка при куриера за всяка избрана поръчка. "
 "Действието е необратимо."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:205
+#: includes/Admin/class-bgcouriers-order-columns.php:209
 msgid "Yes, cancel them"
 msgstr "Да, анулирай ги"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:206
-#: includes/Admin/class-bgcouriers-order-columns.php:212
+#: includes/Admin/class-bgcouriers-order-columns.php:210
+#: includes/Admin/class-bgcouriers-order-columns.php:216
 msgid "Keep them"
 msgstr "Запази ги"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:209
+#: includes/Admin/class-bgcouriers-order-columns.php:213
 msgid "Re-issue the selected waybills?"
 msgstr "Да се преиздадат ли избраните товарителници?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:210
+#: includes/Admin/class-bgcouriers-order-columns.php:214
 msgid ""
 "Every selected order ends up with a fresh waybill, issued from that order's "
 "current delivery details, products and settings. Where a waybill already "
@@ -411,7 +415,7 @@ msgstr ""
 "товарителница, тя първо се анулира при куриера. Това не може да бъде "
 "отменено."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:211
+#: includes/Admin/class-bgcouriers-order-columns.php:215
 msgid "Yes, re-issue them"
 msgstr "Да, преиздай ги"
 
@@ -2505,6 +2509,10 @@ msgstr "Доставка със Sameday (BG Couriers)"
 #: includes/Shipping/class-bgcouriers-method-speedy.php:9
 msgid "Speedy shipping (BG Couriers)"
 msgstr "Доставка със Speedy (BG Couriers)"
+
+#, php-format
+#~ msgid "Updated %s ago"
+#~ msgstr "Обновено преди %s"
 
 #, php-format
 #~ msgid "Shipped <span class=\"count\">(%s)</span>"
