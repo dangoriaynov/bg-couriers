@@ -13,10 +13,21 @@ defined('ABSPATH') || exit;
  * separate setting gates is the AUTOMATIC transition - see BGCouriers_Tracking_Poller.
  */
 class BGCouriers_Order_Status {
-    /** Full status key, as WooCommerce stores it. */
-    const STATUS = 'wc-bgcouriers-shipped';
+    /**
+     * Full status key, as WooCommerce stores it.
+     *
+     * MUST fit 20 characters: HPOS stores the status in wp_wc_orders.status, a varchar(20), and MySQL
+     * truncates anything longer WITHOUT complaining. The first version of this was
+     * 'wc-bgcouriers-shipped' - 21 characters - so every order marked Shipped was written as
+     * 'wc-bgcouriers-shippe', a value that matches no registered status: those orders vanished from
+     * wc_get_orders() (the tracking poller stopped seeing them and they froze mid-journey) and showed up
+     * as nothing recognisable anywhere that reads statuses. Keep this short.
+     */
+    const STATUS = 'wc-bgc-shipped';
     /** The same key without WooCommerce's `wc-` prefix, which is what WC_Order::get_status() returns. */
-    const SLUG = 'bgcouriers-shipped';
+    const SLUG = 'bgc-shipped';
+    /** What the truncated first version left in the database, so it can be recognised and repaired. */
+    const LEGACY_STATUS = 'wc-bgcouriers-shippe';
 
     public function __construct() {
         add_action('init', [$this, 'register']);
