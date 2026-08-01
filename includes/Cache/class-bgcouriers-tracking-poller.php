@@ -35,6 +35,11 @@ class BGCouriers_Tracking_Poller {
         if (self::freq() === 'off' || !function_exists('wc_get_orders')) { return; }
         $orders = wc_get_orders([
             'type'         => 'shop_order',
+            // WITHOUT this the query falls back to WooCommerce's own status list, which does not include
+            // the plugin's "Изпратена" - so the moment an order reached that status it stopped being
+            // polled and froze on whatever the courier had last said. A parcel that was refused and sent
+            // back sat in the admin as "on its way" for days because of it.
+            'status'       => 'any',
             'limit'        => 40,
             'orderby'      => 'date',
             'order'        => 'ASC',
@@ -66,6 +71,16 @@ class BGCouriers_Tracking_Poller {
             $order->save();
         }
 
+        $stage = $t->stage();
+        // Mark a finished shipment done BEFORE the change check. A parcel that is already delivered stops
+        // changing, so a check that returns early on "no change" never got here - and the same handful of
+        // long-finished orders were re-polled on every run, forever, crowding out the live ones.
+        if (in_array($stage, ['delivered', 'cancelled', 'returned'], true)
+            && (string) $order->get_meta('_bgcouriers_track_done') !== 'yes') {
+            $order->update_meta_data('_bgcouriers_track_done', 'yes');
+            $order->save();
+        }
+
         $key = $t->status;
         if ($key === '' || $key === (string) $order->get_meta('_bgcouriers_track_status')) { return; } // no change
 
@@ -84,10 +99,6 @@ class BGCouriers_Tracking_Poller {
                 $courier->label(), BGCouriers_Tracking::stage_label($t->stage()), $human));
         }
 
-        $stage = $t->stage();
-        if (in_array($stage, ['delivered', 'cancelled', 'returned'], true)) {
-            $order->update_meta_data('_bgcouriers_track_done', 'yes'); // terminal - stop polling this waybill
-        }
         $target = strpos($advance, 'wc-') === 0 ? substr($advance, 3) : $advance;
         if ($stage === 'delivered' && $target !== '' && $order->get_status() !== $target) {
             $order->update_status($target, __('BG Couriers: shipment delivered (auto status).', 'bg-couriers')); // saves the order
