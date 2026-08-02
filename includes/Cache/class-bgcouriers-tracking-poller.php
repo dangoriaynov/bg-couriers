@@ -83,15 +83,23 @@ class BGCouriers_Tracking_Poller {
             $order->save();
         }
 
+        // What the admin displays is refreshed on EVERY poll, even when the courier says the same thing
+        // as last time. It is derived from our own rules, and those change - after a rule fix, orders
+        // whose status happened not to move would otherwise keep showing the old verdict for good.
+        $human = $t->human();
+        $stored_stage = (string) $order->get_meta('_bgcouriers_track_stage');
+        if ($human !== '' && ($stored_stage !== $stage || (string) $order->get_meta('_bgcouriers_track_text') !== $human)) {
+            $order->update_meta_data('_bgcouriers_track_text', $human);
+            $order->update_meta_data('_bgcouriers_track_stage', $stage);
+            $order->update_meta_data('_bgcouriers_track_updated', time());
+            $order->save();
+        }
+
         $key = $t->status;
         if ($key === '' || $key === (string) $order->get_meta('_bgcouriers_track_status')) { return; } // no change
-
-        $human = $t->human();
+        // _track_status is the courier's own key (Speedy's is an operation code like "-14") and exists to
+        // detect change - it is never what we show.
         $order->update_meta_data('_bgcouriers_track_status', $key);
-        // The readable status and the verdict, for the orders list. _track_status is the courier's own key
-        // (Speedy's is an operation code like "-14") and exists to detect change - it is not for showing.
-        $order->update_meta_data('_bgcouriers_track_text', $human);
-        $order->update_meta_data('_bgcouriers_track_stage', $t->stage());
         $order->update_meta_data('_bgcouriers_track_updated', time());
         // A courier that answered without a usable status ("UNKNOWN" is what our parsers fall back to)
         // has told us nothing worth writing on the order - the note only ever confused whoever read it.

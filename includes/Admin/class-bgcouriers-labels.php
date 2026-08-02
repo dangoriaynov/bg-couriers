@@ -370,10 +370,13 @@ class BGCouriers_Labels {
      * @return bool True when the waybill must no longer be changed.
      */
     public static function is_locked(\WC_Order $order): bool {
+        $stage = (string) $order->get_meta('_bgcouriers_track_stage');
+        // Checked BEFORE the handover flag, which stays set for good: a parcel that has come all the way
+        // back is on the merchant's own counter, and a voided one never left. Both waybills are spent, a
+        // second attempt needs a fresh one - locking them left the shop holding a box it could not re-send.
+        if (in_array($stage, ['returned', 'cancelled'], true)) { return false; }
         if ((string) $order->get_meta('_bgcouriers_handover') === 'yes') { return true; }
-        // 'returned' means the parcel is BACK on the merchant's counter - that waybill is spent and a new
-        // attempt needs a new one, so it must not be locked. 'returning' still is: the courier has it.
-        return in_array((string) $order->get_meta('_bgcouriers_track_stage'), ['delivered', 'returning'], true);
+        return in_array($stage, ['delivered', 'returning'], true);
     }
 
     /** The one sentence every blocked action says, so the reason reads the same wherever it surfaces. */
