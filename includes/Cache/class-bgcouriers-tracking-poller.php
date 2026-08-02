@@ -75,6 +75,8 @@ class BGCouriers_Tracking_Poller {
         // Mark a finished shipment done BEFORE the change check. A parcel that is already delivered stops
         // changing, so a check that returns early on "no change" never got here - and the same handful of
         // long-finished orders were re-polled on every run, forever, crowding out the live ones.
+        // 'returning' is deliberately NOT terminal: the parcel is still moving, just the other way, and
+        // marking it done froze the order on "coming back" while it was already back on the counter.
         if (in_array($stage, ['delivered', 'cancelled', 'returned'], true)
             && (string) $order->get_meta('_bgcouriers_track_done') !== 'yes') {
             $order->update_meta_data('_bgcouriers_track_done', 'yes');
@@ -104,7 +106,7 @@ class BGCouriers_Tracking_Poller {
             $order->update_status($target, __('BG Couriers: shipment delivered (auto status).', 'bg-couriers')); // saves the order
             return;
         }
-        if (in_array($stage, ['transit', 'ready'], true) && self::mark_shipped($order, $t)) { return; } // update_status() saved it
+        if (in_array($stage, ['transit', 'ready', 'returning'], true) && self::mark_shipped($order, $t)) { return; } // update_status() saved it
         $order->save();
     }
 

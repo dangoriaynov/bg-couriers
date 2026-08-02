@@ -371,7 +371,9 @@ class BGCouriers_Labels {
      */
     public static function is_locked(\WC_Order $order): bool {
         if ((string) $order->get_meta('_bgcouriers_handover') === 'yes') { return true; }
-        return in_array((string) $order->get_meta('_bgcouriers_track_stage'), ['delivered', 'returned'], true);
+        // 'returned' means the parcel is BACK on the merchant's counter - that waybill is spent and a new
+        // attempt needs a new one, so it must not be locked. 'returning' still is: the courier has it.
+        return in_array((string) $order->get_meta('_bgcouriers_track_stage'), ['delivered', 'returning'], true);
     }
 
     /** The one sentence every blocked action says, so the reason reads the same wherever it surfaces. */

@@ -540,7 +540,8 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             ];
         }, $st['trackingEvents'] ?? []);
 
-        $status = (string) ($st['shortDeliveryStatusEn'] ?? '');
+        // Bulgarian first: this is what the merchant reads. The English variant stays the fallback.
+        $status = (string) ($st['shortDeliveryStatus'] ?? $st['shortDeliveryStatusEn'] ?? '');
         if ($status === '') {
             $last   = end($events);
             $status = $last ? (string) ($last['name'] ?? 'UNKNOWN') : 'UNKNOWN';
@@ -553,7 +554,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         $phase    = ((string) ($st['deliveryTime'] ?? '')) !== '' ? 'DELIVERED' : '';
         $handover = ((string) ($st['sendTime'] ?? '')) !== '' || $phase === 'DELIVERED';
 
-        return new BGCouriers_Tracking((string) ($st['shipmentNumber'] ?? ''), $status, $events, $phase, $handover);
+        return new BGCouriers_Tracking((string) ($st['shipmentNumber'] ?? ''), $status, $events, $phase, $handover, true);
     }
 
     /**

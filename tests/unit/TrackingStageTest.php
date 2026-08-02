@@ -183,8 +183,13 @@ final class TrackingStageTest extends TestCase {
      * did not.
      */
     public function test_both_speedy_wordings_for_a_return(): void {
-        foreach (['Връщане към подателя', 'Предаване обратно на подател', 'Върната пратка',
-                  'Returned back to sender'] as $s) {
+        // On its way back - the courier still has it.
+        foreach (['Връщане към подателя', 'Върната обратно', 'Return to sender'] as $s) {
+            $this->assertSame('returning', BGCouriers_Tracking::classify($s), $s);
+        }
+        // Back on the merchant's counter - the journey is over. Order 11182 sat on "coming back" while
+        // the box was already in the shop, because these two were treated as one thing.
+        foreach (['Предаване обратно на подател', 'Върната пратка', 'Returned to sender'] as $s) {
             $this->assertSame('returned', BGCouriers_Tracking::classify($s), $s);
         }
     }

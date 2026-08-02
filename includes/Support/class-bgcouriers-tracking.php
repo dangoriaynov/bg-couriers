@@ -20,17 +20,26 @@ class BGCouriers_Tracking {
      * guess from the event history.
      */
     public ?bool $handover;
+    /**
+     * Is `status` itself a sentence a merchant can read? Econt, Pigeon and Sameday publish a proper
+     * status line, while Speedy's is an operation code ("-14"). It matters because Econt's EVENTS are
+     * not statuses at all - they are place names and, on the last one, the recipient's name, so an
+     * Econt order was showing "Николай Петеленков" where its status belonged.
+     */
+    public bool $status_is_human;
 
-    public function __construct(string $waybill, string $status, array $events = [], string $phase = '', ?bool $handover = null) {
-        $this->waybill  = $waybill;
-        $this->status   = $status;
-        $this->events   = $events;
-        $this->phase    = $phase;
-        $this->handover = $handover;
+    public function __construct(string $waybill, string $status, array $events = [], string $phase = '', ?bool $handover = null, bool $status_is_human = false) {
+        $this->waybill         = $waybill;
+        $this->status          = $status;
+        $this->events          = $events;
+        $this->phase           = $phase;
+        $this->handover        = $handover;
+        $this->status_is_human = $status_is_human;
     }
 
-    /** A human-readable status: the last event's name if available, else the raw status (a code for Speedy). */
+    /** A readable status: the courier's own status line when it publishes one, else the last event's name. */
     public function human(): string {
+        if ($this->status_is_human && trim($this->status) !== '') { return $this->status; }
         if (!empty($this->events)) {
             $last = end($this->events);
             $name = is_array($last) ? (string) ($last['name'] ?? '') : '';
@@ -48,11 +57,18 @@ class BGCouriers_Tracking {
     public function stage(): string {
         if ($this->phase === '') {
             $verdict = self::classify($this->human());
-            // The last event's code is a machine value where the courier publishes one; Speedy's 134/1134
-            // mean "waiting at the office/locker" regardless of how the description is worded.
-            if ($verdict === 'transit' && $this->events) {
-                $last = end($this->events);
+            if ($verdict === 'transit') {
+                // The last event's code is a machine value where the courier publishes one; Speedy's
+                // 134/1134 mean "waiting at the office/locker" however the description is worded. Checked
+                // FIRST: a parcel sitting in an office plainly did leave our hands.
+                $last = $this->events ? end($this->events) : [];
                 if (in_array((string) ($last['code'] ?? ''), self::READY_CODES, true)) { return 'ready'; }
+                // Nothing has moved yet. Creating a waybill only hands the courier the DATA - the parcel
+                // is still on the merchant's desk, and every courier reports that state as an event of
+                // its own ("Получена информация за пратка", "Awaiting delivery to Econt"). Calling that
+                // "on its way" on an order placed minutes ago is simply wrong, and it is the state most
+                // orders sit in.
+                if (!$this->collected()) { return 'registered'; }
             }
             return $verdict;
         }
@@ -111,11 +127,16 @@ class BGCouriers_Tracking {
         // Guards first: these phrases contain words the rules below would otherwise match.
         foreach (self::IN_FLIGHT as $k) { if (strpos($s, $k) !== false) { return 'transit'; } }
         foreach (['отказ', 'анулир', 'cancel'] as $k) { if (strpos($s, $k) !== false) { return 'cancelled'; } }
-        // Speedy says a return two ways: "Връщане към подателя" (111) and "Предаване обратно на подател"
-        // (124). Only the first matched, so a parcel coming back read as still travelling to the customer.
-        foreach (['върн', 'връщ', 'return', 'обратно на подател', 'обратно към подател',
-                  'към подателя', 'back to sender'] as $k) {
+        // A return has two distinct moments and they are NOT the same thing to a shop: the parcel is on
+        // its way back (Speedy 111 "Връщане към подателя"), and the parcel is BACK - handed over to the
+        // sender (124 "Предаване обратно на подател"). Calling the second one "coming back" told a
+        // merchant a box was still travelling when it was already sitting on their counter.
+        foreach (['обратно на подател', 'обратно към подател', 'върната пратка', 'предадена на подателя',
+                  'returned to sender', 'back with sender'] as $k) {
             if (strpos($s, $k) !== false) { return 'returned'; }
+        }
+        foreach (['върн', 'връщ', 'return', 'към подателя', 'back to sender'] as $k) {
+            if (strpos($s, $k) !== false) { return 'returning'; }
         }
         foreach (self::DELIVERED_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'delivered'; } }
         // The participle - "Доставена", "Доставено", "Delivered to office" - never the noun. A substring
@@ -130,17 +151,28 @@ class BGCouriers_Tracking {
     }
 
     /**
+     * Has the courier physically taken the parcel? Uses the courier's own answer where there is one, and
+     * otherwise falls back to "the history has grown past the single registration event".
+     */
+    private function collected(): bool {
+        if ($this->handover !== null) { return $this->handover; }
+        return count($this->events) > 1;
+    }
+
+    /**
      * What to call a stage in the admin. The raw verdicts are internal; these are what the merchant reads
      * on the order and in the orders list.
      *
-     * @param string $stage One of transit|ready|delivered|returned|cancelled.
+     * @param string $stage One of registered|transit|ready|delivered|returning|returned|cancelled.
      * @return string Translated label.
      */
     public static function stage_label(string $stage): string {
         switch ($stage) {
+            case 'registered': return __('Label created', 'bg-couriers');
+            case 'returning': return __('On its way back', 'bg-couriers');
             case 'ready':     return __('Ready for collection', 'bg-couriers');
             case 'delivered': return __('Delivered', 'bg-couriers');
-            case 'returned':  return __('Being returned', 'bg-couriers');
+            case 'returned':  return __('Back with you', 'bg-couriers');
             case 'cancelled': return __('Cancelled', 'bg-couriers');
             default:          return __('On its way', 'bg-couriers');
         }

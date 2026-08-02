@@ -524,7 +524,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         return new BGCouriers_Tracking(
             (string) ($d['reference_number'] ?? ''),
             (string) ($d['status']           ?? 'UNKNOWN'),
-            $events
+            $events, '', null, true
         );
     }
 

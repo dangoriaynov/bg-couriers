@@ -521,7 +521,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $status  = (string) ($cur['status'] ?? ($events ? $events[count($events) - 1]['name'] : 'unknown'));
         // Sameday states the outcome outright, so the verdict does not depend on reading Bulgarian prose.
         $phase = !empty($summary['delivered']) ? 'DELIVERED' : '';
-        return new BGCouriers_Tracking($waybill, $status, $events, $phase);
+        return new BGCouriers_Tracking($waybill, $status, $events, $phase, null, true);
     }
 
     public function tracking_url(string $waybill): string {

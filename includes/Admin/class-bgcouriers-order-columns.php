@@ -90,7 +90,8 @@ class BGCouriers_Order_Columns {
      *
      * @var array<string,string>
      */
-    const STAGE_COLORS = ['transit' => '#2271b1', 'ready' => '#b26b00', 'delivered' => '#00814f', 'returned' => '#b32d2e', 'cancelled' => '#6b7280'];
+    const STAGE_COLORS = ['registered' => '#8c8f94', 'transit' => '#2271b1', 'ready' => '#b26b00',
+        'delivered' => '#00814f', 'returning' => '#b32d2e', 'returned' => '#b32d2e', 'cancelled' => '#6b7280'];
 
     /**
      * The courier's own last word about this shipment, as one short line under the waybill actions.

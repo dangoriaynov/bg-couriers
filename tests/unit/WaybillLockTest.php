@@ -47,11 +47,20 @@ final class WaybillLockTest extends TestCase {
         $this->assertTrue(BGCouriers_Labels::is_locked($o));
     }
 
-    /** Delivered and returned are past it, whether or not the handover flag was ever written. */
-    public function test_finished_shipments_are_locked(): void {
-        foreach (['delivered', 'returned'] as $stage) {
+    /** Delivered, and a parcel travelling BACK, are both out of the merchant's hands. */
+    public function test_shipments_in_the_couriers_hands_are_locked(): void {
+        foreach (['delivered', 'returning'] as $stage) {
             $this->assertTrue(BGCouriers_Labels::is_locked($this->order(['_bgcouriers_track_stage' => $stage])), $stage);
         }
+    }
+
+    /**
+     * A parcel that has come all the way back is on the merchant's own counter: that waybill is spent and
+     * a second attempt needs a fresh one, so it must NOT be locked. Locking it left the shop holding a box
+     * it could not re-send.
+     */
+    public function test_a_parcel_back_on_the_counter_is_not_locked(): void {
+        $this->assertFalse(BGCouriers_Labels::is_locked($this->order(['_bgcouriers_track_stage' => 'returned'])));
     }
 
     /**
