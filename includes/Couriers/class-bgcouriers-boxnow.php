@@ -150,7 +150,14 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     }
 
     public function create_label(\WC_Order $order): BGCouriers_Label {
-        $resp = $this->bn_post('/api/v1/delivery-requests', self::build_delivery_request($order, $this->warehouse_id));
+        // BOX NOW refuses a delivery request whose orderNumber it has already seen - {"code":"P410"},
+        // with the earlier parcel ids echoed back - and CANCELLING the first one does not release the
+        // number. A re-issue (the customer moved to another locker, the address was corrected) therefore
+        // has to present a new one, or it fails while the order is left with no shipment at all.
+        $attempt = (int) $order->get_meta('_bgcouriers_boxnow_attempt') + 1;
+        $order->update_meta_data('_bgcouriers_boxnow_attempt', $attempt);
+        $order->save();
+        $resp = $this->bn_post('/api/v1/delivery-requests', self::build_delivery_request($order, $this->warehouse_id, $attempt));
         return new BGCouriers_Label(self::parse_parcel_id($resp));
     }
 
@@ -159,7 +166,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
      * = the merchant warehouse. COD when the order's payment method is cash-on-delivery. Values are
      * strings with exactly 2 decimals; item value is tax-inclusive; compartmentSize required for APM.
      */
-    public static function build_delivery_request(\WC_Order $order, string $origin_id): array {
+    public static function build_delivery_request(\WC_Order $order, string $origin_id, int $attempt = 1): array {
         $total  = number_format((float) $order->get_total(), 2, '.', '');
         $is_cod = $order->get_payment_method() === 'cod';
 
@@ -176,7 +183,11 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             throw new BGCouriers_Api_Exception(esc_html__('No sender phone is set for BOX NOW. Enter it in the BOX NOW settings - BOX NOW rejects a shipment without one.', 'bg-couriers'));
         }
         return [
-            'orderNumber'         => (string) $order->get_order_number(),
+            // The first request carries the plain order number, which is what the merchant and BOX NOW
+            // support will both look for; only a re-issue needs to differ.
+            'orderNumber'         => $attempt > 1
+                ? $order->get_order_number() . '-' . $attempt
+                : (string) $order->get_order_number(),
             'invoiceValue'        => $total,
             'paymentMode'         => $is_cod ? 'cod' : 'prepaid',
             'amountToBeCollected' => $is_cod ? $total : '0.00',

@@ -113,6 +113,27 @@ final class PhoneNormalisationTest extends TestCase {
         BGCouriers_Boxnow::build_delivery_request($this->order('n/a'), '5726');
     }
 
+    /**
+     * BOX NOW refuses a delivery request whose orderNumber it has seen before - {"code":"P410"}, with
+     * the earlier parcel ids echoed back - and cancelling the first shipment does NOT release the
+     * number. So a re-issue must present a new one, while the first request keeps the plain order
+     * number that the merchant and BOX NOW support will both be looking for.
+     */
+    public function test_a_reissue_presents_a_new_order_number(): void {
+        $this->options('0888123456');
+        $order = $this->order('0888123456');
+
+        $first = BGCouriers_Boxnow::build_delivery_request($order, '5726', 1);
+        $this->assertSame((string) $order->get_order_number(), $first['orderNumber'], 'the first one stays plain');
+
+        $second = BGCouriers_Boxnow::build_delivery_request($order, '5726', 2);
+        $this->assertSame($order->get_order_number() . '-2', $second['orderNumber']);
+        $this->assertNotSame($first['orderNumber'], $second['orderNumber']);
+
+        $third = BGCouriers_Boxnow::build_delivery_request($order, '5726', 3);
+        $this->assertSame($order->get_order_number() . '-3', $third['orderNumber']);
+    }
+
     /** Same for the merchant's own missing number, which is a settings problem and says so. */
     public function test_no_sender_phone_is_refused_with_a_reason(): void {
         $this->options('');
