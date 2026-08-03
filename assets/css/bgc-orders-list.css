@@ -34,8 +34,6 @@
 .bgc-lmodal .bgc-lyes{background:#b32d2e!important;border-color:#b32d2e!important;color:#fff!important;box-shadow:none!important;}
 .bgc-lmodal .bgc-lyes:hover{background:#8a1f2b!important;border-color:#8a1f2b!important;}
 
-/* The Waybill column sits at the right of the table, so its last tiles' hints must not run off the edge. */
-.bgc-cell .bgc-row > *:nth-last-child(-n+2)[data-tip]:hover::after{left:auto;right:0;transform:none;}
 
 /* The courier's own last word about the shipment, under the waybill actions. Scanned, not read: the
    coloured dot carries the verdict (moving / delivered / returned) so a row reads at a glance. */
@@ -55,6 +53,7 @@
 .bgc-cell [data-tip]:has([data-tip]:hover)::after { content: none !important; }
 .bgc-order-panel [data-tip]:has([data-tip]:hover)::after { content: none !important; }
 
-/* Same at the right edge of the waybill column: the last tile in a row would otherwise push its bubble
-   past the table and get cut by the next column. */
+/* Same at both ends of the waybill column: it sits at the right of the table, so the last tiles would
+   run off the edge, and the first (the courier logo) would spill into the column before it. */
 .bgc-cell [data-tip]:nth-last-child(-n+2):hover::after { left:auto; right:0; transform:none; }
+.bgc-cell [data-tip]:nth-child(-n+2):hover::after { left:0; right:auto; transform:none; }

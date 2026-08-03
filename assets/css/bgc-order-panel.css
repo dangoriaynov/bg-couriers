@@ -124,6 +124,35 @@
 .bgc-ship-refresh.bgc-busy .dashicons { animation:bgc-spin 1s linear infinite; }
 @keyframes bgc-spin { to { transform:rotate(360deg); } }
 
+/* Edge-aware hints, both sides.
+
+   The bubble is centred on its element, which is right in the middle of a row and wrong at either end:
+   at the right it runs past the panel and is clipped by the metabox beside it, at the left it spills
+   into the column before. Both ends are handled BY POSITION, so a hint added to either end later is
+   covered without another round of screenshots.
+
+   Two from each end, because these rows end in pairs (a lock and a refresh; a track and a cancel) and
+   the outermost rule alone left the second one centred - which is exactly how the lock hint escaped. */
+.bgc-order-panel [data-tip]:nth-last-child(-n+2):hover::after { left:auto; right:0; transform:none; }
+.bgc-order-panel [data-tip]:nth-last-child(-n+2):hover::before { left:auto; right:8px; transform:none; }
+.bgc-order-panel [data-tip]:nth-child(-n+2):hover::after { left:0; right:auto; transform:none; }
+.bgc-order-panel [data-tip]:nth-child(-n+2):hover::before { left:8px; right:auto; transform:none; }
+/* The shipment state ends with a lock and a refresh, both carrying long explanations - anchor the whole
+   row right, whatever gets added to the end of it. */
+.bgc-shipstate [data-tip]:hover::after { left:auto; right:0; transform:none; }
+.bgc-shipstate [data-tip]:hover::before { left:auto; right:8px; transform:none; }
+
+/* Ask-the-courier-now button, tucked into the corner of the shipment state. Quiet until hovered: it is
+   there when wanted, and not competing with the state itself the rest of the time. */
+.bgc-ship-refresh { flex:0 0 auto; margin-left:6px; padding:0; width:22px; height:22px; display:inline-flex;
+  align-items:center; justify-content:center; border:1px solid #dcdcde; border-radius:5px;
+  background:#fff; color:#787c82; cursor:pointer; transition:color .12s, border-color .12s; }
+.bgc-ship-refresh:hover { color:#2271b1; border-color:#2271b1; }
+.bgc-ship-refresh .dashicons { font-size:15px; width:15px; height:15px; }
+.bgc-ship-refresh.bgc-busy { opacity:.6; cursor:default; }
+.bgc-ship-refresh.bgc-busy .dashicons { animation:bgc-spin 1s linear infinite; }
+@keyframes bgc-spin { to { transform:rotate(360deg); } }
+
 /* A hint on an element at the RIGHT EDGE of its row must not hang off the panel. The bubble is centred
    by default, which is right in the middle of a row and wrong at its end - there it gets clipped by the
    panel, or painted under the metabox beside it. Anchor those to the right instead.
