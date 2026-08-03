@@ -118,6 +118,13 @@
         $(document).on('select2:select select2:unselect', check);
         $(document).on('click', '.iris-picker', function () { touched = true; setTimeout(check, 0); });
 
+        // The save is AJAX: the page never reloads, so the baseline taken at load stays behind and every
+        // saved value keeps comparing unequal - the pill sat there for good after the first save. Take a
+        // fresh baseline from the form the moment the save reports success.
+        // `touched` is deliberately NOT reset: the merchant has been editing, and the next change after a
+        // save is a real change, not the page settling in.
+        $(document).on('bgc:saved', function () { base = $form.serialize(); apply(false); });
+
         // Saving (or any submit) is leaving on purpose - never prompt for that.
         $form.on('submit', function () { window.onbeforeunload = null; });
         $form.find('.submit :input, button[name="save"]').on('click', function () { window.onbeforeunload = null; });
