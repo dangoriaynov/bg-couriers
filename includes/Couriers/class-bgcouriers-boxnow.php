@@ -197,15 +197,35 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
      * @return int 1=S, 2=M, 3=L
      */
     private static function compartment_size($product): int {
-        if (!$product) { return 2; }
-        $l = (float) $product->get_length();
-        $w = (float) $product->get_width();
-        $h = (float) $product->get_height();
-        if ($l <= 0 && $w <= 0 && $h <= 0) { return 2; } // no dimensions -> Medium default
+        $l = $w = $h = 0.0;
+        if ($product) {
+            $l = (float) $product->get_length();
+            $w = (float) $product->get_width();
+            $h = (float) $product->get_height();
+        }
+        // No dimensions on the product: use the shop's default parcel rather than assuming "Medium".
+        // The compartment is what BOX NOW reserves and charges for, so guessing one size too big is paid
+        // for on every such order - and most products here carry no dimensions at all.
+        if ($l <= 0 && $w <= 0 && $h <= 0) {
+            $d = BGCouriers_Settings::box_dims();
+            return self::compartment_for((float) $d['length'], (float) $d['width'], (float) $d['height']);
+        }
         $unit = (string) get_option('woocommerce_dimension_unit', 'cm');
         $l = (float) wc_get_dimension($l, 'cm', $unit);
         $w = (float) wc_get_dimension($w, 'cm', $unit);
         $h = (float) wc_get_dimension($h, 'cm', $unit);
+        return self::compartment_for($l, $w, $h);
+    }
+
+    /**
+     * BOX NOW compartment for a box in centimetres: 1 small, 2 medium, 3 large.
+     *
+     * @param float $l Length in cm.
+     * @param float $w Width in cm.
+     * @param float $h Height in cm.
+     * @return int Compartment size.
+     */
+    private static function compartment_for(float $l, float $w, float $h): int {
         if ($l <= 60.0 && $w <= 45.0) {
             if ($h <= 8.0)  { return 1; }
             if ($h <= 17.0) { return 2; }

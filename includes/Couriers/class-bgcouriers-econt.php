@@ -346,6 +346,15 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             'shipmentDescription' => BGCouriers_Settings::shipment_contents(),
         ];
 
+        // Econt was the one courier we never told how big the parcel is. It prices on volumetric weight
+        // and on sizeUnder60cm, so leaving all three blank makes it assume rather than measure - and the
+        // shop's own default (a flat 10x10x2 box) is the smallest thing it can honestly be told.
+        $dims = BGCouriers_Settings::box_dims();
+        $label['shipmentDimensionsL'] = (float) $dims['length'];
+        $label['shipmentDimensionsW'] = (float) $dims['width'];
+        $label['shipmentDimensionsH'] = (float) $dims['height'];
+        $label['sizeUnder60cm']       = max($dims) < 60;
+
         $method = (string) $order->get_meta('_bgcouriers_method');
         if ($method === 'office' || $method === 'automat') {
             $label['receiverOfficeCode'] = $office_code;
