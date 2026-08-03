@@ -101,32 +101,6 @@ class BGCouriers_PIP {
     }
 
     /**
-     * Where the parcel is going, in one line: the office/locker by name, or the street address.
-     *
-     * @param \WC_Order $order   The order.
-     * @param string    $courier Courier id.
-     * @param string    $method  office|address|automat.
-     * @return string Empty when there is nothing worth printing.
-     */
-    private static function destination(\WC_Order $order, string $courier, string $method): string {
-        if ($method === 'office' || $method === 'automat') {
-            $office = BGCouriers_Nomenclature::office_by_id($courier, (int) $order->get_meta('_bgcouriers_office_id'));
-            if (!$office) { return ''; }
-            $parts = array_filter([(string) ($office['name'] ?? ''), (string) ($office['address'] ?? '')]);
-            return implode(', ', $parts);
-        }
-        // To an address: the shipping address already prints in its own block on the document, so repeat
-        // only what is NOT there - the building details the checkout collects separately.
-        $extra = [];
-        foreach (['_bgcouriers_block' => 'бл.', '_bgcouriers_entrance' => 'вх.',
-                  '_bgcouriers_floor' => 'ет.', '_bgcouriers_apartment' => 'ап.'] as $meta => $prefix) {
-            $v = trim((string) $order->get_meta($meta));
-            if ($v !== '') { $extra[] = $prefix . ' ' . $v; }
-        }
-        return implode(', ', $extra);
-    }
-
-    /**
      * Print styling. Inline on purpose: PIP renders a standalone document and enqueued stylesheets do
      * not reliably reach it, least of all through a PDF renderer.
      */
