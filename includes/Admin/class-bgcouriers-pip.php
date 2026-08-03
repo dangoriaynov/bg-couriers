@@ -29,7 +29,7 @@ class BGCouriers_PIP {
         // Quantity before unit price. PIP renders headers and cells straight from the ARRAY ORDER, so
         // both have to be reordered together or the columns and their contents come apart.
         add_filter('wc_pip_document_table_headers', [$this, 'reorder_columns'], 10, 1);
-        add_filter('wc_pip_document_column_widths', [$this, 'reorder_columns'], 10, 1);
+        add_filter('wc_pip_document_column_widths', [$this, 'column_widths'], 10, 1);
         add_filter('wc_pip_document_table_row_cells', [$this, 'reorder_columns'], 10, 1);
         add_action('wc_pip_before_footer', [$this, 'print_styles']);
     }
@@ -87,6 +87,29 @@ class BGCouriers_PIP {
     }
 
     /**
+     * Give the product and quantity columns the LEFT HALF of the sheet.
+     *
+     * The sheet gets folded, and the top-left quarter is what shows. Whoever is filling the box reads
+     * exactly two things there - what goes in and how many - so those two columns have to end at the
+     * halfway line; the money can live on the half that is folded away.
+     *
+     * @param array $widths Percentages keyed by column id.
+     * @return array
+     */
+    public function column_widths($widths) {
+        if (!is_array($widths)) { return $widths; }
+        $widths = $this->reorder_columns($widths);
+        if (isset($widths['product'], $widths['quantity'])) {
+            $widths['product']  = 38;
+            $widths['quantity'] = 12;   // 50 together: everything to check the parcel by, before the fold
+        }
+        foreach (['unit_price' => 22, 'price' => 28] as $k => $v) {
+            if (isset($widths[$k])) { $widths[$k] = $v; }
+        }
+        return $widths;
+    }
+
+    /**
      * Put the waybill next to the order number in the document heading, small and quiet.
      *
      * @param string    $heading The heading HTML PIP built.
@@ -137,7 +160,15 @@ class BGCouriers_PIP {
             . '.bgc-pip{white-space:nowrap;}'
             . '.bgc-pip-logo{height:13px;width:auto;vertical-align:-2px;margin-right:4px;}'
             . '.bgc-pip-name{font-weight:700;}'
-            . '.bgc-pip-wb{margin-top:2px;text-align:center;font-size:11px;color:#555;letter-spacing:.02em;}'
+            . '.bgc-pip-wb{margin-top:2px;font-size:11px;color:#555;letter-spacing:.02em;}'
+            // The document number, its date and the waybill sit over the LEFT HALF rather than the middle
+            // of the page: the sheet is folded before it goes on the parcel, and this is the part that
+            // ends up face-up. Centred on the page, half of it disappears into the fold.
+            // The whole heading block - document number, date, waybill - sits over the LEFT HALF rather
+            // than the middle of the page. The sheet is folded before it goes on the parcel and this is
+            // the part that ends up face-up; centred on the page, half of it disappears into the fold.
+            . '.document-heading{width:50%;margin-left:0;margin-right:auto;}'
+            . '.document-heading .order-info, .document-heading h3, .bgc-pip-wb{text-align:center;}'
             . '</style>';
     }
 }
