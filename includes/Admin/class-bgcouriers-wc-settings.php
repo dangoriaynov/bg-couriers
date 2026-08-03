@@ -80,7 +80,12 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
      */
     private static function no_autofill(array $fields): array {
         foreach ($fields as &$f) {
-            if (!is_array($f) || !preg_match('/^bgcouriers_[a-z0-9]+_(username|password)$/', (string) ($f['id'] ?? ''))) {
+            // Every kind of secret, not just the login pair: BOX NOW's webhook secret and the Google
+            // Maps key are text fields a password manager will happily fill too.
+            // A field listed here must either render its stored value or keep it on a blank save
+            // (sanitize_keep / sanitize_password) - readonly submits whatever was rendered, so a field
+            // that renders blank without a keep-on-blank sanitizer would be cleared by an untouched save.
+            if (!is_array($f) || !preg_match('/^bgcouriers_[a-z0-9_]*(username|password|secret|key)$/', (string) ($f['id'] ?? ''))) {
                 continue;
             }
             $attrs = (isset($f['custom_attributes']) && is_array($f['custom_attributes'])) ? $f['custom_attributes'] : [];

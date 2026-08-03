@@ -49,7 +49,7 @@ final class CredentialAutofillTest extends TestCase {
         $out  = [];
         foreach (['general', 'speedy', 'econt', 'pigeon', 'boxnow', 'sameday'] as $section) {
             foreach ($page->get_settings($section) as $f) {
-                if (is_array($f) && preg_match('/^bgcouriers_[a-z0-9]+_(username|password)$/', (string) ($f['id'] ?? ''))) {
+                if (is_array($f) && preg_match('/^bgcouriers_[a-z0-9_]*(username|password|secret|key)$/', (string) ($f['id'] ?? ''))) {
                     $out[] = $f;
                 }
             }
@@ -63,6 +63,9 @@ final class CredentialAutofillTest extends TestCase {
             $this->assertContains('bgcouriers_' . $c . '_username', $ids, "$c username field");
             $this->assertContains('bgcouriers_' . $c . '_password', $ids, "$c password field");
         }
+        // Not only the login pair - these are secrets in plain text fields, filled just as eagerly.
+        $this->assertContains('bgcouriers_boxnow_webhook_secret', $ids);
+        $this->assertContains('bgcouriers_google_maps_key', $ids);
     }
 
     public function test_no_credential_field_accepts_autofill(): void {
