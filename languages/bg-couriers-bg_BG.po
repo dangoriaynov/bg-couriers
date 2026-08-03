@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-03 12:14+0300\n"
+"POT-Creation-Date: 2026-08-03 16:59+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -53,7 +53,7 @@ msgid "No labels to print (none could be generated)."
 msgstr "Няма етикети за печат (нито един не можа да се генерира)."
 
 #: includes/Admin/class-bgcouriers-bulk-labels.php:120
-#: includes/Admin/class-bgcouriers-labels.php:538
+#: includes/Admin/class-bgcouriers-labels.php:544
 msgid "The generated file is not a valid PDF."
 msgstr "Генерираният файл не е валиден PDF."
 
@@ -119,8 +119,8 @@ msgstr ""
 "мин."
 
 #: includes/Admin/class-bgcouriers-labels.php:93
-#: includes/Admin/class-bgcouriers-labels.php:311
-#: includes/Admin/class-bgcouriers-labels.php:507
+#: includes/Admin/class-bgcouriers-labels.php:317
+#: includes/Admin/class-bgcouriers-labels.php:513
 msgid "Unknown courier for this order."
 msgstr "Неизвестен куриер за тази поръчка."
 
@@ -129,7 +129,7 @@ msgid "The courier returned no waybill number."
 msgstr "Куриерът не върна номер на товарителница."
 
 #. translators: 1: courier name, 2: what the courier did not apply
-#: includes/Admin/class-bgcouriers-labels.php:110
+#: includes/Admin/class-bgcouriers-labels.php:116
 #, php-format
 msgid ""
 "⚠ %1$s: the waybill was created but NOT everything was applied. %2$s Check "
@@ -139,24 +139,24 @@ msgstr ""
 "Проверете пратката преди предаване."
 
 #. translators: 1: courier name, 2: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:144
+#: includes/Admin/class-bgcouriers-labels.php:150
 #, php-format
 msgid "%1$s label generated: %2$s"
 msgstr "Генериран етикет за %1$s: %2$s"
 
-#: includes/Admin/class-bgcouriers-labels.php:213
-#: includes/Admin/class-bgcouriers-labels.php:445
+#: includes/Admin/class-bgcouriers-labels.php:219
+#: includes/Admin/class-bgcouriers-labels.php:451
 msgid "Order not found."
 msgstr "Поръчката не е намерена."
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:219
+#: includes/Admin/class-bgcouriers-labels.php:225
 #: includes/Admin/class-bgcouriers-order-metabox.php:108
 #, php-format
 msgid "Label generation failed: %s"
 msgstr "Генерирането на етикет е неуспешно: %s"
 
-#: includes/Admin/class-bgcouriers-labels.php:271
+#: includes/Admin/class-bgcouriers-labels.php:277
 msgid ""
 "⚠ The order changed, but the waybill was NOT re-issued: the courier already "
 "collected this shipment. Arrange the change with the courier."
@@ -165,7 +165,7 @@ msgstr ""
 "е взел пратката. Уговорете промяната с куриера."
 
 #. translators: %s: the previous waybill number
-#: includes/Admin/class-bgcouriers-labels.php:296
+#: includes/Admin/class-bgcouriers-labels.php:302
 #, php-format
 msgid ""
 "The order changed, so waybill %s was voided and a new one issued "
@@ -175,17 +175,17 @@ msgstr ""
 "беше издадена нова."
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:299
+#: includes/Admin/class-bgcouriers-labels.php:305
 #, php-format
 msgid "Automatic re-issue after an order change failed: %s"
 msgstr "Автоматичното преиздаване след промяна в поръчката се провали: %s"
 
-#: includes/Admin/class-bgcouriers-labels.php:318
+#: includes/Admin/class-bgcouriers-labels.php:324
 msgid "The courier did not cancel the waybill."
 msgstr "Куриерът не отказа товарителницата."
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:335
+#: includes/Admin/class-bgcouriers-labels.php:341
 #, php-format
 msgid ""
 "Shipment label %s was already cancelled at the courier; removed from the "
@@ -194,20 +194,20 @@ msgstr ""
 "Товарителница %s вече беше анулирана при куриера; премахната от поръчката."
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:337
+#: includes/Admin/class-bgcouriers-labels.php:343
 #, php-format
 msgid "Shipment label %s cancelled."
 msgstr "Етикетът за пратка %s е отказан."
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:353
+#: includes/Admin/class-bgcouriers-labels.php:359
 #, php-format
 msgid "Auto-cancel of the waybill after a full refund failed: %s"
 msgstr ""
 "Автоматичното анулиране на товарителницата след пълно възстановяване беше "
 "неуспешно: %s"
 
-#: includes/Admin/class-bgcouriers-labels.php:384
+#: includes/Admin/class-bgcouriers-labels.php:390
 msgid ""
 "The courier has already collected this shipment - the waybill can no longer "
 "be cancelled, re-issued or edited. Arrange it with the courier instead."
@@ -215,66 +215,66 @@ msgstr ""
 "Куриерът вече е взел пратката - товарителницата не може повече да се "
 "анулира, преиздава или редактира. Уговорете промяната директно с куриера."
 
-#: includes/Admin/class-bgcouriers-labels.php:398
+#: includes/Admin/class-bgcouriers-labels.php:404
 msgid "Label cancellation refused"
 msgstr "Анулирането на товарителницата е отказано"
 
-#: includes/Admin/class-bgcouriers-labels.php:401
-#: includes/Admin/class-bgcouriers-labels.php:430
+#: includes/Admin/class-bgcouriers-labels.php:407
+#: includes/Admin/class-bgcouriers-labels.php:436
 msgid "Label cancellation failed"
 msgstr "Отказът на етикета е неуспешен"
 
-#: includes/Admin/class-bgcouriers-labels.php:413
+#: includes/Admin/class-bgcouriers-labels.php:419
 msgid "Re-issue refused"
 msgstr "Преиздаването е отказано"
 
-#: includes/Admin/class-bgcouriers-labels.php:416
+#: includes/Admin/class-bgcouriers-labels.php:422
 msgid "Label re-generation failed"
 msgstr "Повторното генериране на етикета е неуспешно"
 
-#: includes/Admin/class-bgcouriers-labels.php:433
+#: includes/Admin/class-bgcouriers-labels.php:439
 msgid "Cancelled from the BG Couriers panel."
 msgstr "Отказано от панела на BG Couriers."
 
-#: includes/Admin/class-bgcouriers-labels.php:448
+#: includes/Admin/class-bgcouriers-labels.php:454
 msgid "Choose a courier."
 msgstr "Изберете куриер."
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:458
+#: includes/Admin/class-bgcouriers-labels.php:464
 #, php-format
 msgid "Could not cancel the current waybill: %s"
 msgstr "Текущата товарителница не можа да се анулира: %s"
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:481
+#: includes/Admin/class-bgcouriers-labels.php:487
 #, php-format
 msgid "Saved, but issuing the new waybill failed: %s"
 msgstr "Запазено, но издаването на новата товарителница беше неуспешно: %s"
 
-#: includes/Admin/class-bgcouriers-labels.php:484
+#: includes/Admin/class-bgcouriers-labels.php:490
 msgid "Delivery updated and a new waybill issued."
 msgstr "Доставката е обновена и е издадена нова товарителница."
 
-#: includes/Admin/class-bgcouriers-labels.php:484
+#: includes/Admin/class-bgcouriers-labels.php:490
 msgid "Delivery details saved."
 msgstr "Данните за доставка са запазени."
 
-#: includes/Admin/class-bgcouriers-labels.php:496
+#: includes/Admin/class-bgcouriers-labels.php:502
 msgid "Waybill cancelled."
 msgstr "Товарителницата е анулирана."
 
-#: includes/Admin/class-bgcouriers-labels.php:505
+#: includes/Admin/class-bgcouriers-labels.php:511
 msgid "No waybill found."
 msgstr "Няма намерена товарителница."
 
-#: includes/Admin/class-bgcouriers-labels.php:521
-#: includes/Admin/class-bgcouriers-labels.php:535
+#: includes/Admin/class-bgcouriers-labels.php:527
+#: includes/Admin/class-bgcouriers-labels.php:541
 msgid "No labels to print."
 msgstr "Няма етикети за отпечатване."
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:534
+#: includes/Admin/class-bgcouriers-labels.php:540
 #, php-format
 msgid "Print failed: %s"
 msgstr "Отпечатването е неуспешно: %s"
@@ -284,87 +284,87 @@ msgid "Waybill"
 msgstr "Товарителница"
 
 #. translators: %s: human-readable time difference, e.g. "2 hours"
-#: includes/Admin/class-bgcouriers-order-columns.php:112
+#: includes/Admin/class-bgcouriers-order-columns.php:114
 #: includes/Admin/class-bgcouriers-order-metabox.php:95
 #, php-format
 msgid "updated %s ago"
 msgstr "обновено преди %s"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:139
+#: includes/Admin/class-bgcouriers-order-columns.php:141
 #: includes/Admin/class-bgcouriers-order-metabox.php:40
 msgid "Edit delivery details"
 msgstr "Редактирай данните за доставка"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:147
+#: includes/Admin/class-bgcouriers-order-columns.php:149
 #: includes/Admin/class-bgcouriers-order-metabox.php:60
 msgid "Re-issue waybill (voids the current one)"
 msgstr "Преиздаване на товарителница (анулира текущата)"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:156
-#: includes/Admin/class-bgcouriers-order-columns.php:196
+#: includes/Admin/class-bgcouriers-order-columns.php:158
+#: includes/Admin/class-bgcouriers-order-columns.php:198
 msgid "Generate"
 msgstr "Генерирай"
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-order-columns.php:164
+#: includes/Admin/class-bgcouriers-order-columns.php:166
 #: includes/Admin/class-bgcouriers-order-metabox.php:77
 #, php-format
 msgid "Copy waybill %s"
 msgstr "Копирай товарителница %s"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:167
+#: includes/Admin/class-bgcouriers-order-columns.php:169
 #: includes/Admin/class-bgcouriers-order-metabox.php:61
 msgid "Print label"
 msgstr "Отпечатай етикет"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:168
+#: includes/Admin/class-bgcouriers-order-columns.php:170
 #: includes/Admin/class-bgcouriers-order-metabox.php:62
 msgid "Track shipment"
 msgstr "Проследи пратката"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:169
+#: includes/Admin/class-bgcouriers-order-columns.php:171
 msgid "Cancel waybill"
 msgstr "Анулирай товарителницата"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:190
+#: includes/Admin/class-bgcouriers-order-columns.php:192
 #: includes/Admin/class-bgcouriers-order-metabox.php:186
 msgid "Cancel this waybill?"
 msgstr "Да анулирам ли товарителницата?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:191
+#: includes/Admin/class-bgcouriers-order-columns.php:193
 #: includes/Admin/class-bgcouriers-order-metabox.php:187
 msgid "This voids the shipment label with the courier. This cannot be undone."
 msgstr "Това анулира етикета за доставка при куриера. Действието е необратимо."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:192
+#: includes/Admin/class-bgcouriers-order-columns.php:194
 #: includes/Admin/class-bgcouriers-order-metabox.php:188
 msgid "Yes, cancel it"
 msgstr "Да, анулирай"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:193
+#: includes/Admin/class-bgcouriers-order-columns.php:195
 #: includes/Admin/class-bgcouriers-order-metabox.php:189
 msgid "Keep it"
 msgstr "Запази"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:194
+#: includes/Admin/class-bgcouriers-order-columns.php:196
 msgid "Waybill cancelled"
 msgstr "Товарителницата е анулирана"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:195
+#: includes/Admin/class-bgcouriers-order-columns.php:197
 #: includes/Admin/class-bgcouriers-order-metabox.php:185
 msgid "Copied to clipboard"
 msgstr "Копирано в клипборда"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:197
+#: includes/Admin/class-bgcouriers-order-columns.php:199
 msgid "Could not cancel."
 msgstr "Неуспешно анулиране."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:198
+#: includes/Admin/class-bgcouriers-order-columns.php:200
 #: includes/Admin/class-bgcouriers-order-metabox.php:190
 msgid "Re-issue this waybill?"
 msgstr "Да се преиздаде ли тази товарителница?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:199
+#: includes/Admin/class-bgcouriers-order-columns.php:201
 #: includes/Admin/class-bgcouriers-order-metabox.php:191
 msgid ""
 "The current waybill is voided with the courier and a new one is issued from "
@@ -375,16 +375,16 @@ msgstr ""
 "актуалните данни за доставка, продуктите и настройките на тази поръчка. Това "
 "не може да бъде отменено."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:200
+#: includes/Admin/class-bgcouriers-order-columns.php:202
 #: includes/Admin/class-bgcouriers-order-metabox.php:192
 msgid "Yes, re-issue it"
 msgstr "Да, преиздай я"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:209
+#: includes/Admin/class-bgcouriers-order-columns.php:211
 msgid "Cancel the selected waybills?"
 msgstr "Да анулирам ли избраните товарителници?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:210
+#: includes/Admin/class-bgcouriers-order-columns.php:212
 msgid ""
 "This voids the shipment label with the courier for every selected order. "
 "This cannot be undone."
@@ -392,20 +392,20 @@ msgstr ""
 "Това анулира етикета за доставка при куриера за всяка избрана поръчка. "
 "Действието е необратимо."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:211
+#: includes/Admin/class-bgcouriers-order-columns.php:213
 msgid "Yes, cancel them"
 msgstr "Да, анулирай ги"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:212
-#: includes/Admin/class-bgcouriers-order-columns.php:218
+#: includes/Admin/class-bgcouriers-order-columns.php:214
+#: includes/Admin/class-bgcouriers-order-columns.php:220
 msgid "Keep them"
 msgstr "Запази ги"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:215
+#: includes/Admin/class-bgcouriers-order-columns.php:217
 msgid "Re-issue the selected waybills?"
 msgstr "Да се преиздадат ли избраните товарителници?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:216
+#: includes/Admin/class-bgcouriers-order-columns.php:218
 msgid ""
 "Every selected order ends up with a fresh waybill, issued from that order's "
 "current delivery details, products and settings. Where a waybill already "
@@ -416,7 +416,7 @@ msgstr ""
 "товарителница, тя първо се анулира при куриера. Това не може да бъде "
 "отменено."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:217
+#: includes/Admin/class-bgcouriers-order-columns.php:219
 msgid "Yes, re-issue them"
 msgstr "Да, преиздай ги"
 
@@ -1319,7 +1319,7 @@ msgid "Tint each row in the orders list with its courier’s colour."
 msgstr "Оцветява всеки ред в списъка с поръчки с цвета на неговия куриер."
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:399
-#: includes/Admin/class-bgcouriers-wc-settings.php:562
+#: includes/Admin/class-bgcouriers-wc-settings.php:566
 msgid "Cash on delivery (наложен платеж)"
 msgstr "Наложен платеж"
 
@@ -1496,14 +1496,26 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:452
 #: includes/Admin/class-bgcouriers-wc-settings.php:456
+#: includes/Admin/class-bgcouriers-wc-settings.php:460
 msgid "Do not change (note only)"
 msgstr "Не променяй (само бележка)"
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:454
+msgid "On return, set order to"
+msgstr "При връщане, задай статуса на"
+
+#: includes/Admin/class-bgcouriers-wc-settings.php:455
+msgid ""
+"Optionally move the order to this status once the refused parcel is back "
+"WITH YOU - not while it is travelling back. Cancelling is the usual choice: "
+"it puts the goods back into stock."
+msgstr "По желание премества поръчката в този статус, след като отказаната пратка вече е ПРИ ВАС - не докато пътува обратно. Обичайният избор е \"Отказана\": така стоката се връща в наличност."
+
+#: includes/Admin/class-bgcouriers-wc-settings.php:458
 msgid "On delivery, set order to"
 msgstr "При доставка задай статус на поръчката"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:455
+#: includes/Admin/class-bgcouriers-wc-settings.php:459
 msgid ""
 "Optionally move the order to this status when tracking reports delivery. “Do "
 "not change” only adds a note."
@@ -1511,11 +1523,11 @@ msgstr ""
 "По избор премества поръчката в този статус, когато проследяването отчете "
 "доставка. „Не променяй“ само добавя бележка."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:460
+#: includes/Admin/class-bgcouriers-wc-settings.php:464
 msgid "Emergency contact"
 msgstr "Спешен контакт"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:461
+#: includes/Admin/class-bgcouriers-wc-settings.php:465
 msgid ""
 "After repeated failed checkout attempts, show a one-time help box with a "
 "phone link. Empty phone = disabled."
@@ -1523,104 +1535,104 @@ msgstr ""
 "След няколко неуспешни опита за поръчка показва еднократна помощна кутия с "
 "телефонен линк. Празен телефон = изключено."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:462
+#: includes/Admin/class-bgcouriers-wc-settings.php:466
 msgid "Help phone number"
 msgstr "Телефон за помощ"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:464
+#: includes/Admin/class-bgcouriers-wc-settings.php:468
 msgid "Help message"
 msgstr "Помощно съобщение"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:465
+#: includes/Admin/class-bgcouriers-wc-settings.php:469
 msgid "Shown above the phone link. Leave empty for a default message."
 msgstr ""
 "Показва се над телефонния номер. Оставете празно за съобщение по "
 "подразбиране."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:476
+#: includes/Admin/class-bgcouriers-wc-settings.php:480
 msgid "Enable Speedy"
 msgstr "Активирай Speedy"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:477
-#: includes/Admin/class-bgcouriers-wc-settings.php:537
+#: includes/Admin/class-bgcouriers-wc-settings.php:481
+#: includes/Admin/class-bgcouriers-wc-settings.php:541
 msgid "API username"
 msgstr "API потребител"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:478
-#: includes/Admin/class-bgcouriers-wc-settings.php:480
-#: includes/Admin/class-bgcouriers-wc-settings.php:539
-#: includes/Admin/class-bgcouriers-wc-settings.php:587
-#: includes/Admin/class-bgcouriers-wc-settings.php:589
-#: includes/Admin/class-bgcouriers-wc-settings.php:627
-#: includes/Admin/class-bgcouriers-wc-settings.php:629
-#: includes/Admin/class-bgcouriers-wc-settings.php:667
-#: includes/Admin/class-bgcouriers-wc-settings.php:669
+#: includes/Admin/class-bgcouriers-wc-settings.php:482
+#: includes/Admin/class-bgcouriers-wc-settings.php:484
+#: includes/Admin/class-bgcouriers-wc-settings.php:543
+#: includes/Admin/class-bgcouriers-wc-settings.php:591
+#: includes/Admin/class-bgcouriers-wc-settings.php:593
+#: includes/Admin/class-bgcouriers-wc-settings.php:631
+#: includes/Admin/class-bgcouriers-wc-settings.php:633
+#: includes/Admin/class-bgcouriers-wc-settings.php:671
+#: includes/Admin/class-bgcouriers-wc-settings.php:673
 msgid "leave blank to keep"
 msgstr "оставете празно, за да запазите текущата"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:479
-#: includes/Admin/class-bgcouriers-wc-settings.php:538
+#: includes/Admin/class-bgcouriers-wc-settings.php:483
+#: includes/Admin/class-bgcouriers-wc-settings.php:542
 msgid "API password"
 msgstr "API парола"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:484
-#: includes/Admin/class-bgcouriers-wc-settings.php:543
-#: includes/Admin/class-bgcouriers-wc-settings.php:596
-#: includes/Admin/class-bgcouriers-wc-settings.php:636
-#: includes/Admin/class-bgcouriers-wc-settings.php:680
+#: includes/Admin/class-bgcouriers-wc-settings.php:488
+#: includes/Admin/class-bgcouriers-wc-settings.php:547
+#: includes/Admin/class-bgcouriers-wc-settings.php:600
+#: includes/Admin/class-bgcouriers-wc-settings.php:640
+#: includes/Admin/class-bgcouriers-wc-settings.php:684
 msgid "Delivery & label"
 msgstr "Доставка и етикет"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:485
-#: includes/Admin/class-bgcouriers-wc-settings.php:640
+#: includes/Admin/class-bgcouriers-wc-settings.php:489
+#: includes/Admin/class-bgcouriers-wc-settings.php:644
 msgid "Label paper size"
 msgstr "Размер на хартията за етикет"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:486
-#: includes/Admin/class-bgcouriers-wc-settings.php:641
+#: includes/Admin/class-bgcouriers-wc-settings.php:490
+#: includes/Admin/class-bgcouriers-wc-settings.php:645
 msgid "A6 (label printer)"
 msgstr "A6 (етикетен принтер)"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:486
-#: includes/Admin/class-bgcouriers-wc-settings.php:641
+#: includes/Admin/class-bgcouriers-wc-settings.php:490
+#: includes/Admin/class-bgcouriers-wc-settings.php:645
 msgid "A4 (office printer)"
 msgstr "A4 (офис принтер)"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:488
+#: includes/Admin/class-bgcouriers-wc-settings.php:492
 msgid "Package type"
 msgstr "Вид опаковка"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:490
+#: includes/Admin/class-bgcouriers-wc-settings.php:494
 msgid "Box"
 msgstr "Кутия"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:491
+#: includes/Admin/class-bgcouriers-wc-settings.php:495
 msgid "Envelope"
 msgstr "Плик"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:492
+#: includes/Admin/class-bgcouriers-wc-settings.php:496
 msgid "Pallet"
 msgstr "Палет"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:497
-#: includes/Admin/class-bgcouriers-wc-settings.php:553
-#: includes/Admin/class-bgcouriers-wc-settings.php:602
-#: includes/Admin/class-bgcouriers-wc-settings.php:644
-#: includes/Admin/class-bgcouriers-wc-settings.php:688
+#: includes/Admin/class-bgcouriers-wc-settings.php:501
+#: includes/Admin/class-bgcouriers-wc-settings.php:557
+#: includes/Admin/class-bgcouriers-wc-settings.php:606
+#: includes/Admin/class-bgcouriers-wc-settings.php:648
+#: includes/Admin/class-bgcouriers-wc-settings.php:692
 msgid "Pricing"
 msgstr "Цени"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:498
-#: includes/Admin/class-bgcouriers-wc-settings.php:554
-#: includes/Admin/class-bgcouriers-wc-settings.php:603
-#: includes/Admin/class-bgcouriers-wc-settings.php:645
+#: includes/Admin/class-bgcouriers-wc-settings.php:502
+#: includes/Admin/class-bgcouriers-wc-settings.php:558
+#: includes/Admin/class-bgcouriers-wc-settings.php:607
+#: includes/Admin/class-bgcouriers-wc-settings.php:649
 msgid "Delivery in the order total"
 msgstr "Доставка в цената на поръчката"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:499
-#: includes/Admin/class-bgcouriers-wc-settings.php:555
-#: includes/Admin/class-bgcouriers-wc-settings.php:604
-#: includes/Admin/class-bgcouriers-wc-settings.php:646
+#: includes/Admin/class-bgcouriers-wc-settings.php:503
+#: includes/Admin/class-bgcouriers-wc-settings.php:559
+#: includes/Admin/class-bgcouriers-wc-settings.php:608
+#: includes/Admin/class-bgcouriers-wc-settings.php:650
 msgid ""
 "On: the customer pays delivery together with the order. Off: delivery is not "
 "charged at checkout - the estimated price is shown for information and the "
@@ -1632,16 +1644,16 @@ msgstr ""
 "информация и клиентът я плаща на куриера при получаване; наложеният платеж "
 "тогава събира само стойността на стоките."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:501
-#: includes/Admin/class-bgcouriers-wc-settings.php:557
-#: includes/Admin/class-bgcouriers-wc-settings.php:606
-#: includes/Admin/class-bgcouriers-wc-settings.php:648
-#: includes/Admin/class-bgcouriers-wc-settings.php:691
-#: includes/Admin/class-bgcouriers-wc-settings.php:715
+#: includes/Admin/class-bgcouriers-wc-settings.php:505
+#: includes/Admin/class-bgcouriers-wc-settings.php:561
+#: includes/Admin/class-bgcouriers-wc-settings.php:610
+#: includes/Admin/class-bgcouriers-wc-settings.php:652
+#: includes/Admin/class-bgcouriers-wc-settings.php:695
+#: includes/Admin/class-bgcouriers-wc-settings.php:719
 msgid "Free-shipping threshold"
 msgstr "Праг за безплатна доставка"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:502
+#: includes/Admin/class-bgcouriers-wc-settings.php:506
 msgid ""
 "Ship Speedy free above this goods total (excluding shipping). Set here it "
 "applies to ALL delivery options (their own thresholds become inactive); "
@@ -1652,39 +1664,39 @@ msgstr ""
 "стават неактивни); оставете празно, за да задавате праг за всяка опция "
 "поотделно. Във валутата на магазина."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:505
-#: includes/Admin/class-bgcouriers-wc-settings.php:561
-#: includes/Admin/class-bgcouriers-wc-settings.php:610
-#: includes/Admin/class-bgcouriers-wc-settings.php:652
-#: includes/Admin/class-bgcouriers-wc-settings.php:695
+#: includes/Admin/class-bgcouriers-wc-settings.php:509
+#: includes/Admin/class-bgcouriers-wc-settings.php:565
+#: includes/Admin/class-bgcouriers-wc-settings.php:614
+#: includes/Admin/class-bgcouriers-wc-settings.php:656
+#: includes/Admin/class-bgcouriers-wc-settings.php:699
 msgid "Cash on delivery"
 msgstr "Наложен платеж"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:506
+#: includes/Admin/class-bgcouriers-wc-settings.php:510
 msgid "Open before payment"
 msgstr "Отваряне преди плащане"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:508
+#: includes/Admin/class-bgcouriers-wc-settings.php:512
 msgid "No"
 msgstr "Не"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:509
+#: includes/Admin/class-bgcouriers-wc-settings.php:513
 msgid "Allow open before payment"
 msgstr "Разреши отваряне преди плащане"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:510
+#: includes/Admin/class-bgcouriers-wc-settings.php:514
 msgid "Allow test before payment"
 msgstr "Разреши тест преди плащане"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:513
-#: includes/Admin/class-bgcouriers-wc-settings.php:574
-#: includes/Admin/class-bgcouriers-wc-settings.php:611
-#: includes/Admin/class-bgcouriers-wc-settings.php:653
-#: includes/Admin/class-bgcouriers-wc-settings.php:696
+#: includes/Admin/class-bgcouriers-wc-settings.php:517
+#: includes/Admin/class-bgcouriers-wc-settings.php:578
+#: includes/Admin/class-bgcouriers-wc-settings.php:615
+#: includes/Admin/class-bgcouriers-wc-settings.php:657
+#: includes/Admin/class-bgcouriers-wc-settings.php:700
 msgid "COD payout via ППП"
 msgstr "Изплащане на наложен платеж чрез ППП"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:514
+#: includes/Admin/class-bgcouriers-wc-settings.php:518
 msgid ""
 "Enable if your Speedy contract pays COD out via ППП (пощенски паричен "
 "превод) - lets you accept COD with no cash register."
@@ -1692,23 +1704,23 @@ msgstr ""
 "Включете, ако договорът Ви със Speedy изплаща наложения платеж чрез ППП "
 "(пощенски паричен превод) - позволява наложен платеж без касов апарат."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:521
+#: includes/Admin/class-bgcouriers-wc-settings.php:525
 msgid "- none (COD off) -"
 msgstr "- няма (наложен платеж изкл.) -"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:522
+#: includes/Admin/class-bgcouriers-wc-settings.php:526
 msgid "- automatic (first profile address) -"
 msgstr "- автоматично (първи адрес от профила) -"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:536
+#: includes/Admin/class-bgcouriers-wc-settings.php:540
 msgid "Enable Econt"
 msgstr "Активирай Econt"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:544
+#: includes/Admin/class-bgcouriers-wc-settings.php:548
 msgid "Ship-from address"
 msgstr "Адрес на изпращача"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:545
+#: includes/Admin/class-bgcouriers-wc-settings.php:549
 msgid ""
 "The ship-from address on the waybill (from your Econt profile). Automatic = "
 "the first profile address."
@@ -1716,11 +1728,11 @@ msgstr ""
 "Адресът на изпращача върху товарителницата (от Вашия Econt профил). "
 "Автоматично = първият адрес в профила."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:547
+#: includes/Admin/class-bgcouriers-wc-settings.php:551
 msgid "Label format"
 msgstr "Формат на етикета"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:548
+#: includes/Admin/class-bgcouriers-wc-settings.php:552
 msgid ""
 "Econt labels are A4-landscape only (fixed by its API). The bulk “Print A4” "
 "packs several per sheet without scaling."
@@ -1728,11 +1740,11 @@ msgstr ""
 "Етикетите на Econt са само A4-хоризонтално (фиксирано от API). Груповото "
 "„Печат A4“ подрежда няколко на лист без мащабиране."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:549
+#: includes/Admin/class-bgcouriers-wc-settings.php:553
 msgid "A4-landscape (fixed by Econt)"
 msgstr "A4 хоризонтален (фиксиран от Econt)"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:558
+#: includes/Admin/class-bgcouriers-wc-settings.php:562
 msgid ""
 "Ship Econt free above this goods total (excluding shipping). Set here it "
 "applies to ALL delivery options (their own thresholds become inactive); "
@@ -1743,7 +1755,7 @@ msgstr ""
 "стават неактивни); оставете празно, за да задавате праг за всяка опция "
 "поотделно. Във валутата на магазина."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:563
+#: includes/Admin/class-bgcouriers-wc-settings.php:567
 msgid ""
 "Attach наложен платеж (full total + packing list) to every COD Econt order, "
 "paid out via the agreement below. Prepaid orders are never charged again."
@@ -1752,42 +1764,42 @@ msgstr ""
 "с наложен платеж, изплащан чрез договора по-долу. Предплатените поръчки не "
 "се таксуват повторно."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:564
+#: includes/Admin/class-bgcouriers-wc-settings.php:568
 msgid "CD pay-out agreement"
 msgstr "Договор за изплащане на наложен платеж"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:565
+#: includes/Admin/class-bgcouriers-wc-settings.php:569
 msgid "The наложен платеж pay-out agreement (from your Econt profile)."
 msgstr "Договорът за изплащане на наложения платеж (от Вашия Econt профил)."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:567
+#: includes/Admin/class-bgcouriers-wc-settings.php:571
 msgid "Allow inspection before payment"
 msgstr "Разреши преглед преди плащане"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:568
+#: includes/Admin/class-bgcouriers-wc-settings.php:572
 msgid "Let the recipient inspect the shipment before paying (преглед)."
 msgstr "Позволете на получателя да прегледа пратката преди плащане (преглед)."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:569
+#: includes/Admin/class-bgcouriers-wc-settings.php:573
 msgid "SMS notification"
 msgstr "SMS известяване"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:570
+#: includes/Admin/class-bgcouriers-wc-settings.php:574
 msgid "Send the recipient an SMS notification."
 msgstr "Изпращане на SMS известие до получателя."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:571
+#: includes/Admin/class-bgcouriers-wc-settings.php:575
 msgid "E-mail on delivery"
 msgstr "Имейл при доставка"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:572
+#: includes/Admin/class-bgcouriers-wc-settings.php:576
 msgid ""
 "Notify this e-mail when the shipment is delivered (leave empty to disable)."
 msgstr ""
 "Известяване на този имейл при доставяне на пратката (оставете празно за "
 "изключване)."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:575
+#: includes/Admin/class-bgcouriers-wc-settings.php:579
 msgid ""
 "Enable if your Econt pay-out agreement above is ППП (пощенски паричен "
 "превод) - lets you accept COD with no cash register."
@@ -1795,25 +1807,25 @@ msgstr ""
 "Включете, ако договорът за изплащане по-горе е ППП (пощенски паричен превод) "
 "- позволява наложен платеж без касов апарат."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:585
+#: includes/Admin/class-bgcouriers-wc-settings.php:589
 msgid "Enable Pigeon Express"
 msgstr "Активирай Pigeon Express"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:586
+#: includes/Admin/class-bgcouriers-wc-settings.php:590
 msgid "API Key"
 msgstr "API ключ"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:588
+#: includes/Admin/class-bgcouriers-wc-settings.php:592
 msgid "API Secret"
 msgstr "API таен ключ"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:591
-#: includes/Admin/class-bgcouriers-wc-settings.php:631
-#: includes/Admin/class-bgcouriers-wc-settings.php:671
+#: includes/Admin/class-bgcouriers-wc-settings.php:595
+#: includes/Admin/class-bgcouriers-wc-settings.php:635
+#: includes/Admin/class-bgcouriers-wc-settings.php:675
 msgid "Live mode"
 msgstr "Реален режим"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:592
+#: includes/Admin/class-bgcouriers-wc-settings.php:596
 msgid ""
 "On = the live Pigeon production account. Off = the demo/test API (api-"
 "demo.pigeonexpress.com) with test credentials."
@@ -1821,11 +1833,11 @@ msgstr ""
 "Включено = реалният производствен акаунт на Pigeon. Изключено = демо/"
 "тестовия API (api-demo.pigeonexpress.com) с тестови данни за достъп."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:598
+#: includes/Admin/class-bgcouriers-wc-settings.php:602
 msgid "Pickup office"
 msgstr "Офис за приемане"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:599
+#: includes/Admin/class-bgcouriers-wc-settings.php:603
 msgid ""
 "The Pigeon office you drop parcels at. Search your city, then pick the "
 "office."
@@ -1833,7 +1845,7 @@ msgstr ""
 "Офисът на Pigeon, в който предавате пратките. Потърсете града си, след това "
 "изберете офиса."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:607
+#: includes/Admin/class-bgcouriers-wc-settings.php:611
 msgid ""
 "Ship Pigeon free above this goods total (excluding shipping). Set here it "
 "applies to ALL delivery options (their own thresholds become inactive); "
@@ -1844,7 +1856,7 @@ msgstr ""
 "стават неактивни); оставете празно, за да задавате праг за всяка опция "
 "поотделно. Във валутата на магазина."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:612
+#: includes/Admin/class-bgcouriers-wc-settings.php:616
 msgid ""
 "Enable if your Pigeon contract pays COD out via ППП (пощенски паричен "
 "превод). Off = COD needs your own cash register."
@@ -1853,23 +1865,23 @@ msgstr ""
 "(пощенски паричен превод). Изключено = наложеният платеж изисква Ваш касов "
 "апарат."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:624
+#: includes/Admin/class-bgcouriers-wc-settings.php:628
 msgid "Enable Sameday"
 msgstr "Активирай Sameday"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:625
+#: includes/Admin/class-bgcouriers-wc-settings.php:629
 msgid "Username"
 msgstr "Потребител"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:626
+#: includes/Admin/class-bgcouriers-wc-settings.php:630
 msgid "Sameday API username (X-Auth-Username)."
 msgstr "Потребител за Sameday API (X-Auth-Username)."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:628
+#: includes/Admin/class-bgcouriers-wc-settings.php:632
 msgid "Password"
 msgstr "Парола"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:632
+#: includes/Admin/class-bgcouriers-wc-settings.php:636
 msgid ""
 "On = the live Sameday account. Off = the demo/test API (sameday-"
 "api.demo.zitec.com)."
@@ -1877,11 +1889,11 @@ msgstr ""
 "Включено = реалният акаунт на Sameday. Изключено = демо/тестовия API "
 "(sameday-api.demo.zitec.com)."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:637
+#: includes/Admin/class-bgcouriers-wc-settings.php:641
 msgid "Pickup point ID (optional)"
 msgstr "ID на точка за взимане (по избор)"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:638
+#: includes/Admin/class-bgcouriers-wc-settings.php:642
 msgid ""
 "Leave empty to ship from your Sameday account's default pickup point; enter "
 "an ID only to use a different one. Delivery services (24H / locker / PUDO) "
@@ -1891,7 +1903,7 @@ msgstr ""
 "вашия Sameday акаунт; въведете ID само ако искате друга. Услугите за "
 "доставка (24H / автомат / PUDO) се откриват автоматично от акаунта ви."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:649
+#: includes/Admin/class-bgcouriers-wc-settings.php:653
 msgid ""
 "Ship Sameday free above this goods total (excluding shipping). Set here it "
 "applies to ALL delivery options (their own thresholds become inactive); "
@@ -1902,7 +1914,7 @@ msgstr ""
 "(собствените им прагове стават неактивни); оставете празно, за да задавате "
 "праг за всяка опция поотделно. Във валутата на магазина."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:654
+#: includes/Admin/class-bgcouriers-wc-settings.php:658
 msgid ""
 "Enable if your Sameday contract pays COD out via ППП (пощенски паричен "
 "превод). Off = COD needs your own cash register."
@@ -1911,19 +1923,19 @@ msgstr ""
 "(пощенски паричен превод). Изключено = наложеният платеж изисква Ваш касов "
 "апарат."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:665
+#: includes/Admin/class-bgcouriers-wc-settings.php:669
 msgid "Enable BOX NOW"
 msgstr "Активирай BOX NOW"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:666
+#: includes/Admin/class-bgcouriers-wc-settings.php:670
 msgid "Client ID"
 msgstr "Client ID"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:668
+#: includes/Admin/class-bgcouriers-wc-settings.php:672
 msgid "Client secret"
 msgstr "Client secret"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:672
+#: includes/Admin/class-bgcouriers-wc-settings.php:676
 msgid ""
 "On = the live BOX NOW production account. Off = the stage/test API (api-"
 "stage.boxnow.bg) with test credentials."
@@ -1931,26 +1943,26 @@ msgstr ""
 "Включено = реалният производствен акаунт на BOX NOW. Изключено = стейджинг/"
 "тестовия API (api-stage.boxnow.bg) с тестови данни за достъп."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:674
+#: includes/Admin/class-bgcouriers-wc-settings.php:678
 msgid "Partner ID"
 msgstr "Partner ID"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:675
+#: includes/Admin/class-bgcouriers-wc-settings.php:679
 msgid "Webhook secret"
 msgstr "Webhook таен ключ"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:676
+#: includes/Admin/class-bgcouriers-wc-settings.php:680
 msgid ""
 "You receive it after you register this webhook URL in your BOX NOW account:"
 msgstr ""
 "Ще го получите, след като регистрирате този webhook адрес във Вашия акаунт в "
 "BOX NOW:"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:681
+#: includes/Admin/class-bgcouriers-wc-settings.php:685
 msgid "Pickup location ID"
 msgstr "ID на мястото за приемане"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:682
+#: includes/Admin/class-bgcouriers-wc-settings.php:686
 msgid ""
 "Your BOX NOW origin/pickup ID (where parcels ship FROM, not the customer’s "
 "locker). From your BOX NOW partner account."
@@ -1958,11 +1970,11 @@ msgstr ""
 "Вашето BOX NOW ID за подаване (откъдето тръгват пратките, не автоматът на "
 "клиента). От Вашия BOX NOW партньорски акаунт."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:683
+#: includes/Admin/class-bgcouriers-wc-settings.php:687
 msgid "Sender contact phone"
 msgstr "Телефон за контакт на подателя"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:684
+#: includes/Admin/class-bgcouriers-wc-settings.php:688
 msgid ""
 "Your contact phone for the pickup/origin, printed on the parcel. Leave empty "
 "to omit."
@@ -1970,22 +1982,22 @@ msgstr ""
 "Вашият телефон за връзка при подаването, отпечатан върху пратката. Оставете "
 "празно, за да се пропусне."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:685
+#: includes/Admin/class-bgcouriers-wc-settings.php:689
 msgid "Allow returns"
 msgstr "Разреши връщания"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:689
-#: includes/Admin/class-bgcouriers-wc-settings.php:707
+#: includes/Admin/class-bgcouriers-wc-settings.php:693
+#: includes/Admin/class-bgcouriers-wc-settings.php:711
 msgid "Delivery price"
 msgstr "Цена за доставка"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:690
+#: includes/Admin/class-bgcouriers-wc-settings.php:694
 msgid "Flat BOX NOW locker price (no live rate API). Store currency."
 msgstr ""
 "Фиксирана цена за BOX NOW автомат (няма API за цени на живо). Валута на "
 "магазина."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:692
+#: includes/Admin/class-bgcouriers-wc-settings.php:696
 msgid ""
 "Ship BOX NOW free above this goods total (excluding shipping). Empty or 0 "
 "disables. Store currency."
@@ -1993,7 +2005,7 @@ msgstr ""
 "Безплатна доставка с BOX NOW над тази сума на стоките (без доставка). Празно "
 "или 0 изключва. Валута на магазина."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:697
+#: includes/Admin/class-bgcouriers-wc-settings.php:701
 msgid ""
 "Enable if your BOX NOW contract pays COD out via ППП. BOX NOW has no ППП "
 "today, so leave off - COD then needs your own cash register."
@@ -2003,12 +2015,12 @@ msgstr ""
 "изисква Ваш касов апарат."
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgcouriers-wc-settings.php:706
+#: includes/Admin/class-bgcouriers-wc-settings.php:710
 #, php-format
 msgid "Enable “%s”"
 msgstr "Активирай „%s“"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:709
+#: includes/Admin/class-bgcouriers-wc-settings.php:713
 msgid ""
 "Live price only - no fixed default (show the cached price until the address "
 "is chosen)"
@@ -2016,20 +2028,20 @@ msgstr ""
 "Само жива цена - без фиксирана резервна (показва кешираната цена, докато се "
 "избере адрес)"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:710
+#: includes/Admin/class-bgcouriers-wc-settings.php:714
 msgid "Live price, use the fixed price below only if the API is unavailable"
 msgstr ""
 "Жива цена, използвай фиксираната цена по-долу само ако API е недостъпен"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:711
+#: includes/Admin/class-bgcouriers-wc-settings.php:715
 msgid "Always the fixed price below - no live API calls at checkout"
 msgstr "Винаги фиксираната цена по-долу - без заявки към API при поръчка"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:713
+#: includes/Admin/class-bgcouriers-wc-settings.php:717
 msgid "Fixed / default price"
 msgstr "Фиксирана / резервна цена"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:714
+#: includes/Admin/class-bgcouriers-wc-settings.php:718
 msgid ""
 "Used by the “fixed” and “fallback” delivery-price modes above. In the store "
 "currency."
@@ -2037,7 +2049,7 @@ msgstr ""
 "Използва се от режимите „фиксирана“ и „резервна“ за цена на доставка по-"
 "горе. Във валутата на магазина."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:716
+#: includes/Admin/class-bgcouriers-wc-settings.php:720
 msgid ""
 "Free delivery for THIS option above this goods total (excluding shipping). "
 "Applies only while the courier-level threshold is empty; empty or 0 disables."
@@ -2046,11 +2058,11 @@ msgstr ""
 "доставката). Важи само докато прагът на ниво куриер е празен; празно или 0 "
 "изключва."
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:722
+#: includes/Admin/class-bgcouriers-wc-settings.php:726
 msgid "Card payment for COD"
 msgstr "Плащане с карта при наложен платеж"
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:723
+#: includes/Admin/class-bgcouriers-wc-settings.php:727
 msgid ""
 "Let the customer pay the cash-on-delivery amount by card at handover (your "
 "Speedy account default). Off explicitly forbids card payment for this "
@@ -2066,11 +2078,15 @@ msgstr ""
 msgid "%1$s - %2$s: \"%3$s\""
 msgstr "%1$s - %2$s: „%3$s“"
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:114
+#: includes/Cache/class-bgcouriers-tracking-poller.php:118
+msgid "BG Couriers: the parcel came back to you (auto status)."
+msgstr "BG Couriers: пратката се върна при Вас (автоматичен статус)."
+
+#: includes/Cache/class-bgcouriers-tracking-poller.php:124
 msgid "BG Couriers: shipment delivered (auto status)."
 msgstr "BG Couriers: пратката е доставена (автоматичен статус)."
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:159
+#: includes/Cache/class-bgcouriers-tracking-poller.php:169
 msgid "BG Couriers: the courier has picked up the shipment (auto status)."
 msgstr "BG Couriers: куриерът взе пратката (автоматичен статус)."
 

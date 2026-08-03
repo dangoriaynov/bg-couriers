@@ -109,6 +109,16 @@ class BGCouriers_Tracking_Poller {
                 $courier->label(), BGCouriers_Tracking::stage_label($t->stage()), $human));
         }
 
+        // A refused parcel that has come all the way BACK: the goods are on the shelf again, so the order
+        // is over. Only on 'returned' - while it is still travelling back nothing has been recovered yet.
+        // Cancelling is what a merchant picks here, and WooCommerce puts the stock back with it.
+        $back = (string) get_option('bgcouriers_autostatus_on_returned', '');
+        $back = strpos($back, 'wc-') === 0 ? substr($back, 3) : $back;
+        if ($stage === 'returned' && $back !== '' && $order->get_status() !== $back) {
+            $order->update_status($back, __('BG Couriers: the parcel came back to you (auto status).', 'bg-couriers'));
+            return; // update_status() saved it
+        }
+
         $target = strpos($advance, 'wc-') === 0 ? substr($advance, 3) : $advance;
         if ($stage === 'delivered' && $target !== '' && $order->get_status() !== $target) {
             $order->update_status($target, __('BG Couriers: shipment delivered (auto status).', 'bg-couriers')); // saves the order
