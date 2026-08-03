@@ -103,6 +103,11 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         $code = (int) wp_remote_retrieve_response_code($res);
         $data = json_decode($raw, true);
         if ($code >= 400) { throw new BGCouriers_Api_Exception(esc_html('BoxNow HTTP ' . $code . ': ' . substr($raw, 0, 300))); }
+        // A 2xx with no body is a success with nothing to say - which is exactly how :cancel answers.
+        // Demanding JSON of it made every BOX NOW cancellation report failure while the parcel HAD been
+        // cancelled: the waybill stayed on the order, and re-issue (cancel then generate) silently did
+        // nothing, because generate() hands back the waybill that was never cleared.
+        if (trim($raw) === '') { return []; }
         if (!is_array($data)) { throw new BGCouriers_Api_Exception(esc_html('BoxNow invalid JSON (HTTP ' . $code . ')')); }
         return $data;
     }
