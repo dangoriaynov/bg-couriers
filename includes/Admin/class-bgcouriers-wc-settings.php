@@ -61,6 +61,45 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
 
     /** Full field set for the section - used by save() (save_settings_for_current_section). */
     public function get_settings($section = '') {
+        return self::no_autofill($this->build_settings($section));
+    }
+
+    /**
+     * Keep the browser's password manager out of every courier credential field.
+     *
+     * It fills a blank "Client ID" with the merchant's own e-mail and a blank "API password" with their
+     * site password, and a Save then writes those over the real credentials - which is exactly what
+     * happened to the live BOX NOW account. Locking saved credentials behind the ✕ covers a courier that
+     * is already configured; this covers the rest, including a courier being set up for the first time.
+     *
+     * Applied to the finished field list rather than to each declaration, so it holds for every courier
+     * and for any added later without anyone having to remember.
+     *
+     * @param array<int,array<string,mixed>> $fields
+     * @return array<int,array<string,mixed>>
+     */
+    private static function no_autofill(array $fields): array {
+        foreach ($fields as &$f) {
+            if (!is_array($f) || !preg_match('/^bgcouriers_[a-z0-9]+_(username|password)$/', (string) ($f['id'] ?? ''))) {
+                continue;
+            }
+            $attrs = (isset($f['custom_attributes']) && is_array($f['custom_attributes'])) ? $f['custom_attributes'] : [];
+            // 'new-password', not 'off': Chrome ignores 'off' on anything it reads as a login field, and
+            // these are labelled "API username" / "Client ID" - precisely what it offers to fill.
+            $attrs['autocomplete'] = 'new-password';
+            // Autofill lands while the page is still loading, before any script of ours runs, and a
+            // readonly field is passed over. bgc-settings-admin.js drops this on focus, so the field can
+            // still be typed into; readonly (unlike disabled) also still submits, so a field nobody
+            // touches posts blank and sanitize_keep() holds on to the stored value.
+            $attrs['readonly']         = 'readonly';
+            $attrs['data-bgc-nofill']  = '1';
+            $f['custom_attributes']    = $attrs;
+        }
+        unset($f);
+        return $fields;
+    }
+
+    private function build_settings($section = '') {
         if ($section === 'about') {
             return [
                 ['type' => 'bgcouriers_about', 'id' => 'bgcouriers_about'],

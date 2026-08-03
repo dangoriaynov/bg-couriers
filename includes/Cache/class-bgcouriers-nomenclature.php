@@ -32,18 +32,34 @@ class BGCouriers_Nomenclature {
                  VALUES (%s,%d,%s,%d,%s,%s,%s,%f,%f,%s,NOW())
                  ON DUPLICATE KEY UPDATE code=VALUES(code),city_id=VALUES(city_id),type=VALUES(type),name=VALUES(name),
                  address=VALUES(address),lat=VALUES(lat),lng=VALUES(lng),sync_run=VALUES(sync_run),updated_at=NOW()",
-                $courier, $r['office_id'], (string) ($r['code'] ?? ''), $r['city_id'], $r['type'], $r['name'], $r['address'],
+                // city_id defaults to 0: a geo-based courier (BOX NOW) has lockers but no city
+                // nomenclature to tie them to, and its rows carry no city_id at all.
+                $courier, $r['office_id'], (string) ($r['code'] ?? ''), (int) ($r['city_id'] ?? 0),
+                (string) ($r['type'] ?? ''), (string) ($r['name'] ?? ''), (string) ($r['address'] ?? ''),
                 (float) ($r['lat'] ?? 0), (float) ($r['lng'] ?? 0), $run
             ));
             $n++;
         }
         return $n;
     }
-    public static function prune(string $courier, string $run): int {
+    /**
+     * Drop rows this sync run did not touch.
+     *
+     * Each table is pruned only if this run actually refreshed it. Pruning a table whose fetch returned
+     * nothing deletes everything the courier has - which is what would happen to BOX NOW's lockers on
+     * every single run, since it has no cities to refresh, and to any courier the one time one of its
+     * two endpoints times out.
+     */
+    public static function prune(string $courier, string $run, bool $cities = true, bool $offices = true): int {
         global $wpdb;
-        $a = $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}bgcouriers_cities WHERE courier=%s AND sync_run<>%s", $courier, $run));
-        $b = $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}bgcouriers_offices WHERE courier=%s AND sync_run<>%s", $courier, $run));
-        return (int) $a + (int) $b;
+        $n = 0;
+        if ($cities) {
+            $n += (int) $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}bgcouriers_cities WHERE courier=%s AND sync_run<>%s", $courier, $run));
+        }
+        if ($offices) {
+            $n += (int) $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}bgcouriers_offices WHERE courier=%s AND sync_run<>%s", $courier, $run));
+        }
+        return $n;
     }
     public static function count(string $courier): int {
         global $wpdb;

@@ -68,16 +68,27 @@ class BGCouriers_Sync {
         $run = uniqid('run', true);
         $out = ['cities' => 0, 'offices' => 0, 'pruned' => 0, 'rates' => 0];
 
-        $cities = $courier->fetch_cities();
-        if (empty($cities)) {
-            BGCouriers_Logger::debug('sync: empty city fetch, skipping prune', ['courier' => $id]);
-            return $out; // GUARD: never prune on empty fetch
-        }
-        $out['cities'] = BGCouriers_Nomenclature::upsert_cities($id, $cities, $run);
+        // Fetched independently, and one failing must not cancel the other. An empty city list used to
+        // return early, which was right for "the API hiccuped" and wrong for "this courier HAS no
+        // cities": BOX NOW is geo-based and legitimately returns none, so its 886 lockers were never
+        // even requested and every sync reported a cheerful 0 / 0 / 0 against valid credentials.
+        $cities = $offices = [];
+        try { $cities = $courier->fetch_cities(); }
+        catch (\Exception $e) { BGCouriers_Logger::debug('sync: city fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
+        try { $offices = $courier->fetch_offices(0); } // 0 = all offices in one call (country-wide)
+        catch (\Exception $e) { BGCouriers_Logger::debug('sync: office fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
 
-        $offices = $courier->fetch_offices(0); // 0 = all offices in one call (country-wide)
+        // GUARD: nothing at all came back = a failed fetch, not an empty country. Never prune on that.
+        if (!$cities && !$offices) {
+            BGCouriers_Logger::debug('sync: empty fetch, skipping prune', ['courier' => $id]);
+            return $out;
+        }
+        if ($cities)  { $out['cities']  = BGCouriers_Nomenclature::upsert_cities($id, $cities, $run); }
         if ($offices) { $out['offices'] = BGCouriers_Nomenclature::upsert_offices($id, $offices, $run); }
-        $out['pruned'] = BGCouriers_Nomenclature::prune($id, $run);
+        // Prune ONLY what this run actually refreshed. Pruning both tables whenever either succeeded
+        // would wipe a courier's offices the one time its office endpoint times out - and would delete
+        // BOX NOW's lockers on every run, since it never has cities to refresh.
+        $out['pruned'] = BGCouriers_Nomenclature::prune($id, $run, (bool) $cities, (bool) $offices);
         // Nomenclature changed - drop the per-courier caches derived from it (which delivery types exist, and
         // the preloaded city index) so the checkout/editor immediately reflect the fresh point counts.
         delete_transient('bgcouriers_typecnt_' . $id);

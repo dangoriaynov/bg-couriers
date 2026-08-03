@@ -1,6 +1,17 @@
 /* Static behaviors of the BG Couriers settings tab. Dynamic per-render config (nonces, courier ids,
    current values) stays in small wp_add_inline_script snippets; everything here is self-contained. */
 
+/* Credential fields are rendered readonly so the browser's password manager skips them - it fills a
+   blank "Client ID" with the merchant's own e-mail, and a Save writes that over the real credential.
+   Readonly is released the moment the merchant actually means to type, so the field still works
+   normally; by then the page has loaded and the autofill pass is long over. */
+(function ($) {
+    $(document).on('focus mousedown', 'input[data-bgc-nofill]', function () {
+        var f = $(this);
+        if (!f.prop('disabled')) { f.removeAttr('readonly'); }   // a locked field stays locked
+    });
+})(jQuery);
+
 /* Turn every field description into a small (i) that sits inline right after the field label. Text /
    select / number fields print their description as a <span class="description"> in the value cell; a
    checkbox prints it as a raw text node inside its <label>. Pull that text out into a (i) on the label
