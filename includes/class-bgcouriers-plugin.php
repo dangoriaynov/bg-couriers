@@ -96,10 +96,13 @@ class BGCouriers_Plugin {
             new BGCouriers_Order_Metabox();
             new BGCouriers_Order_Columns();
             new BGCouriers_Bulk_Labels();
-            // Print Invoices & Packing Lists, when it is there. A packing list is read by whoever is
-            // stacking parcels, so it has to say which courier the box goes to - PIP prints the raw
-            // WooCommerce rate title, which does not.
-            if (class_exists('WC_PIP')) { new BGCouriers_PIP(); }
+            // Print Invoices & Packing Lists: a packing list is read by whoever is stacking parcels, so
+            // it has to say which courier the box goes to - PIP prints the raw WooCommerce rate title,
+            // which does not. Registered UNCONDITIONALLY: both plugins hook plugins_loaded and WordPress
+            // loads them alphabetically, so bg-couriers runs first and PIP's class does not exist yet -
+            // a class_exists() check here is always false and the integration silently never happens.
+            // Its filters cost nothing when PIP is absent, because nobody applies them.
+            new BGCouriers_PIP();
         }
     }
 }
