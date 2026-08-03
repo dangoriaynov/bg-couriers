@@ -98,15 +98,17 @@ class BGCouriers_Order_Columns {
      * Empty until the poller has actually heard something - an empty line is better than a made-up one.
      */
     public static function status_html(\WC_Order $order): string {
-        $text = trim((string) $order->get_meta('_bgcouriers_track_text'));
-        if ($text === '') { return ''; }
-        $stage   = (string) $order->get_meta('_bgcouriers_track_stage');
+        $text  = trim((string) $order->get_meta('_bgcouriers_track_text'));
+        $stage = (string) $order->get_meta('_bgcouriers_track_stage');
+        // The stage alone is worth showing: a label created minutes ago has a real state and no courier
+        // wording yet, and a blank cell reads as "something is broken" rather than "nothing has happened".
+        if ($stage === '' && $text === '') { return ''; }
         $color   = self::STAGE_COLORS[$stage] ?? '#6b7280';
         $updated = (int) $order->get_meta('_bgcouriers_track_updated');
         // The status itself goes in the hover bubble too: courier wordings are long ("Изпратено известие
         // за пратка в офис/автомат") and the waybill column is narrow, so the line wraps to two and the
         // full sentence stays one hover away instead of ending in an ellipsis nobody can resolve.
-        $tip = BGCouriers_Tracking::stage_label($stage) . ' - ' . $text;
+        $tip = BGCouriers_Tracking::stage_label($stage) . ($text !== '' ? ' - ' . $text : '');
         if ($updated > 0) {
             /* translators: %s: human-readable time difference, e.g. "2 hours" */
             $tip .= ' - ' . sprintf(__('updated %s ago', 'bg-couriers'), human_time_diff($updated, time()));
@@ -116,8 +118,8 @@ class BGCouriers_Order_Columns {
             : '';
         return '<span class="bgc-track" data-tip="' . esc_attr($tip) . '">'
             . '<span class="bgc-track-dot" style="background:' . esc_attr($color) . '"></span>'
-            . '<span class="bgc-track-txt"><strong>' . esc_html(BGCouriers_Tracking::stage_label($stage)) . '</strong> '
-            . esc_html($text) . '</span>' . $lock . '</span>';
+            . '<span class="bgc-track-txt"><strong>' . esc_html(BGCouriers_Tracking::stage_label($stage)) . '</strong>'
+            . ($text !== '' ? ' ' . esc_html($text) : '') . '</span>' . $lock . '</span>';
     }
 
     public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = '', string $courier_label = '', string $courier_logo = '', string $regenerate_url = '', $order = null): string {

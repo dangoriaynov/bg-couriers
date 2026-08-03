@@ -98,6 +98,12 @@ class BGCouriers_Labels {
             throw new BGCouriers_Api_Exception(esc_html__('The courier returned no waybill number.', 'bg-couriers'));
         }
         $order->update_meta_data('_bgcouriers_waybill', $label->waybill);
+        // The shipment's stage is known the moment the waybill exists: it has been registered with the
+        // courier and nothing has moved. Recording it here rather than waiting for the tracking poll -
+        // which runs twice a day - is what keeps the orders list from showing a blank for hours on the
+        // newest orders, which are exactly the ones being looked at.
+        $order->update_meta_data('_bgcouriers_track_stage', 'registered');
+        $order->update_meta_data('_bgcouriers_track_updated', time());
 
         // A courier can accept a shipment and quietly drop part of it (Speedy's COD carries
         // ignoreIfNotApplicable by design). The waybill then prints with nothing to collect, and since

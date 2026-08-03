@@ -84,12 +84,12 @@ class BGCouriers_Order_Metabox {
         // the one screen a merchant opens to look at a single order was the one place that did not say.
         $stage = (string) $order->get_meta('_bgcouriers_track_stage');
         $text  = trim((string) $order->get_meta('_bgcouriers_track_text'));
-        if ($text !== '') {
+        if ($stage !== '' || $text !== '') {
             $when = (int) $order->get_meta('_bgcouriers_track_updated');
             $body .= '<div class="bgc-shipstate bgc-stage-' . esc_attr(sanitize_html_class($stage ?: 'transit')) . '">'
                 . '<span class="bgc-track-dot" style="background:' . esc_attr(BGCouriers_Order_Columns::STAGE_COLORS[$stage] ?? '#6b7280') . '"></span>'
                 . '<strong>' . esc_html(BGCouriers_Tracking::stage_label($stage)) . '</strong> '
-                . '<span class="bgc-shipstate-txt">' . esc_html($text) . '</span>'
+                . ($text !== '' ? '<span class="bgc-shipstate-txt">' . esc_html($text) . '</span>' : '')
                 . ($when > 0
                     /* translators: %s: human-readable time difference, e.g. "2 hours" */
                     ? '<span class="bgc-shipstate-when">' . esc_html(sprintf(__('updated %s ago', 'bg-couriers'), human_time_diff($when, time()))) . '</span>'
