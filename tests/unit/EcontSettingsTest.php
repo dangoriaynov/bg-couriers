@@ -44,7 +44,10 @@ final class EcontSettingsTest extends TestCase {
     private function invoke(string $method, array $args = []) {
         $instance = new BGCouriers_WC_Settings();
         $rm = new ReflectionMethod(BGCouriers_WC_Settings::class, $method);
-        $rm->setAccessible(true);
+        // A no-op since PHP 8.1 (private methods are reachable without it) and deprecated in 8.5,
+        // where convertDeprecationsToExceptions turned every test in this file into an error.
+        // Still required on the 7.4 the plugin supports, so it is version-gated rather than dropped.
+        if (PHP_VERSION_ID < 80100) { $rm->setAccessible(true); }
         return $rm->invokeArgs($instance, $args);
     }
 

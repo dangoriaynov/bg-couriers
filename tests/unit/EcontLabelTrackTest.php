@@ -29,7 +29,9 @@ final class EcontLabelTrackTest extends TestCase {
         $t = BGCouriers_Econt::parse_tracking($resp);
         $this->assertInstanceOf(BGCouriers_Tracking::class, $t);
         $this->assertSame('1055191332613', $t->waybill);
-        $this->assertSame('Awaiting delivery to Econt', $t->status);
+        // Bulgarian is what the merchant reads on the orders screen, so shortDeliveryStatus wins over
+        // its En twin. The events keep the English wording - those are matched against phrase lists.
+        $this->assertSame('Очаква предаване към Еконт', $t->status);
         $this->assertCount(1, $t->events);
         $this->assertSame('Awaiting delivery to Econt', $t->events[0]['name']);
     }
@@ -42,7 +44,11 @@ final class EcontLabelTrackTest extends TestCase {
     public function test_awaiting_handover_is_not_a_finished_shipment(): void {
         $t = BGCouriers_Econt::parse_tracking($this->fx('tracking.json'));
         $this->assertSame('', $t->phase, 'no deliveryTime -> no phase');
-        $this->assertSame('transit', $t->stage());
+        // Not merely "not delivered": with no sendTime the parcel has not been collected at all, which
+        // is its own stage. It is what keeps the waybill editable - a parcel still on the merchant's
+        // desk can be corrected and re-issued, one already in transit cannot.
+        $this->assertSame('registered', $t->stage());
+        $this->assertFalse($t->handover, 'no sendTime -> nobody has picked it up');
     }
 
     /** deliveryTime is Econt's own delivered flag, and it decides regardless of the prose status. */

@@ -732,9 +732,20 @@ jQuery(function($){
         return [];
     }
 
+    /**
+     * Are this courier's credentials SAVED? Deliberately says nothing about whether it is switched on.
+     *
+     * The enable toggle used to be part of this test, which got the relationship backwards in three
+     * places. enable_problems() answers "why can I not turn this courier on" and would reply "API
+     * credentials are missing" for a courier whose only problem was being off - the very thing it was
+     * being asked about. The Econt section skipped loading its CD/sender lists. Worst of all,
+     * render_actions() left the username and password rendered blank and EDITABLE, and a browser will
+     * happily autofill the merchant's own e-mail and site password into an empty "Client ID" - one Save
+     * away from overwriting real courier credentials with a login. Stored credentials lock themselves
+     * behind the ✕ now whether or not the courier is enabled.
+     */
     public static function creds_present(string $courier = 'speedy'): bool {
-        return get_option('bgcouriers_' . $courier . '_enabled', 'no') === 'yes'
-            && get_option('bgcouriers_' . $courier . '_username', '') !== ''
+        return get_option('bgcouriers_' . $courier . '_username', '') !== ''
             && get_option('bgcouriers_' . $courier . '_password', '') !== '';
     }
 

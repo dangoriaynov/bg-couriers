@@ -69,10 +69,16 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return self::parse_sites_csv((string) wp_remote_retrieve_body($res));
     }
 
+    /**
+     * Speedy's city export is ordinary RFC-4180 CSV, so the escape argument is passed explicitly and
+     * empty. PHP's default is a backslash - a proprietary escaping mechanism that is not part of CSV,
+     * and PHP 8.4 deprecates relying on it; leaving it to the default made every parse raise on 8.5.
+     * Empty is both the standards-correct reading and what PHP will default to in future.
+     */
     public static function parse_sites_csv(string $csv): array {
         $lines = preg_split('/\r\n|\r|\n/', trim($csv));
         if (!$lines || count($lines) < 2) { return []; }
-        $header = str_getcsv((string) array_shift($lines));
+        $header = str_getcsv((string) array_shift($lines), ',', '"', '');
         $idx = array_flip($header);
         $get = function (array $row, string $name) use ($idx) {
             return isset($idx[$name], $row[$idx[$name]]) ? (string) $row[$idx[$name]] : '';
@@ -80,7 +86,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         $out = [];
         foreach ($lines as $line) {
             if ($line === '') { continue; }
-            $row = str_getcsv($line);
+            $row = str_getcsv($line, ',', '"', '');
             $id = (int) $get($row, 'id');
             if (!$id) { continue; }
             $out[] = [
