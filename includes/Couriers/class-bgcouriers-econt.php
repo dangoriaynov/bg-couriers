@@ -414,7 +414,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         // Econt demand a payer client number the profile does not carry ("грешен клиентски номер за платец
         // подател"), and leaving it unset already means "bill the API client", which is what we want when
         // the merchant pays.
-        $payer = self::service_payer('econt');
+        $payer = self::service_payer('econt', $order);
         if ($payer === 'recipient') {
             $label['paymentReceiverMethod']          = 'cash';
             $label['paymentReceiverAmountIsPercent'] = true;

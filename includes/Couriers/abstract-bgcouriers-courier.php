@@ -156,7 +156,11 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      * @param string $courier Courier id (e.g. 'speedy', 'pigeon', 'sameday').
      * @return string 'sender' or 'recipient'.
      */
-    protected static function service_payer(string $courier): string {
+    protected static function service_payer(string $courier, ?\WC_Order $order = null): string {
+        // Free delivery is the MERCHANT absorbing the cost. Without this the customer was told "free
+        // over 40" at checkout and then asked to pay the courier at the door anyway - the shop charged
+        // nothing and nobody absorbed anything.
+        if ($order && BGCouriers_Settings::free_for_order($order, $courier)) { return 'sender'; }
         return BGCouriers_Settings::ship_in_total($courier) ? 'sender' : 'recipient';
     }
 

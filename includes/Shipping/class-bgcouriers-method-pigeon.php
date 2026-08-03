@@ -39,7 +39,13 @@ class BGCouriers_Method_Pigeon extends WC_Shipping_Method {
 
         $included = BGCouriers_Settings::ship_in_total('pigeon');
         $info     = 0.0;
-        if (!$included) {
+        // Free delivery is checked FIRST and beats "the recipient pays": the shop absorbing the cost is
+        // the whole point of a free-shipping threshold, so the customer must not be quoted a price to
+        // pay the courier at the door on an order that was promised free.
+        $free_now = WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGCouriers_Settings::free_shipping('pigeon', $method));
+        if ($free_now) {
+            $cost = 0.0;
+        } elseif (!$included) {
             // "Delivery in the order total" is off: nothing is charged with the order - the customer
             // pays the courier's own fee on delivery. Keep the estimate (display-gross, like charged
             // rates render) so the method label can still show it for information.
@@ -47,10 +53,6 @@ class BGCouriers_Method_Pigeon extends WC_Shipping_Method {
             if ($info > 0 && get_option('woocommerce_tax_display_cart') === 'incl') {
                 $info += array_sum(WC_Tax::calc_shipping_tax($info, WC_Tax::get_shipping_tax_rates()));
             }
-            $cost = 0.0;
-        } elseif (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGCouriers_Settings::free_shipping('pigeon', $method))) {
-            // Free shipping (the merchant absorbs it) when the order goods total (w/o shipping,
-            // store currency, no conversion) reaches the Pigeon Express method-level threshold.
             $cost = 0.0;
         }
 

@@ -10,6 +10,7 @@ if (!class_exists('WC_Order')) {
         public string $status = 'processing';
         public array $items = [];
         public float $total = 0.0;
+        public float $subtotal = 0.0;
         public float $shipping_total = 0.0;
         public float $shipping_tax = 0.0;
         public string $currency = 'EUR';
@@ -29,6 +30,7 @@ if (!class_exists('WC_Order')) {
         public function save() {}
         public function get_items() { return $this->items; }
         public function get_total() { return $this->total; }
+        public function get_subtotal() { return $this->subtotal; }
         public function get_shipping_total() { return $this->shipping_total; }
         public function get_shipping_tax() { return $this->shipping_tax; }
         public function get_currency() { return $this->currency; }

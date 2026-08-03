@@ -415,12 +415,12 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
             'street_name'    => (string) $order->get_meta('_bgcouriers_street_name'),
             'street_no'      => (string) $order->get_meta('_bgcouriers_street_no'),
             'weight_kg'      => self::order_weight_kg($order),
-            'service_payer'  => self::service_payer('pigeon'),
+            'service_payer'  => self::service_payer('pigeon', $order),
             // COD only for cash-on-delivery orders. The COD amount depends on who pays the delivery fee:
             // when the sender (merchant) pays, the courier collects the FULL order total (goods + shipping);
             // when the recipient pays the delivery, we collect goods-only (shipping excluded from COD).
             'cod_amount'     => $order->get_payment_method() === 'cod'
-                ? self::cod_for_payer($order, self::service_payer('pigeon'))
+                ? self::cod_for_payer($order, self::service_payer('pigeon', $order))
                 : 0.0,
         ];
 

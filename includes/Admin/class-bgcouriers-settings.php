@@ -123,6 +123,28 @@ class BGCouriers_Settings {
      * a COURIER-level threshold applies to every delivery option (the per-option fields are inactive
      * in the UI while it is set); only when it is empty do the per-option thresholds take over.
      */
+    /**
+     * Does THIS order qualify for merchant-absorbed free delivery?
+     *
+     * Kept separate from free_shipping() because the answer has to be identical in two places that see
+     * different objects: the checkout rate (a cart) and the waybill (an order). It is also what decides
+     * WHO the courier bills - a free delivery is the shop's own cost, so the label must go out
+     * sender-paid even for a courier otherwise set to "the recipient pays".
+     *
+     * @param \WC_Order $order   The order.
+     * @param string    $courier Courier id.
+     * @return bool
+     */
+    public static function free_for_order(\WC_Order $order, string $courier): bool {
+        $method = (string) $order->get_meta('_bgcouriers_method');
+        $cfg    = self::free_shipping($courier, $method);
+        if (empty($cfg['enabled'])) { return false; }
+        // Goods only, exactly as the cart rule reads it: the delivery itself never counts towards the
+        // threshold, or a big enough delivery charge would qualify an order on its own.
+        $goods = (float) $order->get_subtotal();
+        return $goods >= (float) $cfg['threshold'];
+    }
+
     public static function free_shipping(string $courier, string $method = ''): array {
         $threshold = (float) get_option('bgcouriers_' . $courier . '_free_threshold', 0);
         if ($threshold <= 0 && $method !== '') {

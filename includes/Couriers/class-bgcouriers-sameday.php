@@ -385,7 +385,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     public function create_label(\WC_Order $order): BGCouriers_Label {
         $method = (string) $order->get_meta('_bgcouriers_method');
-        $recipient_pays = self::service_payer('sameday') === 'recipient';
+        $recipient_pays = self::service_payer('sameday', $order) === 'recipient';
         try {
             $resp = $this->post_json('/api/awb', self::build_awb_body($order, $this->service_id($method), $this->pickup_point_id()));
         } catch (BGCouriers_Api_Exception $e) {
@@ -413,7 +413,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $method = (string) $order->get_meta('_bgcouriers_method');
         $w      = max(0.1, self::order_weight_kg($order));
         $is_cod = $order->get_payment_method() === 'cod';
-        $payer  = self::service_payer('sameday');
+        $payer  = self::service_payer('sameday', $order);
         $sid    = (int) $order->get_meta('_bgcouriers_site_id');
         $county = class_exists('BGCouriers_Nomenclature') ? (string) (BGCouriers_Nomenclature::city_by_id('sameday', $sid)['region'] ?? '') : '';
         $addr   = trim((string) $order->get_meta('_bgcouriers_street_name') . ' ' . (string) $order->get_meta('_bgcouriers_street_no'));

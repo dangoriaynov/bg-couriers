@@ -249,7 +249,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         } else {
             $recipient['pickupOfficeId'] = $office;
         }
-        $payer   = self::service_payer('speedy');
+        $payer   = self::service_payer('speedy', $order);
         $package = in_array(get_option('bgcouriers_speedy_package', 'BOX'), ['BOX', 'ENVELOPE', 'PALLET'], true)
             ? (string) get_option('bgcouriers_speedy_package', 'BOX')
             : 'BOX';

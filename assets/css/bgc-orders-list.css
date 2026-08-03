@@ -48,3 +48,9 @@
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 /* Waybill locked: the courier has the parcel, so cancel and re-issue are gone from the row. */
 .bgc-lock { flex:0 0 auto; font-size:13px; width:13px; height:13px; color:#8c8f94; cursor:help; }
+
+/* Two hints in one place: the row's own status bubble and the lock's. Hovering the lock sits INSIDE the
+   status element, so both fired at once and the two bubbles landed on top of each other. A hint whose
+   own child is being hovered stays quiet - the more specific one wins. */
+.bgc-cell [data-tip]:has([data-tip]:hover)::after { content: none !important; }
+.bgc-order-panel [data-tip]:has([data-tip]:hover)::after { content: none !important; }
