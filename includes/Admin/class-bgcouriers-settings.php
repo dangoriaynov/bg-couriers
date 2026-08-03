@@ -140,14 +140,15 @@ class BGCouriers_Settings {
      * that configured those before the fields moved to General.
      */
     public static function box_dims(): array {
-        // Default 10x10x10: small enough to pass every courier's locker (APS) compartment validation
-        // out of the box (the old 40cm default was rejected by Speedy automats).
-        $g = static function (string $k): int {
+        // Default 10x10x2 cm - the shape this shop actually ships (sachets and small bottles), and small
+        // enough to pass every courier's locker (APS) compartment validation out of the box. A too-large
+        // default is not free: Speedy rejected automat shipments outright at the old 40cm.
+        $g = static function (string $k, int $default): int {
             $v = (int) get_option('bgcouriers_box_' . $k, 0);
-            if ($v <= 0) { $v = (int) get_option('bgcouriers_pigeon_box_' . $k, 10); } // pre-move installs
+            if ($v <= 0) { $v = (int) get_option('bgcouriers_pigeon_box_' . $k, $default); } // pre-move installs
             return max(1, $v);
         };
-        return ['length' => $g('length'), 'width' => $g('width'), 'height' => $g('height')];
+        return ['length' => $g('length', 10), 'width' => $g('width', 10), 'height' => $g('height', 2)];
     }
 
     /**

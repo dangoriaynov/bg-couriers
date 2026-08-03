@@ -275,10 +275,15 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             $cod = self::cod_for_payer($order, $payer);
             if ($cod > 0) {
                 $processing_type = BGCouriers_Settings::courier_ppp_payout('speedy') ? 'POSTAL_MONEY_TRANSFER' : 'CASH';
+                // NO ignoreIfNotApplicable here, deliberately. That flag lets Speedy accept the shipment
+                // and silently drop the cash on delivery - the waybill then prints with nothing to
+                // collect and the goods leave for free, which nobody notices until the money is missing.
+                // Failing to create the label is the cheaper outcome: it stops one parcel instead of
+                // losing its value. (The open-before-payment service below keeps the flag - it costs
+                // nothing if the courier cannot offer it.)
                 $body['service']['additionalServices']['cod'] = [
-                    'amount'               => $cod,
-                    'processingType'       => $processing_type,
-                    'ignoreIfNotApplicable' => true,
+                    'amount'         => $cod,
+                    'processingType' => $processing_type,
                 ];
                 // Per-delivery-option "card payment for COD" toggle: ON sends nothing (the Speedy
                 // account default applies), OFF forbids it (ShipmentCODAdditionalService.cardPaymentForbidden).

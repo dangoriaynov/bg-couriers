@@ -430,7 +430,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'default' => '10', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'number', 'id' => 'bgcouriers_box_height', 'title' => __('Default parcel height (cm)', 'bg-couriers'),
                 'desc' => __('Default parcel size sent to every courier whose API takes dimensions (a locker parcel must fit its box), used when an order has none of its own.', 'bg-couriers'),
-                'default' => '10', 'custom_attributes' => ['min' => '1', 'step' => '1']],
+                'default' => '2', 'custom_attributes' => ['min' => '1', 'step' => '1']],
             ['type' => 'number', 'id' => 'bgcouriers_default_weight_kg', 'title' => __('Default parcel weight (kg)', 'bg-couriers'),
                 'desc' => __('Weight declared on the waybill when none of the ordered products has a weight set. Set weights on your products to have the real weight sent instead.', 'bg-couriers'),
                 'default' => '1', 'custom_attributes' => ['min' => '0.1', 'step' => '0.1']],
