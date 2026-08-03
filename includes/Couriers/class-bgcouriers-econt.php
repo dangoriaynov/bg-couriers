@@ -67,23 +67,10 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
                 'fix' => __('Pick one of the agreements your profile currently has, below.', 'bg-couriers'),
             ]];
         }
-        $is_ppp    = !empty($agreement['moneyTransfer']);
-        $wants_ppp = BGCouriers_Settings::courier_ppp_payout('econt');
-        if ($wants_ppp && !$is_ppp) {
-            return [[
-                /* translators: 1: agreement number, 2: how it pays out, e.g. bank */
-                'msg' => sprintf(__('Econt is set to pay out by ППП, but the selected agreement %1$s is not a ППП - Econt pays it out as an ordinary transfer (%2$s).', 'bg-couriers'),
-                    $chosen, (string) ($agreement['method'] ?? '')),
-                'fix' => __('Choose a ППП agreement below, or ask Econt to set one up for your bank account. If this account really does pay out without ППП, turn off “Pays out via ППП” - but then cash on delivery needs your own cash register.', 'bg-couriers'),
-            ]];
-        }
-        if (!$wants_ppp && $is_ppp) {
-            return [[
-                /* translators: %s: agreement number */
-                'msg' => sprintf(__('The selected agreement %s IS a ППП, but Econt is set as not paying out via ППП.', 'bg-couriers'), $chosen),
-                'fix' => __('Turn on “Pays out via ППП” for Econt so cash-on-delivery orders are offered at checkout.', 'bg-couriers'),
-            ]];
-        }
+        // Deliberately NOT judged here: which agreement is "the right one" is the merchant's call with
+        // Econt, and Econt's moneyTransfer flag does not map onto it the way it looks. CD139925 is marked
+        // moneyTransfer=false yet is exactly what this shop selects in Econt's own UI as "начин на
+        // изплащане". Reading that flag as "not a ППП" put a red error on a correctly configured shop.
         return [];
     }
 
@@ -438,8 +425,16 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $services['cdPayOptionsTemplate'] = (string) get_option('bgcouriers_econt_cd_num', '');
             // Econt totals the опис as sum(price x count) and REJECTS the label unless it equals cdAmount,
             // so the list has to balance to whatever we are collecting, not to the order total.
+        }
+
+        // The опис lists what is IN the parcel, which has nothing to do with how it is paid for - it used
+        // to be built inside the cash-on-delivery block, so a prepaid shipment left with no itemised list
+        // at all. With COD it must total exactly the collected amount (Econt rejects the label otherwise);
+        // without one there is nothing to balance against, so the items stand on their own.
+        $lines = self::packing_list($order, isset($services['cdAmount']) ? (float) $services['cdAmount'] : null);
+        if ($lines) {
             $label['packingListType'] = 'digital';
-            $label['packingList']     = self::packing_list($order, $cod);
+            $label['packingList']     = $lines;
         }
 
         if (!empty($services)) {
@@ -467,7 +462,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
      * Econt requires that опис total to equal the наложен платеж (cdAmount = order total), so any
      * remainder (shipping, fees, rounding) is folded into one balancing line.
      */
-    private static function packing_list(\WC_Order $order, float $cod_total): array {
+    private static function packing_list(\WC_Order $order, ?float $cod_total): array {
         $out = []; $i = 0; $sum = 0.0;
         foreach ($order->get_items() as $item) {
             $i++;
@@ -487,7 +482,9 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         }
         // Whatever is left between the item lines and the amount actually being collected: the delivery
         // and any fees when the merchant charged them, or just rounding when the recipient pays the
-        // courier directly and only the goods are collected.
+        // courier directly and only the goods are collected. With nothing being collected there is no
+        // total to reconcile with, so the list is simply what is in the box.
+        if ($cod_total === null) { return $out; }
         $remainder = round($cod_total - $sum, 2);
         if (abs($remainder) >= 0.01) {
             $out[] = [

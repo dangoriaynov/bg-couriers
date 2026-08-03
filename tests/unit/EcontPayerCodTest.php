@@ -81,16 +81,24 @@ final class EcontPayerCodTest extends TestCase {
         $this->assertSame(24.00, $this->packing_total($label));
     }
 
-    /** A prepaid order is never charged again on delivery, whoever pays the courier. */
-    public function test_prepaid_order_has_no_cash_on_delivery(): void {
+    /**
+     * A prepaid order is never charged again on delivery - but it still gets an опис. The list describes
+     * what is IN the parcel, which has nothing to do with how it was paid for; it used to be built inside
+     * the cash-on-delivery block, so prepaid shipments went out with no itemised contents at all.
+     */
+    public function test_prepaid_order_has_no_cash_on_delivery_but_still_lists_its_contents(): void {
         $this->options(['bgcouriers_econt_cod_enabled' => 'yes', 'bgcouriers_econt_ship_in_total' => 'no']);
         $o = $this->order(24.00, 0.0);
         $o->payment_method = 'bacs';
         $label = BGCouriers_Econt::build_label_body($o, $this->sender(), '1097')['label'];
 
         $this->assertArrayNotHasKey('cdAmount', $label['services'] ?? []);
-        $this->assertArrayNotHasKey('packingList', $label);
         $this->assertSame('cash', $label['paymentReceiverMethod'], 'who pays the courier is independent of COD');
+        $this->assertCount(1, $label['packingList'], 'the goods, and nothing to balance against');
+        $this->assertSame(24.00, $this->packing_total($label));
+        foreach ($label['packingList'] as $line) {
+            $this->assertNotSame('S', $line['inventoryNum'], 'no balancing line when nothing is collected');
+        }
     }
 
     /** Econt sums the опис as price x count - that is the number it compares against cdAmount. */

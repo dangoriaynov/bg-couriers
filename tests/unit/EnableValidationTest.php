@@ -68,11 +68,12 @@ final class EnableValidationTest extends TestCase {
     }
 
     /**
-     * The agreement says plain bank transfer while the shop insists the courier pays out by ППП. That is
-     * the difference between cash-on-delivery being fiscalised by the courier and not being fiscalised at
-     * all - and on the live account it was exactly this way round, silently.
+     * Which agreement is the right one is the MERCHANT's arrangement with Econt, not ours to judge.
+     * Econt's moneyTransfer flag does not map onto it the way it reads: CD139925 is marked
+     * moneyTransfer=false and is exactly what this shop selects in Econt's own UI. Reading that as
+     * "not a ППП" put a red error on a correctly configured shop, so only existence is checked.
      */
-    public function test_econt_flags_a_non_ppp_agreement_while_ppp_is_claimed(): void {
+    public function test_econt_does_not_second_guess_which_agreement_is_right(): void {
         $this->opts($this->ok('econt') + [
             'bgcouriers_econt_cod_enabled' => 'yes',
             'bgcouriers_econt_cd_num'      => 'CD139925',
@@ -81,22 +82,6 @@ final class EnableValidationTest extends TestCase {
         Functions\when('get_transient')->justReturn([
             ['num' => 'CD139879', 'moneyTransfer' => true,  'method' => 'office', 'officeCode' => '1170'],
             ['num' => 'CD139925', 'moneyTransfer' => false, 'method' => 'bank',   'IBAN' => 'BG68...'],
-        ]);
-        Functions\when('set_transient')->justReturn(true);
-        $p = (new BGCouriers_Econt([]))->enable_problems();
-        $this->assertNotEmpty($p);
-        $this->assertStringContainsString('CD139925', $p[0]['msg']);
-    }
-
-    /** The ППП agreement matches the claim - nothing to report. */
-    public function test_econt_accepts_a_matching_ppp_agreement(): void {
-        $this->opts($this->ok('econt') + [
-            'bgcouriers_econt_cod_enabled' => 'yes',
-            'bgcouriers_econt_cd_num'      => 'CD139879',
-            'bgcouriers_econt_ppp_payout'  => 'yes',
-        ]);
-        Functions\when('get_transient')->justReturn([
-            ['num' => 'CD139879', 'moneyTransfer' => true, 'method' => 'office', 'officeCode' => '1170'],
         ]);
         Functions\when('set_transient')->justReturn(true);
         $this->assertEmpty((new BGCouriers_Econt([]))->enable_problems());
