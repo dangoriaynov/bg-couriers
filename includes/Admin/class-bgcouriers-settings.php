@@ -739,7 +739,7 @@ jQuery(function($){
     public function ajax_validate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgcouriers_admin', 'nonce');
-        $courier = sanitize_key($_POST['courier'] ?? 'speedy');
+        $courier = sanitize_key(wp_unslash($_POST['courier'] ?? 'speedy'));
         if (!self::courier_config($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
         $c = BGCouriers_Couriers::get($courier);
         $ok = (bool) ($c && $c->check_credentials());
@@ -782,7 +782,7 @@ jQuery(function($){
     public function ajax_reset_creds(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgcouriers_admin', 'nonce');
-        $courier = sanitize_key($_POST['courier'] ?? 'speedy');
+        $courier = sanitize_key(wp_unslash($_POST['courier'] ?? 'speedy'));
         update_option('bgcouriers_' . $courier . '_validated', 'no');
         wp_send_json_success(['ok' => true]);
     }
@@ -819,7 +819,7 @@ jQuery(function($){
     public function ajax_sync(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgcouriers_admin', 'nonce');
-        $courier = sanitize_key($_POST['courier'] ?? 'speedy');
+        $courier = sanitize_key(wp_unslash($_POST['courier'] ?? 'speedy'));
         $c = BGCouriers_Couriers::get($courier);
         if (!$c || !self::courier_config($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
         @set_time_limit(180); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- needed for long nomenclature sync

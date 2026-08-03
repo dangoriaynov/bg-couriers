@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Build the WP.org upload package.
+#
+# Deterministic on purpose: the same commit always produces the same zip, and nothing that is not part
+# of the plugin can slip in. A reviewer opening a package with tests, dev dependencies or a .git folder
+# in it starts the round on the wrong foot, and every extra round costs weeks.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
+READ_VER="$(grep -m1 '^Stable tag:' readme.txt | awk '{print $3}')"
+if [ "$VERSION" != "$READ_VER" ]; then
+  echo "REFUSING: plugin header says $VERSION, readme Stable tag says $READ_VER - they must match." >&2
+  exit 1
+fi
+if [ -n "$(git status --porcelain)" ]; then
+  echo "REFUSING: working tree is dirty - commit first, so the zip matches a known commit." >&2
+  exit 1
+fi
+
+OUT="${1:-$HOME/Downloads}/bg-couriers-${VERSION}.zip"
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+DEST="$TMP/bg-couriers"
+
+# git archive takes exactly what is committed, honouring .gitattributes export-ignore.
+mkdir -p "$DEST"
+git archive HEAD | tar -x -C "$DEST"
+
+# Anything that is development-only, whatever .gitattributes says.
+rm -rf "$DEST/tests" "$DEST/e2e" "$DEST/bin" "$DEST/node_modules" \
+       "$DEST/.github" "$DEST/.wp-env.json" "$DEST/phpunit.xml" "$DEST/phpunit.xml.dist" \
+       "$DEST/composer.json" "$DEST/composer.lock" "$DEST/package.json" "$DEST/package-lock.json" \
+       "$DEST/.gitattributes" "$DEST/.gitignore" "$DEST/CLAUDE.md"
+find "$DEST" -name '.DS_Store' -delete
+
+rm -f "$OUT"; mkdir -p "$(dirname "$OUT")"
+( cd "$TMP" && zip -qr "$OUT" bg-couriers )
+
+echo "built: $OUT"
+echo "commit: $(git rev-parse --short HEAD)   version: $VERSION"
+echo "size:   $(du -h "$OUT" | cut -f1)   files: $(unzip -l "$OUT" | tail -1 | awk '{print $2}')"
+echo
+echo "top-level of the package:"
+unzip -l "$OUT" | awk '{print $4}' | grep -E '^bg-couriers/[^/]+/?$' | sort -u | sed 's/^/  /'

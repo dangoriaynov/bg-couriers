@@ -194,10 +194,10 @@ class BGCouriers_Ajax {
     }
     public function set_selection(): void {
         check_ajax_referer('bgcouriers_checkout', 'nonce');
-        $method = sanitize_key($_POST['method'] ?? 'office');
+        $method = sanitize_key(wp_unslash($_POST['method'] ?? 'office'));
         if (!in_array($method, ['address', 'office', 'automat'], true)) { $method = 'office'; }
         WC()->session->set('bgcouriers_method', $method);
-        WC()->session->set('bgcouriers_selection_courier', sanitize_key($_POST['courier'] ?? '')); // which courier this selection belongs to
+        WC()->session->set('bgcouriers_selection_courier', sanitize_key(wp_unslash($_POST['courier'] ?? ''))); // which courier this selection belongs to
         WC()->session->set('bgcouriers_site_id', (int) wp_unslash($_POST['site_id'] ?? 0)); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
         WC()->session->set('bgcouriers_office_id', (int) wp_unslash($_POST['office_id'] ?? 0)); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
         WC()->session->set('bgcouriers_post_code', sanitize_text_field(wp_unslash($_POST['post_code'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
