@@ -124,9 +124,12 @@ class BGCouriers_PIP {
         if ($waybill === '') { return $heading; }
         /* translators: %s: waybill number, printed under the document number */
         $line = '<div class="bgc-pip-wb">' . esc_html(sprintf(__('Waybill %s', 'bg-couriers'), $waybill)) . '</div>';
-        // After the heading element rather than inside it: the heading is centred and styled by PIP, and
-        // slipping markup inside its <h3> would inherit that size.
-        return $heading . $line;
+        // Wrapped in our own block with the geometry INLINE rather than left to a stylesheet rule. The
+        // document number, its date and the waybill have to sit over the left half - that is the part
+        // that stays face-up once the sheet is folded onto the parcel - and PIP's own centring rules kept
+        // winning that fight. An inline style on an element we own settles it without a specificity war.
+        return '<div class="bgc-pip-head" style="width:50%;margin:0 auto 0 0;text-align:center;">'
+            . $heading . $line . '</div>';
     }
 
     /**
@@ -164,11 +167,9 @@ class BGCouriers_PIP {
             // The document number, its date and the waybill sit over the LEFT HALF rather than the middle
             // of the page: the sheet is folded before it goes on the parcel, and this is the part that
             // ends up face-up. Centred on the page, half of it disappears into the fold.
-            // The whole heading block - document number, date, waybill - sits over the LEFT HALF rather
-            // than the middle of the page. The sheet is folded before it goes on the parcel and this is
-            // the part that ends up face-up; centred on the page, half of it disappears into the fold.
-            . '.document-heading{width:50%;margin-left:0;margin-right:auto;}'
-            . '.document-heading .order-info, .document-heading h3, .bgc-pip-wb{text-align:center;}'
+            // Anything inside our heading block centres on that block, not on the page.
+            . '.bgc-pip-head, .bgc-pip-head *{text-align:center;}'
+            . '.bgc-pip-head h3, .bgc-pip-head p{margin-left:0;margin-right:0;}'
             . '</style>';
     }
 }
