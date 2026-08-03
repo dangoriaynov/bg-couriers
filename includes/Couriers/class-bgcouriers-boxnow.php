@@ -210,24 +210,40 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         ];
     }
 
+    /**
+     * ONE entry, describing the single parcel the order ships in.
+     *
+     * BOX NOW turns every items[] entry into its OWN PARCEL with its own id. Sending a line per product
+     * meant a two-product order became two parcels while the plugin recorded only `parcels[0]` - so the
+     * second one was never printed, never tracked, and crucially was NOT cancelled when the order was:
+     * it kept travelling and kept being billed, invisibly. Verified on the stage API: order #237, two
+     * lines, one request -> parcels 3539518244 AND 7934933088.
+     *
+     * This shop packs an order into one box (the 10x10x2 default), so the request now describes one:
+     * the goods total as its value, the order's weight, and the LARGEST compartment any product needs -
+     * a compartment has to fit everything in the box, so the biggest wins.
+     */
     private static function items(\WC_Order $order): array {
-        $out = []; $i = 0;
+        $value = 0.0;
+        $size  = 0;
+        $lines = 0;
         foreach ($order->get_items() as $item) {
-            $i++;
+            $lines++;
             $product = method_exists($item, 'get_product') ? $item->get_product() : null;
-            $weight  = ($product && $product->get_weight() !== '') ? (float) wc_get_weight((float) $product->get_weight(), 'kg') : 0.0;
-            $out[] = [
-                'id'              => (string) ($product && $product->get_sku() !== '' ? $product->get_sku() : $i),
-                'name'            => (string) $item->get_name(),
-                'value'           => number_format((float) $item->get_total() + (float) $item->get_total_tax(), 2, '.', ''),
-                'weight'          => round(max(0.001, $weight * max(1, (int) $item->get_quantity())), 3),
-                'compartmentSize' => self::compartment_size($product),
-            ];
+            $value  += (float) $item->get_total() + (float) $item->get_total_tax();
+            $size    = max($size, self::compartment_size($product));
         }
-        if (empty($out)) {
-            $out[] = ['id' => 'order', 'name' => 'Order', 'value' => number_format((float) $order->get_total(), 2, '.', ''), 'weight' => 1.0, 'compartmentSize' => 2];
-        }
-        return $out;
+        if ($lines === 0) { $value = (float) $order->get_total(); }
+        return [[
+            'id'     => (string) $order->get_order_number(),
+            /* translators: %s: order number */
+            'name'   => sprintf(__('Order %s', 'bg-couriers'), (string) $order->get_order_number()),
+            'value'  => number_format($value, 2, '.', ''),
+            // The plugin-wide answer, which falls back to the shop default and clamps at 0.1 kg -
+            // couriers reject a parcel lighter than that, and weightless products used to send 0.001.
+            'weight' => round(max(0.1, self::order_weight_kg($order)), 3),
+            'compartmentSize' => $size > 0 ? $size : 2,
+        ]];
     }
 
     /**

@@ -134,6 +134,24 @@ final class PhoneNormalisationTest extends TestCase {
         $this->assertSame($order->get_order_number() . '-3', $third['orderNumber']);
     }
 
+    /**
+     * BOX NOW makes a SEPARATE PARCEL out of every items[] entry, each with its own id, while the plugin
+     * records only parcels[0]. A two-line order therefore shipped two parcels of which one was invisible
+     * to the shop - never printed, never tracked, and still travelling and being billed after the order
+     * was cancelled. Verified on the stage API: order #237, two lines -> 3539518244 AND 7934933088.
+     */
+    public function test_an_order_ships_as_exactly_one_parcel(): void {
+        $this->options('0888123456');
+        $o = $this->order('0888123456');
+        $o->items = [new WC_Order_Item_Stub(1, 2, 24.00), new WC_Order_Item_Stub(2, 1, 6.00)];
+
+        $body = BGCouriers_Boxnow::build_delivery_request($o, '5726');
+
+        $this->assertCount(1, $body['items'], 'two order lines must NOT become two parcels');
+        $this->assertSame('30.00', $body['items'][0]['value'], 'the whole order, not one line of it');
+        $this->assertGreaterThanOrEqual(0.1, $body['items'][0]['weight'], 'couriers reject a lighter parcel');
+    }
+
     /** Same for the merchant's own missing number, which is a settings problem and says so. */
     public function test_no_sender_phone_is_refused_with_a_reason(): void {
         $this->options('');
