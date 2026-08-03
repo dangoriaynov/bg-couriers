@@ -123,3 +123,14 @@
 .bgc-ship-refresh.bgc-busy { opacity:.6; cursor:default; }
 .bgc-ship-refresh.bgc-busy .dashicons { animation:bgc-spin 1s linear infinite; }
 @keyframes bgc-spin { to { transform:rotate(360deg); } }
+
+/* A hint on an element at the RIGHT EDGE of its row must not hang off the panel. The bubble is centred
+   by default, which is right in the middle of a row and wrong at its end - there it gets clipped by the
+   panel, or painted under the metabox beside it. Anchor those to the right instead.
+
+   Applied by POSITION rather than to named buttons: every hint added from now on is covered, instead of
+   being discovered one screenshot at a time. */
+.bgc-order-panel [data-tip]:last-child:hover::after { left:auto; right:0; transform:none; }
+.bgc-order-panel [data-tip]:last-child:hover::before { left:auto; right:8px; transform:none; }
+/* The shipment-state row keeps its own hints inside the panel too. */
+.bgc-shipstate { overflow:visible; }

@@ -54,3 +54,7 @@
    own child is being hovered stays quiet - the more specific one wins. */
 .bgc-cell [data-tip]:has([data-tip]:hover)::after { content: none !important; }
 .bgc-order-panel [data-tip]:has([data-tip]:hover)::after { content: none !important; }
+
+/* Same at the right edge of the waybill column: the last tile in a row would otherwise push its bubble
+   past the table and get cut by the next column. */
+.bgc-cell [data-tip]:last-child:hover::after { left:auto; right:0; transform:none; }

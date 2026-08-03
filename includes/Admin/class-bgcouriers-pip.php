@@ -26,6 +26,11 @@ class BGCouriers_PIP {
         // The waybill belongs with the order number at the top, not buried in the totals: that is the
         // pair someone reads when matching a printed sheet to a box on the bench.
         add_filter('wc_pip_document_heading', [$this, 'heading'], 10, 4);
+        // Quantity before unit price. PIP renders headers and cells straight from the ARRAY ORDER, so
+        // both have to be reordered together or the columns and their contents come apart.
+        add_filter('wc_pip_document_table_headers', [$this, 'reorder_columns'], 10, 1);
+        add_filter('wc_pip_document_column_widths', [$this, 'reorder_columns'], 10, 1);
+        add_filter('wc_pip_document_table_row_cells', [$this, 'reorder_columns'], 10, 1);
         add_action('wc_pip_before_footer', [$this, 'print_styles']);
     }
 
@@ -58,6 +63,27 @@ class BGCouriers_PIP {
         // at the top of the document, and repeating it here only pushed the totals column into a
         // seven-line tower. Nor the waybill - that now sits beside the order number.
         return $out . '</span>';
+    }
+
+    /**
+     * Move the quantity column in front of the unit price.
+     *
+     * How many of a thing is in the box is what the person packing reads first; what one costs is
+     * paperwork. PIP draws both the header row and every cell row from the array order, so the same
+     * reordering is applied to headers, widths and cells - reorder one and the columns lose their labels.
+     *
+     * @param array $cols Keyed by column id ('quantity', 'unit_price', ...).
+     * @return array The same array, quantity moved ahead of unit_price.
+     */
+    public function reorder_columns($cols) {
+        if (!is_array($cols) || !isset($cols['quantity'], $cols['unit_price'])) { return $cols; }
+        $out = [];
+        foreach ($cols as $key => $value) {
+            if ($key === 'quantity') { continue; }          // placed by its neighbour, below
+            if ($key === 'unit_price') { $out['quantity'] = $cols['quantity']; }
+            $out[$key] = $value;
+        }
+        return $out;
     }
 
     /**
