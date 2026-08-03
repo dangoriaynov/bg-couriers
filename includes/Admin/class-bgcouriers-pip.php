@@ -19,6 +19,10 @@ class BGCouriers_PIP {
 
     public function __construct() {
         add_filter('wc_pip_document_shipping_method', [$this, 'shipping_method'], 10, 3);
+        // The invoice/packing list prints its "Доставка" line from WooCommerce's own order TOTALS, not
+        // from the shipping-method block above - so the filter that reads well in the docs is not the one
+        // that renders on the page. Both are hooked; whichever the document uses, the courier shows up.
+        add_filter('wc_pip_document_table_footer', [$this, 'table_footer'], 20, 3);
         add_action('wc_pip_before_footer', [$this, 'print_styles']);
     }
 
@@ -59,6 +63,26 @@ class BGCouriers_PIP {
             $out .= '<br><span class="bgc-pip-wb">' . esc_html(sprintf(__('Waybill %s', 'bg-couriers'), $waybill)) . '</span>';
         }
         return $out . '</span>';
+    }
+
+    /**
+     * Replace the "Shipping" row of the document totals with the courier block.
+     *
+     * @param array  $rows     Footer rows, keyed by total id ('shipping', 'order_total', ...).
+     * @param string $type     Document type.
+     * @param int    $order_id Order id.
+     * @return array
+     */
+    public function table_footer($rows, $type = '', $order_id = 0) {
+        if (!is_array($rows) || empty($rows['shipping'])) { return $rows; }
+        $order = wc_get_order((int) $order_id);
+        if (!$order instanceof \WC_Order) { return $rows; }
+        $block = $this->shipping_method('', $type, $order);
+        if ($block === '') { return $rows; }
+        // Keep the row's own label cell and shape - only the value becomes ours, so the document's
+        // column widths and styling are left exactly as PIP built them.
+        $rows['shipping']['value'] = $block;
+        return $rows;
     }
 
     /**
