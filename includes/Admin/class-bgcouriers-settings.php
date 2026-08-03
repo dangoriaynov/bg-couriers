@@ -249,6 +249,32 @@ class BGCouriers_Settings {
     }
 
     /** Whether THIS courier pays collected COD out to the merchant via ППП (пощенски паричен превод). */
+    /**
+     * Whether the recipient may open - and possibly test - the parcel before paying.
+     *
+     * 'no' | 'open' | 'test'. One setting for the whole shop rather than one per courier: it is a
+     * promise made to the customer, and a shop that lets you check the box with one courier and not
+     * with another is telling two different stories about the same order.
+     *
+     * Not every courier can do it. Speedy has the obpd service (OPEN/TEST) and Econt has payAfterAccept
+     * and payAfterTest; Pigeon and Sameday publish no such field, and BOX NOW is lockers, where there is
+     * no courier standing there to supervise an inspection.
+     *
+     * @return string
+     */
+    public static function open_before_pay(): string {
+        $v = (string) get_option('bgcouriers_open_before_pay', '');
+        if ($v === '') {
+            // Installs configured before this became one setting: keep doing exactly what they did.
+            $legacy = (string) get_option('bgcouriers_speedy_open_before_pay', '');
+            if ($legacy === '') {
+                $legacy = get_option('bgcouriers_econt_pay_after_accept', 'no') === 'yes' ? 'open' : 'no';
+            }
+            $v = $legacy;
+        }
+        return in_array($v, ['no', 'open', 'test'], true) ? $v : 'no';
+    }
+
     public static function courier_ppp_payout(string $courier): bool {
         // Per-courier toggle (default on for Speedy/Econt, off otherwise incl. BOX NOW). BOX NOW doesn't offer
         // ППП today, but the merchant can flip it on the day it does - no code change needed.

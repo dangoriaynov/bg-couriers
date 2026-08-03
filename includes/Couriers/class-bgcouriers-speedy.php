@@ -295,7 +295,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         // Open-before-payment (OBPD): allow/test inspection before the customer pays. Never sent for
         // locker (automat) deliveries - there is no courier at an APT to supervise an inspection, so the
         // field stays at the API's own default there.
-        $obpd_val = (string) get_option('bgcouriers_speedy_open_before_pay', 'no');
+        $obpd_val = BGCouriers_Settings::open_before_pay();
         if ($method !== 'automat' && ($obpd_val === 'open' || $obpd_val === 'test')) {
             $body['service']['additionalServices']['obpd'] = [
                 'option'                  => strtoupper($obpd_val),

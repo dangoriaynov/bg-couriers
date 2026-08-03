@@ -460,6 +460,15 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'default' => '1', 'custom_attributes' => ['min' => '0.1', 'step' => '0.1']],
             ['type' => 'sectionend', 'id' => 'bgcouriers_labels'],
 
+            ['type' => 'select', 'id' => 'bgcouriers_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
+                'desc' => __('What the recipient may do before paying, with every courier that offers it (Speedy and Econt today; lockers cannot - there is nobody there to supervise). It is a promise made at checkout, so it is set once for the shop rather than per courier.', 'bg-couriers'),
+                'options' => [
+                    'no'   => __('Not allowed', 'bg-couriers'),
+                    'open' => __('May open and look', 'bg-couriers'),
+                    'test' => __('May open and test', 'bg-couriers'),
+                ],
+                'default' => 'no'],
+
             ['type' => 'title', 'id' => 'bgcouriers_tracking', 'title' => __('Shipment tracking', 'bg-couriers'),
                 'desc' => __('Poll couriers for tracking updates and note them on the order (BOX NOW uses its webhook). Only active shipments from the last 45 days.', 'bg-couriers')],
             ['type' => 'select', 'id' => 'bgcouriers_tracking_poll', 'title' => __('Auto-update tracking', 'bg-couriers'),
@@ -532,14 +541,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_pricing'],
 
             ['type' => 'title', 'id' => 'bgcouriers_speedy_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
-            ['type' => 'select', 'id' => 'bgcouriers_speedy_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
-                'options' => [
-                    'no'   => __('No', 'bg-couriers'),
-                    'open' => __('Allow open before payment', 'bg-couriers'),
-                    'test' => __('Allow test before payment', 'bg-couriers'),
-                ],
-                'default' => 'no'],
-            ['type' => 'checkbox', 'id' => 'bgcouriers_speedy_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
+['type' => 'checkbox', 'id' => 'bgcouriers_speedy_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
                 'desc' => __('Enable if your Speedy contract pays COD out via ППП (пощенски паричен превод) - lets you accept COD with no cash register.', 'bg-couriers'),
                 'default' => 'yes'],
             ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_cod'],
@@ -593,8 +595,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'select', 'id' => 'bgcouriers_econt_cd_num', 'title' => __('CD pay-out agreement', 'bg-couriers'),
                 'desc' => __('The наложен платеж pay-out agreement (from your Econt profile).', 'bg-couriers'),
                 'options' => $cd_opts, 'default' => ''],
-            ['type' => 'checkbox', 'id' => 'bgcouriers_econt_pay_after_accept', 'title' => __('Allow inspection before payment', 'bg-couriers'),
-                'desc' => __('Let the recipient inspect the shipment before paying (преглед).', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgcouriers_econt_sms_notification', 'title' => __('SMS notification', 'bg-couriers'),
                 'desc' => __('Send the recipient an SMS notification.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgcouriers_econt_delivery_email', 'title' => __('E-mail on delivery', 'bg-couriers'),

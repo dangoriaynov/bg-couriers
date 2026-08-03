@@ -402,8 +402,12 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         }
         // "Виж преди да платиш" needs a courier at handover - never sent for Econtomat (automat)
         // deliveries; the API default applies there.
-        if ($method !== 'automat' && get_option('bgcouriers_econt_pay_after_accept', 'no') === 'yes') {
+        $inspect = BGCouriers_Settings::open_before_pay();
+        if ($method !== 'automat' && $inspect !== 'no') {
             $services['payAfterAccept'] = true;
+            // Econt splits the two: seeing the parcel and trying it out. "test" is the stronger promise
+            // and includes looking at it, so both flags go together.
+            if ($inspect === 'test') { $services['payAfterTest'] = true; }
         }
 
         // Наложен платеж (COD) + packing list - only when enabled in the Econt settings AND the order is
