@@ -1518,7 +1518,7 @@ msgstr "4 пъти на ден"
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:471
 msgid "Twice a day"
-msgstr "Два пъти на ден"
+msgstr "2 пъти на ден"
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:472
 msgid "Once a day"
