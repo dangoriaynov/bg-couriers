@@ -97,6 +97,12 @@ class BGCouriers_Order_Metabox {
                 . (BGCouriers_Labels::is_locked($order)
                     ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
                     : '')
+                // Ask the courier again, for THIS order, without waiting for the next scheduled poll -
+                // which is what someone standing on this screen actually wants.
+                . '<button type="button" class="bgc-ship-refresh" data-id="' . (int) $id . '"'
+                . ' data-tip="' . esc_attr__('Update from the courier now', 'bg-couriers') . '"'
+                . ' aria-label="' . esc_attr__('Update from the courier now', 'bg-couriers') . '">'
+                . '<span class="dashicons dashicons-update"></span></button>'
                 . '</div>';
         }
 
@@ -124,7 +130,7 @@ class BGCouriers_Order_Metabox {
         'b'      => [],
         'img'    => ['class' => true, 'src' => true, 'alt' => true, 'data-tip' => true],
         'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'aria-label' => true, 'data-tip' => true],
-        'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true, 'data-regen-url' => true],
+        'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true, 'data-regen-url' => true, 'data-id' => true],
         'svg'    => ['class' => true, 'viewbox' => true, 'width' => true, 'height' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'aria-hidden' => true],
         'path'   => ['d' => true],
         'rect'   => ['x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true],
@@ -176,6 +182,8 @@ class BGCouriers_Order_Metabox {
         wp_localize_script('bgc-order-admin', 'BGCOURIERS_ED', [
             'ajax'    => admin_url('admin-ajax.php'),
             'nonce'   => wp_create_nonce('bgcouriers_order_delivery'),
+            // Separate nonce: the tracking refresh is an admin action, not part of saving delivery details.
+            'adminNonce' => wp_create_nonce('bgcouriers_admin'),
             'orderId' => $order->get_id(),
             'caps'    => $caps,
             'leaflet_images' => BGCOURIERS_URL . 'assets/lib/leaflet/images/',
@@ -183,6 +191,8 @@ class BGCouriers_Order_Metabox {
             'i18n'    => ['city' => __('City', 'bg-couriers'), 'office' => __('Office / APS', 'bg-couriers'), 'street' => __('Street', 'bg-couriers'),
                           'saving' => __('Saving…', 'bg-couriers'), 'err' => __('Could not save.', 'bg-couriers'),
                           'copied' => __('Copied to clipboard', 'bg-couriers'),
+                          'trackRefreshing' => __('Asking the courier…', 'bg-couriers'),
+                          'trackFailed'     => __('Could not reach the courier.', 'bg-couriers'),
                           'cancelTitle' => __('Cancel this waybill?', 'bg-couriers'),
                           'cancelBody'  => __('This voids the shipment label with the courier. This cannot be undone.', 'bg-couriers'),
                           'cancelYes'   => __('Yes, cancel it', 'bg-couriers'),

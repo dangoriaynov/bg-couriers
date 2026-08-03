@@ -372,3 +372,27 @@
     }).fail(function () { $msg.css('color', '#b32d2e').text(I.err); $b.prop('disabled', false); });
   });
 })(jQuery);
+
+/* Ask the courier about THIS shipment right now.
+   The scheduled poll runs a few times a day; someone looking at one order wants the answer now, not at
+   the next run. Reloads on success rather than patching the block in place: the refresh can change the
+   stage, the lock, and the order status itself, and half-updating a screen is worse than redrawing it. */
+jQuery(function ($) {
+    $(document).on('click', '.bgc-ship-refresh', function () {
+        var b = $(this), id = b.data('id');
+        if (b.hasClass('bgc-busy') || !id) { return; }
+        b.addClass('bgc-busy').prop('disabled', true).attr('data-tip', BGCOURIERS_ED.i18n.trackRefreshing);
+        $.post(BGCOURIERS_ED.ajax, {
+            action: 'bgcouriers_poll_now',
+            nonce: BGCOURIERS_ED.adminNonce,
+            order_id: id
+        }).done(function (r) {
+            if (r && r.success) { window.location.reload(); return; }
+            b.removeClass('bgc-busy').prop('disabled', false);
+            window.alert((r && r.data && r.data.msg) || BGCOURIERS_ED.i18n.trackFailed);
+        }).fail(function () {
+            b.removeClass('bgc-busy').prop('disabled', false);
+            window.alert(BGCOURIERS_ED.i18n.trackFailed);
+        });
+    });
+});

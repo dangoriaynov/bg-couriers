@@ -53,6 +53,7 @@ class BGCouriers_Plugin {
         add_filter('cron_schedules', function ($s) {
             $s['weekly']    = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
             $s['bgcouriers_30min'] = ['interval' => 30 * MINUTE_IN_SECONDS, 'display' => 'Every 30 minutes'];
+            $s['bgcouriers_6h']    = ['interval' => 6 * HOUR_IN_SECONDS, 'display' => '4 times a day'];
             return $s;
         });
         add_action('init', ['BGCouriers_Sync', 'schedule']);

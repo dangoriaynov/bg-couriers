@@ -44,6 +44,7 @@ class BGCouriers_Settings {
         add_action('wp_ajax_bgcouriers_save_settings', [$this, 'ajax_save']);
         add_action('wp_ajax_bgcouriers_enable_check', [$this, 'ajax_enable_check']);
         add_action('wp_ajax_bgcouriers_save_order', [$this, 'ajax_save_order']);
+        add_action('wp_ajax_bgcouriers_poll_now', [$this, 'ajax_poll_now']);
         add_filter('plugin_action_links_' . plugin_basename(BGCOURIERS_FILE), [$this, 'action_links']);
     }
 
@@ -776,6 +777,31 @@ jQuery(function($){
             update_option('bgcouriers_courier_order', implode(',', $order));
         }
         wp_send_json_success();
+    }
+
+    /**
+     * Run the tracking poll right now, from the button beside the schedule.
+     *
+     * The schedule answers "how often, unattended"; this answers "I am looking at it now". Same code
+     * path, so a manual run cannot produce a different outcome from the automatic one.
+     */
+    public function ajax_poll_now(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do this.', 'bg-couriers')]); }
+        check_ajax_referer('bgcouriers_admin', 'nonce');
+        $order_id = absint(wp_unslash($_POST['order_id'] ?? 0));
+        if ($order_id > 0) {
+            $ok = BGCouriers_Tracking_Poller::refresh_one($order_id);
+            if (!$ok) { wp_send_json_error(['msg' => __('This order has no waybill to track.', 'bg-couriers')]); }
+            $order = wc_get_order($order_id);
+            wp_send_json_success([
+                'msg'   => __('Tracking updated.', 'bg-couriers'),
+                'stage' => (string) $order->get_meta('_bgcouriers_track_stage'),
+                'text'  => (string) $order->get_meta('_bgcouriers_track_text'),
+                'label' => BGCouriers_Tracking::stage_label((string) $order->get_meta('_bgcouriers_track_stage')),
+            ]);
+        }
+        BGCouriers_Tracking_Poller::run();
+        wp_send_json_success(['msg' => __('Tracking updated.', 'bg-couriers')]);
     }
 
     /** The red × by the password: marks the credentials as needing re-validation (so the tint goes red). */

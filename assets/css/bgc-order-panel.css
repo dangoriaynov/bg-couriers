@@ -112,3 +112,14 @@
    own child is being hovered stays quiet - the more specific one wins. */
 .bgc-cell [data-tip]:has([data-tip]:hover)::after { content: none !important; }
 .bgc-order-panel [data-tip]:has([data-tip]:hover)::after { content: none !important; }
+
+/* Ask-the-courier-now button, tucked into the corner of the shipment state. Quiet until hovered: it is
+   there when wanted, and not competing with the state itself the rest of the time. */
+.bgc-ship-refresh { flex:0 0 auto; margin-left:6px; padding:0; width:22px; height:22px; display:inline-flex;
+  align-items:center; justify-content:center; border:1px solid #dcdcde; border-radius:5px;
+  background:#fff; color:#787c82; cursor:pointer; transition:color .12s, border-color .12s; }
+.bgc-ship-refresh:hover { color:#2271b1; border-color:#2271b1; }
+.bgc-ship-refresh .dashicons { font-size:15px; width:15px; height:15px; }
+.bgc-ship-refresh.bgc-busy { opacity:.6; cursor:default; }
+.bgc-ship-refresh.bgc-busy .dashicons { animation:bgc-spin 1s linear infinite; }
+@keyframes bgc-spin { to { transform:rotate(360deg); } }

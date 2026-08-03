@@ -148,6 +148,8 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . "        var t=\$('<div class=\"bgc-toast bgc-toast-'+type+'\">'+'</div>').text(msg).appendTo(c);\n"
             . "        requestAnimationFrame(function(){ t.addClass('show'); });\n"
             . "        setTimeout(function(){ t.removeClass('show'); setTimeout(function(){ t.remove(); }, 320); }, ms||3000); }\n"
+            // One toast implementation on the page, reused by anything else that needs to say something.
+            . "    window.bgcToast = toast;\n"
             . "    var form=\$('#mainform'); if(!form.length){ return; }\n"
             . "    function busy(save,on){ save.prop('disabled',on).toggleClass('is-busy',on); }\n"
             . "    form.on('click', 'button[name=\"save\"], input[name=\"save\"]', function(e){\n"
@@ -228,6 +230,28 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . "        }\n"
             . "    });\n"
             . "    c.on('click', '.bgc-courier-tab', function(e){ if (dragged) { e.preventDefault(); } });\n"
+            . "});\n"
+        );
+
+        // A square refresh button beside the tracking schedule: the schedule answers "how often,
+        // unattended", this answers "I want to know now". Built in JS because WooCommerce renders the
+        // select itself and there is no field type for "a control glued to another control".
+        $t_now  = esc_js(__('Update tracking now', 'bg-couriers'));
+        $t_done = esc_js(__('Tracking updated', 'bg-couriers'));
+        $t_fail = esc_js(__('Could not update - please try again.', 'bg-couriers'));
+        BGCouriers_Settings::inline_js("\n"
+            . "jQuery(function(\$){\n"
+            . "    var sel = \$('#bgcouriers_tracking_poll'); if (!sel.length) { return; }\n"
+            . "    var b = \$('<button type=\"button\" class=\"button bgc-poll-now\" title=\"" . $t_now . "\" aria-label=\"" . $t_now . "\"><span class=\"dashicons dashicons-update\"></span></button>');\n"
+            . "    sel.after(b);\n"
+            . "    b.on('click', function(){\n"
+            . "        if (b.hasClass('bgc-busy')) { return; }\n"
+            . "        b.addClass('bgc-busy').prop('disabled', true);\n"
+            . "        \$.post('" . $ajax . "', { action: 'bgcouriers_poll_now', nonce: '" . $nonce . "' })\n"
+            . "            .done(function(r){ window.bgcToast ? window.bgcToast((r && r.data && r.data.msg) || '" . $t_done . "', 'ok') : null; })\n"
+            . "            .fail(function(){ window.bgcToast ? window.bgcToast('" . $t_fail . "', 'err') : null; })\n"
+            . "            .always(function(){ b.removeClass('bgc-busy').prop('disabled', false); });\n"
+            . "    });\n"
             . "});\n"
         );
     }
@@ -443,6 +467,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     'off'        => __('Off', 'bg-couriers'),
                     'bgcouriers_30min'  => __('Every 30 minutes', 'bg-couriers'),
                     'hourly'     => __('Hourly', 'bg-couriers'),
+                    'bgcouriers_6h' => __('4 times a day', 'bg-couriers'),
                     'twicedaily' => __('Twice a day', 'bg-couriers'),
                     'daily'      => __('Once a day', 'bg-couriers'),
                 ],

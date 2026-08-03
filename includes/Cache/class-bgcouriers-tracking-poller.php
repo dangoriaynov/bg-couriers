@@ -14,7 +14,7 @@ class BGCouriers_Tracking_Poller {
     /** Cron recurrence id from the setting, or 'off'. */
     private static function freq(): string {
         $f = (string) get_option('bgcouriers_tracking_poll', 'twicedaily');
-        return in_array($f, ['off', 'bgcouriers_30min', 'hourly', 'twicedaily', 'daily'], true) ? $f : 'twicedaily';
+        return in_array($f, ['off', 'bgcouriers_30min', 'hourly', 'bgcouriers_6h', 'twicedaily', 'daily'], true) ? $f : 'twicedaily';
     }
 
     /** Ensure the cron event matches the setting - runs on init and whenever the setting changes. */
@@ -54,6 +54,29 @@ class BGCouriers_Tracking_Poller {
         foreach ($orders as $order) {
             if ($order instanceof \WC_Order) { self::poll_one($order, $advance); }
         }
+    }
+
+    /**
+     * Re-read ONE order's tracking right now, outside the schedule.
+     *
+     * The poll runs a few times a day; when someone is looking at a single order and wants to know where
+     * it is, waiting hours for the next run is not an answer. Same code path as the cron, so a manual
+     * refresh cannot behave differently from an automatic one.
+     *
+     * @param int $order_id The order.
+     * @return bool True when the order was polled (it has one of our waybills), false when there was
+     *              nothing to ask about.
+     */
+    public static function refresh_one(int $order_id): bool {
+        $order = wc_get_order($order_id);
+        if (!$order instanceof \WC_Order) { return false; }
+        if ((string) $order->get_meta('_bgcouriers_waybill') === '') { return false; }
+        // A manual refresh also un-freezes a shipment that was written off as finished: the merchant is
+        // asking precisely because they think the recorded state is wrong.
+        $order->delete_meta_data('_bgcouriers_track_done');
+        $order->save();
+        self::poll_one($order, (string) get_option('bgcouriers_autostatus_on_delivered', ''));
+        return true;
     }
 
     private static function poll_one(\WC_Order $order, string $advance): void {

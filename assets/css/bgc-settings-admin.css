@@ -119,3 +119,11 @@
 #wpbody .bgc-settings table.form-table th,
 #wpbody .bgc-settings table.form-table td,
 #wpbody .bgc-settings .bgc-help { overflow:visible; }
+
+/* "Update tracking now", beside the schedule select. Square, same height as the select, so the pair
+   reads as one control: how often, and now. */
+#wpbody .bgc-settings .bgc-poll-now { margin-left:8px; padding:0; width:32px; height:32px; vertical-align:middle;
+  display:inline-flex; align-items:center; justify-content:center; }
+#wpbody .bgc-settings .bgc-poll-now .dashicons { font-size:17px; width:17px; height:17px; }
+#wpbody .bgc-settings .bgc-poll-now.bgc-busy .dashicons { animation:bgc-spin 1s linear infinite; }
+@keyframes bgc-spin { to { transform:rotate(360deg); } }
