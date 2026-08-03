@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-03 16:59+0300\n"
+"POT-Creation-Date: 2026-08-03 23:32+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -635,6 +635,12 @@ msgstr "Изпратена"
 msgctxt "Order bulk action"
 msgid "Change status to shipped"
 msgstr "Промяна на състоянието на изпратена"
+
+#. translators: %s: waybill number, printed on the packing list
+#: includes/Admin/class-bgcouriers-pip.php:59
+#, php-format
+msgid "Waybill %s"
+msgstr "Товарителница %s"
 
 #: includes/Admin/class-bgcouriers-settings.php:320
 msgid ""
@@ -1509,7 +1515,10 @@ msgid ""
 "Optionally move the order to this status once the refused parcel is back "
 "WITH YOU - not while it is travelling back. Cancelling is the usual choice: "
 "it puts the goods back into stock."
-msgstr "По желание премества поръчката в този статус, след като отказаната пратка вече е ПРИ ВАС - не докато пътува обратно. Обичайният избор е \"Отказана\": така стоката се връща в наличност."
+msgstr ""
+"По желание премества поръчката в този статус, след като отказаната пратка "
+"вече е ПРИ ВАС - не докато пътува обратно. Обичайният избор е \"Отказана\": "
+"така стоката се връща в наличност."
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:458
 msgid "On delivery, set order to"

@@ -96,6 +96,10 @@ class BGCouriers_Plugin {
             new BGCouriers_Order_Metabox();
             new BGCouriers_Order_Columns();
             new BGCouriers_Bulk_Labels();
+            // Print Invoices & Packing Lists, when it is there. A packing list is read by whoever is
+            // stacking parcels, so it has to say which courier the box goes to - PIP prints the raw
+            // WooCommerce rate title, which does not.
+            if (class_exists('WC_PIP')) { new BGCouriers_PIP(); }
         }
     }
 }

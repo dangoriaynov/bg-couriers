@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bg-couriers\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-03 16:59+0300\n"
+"POT-Creation-Date: 2026-08-03 23:32+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -603,6 +603,12 @@ msgstr ""
 #: includes/Admin/class-bgcouriers-order-status.php:78
 msgctxt "Order bulk action"
 msgid "Change status to shipped"
+msgstr ""
+
+#. translators: %s: waybill number, printed on the packing list
+#: includes/Admin/class-bgcouriers-pip.php:59
+#, php-format
+msgid "Waybill %s"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-settings.php:320
