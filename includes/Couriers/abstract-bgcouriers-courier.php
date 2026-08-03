@@ -51,7 +51,13 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
                 'msg' => __('API credentials are missing.', 'bg-couriers'),
                 'fix' => __('Enter the username/key and password/secret, then click “Save changes”.', 'bg-couriers'),
             ];
-        } elseif (get_option('bgcouriers_' . $id . '_validated', 'no') !== 'yes') {
+        // Same default as the credentials tint in render_actions(): credentials saved before this flag
+        // existed count as valid until something says otherwise. The two disagreed, so a courier
+        // configured on an older version showed a green "credentials valid" panel while this check
+        // simultaneously refused to enable it for not being validated. Anything saved through the
+        // current code sets the flag outright (sanitize_keep / sanitize_password), so only genuinely
+        // legacy installs land on the default.
+        } elseif (get_option('bgcouriers_' . $id . '_validated', 'yes') !== 'yes') {
             $problems[] = [
                 'msg' => __('The API credentials have not been validated.', 'bg-couriers'),
                 'fix' => __('Click “Validate credentials” and make sure the check succeeds.', 'bg-couriers'),
