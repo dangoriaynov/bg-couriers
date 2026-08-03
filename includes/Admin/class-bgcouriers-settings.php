@@ -363,6 +363,24 @@ class BGCouriers_Settings {
                 }
             }
         }
+        // Anything a courier itself declares as missing. Until now only the two hand-written cases above
+        // produced a banner, so a courier could sit there enabled and green while lacking a setting it
+        // cannot create a single waybill without - BOX NOW with no sender phone answered every order
+        // with {"code":"P405"}, at label time, one order at a time. enable_problems() is the list each
+        // courier already keeps of what it needs; showing it here means every courier's required
+        // settings are covered by the one mechanism, including couriers added later.
+        $c = BGCouriers_Couriers::get($courier);
+        if ($c && method_exists($c, 'enable_problems')) {
+            $problems = $c->enable_problems();
+            if ($problems) {
+                $first = reset($problems);
+                return ['level' => 'error', 'msg' => trim(
+                    /* translators: 1: what is missing, 2: how to fix it */
+                    sprintf(__('%1$s %2$s Until this is resolved the courier cannot create waybills.', 'bg-couriers'),
+                        (string) ($first['msg'] ?? ''), (string) ($first['fix'] ?? ''))
+                )];
+            }
+        }
         return self::ppp_courier_notice($courier);
     }
 

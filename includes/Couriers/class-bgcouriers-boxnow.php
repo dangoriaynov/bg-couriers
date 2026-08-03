@@ -36,6 +36,20 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         $this->need_option($p, 'bgcouriers_boxnow_warehouse_id',
             __('No Warehouse ID is set.', 'bg-couriers'),
             __('Enter the origin Warehouse ID parcels ship from (from BOX NOW).', 'bg-couriers'));
+        // Without a sender phone BOX NOW refuses every shipment, and it says so only as {"code":"P405"} -
+        // at label time, one order at a time. Better to declare the courier unusable up front.
+        $phone = trim((string) get_option('bgcouriers_boxnow_sender_phone', ''));
+        if ($phone === '') {
+            $p[] = [
+                'msg' => __('No sender phone is set.', 'bg-couriers'),
+                'fix' => __('Enter the merchant contact phone below - BOX NOW rejects every shipment without one.', 'bg-couriers'),
+            ];
+        } elseif (!BGCouriers_Phone::usable($phone)) {
+            $p[] = [
+                'msg' => __('The sender phone is not a usable number.', 'bg-couriers'),
+                'fix' => __('Enter a full mobile number, e.g. +359888123456 or 0888123456.', 'bg-couriers'),
+            ];
+        }
         if ((float) get_option('bgcouriers_boxnow_flat_price', 0) <= 0) {
             $p[] = [
                 'msg' => __('The flat delivery price is not set.', 'bg-couriers'),
@@ -143,6 +157,19 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     public static function build_delivery_request(\WC_Order $order, string $origin_id): array {
         $total  = number_format((float) $order->get_total(), 2, '.', '');
         $is_cod = $order->get_payment_method() === 'cod';
+
+        // BOX NOW takes E.164 only. A Bulgarian shopper types 0888123456, and BOX NOW answers the whole
+        // request with {"code":"P405"} - no field named, no reason - so every order would have failed
+        // with a code nobody can act on. Converted here rather than at checkout: the other couriers are
+        // domestic and take the national form as typed.
+        $to_phone   = BGCouriers_Phone::e164((string) $order->get_billing_phone());
+        $from_phone = BGCouriers_Phone::e164((string) get_option('bgcouriers_boxnow_sender_phone', ''));
+        if ($to_phone === '') {
+            throw new BGCouriers_Api_Exception(esc_html__('This order has no usable phone number for the recipient, and BOX NOW rejects a shipment without one.', 'bg-couriers'));
+        }
+        if ($from_phone === '') {
+            throw new BGCouriers_Api_Exception(esc_html__('No sender phone is set for BOX NOW. Enter it in the BOX NOW settings - BOX NOW rejects a shipment without one.', 'bg-couriers'));
+        }
         return [
             'orderNumber'         => (string) $order->get_order_number(),
             'invoiceValue'        => $total,
@@ -154,13 +181,13 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
                 'contactEmail'  => (string) get_option('admin_email'),
                 // The origin is the SENDER (merchant warehouse) - use the merchant's own contact phone, NOT the
                 // buyer's (which belongs on the destination). Matches the official plugin's boxnow_mobile_number.
-                'contactNumber' => (string) get_option('bgcouriers_boxnow_sender_phone', ''),
+                'contactNumber' => $from_phone,
                 'locationId'    => $origin_id,
             ],
             'destination'         => [
                 'contactName'   => $order->get_formatted_billing_full_name(),
                 'contactEmail'  => BGCouriers_Settings::label_email($order),
-                'contactNumber' => (string) $order->get_billing_phone(),
+                'contactNumber' => $to_phone,
                 'locationId'    => (string) ($order->get_meta('_bgcouriers_office_id') ?: ''),
             ],
             'items'               => self::items($order),

@@ -109,8 +109,26 @@ final class EnableValidationTest extends TestCase {
     }
 
     public function test_boxnow_complete_passes(): void {
-        $this->opts($this->ok('boxnow') + ['bgcouriers_boxnow_partner_id' => '11', 'bgcouriers_boxnow_warehouse_id' => '2', 'bgcouriers_boxnow_flat_price' => '3.99']);
+        $this->opts($this->ok('boxnow') + ['bgcouriers_boxnow_partner_id' => '11', 'bgcouriers_boxnow_warehouse_id' => '2',
+            'bgcouriers_boxnow_flat_price' => '3.99', 'bgcouriers_boxnow_sender_phone' => '0888123456']);
         $this->assertEmpty((new BGCouriers_Boxnow(['api_url' => '', 'partner_id' => '', 'warehouse_id' => '']))->enable_problems());
+    }
+
+    /**
+     * BOX NOW rejects every shipment that carries no sender phone, and says so only as {"code":"P405"}
+     * at label time - one order at a time, with nothing naming the field. It has to be caught here.
+     */
+    public function test_boxnow_missing_sender_phone_blocks(): void {
+        $this->opts($this->ok('boxnow') + ['bgcouriers_boxnow_partner_id' => '11', 'bgcouriers_boxnow_warehouse_id' => '2',
+            'bgcouriers_boxnow_flat_price' => '3.99', 'bgcouriers_boxnow_sender_phone' => '']);
+        $this->assertNotEmpty((new BGCouriers_Boxnow(['api_url' => '', 'partner_id' => '', 'warehouse_id' => '']))->enable_problems());
+    }
+
+    /** A number that cannot be made into E.164 is no better than none - BOX NOW refuses it just the same. */
+    public function test_boxnow_unusable_sender_phone_blocks(): void {
+        $this->opts($this->ok('boxnow') + ['bgcouriers_boxnow_partner_id' => '11', 'bgcouriers_boxnow_warehouse_id' => '2',
+            'bgcouriers_boxnow_flat_price' => '3.99', 'bgcouriers_boxnow_sender_phone' => '123']);
+        $this->assertNotEmpty((new BGCouriers_Boxnow(['api_url' => '', 'partner_id' => '', 'warehouse_id' => '']))->enable_problems());
     }
 
     public function test_sameday_account_without_pickup_or_services_blocks(): void {
