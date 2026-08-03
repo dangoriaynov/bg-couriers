@@ -460,15 +460,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'default' => '1', 'custom_attributes' => ['min' => '0.1', 'step' => '0.1']],
             ['type' => 'sectionend', 'id' => 'bgcouriers_labels'],
 
-            ['type' => 'select', 'id' => 'bgcouriers_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
-                'desc' => __('What the recipient may do before paying, with every courier that offers it (Speedy and Econt today; lockers cannot - there is nobody there to supervise). It is a promise made at checkout, so it is set once for the shop rather than per courier.', 'bg-couriers'),
-                'options' => [
-                    'no'   => __('Not allowed', 'bg-couriers'),
-                    'open' => __('May open and look', 'bg-couriers'),
-                    'test' => __('May open and test', 'bg-couriers'),
-                ],
-                'default' => 'no'],
-
             ['type' => 'title', 'id' => 'bgcouriers_tracking', 'title' => __('Shipment tracking', 'bg-couriers'),
                 'desc' => __('Poll couriers for tracking updates and note them on the order (BOX NOW uses its webhook). Only active shipments from the last 45 days.', 'bg-couriers')],
             ['type' => 'select', 'id' => 'bgcouriers_tracking_poll', 'title' => __('Auto-update tracking', 'bg-couriers'),
@@ -541,6 +532,14 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_pricing'],
 
             ['type' => 'title', 'id' => 'bgcouriers_speedy_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
+            ['type' => 'select', 'id' => 'bgcouriers_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
+                'desc' => __('What the recipient may do before paying. ONE setting for the whole shop, shown here because Speedy and Econt are the couriers that offer it - changing it on either page changes both, because it is a promise made at checkout and cannot differ per courier. Never applied to locker deliveries: there is nobody there to supervise.', 'bg-couriers'),
+                'options' => [
+                    'no'   => __('Not allowed', 'bg-couriers'),
+                    'open' => __('May open and look', 'bg-couriers'),
+                    'test' => __('May open and test', 'bg-couriers'),
+                ],
+                'default' => 'no'],
 ['type' => 'checkbox', 'id' => 'bgcouriers_speedy_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
                 'desc' => __('Enable if your Speedy contract pays COD out via ППП (пощенски паричен превод) - lets you accept COD with no cash register.', 'bg-couriers'),
                 'default' => 'yes'],
@@ -590,6 +589,14 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'sectionend', 'id' => 'bgcouriers_econt_pricing'],
 
             ['type' => 'title', 'id' => 'bgcouriers_econt_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
+            ['type' => 'select', 'id' => 'bgcouriers_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
+                'desc' => __('What the recipient may do before paying. ONE setting for the whole shop, shown here because Speedy and Econt are the couriers that offer it - changing it on either page changes both, because it is a promise made at checkout and cannot differ per courier. Never applied to locker deliveries: there is nobody there to supervise.', 'bg-couriers'),
+                'options' => [
+                    'no'   => __('Not allowed', 'bg-couriers'),
+                    'open' => __('May open and look', 'bg-couriers'),
+                    'test' => __('May open and test', 'bg-couriers'),
+                ],
+                'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgcouriers_econt_cod_enabled', 'title' => __('Cash on delivery (наложен платеж)', 'bg-couriers'),
                 'desc' => __('Attach наложен платеж (full total + packing list) to every COD Econt order, paid out via the agreement below. Prepaid orders are never charged again.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'select', 'id' => 'bgcouriers_econt_cd_num', 'title' => __('CD pay-out agreement', 'bg-couriers'),

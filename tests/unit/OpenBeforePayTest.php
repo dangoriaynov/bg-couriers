@@ -85,4 +85,18 @@ final class OpenBeforePayTest extends TestCase {
         $this->assertArrayNotHasKey('payAfterAccept', $l['services'] ?? []);
         $this->assertArrayNotHasKey('payAfterTest', $l['services'] ?? []);
     }
+
+    /**
+     * The field is rendered on BOTH courier pages and writes the SAME option, which is the whole point -
+     * one promise, shown where it applies. If the two ever diverged into separate ids, a shop could
+     * again say "look" with one courier and "test" with the other on the same checkout.
+     */
+    public function test_both_courier_pages_edit_the_same_single_setting(): void {
+        $file = file_get_contents(dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-wc-settings.php');
+        $this->assertSame(2, substr_count($file, "'id' => 'bgcouriers_open_before_pay'"),
+            'shown once on Speedy and once on Econt');
+        $this->assertSame(0, substr_count($file, 'bgcouriers_speedy_open_before_pay'),
+            'the old per-courier field must be gone, or it becomes a second source of truth');
+        $this->assertSame(0, substr_count($file, 'bgcouriers_econt_pay_after_accept'));
+    }
 }
