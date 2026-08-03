@@ -130,7 +130,11 @@
 
    Applied by POSITION rather than to named buttons: every hint added from now on is covered, instead of
    being discovered one screenshot at a time. */
-.bgc-order-panel [data-tip]:last-child:hover::after { left:auto; right:0; transform:none; }
-.bgc-order-panel [data-tip]:last-child:hover::before { left:auto; right:8px; transform:none; }
+.bgc-order-panel [data-tip]:nth-last-child(-n+2):hover::after { left:auto; right:0; transform:none; }
+.bgc-order-panel [data-tip]:nth-last-child(-n+2):hover::before { left:auto; right:8px; transform:none; }
+/* The shipment state ends with a lock and a refresh button, both of which carry long explanations -
+   anchor everything in that row, whatever gets added to the end of it later. */
+.bgc-shipstate [data-tip]:hover::after { left:auto; right:0; transform:none; }
+.bgc-shipstate [data-tip]:hover::before { left:auto; right:8px; transform:none; }
 /* The shipment-state row keeps its own hints inside the panel too. */
 .bgc-shipstate { overflow:visible; }

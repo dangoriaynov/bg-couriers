@@ -57,4 +57,4 @@
 
 /* Same at the right edge of the waybill column: the last tile in a row would otherwise push its bubble
    past the table and get cut by the next column. */
-.bgc-cell [data-tip]:last-child:hover::after { left:auto; right:0; transform:none; }
+.bgc-cell [data-tip]:nth-last-child(-n+2):hover::after { left:auto; right:0; transform:none; }
