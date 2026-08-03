@@ -23,8 +23,68 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $this->need_option($p, 'bgcouriers_econt_cd_num',
                 __('Cash on delivery is on, but no pay-out agreement is selected.', 'bg-couriers'),
                 __('Choose a “CD pay-out agreement” below, or turn off cash on delivery.', 'bg-couriers'));
+            $p = array_merge($p, $this->payout_problems());
         }
         return $p;
+    }
+
+    /**
+     * Does the CHOSEN pay-out agreement actually match what the shop believes it is getting?
+     *
+     * Econt marks each agreement with `moneyTransfer`: true is a ППП (пощенски паричен превод), false is a
+     * plain transfer. The shop separately declares, per courier, whether that courier pays out by ППП -
+     * and the whole cash-on-delivery fiscalisation rests on that declaration: with "I rely on the
+     * courier's ППП", a courier said not to do ППП is dropped from checkout entirely. Nothing compared
+     * the two, so this account was collecting cash on delivery under a bank-transfer agreement while the
+     * setting claimed ППП, and the money came back as an ordinary pay-out.
+     *
+     * @return array<int,array{msg:string,fix:string}>
+     */
+    public function payout_problems(): array {
+        $chosen = (string) get_option('bgcouriers_econt_cd_num', '');
+        if ($chosen === '') { return []; }
+        // Cached: this is asked every time the settings screen paints a courier tab, and the answer
+        // changes only when the merchant signs a new agreement with Econt.
+        $key  = 'bgcouriers_econt_cd_raw';
+        $opts = get_transient($key);
+        if (!is_array($opts)) {
+            try {
+                $resp = $this->post_json($this->base . '/Profile/ProfileService.getClientProfiles.json', []);
+            } catch (\Exception $e) {
+                return []; // connection problems are reported elsewhere; do not invent a payout warning
+            }
+            $opts = (array) ($resp['profiles'][0]['cdPayOptions'] ?? []);
+            set_transient($key, $opts, HOUR_IN_SECONDS);
+        }
+        $agreement = null;
+        foreach ($opts as $o) {
+            if ((string) ($o['num'] ?? '') === $chosen) { $agreement = $o; break; }
+        }
+        if ($agreement === null) {
+            return [[
+                /* translators: %s: the agreement number stored in the settings */
+                'msg' => sprintf(__('The selected cash-on-delivery agreement (%s) no longer exists on your Econt profile.', 'bg-couriers'), $chosen),
+                'fix' => __('Pick one of the agreements your profile currently has, below.', 'bg-couriers'),
+            ]];
+        }
+        $is_ppp    = !empty($agreement['moneyTransfer']);
+        $wants_ppp = BGCouriers_Settings::courier_ppp_payout('econt');
+        if ($wants_ppp && !$is_ppp) {
+            return [[
+                /* translators: 1: agreement number, 2: how it pays out, e.g. bank */
+                'msg' => sprintf(__('Econt is set to pay out by ППП, but the selected agreement %1$s is not a ППП - Econt pays it out as an ordinary transfer (%2$s).', 'bg-couriers'),
+                    $chosen, (string) ($agreement['method'] ?? '')),
+                'fix' => __('Choose a ППП agreement below, or ask Econt to set one up for your bank account. If this account really does pay out without ППП, turn off “Pays out via ППП” - but then cash on delivery needs your own cash register.', 'bg-couriers'),
+            ]];
+        }
+        if (!$wants_ppp && $is_ppp) {
+            return [[
+                /* translators: %s: agreement number */
+                'msg' => sprintf(__('The selected agreement %s IS a ППП, but Econt is set as not paying out via ППП.', 'bg-couriers'), $chosen),
+                'fix' => __('Turn on “Pays out via ППП” for Econt so cash-on-delivery orders are offered at checkout.', 'bg-couriers'),
+            ]];
+        }
+        return [];
     }
 
     /** Econt uses HTTP Basic, not a body credential - override the transport. */

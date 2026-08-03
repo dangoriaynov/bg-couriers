@@ -296,6 +296,17 @@ class BGCouriers_Settings {
             && !self::ship_in_total('sameday')) {
             return ['level' => 'error', 'msg' => __('Sameday does not support “the recipient pays the delivery” on this account, so NO waybill can be created while it is set that way. Turn on “Delivery in the order total” below, or ask Sameday to allow recipient payment on your contract.', 'bg-couriers')];
         }
+        // Econt collecting cash on delivery under an agreement that does not match how the shop says it
+        // is paid out: the money comes back as an ordinary transfer while the shop believes it is a ППП,
+        // which is the difference between having fiscalisation covered and not.
+        if ($courier === 'econt' && get_option('bgcouriers_econt_cod_enabled', 'no') === 'yes') {
+            $c = BGCouriers_Couriers::get('econt');
+            if ($c && method_exists($c, 'payout_problems')) {
+                foreach ($c->payout_problems() as $p) {
+                    return ['level' => 'error', 'msg' => $p['msg'] . ' ' . $p['fix']];
+                }
+            }
+        }
         return self::ppp_courier_notice($courier);
     }
 

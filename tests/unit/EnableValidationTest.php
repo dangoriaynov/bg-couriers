@@ -60,7 +60,57 @@ final class EnableValidationTest extends TestCase {
 
     public function test_econt_cod_with_agreement_passes(): void {
         $this->opts($this->ok('econt') + ['bgcouriers_econt_cod_enabled' => 'yes', 'bgcouriers_econt_cd_num' => 'CD139925']);
+        // The chosen agreement is also checked against how the shop says it is paid out, which reads the
+        // Econt profile through a transient. Nothing cached and no API here: the check bows out quietly.
+        Functions\when('get_transient')->justReturn(false);
+        Functions\when('set_transient')->justReturn(true);
         $this->assertEmpty((new BGCouriers_Econt([]))->enable_problems());
+    }
+
+    /**
+     * The agreement says plain bank transfer while the shop insists the courier pays out by ППП. That is
+     * the difference between cash-on-delivery being fiscalised by the courier and not being fiscalised at
+     * all - and on the live account it was exactly this way round, silently.
+     */
+    public function test_econt_flags_a_non_ppp_agreement_while_ppp_is_claimed(): void {
+        $this->opts($this->ok('econt') + [
+            'bgcouriers_econt_cod_enabled' => 'yes',
+            'bgcouriers_econt_cd_num'      => 'CD139925',
+            'bgcouriers_econt_ppp_payout'  => 'yes',
+        ]);
+        Functions\when('get_transient')->justReturn([
+            ['num' => 'CD139879', 'moneyTransfer' => true,  'method' => 'office', 'officeCode' => '1170'],
+            ['num' => 'CD139925', 'moneyTransfer' => false, 'method' => 'bank',   'IBAN' => 'BG68...'],
+        ]);
+        Functions\when('set_transient')->justReturn(true);
+        $p = (new BGCouriers_Econt([]))->enable_problems();
+        $this->assertNotEmpty($p);
+        $this->assertStringContainsString('CD139925', $p[0]['msg']);
+    }
+
+    /** The ППП agreement matches the claim - nothing to report. */
+    public function test_econt_accepts_a_matching_ppp_agreement(): void {
+        $this->opts($this->ok('econt') + [
+            'bgcouriers_econt_cod_enabled' => 'yes',
+            'bgcouriers_econt_cd_num'      => 'CD139879',
+            'bgcouriers_econt_ppp_payout'  => 'yes',
+        ]);
+        Functions\when('get_transient')->justReturn([
+            ['num' => 'CD139879', 'moneyTransfer' => true, 'method' => 'office', 'officeCode' => '1170'],
+        ]);
+        Functions\when('set_transient')->justReturn(true);
+        $this->assertEmpty((new BGCouriers_Econt([]))->enable_problems());
+    }
+
+    /** An agreement that has since been removed from the profile must be reported, not used silently. */
+    public function test_econt_flags_an_agreement_that_no_longer_exists(): void {
+        $this->opts($this->ok('econt') + [
+            'bgcouriers_econt_cod_enabled' => 'yes',
+            'bgcouriers_econt_cd_num'      => 'CD000000',
+        ]);
+        Functions\when('get_transient')->justReturn([['num' => 'CD139925', 'moneyTransfer' => false, 'method' => 'bank']]);
+        Functions\when('set_transient')->justReturn(true);
+        $this->assertNotEmpty((new BGCouriers_Econt([]))->enable_problems());
     }
 
     public function test_boxnow_missing_warehouse_blocks(): void {
