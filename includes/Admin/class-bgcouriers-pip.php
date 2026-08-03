@@ -124,6 +124,10 @@ class BGCouriers_PIP {
         if ($waybill === '') { return $heading; }
         /* translators: %s: waybill number, printed under the document number */
         $line = '<div class="bgc-pip-wb">' . esc_html(sprintf(__('Waybill %s', 'bg-couriers'), $waybill)) . '</div>';
+        // The courier goes here as well as in the totals, because the totals sit on the half that gets
+        // folded away. Whoever is holding the folded sheet needs to know which pile the parcel joins
+        // without unfolding it - the same block, so the two never say different things.
+        $line .= '<div class="bgc-pip-courier">' . $this->shipping_method('', $type, $order) . '</div>';
         // Wrapped in our own block with the geometry INLINE rather than left to a stylesheet rule. The
         // document number, its date and the waybill have to sit over the left half - that is the part
         // that stays face-up once the sheet is folded onto the parcel - and PIP's own centring rules kept
@@ -169,6 +173,7 @@ class BGCouriers_PIP {
             // ends up face-up. Centred on the page, half of it disappears into the fold.
             // Anything inside our heading block centres on that block, not on the page.
             . '.bgc-pip-head, .bgc-pip-head *{text-align:center;}'
+            . '.bgc-pip-courier{margin-top:3px;font-size:13px;}'
             . '.bgc-pip-head h3, .bgc-pip-head p{margin-left:0;margin-right:0;}'
             . '</style>';
     }
