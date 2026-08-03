@@ -737,15 +737,24 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
 
     private function method_fields(string $courier, string $m, string $label): array {
         $p = "bgcouriers_{$courier}_{$m}_";
+        // Only offer live pricing where the courier actually has a price endpoint. BOX NOW does not -
+        // its rates are contractual - and offering the choice invites a shop to pick a mode that can
+        // only ever fall back, then wonder why the fixed price is what shows.
+        $c    = BGCouriers_Couriers::get($courier);
+        $live = $c && in_array('live_quote', $c->capabilities(), true);
+        $modes = $live
+            ? [
+                'live'     => __('Live price only - no fixed default (show the cached price until the address is chosen)', 'bg-couriers'),
+                'fallback' => __('Live price, use the fixed price below only if the API is unavailable', 'bg-couriers'),
+                'fixed'    => __('Always the fixed price below - no live API calls at checkout', 'bg-couriers'),
+              ]
+            /* translators: shown when the courier has no price API at all */
+            : ['fixed' => __('Always the fixed price below - this courier publishes no live prices', 'bg-couriers')];
         $fields = [
             ['type' => 'title', 'id' => $p . 'grp', 'title' => ''],
             ['type' => 'checkbox', 'id' => $p . 'enabled', /* translators: %s: courier name */ 'title' => sprintf(__('Enable “%s”', 'bg-couriers'), $label), 'default' => 'yes'],
             ['type' => 'select', 'id' => $p . 'price_mode', 'title' => __('Delivery price', 'bg-couriers'),
-                'options' => [
-                    'live'     => __('Live price only - no fixed default (show the cached price until the address is chosen)', 'bg-couriers'),
-                    'fallback' => __('Live price, use the fixed price below only if the API is unavailable', 'bg-couriers'),
-                    'fixed'    => __('Always the fixed price below - no live API calls at checkout', 'bg-couriers'),
-                ], 'default' => 'fallback'],
+                'options' => $modes, 'default' => $live ? 'fallback' : 'fixed'],
             ['type' => 'text', 'id' => $p . 'price', 'title' => __('Fixed / default price', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Used by the “fixed” and “fallback” delivery-price modes above. In the store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'text', 'id' => $p . 'free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',

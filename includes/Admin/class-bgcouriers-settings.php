@@ -80,7 +80,13 @@ class BGCouriers_Settings {
      */
     public static function price_mode(string $courier, string $method): string {
         $m = (string) get_option('bgcouriers_' . $courier . '_' . $method . '_price_mode', 'fallback');
-        return in_array($m, ['live', 'fallback', 'fixed'], true) ? $m : 'fallback';
+        if (!in_array($m, ['live', 'fallback', 'fixed'], true)) { $m = 'fallback'; }
+        // A courier with no price endpoint can only ever be fixed, whatever is stored - a mode saved
+        // before the courier's capabilities were known would otherwise send checkout looking for a live
+        // price on every request and quietly fall back on each one.
+        $c = BGCouriers_Couriers::get($courier);
+        if ($c && !in_array('live_quote', $c->capabilities(), true)) { return 'fixed'; }
+        return $m;
     }
 
     /** Per delivery-method config (default price in store currency, free-shipping threshold). */
