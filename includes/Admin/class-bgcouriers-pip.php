@@ -23,6 +23,9 @@ class BGCouriers_PIP {
         // from the shipping-method block above - so the filter that reads well in the docs is not the one
         // that renders on the page. Both are hooked; whichever the document uses, the courier shows up.
         add_filter('wc_pip_document_table_footer', [$this, 'table_footer'], 20, 3);
+        // The waybill belongs with the order number at the top, not buried in the totals: that is the
+        // pair someone reads when matching a printed sheet to a box on the bench.
+        add_filter('wc_pip_document_heading', [$this, 'heading'], 10, 4);
         add_action('wc_pip_before_footer', [$this, 'print_styles']);
     }
 
@@ -51,18 +54,30 @@ class BGCouriers_PIP {
         if ($m !== '') {
             $out .= '<span class="bgc-pip-type"> - ' . esc_html(BGCouriers_Icons::method_label($m)) . '</span>';
         }
-
-        $where = self::destination($order, $courier->id(), $m);
-        if ($where !== '') {
-            $out .= '<br><span class="bgc-pip-where">' . esc_html($where) . '</span>';
-        }
-
-        $waybill = (string) $order->get_meta('_bgcouriers_waybill');
-        if ($waybill !== '') {
-            /* translators: %s: waybill number, printed on the packing list */
-            $out .= '<br><span class="bgc-pip-wb">' . esc_html(sprintf(__('Waybill %s', 'bg-couriers'), $waybill)) . '</span>';
-        }
+        // Deliberately NOT the destination address: it is already printed in full in the recipient block
+        // at the top of the document, and repeating it here only pushed the totals column into a
+        // seven-line tower. Nor the waybill - that now sits beside the order number.
         return $out . '</span>';
+    }
+
+    /**
+     * Put the waybill next to the order number in the document heading, small and quiet.
+     *
+     * @param string    $heading The heading HTML PIP built.
+     * @param string    $type    Document type.
+     * @param string    $action  'print' or 'send_email'.
+     * @param \WC_Order $order   The order.
+     * @return string
+     */
+    public function heading($heading, $type = '', $action = '', $order = null) {
+        if (!$order instanceof \WC_Order) { return $heading; }
+        $waybill = (string) $order->get_meta('_bgcouriers_waybill');
+        if ($waybill === '') { return $heading; }
+        /* translators: %s: waybill number, printed under the document number */
+        $line = '<div class="bgc-pip-wb">' . esc_html(sprintf(__('Waybill %s', 'bg-couriers'), $waybill)) . '</div>';
+        // After the heading element rather than inside it: the heading is centred and styled by PIP, and
+        // slipping markup inside its <h3> would inherit that size.
+        return $heading . $line;
     }
 
     /**
@@ -117,11 +132,12 @@ class BGCouriers_PIP {
      */
     public function print_styles(): void {
         echo '<style>'
-            . '.bgc-pip-logo{height:14px;width:auto;vertical-align:-2px;margin-right:5px;}'
+            // nowrap on the whole thing: the totals column is narrow, and without it the logo alone
+            // took a line and the courier name another.
+            . '.bgc-pip{white-space:nowrap;}'
+            . '.bgc-pip-logo{height:13px;width:auto;vertical-align:-2px;margin-right:4px;}'
             . '.bgc-pip-name{font-weight:700;}'
-            . '.bgc-pip-type{white-space:nowrap;}'
-            . '.bgc-pip-where{display:inline-block;margin-top:2px;}'
-            . '.bgc-pip-wb{display:inline-block;margin-top:2px;font-family:monospace;font-weight:700;}'
+            . '.bgc-pip-wb{margin-top:2px;text-align:center;font-size:11px;color:#555;letter-spacing:.02em;}'
             . '</style>';
     }
 }
