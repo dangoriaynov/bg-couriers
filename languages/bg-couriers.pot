@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: bg-couriers\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 00:50+0300\n"
+"POT-Creation-Date: 2026-08-05 00:25+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -397,7 +397,7 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:28
 #: includes/Admin/class-bgcouriers-order-metabox.php:190
-#: includes/Admin/class-bgcouriers-settings.php:442
+#: includes/Admin/class-bgcouriers-settings.php:470
 #: includes/Admin/class-bgcouriers-wc-settings.php:20
 #: includes/Checkout/class-bgcouriers-checkout.php:535
 #: includes/Checkout/class-bgcouriers-thankyou.php:95
@@ -407,7 +407,7 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:28
 #: includes/Admin/class-bgcouriers-order-metabox.php:190
-#: includes/Admin/class-bgcouriers-settings.php:443
+#: includes/Admin/class-bgcouriers-settings.php:471
 #: includes/Admin/class-bgcouriers-wc-settings.php:21
 #: includes/Checkout/class-bgcouriers-checkout.php:535
 #: includes/Checkout/class-bgcouriers-thankyou.php:95
@@ -417,7 +417,7 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:28
 #: includes/Admin/class-bgcouriers-order-metabox.php:190
-#: includes/Admin/class-bgcouriers-settings.php:444
+#: includes/Admin/class-bgcouriers-settings.php:472
 #: includes/Admin/class-bgcouriers-wc-settings.php:22
 #: includes/Checkout/class-bgcouriers-checkout.php:535
 #: includes/Checkout/class-bgcouriers-thankyou.php:95
@@ -498,7 +498,7 @@ msgid "Search…"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:208
-#: includes/Admin/class-bgcouriers-wc-settings.php:293
+#: includes/Admin/class-bgcouriers-wc-settings.php:337
 #: includes/Checkout/class-bgcouriers-checkout.php:538
 msgid "Close"
 msgstr ""
@@ -618,13 +618,13 @@ msgctxt "Order bulk action"
 msgid "Change status to shipped"
 msgstr ""
 
-#. translators: %s: waybill number, printed under the document number
-#: includes/Admin/class-bgcouriers-pip.php:126
+#. translators: %s: the document's date, appended to its title - "Invoice 6246 of 03/08/26"
+#: includes/Admin/class-bgcouriers-pip.php:148
 #, php-format
-msgid "Waybill %s"
+msgid "of %s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:353
+#: includes/Admin/class-bgcouriers-settings.php:356
 msgid ""
 "Sameday does not support “the recipient pays the delivery” on this account, "
 "so NO waybill can be created while it is set that way. Turn on “Delivery in "
@@ -632,14 +632,20 @@ msgid ""
 "contract."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:374
+#. translators: 1: what is missing, 2: how to fix it
+#: includes/Admin/class-bgcouriers-settings.php:389
+#, php-format
+msgid "%1$s %2$s Until this is resolved the courier cannot create waybills."
+msgstr ""
+
+#: includes/Admin/class-bgcouriers-settings.php:402
 msgid ""
 "This courier does not offer ППП. Because your Cash on delivery setting "
 "relies on the courier's ППП, it can be used here only for PREPAID orders - "
 "cash-on-delivery is turned off for it at checkout."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:376
+#: includes/Admin/class-bgcouriers-settings.php:404
 msgid ""
 "This courier does not offer ППП and your shop has no prepaid (card / bank "
 "transfer) payment method, so it cannot take cash-on-delivery and will NOT "
@@ -647,355 +653,355 @@ msgid ""
 "\"I have a cash register\"."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:439
+#: includes/Admin/class-bgcouriers-settings.php:467
 msgid "Drag to set the order couriers appear at checkout."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:448
+#: includes/Admin/class-bgcouriers-settings.php:476
 msgid "Drag to set the order delivery options appear at checkout."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:477
+#: includes/Admin/class-bgcouriers-settings.php:505
 msgid "Search your city..."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:478
+#: includes/Admin/class-bgcouriers-settings.php:506
 msgid "Pick the pickup office"
 msgstr ""
 
 #. translators: %d: pickup office id
-#: includes/Admin/class-bgcouriers-settings.php:497
+#: includes/Admin/class-bgcouriers-settings.php:525
 #, php-format
 msgid "Current pickup office (#%d)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:566
-#: includes/Admin/class-bgcouriers-settings.php:637
+#: includes/Admin/class-bgcouriers-settings.php:594
+#: includes/Admin/class-bgcouriers-settings.php:665
 msgid "This courier is currently unusable"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:566
-#: includes/Admin/class-bgcouriers-settings.php:637
+#: includes/Admin/class-bgcouriers-settings.php:594
+#: includes/Admin/class-bgcouriers-settings.php:665
 msgid "Cash on delivery is off for this courier"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:573
+#: includes/Admin/class-bgcouriers-settings.php:601
 msgid "COD risk scoring for WooCommerce"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:574
+#: includes/Admin/class-bgcouriers-settings.php:602
 msgid "in review"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:582
+#: includes/Admin/class-bgcouriers-settings.php:610
 msgid ""
 "Free shipping integration for the Bulgarian couriers, built and maintained "
 "by an independent developer."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:583
+#: includes/Admin/class-bgcouriers-settings.php:611
 msgid "My other free plugins"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:590
+#: includes/Admin/class-bgcouriers-settings.php:618
 msgid "Support the work"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:591
+#: includes/Admin/class-bgcouriers-settings.php:619
 msgid ""
 "These plugins are free. If they help your store, a small donation keeps more "
 "of them coming - thank you!"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:592
+#: includes/Admin/class-bgcouriers-settings.php:620
 msgid "Donate via Revolut"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:593
+#: includes/Admin/class-bgcouriers-settings.php:621
 msgid "Contact / feedback:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:608
-#: includes/Admin/class-bgcouriers-settings.php:648
+#: includes/Admin/class-bgcouriers-settings.php:636
+#: includes/Admin/class-bgcouriers-settings.php:676
 msgid "How do I get API credentials for this courier?"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:614
-#: includes/Admin/class-bgcouriers-settings.php:654
+#: includes/Admin/class-bgcouriers-settings.php:642
+#: includes/Admin/class-bgcouriers-settings.php:682
 msgid "You receive:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:620
-#: includes/Admin/class-bgcouriers-settings.php:660
+#: includes/Admin/class-bgcouriers-settings.php:648
+#: includes/Admin/class-bgcouriers-settings.php:688
 msgid ""
 "A courier can change its process - if a step differs, follow the courier's "
 "own instructions."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:669
+#: includes/Admin/class-bgcouriers-settings.php:697
 msgid ""
 "Speedy issues API access to registered business clients - there is no "
 "instant self-signup."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:671
+#: includes/Admin/class-bgcouriers-settings.php:699
 msgid "Have (or open) a Speedy business contract."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:672
+#: includes/Admin/class-bgcouriers-settings.php:700
 msgid ""
 "Request REST API access (ask for a test account first) from your Speedy "
 "account manager, or via the integration contact on the Speedy \"System "
 "integration\" page below."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:673
+#: includes/Admin/class-bgcouriers-settings.php:701
 msgid "Speedy issues an API username + password for api.speedy.bg."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:674
+#: includes/Admin/class-bgcouriers-settings.php:702
 msgid "Enter the username and password below, click Validate, then Sync."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:676
+#: includes/Admin/class-bgcouriers-settings.php:704
 msgid "API username + password"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:677
+#: includes/Admin/class-bgcouriers-settings.php:705
 msgid "Speedy system integration:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:682
+#: includes/Admin/class-bgcouriers-settings.php:710
 msgid ""
 "Econt's API uses your own e-Econt (\"Моят Еконт\") business account - there "
 "is no separate API key."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:684
+#: includes/Admin/class-bgcouriers-settings.php:712
 msgid "Register or open a business account in \"Моят Еконт\" at ee.econt.com."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:685
+#: includes/Admin/class-bgcouriers-settings.php:713
 msgid "Confirm with Econt that API access is enabled for your account."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:686
+#: includes/Admin/class-bgcouriers-settings.php:714
 msgid ""
 "Your API username is your account e-mail; the password is your account "
 "password."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:687
+#: includes/Admin/class-bgcouriers-settings.php:715
 msgid "Enter the e-mail and password below, click Validate, then Sync."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:689
+#: includes/Admin/class-bgcouriers-settings.php:717
 msgid "account e-mail (username) + password"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:690
+#: includes/Admin/class-bgcouriers-settings.php:718
 msgid "Моят Еконт:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:695
+#: includes/Admin/class-bgcouriers-settings.php:723
 msgid ""
 "Pigeon Express issues an API Key + Secret to business clients on request."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:697
+#: includes/Admin/class-bgcouriers-settings.php:725
 msgid ""
 "Contact Pigeon Express and request API access (e-mail "
 "support@pigeonexpress.com, or via pigeonexpress.com)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:698
+#: includes/Admin/class-bgcouriers-settings.php:726
 msgid ""
 "They issue an API Key + API Secret (production; ask for a sandbox/test key "
 "to test)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:699
+#: includes/Admin/class-bgcouriers-settings.php:727
 msgid ""
 "Ask them for your pickup office ID (the office you drop parcels off at)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:700
+#: includes/Admin/class-bgcouriers-settings.php:728
 msgid ""
 "Enter the Key, Secret and pickup office below, click Validate, then Sync. "
 "Tick \"Sandbox\" only for a test account."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:702
+#: includes/Admin/class-bgcouriers-settings.php:730
 msgid "API Key + API Secret (+ your pickup office ID)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:703
+#: includes/Admin/class-bgcouriers-settings.php:731
 msgid "Pigeon API docs:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:708
+#: includes/Admin/class-bgcouriers-settings.php:736
 msgid "BOX NOW issues OAuth2 credentials through its integration team."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:710
+#: includes/Admin/class-bgcouriers-settings.php:738
 msgid ""
 "E-mail integrationsupport@boxnow.bg with your company name, address, tax ID "
 "(ЕИК), contact details, and the phone numbers of the people who will use the "
 "Partner Portal (needed for OTP SMS login)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:711
+#: includes/Admin/class-bgcouriers-settings.php:739
 msgid ""
 "They issue your OAuth2 Client ID + Client Secret and confirm your Warehouse "
 "ID and Partner ID."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:712
+#: includes/Admin/class-bgcouriers-settings.php:740
 msgid ""
 "Enter the Client ID, Client Secret, Partner ID and Warehouse ID below; "
 "choose the Production environment (or Stage for testing)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:714
+#: includes/Admin/class-bgcouriers-settings.php:742
 msgid "OAuth2 Client ID + Client Secret (+ Partner ID, Warehouse ID)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:715
+#: includes/Admin/class-bgcouriers-settings.php:743
 msgid "BOX NOW:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:720
+#: includes/Admin/class-bgcouriers-settings.php:748
 msgid ""
 "Sameday issues API credentials (username + password) to clients after a "
 "business contract."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:722
+#: includes/Admin/class-bgcouriers-settings.php:750
 msgid ""
 "Sign a Sameday business contract (via sameday.bg or your Sameday account "
 "manager)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:723
+#: includes/Admin/class-bgcouriers-settings.php:751
 msgid "Request API / eAWB access; you receive a username + password."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:724
+#: includes/Admin/class-bgcouriers-settings.php:752
 msgid ""
 "Ask for your pickup-point ID and the service IDs for each delivery type "
 "(office / address / easyBox locker) from your contract."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:725
+#: includes/Admin/class-bgcouriers-settings.php:753
 msgid ""
 "Enter the username, password, pickup point and service IDs below; tick "
 "\"Sandbox\" to use the test environment (sameday-api.demo.zitec.com)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:727
+#: includes/Admin/class-bgcouriers-settings.php:755
 msgid "username + password (+ pickup point and per-type service IDs)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:728
+#: includes/Admin/class-bgcouriers-settings.php:756
 msgid "Sameday Bulgaria:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:776
-#: includes/Admin/class-bgcouriers-settings.php:882
+#: includes/Admin/class-bgcouriers-settings.php:815
+#: includes/Admin/class-bgcouriers-settings.php:921
 msgid "No credentials saved"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:786
-#: includes/Admin/class-bgcouriers-settings.php:821
-#: includes/Admin/class-bgcouriers-settings.php:850
+#: includes/Admin/class-bgcouriers-settings.php:825
+#: includes/Admin/class-bgcouriers-settings.php:860
+#: includes/Admin/class-bgcouriers-settings.php:889
 msgid "You are not allowed to do this."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:792
+#: includes/Admin/class-bgcouriers-settings.php:831
 msgid "Unknown courier."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:826
+#: includes/Admin/class-bgcouriers-settings.php:865
 msgid "This order has no waybill to track."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:829
-#: includes/Admin/class-bgcouriers-settings.php:836
+#: includes/Admin/class-bgcouriers-settings.php:868
+#: includes/Admin/class-bgcouriers-settings.php:875
 msgid "Tracking updated."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:852
+#: includes/Admin/class-bgcouriers-settings.php:891
 msgid "WooCommerce not available."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:864
+#: includes/Admin/class-bgcouriers-settings.php:903
 msgid "Settings unavailable."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:870
-#: includes/Admin/class-bgcouriers-wc-settings.php:142
+#: includes/Admin/class-bgcouriers-settings.php:909
+#: includes/Admin/class-bgcouriers-wc-settings.php:186
 msgid "Saved"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:898
+#: includes/Admin/class-bgcouriers-settings.php:937
 msgid "API check"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:900
+#: includes/Admin/class-bgcouriers-settings.php:939
 msgid "Validate credentials"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:901
+#: includes/Admin/class-bgcouriers-settings.php:940
 msgid "Sync now"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:904
+#: includes/Admin/class-bgcouriers-settings.php:943
 msgid ""
 "Enter and save your API username and password, then Validate / Sync appear "
 "here."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:909
+#: includes/Admin/class-bgcouriers-settings.php:948
 msgid "Validating…"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:910
+#: includes/Admin/class-bgcouriers-settings.php:949
 msgid "Syncing… this can take a moment"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:911
+#: includes/Admin/class-bgcouriers-settings.php:950
 msgid "Credentials valid"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:912
+#: includes/Admin/class-bgcouriers-settings.php:951
 msgid "Invalid credentials"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:913
+#: includes/Admin/class-bgcouriers-settings.php:952
 msgid "cities"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:914
+#: includes/Admin/class-bgcouriers-settings.php:953
 msgid "offices"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:915
+#: includes/Admin/class-bgcouriers-settings.php:954
 msgid "rates"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:916
+#: includes/Admin/class-bgcouriers-settings.php:955
 msgid "Request failed"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:917
+#: includes/Admin/class-bgcouriers-settings.php:956
 msgid "Change credentials"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:918
+#: includes/Admin/class-bgcouriers-settings.php:957
 msgid "Save your changes first, then validate."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-settings.php:969
+#: includes/Admin/class-bgcouriers-settings.php:1008
 msgid "Settings"
 msgstr ""
 
@@ -1055,79 +1061,79 @@ msgstr ""
 msgid "About"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:143
+#: includes/Admin/class-bgcouriers-wc-settings.php:187
 msgid "Could not save - please try again."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:239
+#: includes/Admin/class-bgcouriers-wc-settings.php:283
 msgid "Update tracking now"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:240
+#: includes/Admin/class-bgcouriers-wc-settings.php:284
 msgid "Tracking updated"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:241
+#: includes/Admin/class-bgcouriers-wc-settings.php:285
 msgid "Could not update - please try again."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:276
+#: includes/Admin/class-bgcouriers-wc-settings.php:320
 msgid "enabled"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:277
+#: includes/Admin/class-bgcouriers-wc-settings.php:321
 msgid "disabled"
 msgstr ""
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgcouriers-wc-settings.php:290
+#: includes/Admin/class-bgcouriers-wc-settings.php:334
 #, php-format
 msgid "“%s” can’t be enabled yet"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:291
+#: includes/Admin/class-bgcouriers-wc-settings.php:335
 msgid "Please fix the following, then enable it again:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:292
+#: includes/Admin/class-bgcouriers-wc-settings.php:336
 msgid "How to fix:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:370
+#: includes/Admin/class-bgcouriers-wc-settings.php:414
 msgid "Automatic (first / cheapest)"
 msgstr ""
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgcouriers-wc-settings.php:378
+#: includes/Admin/class-bgcouriers-wc-settings.php:422
 #, php-format
 msgid "%s row colour"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:384
+#: includes/Admin/class-bgcouriers-wc-settings.php:428
 msgid "Checkout"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:385
+#: includes/Admin/class-bgcouriers-wc-settings.php:429
 msgid ""
 "How the checkout delivery picker behaves. Reorder couriers by dragging their "
 "tabs above; prices show in the store currency."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:386
+#: includes/Admin/class-bgcouriers-wc-settings.php:430
 msgid "Default courier"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:387
+#: includes/Admin/class-bgcouriers-wc-settings.php:431
 msgid ""
 "Which courier is pre-selected at checkout (its first delivery option is the "
 "default)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:389
+#: includes/Admin/class-bgcouriers-wc-settings.php:433
 msgid "Checkout dropdown results"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:390
+#: includes/Admin/class-bgcouriers-wc-settings.php:434
 msgid ""
 "How many matches the city and street searches return. Office lists are never "
 "limited - the whole list for the chosen city is loaded. Raise it if "
@@ -1135,21 +1141,21 @@ msgid ""
 "keystroke slower on phones."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:392
+#: includes/Admin/class-bgcouriers-wc-settings.php:436
 msgid "Preload city lists"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:393
+#: includes/Admin/class-bgcouriers-wc-settings.php:437
 msgid ""
 "Embed each courier’s office/APS city list so those dropdowns open instantly. "
 "Address search stays live. Recommended."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:394
+#: includes/Admin/class-bgcouriers-wc-settings.php:438
 msgid "Address map picker"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:395
+#: includes/Admin/class-bgcouriers-wc-settings.php:439
 msgid ""
 "Adds a “Choose on map” pin picker to address delivery that fills the address "
 "automatically. When a customer drops a pin, its coordinates are sent to "
@@ -1157,69 +1163,69 @@ msgid ""
 "address. Off by default."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:396
+#: includes/Admin/class-bgcouriers-wc-settings.php:440
 msgid "Google Maps API key (optional)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:397
+#: includes/Admin/class-bgcouriers-wc-settings.php:441
 msgid ""
 "Optional Google Maps API key for better maps and address lookup (empty = "
 "free OpenStreetMap). Needs “Maps JavaScript API” + “Geocoding API”."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:399
+#: includes/Admin/class-bgcouriers-wc-settings.php:443
 msgid "Hide \"Country\" field"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:400
+#: includes/Admin/class-bgcouriers-wc-settings.php:444
 msgid "Hidden checkout fields (CSS selectors)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:401
+#: includes/Admin/class-bgcouriers-wc-settings.php:445
 msgid ""
 "Comma-separated CSS selectors to hide on checkout (e.g. "
 "#billing_company_field, .cart-subtotal)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:406
+#: includes/Admin/class-bgcouriers-wc-settings.php:450
 msgid "Prices & display"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:407
+#: includes/Admin/class-bgcouriers-wc-settings.php:451
 msgid "Enable 2 currencies"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:408
+#: includes/Admin/class-bgcouriers-wc-settings.php:452
 msgid ""
 "Also show delivery prices in BGN (лв.) next to the store currency. Fixed "
 "rate 1 EUR = 1.95583 BGN."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:409
+#: includes/Admin/class-bgcouriers-wc-settings.php:453
 msgid "Shipping estimate on the cart"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:410
+#: includes/Admin/class-bgcouriers-wc-settings.php:454
 msgid ""
 "On the cart page, show a rough cached shipping price per courier/option (the "
 "exact price is calculated at checkout). Off by default."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:411
+#: includes/Admin/class-bgcouriers-wc-settings.php:455
 msgid "Free shipping label"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:412
+#: includes/Admin/class-bgcouriers-wc-settings.php:456
 msgid ""
 "Text shown for the shipping price when a method is free (e.g. “Free "
 "shipping”)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:416
+#: includes/Admin/class-bgcouriers-wc-settings.php:460
 msgid "Orders list"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:417
+#: includes/Admin/class-bgcouriers-wc-settings.php:461
 msgid ""
 "Colour each order row by its courier, so the mix of couriers in the list is "
 "readable at a glance. Pick a normal, saturated colour - the row is painted "
@@ -1227,71 +1233,71 @@ msgid ""
 "leave that courier untinted."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:418
+#: includes/Admin/class-bgcouriers-wc-settings.php:462
 msgid "Colour orders by courier"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:419
+#: includes/Admin/class-bgcouriers-wc-settings.php:463
 msgid "Tint each row in the orders list with its courier’s colour."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:423
-#: includes/Admin/class-bgcouriers-wc-settings.php:600
+#: includes/Admin/class-bgcouriers-wc-settings.php:467
+#: includes/Admin/class-bgcouriers-wc-settings.php:644
 msgid "Cash on delivery (наложен платеж)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:424
+#: includes/Admin/class-bgcouriers-wc-settings.php:468
 msgid ""
 "How you fiscalise collected COD. With ППП (no cash register), a courier that "
 "lacks ППП needs prepayment at checkout (or is hidden). Enable ППП per "
 "courier on its tab."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:425
+#: includes/Admin/class-bgcouriers-wc-settings.php:469
 msgid "COD fiscalisation"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:427
+#: includes/Admin/class-bgcouriers-wc-settings.php:471
 msgid "I issue the receipt myself (I have a cash register)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:428
+#: includes/Admin/class-bgcouriers-wc-settings.php:472
 msgid "I rely on the courier's postal money transfer / ППП (no cash register)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:433
+#: includes/Admin/class-bgcouriers-wc-settings.php:477
 msgid "Label generation"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:435
+#: includes/Admin/class-bgcouriers-wc-settings.php:479
 msgid "Auto-generate labels"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:436
+#: includes/Admin/class-bgcouriers-wc-settings.php:480
 msgid ""
 "Automatically generate a shipping label when an order reaches the status "
 "below."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:437
+#: includes/Admin/class-bgcouriers-wc-settings.php:481
 msgid "Trigger status"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:440
+#: includes/Admin/class-bgcouriers-wc-settings.php:484
 msgid "Share customer email with courier"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:441
+#: includes/Admin/class-bgcouriers-wc-settings.php:485
 msgid ""
 "Put the customer’s e-mail on the shipment for courier notifications, when "
 "provided."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:443
+#: includes/Admin/class-bgcouriers-wc-settings.php:487
 msgid "Re-issue the waybill when the order changes"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:444
+#: includes/Admin/class-bgcouriers-wc-settings.php:488
 msgid ""
 "If an order that already has a waybill is edited in a way the courier needs "
 "to know about - the delivery address, the contents, the weight or the amount "
@@ -1299,229 +1305,229 @@ msgid ""
 "affect the shipment (status, notes) never trigger it."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:446
+#: includes/Admin/class-bgcouriers-wc-settings.php:490
 msgid "Shipment contents (description)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:447
+#: includes/Admin/class-bgcouriers-wc-settings.php:491
 msgid ""
 "Short description of the parcel contents, printed on every courier's waybill "
 "(e.g. “Хранителни добавки”). Empty = a generic value."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:449
+#: includes/Admin/class-bgcouriers-wc-settings.php:493
 msgid "Default parcel length (cm)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:450
-#: includes/Admin/class-bgcouriers-wc-settings.php:453
-#: includes/Admin/class-bgcouriers-wc-settings.php:456
+#: includes/Admin/class-bgcouriers-wc-settings.php:494
+#: includes/Admin/class-bgcouriers-wc-settings.php:497
+#: includes/Admin/class-bgcouriers-wc-settings.php:500
 msgid ""
 "Default parcel size sent to every courier whose API takes dimensions (a "
 "locker parcel must fit its box), used when an order has none of its own."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:452
+#: includes/Admin/class-bgcouriers-wc-settings.php:496
 msgid "Default parcel width (cm)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:455
+#: includes/Admin/class-bgcouriers-wc-settings.php:499
 msgid "Default parcel height (cm)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:458
+#: includes/Admin/class-bgcouriers-wc-settings.php:502
 msgid "Default parcel weight (kg)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:459
+#: includes/Admin/class-bgcouriers-wc-settings.php:503
 msgid ""
 "Weight declared on the waybill when none of the ordered products has a "
 "weight set. Set weights on your products to have the real weight sent "
 "instead."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:463
+#: includes/Admin/class-bgcouriers-wc-settings.php:507
 msgid "Shipment tracking"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:464
+#: includes/Admin/class-bgcouriers-wc-settings.php:508
 msgid ""
 "Poll couriers for tracking updates and note them on the order (BOX NOW uses "
 "its webhook). Only active shipments from the last 45 days."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:465
+#: includes/Admin/class-bgcouriers-wc-settings.php:509
 msgid "Auto-update tracking"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:467
+#: includes/Admin/class-bgcouriers-wc-settings.php:511
 msgid "Off"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:468
+#: includes/Admin/class-bgcouriers-wc-settings.php:512
 msgid "Every 30 minutes"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:469
+#: includes/Admin/class-bgcouriers-wc-settings.php:513
 msgid "Hourly"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:470
+#: includes/Admin/class-bgcouriers-wc-settings.php:514
 msgid "4 times a day"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:471
+#: includes/Admin/class-bgcouriers-wc-settings.php:515
 msgid "Twice a day"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:472
+#: includes/Admin/class-bgcouriers-wc-settings.php:516
 msgid "Once a day"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:475
+#: includes/Admin/class-bgcouriers-wc-settings.php:519
 msgid "On pickup, set order to"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:476
+#: includes/Admin/class-bgcouriers-wc-settings.php:520
 msgid ""
 "Optionally move the order to this status once tracking shows the courier has "
 "actually taken the parcel - not when the waybill is created. Off by default. "
 "The plugin adds a “Shipped” status for exactly this."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:477
-#: includes/Admin/class-bgcouriers-wc-settings.php:481
-#: includes/Admin/class-bgcouriers-wc-settings.php:485
+#: includes/Admin/class-bgcouriers-wc-settings.php:521
+#: includes/Admin/class-bgcouriers-wc-settings.php:525
+#: includes/Admin/class-bgcouriers-wc-settings.php:529
 msgid "Do not change (note only)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:479
+#: includes/Admin/class-bgcouriers-wc-settings.php:523
 msgid "On return, set order to"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:480
+#: includes/Admin/class-bgcouriers-wc-settings.php:524
 msgid ""
 "Optionally move the order to this status once the refused parcel is back "
 "WITH YOU - not while it is travelling back. Cancelling is the usual choice: "
 "it puts the goods back into stock."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:483
+#: includes/Admin/class-bgcouriers-wc-settings.php:527
 msgid "On delivery, set order to"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:484
+#: includes/Admin/class-bgcouriers-wc-settings.php:528
 msgid ""
 "Optionally move the order to this status when tracking reports delivery. “Do "
 "not change” only adds a note."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:489
+#: includes/Admin/class-bgcouriers-wc-settings.php:533
 msgid "Emergency contact"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:490
+#: includes/Admin/class-bgcouriers-wc-settings.php:534
 msgid ""
 "After repeated failed checkout attempts, show a one-time help box with a "
 "phone link. Empty phone = disabled."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:491
+#: includes/Admin/class-bgcouriers-wc-settings.php:535
 msgid "Help phone number"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:493
+#: includes/Admin/class-bgcouriers-wc-settings.php:537
 msgid "Help message"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:494
+#: includes/Admin/class-bgcouriers-wc-settings.php:538
 msgid "Shown above the phone link. Leave empty for a default message."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:505
+#: includes/Admin/class-bgcouriers-wc-settings.php:549
 msgid "Enable Speedy"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:506
-#: includes/Admin/class-bgcouriers-wc-settings.php:567
+#: includes/Admin/class-bgcouriers-wc-settings.php:550
+#: includes/Admin/class-bgcouriers-wc-settings.php:611
 msgid "API username"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:507
-#: includes/Admin/class-bgcouriers-wc-settings.php:509
-#: includes/Admin/class-bgcouriers-wc-settings.php:569
-#: includes/Admin/class-bgcouriers-wc-settings.php:623
-#: includes/Admin/class-bgcouriers-wc-settings.php:625
-#: includes/Admin/class-bgcouriers-wc-settings.php:663
-#: includes/Admin/class-bgcouriers-wc-settings.php:665
-#: includes/Admin/class-bgcouriers-wc-settings.php:703
-#: includes/Admin/class-bgcouriers-wc-settings.php:705
+#: includes/Admin/class-bgcouriers-wc-settings.php:551
+#: includes/Admin/class-bgcouriers-wc-settings.php:553
+#: includes/Admin/class-bgcouriers-wc-settings.php:613
+#: includes/Admin/class-bgcouriers-wc-settings.php:667
+#: includes/Admin/class-bgcouriers-wc-settings.php:669
+#: includes/Admin/class-bgcouriers-wc-settings.php:707
+#: includes/Admin/class-bgcouriers-wc-settings.php:709
+#: includes/Admin/class-bgcouriers-wc-settings.php:747
+#: includes/Admin/class-bgcouriers-wc-settings.php:749
 msgid "leave blank to keep"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:508
-#: includes/Admin/class-bgcouriers-wc-settings.php:568
+#: includes/Admin/class-bgcouriers-wc-settings.php:552
+#: includes/Admin/class-bgcouriers-wc-settings.php:612
 msgid "API password"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:513
-#: includes/Admin/class-bgcouriers-wc-settings.php:573
-#: includes/Admin/class-bgcouriers-wc-settings.php:632
-#: includes/Admin/class-bgcouriers-wc-settings.php:672
+#: includes/Admin/class-bgcouriers-wc-settings.php:557
+#: includes/Admin/class-bgcouriers-wc-settings.php:617
+#: includes/Admin/class-bgcouriers-wc-settings.php:676
 #: includes/Admin/class-bgcouriers-wc-settings.php:716
+#: includes/Admin/class-bgcouriers-wc-settings.php:760
 msgid "Delivery & label"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:514
-#: includes/Admin/class-bgcouriers-wc-settings.php:676
+#: includes/Admin/class-bgcouriers-wc-settings.php:558
+#: includes/Admin/class-bgcouriers-wc-settings.php:720
 msgid "Label paper size"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:515
-#: includes/Admin/class-bgcouriers-wc-settings.php:677
+#: includes/Admin/class-bgcouriers-wc-settings.php:559
+#: includes/Admin/class-bgcouriers-wc-settings.php:721
 msgid "A6 (label printer)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:515
-#: includes/Admin/class-bgcouriers-wc-settings.php:677
+#: includes/Admin/class-bgcouriers-wc-settings.php:559
+#: includes/Admin/class-bgcouriers-wc-settings.php:721
 msgid "A4 (office printer)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:517
+#: includes/Admin/class-bgcouriers-wc-settings.php:561
 msgid "Package type"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:519
+#: includes/Admin/class-bgcouriers-wc-settings.php:563
 msgid "Box"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:520
+#: includes/Admin/class-bgcouriers-wc-settings.php:564
 msgid "Envelope"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:521
+#: includes/Admin/class-bgcouriers-wc-settings.php:565
 msgid "Pallet"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:526
-#: includes/Admin/class-bgcouriers-wc-settings.php:583
-#: includes/Admin/class-bgcouriers-wc-settings.php:638
-#: includes/Admin/class-bgcouriers-wc-settings.php:680
+#: includes/Admin/class-bgcouriers-wc-settings.php:570
+#: includes/Admin/class-bgcouriers-wc-settings.php:627
+#: includes/Admin/class-bgcouriers-wc-settings.php:682
 #: includes/Admin/class-bgcouriers-wc-settings.php:724
+#: includes/Admin/class-bgcouriers-wc-settings.php:768
 msgid "Pricing"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:527
-#: includes/Admin/class-bgcouriers-wc-settings.php:584
-#: includes/Admin/class-bgcouriers-wc-settings.php:639
-#: includes/Admin/class-bgcouriers-wc-settings.php:681
+#: includes/Admin/class-bgcouriers-wc-settings.php:571
+#: includes/Admin/class-bgcouriers-wc-settings.php:628
+#: includes/Admin/class-bgcouriers-wc-settings.php:683
+#: includes/Admin/class-bgcouriers-wc-settings.php:725
 msgid "Delivery in the order total"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:528
-#: includes/Admin/class-bgcouriers-wc-settings.php:585
-#: includes/Admin/class-bgcouriers-wc-settings.php:640
-#: includes/Admin/class-bgcouriers-wc-settings.php:682
+#: includes/Admin/class-bgcouriers-wc-settings.php:572
+#: includes/Admin/class-bgcouriers-wc-settings.php:629
+#: includes/Admin/class-bgcouriers-wc-settings.php:684
+#: includes/Admin/class-bgcouriers-wc-settings.php:726
 msgid ""
 "On: the customer pays delivery together with the order. Off: delivery is not "
 "charged at checkout - the estimated price is shown for information and the "
@@ -1529,37 +1535,37 @@ msgid ""
 "the goods total."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:530
-#: includes/Admin/class-bgcouriers-wc-settings.php:587
-#: includes/Admin/class-bgcouriers-wc-settings.php:642
-#: includes/Admin/class-bgcouriers-wc-settings.php:684
-#: includes/Admin/class-bgcouriers-wc-settings.php:727
-#: includes/Admin/class-bgcouriers-wc-settings.php:760
+#: includes/Admin/class-bgcouriers-wc-settings.php:574
+#: includes/Admin/class-bgcouriers-wc-settings.php:631
+#: includes/Admin/class-bgcouriers-wc-settings.php:686
+#: includes/Admin/class-bgcouriers-wc-settings.php:728
+#: includes/Admin/class-bgcouriers-wc-settings.php:771
+#: includes/Admin/class-bgcouriers-wc-settings.php:804
 msgid "Free-shipping threshold"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:531
+#: includes/Admin/class-bgcouriers-wc-settings.php:575
 msgid ""
 "Ship Speedy free above this goods total (excluding shipping). Set here it "
 "applies to ALL delivery options (their own thresholds become inactive); "
 "leave empty to set thresholds per delivery option. Store currency."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:534
-#: includes/Admin/class-bgcouriers-wc-settings.php:591
-#: includes/Admin/class-bgcouriers-wc-settings.php:646
-#: includes/Admin/class-bgcouriers-wc-settings.php:688
-#: includes/Admin/class-bgcouriers-wc-settings.php:731
+#: includes/Admin/class-bgcouriers-wc-settings.php:578
+#: includes/Admin/class-bgcouriers-wc-settings.php:635
+#: includes/Admin/class-bgcouriers-wc-settings.php:690
+#: includes/Admin/class-bgcouriers-wc-settings.php:732
+#: includes/Admin/class-bgcouriers-wc-settings.php:775
 msgid "Cash on delivery"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:535
-#: includes/Admin/class-bgcouriers-wc-settings.php:592
+#: includes/Admin/class-bgcouriers-wc-settings.php:579
+#: includes/Admin/class-bgcouriers-wc-settings.php:636
 msgid "Open before payment"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:536
-#: includes/Admin/class-bgcouriers-wc-settings.php:593
+#: includes/Admin/class-bgcouriers-wc-settings.php:580
+#: includes/Admin/class-bgcouriers-wc-settings.php:637
 msgid ""
 "What the recipient may do before paying. ONE setting for the whole shop, "
 "shown here because Speedy and Econt are the couriers that offer it - "
@@ -1568,330 +1574,330 @@ msgid ""
 "there is nobody there to supervise."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:538
-#: includes/Admin/class-bgcouriers-wc-settings.php:595
+#: includes/Admin/class-bgcouriers-wc-settings.php:582
+#: includes/Admin/class-bgcouriers-wc-settings.php:639
 msgid "Not allowed"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:539
-#: includes/Admin/class-bgcouriers-wc-settings.php:596
+#: includes/Admin/class-bgcouriers-wc-settings.php:583
+#: includes/Admin/class-bgcouriers-wc-settings.php:640
 msgid "May open and look"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:540
-#: includes/Admin/class-bgcouriers-wc-settings.php:597
+#: includes/Admin/class-bgcouriers-wc-settings.php:584
+#: includes/Admin/class-bgcouriers-wc-settings.php:641
 msgid "May open and test"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:543
-#: includes/Admin/class-bgcouriers-wc-settings.php:610
-#: includes/Admin/class-bgcouriers-wc-settings.php:647
-#: includes/Admin/class-bgcouriers-wc-settings.php:689
-#: includes/Admin/class-bgcouriers-wc-settings.php:732
+#: includes/Admin/class-bgcouriers-wc-settings.php:587
+#: includes/Admin/class-bgcouriers-wc-settings.php:654
+#: includes/Admin/class-bgcouriers-wc-settings.php:691
+#: includes/Admin/class-bgcouriers-wc-settings.php:733
+#: includes/Admin/class-bgcouriers-wc-settings.php:776
 msgid "COD payout via ППП"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:544
+#: includes/Admin/class-bgcouriers-wc-settings.php:588
 msgid ""
 "Enable if your Speedy contract pays COD out via ППП (пощенски паричен "
 "превод) - lets you accept COD with no cash register."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:551
+#: includes/Admin/class-bgcouriers-wc-settings.php:595
 msgid "- none (COD off) -"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:552
+#: includes/Admin/class-bgcouriers-wc-settings.php:596
 msgid "- automatic (first profile address) -"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:566
+#: includes/Admin/class-bgcouriers-wc-settings.php:610
 msgid "Enable Econt"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:574
+#: includes/Admin/class-bgcouriers-wc-settings.php:618
 msgid "Ship-from address"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:575
+#: includes/Admin/class-bgcouriers-wc-settings.php:619
 msgid ""
 "The ship-from address on the waybill (from your Econt profile). Automatic = "
 "the first profile address."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:577
+#: includes/Admin/class-bgcouriers-wc-settings.php:621
 msgid "Label format"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:578
+#: includes/Admin/class-bgcouriers-wc-settings.php:622
 msgid ""
 "Econt labels are A4-landscape only (fixed by its API). The bulk “Print A4” "
 "packs several per sheet without scaling."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:579
+#: includes/Admin/class-bgcouriers-wc-settings.php:623
 msgid "A4-landscape (fixed by Econt)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:588
+#: includes/Admin/class-bgcouriers-wc-settings.php:632
 msgid ""
 "Ship Econt free above this goods total (excluding shipping). Set here it "
 "applies to ALL delivery options (their own thresholds become inactive); "
 "leave empty to set thresholds per delivery option. Store currency."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:601
+#: includes/Admin/class-bgcouriers-wc-settings.php:645
 msgid ""
 "Attach наложен платеж (full total + packing list) to every COD Econt order, "
 "paid out via the agreement below. Prepaid orders are never charged again."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:602
+#: includes/Admin/class-bgcouriers-wc-settings.php:646
 msgid "CD pay-out agreement"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:603
+#: includes/Admin/class-bgcouriers-wc-settings.php:647
 msgid "The наложен платеж pay-out agreement (from your Econt profile)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:605
+#: includes/Admin/class-bgcouriers-wc-settings.php:649
 msgid "SMS notification"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:606
+#: includes/Admin/class-bgcouriers-wc-settings.php:650
 msgid "Send the recipient an SMS notification."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:607
+#: includes/Admin/class-bgcouriers-wc-settings.php:651
 msgid "E-mail on delivery"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:608
+#: includes/Admin/class-bgcouriers-wc-settings.php:652
 msgid ""
 "Notify this e-mail when the shipment is delivered (leave empty to disable)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:611
+#: includes/Admin/class-bgcouriers-wc-settings.php:655
 msgid ""
 "Enable if your Econt pay-out agreement above is ППП (пощенски паричен "
 "превод) - lets you accept COD with no cash register."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:621
+#: includes/Admin/class-bgcouriers-wc-settings.php:665
 msgid "Enable Pigeon Express"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:622
+#: includes/Admin/class-bgcouriers-wc-settings.php:666
 msgid "API Key"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:624
+#: includes/Admin/class-bgcouriers-wc-settings.php:668
 msgid "API Secret"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:627
-#: includes/Admin/class-bgcouriers-wc-settings.php:667
-#: includes/Admin/class-bgcouriers-wc-settings.php:707
+#: includes/Admin/class-bgcouriers-wc-settings.php:671
+#: includes/Admin/class-bgcouriers-wc-settings.php:711
+#: includes/Admin/class-bgcouriers-wc-settings.php:751
 msgid "Live mode"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:628
+#: includes/Admin/class-bgcouriers-wc-settings.php:672
 msgid ""
 "On = the live Pigeon production account. Off = the demo/test API (api-"
 "demo.pigeonexpress.com) with test credentials."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:634
+#: includes/Admin/class-bgcouriers-wc-settings.php:678
 msgid "Pickup office"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:635
+#: includes/Admin/class-bgcouriers-wc-settings.php:679
 msgid ""
 "The Pigeon office you drop parcels at. Search your city, then pick the "
 "office."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:643
+#: includes/Admin/class-bgcouriers-wc-settings.php:687
 msgid ""
 "Ship Pigeon free above this goods total (excluding shipping). Set here it "
 "applies to ALL delivery options (their own thresholds become inactive); "
 "leave empty to set thresholds per delivery option. Store currency."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:648
+#: includes/Admin/class-bgcouriers-wc-settings.php:692
 msgid ""
 "Enable if your Pigeon contract pays COD out via ППП (пощенски паричен "
 "превод). Off = COD needs your own cash register."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:660
+#: includes/Admin/class-bgcouriers-wc-settings.php:704
 msgid "Enable Sameday"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:661
+#: includes/Admin/class-bgcouriers-wc-settings.php:705
 msgid "Username"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:662
+#: includes/Admin/class-bgcouriers-wc-settings.php:706
 msgid "Sameday API username (X-Auth-Username)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:664
+#: includes/Admin/class-bgcouriers-wc-settings.php:708
 msgid "Password"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:668
+#: includes/Admin/class-bgcouriers-wc-settings.php:712
 msgid ""
 "On = the live Sameday account. Off = the demo/test API (sameday-"
 "api.demo.zitec.com)."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:673
+#: includes/Admin/class-bgcouriers-wc-settings.php:717
 msgid "Pickup point ID (optional)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:674
+#: includes/Admin/class-bgcouriers-wc-settings.php:718
 msgid ""
 "Leave empty to ship from your Sameday account's default pickup point; enter "
 "an ID only to use a different one. Delivery services (24H / locker / PUDO) "
 "are discovered from your account automatically."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:685
+#: includes/Admin/class-bgcouriers-wc-settings.php:729
 msgid ""
 "Ship Sameday free above this goods total (excluding shipping). Set here it "
 "applies to ALL delivery options (their own thresholds become inactive); "
 "leave empty to set thresholds per delivery option. Store currency."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:690
+#: includes/Admin/class-bgcouriers-wc-settings.php:734
 msgid ""
 "Enable if your Sameday contract pays COD out via ППП (пощенски паричен "
 "превод). Off = COD needs your own cash register."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:701
+#: includes/Admin/class-bgcouriers-wc-settings.php:745
 msgid "Enable BOX NOW"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:702
+#: includes/Admin/class-bgcouriers-wc-settings.php:746
 msgid "Client ID"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:704
+#: includes/Admin/class-bgcouriers-wc-settings.php:748
 msgid "Client secret"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:708
+#: includes/Admin/class-bgcouriers-wc-settings.php:752
 msgid ""
 "On = the live BOX NOW production account. Off = the stage/test API (api-"
 "stage.boxnow.bg) with test credentials."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:710
+#: includes/Admin/class-bgcouriers-wc-settings.php:754
 msgid "Partner ID"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:711
+#: includes/Admin/class-bgcouriers-wc-settings.php:755
 msgid "Webhook secret"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:712
+#: includes/Admin/class-bgcouriers-wc-settings.php:756
 msgid ""
 "You receive it after you register this webhook URL in your BOX NOW account:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:717
+#: includes/Admin/class-bgcouriers-wc-settings.php:761
 msgid "Pickup location ID"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:718
+#: includes/Admin/class-bgcouriers-wc-settings.php:762
 msgid ""
 "Your BOX NOW origin/pickup ID (where parcels ship FROM, not the customer’s "
 "locker). From your BOX NOW partner account."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:719
+#: includes/Admin/class-bgcouriers-wc-settings.php:763
 msgid "Sender contact phone"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:720
+#: includes/Admin/class-bgcouriers-wc-settings.php:764
 msgid ""
 "Your contact phone for the pickup/origin, printed on the parcel. Leave empty "
 "to omit."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:721
+#: includes/Admin/class-bgcouriers-wc-settings.php:765
 msgid "Allow returns"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:725
-#: includes/Admin/class-bgcouriers-wc-settings.php:756
+#: includes/Admin/class-bgcouriers-wc-settings.php:769
+#: includes/Admin/class-bgcouriers-wc-settings.php:800
 msgid "Delivery price"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:726
+#: includes/Admin/class-bgcouriers-wc-settings.php:770
 msgid "Flat BOX NOW locker price (no live rate API). Store currency."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:728
+#: includes/Admin/class-bgcouriers-wc-settings.php:772
 msgid ""
 "Ship BOX NOW free above this goods total (excluding shipping). Empty or 0 "
 "disables. Store currency."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:733
+#: includes/Admin/class-bgcouriers-wc-settings.php:777
 msgid ""
 "Enable if your BOX NOW contract pays COD out via ППП. BOX NOW has no ППП "
 "today, so leave off - COD then needs your own cash register."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:747
+#: includes/Admin/class-bgcouriers-wc-settings.php:791
 msgid ""
 "Live price only - no fixed default (show the cached price until the address "
 "is chosen)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:748
+#: includes/Admin/class-bgcouriers-wc-settings.php:792
 msgid "Live price, use the fixed price below only if the API is unavailable"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:749
+#: includes/Admin/class-bgcouriers-wc-settings.php:793
 msgid "Always the fixed price below - no live API calls at checkout"
 msgstr ""
 
 #. translators: shown when the courier has no price API at all
-#: includes/Admin/class-bgcouriers-wc-settings.php:752
+#: includes/Admin/class-bgcouriers-wc-settings.php:796
 msgid "Always the fixed price below - this courier publishes no live prices"
 msgstr ""
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgcouriers-wc-settings.php:755
+#: includes/Admin/class-bgcouriers-wc-settings.php:799
 #, php-format
 msgid "Enable “%s”"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:758
+#: includes/Admin/class-bgcouriers-wc-settings.php:802
 msgid "Fixed / default price"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:759
+#: includes/Admin/class-bgcouriers-wc-settings.php:803
 msgid ""
 "Used by the “fixed” and “fallback” delivery-price modes above. In the store "
 "currency."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:761
+#: includes/Admin/class-bgcouriers-wc-settings.php:805
 msgid ""
 "Free delivery for THIS option above this goods total (excluding shipping). "
 "Applies only while the courier-level threshold is empty; empty or 0 disables."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:767
+#: includes/Admin/class-bgcouriers-wc-settings.php:811
 msgid "Card payment for COD"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:768
+#: includes/Admin/class-bgcouriers-wc-settings.php:812
 msgid ""
 "Let the customer pay the cash-on-delivery amount by card at handover (your "
 "Speedy account default). Off explicitly forbids card payment for this "
@@ -2102,11 +2108,11 @@ msgstr ""
 msgid "Enter the username/key and password/secret, then click “Save changes”."
 msgstr ""
 
-#: includes/Couriers/abstract-bgcouriers-courier.php:56
+#: includes/Couriers/abstract-bgcouriers-courier.php:62
 msgid "The API credentials have not been validated."
 msgstr ""
 
-#: includes/Couriers/abstract-bgcouriers-courier.php:57
+#: includes/Couriers/abstract-bgcouriers-courier.php:63
 msgid "Click “Validate credentials” and make sure the check succeeds."
 msgstr ""
 
@@ -2170,12 +2176,50 @@ msgstr ""
 msgid "Enter the origin Warehouse ID parcels ship from (from BOX NOW)."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow.php:41
+#: includes/Couriers/class-bgcouriers-boxnow.php:44
+msgid "No sender phone is set."
+msgstr ""
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:45
+msgid ""
+"Enter the merchant contact phone below - BOX NOW rejects every shipment "
+"without one."
+msgstr ""
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:49
+msgid "The sender phone is not a usable number."
+msgstr ""
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:50
+msgid "Enter a full mobile number, e.g. +359888123456 or 0888123456."
+msgstr ""
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:55
 msgid "The flat delivery price is not set."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow.php:42
+#: includes/Couriers/class-bgcouriers-boxnow.php:56
 msgid "Enter a “Delivery price” greater than 0 - BOX NOW has no live rate API."
+msgstr ""
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:180
+msgid ""
+"This order has no usable phone number for the recipient, and BOX NOW rejects "
+"a shipment without one."
+msgstr ""
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:183
+msgid ""
+"No sender phone is set for BOX NOW. Enter it in the BOX NOW settings - BOX "
+"NOW rejects a shipment without one."
+msgstr ""
+
+#. translators: %s: order number
+#. translators: %s: order number, printed on the waybill as the sender's reference
+#: includes/Couriers/class-bgcouriers-boxnow.php:240
+#: includes/Couriers/class-bgcouriers-speedy.php:276
+#, php-format
+msgid "Order %s"
 msgstr ""
 
 #: includes/Couriers/class-bgcouriers-econt.php:24
@@ -2298,17 +2342,11 @@ msgid ""
 msgstr ""
 
 #. translators: %s: the cash-on-delivery amount that was requested
-#: includes/Couriers/class-bgcouriers-speedy.php:209
+#: includes/Couriers/class-bgcouriers-speedy.php:215
 #, php-format
 msgid ""
 "Cash on delivery of %s was sent but Speedy did not apply it - the waybill "
 "collects nothing."
-msgstr ""
-
-#. translators: %s: order number, printed on the waybill as the sender's reference
-#: includes/Couriers/class-bgcouriers-speedy.php:270
-#, php-format
-msgid "Order %s"
 msgstr ""
 
 #: includes/Shipping/class-bgcouriers-method-boxnow.php:13

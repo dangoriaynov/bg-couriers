@@ -37,12 +37,15 @@ class BGCouriers_PIP {
     /**
      * Replace the shipping-method cell with the courier, where it is going, and the waybill.
      *
-     * @param string    $method Whatever PIP was going to print.
-     * @param string    $type   Document type (invoice / packing-list / pick-list).
-     * @param \WC_Order $order  The order.
+     * @param string    $method  Whatever PIP was going to print.
+     * @param string    $type    Document type (invoice / packing-list / pick-list).
+     * @param \WC_Order $order   The order.
+     * @param string    $waybill Appended after the delivery type when given, so the heading can say
+     *                           courier, destination type and shipment number on ONE line.
      * @return string
      */
-    public function shipping_method($method, $type, $order) {
+    public function shipping_method($method, $type = '', $order = null, string $waybill = '') {
+        if (!$order instanceof \WC_Order) { return $method; }
         $courier = BGCouriers_Labels::order_courier($order);
         if (!$courier) { return $method; }
 
@@ -51,7 +54,10 @@ class BGCouriers_PIP {
         // squashes them or leaves a hole. Printers ignore lazy-loading, so nothing is deferred.
         $out = '<span class="bgc-pip">';
         if ($logo !== '') {
-            $out .= '<img class="bgc-pip-logo" src="' . esc_url($logo) . '" alt="' . esc_attr($courier->label()) . '" height="14">';
+            // alt="" on purpose: the courier's name is printed immediately after it, and a printer or
+            // PDF renderer that does not fetch the image falls back to the alt text - which read
+            // "Speedy Speedy - До автомат" on paper.
+            $out .= '<img class="bgc-pip-logo" src="' . esc_url($logo) . '" alt="" height="14">';
         }
         $out .= '<strong class="bgc-pip-name">' . esc_html($courier->label()) . '</strong>';
 
@@ -59,9 +65,12 @@ class BGCouriers_PIP {
         if ($m !== '') {
             $out .= '<span class="bgc-pip-type"> - ' . esc_html(BGCouriers_Icons::method_label($m)) . '</span>';
         }
+        if ($waybill !== '') {
+            $out .= '<span class="bgc-pip-num"> - ' . esc_html($waybill) . '</span>';
+        }
         // Deliberately NOT the destination address: it is already printed in full in the recipient block
         // at the top of the document, and repeating it here only pushed the totals column into a
-        // seven-line tower. Nor the waybill - that now sits beside the order number.
+        // seven-line tower.
         return $out . '</span>';
     }
 
@@ -110,7 +119,12 @@ class BGCouriers_PIP {
     }
 
     /**
-     * Put the waybill next to the order number in the document heading, small and quiet.
+     * Two lines where PIP printed four.
+     *
+     * PIP emits the document title as one heading and its date as another beneath it; we then added a
+     * waybill line and a courier line, and the four of them stacked into a block taller than the table
+     * they introduce. The date belongs with the number it dates - "Стокова разписка 6246 от 03/08/26" -
+     * and courier, destination type and shipment number are one fact about one parcel, not three.
      *
      * @param string    $heading The heading HTML PIP built.
      * @param string    $type    Document type.
@@ -120,14 +134,32 @@ class BGCouriers_PIP {
      */
     public function heading($heading, $type = '', $action = '', $order = null) {
         if (!$order instanceof \WC_Order) { return $heading; }
+
+        // Fold PIP's separate date heading into the title. The date is taken from the order rather than
+        // scraped out of the markup: the rendered string is localised ("Дата: 03/08/2026") and reading it
+        // back would be parsing our own output. Short year - the sheet is read the week it is printed.
+        $date = $order->get_date_created('edit');
+        if ($date) {
+            $heading = (string) preg_replace('#<h5[^>]*class="[^"]*order-date[^"]*"[^>]*>.*?</h5>#s', '', $heading);
+            $heading = (string) preg_replace_callback(
+                '#(<h3[^>]*class="[^"]*order-info[^"]*"[^>]*>)(.*?)(</h3>)#s',
+                static function (array $m) use ($date): string {
+                    /* translators: %s: the document's date, appended to its title - "Invoice 6246 of 03/08/26" */
+                    return $m[1] . rtrim($m[2]) . ' ' . esc_html(sprintf(__('of %s', 'bg-couriers'), $date->date_i18n('d/m/y'))) . $m[3];
+                },
+                $heading,
+                1
+            );
+        }
+
+        // One line for the parcel: who carries it, where it is going, and its number. The courier is
+        // repeated here (it is also in the totals) because the totals sit on the half that gets folded
+        // away, and whoever holds the folded sheet has to know which pile the parcel joins.
         $waybill = (string) $order->get_meta('_bgcouriers_waybill');
-        if ($waybill === '') { return $heading; }
-        /* translators: %s: waybill number, printed under the document number */
-        $line = '<div class="bgc-pip-wb">' . esc_html(sprintf(__('Waybill %s', 'bg-couriers'), $waybill)) . '</div>';
-        // The courier goes here as well as in the totals, because the totals sit on the half that gets
-        // folded away. Whoever is holding the folded sheet needs to know which pile the parcel joins
-        // without unfolding it - the same block, so the two never say different things.
-        $line .= '<div class="bgc-pip-courier">' . $this->shipping_method('', $type, $order) . '</div>';
+        $line = ($waybill !== '' || BGCouriers_Labels::order_courier($order))
+            ? '<div class="bgc-pip-courier">' . $this->shipping_method('', $type, $order, $waybill) . '</div>'
+            : '';
+
         // Wrapped in our own block with the geometry INLINE rather than left to a stylesheet rule. The
         // document number, its date and the waybill have to sit over the left half - that is the part
         // that stays face-up once the sheet is folded onto the parcel - and PIP's own centring rules kept
@@ -167,13 +199,16 @@ class BGCouriers_PIP {
             . '.bgc-pip{white-space:nowrap;}'
             . '.bgc-pip-logo{height:13px;width:auto;vertical-align:-2px;margin-right:4px;}'
             . '.bgc-pip-name{font-weight:700;}'
-            . '.bgc-pip-wb{margin-top:2px;font-size:11px;color:#555;letter-spacing:.02em;}'
+            . '.bgc-pip-num{color:#555;letter-spacing:.02em;}'
             // The document number, its date and the waybill sit over the LEFT HALF rather than the middle
             // of the page: the sheet is folded before it goes on the parcel, and this is the part that
             // ends up face-up. Centred on the page, half of it disappears into the fold.
             // Anything inside our heading block centres on that block, not on the page.
             . '.bgc-pip-head, .bgc-pip-head *{text-align:center;}'
-            . '.bgc-pip-courier{margin-top:3px;font-size:13px;}'
+            . '.bgc-pip-courier{margin-top:2px;font-size:12px;}'
+            // The title now carries the date too, so it is the only heading left in this block - give it
+            // its own line and nothing more.
+            . '.bgc-pip-head h3{margin:0 0 .1em;line-height:1.2;}'
             . '.bgc-pip-head h3, .bgc-pip-head p{margin-left:0;margin-right:0;}'
 
             . self::header_css()
