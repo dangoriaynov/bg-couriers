@@ -209,14 +209,28 @@ class BGCouriers_PIP {
             // The addresses themselves, the company subtitle/VAT lines and the shipping method.
             $rule('.customer-address h5, .company-title h5, .company-subtitle, .company-vat-number, .company-address, em.shipping-method',
                   'font-size:10px;line-height:1.25;margin:0 0 .1em;')
-            // The company name keeps its weight, so the sender still reads at a glance.
-            . $rule('.company-title h5:first-child', 'font-weight:700;')
-            . $rule('.customer-address h5', 'font-weight:400;')
+            // Nothing in either address is emphasis - they are both just an address, and <h5> renders
+            // bold by default, which is what made the sender's block shout across the top of the sheet.
+            . $rule('.customer-address h5, .company-title h5, .company-subtitle, .company-vat-number', 'font-weight:400;')
             . $rule('.shipping-method h3', 'font-size:10px;margin:.25em 0 .1em;')
             // PIP sets this one INLINE in its own template, so nothing but !important reaches it.
             . $rule('.company-information', 'margin-bottom:.3em !important;')
             // And the standing 2em above and below the document title, which put another empty third of
             // an inch between the addresses and the thing they belong to.
-            . '.document-heading{margin:.6em 0 .4em !important;}';
+            . '.document-heading{margin:.6em 0 .4em !important;}'
+
+            // ---- the small print BELOW the table -------------------------------------------------
+            // The VAT-exemption note, who drew the document up, who it was handed to, and the delivery
+            // date row - all of it reference text nobody reads while packing, printed at full body size
+            // under a table that has already said everything. Same 10px as the header, so the sheet has
+            // one size for its data and one for its notes.
+            // Not scoped by document type: this stylesheet only ever prints inside a PIP document.
+            . '.document-colophon,.document-colophon *,'
+            . '.customer-details-wrapper,.customer-details,.customer-details li,'
+            . '.customer-note,.customer-note blockquote'
+            . '{font-size:10px;line-height:1.3;}'
+            . '.customer-details-wrapper h3{font-size:10px;margin:.4em 0 .1em;}'
+            . '.customer-details{margin:0;padding-left:0;list-style:none;}'
+            . '.document-colophon{margin-top:.5em;}';
     }
 }
