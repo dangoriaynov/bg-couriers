@@ -321,8 +321,11 @@ class BGCouriers_Settings {
 
     /** Whether the shop has at least one enabled NON-COD (prepaid / card / bank transfer) payment gateway. */
     public static function has_prepaid_gateway(): bool {
-        if (!function_exists('WC') || !WC()->payment_gateways()) { return true; } // can't tell -> assume yes (don't over-restrict)
-        foreach (WC()->payment_gateways()->payment_gateways() as $gid => $gw) {
+        // WC() itself can be null before WooCommerce has finished booting - dereferencing it straight
+        // away made this fatal rather than fall back.
+        $wc = function_exists('WC') ? WC() : null;
+        if (!$wc || !$wc->payment_gateways()) { return true; }   // can't tell -> assume yes (don't over-restrict)
+        foreach ($wc->payment_gateways()->payment_gateways() as $gid => $gw) {
             if (is_object($gw) && $gw->enabled === 'yes' && !self::is_cod_gateway((string) $gid, $gw)) { return true; }
         }
         return false;
@@ -369,6 +372,13 @@ class BGCouriers_Settings {
         // with {"code":"P405"}, at label time, one order at a time. enable_problems() is the list each
         // courier already keeps of what it needs; showing it here means every courier's required
         // settings are covered by the one mechanism, including couriers added later.
+        // "This courier cannot appear at checkout at all" outranks "this courier is missing a setting":
+        // the first tells the merchant nothing will ever reach it, the second is a gap to fill in on a
+        // courier that would otherwise work. Reported the other way round, the banner named a missing
+        // sender phone on a BOX NOW that no customer could pick in the first place.
+        $ppp = self::ppp_courier_notice($courier);
+        if ($ppp && $ppp['level'] === 'error') { return $ppp; }
+
         $c = BGCouriers_Couriers::get($courier);
         if ($c && method_exists($c, 'enable_problems')) {
             $problems = $c->enable_problems();
@@ -381,7 +391,7 @@ class BGCouriers_Settings {
                 )];
             }
         }
-        return self::ppp_courier_notice($courier);
+        return $ppp;   // the amber "prepaid orders only" warning, or nothing at all
     }
 
     public static function ppp_courier_notice(string $courier): ?array {
