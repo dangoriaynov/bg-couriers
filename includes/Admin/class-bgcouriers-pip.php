@@ -176,28 +176,47 @@ class BGCouriers_PIP {
             . '.bgc-pip-courier{margin-top:3px;font-size:13px;}'
             . '.bgc-pip-head h3, .bgc-pip-head p{margin-left:0;margin-right:0;}'
 
-            // ---- the two address blocks on the packing list -------------------------------------
-            // Both addresses are wrapped in <h5>, and PIP sizes every heading off one setting: with the
-            // shop's 26 that makes h5 14px at 150% line-height, against 12px body text. Two addresses of
-            // five lines each then ate a quarter of the sheet before a single product was listed - on the
-            // half that stays face-up after the fold, which is the half that matters.
-            //
-            // Scoped to .packing-list-header so the invoice, which is a customer-facing document where a
-            // readable address is the point, keeps its own sizing.
-            . '.packing-list-header .customer-address h5,'
-            . '.packing-list-header .company-title h5,'
-            . '.packing-list-header .company-subtitle,'
-            . '.packing-list-header .company-vat-number,'
-            . '.packing-list-header .company-address,'
-            . '.packing-list-header em.shipping-method'
-            . '{font-size:10px;line-height:1.25;margin:0 0 .15em;}'
-            // The company name still reads as the sender at a glance; only its size comes down.
-            . '.packing-list-header .company-title h5:first-child{font-weight:700;}'
-            . '.packing-list-header .customer-address h5{font-weight:400;}'
-            . '.packing-list-header .shipping-method h3{font-size:10px;margin:.3em 0 .1em;}'
-            // The wrapper carries an INLINE margin-bottom:1em in PIP's own template, so nothing but
-            // !important reaches it.
-            . '.packing-list-header .company-information{margin-bottom:.4em !important;}'
+            . self::header_css()
             . '</style>';
+    }
+
+    /**
+     * Shrink the header - the recipient's address, the sender's, and the gap they sit in.
+     *
+     * Both addresses are wrapped in <h5>, and PIP sizes EVERY heading from one setting: with the shop's
+     * 26 that makes h5 14px at 150% line-height against 12px body text, plus 0.5em margins on each line.
+     * Two addresses of six or seven lines then filled a quarter of the sheet before the first product -
+     * on the half that stays face-up once the sheet is folded onto the parcel.
+     *
+     * Applied to BOTH document types on purpose. The Bulgarian "Стокова разписка" this shop hands to the
+     * courier is PIP's INVOICE type - the title is just how "Invoice" is translated - so scoping this to
+     * .packing-list-header, which is what the name suggests, styled a document the shop never prints.
+     *
+     * @return string
+     */
+    private static function header_css(): string {
+        // Written once and applied to each document type, rather than repeating the block per type.
+        $scopes = ['.invoice-header', '.packing-list-header'];
+        $rule = static function (string $selectors, string $decls) use ($scopes): string {
+            $out = [];
+            foreach ($scopes as $s) {
+                foreach (explode(',', $selectors) as $sel) { $out[] = $s . ' ' . trim($sel); }
+            }
+            return implode(',', $out) . '{' . $decls . '}';
+        };
+
+        return
+            // The addresses themselves, the company subtitle/VAT lines and the shipping method.
+            $rule('.customer-address h5, .company-title h5, .company-subtitle, .company-vat-number, .company-address, em.shipping-method',
+                  'font-size:10px;line-height:1.25;margin:0 0 .1em;')
+            // The company name keeps its weight, so the sender still reads at a glance.
+            . $rule('.company-title h5:first-child', 'font-weight:700;')
+            . $rule('.customer-address h5', 'font-weight:400;')
+            . $rule('.shipping-method h3', 'font-size:10px;margin:.25em 0 .1em;')
+            // PIP sets this one INLINE in its own template, so nothing but !important reaches it.
+            . $rule('.company-information', 'margin-bottom:.3em !important;')
+            // And the standing 2em above and below the document title, which put another empty third of
+            // an inch between the addresses and the thing they belong to.
+            . '.document-heading{margin:.6em 0 .4em !important;}';
     }
 }
