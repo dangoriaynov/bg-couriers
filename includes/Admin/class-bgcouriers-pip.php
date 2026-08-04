@@ -207,8 +207,10 @@ class BGCouriers_PIP {
             . '.bgc-pip-head, .bgc-pip-head *{text-align:center;}'
             . '.bgc-pip-courier{margin-top:2px;font-size:12px;}'
             // The title now carries the date too, so it is the only heading left in this block - give it
-            // its own line and nothing more.
-            . '.bgc-pip-head h3{margin:0 0 .1em;line-height:1.2;}'
+            // its own line and nothing more. PIP derives every heading size from one setting, which put
+            // this at 22px: it was the largest thing on a sheet whose job is the table below it. Sized
+            // here so the block reads as a hierarchy - title 14, courier 12, addresses and notes 10.
+            . '.bgc-pip-head h3{font-size:14px;margin:0 0 .1em;line-height:1.2;}'
             . '.bgc-pip-head h3, .bgc-pip-head p{margin-left:0;margin-right:0;}'
 
             . self::header_css()
