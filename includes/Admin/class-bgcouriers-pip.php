@@ -185,7 +185,47 @@ class BGCouriers_PIP {
         // Keep the row's own label cell and shape - only the value becomes ours, so the document's
         // column widths and styling are left exactly as PIP built them.
         $rows['shipping']['value'] = $block;
+
+        // The dispatch date rides along on the left of the same row. It is one line about the same
+        // shipment as the courier beside it, and it was printing as its own paragraph under the table.
+        $dispatch = $this->dispatch_note($order);
+        if ($dispatch !== '') {
+            $keys  = array_keys($rows['shipping']);
+            $label = $keys[0];                       // the wide, right-aligned cell PIP puts the caption in
+            $rows['shipping'][$label] = '<span class="bgc-pip-dispatch">' . $dispatch . '</span>'
+                . $rows['shipping'][$label];
+            // Order Delivery Date prints this itself right after the table; having moved it, stop it
+            // saying the same thing twice. Removed here rather than at load time because this only
+            // holds for the document we are building.
+            remove_action('wc_pip_after_body', ['orddd_integration', 'orddd_plugin_woocommerce_pip'], 10);
+        }
         return $rows;
+    }
+
+    /**
+     * The "Изпращане в: сряда 5 август" line, taken from Order Delivery Date's own data.
+     *
+     * Built here rather than captured from that plugin's output so the two cannot drift apart, and so
+     * removing its paragraph is safe: this returns '' unless the date is the ONLY thing it would have
+     * printed. When a pickup location or a time slot is also set, its paragraph is left alone and the
+     * row stays as it was - moving one of three lines and dropping the other two would lose data.
+     *
+     * @param \WC_Order $order
+     * @return string HTML, or '' when there is nothing to move
+     */
+    private function dispatch_note(\WC_Order $order): string {
+        if (!class_exists('orddd_common') || !method_exists('orddd_common', 'orddd_get_order_delivery_date')) {
+            return '';
+        }
+        $location = (string) get_option('orddd_location_field_label', '');
+        if ($location !== '' && (string) $order->get_meta($location, true) !== '') { return ''; }
+        if (method_exists('orddd_common', 'orddd_get_order_timeslot')
+            && (string) \orddd_common::orddd_get_order_timeslot($order->get_id()) !== '') { return ''; }
+
+        $date = (string) \orddd_common::orddd_get_order_delivery_date($order->get_id());
+        if ($date === '') { return ''; }
+        $label = (string) get_option('orddd_delivery_date_field_label', '');
+        return ($label !== '' ? '<strong>' . esc_html($label) . ': </strong>' : '') . esc_html($date);
     }
 
     /**
@@ -245,16 +285,16 @@ class BGCouriers_PIP {
         return
             // The addresses themselves, the company subtitle/VAT lines and the shipping method.
             $rule('.customer-address h5, .company-title h5, .company-subtitle, .company-vat-number, .company-address, em.shipping-method',
-                  'font-size:10px;line-height:1.25;margin:0 0 .1em;')
+                  'font-size:12px;line-height:1.3;margin:0 0 .1em;')
             // Nothing in either address is emphasis - they are both just an address, and <h5> renders
             // bold by default, which is what made the sender's block shout across the top of the sheet.
             . $rule('.customer-address h5, .company-title h5, .company-subtitle, .company-vat-number', 'font-weight:400;')
-            . $rule('.shipping-method h3', 'font-size:10px;margin:.25em 0 .1em;')
+            . $rule('.shipping-method h3', 'font-size:12px;margin:.25em 0 .1em;')
             // PIP sets this one INLINE in its own template, so nothing but !important reaches it.
             . $rule('.company-information', 'margin-bottom:.3em !important;')
             // And the standing 2em above and below the document title, which put another empty third of
             // an inch between the addresses and the thing they belong to.
-            . '.document-heading{margin:.6em 0 .4em !important;}'
+            . '.document-heading{margin:1.4em 0 .5em !important;}'
 
             // ---- the small print BELOW the table -------------------------------------------------
             // The VAT-exemption note, who drew the document up, who it was handed to, and the delivery
@@ -268,6 +308,9 @@ class BGCouriers_PIP {
             . '{font-size:10px;line-height:1.3;}'
             . '.customer-details-wrapper h3{font-size:10px;margin:.4em 0 .1em;}'
             . '.customer-details{margin:0;padding-left:0;list-style:none;}'
-            . '.document-colophon{margin-top:.5em;}';
+            . '.document-colophon{margin-top:.5em;}'
+            // Floated because the cell it shares is right-aligned: the caption keeps the right,
+            // the dispatch date takes the left, and the row stays one row.
+            . '.bgc-pip-dispatch{float:left;font-weight:400;text-align:left;}';
     }
 }
