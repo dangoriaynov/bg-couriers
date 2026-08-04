@@ -175,6 +175,29 @@ class BGCouriers_PIP {
             . '.bgc-pip-head, .bgc-pip-head *{text-align:center;}'
             . '.bgc-pip-courier{margin-top:3px;font-size:13px;}'
             . '.bgc-pip-head h3, .bgc-pip-head p{margin-left:0;margin-right:0;}'
+
+            // ---- the two address blocks on the packing list -------------------------------------
+            // Both addresses are wrapped in <h5>, and PIP sizes every heading off one setting: with the
+            // shop's 26 that makes h5 14px at 150% line-height, against 12px body text. Two addresses of
+            // five lines each then ate a quarter of the sheet before a single product was listed - on the
+            // half that stays face-up after the fold, which is the half that matters.
+            //
+            // Scoped to .packing-list-header so the invoice, which is a customer-facing document where a
+            // readable address is the point, keeps its own sizing.
+            . '.packing-list-header .customer-address h5,'
+            . '.packing-list-header .company-title h5,'
+            . '.packing-list-header .company-subtitle,'
+            . '.packing-list-header .company-vat-number,'
+            . '.packing-list-header .company-address,'
+            . '.packing-list-header em.shipping-method'
+            . '{font-size:10px;line-height:1.25;margin:0 0 .15em;}'
+            // The company name still reads as the sender at a glance; only its size comes down.
+            . '.packing-list-header .company-title h5:first-child{font-weight:700;}'
+            . '.packing-list-header .customer-address h5{font-weight:400;}'
+            . '.packing-list-header .shipping-method h3{font-size:10px;margin:.3em 0 .1em;}'
+            // The wrapper carries an INLINE margin-bottom:1em in PIP's own template, so nothing but
+            // !important reaches it.
+            . '.packing-list-header .company-information{margin-bottom:.4em !important;}'
             . '</style>';
     }
 }
