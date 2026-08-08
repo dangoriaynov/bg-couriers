@@ -21,16 +21,19 @@ class BGCouriers_Checkout {
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
         add_filter('woocommerce_shipping_package_name', [$this, 'package_name'], 10, 3);
         add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
-        // Hide WC's generic cart shipping calculator (Country/Region/City/Postcode) - deliveries are
-        // Bulgaria-only and the real office/APS/address is chosen at checkout, so those fields only confuse.
-        // The calculator is gated by the *option* (not a filter), so short-circuit it to 'no'; a CSS net
-        // (bgc-cart.css, enqueued in assets()) covers themes (e.g. Shoptimizer) that render the calculator
-        // from a custom template regardless.
-        add_filter('pre_option_woocommerce_enable_shipping_calc', static function () { return 'no'; });
+        // Hide WC's generic cart shipping calculator (Country/Region/City/Postcode): it prices a delivery
+        // to a postcode, while every rate here is priced to the office, automat or street address the
+        // customer picks at checkout. The calculator is gated by an OPTION rather than a filter, so it is
+        // short-circuited; a CSS net (added inline in assets()) covers themes (e.g. Shoptimizer) that
+        // render it from a custom template regardless. Both ask the setting, not the constructor: a
+        // store that unticks it gets WooCommerce's calculator back on the very next page load.
+        add_filter('pre_option_woocommerce_enable_shipping_calc', [$this, 'hide_calculator_option']);
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_price_label'], 4, 2);     // "delivery not in the total": estimate instead of a price
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'logo_shipping_label'], 5, 2);  // courier brand logo before the name
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_tip_label'], 30, 2);      // (i) hover hint LAST, so the row stays one short line
+        // Our own delivery fields ARE the address, so WooCommerce's are dropped - unless the store also
+        // ships some other way and needs them (see BGCouriers_Settings::own_address_fields()).
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
         // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
         // recalculation via WC's fragment mechanism (server computes the remaining; no DOM parsing).
@@ -268,6 +271,9 @@ class BGCouriers_Checkout {
      * our selection, and billing_country is kept so the Bulgaria shipping zone still matches.
      */
     public function simplify_fields($fields) {
+        // A store that also ships some other way keeps WooCommerce's fields - the courier's own city,
+        // office and address inputs then sit alongside them instead of replacing them.
+        if (!BGCouriers_Settings::own_address_fields()) { return $fields; }
         foreach (['billing', 'shipping'] as $g) {
             foreach (['address_1', 'address_2', 'city', 'state', 'postcode'] as $f) {
                 unset($fields[$g][$g . '_' . $f]);
@@ -284,6 +290,18 @@ class BGCouriers_Checkout {
             }
         }
         return $fields;
+    }
+
+    /**
+     * Short-circuit WooCommerce's "enable the cart shipping calculator" option to 'no' while the setting
+     * asks for it. Returning the incoming $pre unchanged means "do not short-circuit", so unticking the
+     * setting hands the option straight back to WooCommerce.
+     *
+     * @param mixed $pre Whatever an earlier pre_option filter decided (false = read the real option).
+     * @return mixed
+     */
+    public function hide_calculator_option($pre = false) {
+        return BGCouriers_Settings::hide_shipping_calculator() ? 'no' : $pre;
     }
 
     /**
@@ -489,10 +507,16 @@ class BGCouriers_Checkout {
         // price on separate lines.
         $rates_css = BGCOURIERS_PATH . 'assets/css/bgc-rates.css';
         wp_enqueue_style('bgc-rates', BGCOURIERS_URL . 'assets/css/bgc-rates.css', [], is_file($rates_css) ? (string) filemtime($rates_css) : BGCOURIERS_VERSION);
-        // Cart page: plus the small static stylesheet (calculator hide + estimate box).
+        // Cart page: plus the small static stylesheet (the estimate box).
         if ($on_cart) {
             $cart_css = BGCOURIERS_PATH . 'assets/css/bgc-cart.css';
             wp_enqueue_style('bgc-cart', BGCOURIERS_URL . 'assets/css/bgc-cart.css', ['bgc-rates'], is_file($cart_css) ? (string) filemtime($cart_css) : BGCOURIERS_VERSION);
+            // The net for themes that render WooCommerce's calculator from their own template regardless
+            // of the option. Inline rather than in the stylesheet so that a store which unticks the
+            // setting gets no rule hiding a calculator it asked to keep.
+            if (BGCouriers_Settings::hide_shipping_calculator()) {
+                wp_add_inline_style('bgc-cart', '.woocommerce-shipping-calculator{display:none!important;}');
+            }
         }
         if (!$on_checkout) { return; }
         wp_enqueue_style('select2');

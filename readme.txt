@@ -1,4 +1,5 @@
 === BG Couriers for WooCommerce ===
+Contributors: winter2007d
 Donate link: https://revolut.me/danq6lus
 Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0

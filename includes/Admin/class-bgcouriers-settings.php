@@ -229,6 +229,30 @@ class BGCouriers_Settings {
         return get_option('bgcouriers_send_email', 'no') === 'yes';
     }
 
+    /**
+     * Whether the plugin's own delivery fields replace WooCommerce's address fields at checkout.
+     *
+     * ON by default, because that is how the plugin is meant to be used: the courier's city, office or
+     * automat IS the delivery address, and leaving WooCommerce's Address/City/Postcode next to it asks
+     * the customer for the same thing twice and lets the two disagree. A store that also ships some
+     * other way - its own van, pickup, a courier this plugin does not cover - turns it off and keeps
+     * WooCommerce's fields.
+     */
+    public static function own_address_fields(): bool {
+        return get_option('bgcouriers_own_address_fields', 'yes') === 'yes';
+    }
+
+    /**
+     * Whether WooCommerce's cart shipping calculator (Country / Region / City / Postcode) is hidden.
+     *
+     * ON by default for the same reason: it prices a delivery to a postcode, while every rate here is
+     * priced to a courier office, an automat or a street address chosen at checkout - so the number it
+     * shows is not the number the customer will pay. A store that wants it back unticks this.
+     */
+    public static function hide_shipping_calculator(): bool {
+        return get_option('bgcouriers_hide_shipping_calc', 'yes') === 'yes';
+    }
+
     /** The e-mail to pass to a courier for this order: the customer's, only if enabled and non-empty. */
     public static function label_email(\WC_Order $order): string {
         return self::send_email() ? (string) $order->get_billing_email() : '';
