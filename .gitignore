@@ -29,3 +29,4 @@ composer.phar
 .claude/
 e2e/node_modules/
 docs/superpowers/
+bin/deploy.conf

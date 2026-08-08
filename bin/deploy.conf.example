@@ -1,0 +1,5 @@
+# Copy to bin/deploy.conf (gitignored) and fill in your own site. Nothing here belongs in the repository.
+BGC_SSH_HOST="user@example.com"
+BGC_SSH_PORT=22
+BGC_DEV_PATH="/path/to/dev/wp-content/plugins/bg-couriers/"
+BGC_PROD_PATH="/path/to/prod/wp-content/plugins/bg-couriers/"
