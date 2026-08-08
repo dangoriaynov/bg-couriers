@@ -60,10 +60,40 @@ final class PackageNameTest extends TestCase {
         $this->assertSame('', $this->heading($c, 'Shipment'));
     }
 
-    /** Nothing in this file may translate a string that belongs to WooCommerce. */
-    public function test_the_plugin_does_not_translate_woocommerces_strings(): void {
-        $source = (string) file_get_contents(dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-checkout.php');
-        $this->assertSame(0, preg_match_all("/(?<![\\w\\*])(?:__|_e|_x|_n|esc_html__|esc_attr__)\\s*\\([^)]*'woocommerce'/", $source));
+    /**
+     * Nothing that ships may translate anybody else's string, in any file.
+     *
+     * Both halves of this failed a real WordPress.org upload: a text domain that is not ours
+     * (WordPress.WP.I18n.TextDomainMismatch) and a variable where a literal belongs
+     * (WordPress.WP.I18n.NonSingularStringLiteralText). Both are ERRORs, and both are rejections.
+     */
+    public function test_no_shipped_file_translates_a_string_that_is_not_ours(): void {
+        $calls   = '(?:__|_e|_x|_ex|_n|_nx|esc_html__|esc_html_e|esc_html_x|esc_attr__|esc_attr_e|esc_attr_x|translate)';
+        $foreign = [];
+        $literal = [];
+        foreach ($this->shipped_php_files() as $file) {
+            $source = (string) file_get_contents($file);
+            if (preg_match_all("/(?<![\\w\\$])$calls\\s*\\([^)]*'(?:woocommerce|default|wordpress)'/", $source)) {
+                $foreign[] = basename($file);
+            }
+            if (preg_match_all("/(?<![\\w\\$])$calls\\s*\\(\\s*\\\$/", $source)) {
+                $literal[] = basename($file);
+            }
+        }
+        $this->assertSame([], $foreign, 'a plugin translates its own strings, never a neighbour\'s');
+        $this->assertSame([], $literal, 'a translation call takes a literal, never a variable');
+    }
+
+    /** @return string[] every PHP file in the package except the bundled PDF library */
+    private function shipped_php_files(): array {
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 2) . '/includes'));
+        $out   = [];
+        foreach ($files as $f) {
+            if ($f->isFile() && $f->getExtension() === 'php' && strpos($f->getPathname(), '/lib/') === false) {
+                $out[] = $f->getPathname();
+            }
+        }
+        return $out;
     }
 }
 
