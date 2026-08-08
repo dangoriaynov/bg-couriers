@@ -17,7 +17,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('BGCOURIERS_VERSION', '0.2.1');
+define('BGCOURIERS_VERSION', '0.2.2');
 define('BGCOURIERS_FILE', __FILE__);
 define('BGCOURIERS_PATH', plugin_dir_path(__FILE__));
 define('BGCOURIERS_URL', plugin_dir_url(__FILE__));
