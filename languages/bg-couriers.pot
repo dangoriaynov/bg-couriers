@@ -618,12 +618,6 @@ msgctxt "Order bulk action"
 msgid "Change status to shipped"
 msgstr ""
 
-#. translators: %s: the document's date, appended to its title - "Invoice 6246 of 03/08/26"
-#: includes/Admin/class-bgcouriers-pip.php:148
-#, php-format
-msgid "of %s"
-msgstr ""
-
 #: includes/Admin/class-bgcouriers-settings.php:356
 msgid ""
 "Sameday does not support “the recipient pays the delivery” on this account, "
