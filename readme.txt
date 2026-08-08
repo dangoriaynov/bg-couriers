@@ -1,5 +1,5 @@
 === BG Couriers for WooCommerce ===
-Contributors: winter2007d
+Plugin URI: https://github.com/dangoriaynov/bg-couriers
 Donate link: https://revolut.me/danq6lus
 Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
@@ -56,6 +56,11 @@ This plugin relies on the online APIs of the couriers you enable to calculate sh
 If the merchant sets a **Google Maps API key** (optional), the address picker instead uses **Google Maps Geocoding (maps.googleapis.com)** for that lookup - sending only the picked coordinates. Google terms: https://cloud.google.com/maps-platform/terms · Privacy: https://policies.google.com/privacy
 
 No data is sent to any service the merchant has not configured, and the plugin sends nothing to the plugin author.
+
+== Contributing ==
+
+The plugin is developed in the open. Bugs, ideas and pull requests are welcome:
+https://github.com/dangoriaynov/bg-couriers/issues
 
 == Installation ==
 

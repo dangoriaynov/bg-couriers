@@ -766,9 +766,9 @@ msgstr ""
 msgid "Donate via Revolut"
 msgstr "Дарете чрез Revolut"
 
-#: includes/Admin/class-bgcouriers-settings.php:621
-msgid "Contact / feedback:"
-msgstr "Контакт / обратна връзка:"
+#: includes/Admin/class-bgcouriers-settings.php:623
+msgid "Bugs, ideas, pull requests:"
+msgstr "Грешки, идеи, pull requests:"
 
 #: includes/Admin/class-bgcouriers-settings.php:636
 #: includes/Admin/class-bgcouriers-settings.php:676

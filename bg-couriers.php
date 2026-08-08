@@ -2,6 +2,7 @@
 /**
  * Plugin Name: BG Couriers for WooCommerce
  * Description: Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) - office/address/locker delivery, live rates, labels and tracking.
+ * Plugin URI: https://github.com/dangoriaynov/bg-couriers
  * Version: 0.2.1
  * Author: Дан Горяйнов
  * Author URI: https://github.com/dangoriaynov

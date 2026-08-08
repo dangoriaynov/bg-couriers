@@ -618,7 +618,10 @@ jQuery(function($){
         echo '<h4 style="margin:.9em 0 .3em;">' . esc_html__('Support the work', 'bg-couriers') . '</h4>';
         echo '<p style="margin:.2em 0;">' . esc_html__('These plugins are free. If they help your store, a small donation keeps more of them coming - thank you!', 'bg-couriers') . '</p>';
         echo '<p style="margin:.4em 0;"><a class="button button-primary" href="' . esc_url('https://revolut.me/danq6lus') . '" target="_blank" rel="noopener">' . esc_html__('Donate via Revolut', 'bg-couriers') . '</a></p>';
-        echo '<p style="margin:.6em 0 .2em;color:#646970;">' . esc_html__('Contact / feedback:', 'bg-couriers') . ' <a href="' . esc_url('mailto:winter2007d@gmail.com') . '">winter2007d@gmail.com</a></p>';
+        // The repository rather than a mailbox: a bug reported there can be read, answered and fixed by
+        // anyone using the plugin, and a fix can come back as a pull request.
+        echo '<p style="margin:.6em 0 .2em;color:#646970;">' . esc_html__('Bugs, ideas, pull requests:', 'bg-couriers')
+            . ' <a href="' . esc_url('https://github.com/dangoriaynov/bg-couriers/issues') . '" target="_blank" rel="noopener">github.com/dangoriaynov/bg-couriers</a></p>';
         echo '</div></td></tr>';
     }
 

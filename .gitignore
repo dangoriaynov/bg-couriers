@@ -28,3 +28,4 @@ composer.phar
 .phpunit.result.cache
 .claude/
 e2e/node_modules/
+docs/superpowers/
