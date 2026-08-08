@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.1
+Stable tag: 0.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,13 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.2.2 =
+* New setting "Use the plugin's own address fields": the plugin removes WooCommerce's Address / City / Region / Post code at checkout, because the courier city, office or automat picked there is the delivery address. Ships on, as before - turn it off if your store also delivers some other way and needs those fields.
+* New setting "Hide the cart shipping calculator": the same choice for WooCommerce's "Calculate shipping" box on the cart, which prices a delivery to a post code while every price here is for the office, automat or address picked at checkout. Ships on, as before.
+* Removed the Print Invoices/Packing Lists integration. Printing a document is the job of the plugin that prints it, and this one had grown from "say which courier" into type sizes and column widths for a page it does not own. Everything a printing plugin needs stays available: BGCouriers_Labels::order_courier(), BGCouriers_Couriers::logo_url(), BGCouriers_Icons::method_label() and the _bgcouriers_method / _bgcouriers_waybill order meta.
+* Fixed: the example phone number shown in the BOX NOW "sender phone is invalid" message, and in that field's placeholder, was a real number.
+* Bugs and ideas: https://github.com/dangoriaynov/bg-couriers/issues
+
 = 0.2.1 =
 * New "Shipped" order status, set automatically once tracking shows the courier has actually collected the parcel (optional, off by default; pairs with the existing on-delivery status rule).
 * One-click waybill re-issue on the orders list and the order screen, and as a bulk action - voids the current waybill and issues a new one from the order's current details.
@@ -126,6 +133,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
 
 == Upgrade Notice ==
+
+= 0.2.2 =
+The Print Invoices/Packing Lists integration is gone - if your packing list showed the courier and waybill, it will not after this update. Two behaviours the plugin used to apply to every store - replacing WooCommerce's checkout address fields and hiding the cart shipping calculator - are now settings, both on by default, so nothing else changes.
 
 = 0.2.1 =
 Adds an optional "Shipped" order status driven by courier tracking, one-click waybill re-issue, courier-coloured order rows, and fixes Pigeon office lists and Speedy tracking statuses.
