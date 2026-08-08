@@ -12,6 +12,21 @@ class BGCouriers_Checkout {
     /** Length of METHOD_PREFIX, for substr() offsets. */
     private const PREFIX_LEN = 11;
 
+    /**
+     * What WooCommerce itself called each shipping package, noted before any other plugin has had a say.
+     *
+     * Recognising WooCommerce's own heading used to mean asking the WooCommerce catalogue for it from
+     * here, with its msgids kept in variables so they would not be extracted into this plugin's own
+     * catalogue. WordPress.org's scanner rejects both halves of that, and rightly: a plugin translates
+     * its own strings, not its neighbour's, and a translation call takes a literal. None of it is needed.
+     * The heading arrives at the filter already rendered in the site's language, so the plugin notes what
+     * arrived first and compares against that - which is also more honest, since it recognises the real
+     * default whatever the locale, WooCommerce version or wording.
+     *
+     * @var array<int,string>
+     */
+    private $wc_package_names = [];
+
     public function __construct() {
         add_action('woocommerce_after_shipping_rate', [$this, 'render_fields'], 10, 2);
         add_action('wp_enqueue_scripts', [$this, 'assets']);
@@ -19,7 +34,10 @@ class BGCouriers_Checkout {
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
-        add_filter('woocommerce_shipping_package_name', [$this, 'package_name'], 10, 3);
+        // Two ends of the same filter: first() notes what WooCommerce itself called the package, last()
+        // decides. See package_name() for why nothing here translates anything.
+        add_filter('woocommerce_shipping_package_name', [$this, 'capture_package_name'], 1, 3);
+        add_filter('woocommerce_shipping_package_name', [$this, 'package_name'], 999, 3);
         add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
         // Hide WC's generic cart shipping calculator (Country/Region/City/Postcode): it prices a delivery
         // to a postcode, while every rate here is priced to the office, automat or street address the
@@ -305,32 +323,45 @@ class BGCouriers_Checkout {
     }
 
     /**
-     * Our shipping cost depends on the session selection (method/city/office), which is NOT part
-     * of the package WC hashes to cache shipping rates. Inject it so the cache busts when the
-     * customer changes courier office/city - otherwise WC serves a stale rate from the first calc.
-     */
-    /**
-     * WooCommerce 10.x renamed the heading above the shipping methods to "Shipment", and several locales -
-     * bg_BG among them - have no translation for that string yet, so a fully Bulgarian checkout shows one
-     * English word directly above our courier picker.
+     * First pass over the package heading, at priority 1: note what WooCommerce produced.
      *
-     * Fall back to WooCommerce's OWN long-standing translated string rather than inventing a translation,
-     * and only while the new string really is untranslated: the moment the locale catches up, or if the
-     * site is in a language that already has it, we leave core alone. Multi-package names ("Shipment %d")
-     * are untouched.
+     * @param string $name    The heading WooCommerce built ("Shipment", "Пратка", "Shipment 2", ...).
+     * @param int    $index   Package index.
+     * @param array  $package The package.
+     * @return string $name, untouched.
+     */
+    public function capture_package_name($name, $index = 0, $package = []) {
+        $this->wc_package_names[(int) $index] = (string) $name;
+        return $name;
+    }
+
+    /**
+     * Last pass, at priority 999: drop the heading above the shipping methods.
+     *
+     * WooCommerce 10.x renamed it from "Shipping" to "Shipment", and several locales - bg_BG among them -
+     * have no translation for the new string yet, so a fully Bulgarian checkout showed one English word
+     * directly above our courier picker. Removing it beats translating it: the picker underneath already
+     * says what the block is.
+     *
+     * @param string $name    The heading as it stands after every other plugin has had its say.
+     * @param int    $index   Package index.
+     * @param array  $package The package.
+     * @return string '' to drop the heading, or $name to leave it exactly as it is.
      */
     public function package_name($name, $index = 0, $package = []) {
+        // Anything another plugin put here is that plugin's business, not ours.
+        if (($this->wc_package_names[(int) $index] ?? null) !== (string) $name) { return $name; }
         // Our courier picker sits directly under this heading and already says what it is, so the word
         // above it is pure repetition eating vertical space - which matters most on a phone, where the
-        // shipping block can fill the screen. Dropped for the single-package case only; a cart split
-        // into several packages still needs "Shipment 1 / 2" to tell them apart.
-        // These two strings belong to WooCommerce, not to us - we only need to recognise ITS defaults. The
-        // msgids are held in variables so string extraction does not pull WooCommerce's wording into this
-        // plugin's own translation catalogue, where it has no business being.
-        $shipment = 'Shipment';
-        $shipping = 'Shipping';
-        $default  = ($name === _x($shipment, 'shipping packages', 'woocommerce')) || ($name === __($shipping, 'woocommerce'));
-        return $default ? '' : $name;   // anything another plugin set is left alone
+        // shipping block can fill the screen. A cart split into several packages keeps its headings:
+        // "Shipment 1 / 2" is the only thing telling them apart.
+        return $this->single_package() ? '' : $name;
+    }
+
+    /** Whether the cart produced exactly one shipping package. Unknown (no WooCommerce yet) counts as one. */
+    private function single_package(): bool {
+        if (!function_exists('WC') || !WC() || !WC()->shipping()) { return true; }
+        return count((array) WC()->shipping()->get_packages()) <= 1;
     }
 
     public function package_hash($packages) {

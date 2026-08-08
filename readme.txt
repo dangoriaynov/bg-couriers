@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.2
+Stable tag: 0.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.2.3 =
+* Fixed: the heading above the shipping methods is now recognised by watching what WooCommerce itself put there, instead of looking its wording up in WooCommerce's translations. It is removed in every language, including ones where WooCommerce has not translated it yet - and the plugin no longer reads a catalogue that is not its own.
+
 = 0.2.2 =
 * New setting "Use the plugin's own address fields": the plugin removes WooCommerce's Address / City / Region / Post code at checkout, because the courier city, office or automat picked there is the delivery address. Ships on, as before - turn it off if your store also delivers some other way and needs those fields.
 * New setting "Hide the cart shipping calculator": the same choice for WooCommerce's "Calculate shipping" box on the cart, which prices a delivery to a post code while every price here is for the office, automat or address picked at checkout. Ships on, as before.
@@ -134,8 +137,11 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Upgrade Notice ==
 
+= 0.2.3 =
+Fixes the heading above the shipping methods in locales where WooCommerce has not translated its own wording yet.
+
 = 0.2.2 =
-The Print Invoices/Packing Lists integration is gone - if your packing list showed the courier and waybill, it will not after this update. Two behaviours the plugin used to apply to every store - replacing WooCommerce's checkout address fields and hiding the cart shipping calculator - are now settings, both on by default, so nothing else changes.
+The Print Invoices/Packing Lists integration is gone: a packing list that showed the courier and waybill no longer will. Replacing WooCommerce's checkout address fields and hiding the cart shipping calculator are now settings, both on by default.
 
 = 0.2.1 =
 Adds an optional "Shipped" order status driven by courier tracking, one-click waybill re-issue, courier-coloured order rows, and fixes Pigeon office lists and Speedy tracking statuses.
