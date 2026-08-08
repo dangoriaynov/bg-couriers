@@ -34,10 +34,13 @@ class BGCouriers_Checkout {
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
-        // Two ends of the same filter: first() notes what WooCommerce itself called the package, last()
-        // decides. See package_name() for why nothing here translates anything.
-        add_filter('woocommerce_shipping_package_name', [$this, 'capture_package_name'], 1, 3);
-        add_filter('woocommerce_shipping_package_name', [$this, 'package_name'], 999, 3);
+        // Two ends of the same filter: the first note what WooCommerce itself called the package, the
+        // second decides. The pair has to BRACKET every other listener - a plugin renaming the package
+        // below our recorder would have its name recorded as WooCommerce's and then removed - so the
+        // priorities are the extremes rather than a comfortable 1 and 999. See package_name() for why
+        // nothing here translates anything.
+        add_filter('woocommerce_shipping_package_name', [$this, 'capture_package_name'], PHP_INT_MIN, 3);
+        add_filter('woocommerce_shipping_package_name', [$this, 'package_name'], PHP_INT_MAX, 3);
         add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
         // Hide WC's generic cart shipping calculator (Country/Region/City/Postcode): it prices a delivery
         // to a postcode, while every rate here is priced to the office, automat or street address the
@@ -323,7 +326,7 @@ class BGCouriers_Checkout {
     }
 
     /**
-     * First pass over the package heading, at priority 1: note what WooCommerce produced.
+     * First pass over the package heading, before every other listener: note what WooCommerce produced.
      *
      * @param string $name    The heading WooCommerce built ("Shipment", "Пратка", "Shipment 2", ...).
      * @param int    $index   Package index.
@@ -336,7 +339,7 @@ class BGCouriers_Checkout {
     }
 
     /**
-     * Last pass, at priority 999: drop the heading above the shipping methods.
+     * Last pass, after every other listener: drop the heading above the shipping methods.
      *
      * WooCommerce 10.x renamed it from "Shipping" to "Shipment", and several locales - bg_BG among them -
      * have no translation for the new string yet, so a fully Bulgarian checkout showed one English word

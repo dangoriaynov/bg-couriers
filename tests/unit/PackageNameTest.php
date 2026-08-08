@@ -10,7 +10,7 @@ require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-checkout
  * the picker underneath already says what the block is.
  *
  * Which heading is WooCommerce's own is decided by watching, not by translating: the plugin sees the
- * name at priority 1 and decides at 999. That is what makes it work in any locale, and it is also what
+ * name before every other listener and decides after all of them. That is what makes it work in any locale, and it is also what
  * WordPress.org requires - translating a neighbour's strings, or hiding their msgids in variables to
  * keep them out of our catalogue, fails the scan.
  *
