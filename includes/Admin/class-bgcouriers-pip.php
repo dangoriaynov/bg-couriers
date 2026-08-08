@@ -42,7 +42,7 @@ class BGCouriers_PIP {
      */
     public function shipping_method($method, $type = '', $order = null) {
         if (!$order instanceof \WC_Order) { return $method; }
-        $block = self::courier_block($order);
+        $block = self::courier_block($order, (string) $order->get_meta('_bgcouriers_waybill'));
         return $block !== '' ? $block : $method;
     }
 
@@ -100,7 +100,11 @@ class BGCouriers_PIP {
         if (!is_array($rows) || empty($rows['shipping'])) { return $rows; }
         $order = wc_get_order((int) $order_id);
         if (!$order instanceof \WC_Order) { return $rows; }
-        $block = self::courier_block($order);
+        // With the waybill: this row is the only place the plugin itself puts it on the document, and a
+        // printed sheet is matched against a box by that number. A shop whose own template prints it
+        // somewhere better - next to the document number, on the half that stays face-up once the sheet
+        // is folded - simply gets it twice, on the half that is folded away.
+        $block = self::courier_block($order, (string) $order->get_meta('_bgcouriers_waybill'));
         if ($block === '') { return $rows; }
         // Keep the row's own label cell and shape - only the value becomes ours, so the document's
         // column widths and styling are left exactly as PIP built them.
