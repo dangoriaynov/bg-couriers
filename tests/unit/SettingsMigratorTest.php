@@ -12,6 +12,7 @@ final class SettingsMigratorTest extends TestCase {
 
     public function test_migrate_sets_version_when_absent(): void {
         Functions\when('get_option')->justReturn(false);
+        Functions\when('delete_option')->justReturn(true);
         $saved = null;
         Functions\when('update_option')->alias(function ($k, $v) use (&$saved) { if ($k === 'bgcouriers_settings_version') { $saved = $v; } return true; });
         BGCouriers_Settings_Migrator::migrate();

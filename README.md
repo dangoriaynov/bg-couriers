@@ -30,8 +30,6 @@ shipments from the WordPress admin.
   waybill + track link at the top of the order, copy-waybill in the orders list.
 - **Econt COD (наложен платеж)** - itemised опис (seq / name / weight / qty / price), the ППП postal-money-
   transfer agreement, sum(price×count) reconciled to the collected amount; live-verified with a real waybill.
-- **Dual currency** - optional BGN + EUR (fixed peg 1.95583) on shipping labels & the cart estimate;
-  price/threshold settings show the store-currency unit.
 - **Cart shipping estimate** - optional per-courier + delivery-type estimate on the cart page.
 - **Courier-aware checkout validation** - an order can't be placed without a valid, specified destination
   for **any** courier (BoxNow needs a locker; a selection made for one courier can't satisfy another),
@@ -42,7 +40,7 @@ shipments from the WordPress admin.
   offices/APS from stored coordinates, "show my location" geolocation, click a marker to choose.
 - **Settings** - one tab per courier (only the fields each courier actually uses), toggles tinted green/red,
   AJAX save with a toast, default courier, drag-to-order couriers + delivery options, hide-country,
-  per-method free-shipping thresholds, dual-currency switch.
+  per-method free-shipping thresholds.
 
 ## Missing / roadmap
 
@@ -84,12 +82,12 @@ A small registry makes couriers pluggable; everything resolves a courier by id.
   Enable is a **top toggle**; courier + per-method tabs are pills tinted green/red; per-method enable lives on
   its sub-tab (method sub-tabs are hidden for single-method/flat-rate couriers like BoxNow). Credentials show a
   validated state. **AJAX Save** with a top-right toast. General has Default courier, Courier order
-  (drag-sortable → `BGC_Checkout::sort_rates`), Hide-country, and the dual-currency switch. Order panel
+  (drag-sortable → `BGC_Checkout::sort_rates`) and Hide-country. Order panel
   (waybill + generate/print/track), orders-list column, auto-generate on a trigger status.
 - **Cache / pricing** (`includes/Cache/`) - `bgc_cities` / `bgc_offices` tables (`BGC_Schema`),
   `BGC_Nomenclature` repo. `BGC_Sync` runs for all registered+enabled couriers: weekly full nomenclature
   sync + a daily reference-price refresh (`seed_rates`) cached in `BGC_Rates`.
-- **Support** (`includes/Support/`) - `BGC_Currency` (peg 1.95583, dual BGN/EUR), `BGC_Quote` / `BGC_Label` /
+- **Support** (`includes/Support/`) - `BGC_Quote` / `BGC_Label` /
   `BGC_Tracking` value objects, `BGC_Encryption` (password at rest), `BGC_Api_Exception`.
 - **Settings/config** - `BGC_Settings::courier_config(id)` reads `bgc_<id>_*` options (password encrypted).
   Each courier uses its **own registered account sender** (Econt profile, Speedy account, BoxNow warehouse,

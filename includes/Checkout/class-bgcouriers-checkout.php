@@ -51,7 +51,6 @@ class BGCouriers_Checkout {
         add_filter('pre_option_woocommerce_enable_shipping_calc', [$this, 'hide_calculator_option']);
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_price_label'], 4, 2);     // "delivery not in the total": estimate instead of a price
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'logo_shipping_label'], 5, 2);  // courier brand logo before the name
-        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'dual_shipping_label'], 20, 2); // dual BGN/EUR on the rate
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_tip_label'], 30, 2);      // (i) hover hint LAST, so the row stays one short line
         // Our own delivery fields ARE the address, so WooCommerce's are dropped - unless the store also
         // ships some other way and needs them (see BGCouriers_Settings::own_address_fields()).
@@ -173,8 +172,8 @@ class BGCouriers_Checkout {
     /**
      * "Delivery in the order total" off: the rate is 0 so WC would render the label alone (or "Free") -
      * replace it with the informational estimate the customer will pay the courier on delivery.
-     * Runs BEFORE the logo (5) / dual-currency (20) filters; rebuilding from get_label() drops whatever
-     * suffix WC appended for the zero cost.
+     * Runs BEFORE the logo (5) filter; rebuilding from get_label() drops whatever suffix WC appended
+     * for the zero cost.
      */
     public function info_price_label($label, $method) {
         if (!is_object($method) || !method_exists($method, 'get_meta_data')) { return $label; }
@@ -183,7 +182,7 @@ class BGCouriers_Checkout {
         if ($info <= 0) { return $label; }
         // Just "~price" here - the "paid to the courier on delivery" explanation lives in the (i)
         // hover tip appended by info_tip_label, so the rate row never wraps into an ugly mess.
-        return $method->get_label() . ': ~' . BGCouriers_Currency::dual_store($info);
+        return $method->get_label() . ': ~' . wc_price($info);
     }
 
     /** A small (i) at the end of every courier rate label (checkout + cart); the explanation sits in its
@@ -199,7 +198,6 @@ class BGCouriers_Checkout {
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
     public function free_notice_fragment($fragments) { $fragments['.bgc-free-notice'] = self::free_notice_html(); return $fragments; }
 
-    /** Append the pegged BGN/EUR equivalent to a shipping-method rate label when dual display is on. */
     /** Prepend the courier's brand logo to its shipping-method radio label (BGCOURIERS methods only). */
     public function logo_shipping_label($label, $method) {
         if (!is_object($method) || !method_exists($method, 'get_method_id')) { return $label; }
@@ -208,19 +206,6 @@ class BGCouriers_Checkout {
         $url = BGCouriers_Couriers::logo_url(substr($mid, self::PREFIX_LEN));
         if ($url === '') { return $label; }
         return '<img class="bgc-ship-logo" src="' . esc_url($url) . '" alt="" aria-hidden="true" width="16" height="16"> ' . $label;
-    }
-
-    public function dual_shipping_label($label, $method) {
-        if (!BGCouriers_Currency::enabled()) { return $label; }
-        $store = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : '';
-        if ($store !== 'EUR' && $store !== 'BGN') { return $label; }
-        $cost = (float) $method->get_cost();
-        if ($cost <= 0) { return $label; } // free / no cost - nothing to convert
-        $taxes   = $method->get_taxes();
-        $tax     = is_array($taxes) ? array_sum($taxes) : 0.0;
-        $display = (get_option('woocommerce_tax_display_cart') === 'incl') ? ($cost + $tax) : $cost;
-        $other   = $store === 'BGN' ? 'EUR' : 'BGN';
-        return $label . ' <span class="bgc-dual">(' . BGCouriers_Currency::fmt(BGCouriers_Currency::convert($display, $store, $other), $other) . ')</span>';
     }
 
     /**
@@ -240,7 +225,7 @@ class BGCouriers_Checkout {
             foreach (BGCouriers_Settings::enabled_methods($cid) as $m) {
                 $est = BGCouriers_Pricing::estimate($cid, $m);
                 if ($est === null) { continue; }
-                $parts[] = esc_html($labels[$m] ?? $m) . ' ' . wp_kses_post(BGCouriers_Currency::dual_store($est));
+                $parts[] = esc_html($labels[$m] ?? $m) . ' ' . wp_kses_post(wc_price($est));
             }
             if ($parts) {
                 $rows[] = '<div class="bgc-cart-est-row"><strong>' . esc_html($names[$cid] ?? ucfirst($cid)) . '</strong> - ' . implode(' · ', $parts) . '</div>';
@@ -279,7 +264,7 @@ class BGCouriers_Checkout {
             $msg = sprintf(esc_html__('You have free %s delivery! 🎉', 'bg-couriers'), esc_html($label));
         } else {
             /* translators: 1: a formatted price, 2: the courier name. */
-            $msg = sprintf(esc_html__('Add %1$s more for free %2$s delivery', 'bg-couriers'), BGCouriers_Currency::dual_store($remaining), esc_html($label));
+            $msg = sprintf(esc_html__('Add %1$s more for free %2$s delivery', 'bg-couriers'), wc_price($remaining), esc_html($label));
         }
         return '<div class="bgc-free-notice woocommerce-info" style="margin-bottom:1em;">' . $msg . '</div>';
     }

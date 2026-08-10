@@ -354,9 +354,9 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     /**
      * estimate-cost -> BGCouriers_Quote. LIVE shape: {"amount":15.81,"currency":"Ron","time":96} (amount, not cost).
-     * The store is Bulgarian (EUR/BGN): a BGN<->EUR mismatch converts over the fixed peg; any OTHER
-     * currency (the shared demo tarifficator prices in RON) is NOT a usable live price - throw so the
-     * pricing pipeline falls back to the reference/fixed price instead of charging a foreign number.
+     * Only a quote already in the store's own currency is usable; anything else (the shared demo
+     * tarifficator prices in RON) throws, so the pricing pipeline falls back to the reference/fixed
+     * price instead of charging a foreign number.
      */
     /** Shared default parcel dimensions in Sameday's field names (width/length/height, cm). */
     protected static function parcel_dims(): array {
@@ -368,10 +368,6 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $amount = (float) ($resp['amount'] ?? $resp['cost'] ?? 0);
         $cur    = strtoupper((string) ($resp['currency'] ?? $currency));
         $store  = strtoupper($currency);
-        if ($cur !== $store && in_array($cur, ['BGN', 'EUR'], true) && in_array($store, ['BGN', 'EUR'], true)) {
-            $amount = BGCouriers_Currency::convert($amount, $cur, $store);
-            $cur    = $store;
-        }
         if ($cur !== $store) {
             throw new BGCouriers_Api_Exception('Sameday quote currency does not match the store currency');
         }

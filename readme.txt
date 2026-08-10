@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.3
+Stable tag: 0.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,7 +31,6 @@ Deliveries are Bulgaria-only.
 * Interactive map picker for offices/lockers (geolocation "nearest to me").
 * Tap anywhere on a courier row at checkout to choose it - a full-width target on phones.
 * Per-order and bulk label generation to a combined PDF (A6 / A4), tracking links.
-* Optional dual BGN + EUR price display (fixed peg 1 EUR = 1.95583 BGN).
 * Per-courier settings: only the fields each courier actually needs.
 
 == External services ==
@@ -85,7 +84,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Screenshots ==
 
-1. Checkout: delivery-type tabs (to office / address / APS locker), searchable city and office pickers, a live per-courier price with optional dual BGN/EUR, and a "Map" button.
+1. Checkout: delivery-type tabs (to office / address / APS locker), searchable city and office pickers, a live per-courier price, and a "Map" button.
 2. Checkout: the office/locker map picker - a searchable list beside the map, markers, and "show my location".
 3. Order screen: the shipment panel (waybill number + print / track / cancel) and the inline delivery editor (courier, delivery option, city, office/APS).
 4. Orders list: the "Waybill" column - generate a label, or print / track / cancel an existing one, per order.
@@ -93,6 +92,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.4 =
+* Removed the second-currency display. Bulgaria stopped requiring dual BGN/EUR prices on 9 August 2026, so delivery prices now show only in the shop currency and the "Enable 2 currencies" setting is gone. Site-wide currency conversion, if you still want it, belongs to a dedicated currency plugin.
 
 = 0.2.3 =
 * Fixed: the heading above the shipping methods is now recognised by watching what WooCommerce itself put there, instead of looking its wording up in WooCommerce's translations. It is removed in every language, including ones where WooCommerce has not translated it yet - and the plugin no longer reads a catalogue that is not its own.

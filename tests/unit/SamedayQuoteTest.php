@@ -4,7 +4,6 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
-require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-currency.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
@@ -35,10 +34,12 @@ final class SamedayQuoteTest extends TestCase {
         $this->assertSame('live', $q->source);
     }
 
-    public function test_parse_price_converts_bgn_to_eur_over_the_peg(): void {
-        $q = BGCouriers_Sameday::parse_price(['amount' => 19.5583, 'currency' => 'BGN'], 'EUR');
-        $this->assertEqualsWithDelta(10.0, $q->price, 0.001); // fixed peg 1.95583
-        $this->assertSame('EUR', $q->currency);
+    public function test_parse_price_rejects_bgn_now_that_there_is_no_second_currency(): void {
+        // BGN used to be converted over the fixed peg. Bulgaria dropped the dual BGN/EUR requirement on
+        // 2026-08-09 and the plugin now knows only the store's currency, so a BGN quote is as foreign as
+        // any other - it throws, and the pricing pipeline falls back to the reference/fixed price.
+        $this->expectException(BGCouriers_Api_Exception::class);
+        BGCouriers_Sameday::parse_price(['amount' => 19.5583, 'currency' => 'BGN'], 'EUR');
     }
 
     public function test_parse_price_rejects_a_foreign_currency(): void {

@@ -87,11 +87,9 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
    bgc-rates.css takes over. */
 .bgc-ship-logo { width: 16px; height: 16px; object-fit: contain; vertical-align: -3px; margin-right: 5px; display: inline-block; }
 /* Notices sit on a theme-colored panel and the theme picks a legible text color for it - force every
-   nested span (theme-styled .woocommerce-Price-amount, our .bgc-dual) to inherit that color instead of
-   its own accent, which may match the panel background (e.g. blue-on-blue). Opacity keeps the secondary
-   currency visually secondary in whatever color the theme chose. */
+   nested span (the theme-styled .woocommerce-Price-amount) to inherit that color instead of its own
+   accent, which may match the panel background (e.g. blue-on-blue). */
 .bgc-free-notice, .bgc-free-notice * { color: inherit !important; }
-.bgc-free-notice .bgc-dual { opacity: .75; }
 
 /* Office / APS map picker (Leaflet) */
 .bgc-office-pick { display: flex; gap: 6px; align-items: stretch; max-width: 100%; }

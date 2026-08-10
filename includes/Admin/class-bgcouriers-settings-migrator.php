@@ -44,9 +44,9 @@ class BGCouriers_Settings_Migrator {
                 }
             }
         }
-        $g = get_option('bgcouriers_global_settings', []);
-        if (is_array($g) && isset($g['dual_currency'])) {
-            update_option('bgcouriers_dual_currency', $g['dual_currency']);
-        }
+        // Bulgaria dropped the mandatory BGN+EUR dual display on 2026-08-09, so the plugin no longer
+        // has a second currency at all - prices are the store's currency, full stop. Clear the old
+        // option rather than migrate it (no-op when it was never set).
+        delete_option('bgcouriers_dual_currency');
     }
 }

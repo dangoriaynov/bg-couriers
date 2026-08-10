@@ -454,8 +454,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
 
             // --- Prices & display ---
             ['type' => 'title', 'id' => 'bgcouriers_pricing', 'title' => __('Prices & display', 'bg-couriers')],
-            ['type' => 'checkbox', 'id' => 'bgcouriers_dual_currency', 'title' => __('Enable 2 currencies', 'bg-couriers'),
-                'desc' => __('Also show delivery prices in BGN (лв.) next to the store currency. Fixed rate 1 EUR = 1.95583 BGN.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgcouriers_cart_estimate_enabled', 'title' => __('Shipping estimate on the cart', 'bg-couriers'),
                 'desc' => __('On the cart page, show a rough cached shipping price per courier/option (the exact price is calculated at checkout). Off by default.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgcouriers_free_shipping_label', 'title' => __('Free shipping label', 'bg-couriers'),
