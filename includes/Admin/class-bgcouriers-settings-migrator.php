@@ -2,14 +2,28 @@
 defined('ABSPATH') || exit;
 
 class BGCouriers_Settings_Migrator {
-    const VERSION = 3;
+    const VERSION = 4;
 
     public static function migrate(): void {
         $current = (int) get_option('bgcouriers_settings_version', 0);
         if ($current >= self::VERSION) { return; }
         if ($current < 2) { self::migrate_to_flat_options(); }
         if ($current < 3) { self::migrate_shipment_contents(); }
+        if ($current < 4) { self::drop_dual_currency(); }
         update_option('bgcouriers_settings_version', self::VERSION);
+    }
+
+    /**
+     * Bulgaria dropped the mandatory BGN+EUR dual display on 2026-08-09, so the plugin no longer has a
+     * second currency at all and the option is dead weight.
+     *
+     * This needs its OWN numbered step. Deleting it from migrate_to_flat_options() (where it first went)
+     * looked equivalent and was not: that step only runs for $current < 2, so every install that had
+     * already migrated sat at version 3 and never re-entered it - the option survived on exactly the
+     * installs that had one. Caught on dev, which still read 'yes' after the upgrade.
+     */
+    private static function drop_dual_currency(): void {
+        delete_option('bgcouriers_dual_currency');
     }
 
     /**
@@ -44,9 +58,5 @@ class BGCouriers_Settings_Migrator {
                 }
             }
         }
-        // Bulgaria dropped the mandatory BGN+EUR dual display on 2026-08-09, so the plugin no longer
-        // has a second currency at all - prices are the store's currency, full stop. Clear the old
-        // option rather than migrate it (no-op when it was never set).
-        delete_option('bgcouriers_dual_currency');
     }
 }
