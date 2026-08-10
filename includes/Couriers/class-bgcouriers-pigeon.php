@@ -391,7 +391,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
             $this->base . '/v1/shipments/calculate',
             self::build_calculate_body($shipment, $pickup, self::default_box())
         );
-        return self::parse_price($resp, (string) ($shipment['currency'] ?? 'EUR'));
+        return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
 
     // ── Label creation ──────────────────────────────────────────────────────

@@ -160,7 +160,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     // Filled in Tasks 6-7:
     public function quote(array $shipment): BGCouriers_Quote {
         $resp = $this->post_json($this->base . '/calculate', $this->auth(self::build_calculate_body($shipment)));
-        return self::parse_price($resp, (string) ($shipment['currency'] ?? 'BGN'));
+        return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
 
     public static function build_calculate_body(array $s): array {

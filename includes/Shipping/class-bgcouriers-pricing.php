@@ -91,7 +91,7 @@ class BGCouriers_Pricing {
     public static function quote(BGCouriers_Courier_Interface $courier, array $shipment): BGCouriers_Quote {
         $method  = (string) ($shipment['method'] ?? 'address');
         $mode    = BGCouriers_Settings::price_mode($courier->id(), $method);
-        $store   = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'BGN';
+        $store   = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : '';
         $default = (float) BGCouriers_Settings::method_config($courier->id(), $method)['price'];
         // Live API for 'live' and 'fallback' (not 'fixed').
         if ($mode !== 'fixed' && in_array('live_quote', $courier->capabilities(), true)) {

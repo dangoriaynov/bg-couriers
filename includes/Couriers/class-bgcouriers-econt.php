@@ -305,7 +305,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $this->base . '/Shipments/LabelService.createLabel.json',
             self::build_calculate_body($shipment, $this->sender_profile())
         );
-        return self::parse_price($resp, (string) ($shipment['currency'] ?? 'EUR'));
+        return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
 
     // ── Label creation ──────────────────────────────────────────────────────
