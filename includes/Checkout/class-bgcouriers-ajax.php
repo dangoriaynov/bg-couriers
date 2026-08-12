@@ -3,7 +3,7 @@ defined('ABSPATH') || exit;
 
 class BGCouriers_Ajax {
     public function __construct() {
-        foreach (['search_cities','offices','city_avail','streets','set_selection','geocode'] as $a) {
+        foreach (['search_cities','offices','city_avail','streets','set_selection','geocode','allmap_cities','allmap_offices'] as $a) {
             add_action("wp_ajax_bgcouriers_{$a}", [$this, $a]);
             add_action("wp_ajax_nopriv_bgcouriers_{$a}", [$this, $a]);
         }
@@ -174,6 +174,50 @@ class BGCouriers_Ajax {
         $rows = array_values($rows);
         usort($rows, static function ($a, $b) { return ((int) ($a['office_id'] ?? 0)) <=> ((int) ($b['office_id'] ?? 0)); });
         return array_slice($rows, 0, max(1, $limit));
+    }
+    /**
+     * Places for the combined map's city picker, gathered across EVERY enabled courier rather than one
+     * of them, so a town that only one courier lists still appears. Distinct by name + post code,
+     * because that pair is what identifies a place to the other couriers.
+     */
+    public function allmap_cities(): void {
+        $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
+        $seen = [];
+        $out  = [];
+        foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
+            if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
+            foreach (BGCouriers_Nomenclature::search_cities($cid, $term, 30) as $row) {
+                $key = $row['name'] . '|' . $row['post_code'];
+                if (isset($seen[$key])) { continue; }
+                $seen[$key] = true;
+                $out[] = ['name' => $row['name'], 'post_code' => $row['post_code'], 'region' => $row['region'] ?? ''];
+            }
+        }
+        usort($out, static function ($a, $b) { return strcmp($a['name'], $b['name']); });
+        wp_send_json(array_slice($out, 0, 30));
+    }
+
+    /**
+     * Every enabled courier's pickup points for ONE place, in one request. Each courier is asked with
+     * the city id IT issued (see BGCouriers_Nomenclature::match_city) - a shared id does not exist.
+     */
+    public function allmap_offices(): void {
+        if (!self::rate_ok()) { wp_send_json([]); }
+        $name = sanitize_text_field(wp_unslash($_GET['name'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
+        $code = sanitize_text_field(wp_unslash($_GET['post_code'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        $type = sanitize_key(wp_unslash($_GET['type'] ?? 'office')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (!in_array($type, ['office', 'automat'], true)) { wp_send_json([]); }
+        $out = [];
+        foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
+            if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
+            if (!in_array($type, BGCouriers_Settings::enabled_methods($cid), true)) { continue; }
+            $city = BGCouriers_Nomenclature::match_city($cid, $name, $code);
+            if (!$city) { continue; }
+            $offices = self::city_offices($cid, (int) $city['city_id'], $type, '', 100000);
+            if (!$offices) { continue; }
+            $out[$cid] = ['city_id' => (int) $city['city_id'], 'offices' => $offices];
+        }
+        wp_send_json($out);
     }
     public function streets(): void {
         if (!self::rate_ok()) { wp_send_json([]); }

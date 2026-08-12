@@ -104,6 +104,40 @@ class BGCouriers_Nomenclature {
             $courier, $code), ARRAY_A);
         return $row ?: null;
     }
+    /**
+     * One PLACE, as a given courier numbers it. City ids in this plugin belong to the courier that
+     * issued them, so the combined office map carries a name and a post code and asks each courier what
+     * it calls that. Name AND post code first because neither is unique on its own - about a thousand
+     * cities per courier share a post code with another, and names repeat across regions - then each
+     * alone, because a courier that spells or codes a small town differently should still be found.
+     *
+     * @param string $courier   Courier id.
+     * @param string $name      City name as another courier spells it.
+     * @param string $post_code Post code, '' when unknown.
+     * @return array|null The courier's own row, or null when it does not list the place.
+     */
+    public static function match_city(string $courier, string $name, string $post_code): ?array {
+        global $wpdb;
+        $t = $wpdb->prefix . 'bgcouriers_cities';
+        $cols = 'city_id,name,name_lat,post_code,region';
+        if ($name !== '' && $post_code !== '') {
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT {$cols} FROM {$t} WHERE courier=%s AND name=%s AND post_code=%s LIMIT 1",
+                $courier, $name, $post_code), ARRAY_A);
+            if ($row) { return $row; }
+        }
+        if ($name !== '') {
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT {$cols} FROM {$t} WHERE courier=%s AND name=%s LIMIT 1", $courier, $name), ARRAY_A);
+            if ($row) { return $row; }
+        }
+        if ($post_code !== '') {
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT {$cols} FROM {$t} WHERE courier=%s AND post_code=%s LIMIT 1", $courier, $post_code), ARRAY_A);
+            if ($row) { return $row; }
+        }
+        return null;
+    }
     public static function city_by_id(string $courier, int $city_id): ?array {
         global $wpdb;
         $row = $wpdb->get_row($wpdb->prepare(
