@@ -635,14 +635,24 @@
       if ($radio.length) { $radio.prop('checked', true).trigger('change'); }
       // 2. its delivery-type tab
       setMethod($wrap, pick.method);
-      // 3. city and office, each appended as an option so the select shows a label straight away
-      //    instead of a bare id while select2 loads
+      // 3. the city. Its change starts an async office reload, and pushSelection below triggers
+      //    update_checkout, which re-renders this whole block - so the office cannot be written here
+      //    and survive. It is set once the block is final, below.
       var $city = $wrap.find('.bgc-city');
       $city.append(new Option(pick.cityLabel, pick.cityId, true, true)).val(String(pick.cityId)).trigger('change');
-      var $office = $wrap.find('.bgc-office');
-      $office.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
+
       // 4. the same save + recalculate a manual pick performs
       pushSelection($wrap);
+
+      // 5. the office, on the re-rendered block. `one` so a later recalculation does not re-apply a
+      //    pick the customer may have changed since.
+      $(document.body).one('updated_checkout', function () {
+        var $w = $('.bgc-fields[data-courier="' + pick.courier + '"]');
+        var $o = $w.find('.bgc-office');
+        if (!$o.length || String($o.val() || '') === String(pick.officeId)) { return; }
+        $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
+        saveSelection($w);
+      });
       return true;
     }
   };
