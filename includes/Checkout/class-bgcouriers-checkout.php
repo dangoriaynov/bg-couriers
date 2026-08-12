@@ -192,7 +192,15 @@ class BGCouriers_Checkout {
         if (strpos((string) $method->get_method_id(), self::METHOD_PREFIX) !== 0) { return $label; }
         $tip = $this->rate_tip($method);
         if ($tip === '') { return $label; }
-        return $label . ' <span class="bgc-info-tip" tabindex="0" role="img" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '"></span>';
+        // The icon SAYS which of the two it is instead of being a generic "i" the customer has to hover
+        // to learn anything at all: a banknote when they will hand the money to the courier at the door,
+        // a shopping bag when the delivery is already in what they are paying now. The drawing is a CSS
+        // background rather than inline SVG on purpose - rate labels are printed through wp_kses_post,
+        // which strips <svg> outright, while a class on a <span> survives (that is how this (i) lives).
+        $meta = method_exists($method, 'get_meta_data') ? (array) $method->get_meta_data() : [];
+        $mode = (float) ($meta['_bgcouriers_info_price'] ?? 0) > 0 ? 'courier' : 'total';
+        return $label . ' <span class="bgc-info-tip bgc-pay-' . esc_attr($mode) . '" tabindex="0" role="img"'
+            . ' data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '"></span>';
     }
 
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
