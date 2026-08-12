@@ -215,7 +215,9 @@ class BGCouriers_Checkout {
      * Rendered as a <tr>, not a <div>: this hook fires as a direct child of the review-order table's
      * <tfoot>, outside any <tr>. A bare <div> there is not valid table content, so the HTML5 parser
      * foster-parents it out - it would land above the WHOLE order table, not above the courier rows.
-     * A <tr><td colspan="2"> is what WooCommerce itself prints at this hook, and stays in place.
+     * The <tr> is what keeps it inside the table; the single colspan="2" cell (rather than the
+     * label/td pairs the rows around it use) is deliberate - this row holds one control, not a
+     * label and a value.
      */
     public function render_allmap_button(): void {
         if (!self::has_pickup_courier()) { return; }
