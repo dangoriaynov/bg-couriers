@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.4
+Stable tag: 0.2.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,11 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.2.5 =
+* Fixed: Pigeon Express orders stayed on "Label created" for the whole life of the parcel and never moved to Shipped, however far the shipment had actually travelled. The plugin was reading Pigeon's tracking history from the wrong place in its reply, so it always looked empty - and an empty history is what tells the plugin the courier has not collected anything yet. Tracking for the other couriers was never affected. Existing Pigeon orders correct themselves at the next tracking check, or straight away with the refresh button on the order.
+* Fixed: a Pigeon parcel that had arrived at the office or locker was read as delivered to the customer, which completed the order and stopped the parcel being tracked at all - so nobody would have seen it go unclaimed and travel back. It is now shown as waiting for collection, and Pigeon's own status codes decide this, not the wording of the message.
+* Fixed: the bundled PDF library used to build multi-label sheets is now under this plugin's own name, so it cannot clash with another plugin that bundles the same library - a shop that also prints invoices or packing slips no longer depends on which plugin loaded first.
+
 = 0.2.4 =
 * Removed the second-currency display. Bulgaria stopped requiring dual BGN/EUR prices on 9 August 2026, so delivery prices now show only in the shop currency and the "Enable 2 currencies" setting is gone. Site-wide currency conversion, if you still want it, belongs to a dedicated currency plugin.
 
@@ -138,6 +143,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
 
 == Upgrade Notice ==
+
+= 0.2.5 =
+Fixes Pigeon Express tracking: orders follow the parcel again instead of sitting on "Label created", and a parcel waiting at the office is no longer counted as delivered. Recommended for anyone shipping with Pigeon.
 
 = 0.2.3 =
 Fixes the heading above the shipping methods in locales where WooCommerce has not translated its own wording yet.
