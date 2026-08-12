@@ -655,27 +655,35 @@
       //    rounds - so the office write never happens; it only looked reliable on dev because WooCommerce
       //    happens to abort the earlier in-flight request there. Subscribe with `.on()` instead.
       //
-      //    Which round is "the settled one" is not knowable from here - a first attempt at guessing it
-      //    from the rendered city turned out wrong (WooCommerce's actual sequencing does not match that
-      //    assumption). So do not guess: write the office on EVERY round instead, and only stop once the
-      //    value is observed to have survived a full round intact. This is self-correcting regardless of
-      //    how many rounds land or in what order - a round that undoes the write just gets written again
-      //    next time. Also retire whatever was left over from a PREVIOUS applyPick, so a pick nobody
-      //    wants applied any more doesn't keep listening (and re-writing) forever.
+      //    Which round is "the settled one" is not knowable from here, so write the office on every round
+      //    instead of guessing - self-correcting whatever order the rounds land in. But an UNBOUNDED
+      //    version of that is worse than the race it replaces: left running, it would (a) leak - keep
+      //    firing on every future checkout edit for the rest of the session once the customer switches to
+      //    a different courier, (b) override the customer - silently put this office back the moment they
+      //    pick a DIFFERENT one by hand, since any value but pick.officeId reads as "not settled yet", and
+      //    (c) hammer the server with a real save on every single recalculation. So retire the handler the
+      //    moment ANY of three things is true: the value stuck, the customer's chosen rate is no longer
+      //    this pick's courier, or it has already written the office 3 times without it sticking (past
+      //    that many rounds something else owns this field, and continuing to fight it is the harm this
+      //    guard exists to prevent). Also retire whatever was left over from a PREVIOUS applyPick, so a
+      //    pick nobody wants applied any more doesn't keep listening either.
       if (pendingOfficeApply) { $(document.body).off('updated_checkout', pendingOfficeApply); }
+      var officeTries = 0;
       var onOfficeRound = function () {
         var $w = $('.bgc-fields[data-courier="' + pick.courier + '"]');
         var $o = $w.find('.bgc-office');
-        if (!$o.length) { return; }
-        // Already ours and it survived a full round - the block has settled, so stop listening.
-        if (String($o.val() || '') === String(pick.officeId)) {
+        function done() {
           $(document.body).off('updated_checkout', onOfficeRound);
           pendingOfficeApply = null;
-          return;
         }
-        // Otherwise write it again. Which recalculation is the LAST one is not knowable from here, so
-        // do not try to guess: re-apply on each until one holds, which is self-correcting whatever
-        // order the rounds land in.
+        if (!$o.length) { return; }
+        if (String($o.val() || '') === String(pick.officeId)) { done(); return; }         // 1. it stuck
+        // 2. the customer moved on to a different courier - same match as the radio above (want + the
+        //    colon guard), against whichever rate is actually CHECKED now.
+        var checkedVal = String($('input[name^="shipping_method"]:checked').val() || '');
+        if (checkedVal !== want && checkedVal.indexOf(want + ':') !== 0) { done(); return; }
+        if (officeTries >= 3) { done(); return; }                                          // 3. gave it enough tries
+        officeTries++;
         $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
         saveSelection($w);
       };
