@@ -1,5 +1,7 @@
 <?php
-// phpcs:ignoreFile -- bundled third-party library (FPDF/FPDI), shipped unmodified.
+// phpcs:ignoreFile -- bundled third-party library (FPDF/FPDI). Modified only to carry this plugin's
+// namespace instead of the vendor's, plus the direct-access guard below. Not actually used: the plugin
+// registers its own autoloader in includes/lib/pdf/load.php. Kept working so it cannot mislead anyone.
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 
 /**
@@ -11,8 +13,10 @@ if (!defined('ABSPATH')) { exit; } // direct-access protection
  */
 
 spl_autoload_register(static function ($class) {
-    if (strpos($class, 'BGCouriers\Fpdi\\') === 0) {
-        $filename = str_replace('\\', DIRECTORY_SEPARATOR, substr($class, 14)) . '.php';
+    // The offset is measured, not written down: upstream hardcoded 14 for its own 'setasign\Fpdi\'.
+    $prefix = 'BGCouriers\\Fpdi\\';
+    if (strpos($class, $prefix) === 0) {
+        $filename = str_replace('\\', DIRECTORY_SEPARATOR, substr($class, strlen($prefix))) . '.php';
         $fullpath = __DIR__ . DIRECTORY_SEPARATOR . $filename;
 
         if (is_file($fullpath)) {
