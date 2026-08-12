@@ -624,7 +624,14 @@
       var $wrap = $('.bgc-fields[data-courier="' + pick.courier + '"]');
       if (!$wrap.length) { return false; }               // that courier is not offered for this cart
       // 1. the courier's own rate row - this is what WooCommerce charges for
-      var $radio = $('input[name^="shipping_method"][value="bgcouriers_' + pick.courier + '"]');
+      // WooCommerce rate values carry an instance id ("bgcouriers_speedy:5"), and some do not, so an
+      // exact-value selector silently matches nothing on a real checkout. Match the courier segment
+      // and let the colon end it - no courier id is a prefix of another.
+      var want = 'bgcouriers_' + pick.courier;
+      var $radio = $('input[name^="shipping_method"]').filter(function () {
+        var v = String(this.value || '');
+        return v === want || v.indexOf(want + ':') === 0;
+      });
       if ($radio.length) { $radio.prop('checked', true).trigger('change'); }
       // 2. its delivery-type tab
       setMethod($wrap, pick.method);
