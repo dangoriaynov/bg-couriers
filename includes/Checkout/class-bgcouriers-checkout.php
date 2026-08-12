@@ -211,16 +211,21 @@ class BGCouriers_Checkout {
      * The opener for the combined map, above the courier rows. The dialog asks for the city and the
      * destination type itself, so unlike each courier's own Map button this one needs nothing chosen
      * first - which is the whole point: it is for the customer who has not picked a courier yet.
+     *
+     * Rendered as a <tr>, not a <div>: this hook fires as a direct child of the review-order table's
+     * <tfoot>, outside any <tr>. A bare <div> there is not valid table content, so the HTML5 parser
+     * foster-parents it out - it would land above the WHOLE order table, not above the courier rows.
+     * A <tr><td colspan="2"> is what WooCommerce itself prints at this hook, and stays in place.
      */
     public function render_allmap_button(): void {
         if (!self::has_pickup_courier()) { return; }
         if (function_exists('is_cart') && is_cart()) { return; } // the pickers belong to checkout
         echo wp_kses(
-            '<div class="bgc-allmap-open"><button type="button" class="bgc-allmap-btn">'
+            '<tr class="bgc-allmap-open"><td colspan="2"><button type="button" class="bgc-allmap-btn">'
             . '<span class="bgc-allmap-ico" aria-hidden="true"></span>'
             . esc_html__('View all offices on a map', 'bg-couriers')
-            . '</button></div>',
-            ['div' => ['class' => true], 'button' => ['type' => true, 'class' => true], 'span' => ['class' => true, 'aria-hidden' => true]]
+            . '</button></td></tr>',
+            ['tr' => ['class' => true], 'td' => ['class' => true, 'colspan' => true], 'button' => ['type' => true, 'class' => true], 'span' => ['class' => true, 'aria-hidden' => true]]
         );
     }
 
