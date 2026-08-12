@@ -158,7 +158,15 @@ class BGCouriers_Order_Columns {
         if ($order_id && function_exists('wc_get_order')) {
             $o = wc_get_order($order_id);
             if ($o) {
-                $edit_ico = '<a class="bgc-ico bgc-edit-lnk" href="' . esc_url($o->get_edit_order_url() . '#bgc-edit') . '" data-tip="' . esc_attr__('Edit delivery details', 'bg-couriers') . '" aria-label="' . esc_attr__('Edit delivery details', 'bg-couriers') . '"><span class="dashicons dashicons-edit"></span></a>';
+                // Once the courier holds the parcel the delivery details cannot be changed, so the pencil
+                // goes dim and loses its href rather than leading to an editor that will refuse to save.
+                // The padlock that used to say this is gone: a disabled control says it in the place the
+                // merchant is already looking, and one fewer icon fits a column this narrow.
+                $edit_tip = $locked ? BGCouriers_Labels::locked_message() : __('Edit delivery details', 'bg-couriers');
+                $edit_ico = '<a class="bgc-ico bgc-edit-lnk' . ($locked ? ' bgc-off' : '') . '"'
+                    . ($locked ? ' aria-disabled="true"' : ' href="' . esc_url($o->get_edit_order_url() . '#bgc-edit') . '"')
+                    . ' data-tip="' . esc_attr($edit_tip) . '" aria-label="' . esc_attr($edit_tip) . '">'
+                    . '<span class="dashicons dashicons-edit"></span></a>';
             }
         }
         // Re-issue sits right of the pencil and only exists once a waybill does: one click voids the
@@ -169,16 +177,11 @@ class BGCouriers_Order_Columns {
             $regen_tip = __('Re-issue waybill (voids the current one)', 'bg-couriers');
             $regen_ico = '<a class="bgc-ico bgc-regen" href="' . esc_url($regenerate_url) . '" data-tip="' . esc_attr($regen_tip) . '" aria-label="' . esc_attr($regen_tip) . '"><span class="dashicons dashicons-update"></span></a>';
         }
-        // The lock lived beside the status text; the text is gone, so it joins the row the status icon
-        // is now in - it is a statement about the shipment, like the icon, not a button.
-        $lock_ico = $locked
-            ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
-            : '';
         // Two fixed rows: row 1 = courier logo + pencil (always) + re-issue (only with a waybill) + where
         // the shipment is, row 2 = Generate OR the waybill actions (copy / print / track / cancel). The
         // JS cancel-swap replaces row 2 and must also drop .bgc-regen from row 1, or it outlives its
         // waybill; it leaves the rest of row 1 alone, which is why the state icon can live there.
-        $row1 = '<span class="bgc-row">' . $logo_tile . $edit_ico . $regen_ico . $status . $lock_ico . '</span>';
+        $row1 = '<span class="bgc-row">' . $logo_tile . $edit_ico . $regen_ico . $status . '</span>';
         if ($waybill === '') {
             return '<span class="bgc-cell">' . $row1
                 . '<span class="bgc-row"><a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a></span></span>';

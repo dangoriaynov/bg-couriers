@@ -2,6 +2,8 @@
 use PHPUnit\Framework\TestCase;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+require_once dirname(__DIR__) . '/stubs/wc-order.php';
+require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-labels.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-columns.php';
 
 /**
@@ -85,6 +87,37 @@ final class OrderColumnCellTest extends TestCase {
         $this->assertStringNotContainsString('bgc-regen', $g);
         $this->assertStringNotContainsString('http://re', $g);
     }
+    /**
+     * Once the courier holds the parcel the delivery details cannot be changed, so the pencil goes dim
+     * and loses its href - leading it to an editor that will refuse to save is worse than not offering
+     * it. The padlock that used to carry this message is gone with it: a disabled control says the same
+     * thing in the place the merchant is already looking, and this column has no room to spare.
+     */
+    public function test_a_collected_shipment_dims_the_pencil_and_drops_the_padlock(): void {
+        foreach (['esc_html', 'esc_html__', 'esc_attr', 'esc_attr__', 'esc_url', 'sanitize_html_class'] as $f) {
+            Functions\when($f)->alias('trim');
+        }
+        Functions\when('human_time_diff')->justReturn('5 minutes');
+        $stub = new class { public function get_edit_order_url(): string { return 'http://edit'; } };
+        Functions\when('wc_get_order')->justReturn($stub);
+
+        $order = new WC_Order();
+        $order->meta = ['_bgcouriers_handover' => 'yes', '_bgcouriers_track_stage' => 'transit'];
+        $h = BGCouriers_Order_Columns::cell_html('W123', 'http://p', 'http://t', 'http://g', 7, '', '', '', '', 'http://re', $order);
+
+        $this->assertStringContainsString('bgc-edit-lnk bgc-off', $h, 'the pencil must be dimmed');
+        $this->assertStringNotContainsString('http://edit', $h, 'and must not lead anywhere');
+        $this->assertStringContainsString('aria-disabled="true"', $h);
+        $this->assertStringNotContainsString('bgc-lock', $h, 'the padlock is gone');
+        $this->assertStringNotContainsString('bgc-regen', $h, 're-issue is still withheld while locked');
+
+        $open = new WC_Order();
+        $open->meta = ['_bgcouriers_track_stage' => 'registered'];
+        $g = BGCouriers_Order_Columns::cell_html('W123', 'http://p', 'http://t', 'http://g', 7, '', '', '', '', 'http://re', $open);
+        $this->assertStringContainsString('http://edit', $g, 'an uncollected parcel keeps its pencil');
+        $this->assertStringNotContainsString('bgc-off', $g);
+    }
+
     /** Callers that pass no re-issue URL (or none at all) must not render a dead button. */
     public function test_reissue_icon_absent_without_a_url(): void {
         Functions\when('esc_html')->alias('trim');

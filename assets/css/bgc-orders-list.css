@@ -45,8 +45,6 @@
   width:26px; height:26px; border:1px solid #e2e6ea; border-radius:6px; background:#fff;
   color:#6b7280; cursor:help; }
 .bgc-track-ico svg { display:block; }
-/* Waybill locked: the courier has the parcel, so cancel and re-issue are gone from the row. */
-.bgc-lock { flex:0 0 auto; font-size:13px; width:13px; height:13px; color:#8c8f94; cursor:help; }
 
 /* Two hints in one place: the row's own status bubble and the lock's. Hovering the lock sits INSIDE the
    status element, so both fired at once and the two bubbles landed on top of each other. A hint whose
@@ -58,3 +56,9 @@
    run off the edge, and the first (the courier logo) would spill into the column before it. */
 .bgc-cell [data-tip]:nth-last-child(-n+2):hover::after { left:auto; right:0; transform:none; }
 .bgc-cell [data-tip]:nth-child(-n+2):hover::after { left:0; right:auto; transform:none; }
+
+/* An action the plugin will refuse: dimmed, and stripped of its href so a click cannot go anywhere.
+   Pointer events stay ON so the hover hint can still explain why - which is the whole reason the
+   padlock that used to sit here could be dropped: a disabled control says it where the eye already is. */
+.bgc-ico.bgc-off { opacity:.4; cursor:not-allowed; }
+.bgc-ico.bgc-off:hover { background:#fff; border-color:#e2e6ea; }

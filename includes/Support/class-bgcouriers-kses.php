@@ -36,6 +36,7 @@ class BGCouriers_Kses {
             'strong' => ['class' => true],
             'b'      => [],
             'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'title' => true,
+                         'aria-disabled' => true,
                          'aria-label' => true, 'data-tip' => true, 'data-courier' => true, 'data-id' => true,
                          'data-nonce' => true, 'data-gennonce' => true],
             'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'title' => true, 'data-tip' => true,
