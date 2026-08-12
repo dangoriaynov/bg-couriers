@@ -94,8 +94,15 @@ class BGCouriers_Order_Columns {
         'delivered' => '#00814f', 'returning' => '#b32d2e', 'returned' => '#b32d2e', 'cancelled' => '#6b7280'];
 
     /**
-     * The courier's own last word about this shipment, as one short line under the waybill actions.
-     * Empty until the poller has actually heard something - an empty line is better than a made-up one.
+     * Where this shipment is, as ONE icon that sits in the button row.
+     *
+     * It used to be the courier's own sentence printed under the buttons. Courier wordings run long
+     * ("Изпратено известие за пратка в офис/автомат"), the waybill column is narrow, so the line wrapped
+     * to two and every row in the list stood taller than its own buttons. A list is scanned, not read:
+     * the stage is now a glyph you recognise at a glance and the full sentence is one hover away - the
+     * same trade the courier logo beside it already makes.
+     *
+     * Empty until there is something to say - an empty cell is better than a made-up one.
      */
     public static function status_html(\WC_Order $order): string {
         $text  = trim((string) $order->get_meta('_bgcouriers_track_text'));
@@ -103,23 +110,36 @@ class BGCouriers_Order_Columns {
         // The stage alone is worth showing: a label created minutes ago has a real state and no courier
         // wording yet, and a blank cell reads as "something is broken" rather than "nothing has happened".
         if ($stage === '' && $text === '') { return ''; }
-        $color   = self::STAGE_COLORS[$stage] ?? '#6b7280';
         $updated = (int) $order->get_meta('_bgcouriers_track_updated');
-        // The status itself goes in the hover bubble too: courier wordings are long ("Изпратено известие
-        // за пратка в офис/автомат") and the waybill column is narrow, so the line wraps to two and the
-        // full sentence stays one hover away instead of ending in an ellipsis nobody can resolve.
         $tip = BGCouriers_Tracking::stage_label($stage) . ($text !== '' ? ' - ' . $text : '');
         if ($updated > 0) {
             /* translators: %s: human-readable time difference, e.g. "2 hours" */
             $tip .= ' - ' . sprintf(__('updated %s ago', 'bg-couriers'), human_time_diff($updated, time()));
         }
-        $lock = BGCouriers_Labels::is_locked($order)
-            ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
-            : '';
-        return '<span class="bgc-track" data-tip="' . esc_attr($tip) . '">'
-            . '<span class="bgc-track-dot" style="background:' . esc_attr($color) . '"></span>'
-            . '<span class="bgc-track-txt"><strong>' . esc_html(BGCouriers_Tracking::stage_label($stage)) . '</strong>'
-            . ($text !== '' ? ' ' . esc_html($text) : '') . '</span>' . $lock . '</span>';
+        // The colour comes from the CLASS, never from an inline style: this column is printed through
+        // BGCouriers_Kses::admin_actions(), whose <span> takes no style attribute, so the old coloured
+        // dot was stripped at output and the list had no colour in it at all. stage_color_css() below
+        // turns STAGE_COLORS into the matching rules, so the colours still live in one place.
+        $cls = 'bgc-track-ico bgc-stage-' . sanitize_html_class($stage ?: 'transit');
+        $glyph = BGCouriers_Icons::stage($stage);
+        // A stage we have no glyph for still has to be visible and hoverable, so fall back to the
+        // generic "on its way" drawing rather than rendering an empty box.
+        if ($glyph === '') { $glyph = BGCouriers_Icons::stage('transit'); }
+        return '<span class="' . esc_attr($cls) . '" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '">'
+            . $glyph . '</span>';
+    }
+
+    /**
+     * `.bgc-stage-*{color}` built from STAGE_COLORS, added to the orders-list stylesheet the same way the
+     * per-courier row tints are. Generated rather than written into the .css file so the colours have a
+     * single source of truth, and so they survive kses (a class does, an inline style does not).
+     */
+    public static function stage_color_css(): string {
+        $out = '';
+        foreach (self::STAGE_COLORS as $stage => $color) {
+            $out .= '.bgc-track-ico.bgc-stage-' . sanitize_html_class($stage) . '{color:' . $color . ';}';
+        }
+        return $out;
     }
 
     public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = '', string $courier_label = '', string $courier_logo = '', string $regenerate_url = '', $order = null): string {
@@ -149,14 +169,19 @@ class BGCouriers_Order_Columns {
             $regen_tip = __('Re-issue waybill (voids the current one)', 'bg-couriers');
             $regen_ico = '<a class="bgc-ico bgc-regen" href="' . esc_url($regenerate_url) . '" data-tip="' . esc_attr($regen_tip) . '" aria-label="' . esc_attr($regen_tip) . '"><span class="dashicons dashicons-update"></span></a>';
         }
-        // Two fixed rows: row 1 = courier logo + pencil (always) + re-issue (only with a waybill),
-        // row 2 = Generate OR the waybill actions (copy / print / track / cancel). The JS cancel-swap
-        // replaces row 2 and must also drop .bgc-regen from row 1, or it outlives its waybill.
-        $row1 = '<span class="bgc-row">' . $logo_tile . $edit_ico . $regen_ico . '</span>';
+        // The lock lived beside the status text; the text is gone, so it joins the row the status icon
+        // is now in - it is a statement about the shipment, like the icon, not a button.
+        $lock_ico = $locked
+            ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
+            : '';
+        // Two fixed rows: row 1 = courier logo + pencil (always) + re-issue (only with a waybill) + where
+        // the shipment is, row 2 = Generate OR the waybill actions (copy / print / track / cancel). The
+        // JS cancel-swap replaces row 2 and must also drop .bgc-regen from row 1, or it outlives its
+        // waybill; it leaves the rest of row 1 alone, which is why the state icon can live there.
+        $row1 = '<span class="bgc-row">' . $logo_tile . $edit_ico . $regen_ico . $status . $lock_ico . '</span>';
         if ($waybill === '') {
             return '<span class="bgc-cell">' . $row1
-                . '<span class="bgc-row"><a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a></span>'
-                . ($status !== '' ? '<span class="bgc-row">' . $status . '</span>' : '') . '</span>';
+                . '<span class="bgc-row"><a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a></span></span>';
         }
         // Same tile look and order as the order-screen shipment panel: copy (stands in for the
         // waybill number, which is the panel's copy control) then Print (primary) / Track / Cancel.
@@ -169,7 +194,7 @@ class BGCouriers_Order_Columns {
             . '<a class="bgc-ico bgc-primary" target="_blank" href="' . esc_url($print_url) . '" data-tip="' . esc_attr__('Print label', 'bg-couriers') . '" aria-label="' . esc_attr__('Print label', 'bg-couriers') . '"><span class="dashicons dashicons-printer"></span></a>'
             . '<a class="bgc-ico" target="_blank" href="' . esc_url($track_url) . '" data-tip="' . esc_attr__('Track shipment', 'bg-couriers') . '" aria-label="' . esc_attr__('Track shipment', 'bg-couriers') . '"><span class="dashicons dashicons-location"></span></a>'
             . ($locked ? '' : '<a href="#" class="bgc-ico bgc-danger bgc-wb-cancel" data-id="' . (int) $order_id . '" data-nonce="' . esc_attr($cancel_nonce) . '" data-gennonce="' . esc_attr($generate_nonce) . '" data-tip="' . esc_attr__('Cancel waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Cancel waybill', 'bg-couriers') . '"><span class="dashicons dashicons-no-alt"></span></a>')
-            . '</span>' . ($status !== '' ? '<span class="bgc-row">' . $status . '</span>' : '') . '</span>';
+            . '</span></span>';
     }
 
     /**
@@ -184,7 +209,7 @@ class BGCouriers_Order_Columns {
         wp_enqueue_style('bgc-orders-list', BGCOURIERS_URL . 'assets/css/bgc-orders-list.css', [], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
         // Built here, not at load time: the colours are per-courier options and this is the only place we
         // know the screen is an orders list (and that the handle above is actually enqueued).
-        $tint = self::row_tint_css();
+        $tint = self::row_tint_css() . self::stage_color_css();
         if ($tint !== '') { wp_add_inline_style('bgc-orders-list', $tint); }
         wp_enqueue_script('bgc-orders-list', BGCOURIERS_URL . 'assets/js/bgc-orders-list.js', [], is_file($js) ? (string) filemtime($js) : BGCOURIERS_VERSION, true);
         wp_localize_script('bgc-orders-list', 'BGCOURIERS_LIST', [
