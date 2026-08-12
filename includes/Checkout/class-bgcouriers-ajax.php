@@ -179,6 +179,11 @@ class BGCouriers_Ajax {
      * Places for the combined map's city picker, gathered across EVERY enabled courier rather than one
      * of them, so a town that only one courier lists still appears. Distinct by name + post code,
      * because that pair is what identifies a place to the other couriers.
+     *
+     * The dedup key is lower-cased: couriers spell the same place with different casing (Speedy's
+     * nomenclature is upper-case, e.g. "СОФИЯ" vs another courier's "София"), and comparing the raw
+     * name would show the customer the same city twice. The label keeps whichever spelling was seen
+     * FIRST, so the list still reads as one real courier's own wording, not a synthetic normalisation.
      */
     public function allmap_cities(): void {
         $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
@@ -187,7 +192,8 @@ class BGCouriers_Ajax {
         foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
             if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
             foreach (BGCouriers_Nomenclature::search_cities($cid, $term, 30) as $row) {
-                $key = $row['name'] . '|' . $row['post_code'];
+                $lower = function_exists('mb_strtolower') ? mb_strtolower($row['name'], 'UTF-8') : strtolower($row['name']);
+                $key = $lower . '|' . $row['post_code'];
                 if (isset($seen[$key])) { continue; }
                 $seen[$key] = true;
                 $out[] = ['name' => $row['name'], 'post_code' => $row['post_code'], 'region' => $row['region'] ?? ''];
