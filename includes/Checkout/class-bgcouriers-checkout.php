@@ -29,6 +29,7 @@ class BGCouriers_Checkout {
 
     public function __construct() {
         add_action('woocommerce_after_shipping_rate', [$this, 'render_fields'], 10, 2);
+        add_action('woocommerce_review_order_before_shipping', [$this, 'render_allmap_button']);
         add_action('wp_enqueue_scripts', [$this, 'assets']);
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
@@ -205,6 +206,23 @@ class BGCouriers_Checkout {
 
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
     public function free_notice_fragment($fragments) { $fragments['.bgc-free-notice'] = self::free_notice_html(); return $fragments; }
+
+    /**
+     * The opener for the combined map, above the courier rows. The dialog asks for the city and the
+     * destination type itself, so unlike each courier's own Map button this one needs nothing chosen
+     * first - which is the whole point: it is for the customer who has not picked a courier yet.
+     */
+    public function render_allmap_button(): void {
+        if (!self::has_pickup_courier()) { return; }
+        if (function_exists('is_cart') && is_cart()) { return; } // the pickers belong to checkout
+        echo wp_kses(
+            '<div class="bgc-allmap-open"><button type="button" class="bgc-allmap-btn">'
+            . '<span class="bgc-allmap-ico" aria-hidden="true"></span>'
+            . esc_html__('View all offices on a map', 'bg-couriers')
+            . '</button></div>',
+            ['div' => ['class' => true], 'button' => ['type' => true, 'class' => true], 'span' => ['class' => true, 'aria-hidden' => true]]
+        );
+    }
 
     /** Prepend the courier's brand logo to its shipping-method radio label (BGCOURIERS methods only). */
     public function logo_shipping_label($label, $method) {
@@ -391,6 +409,24 @@ class BGCouriers_Checkout {
 
     public function chosen_is_speedy(): bool {
         return $this->chosen_courier() !== null;
+    }
+
+    /**
+     * Does anyone deliver to a pickup point? The combined map plots offices and APS lockers, so a store
+     * whose couriers all deliver to the door has nothing to show and gets no button.
+     *
+     * @param string[]|null $courier_ids Courier ids to consider; null = every registered courier. The
+     *                                   argument exists so the rule can be tested on its own.
+     * @return bool
+     */
+    public static function has_pickup_courier(?array $courier_ids = null): bool {
+        $ids = $courier_ids ?? array_keys(BGCouriers_Couriers::all());
+        foreach ($ids as $cid) {
+            if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
+            $methods = BGCouriers_Settings::enabled_methods($cid);
+            if (in_array('office', $methods, true) || in_array('automat', $methods, true)) { return true; }
+        }
+        return false;
     }
 
     public function validate($data, $errors): void {
