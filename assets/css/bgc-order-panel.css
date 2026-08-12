@@ -100,8 +100,10 @@
 
 /* Where the shipment is, on the order screen itself. The orders list had it; the one screen you open to
    look at a single order did not, so the answer was always one click away in the wrong direction. */
-.bgc-shipstate { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:8px 0 0;
-  padding:7px 10px; border:1px solid #e2e6ea; border-radius:8px; background:#fafbfc; font-size:12px; line-height:1.4; }
+/* position:relative + the reserved right padding are for the refresh button pinned into the corner
+   below - the text wraps under it and can never reach it. */
+.bgc-shipstate { position:relative; display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:8px 0 0;
+  padding:7px 36px 7px 10px; border:1px solid #e2e6ea; border-radius:8px; background:#fafbfc; font-size:12px; line-height:1.4; }
 .bgc-shipstate .bgc-track-dot { flex:0 0 auto; width:8px; height:8px; border-radius:50%; }
 .bgc-shipstate-txt { color:#50575e; }
 .bgc-shipstate-when { color:#8c8f94; margin-left:auto; white-space:nowrap; }
@@ -113,11 +115,18 @@
 .bgc-cell [data-tip]:has([data-tip]:hover)::after { content: none !important; }
 .bgc-order-panel [data-tip]:has([data-tip]:hover)::after { content: none !important; }
 
-/* Ask-the-courier-now button, tucked into the corner of the shipment state. Quiet until hovered: it is
-   there when wanted, and not competing with the state itself the rest of the time. */
-.bgc-ship-refresh { flex:0 0 auto; margin-left:6px; padding:0; width:22px; height:22px; display:inline-flex;
-  align-items:center; justify-content:center; border:1px solid #dcdcde; border-radius:5px;
-  background:#fff; color:#787c82; cursor:pointer; transition:color .12s, border-color .12s; }
+/* Ask-the-courier-now button, PINNED to the panel's top-right corner.
+   It used to sit at the end of the row, in the flow, so it moved with whatever the courier had said:
+   a longer status line, or the lock appearing once the parcel was collected, pushed it onto the next
+   line and it read as something left dangling under the panel rather than a control belonging to it.
+   Taking it out of the flow fixes the position for good - the text below can say anything, in any
+   language, and the button stays in the corner.
+   The selector needs two classes: `.bgc-order-panel [data-tip]{position:relative}` above would
+   otherwise win on specificity and put the button back in the flow. */
+.bgc-shipstate .bgc-ship-refresh { position:absolute; top:5px; right:6px; margin:0; padding:0;
+  width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid #dcdcde; border-radius:5px; background:#fff; color:#787c82; cursor:pointer;
+  transition:color .12s, border-color .12s; }
 .bgc-ship-refresh:hover { color:#2271b1; border-color:#2271b1; }
 .bgc-ship-refresh .dashicons { font-size:15px; width:15px; height:15px; }
 .bgc-ship-refresh.bgc-busy { opacity:.6; cursor:default; }
@@ -142,28 +151,5 @@
 .bgc-shipstate [data-tip]:hover::after { left:auto; right:0; transform:none; }
 .bgc-shipstate [data-tip]:hover::before { left:auto; right:8px; transform:none; }
 
-/* Ask-the-courier-now button, tucked into the corner of the shipment state. Quiet until hovered: it is
-   there when wanted, and not competing with the state itself the rest of the time. */
-.bgc-ship-refresh { flex:0 0 auto; margin-left:6px; padding:0; width:22px; height:22px; display:inline-flex;
-  align-items:center; justify-content:center; border:1px solid #dcdcde; border-radius:5px;
-  background:#fff; color:#787c82; cursor:pointer; transition:color .12s, border-color .12s; }
-.bgc-ship-refresh:hover { color:#2271b1; border-color:#2271b1; }
-.bgc-ship-refresh .dashicons { font-size:15px; width:15px; height:15px; }
-.bgc-ship-refresh.bgc-busy { opacity:.6; cursor:default; }
-.bgc-ship-refresh.bgc-busy .dashicons { animation:bgc-spin 1s linear infinite; }
-@keyframes bgc-spin { to { transform:rotate(360deg); } }
-
-/* A hint on an element at the RIGHT EDGE of its row must not hang off the panel. The bubble is centred
-   by default, which is right in the middle of a row and wrong at its end - there it gets clipped by the
-   panel, or painted under the metabox beside it. Anchor those to the right instead.
-
-   Applied by POSITION rather than to named buttons: every hint added from now on is covered, instead of
-   being discovered one screenshot at a time. */
-.bgc-order-panel [data-tip]:nth-last-child(-n+2):hover::after { left:auto; right:0; transform:none; }
-.bgc-order-panel [data-tip]:nth-last-child(-n+2):hover::before { left:auto; right:8px; transform:none; }
-/* The shipment state ends with a lock and a refresh button, both of which carry long explanations -
-   anchor everything in that row, whatever gets added to the end of it later. */
-.bgc-shipstate [data-tip]:hover::after { left:auto; right:0; transform:none; }
-.bgc-shipstate [data-tip]:hover::before { left:auto; right:8px; transform:none; }
 /* The shipment-state row keeps its own hints inside the panel too. */
 .bgc-shipstate { overflow:visible; }
