@@ -506,26 +506,50 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
     /**
      * Parse a GET /v1/shipments/{ref}/track response into a BGCouriers_Tracking object.
      *
-     * Event mapping: status_code → code, status → name, timestamp → date.
+     * Pigeon keeps the history under `tracking` (NOT `events`) and stamps each entry with `created_at`;
+     * alongside every status text it sends `status_code`, its own machine value from
+     * GET /v1/shipment-statuses. Event mapping: status_code → code, status → name, created_at → date.
+     *
+     * The code is what we hand on as the phase, so no verdict about a Pigeon parcel is ever reached by
+     * reading Bulgarian prose - which is how "Доставена в офис/локър" (the parcel REACHED the office) was
+     * being read as delivered to the customer.
      *
      * @param array $resp Decoded JSON response (expects $resp['data']).
      * @return BGCouriers_Tracking
      */
     public static function parse_tracking(array $resp): BGCouriers_Tracking {
-        $d      = $resp['data'] ?? [];
-        $events = array_map(static function (array $e): array {
-            return [
+        $d       = $resp['data'] ?? [];
+        $history = $d['tracking'] ?? [];
+        $events  = [];
+        foreach (is_array($history) ? $history : [] as $e) {
+            if (!is_array($e)) { continue; }
+            $events[] = [
                 'code' => (string) ($e['status_code'] ?? ''),
                 'name' => (string) ($e['status']      ?? ''),
-                'date' => (string) ($e['timestamp']   ?? ''),
+                'date' => (string) ($e['created_at']  ?? ''),
             ];
-        }, $d['events'] ?? []);
+        }
 
+        $code = (string) ($d['status_code'] ?? '');
         return new BGCouriers_Tracking(
             (string) ($d['reference_number'] ?? ''),
             (string) ($d['status']           ?? 'UNKNOWN'),
-            $events, '', null, true
+            $events, $code, self::handover($code), true
         );
+    }
+
+    /**
+     * Does this status code mean the courier physically has the parcel? Pigeon answers outright, so the
+     * poller never has to guess from the length of the history - which for Pigeon told it nothing anyway.
+     *
+     * @param string $code Pigeon's status_code.
+     * @return bool|null True/false when the code is one we know, null when it is not.
+     */
+    private static function handover(string $code): ?bool {
+        if ($code === '') { return null; }
+        // Anything we have not seen before means SOMETHING happened after registration, and the two codes
+        // that mean "not yet collected" are both mapped - so an unknown code is safely a handover.
+        return BGCouriers_Tracking::phase_stage($code) !== 'registered';
     }
 
     /**

@@ -2,12 +2,53 @@
 defined('ABSPATH') || exit;
 
 class BGCouriers_Tracking {
-    /** Speedy trackPhase values that really do end a shipment. @var array<string,string> */
+    /**
+     * Courier lifecycle phases whose meaning we know, mapped to our stages. A phase is a machine value
+     * the courier itself publishes, so where there is one it beats reading the status text.
+     *
+     * Only the phases that our text rules would get WRONG need listing - an unrecognised phase falls back
+     * to 'transit' (see stage()), which is the safe verdict: it never ends tracking and never completes an
+     * order. Pigeon's codes are its own, from GET /v1/shipment-statuses.
+     *
+     * @var array<string,string>
+     */
     private const PHASES = [
+        // Speedy trackPhase values that really do end a shipment.
         'DELIVERED'                => 'delivered',
         'RETURN_TO_SENDER'         => 'returned',
         'DELIVERED_BACK_TO_SENDER' => 'returned',
+        // Pigeon. Still on the merchant's desk - the label exists, the parcel has not been collected.
+        // "Очаква товарене от куриер" reads as movement to the text rules ('очаква' is an in-flight
+        // word), so the code is the only thing that keeps a printed label from announcing itself shipped.
+        'shipment_registered'              => 'registered',
+        'shipment_awaiting_courier_pickup' => 'registered',
+        // Arrived at the pickup point and waiting for the customer. Pigeon words the first of these
+        // "Доставена в офис/локър", which our text rules read as DELIVERED - that completes the order and,
+        // because delivered is terminal, stops the shipment ever being polled again while it is still
+        // sitting in a locker with nobody having touched it.
+        'shipment_delivered_to_office'  => 'ready',
+        'shipment_left_in_locker'       => 'ready',
+        'shipment_held_by_sender'       => 'ready',
+        // Nobody came for it. The parcel is still at the office, so it is not moving and not returned
+        // either - keeping it non-terminal is what lets us see it turn into a return.
+        'shipment_untracked'            => 'ready',
+        'shipment_locker_time_expired'  => 'ready',
+        'shipment_storage_expired'      => 'ready',
+        'shipment_delivered_to_recipient' => 'delivered',
+        'shipment_cancelled'              => 'cancelled',
+        'shipment_returning_to_sender'    => 'returning',
+        'shipment_returned'               => 'returned',
     ];
+
+    /**
+     * What a courier's own lifecycle phase means to us, or '' when it is not one we know.
+     *
+     * @param string $phase The courier's phase/status code.
+     * @return string One of our stages, or ''.
+     */
+    public static function phase_stage(string $phase): string {
+        return self::PHASES[$phase] ?? '';
+    }
 
     public string $waybill;
     public string $status;
@@ -72,7 +113,8 @@ class BGCouriers_Tracking {
             }
             return $verdict;
         }
-        if (isset(self::PHASES[$this->phase])) { return self::PHASES[$this->phase]; }
+        $known = self::phase_stage($this->phase);
+        if ($known !== '') { return $known; }
         return self::classify($this->human()) === 'cancelled' ? 'cancelled' : 'transit';
     }
 

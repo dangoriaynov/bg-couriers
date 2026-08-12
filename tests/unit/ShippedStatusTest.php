@@ -4,6 +4,13 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-pigeon.php';
+
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-tracking-poller.php';
 
@@ -109,6 +116,36 @@ final class ShippedStatusTest extends TestCase {
         $o->meta['_bgcouriers_track_first'] = '148';
         $this->assertFalse($this->call($o, $this->tracking('9', 3)));
         $this->assertNull($o->transition);
+    }
+
+    // ── Couriers that answer the handover question outright ─────────────────
+
+    private function pigeon(string $fixture): BGCouriers_Tracking {
+        return BGCouriers_Pigeon::parse_tracking(
+            json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/pigeon/' . $fixture), true)
+        );
+    }
+
+    /**
+     * Order 11244: Pigeon had accepted the parcel at the office two days earlier and the order was still
+     * sitting in Processing. Pigeon sends no event history that grows, so the count-the-events rule could
+     * never fire for it - its status_code is the answer.
+     */
+    public function test_pigeon_marks_shipped_once_the_courier_has_the_parcel(): void {
+        $this->opt('wc-bgcouriers-shipped');
+        $o = new WC_Order();
+        $this->assertTrue($this->call($o, $this->pigeon('track.json')));
+        $this->assertSame('bgcouriers-shipped', $o->status);
+        $this->assertSame('yes', $o->meta['_bgcouriers_shipped_marked']);
+    }
+
+    /** And the reverse, which would be the worse bug: a printed label is not a shipped parcel. */
+    public function test_pigeon_does_not_mark_a_freshly_printed_label(): void {
+        $this->opt('wc-bgcouriers-shipped');
+        $o = new WC_Order();
+        $this->assertFalse($this->call($o, $this->pigeon('track-registered.json')));
+        $this->assertSame('processing', $o->status);
+        $this->assertArrayNotHasKey('_bgcouriers_shipped_marked', $o->meta);
     }
 
     /** Any status may be chosen, not just ours. */
