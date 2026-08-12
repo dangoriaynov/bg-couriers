@@ -153,3 +153,19 @@
 
 /* The shipment-state row keeps its own hints inside the panel too. */
 .bgc-shipstate { overflow:visible; }
+
+/* Blocked while the courier has the parcel.
+   Dimmed and inert, NOT removed: a control that vanishes leaves the merchant wondering where it went,
+   and one that still works leaves them wondering why it refused. Pointer events stay ON so the hint can
+   explain itself and name the way back (put the order into Processing or Pending payment); the click is
+   stopped in bgc-order-admin.js, and the server refuses it regardless. */
+.bgc-order-panel .bgc-act.bgc-off { opacity:.4; cursor:not-allowed; box-shadow:none; }
+.bgc-order-panel .bgc-act.bgc-off:hover { border-color:#dcdcde; color:inherit; background:#fff; }
+.bgc-order-panel .bgc-act.bgc-danger.bgc-off:hover { border-color:#f0c7c7; }
+
+/* The delivery editor stays readable while it is locked - only the controls go quiet. */
+.bgc-ed-form.bgc-ed-locked select,
+.bgc-ed-form.bgc-ed-locked input,
+.bgc-ed-form.bgc-ed-locked .button:not(.bgc-ed-save) { pointer-events:none; opacity:.55; }
+.bgc-ed-form.bgc-ed-locked .bgc-ed-save[disabled] { cursor:not-allowed; }
+.bgc-ed-lockmsg { color:#8a6d00; }

@@ -72,10 +72,103 @@ final class WaybillLockTest extends TestCase {
         $this->assertFalse(BGCouriers_Labels::is_locked($o));
     }
 
+    // ── Reopening a locked order ────────────────────────────────────────────
+
+    /**
+     * The way out, and the merchant declares it: putting the order back to Processing or Pending payment
+     * means "I am reworking this one", and everything opens again - cancel the waybill, change the
+     * address, change the courier.
+     *
+     * It keys off the TRANSITION, not off the status itself, and that distinction is the whole point:
+     * Processing is where an ordinary paid order already sits. A shop that leaves the automatic "Shipped"
+     * status switched off keeps its orders in Processing the entire time the courier is carrying them, so
+     * reading the status alone would mean the lock never engaged for that shop at all.
+     */
+    public function test_a_locked_order_put_back_to_processing_is_reopened(): void {
+        $o = $this->order(['_bgcouriers_handover' => 'yes', '_bgcouriers_track_stage' => 'transit']);
+        $this->assertTrue(BGCouriers_Labels::is_locked($o), 'locked to begin with');
+        BGCouriers_Labels::maybe_reopen($o, 'bgc-shipped', 'processing');
+        $this->assertSame('yes', $o->meta['_bgcouriers_reopened'] ?? '');
+        $this->assertFalse(BGCouriers_Labels::is_locked($o), 'and now everything is available again');
+    }
+
+    public function test_pending_payment_reopens_it_too(): void {
+        $o = $this->order(['_bgcouriers_handover' => 'yes']);
+        BGCouriers_Labels::maybe_reopen($o, 'bgc-shipped', 'pending');
+        $this->assertFalse(BGCouriers_Labels::is_locked($o));
+    }
+
+    /** Any other status is not a reopening - Completed is where a delivered order is supposed to end. */
+    public function test_other_statuses_do_not_reopen(): void {
+        foreach (['completed', 'cancelled', 'on-hold', 'refunded'] as $to) {
+            $o = $this->order(['_bgcouriers_handover' => 'yes']);
+            BGCouriers_Labels::maybe_reopen($o, 'bgc-shipped', $to);
+            $this->assertTrue(BGCouriers_Labels::is_locked($o), $to);
+        }
+    }
+
+    /**
+     * The ordinary payment -> Processing transition, on an order with nothing collected, must NOT leave a
+     * reopen flag lying around: it would sit there until the parcel WAS collected and then unlock the one
+     * order it should have held.
+     */
+    public function test_becoming_processing_before_any_handover_leaves_no_flag(): void {
+        $o = $this->order([]);
+        BGCouriers_Labels::maybe_reopen($o, 'pending', 'processing');
+        $this->assertArrayNotHasKey('_bgcouriers_reopened', $o->meta);
+        $o->meta['_bgcouriers_handover'] = 'yes'; // the courier collects it later
+        $this->assertTrue(BGCouriers_Labels::is_locked($o), 'the old transition must not unlock this');
+    }
+
+    /** A fresh waybill starts a fresh shipment: the previous reopening is spent. */
+    public function test_issuing_a_new_waybill_clears_the_reopening(): void {
+        $o = $this->order(['_bgcouriers_handover' => 'yes', '_bgcouriers_reopened' => 'yes']);
+        $this->assertFalse(BGCouriers_Labels::is_locked($o));
+        BGCouriers_Labels::reset_shipment_state($o);
+        $this->assertArrayNotHasKey('_bgcouriers_reopened', $o->meta);
+    }
+
+    /**
+     * ...and it has to forget the OLD parcel as well, or the whole way out closes behind the merchant:
+     * reopen, cancel, issue a new waybill - and the handover flag left over from the parcel that is long
+     * gone locks the order again on the spot. That flag was never cleared anywhere.
+     */
+    public function test_a_new_waybill_forgets_the_previous_parcel(): void {
+        $o = $this->order([
+            '_bgcouriers_handover'     => 'yes',
+            '_bgcouriers_reopened'     => 'yes',
+            '_bgcouriers_track_done'   => 'yes',
+            '_bgcouriers_track_first'  => '148',
+            '_bgcouriers_track_status' => 'Взета от получателя',
+            '_bgcouriers_track_text'   => 'Взета от получателя',
+        ]);
+        BGCouriers_Labels::reset_shipment_state($o);
+        foreach (['_bgcouriers_handover', '_bgcouriers_track_done', '_bgcouriers_track_first',
+                  '_bgcouriers_track_status', '_bgcouriers_track_text'] as $k) {
+            $this->assertArrayNotHasKey($k, $o->meta, $k);
+        }
+        $this->assertFalse(BGCouriers_Labels::is_locked($o), 'the new waybill starts unlocked');
+    }
+
     /** The refusal has to say why, and name the way out - it is the merchant's only cue. */
     public function test_the_message_explains_and_points_somewhere(): void {
         $m = BGCouriers_Labels::locked_message();
         $this->assertNotSame('', $m);
         $this->assertStringContainsString('courier', $m);
+        $this->assertStringContainsString('Processing', $m, 'it must name the way back');
+    }
+
+    /**
+     * The blocked controls are marked with attributes the panel prints through wp_kses, and kses drops
+     * anything not on the allowlist WITHOUT a word. That is not hypothetical here: the same omission is
+     * why the stage colours in the Orders list were invisible for as long as they existed. If a control
+     * is going to look disabled, the attribute that says so has to survive being printed.
+     */
+    public function test_the_disabled_state_attributes_survive_kses(): void {
+        require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-metabox.php';
+        $button = BGCouriers_Order_Metabox::PANEL_TAGS['button'];
+        foreach (['aria-disabled', 'tabindex', 'class', 'data-tip'] as $attr) {
+            $this->assertArrayHasKey($attr, $button, "the panel would strip {$attr} from a button");
+        }
     }
 }

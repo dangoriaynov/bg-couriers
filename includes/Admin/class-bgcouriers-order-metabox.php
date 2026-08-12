@@ -38,6 +38,17 @@ class BGCouriers_Order_Metabox {
                 . '<span class="dashicons dashicons-' . esc_attr($icon) . '"></span></' . $tag . '>';
         };
         $edit_tip = __('Edit delivery details', 'bg-couriers');
+        // Once the courier holds the parcel, cancelling / re-issuing / editing are refused by the server
+        // anyway - so they are shown dimmed and inert rather than left to be clicked and turned down. The
+        // hint on each says why AND how to get them back, because the way out is not obvious: put the
+        // order back to Processing or Pending payment. Print and Track stay live: reading is always fine.
+        $locked     = BGCouriers_Labels::is_locked($order);
+        $locked_msg = BGCouriers_Labels::locked_message();
+        $off        = $locked ? ' bgc-off' : '';
+        $off_attrs  = $locked ? ' aria-disabled="true" tabindex="-1"' : '';
+        $tip_of     = static function (string $tip) use ($locked, $locked_msg): string {
+            return $locked ? $locked_msg : $tip;
+        };
 
         // Header: courier logo + delivery-type label + (when issued) the waybill number, which is itself the
         // copy button - clicking the field copies the number (see bgc-order-admin.js).
@@ -57,11 +68,15 @@ class BGCouriers_Order_Metabox {
             // details/settings (weights, parcel dims, contents), instead of cancel-then-generate. Sits first
             // in the action group so it follows the waybill-copy button. JS confirms (bgc-order-admin.js).
             $regen  = $nonce_url('bgcouriers_regenerate', 'bgcouriers_regenerate_');
-            $actions = $act('button', 'update', __('Re-issue waybill (voids the current one)', 'bg-couriers'), 'type="button" data-regen-url="' . $regen . '"', 'bgc-regen')
+            // The URLs are withheld while locked, not just hidden behind a class: the JS handlers read
+            // them, so a control with nothing to act on cannot fire even if the styling is overridden.
+            $regen_attr  = 'type="button"' . ($locked ? '' : ' data-regen-url="' . $regen . '"') . $off_attrs;
+            $cancel_attr = 'type="button"' . ($locked ? '' : ' data-cancel-url="' . $cancel . '"') . $off_attrs;
+            $actions = $act('button', 'update', $tip_of(__('Re-issue waybill (voids the current one)', 'bg-couriers')), $regen_attr, 'bgc-regen' . $off)
                 . $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary')
                 . $act('a', 'location', __('Track shipment', 'bg-couriers'), 'href="' . $track . '" target="_blank"')
                 . $act('button', 'edit', $edit_tip, 'type="button"', 'bgc-ed-toggle')
-                . $act('button', 'no-alt', __('Cancel (void) label', 'bg-couriers'), 'type="button" data-cancel-url="' . $cancel . '"', 'bgc-danger bgc-cancel');
+                . $act('button', 'no-alt', $tip_of(__('Cancel (void) label', 'bg-couriers')), $cancel_attr, 'bgc-danger bgc-cancel' . $off);
         }
 
         // ONE row, icons only: courier logo (hint) + delivery-type icon (hint) + waybill copy + action icons.
@@ -130,7 +145,10 @@ class BGCouriers_Order_Metabox {
         'b'      => [],
         'img'    => ['class' => true, 'src' => true, 'alt' => true, 'data-tip' => true],
         'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'aria-label' => true, 'data-tip' => true],
-        'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true, 'data-regen-url' => true, 'data-id' => true],
+        'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true, 'data-regen-url' => true, 'data-id' => true,
+                        // The dimmed state of a blocked control: without these on the allowlist kses strips
+                        // them at output and the button looks disabled while still being focusable.
+                        'aria-disabled' => true, 'tabindex' => true],
         'svg'    => ['class' => true, 'viewbox' => true, 'width' => true, 'height' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'aria-hidden' => true],
         'path'   => ['d' => true],
         'rect'   => ['x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true],
@@ -216,7 +234,11 @@ class BGCouriers_Order_Metabox {
         ]);
 
         $boxnow_id = $cur_courier === 'boxnow' ? esc_attr((string) $office_id) : '';
-        $form = '<div class="bgc-ed"><div class="bgc-ed-form" style="display:none;margin-top:10px;max-width:520px;">'
+        // A collected parcel cannot be re-addressed, so the form is shown READ-ONLY rather than hidden:
+        // the merchant still needs to see where the box is going while they ring the courier about it.
+        // Saving is what is blocked - and the server refuses it too, whatever the browser does.
+        $locked = BGCouriers_Labels::is_locked($order);
+        $form = '<div class="bgc-ed"><div class="bgc-ed-form' . ($locked ? ' bgc-ed-locked' : '') . '" style="display:none;margin-top:10px;max-width:520px;">'
             . '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>'
             . '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>'
             . '<p class="bgc-ed-city-row"><label>' . esc_html__('City', 'bg-couriers') . '</label><br><select class="bgc-ed-city" style="min-width:300px;"><option></option>' . $city_opt . '</select><input type="hidden" class="bgc-ed-postcode" value="' . $v('post_code') . '"></p>'
@@ -242,8 +264,11 @@ class BGCouriers_Order_Metabox {
             . '<label>' . esc_html__('Locker name', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-name" value="' . $v('boxnow_name') . '"></p>'
             . '<p><label>' . esc_html__('Locker address', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-addr" value="' . $v('boxnow_addr') . '" style="width:100%;"></p>'
             . '</div>'
-            . '<p><button type="button" class="button button-primary bgc-ed-save">' . esc_html__('Save delivery', 'bg-couriers') . '</button> <span class="bgc-ed-msg"></span></p>';
-        if ($has_waybill) {
+            . '<p><button type="button" class="button button-primary bgc-ed-save"' . ($locked ? ' disabled' : '') . '>'
+            . esc_html__('Save delivery', 'bg-couriers') . '</button> <span class="bgc-ed-msg"></span></p>';
+        if ($locked) {
+            $form .= '<p class="description bgc-ed-lockmsg">' . esc_html(BGCouriers_Labels::locked_message()) . '</p>';
+        } elseif ($has_waybill) {
             $form .= '<p class="description">' . esc_html__('A waybill exists. Saving voids it and issues a new one matching the new details.', 'bg-couriers') . '</p>';
         }
         $form .= '</div></div>';
@@ -256,7 +281,7 @@ class BGCouriers_Order_Metabox {
             'select' => ['class' => true, 'style' => true, 'data-current' => true],
             'option' => ['value' => true, 'selected' => true],
             'input'  => ['type' => true, 'class' => true, 'value' => true, 'style' => true],
-            'button' => ['type' => true, 'class' => true, 'title' => true, 'aria-label' => true],
+            'button' => ['type' => true, 'class' => true, 'title' => true, 'aria-label' => true, 'disabled' => true],
             'span'   => ['class' => true],
         ]);
     }

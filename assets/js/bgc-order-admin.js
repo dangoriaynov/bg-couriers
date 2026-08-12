@@ -396,3 +396,10 @@ jQuery(function ($) {
         });
     });
 });
+
+  // A control the server will refuse is dimmed with .bgc-off; stop the click here too, so nothing
+  // depends on the styling alone. Capture phase, before the handlers above get a look at it.
+  document.addEventListener('click', function (e) {
+    var off = e.target && e.target.closest ? e.target.closest('.bgc-off') : null;
+    if (off) { e.preventDefault(); e.stopPropagation(); }
+  }, true);

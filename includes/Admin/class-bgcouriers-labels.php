@@ -25,6 +25,7 @@ class BGCouriers_Labels {
         add_action('wp_ajax_bgcouriers_order_save_delivery', [$this, 'handle_save_delivery']);
         add_action('wp_ajax_bgcouriers_ajax_cancel_label', [$this, 'ajax_cancel_label']);
         add_action('woocommerce_order_status_changed', [$this, 'maybe_auto_generate'], 20, 4);
+        add_action('woocommerce_order_status_changed', [__CLASS__, 'on_status_changed'], 20, 4);
         add_action(self::RETRY_HOOK, [__CLASS__, 'attempt_auto_label'], 10, 1);
         add_action('woocommerce_order_refunded', [$this, 'maybe_cancel_on_refund'], 20, 2);
         // Editing an order can invalidate a waybill that is already at the courier - a different address,
@@ -98,6 +99,9 @@ class BGCouriers_Labels {
             throw new BGCouriers_Api_Exception(esc_html__('The courier returned no waybill number.', 'bg-couriers'));
         }
         $order->update_meta_data('_bgcouriers_waybill', $label->waybill);
+        // This is a NEW shipment, so any reopening of the previous one is spent: the fresh parcel gets to
+        // lock the order on its own terms once a courier collects it.
+        self::reset_shipment_state($order);
         // The shipment's stage is known the moment the waybill exists: it has been registered with the
         // courier and nothing has moved. Recording it here rather than waiting for the tracking poll -
         // which runs twice a day - is what keeps the orders list from showing a blank for hours on the
@@ -376,6 +380,13 @@ class BGCouriers_Labels {
      * @return bool True when the waybill must no longer be changed.
      */
     public static function is_locked(\WC_Order $order): bool {
+        // The merchant has taken this order back in hand (see maybe_reopen) - their call, not ours.
+        if ((string) $order->get_meta('_bgcouriers_reopened') === 'yes') { return false; }
+        return self::shipment_locked($order);
+    }
+
+    /** The shipment's own answer, with no regard for whether the merchant has reopened the order. */
+    private static function shipment_locked(\WC_Order $order): bool {
         $stage = (string) $order->get_meta('_bgcouriers_track_stage');
         // Checked BEFORE the handover flag, which stays set for good: a parcel that has come all the way
         // back is on the merchant's own counter, and a voided one never left. Both waybills are spent, a
@@ -385,9 +396,69 @@ class BGCouriers_Labels {
         return in_array($stage, ['delivered', 'returning'], true);
     }
 
+    /** Statuses that mean the merchant is working on this order again. */
+    private const REOPEN_STATUSES = ['processing', 'pending'];
+
+    /**
+     * The way out of the lock: putting a locked order back to Processing or Pending payment reopens
+     * everything - cancel the waybill, change the address, change the courier.
+     *
+     * It keys off the TRANSITION rather than the status, and that is the whole point. Processing is where
+     * an ordinary paid order already sits, so a shop that leaves the automatic "Shipped" status switched
+     * off keeps its orders in Processing for the entire journey - reading the status alone would mean the
+     * lock never engaged there at all. A transition INTO Processing while the parcel is already collected
+     * is something only a person does, and it says plainly what they mean.
+     *
+     * @param \WC_Order $order The order whose status changed.
+     * @param string    $from  Status it left (kept for the hook signature; the destination is what counts).
+     * @param string    $to    Status it entered.
+     */
+    public static function maybe_reopen(\WC_Order $order, string $from, string $to): void {
+        if (!in_array($to, self::REOPEN_STATUSES, true)) { return; }
+        // Nothing is locked yet -> nothing to reopen. Without this the ordinary payment -> Processing
+        // transition would leave a flag behind that unlocks the parcel once it IS collected.
+        if (!self::shipment_locked($order)) { return; }
+        $order->update_meta_data('_bgcouriers_reopened', 'yes');
+        $order->add_order_note(__('BG Couriers: the order was put back in hand, so the waybill can be cancelled, re-issued and edited again - even though the courier has the parcel. Arrange the change with the courier as well.', 'bg-couriers'));
+        $order->save();
+    }
+
+    /**
+     * WooCommerce hands the hook an id and (usually) the order; take the object when it is there and look
+     * it up when it is not, then let maybe_reopen() decide.
+     *
+     * @param int    $order_id The order.
+     * @param string $from     Previous status.
+     * @param string $to       New status.
+     * @param mixed  $order    The order object, when WooCommerce passed one.
+     */
+    public static function on_status_changed($order_id, $from, $to, $order = null): void {
+        if (!$order instanceof \WC_Order) { $order = wc_get_order((int) $order_id); }
+        if ($order instanceof \WC_Order) { self::maybe_reopen($order, (string) $from, (string) $to); }
+    }
+
+    /**
+     * Forget everything we knew about the PREVIOUS parcel, because this order now has a new one.
+     *
+     * The handover flag in particular was never cleared anywhere - it did not matter while a collected
+     * parcel could not be re-issued at all, but it closes the way out behind the merchant the moment it
+     * can: reopen the order, cancel, issue a fresh waybill, and the flag left by the parcel that is long
+     * gone locks everything again on the spot. The courier's last words go too, or the panel shows a
+     * brand-new waybill under the old parcel's status line.
+     *
+     * `_bgcouriers_shipped_marked` deliberately stays: it records that the ORDER was already advanced to
+     * the Shipped status once, and clearing it would move the order again behind the merchant's back.
+     */
+    public static function reset_shipment_state(\WC_Order $order): void {
+        foreach (['_bgcouriers_reopened', '_bgcouriers_handover', '_bgcouriers_track_done',
+                  '_bgcouriers_track_first', '_bgcouriers_track_status', '_bgcouriers_track_text'] as $k) {
+            $order->delete_meta_data($k);
+        }
+    }
+
     /** The one sentence every blocked action says, so the reason reads the same wherever it surfaces. */
     public static function locked_message(): string {
-        return __('The courier has already collected this shipment - the waybill can no longer be cancelled, re-issued or edited. Arrange it with the courier instead.', 'bg-couriers');
+        return __('The courier has already collected this shipment - the waybill can no longer be cancelled, re-issued or edited. To work on this order again, set it back to Processing or Pending payment.', 'bg-couriers');
     }
 
     /** @return \WC_Order|null The order when the action may proceed; null when it is locked. */
