@@ -613,4 +613,30 @@
       $('#bgc-emergency .bgc-emerg-close').on('click', function () { $('#bgc-emergency').remove(); });
     }
   })();
+
+  // ── The one thing the combined map dialog (bgc-allmap.js) can see ─────────────
+  // That dialog is a separate script and everything in here is private to this IIFE, so this is the
+  // entire contract between them: hand over a chosen point and let the ordinary flow do the rest -
+  // pick the courier's rate, switch its tab, set city and office, save, recalculate. Nothing about
+  // what the order records lives in the other file.
+  window.BGCouriersCheckout = {
+    applyPick: function (pick) {
+      var $wrap = $('.bgc-fields[data-courier="' + pick.courier + '"]');
+      if (!$wrap.length) { return false; }               // that courier is not offered for this cart
+      // 1. the courier's own rate row - this is what WooCommerce charges for
+      var $radio = $('input[name^="shipping_method"][value="bgcouriers_' + pick.courier + '"]');
+      if ($radio.length) { $radio.prop('checked', true).trigger('change'); }
+      // 2. its delivery-type tab
+      setMethod($wrap, pick.method);
+      // 3. city and office, each appended as an option so the select shows a label straight away
+      //    instead of a bare id while select2 loads
+      var $city = $wrap.find('.bgc-city');
+      $city.append(new Option(pick.cityLabel, pick.cityId, true, true)).val(String(pick.cityId)).trigger('change');
+      var $office = $wrap.find('.bgc-office');
+      $office.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
+      // 4. the same save + recalculate a manual pick performs
+      pushSelection($wrap);
+      return true;
+    }
+  };
 })(jQuery);
