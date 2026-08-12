@@ -19,6 +19,25 @@
 
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
 
+  // One colour per courier, so the map answers "whose is that pin" without a click - which is the only
+  // reason to put four couriers on one map at all. divIcon, not an image: nothing to fetch, and it
+  // takes the muted treatment for an unavailable courier for free.
+  var PIN_COLOURS = ['#2271b1', '#00814f', '#b26b00', '#8b5cf6', '#b32d2e'];
+  var pinColour = {};
+  function colourFor(courierId) {
+    if (!pinColour[courierId]) {
+      pinColour[courierId] = PIN_COLOURS[Object.keys(pinColour).length % PIN_COLOURS.length];
+    }
+    return pinColour[courierId];
+  }
+  function pinIcon(courierId, available) {
+    return L.divIcon({
+      className: 'bgc-allmap-pin' + (available ? '' : ' bgc-na'),
+      html: '<span style="background:' + colourFor(courierId) + '"></span>',
+      iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -9]
+    });
+  }
+
   function load() {
     try {
       var v = JSON.parse(window.localStorage.getItem(STORE) || 'null');
@@ -172,7 +191,11 @@
     }
     var bounds = [];
     points.forEach(function (p, i) {
-      $list.append('<li class="bgc-allmap-item' + (p.available ? '' : ' bgc-na') + '" data-i="' + i + '">'
+      // Inline style, not a class: the colour is assigned at runtime (first-seen-courier order), so
+      // there is no fixed set of classes to put in a stylesheet. This markup is built here in JS and
+      // printed straight into the DOM, not passed through wp_kses, so the attribute is fine as-is.
+      $list.append('<li class="bgc-allmap-item' + (p.available ? '' : ' bgc-na') + '" data-i="' + i + '"'
+        + ' style="border-left-color:' + colourFor(p.courier) + '">'
         + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
         + '<span><span class="n">' + esc(p.office.name || '') + '</span>'
         + '<span class="a">' + esc(p.office.address || '') + '</span>'
@@ -182,7 +205,7 @@
         + '</li>');
       var lat = Number(p.office.lat), lng = Number(p.office.lng);
       if (!lat && !lng) { return; }          // no coordinates: it stays in the list, off the map
-      var mk = L.marker([lat, lng], { opacity: p.available ? 1 : 0.45 }).addTo(map);
+      var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, p.available) }).addTo(map);
       mk.bindPopup('<div class="bgc-allmap-pop"><strong>' + esc(p.office.name || '') + '</strong><br>'
         + esc(p.office.address || '') + '<br>' + esc(p.courierLabel)
         + (p.available && p.price ? ' - ' + esc(p.price) : '')

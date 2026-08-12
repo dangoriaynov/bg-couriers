@@ -30,8 +30,16 @@
 .bgc-allmap-list { list-style: none; margin: 0; padding: 0; }
 .bgc-allmap-canvas { flex: 1 1 auto; }
 
+/* Courier pins: a filled dot, coloured per courier by the JS. A muted one belongs to a courier that
+   cannot carry this order - it is still shown, because a missing pin reads as "no office here". */
+.bgc-allmap-pin span { display:block; width:14px; height:14px; margin:2px; border-radius:50%;
+  border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+.bgc-allmap-pin.bgc-na span { opacity:.4; }
+
+/* border-left-width/style are the base; the JS sets only border-left-color per courier inline, so the
+   list's left edge reads as the same colour as that point's pin on the map. */
 .bgc-allmap-item { display: flex; gap: 8px; align-items: flex-start; padding: 9px 12px;
-  border-bottom: 1px solid #f0f0f1; cursor: pointer; font-size: 13px; }
+  border-bottom: 1px solid #f0f0f1; border-left: 3px solid transparent; cursor: pointer; font-size: 13px; }
 .bgc-allmap-item:hover, .bgc-allmap-item.active { background: #f6f7f7; }
 .bgc-allmap-item img { width: 18px; height: 18px; object-fit: contain; flex: 0 0 auto; margin-top: 1px; }
 .bgc-allmap-item .n { font-weight: 600; display: block; }
