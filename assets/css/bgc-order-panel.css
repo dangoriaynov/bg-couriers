@@ -59,7 +59,10 @@
 .bgc-order-panel .bgc-ed-form .select2-selection--single .select2-selection__arrow{height:30px!important;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn{height:32px!important;min-height:32px!important;width:34px!important;min-width:34px!important;padding:0!important;margin:0 0 0 4px!important;vertical-align:middle;display:inline-flex!important;align-items:center;justify-content:center;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn .dashicons{font-size:17px;width:17px;height:17px;line-height:1;}
-.bgc-order-panel .bgc-ed-form .bgc-ed-save.button-primary{height:34px!important;min-height:34px!important;width:auto!important;min-width:0!important;max-width:100%;display:inline-block!important;flex:none;box-sizing:border-box;margin-top:10px!important;border-radius:7px!important;padding:0 22px!important;font-weight:600;}
+/* inline-FLEX, not inline-block: the height is fixed at 34px with no vertical padding, so with
+   inline-block the label is placed by its line-height and sits low in the button. Centring it in a
+   flex box makes the text sit where the eye expects whatever the theme's line-height happens to be. */
+.bgc-order-panel .bgc-ed-form .bgc-ed-save.button-primary{height:34px!important;min-height:34px!important;width:auto!important;min-width:0!important;max-width:100%;display:inline-flex!important;align-items:center;justify-content:center;line-height:1!important;flex:none;box-sizing:border-box;margin-top:10px!important;border-radius:7px!important;padding:0 22px!important;font-weight:600;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-avail{display:none;margin:2px 0 0;color:#b32d2e;font-size:12px;}
 /* Address block: label-above-input fields (bgc-ed-fld) that never wrap raggedly; the small */
 /* Bl./Entr./Floor/Apt. sit in an even 4-column grid, and Street+No.+map share one aligned row. */
@@ -167,5 +170,7 @@
 .bgc-ed-form.bgc-ed-locked select,
 .bgc-ed-form.bgc-ed-locked input,
 .bgc-ed-form.bgc-ed-locked .button:not(.bgc-ed-save) { pointer-events:none; opacity:.55; }
-.bgc-ed-form.bgc-ed-locked .bgc-ed-save[disabled] { cursor:not-allowed; }
+/* A disabled Save has to LOOK disabled even against .button-primary's own colours, or the form says
+   "you may save this" while the server has already decided it will not. */
+.bgc-order-panel .bgc-ed-form .bgc-ed-save[disabled] { opacity:.45!important; cursor:not-allowed; }
 .bgc-ed-lockmsg { color:#8a6d00; }

@@ -160,7 +160,12 @@
     var needs = c !== 'boxnow' && (m === 'office' || m === 'automat');
     var none = needs && city > 0 && officeRows.length === 0;
     $panel.find('.bgc-ed-avail').text(none ? (m === 'automat' ? I.no_automat : I.no_office) : '').toggle(none);
-    $panel.find('.bgc-ed-save').prop('disabled', none);
+    // The lock has to be part of this decision, not just PHP's. This function recomputes the Save
+    // button's state on load and on every change, so a server-rendered `disabled` on a locked order
+    // was switched straight back on the moment the city had offices - the form looked editable and
+    // saveable while the server would refuse it, which is the worst of both.
+    var locked = $panel.find('.bgc-ed-form').hasClass('bgc-ed-locked');
+    $panel.find('.bgc-ed-save').prop('disabled', none || locked);
   }
   function loadOffices() {
     var c = courier(), city = $city.val() || 0, m = $method.val();
