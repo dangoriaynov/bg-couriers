@@ -619,6 +619,10 @@
   // entire contract between them: hand over a chosen point and let the ordinary flow do the rest -
   // pick the courier's rate, switch its tab, set city and office, save, recalculate. Nothing about
   // what the order records lives in the other file.
+  // Left over from an in-flight applyPick's step 5 below, if one hasn't finished yet - kept here (not a
+  // closure-local) so a NEW applyPick can find and retire it instead of leaving it listening forever.
+  var pendingOfficeApply = null;
+
   window.BGCouriersCheckout = {
     applyPick: function (pick) {
       var $wrap = $('.bgc-fields[data-courier="' + pick.courier + '"]');
@@ -644,15 +648,35 @@
       // 4. the same save + recalculate a manual pick performs
       pushSelection($wrap);
 
-      // 5. the office, on the re-rendered block. `one` so a later recalculation does not re-apply a
-      //    pick the customer may have changed since.
-      $(document.body).one('updated_checkout', function () {
+      // 5. the office, on the re-rendered block. The radio's own `change`, setMethod(), the city's
+      //    `change` and the pushSelection above each start their OWN checkout recalculation, so several
+      //    independent 'updated_checkout' events can land before the block is actually final. A `.one()`
+      //    subscription is spent by whichever fires FIRST - often one of the earlier, not-yet-settled
+      //    rounds - so the office write never happens; it only looked reliable on dev because WooCommerce
+      //    happens to abort the earlier in-flight request there. Subscribe with `.on()` instead.
+      //
+      //    ".bgc-office exists" is NOT a useful "is this the final round" signal - every enabled
+      //    courier's block is rendered on every round (just hidden if not chosen), so it exists from the
+      //    first round too. What DOES only become true once the block reflects THIS pick is the city:
+      //    pushSelection above saves courier + city together in one request, and nothing after it changes
+      //    the city again, so once a round's rendered .bgc-city matches pick.cityId, that round (and every
+      //    one after it) is safe to write the office into. Retire the handler once it has done that, and
+      //    also retire whatever was left over from a PREVIOUS applyPick, so a pick nobody wants applied
+      //    any more doesn't keep listening forever.
+      if (pendingOfficeApply) { $(document.body).off('updated_checkout', pendingOfficeApply); }
+      var onOfficeRound = function () {
         var $w = $('.bgc-fields[data-courier="' + pick.courier + '"]');
         var $o = $w.find('.bgc-office');
-        if (!$o.length || String($o.val() || '') === String(pick.officeId)) { return; }
-        $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
-        saveSelection($w);
-      });
+        if (!$o.length || String($w.find('.bgc-city').val() || '') !== String(pick.cityId)) { return; } // not the settled round yet
+        if (String($o.val() || '') !== String(pick.officeId)) {
+          $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
+          saveSelection($w);
+        }
+        $(document.body).off('updated_checkout', onOfficeRound);
+        pendingOfficeApply = null;
+      };
+      pendingOfficeApply = onOfficeRound;
+      $(document.body).on('updated_checkout', onOfficeRound);
       return true;
     }
   };

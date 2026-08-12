@@ -15,7 +15,11 @@
   // A PLACE, not an id: city ids belong to the courier that issued them, so the dialog remembers what
   // the place is called and lets the server resolve it per courier.
   var state = { cityName: '', cityCode: '', cityLabel: '', method: 'office' };
-  var $dlg = null, map = null, markers = [], points = [], cache = {};
+  // `layer` holds every pin from the CURRENT render, so the next render can wipe it in one call. Without
+  // that, a stale pin from a previous Show would stay on the map with a popup baked from the OLD points
+  // array - clicking Choose on it would resolve against the NEW array at the same index and could book a
+  // different courier, city or office than the pin the customer actually clicked.
+  var $dlg = null, map = null, layer = null, markers = [], points = [], cache = {};
 
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
 
@@ -52,6 +56,7 @@
 
   function close() {
     if (map) { map.remove(); map = null; }
+    layer = null; // the layer group is destroyed along with the map; just drop our reference to it
     markers = []; points = [];
     if ($dlg) { $dlg.remove(); $dlg = null; }
   }
@@ -168,6 +173,12 @@
   }
 
   function render(data) {
+    // Wipe the PREVIOUS run's pins before plotting new ones. `points`/`markers` below get reassigned to a
+    // fresh array on every render, but Leaflet does not know that - a marker it already placed stays on
+    // the map with a popup whose Choose button still carries the index into the array it was built
+    // against. Left in place, clicking that leftover pin would resolve the NEW `points` array at the OLD
+    // index and apply a different courier/city/office than the pin the customer actually clicked.
+    if (layer) { layer.clearLayers(); }
     var live = couriersOnPage();
     points = []; markers = [];
     Object.keys(data).forEach(function (cid) {
@@ -188,6 +199,7 @@
       map = L.map('bgc-allmap-canvas', { scrollWheelZoom: true });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+      layer = L.layerGroup().addTo(map); // holds this and every later render's pins, so they can be cleared as one
     }
     var bounds = [];
     points.forEach(function (p, i) {
@@ -205,7 +217,7 @@
         + '</li>');
       var lat = Number(p.office.lat), lng = Number(p.office.lng);
       if (!lat && !lng) { return; }          // no coordinates: it stays in the list, off the map
-      var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, p.available) }).addTo(map);
+      var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, p.available) }).addTo(layer);
       mk.bindPopup('<div class="bgc-allmap-pop"><strong>' + esc(p.office.name || '') + '</strong><br>'
         + esc(p.office.address || '') + '<br>' + esc(p.courierLabel)
         + (p.available && p.price ? ' - ' + esc(p.price) : '')

@@ -177,13 +177,20 @@ class BGCouriers_Ajax {
     }
     /**
      * Places for the combined map's city picker, gathered across EVERY enabled courier rather than one
-     * of them, so a town that only one courier lists still appears. Distinct by name + post code,
+     * of them, so a town that only one courier lists is still a candidate. Distinct by name + post code,
      * because that pair is what identifies a place to the other couriers.
      *
      * The dedup key is lower-cased: couriers spell the same place with different casing (Speedy's
      * nomenclature is upper-case, e.g. "СОФИЯ" vs another courier's "София"), and comparing the raw
      * name would show the customer the same city twice. The label keeps whichever spelling was seen
      * FIRST, so the list still reads as one real courier's own wording, not a synthetic normalisation.
+     *
+     * The final sort is case-insensitive for the same reason: plain strcmp() is byte order, so every
+     * upper-case spelling would sort as its own block ahead of (or behind) the lower-case ones instead of
+     * interleaving alphabetically - and since the result is THEN sliced to 30, a single-courier place
+     * could be pushed out of that slice purely by how one courier capitalises it, not because 30 genuinely
+     * earlier places exist. This does not raise the 30-item cap itself: with more than 30 real candidates
+     * for a term, the alphabetically-last ones are still dropped, same as before.
      */
     public function allmap_cities(): void {
         $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
@@ -196,11 +203,14 @@ class BGCouriers_Ajax {
                 $key = $lower . '|' . $row['post_code'];
                 if (isset($seen[$key])) { continue; }
                 $seen[$key] = true;
-                $out[] = ['name' => $row['name'], 'post_code' => $row['post_code'], 'region' => $row['region'] ?? ''];
+                $out[] = ['name' => $row['name'], 'post_code' => $row['post_code'], 'region' => $row['region'] ?? '', 'sort' => $lower];
             }
         }
-        usort($out, static function ($a, $b) { return strcmp($a['name'], $b['name']); });
-        wp_send_json(array_slice($out, 0, 30));
+        usort($out, static function ($a, $b) { return strcmp($a['sort'], $b['sort']); });
+        wp_send_json(array_slice(array_map(static function ($r) {
+            unset($r['sort']);
+            return $r;
+        }, $out), 0, 30));
     }
 
     /**
@@ -217,6 +227,12 @@ class BGCouriers_Ajax {
         foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
             if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
             if (!in_array($type, BGCouriers_Settings::enabled_methods($cid), true)) { continue; }
+            // The rate_ok() call above only charged ONE unit for reaching this endpoint at all, but the
+            // loop below can still fan out into one live courier lookup per enabled courier - up to five
+            // outbound calls from a single request. Charge the same per-IP budget again for every
+            // courier here (rate_ok() increments its transient on each call), so the fan-out itself
+            // cannot amplify past the limit the way a single call already can't.
+            if (!self::rate_ok()) { break; }
             $city = BGCouriers_Nomenclature::match_city($cid, $name, $code);
             if (!$city) { continue; }
             $offices = self::city_offices($cid, (int) $city['city_id'], $type, '', 100000);
