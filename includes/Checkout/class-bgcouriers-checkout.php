@@ -598,6 +598,12 @@ class BGCouriers_Checkout {
         wp_enqueue_script('bgc-leaflet', BGCOURIERS_URL . 'assets/lib/leaflet/leaflet.js', [], '1.9.4', true);
         wp_enqueue_style('bgc-checkout', BGCOURIERS_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet', 'bgc-rates'], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
         wp_enqueue_script('bgc-checkout', BGCOURIERS_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo', 'bgc-leaflet'], is_file($js) ? (string) filemtime($js) : BGCOURIERS_VERSION, true);
+        // The combined map dialog. Separate files on purpose: bgc-checkout.js already carries the
+        // per-courier picker, and that one must keep working exactly as it does.
+        $allmap_css = BGCOURIERS_PATH . 'assets/css/bgc-allmap.css';
+        $allmap_js  = BGCOURIERS_PATH . 'assets/js/bgc-allmap.js';
+        wp_enqueue_style('bgc-allmap', BGCOURIERS_URL . 'assets/css/bgc-allmap.css', ['bgc-checkout'], is_file($allmap_css) ? (string) filemtime($allmap_css) : BGCOURIERS_VERSION);
+        wp_enqueue_script('bgc-allmap', BGCOURIERS_URL . 'assets/js/bgc-allmap.js', ['bgc-checkout'], is_file($allmap_js) ? (string) filemtime($allmap_js) : BGCOURIERS_VERSION, true);
         // When enabled (default), preload each enabled courier's cities-with-offices (office/automat) so the
         // checkout city dropdown needs no AJAX and availability is derived client-side. The AJAX path stays
         // as the fallback + for address (all BG cities). Off => nothing preloaded, pure AJAX as before.
@@ -644,6 +650,12 @@ class BGCouriers_Checkout {
                 'addr_map_hint' => __('Click the map or drag the pin to your address.','bg-couriers'),
                 'addr_use' => __('Use this address','bg-couriers'),
                 'addr_none' => __('No address found here - try another spot.','bg-couriers'),
+                'allmap_title' => __('View all offices on a map', 'bg-couriers'),
+                'allmap_show' => __('Show the offices', 'bg-couriers'),
+                'allmap_where' => __('Where to', 'bg-couriers'),
+                'allmap_na' => __('Not available for this order', 'bg-couriers'),
+                'allmap_choose' => __('Choose', 'bg-couriers'),
+                'city_label' => __('City', 'bg-couriers'),
             ],
         ]);
 
