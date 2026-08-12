@@ -4,16 +4,16 @@
 /**
  * This file is part of FPDI
  *
- * @package   setasign\Fpdi
+ * @package   BGCouriers\Fpdi
  * @copyright Copyright (c) 2024 Setasign GmbH & Co. KG (https://www.setasign.com)
  * @license   http://opensource.org/licenses/mit-license The MIT License
  */
 
-namespace setasign\Fpdi\PdfParser\CrossReference;
+namespace BGCouriers\Fpdi\PdfParser\CrossReference;
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 
-use setasign\Fpdi\PdfParser\PdfParser;
-use setasign\Fpdi\PdfParser\StreamReader;
+use BGCouriers\Fpdi\PdfParser\PdfParser;
+use BGCouriers\Fpdi\PdfParser\StreamReader;
 
 /**
  * Class LineReader

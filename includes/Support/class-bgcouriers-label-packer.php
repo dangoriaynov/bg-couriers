@@ -16,7 +16,7 @@ class BGCouriers_Label_Packer {
     public static function available(): bool {
         if (!defined('BGCOURIERS_PATH')) { return false; }
         require_once BGCOURIERS_PATH . 'includes/lib/pdf/load.php';
-        return class_exists('setasign\\Fpdi\\Fpdi');
+        return class_exists('BGCouriers\\Fpdi\\Fpdi');
     }
 
     /**
@@ -28,7 +28,7 @@ class BGCouriers_Label_Packer {
         if (!self::available()) { return ''; }
         $isA6 = strtoupper($paper) === 'A6';
 
-        $pdf = new \setasign\Fpdi\Fpdi('P', 'mm', 'A4'); // base doc; pages are added per label with explicit sizes
+        $pdf = new \BGCouriers\Fpdi\Fpdi('P', 'mm', 'A4'); // base doc; pages are added per label with explicit sizes
         $pdf->SetMargins(0, 0, 0);
         $pdf->SetAutoPageBreak(false);
 
@@ -37,7 +37,7 @@ class BGCouriers_Label_Packer {
         foreach ($pdfs as $bytes) {
             if (!is_string($bytes) || $bytes === '') { continue; }
             try {
-                $reader = \setasign\Fpdi\PdfParser\StreamReader::createByString($bytes);
+                $reader = \BGCouriers\Fpdi\PdfParser\StreamReader::createByString($bytes);
                 $count  = $pdf->setSourceFile($reader);
             } catch (\Throwable $e) { continue; } // FPDI can't read this one (encrypted / object streams) - skip it
             for ($p = 1; $p <= $count; $p++) {
@@ -82,7 +82,7 @@ class BGCouriers_Label_Packer {
     }
 
     /** Add a page sized exactly to the label's native dimensions and place the label on it 1:1 (no scaling). */
-    private static function add_native_page(\setasign\Fpdi\Fpdi $pdf, array $it): void {
+    private static function add_native_page(\BGCouriers\Fpdi\Fpdi $pdf, array $it): void {
         $w = $it['w']; $h = $it['h'];
         // FPDF interprets the size in portrait terms and swaps for 'L', so hand it [short,long] with the right
         // orientation to get a page of exactly w x h.
@@ -100,14 +100,14 @@ class BGCouriers_Label_Packer {
      */
     public static function concat(array $pdfs): string {
         if (!self::available()) { return ''; }
-        $pdf = new \setasign\Fpdi\Fpdi('P', 'mm', 'A4');
+        $pdf = new \BGCouriers\Fpdi\Fpdi('P', 'mm', 'A4');
         $pdf->SetMargins(0, 0, 0);
         $pdf->SetAutoPageBreak(false);
         $any = false;
         foreach ($pdfs as $bytes) {
             if (!is_string($bytes) || $bytes === '') { continue; }
             try {
-                $reader = \setasign\Fpdi\PdfParser\StreamReader::createByString($bytes);
+                $reader = \BGCouriers\Fpdi\PdfParser\StreamReader::createByString($bytes);
                 $count  = $pdf->setSourceFile($reader);
             } catch (\Throwable $e) { continue; }
             for ($p = 1; $p <= $count; $p++) {
@@ -150,13 +150,13 @@ class BGCouriers_Label_Packer {
      */
     public static function compose_a4(array $half_pdfs, array $small_pdfs = []): array {
         if (!self::available()) { return ['pdf' => '', 'leftover' => array_values($small_pdfs)]; }
-        $pdf = new \setasign\Fpdi\Fpdi('L', 'mm', 'A4');
+        $pdf = new \BGCouriers\Fpdi\Fpdi('L', 'mm', 'A4');
         $pdf->SetMargins(0, 0, 0);
         $pdf->SetAutoPageBreak(false);
         $import = static function (string $bytes) use ($pdf): array {
             $out = [];
             try {
-                $reader = \setasign\Fpdi\PdfParser\StreamReader::createByString($bytes);
+                $reader = \BGCouriers\Fpdi\PdfParser\StreamReader::createByString($bytes);
                 $count  = $pdf->setSourceFile($reader);
             } catch (\Throwable $e) { return []; }
             for ($p = 1; $p <= $count; $p++) {

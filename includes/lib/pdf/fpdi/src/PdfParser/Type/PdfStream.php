@@ -4,24 +4,24 @@
 /**
  * This file is part of FPDI
  *
- * @package   setasign\Fpdi
+ * @package   BGCouriers\Fpdi
  * @copyright Copyright (c) 2024 Setasign GmbH & Co. KG (https://www.setasign.com)
  * @license   http://opensource.org/licenses/mit-license The MIT License
  */
 
-namespace setasign\Fpdi\PdfParser\Type;
+namespace BGCouriers\Fpdi\PdfParser\Type;
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 
-use setasign\Fpdi\PdfParser\CrossReference\CrossReferenceException;
-use setasign\Fpdi\PdfParser\Filter\Ascii85;
-use setasign\Fpdi\PdfParser\Filter\AsciiHex;
-use setasign\Fpdi\PdfParser\Filter\FilterException;
-use setasign\Fpdi\PdfParser\Filter\Flate;
-use setasign\Fpdi\PdfParser\Filter\Lzw;
-use setasign\Fpdi\PdfParser\PdfParser;
-use setasign\Fpdi\PdfParser\PdfParserException;
-use setasign\Fpdi\PdfParser\StreamReader;
-use setasign\FpdiPdfParser\PdfParser\Filter\Predictor;
+use BGCouriers\Fpdi\PdfParser\CrossReference\CrossReferenceException;
+use BGCouriers\Fpdi\PdfParser\Filter\Ascii85;
+use BGCouriers\Fpdi\PdfParser\Filter\AsciiHex;
+use BGCouriers\Fpdi\PdfParser\Filter\FilterException;
+use BGCouriers\Fpdi\PdfParser\Filter\Flate;
+use BGCouriers\Fpdi\PdfParser\Filter\Lzw;
+use BGCouriers\Fpdi\PdfParser\PdfParser;
+use BGCouriers\Fpdi\PdfParser\PdfParserException;
+use BGCouriers\Fpdi\PdfParser\StreamReader;
+use BGCouriers\FpdiPdfParser\PdfParser\Filter\Predictor;
 
 /**
  * Class representing a PDF stream object

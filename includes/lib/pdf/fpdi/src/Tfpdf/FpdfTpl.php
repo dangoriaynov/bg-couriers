@@ -4,15 +4,15 @@
 /**
  * This file is part of FPDI
  *
- * @package   setasign\Fpdi
+ * @package   BGCouriers\Fpdi
  * @copyright Copyright (c) 2024 Setasign GmbH & Co. KG (https://www.setasign.com)
  * @license   http://opensource.org/licenses/mit-license The MIT License
  */
 
-namespace setasign\Fpdi\Tfpdf;
+namespace BGCouriers\Fpdi\Tfpdf;
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 
-use setasign\Fpdi\FpdfTplTrait;
+use BGCouriers\Fpdi\FpdfTplTrait;
 
 /**
  * Class FpdfTpl

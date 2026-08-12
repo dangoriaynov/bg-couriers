@@ -4,33 +4,33 @@
 /**
  * This file is part of FPDI
  *
- * @package   setasign\Fpdi
+ * @package   BGCouriers\Fpdi
  * @copyright Copyright (c) 2024 Setasign GmbH & Co. KG (https://www.setasign.com)
  * @license   http://opensource.org/licenses/mit-license The MIT License
  */
 
-namespace setasign\Fpdi\PdfReader;
+namespace BGCouriers\Fpdi\PdfReader;
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 
-use setasign\Fpdi\FpdiException;
-use setasign\Fpdi\GraphicsState;
-use setasign\Fpdi\Math\Vector;
-use setasign\Fpdi\PdfParser\Filter\FilterException;
-use setasign\Fpdi\PdfParser\PdfParser;
-use setasign\Fpdi\PdfParser\PdfParserException;
-use setasign\Fpdi\PdfParser\Type\PdfArray;
-use setasign\Fpdi\PdfParser\Type\PdfDictionary;
-use setasign\Fpdi\PdfParser\Type\PdfHexString;
-use setasign\Fpdi\PdfParser\Type\PdfIndirectObject;
-use setasign\Fpdi\PdfParser\Type\PdfName;
-use setasign\Fpdi\PdfParser\Type\PdfNull;
-use setasign\Fpdi\PdfParser\Type\PdfNumeric;
-use setasign\Fpdi\PdfParser\Type\PdfStream;
-use setasign\Fpdi\PdfParser\Type\PdfString;
-use setasign\Fpdi\PdfParser\Type\PdfType;
-use setasign\Fpdi\PdfParser\Type\PdfTypeException;
-use setasign\Fpdi\PdfReader\DataStructure\Rectangle;
-use setasign\Fpdi\PdfParser\CrossReference\CrossReferenceException;
+use BGCouriers\Fpdi\FpdiException;
+use BGCouriers\Fpdi\GraphicsState;
+use BGCouriers\Fpdi\Math\Vector;
+use BGCouriers\Fpdi\PdfParser\Filter\FilterException;
+use BGCouriers\Fpdi\PdfParser\PdfParser;
+use BGCouriers\Fpdi\PdfParser\PdfParserException;
+use BGCouriers\Fpdi\PdfParser\Type\PdfArray;
+use BGCouriers\Fpdi\PdfParser\Type\PdfDictionary;
+use BGCouriers\Fpdi\PdfParser\Type\PdfHexString;
+use BGCouriers\Fpdi\PdfParser\Type\PdfIndirectObject;
+use BGCouriers\Fpdi\PdfParser\Type\PdfName;
+use BGCouriers\Fpdi\PdfParser\Type\PdfNull;
+use BGCouriers\Fpdi\PdfParser\Type\PdfNumeric;
+use BGCouriers\Fpdi\PdfParser\Type\PdfStream;
+use BGCouriers\Fpdi\PdfParser\Type\PdfString;
+use BGCouriers\Fpdi\PdfParser\Type\PdfType;
+use BGCouriers\Fpdi\PdfParser\Type\PdfTypeException;
+use BGCouriers\Fpdi\PdfReader\DataStructure\Rectangle;
+use BGCouriers\Fpdi\PdfParser\CrossReference\CrossReferenceException;
 
 /**
  * Class representing a page of a PDF document

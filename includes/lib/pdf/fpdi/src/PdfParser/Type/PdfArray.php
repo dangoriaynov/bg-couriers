@@ -4,16 +4,16 @@
 /**
  * This file is part of FPDI
  *
- * @package   setasign\Fpdi
+ * @package   BGCouriers\Fpdi
  * @copyright Copyright (c) 2024 Setasign GmbH & Co. KG (https://www.setasign.com)
  * @license   http://opensource.org/licenses/mit-license The MIT License
  */
 
-namespace setasign\Fpdi\PdfParser\Type;
+namespace BGCouriers\Fpdi\PdfParser\Type;
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 
-use setasign\Fpdi\PdfParser\PdfParser;
-use setasign\Fpdi\PdfParser\Tokenizer;
+use BGCouriers\Fpdi\PdfParser\PdfParser;
+use BGCouriers\Fpdi\PdfParser\Tokenizer;
 
 /**
  * Class representing a PDF array object

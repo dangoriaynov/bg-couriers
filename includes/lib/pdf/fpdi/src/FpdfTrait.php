@@ -4,19 +4,19 @@
 /**
  * This file is part of FPDI
  *
- * @package   setasign\Fpdi
+ * @package   BGCouriers\Fpdi
  * @copyright Copyright (c) 2024 Setasign GmbH & Co. KG (https://www.setasign.com)
  * @license   http://opensource.org/licenses/mit-license The MIT License
  */
 
-namespace setasign\Fpdi;
+namespace BGCouriers\Fpdi;
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 
-use setasign\Fpdi\PdfParser\CrossReference\CrossReferenceException;
-use setasign\Fpdi\PdfParser\PdfParserException;
-use setasign\Fpdi\PdfParser\Type\PdfIndirectObject;
-use setasign\Fpdi\PdfParser\Type\PdfNull;
-use setasign\Fpdi\PdfParser\Type\PdfType;
+use BGCouriers\Fpdi\PdfParser\CrossReference\CrossReferenceException;
+use BGCouriers\Fpdi\PdfParser\PdfParserException;
+use BGCouriers\Fpdi\PdfParser\Type\PdfIndirectObject;
+use BGCouriers\Fpdi\PdfParser\Type\PdfNull;
+use BGCouriers\Fpdi\PdfParser\Type\PdfType;
 
 /**
  * This trait is used for the implementation of FPDI in FPDF and tFPDF.

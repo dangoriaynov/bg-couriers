@@ -38,8 +38,8 @@ final class LabelPackerTwoUpTest extends TestCase {
     }
 
     private function sizes(string $pdf): array {
-        $r = new \setasign\Fpdi\Fpdi();
-        $n = $r->setSourceFile(\setasign\Fpdi\PdfParser\StreamReader::createByString($pdf));
+        $r = new \BGCouriers\Fpdi\Fpdi();
+        $n = $r->setSourceFile(\BGCouriers\Fpdi\PdfParser\StreamReader::createByString($pdf));
         $out = [];
         for ($p = 1; $p <= $n; $p++) {
             $s = $r->getTemplateSize($r->importPage($p));

@@ -4,22 +4,22 @@
 /**
  * This file is part of FPDI
  *
- * @package   setasign\Fpdi
+ * @package   BGCouriers\Fpdi
  * @copyright Copyright (c) 2024 Setasign GmbH & Co. KG (https://www.setasign.com)
  * @license   http://opensource.org/licenses/mit-license The MIT License
  */
 
-namespace setasign\Fpdi\PdfReader\DataStructure;
+namespace BGCouriers\Fpdi\PdfReader\DataStructure;
 if (!defined('ABSPATH')) { exit; } // direct-access protection
 
-use setasign\Fpdi\Math\Vector;
-use setasign\Fpdi\PdfParser\CrossReference\CrossReferenceException;
-use setasign\Fpdi\PdfParser\PdfParser;
-use setasign\Fpdi\PdfParser\PdfParserException;
-use setasign\Fpdi\PdfParser\Type\PdfArray;
-use setasign\Fpdi\PdfParser\Type\PdfNumeric;
-use setasign\Fpdi\PdfParser\Type\PdfType;
-use setasign\Fpdi\PdfParser\Type\PdfTypeException;
+use BGCouriers\Fpdi\Math\Vector;
+use BGCouriers\Fpdi\PdfParser\CrossReference\CrossReferenceException;
+use BGCouriers\Fpdi\PdfParser\PdfParser;
+use BGCouriers\Fpdi\PdfParser\PdfParserException;
+use BGCouriers\Fpdi\PdfParser\Type\PdfArray;
+use BGCouriers\Fpdi\PdfParser\Type\PdfNumeric;
+use BGCouriers\Fpdi\PdfParser\Type\PdfType;
+use BGCouriers\Fpdi\PdfParser\Type\PdfTypeException;
 
 /**
  * Class representing a rectangle
