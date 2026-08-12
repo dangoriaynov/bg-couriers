@@ -655,25 +655,29 @@
       //    rounds - so the office write never happens; it only looked reliable on dev because WooCommerce
       //    happens to abort the earlier in-flight request there. Subscribe with `.on()` instead.
       //
-      //    ".bgc-office exists" is NOT a useful "is this the final round" signal - every enabled
-      //    courier's block is rendered on every round (just hidden if not chosen), so it exists from the
-      //    first round too. What DOES only become true once the block reflects THIS pick is the city:
-      //    pushSelection above saves courier + city together in one request, and nothing after it changes
-      //    the city again, so once a round's rendered .bgc-city matches pick.cityId, that round (and every
-      //    one after it) is safe to write the office into. Retire the handler once it has done that, and
-      //    also retire whatever was left over from a PREVIOUS applyPick, so a pick nobody wants applied
-      //    any more doesn't keep listening forever.
+      //    Which round is "the settled one" is not knowable from here - a first attempt at guessing it
+      //    from the rendered city turned out wrong (WooCommerce's actual sequencing does not match that
+      //    assumption). So do not guess: write the office on EVERY round instead, and only stop once the
+      //    value is observed to have survived a full round intact. This is self-correcting regardless of
+      //    how many rounds land or in what order - a round that undoes the write just gets written again
+      //    next time. Also retire whatever was left over from a PREVIOUS applyPick, so a pick nobody
+      //    wants applied any more doesn't keep listening (and re-writing) forever.
       if (pendingOfficeApply) { $(document.body).off('updated_checkout', pendingOfficeApply); }
       var onOfficeRound = function () {
         var $w = $('.bgc-fields[data-courier="' + pick.courier + '"]');
         var $o = $w.find('.bgc-office');
-        if (!$o.length || String($w.find('.bgc-city').val() || '') !== String(pick.cityId)) { return; } // not the settled round yet
-        if (String($o.val() || '') !== String(pick.officeId)) {
-          $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
-          saveSelection($w);
+        if (!$o.length) { return; }
+        // Already ours and it survived a full round - the block has settled, so stop listening.
+        if (String($o.val() || '') === String(pick.officeId)) {
+          $(document.body).off('updated_checkout', onOfficeRound);
+          pendingOfficeApply = null;
+          return;
         }
-        $(document.body).off('updated_checkout', onOfficeRound);
-        pendingOfficeApply = null;
+        // Otherwise write it again. Which recalculation is the LAST one is not knowable from here, so
+        // do not try to guess: re-apply on each until one holds, which is self-correcting whatever
+        // order the rounds land in.
+        $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
+        saveSelection($w);
       };
       pendingOfficeApply = onOfficeRound;
       $(document.body).on('updated_checkout', onOfficeRound);
