@@ -5,9 +5,6 @@ pick a delivery type (to office / to address / to APS·locker) per courier at ch
 **live** prices from each courier's API, and lets the merchant generate shipping labels + track
 shipments from the WordPress admin.
 
-> **Context anchor:** this README + the project memory + `docs/superpowers/{specs,plans}` are the
-> source of truth for picking the work back up after a restart. **Keep them updated as work proceeds.**
-
 ## Courier status
 
 | Courier | Status | Notes |
@@ -49,12 +46,13 @@ shipments from the WordPress admin.
   cities / lockers / ooh / estimate / AWB field names, run a `@sameday` E2E, and merge `feat/sameday` → `main`.
 - **Express One** - build once a **BG API key** arrives (`international@expressone.bg`); the one open shape is
   how a pickup-point selection encodes into `/createshipment`.
-- **WordPress.org readiness** - see `docs/wordpress-org-readiness-audit.md`. Blockers before publishing:
-  no `load_plugin_textdomain` / `Domain Path` / `languages/` / `.pot` (translations don't load yet), no
-  `readme.txt`, and an **external-services disclosure** is required (we call 4 courier APIs + embed the
-  BoxNow map iframe). Then a complete, reviewed **bg_BG (Bulgarian) translation** and an escaping/capability sweep.
-- **Advanced courier parity** - per `docs/superpowers/specs/2026-07-04-courier-competitive-settings.md`:
-  Sameday per-service rows / 3-way pricing / open-package; BoxNow home-delivery + any-APM + returns.
+- **WordPress.org** - submitted, awaiting the reviewers. The blockers the audit found are closed:
+  `Domain Path` + `languages/` + a complete bg_BG catalogue (the text domain matches the slug, so WP
+  loads it without `load_plugin_textdomain`), a `readme.txt`, and the **external services** disclosure
+  naming all four courier APIs and the BOX NOW map iframe. Background in
+  `docs/wordpress-org-readiness-audit.md` and `docs/wporg-submission.md`.
+- **Advanced courier parity** (post-launch) - Sameday per-service rows / 3-way pricing / open-package;
+  BOX NOW home-delivery + any-APM + returns.
 
 ## Architecture (multi-courier framework)
 
@@ -110,31 +108,25 @@ bin/test econt|pigeon|core  # per-courier / framework groups
 - **E2E:** Playwright (`e2e/`), plain JS, `workers:1`, against the live dev site.
 - **Deploy to dev:** `bash bin/deploy.sh dev` then chown to the site user, activate via wp-admin (wp-cli /
   php-exec are blocked over SSH). The dev site URL/host + credentials + the server-side "probe" technique for
-  live API checks live in the **private project memory** - never in this repo.
+  live API checks are kept **privately, outside this repository** - never in it.
 
 ## Conventions & rules
 
 - **Credentials never in chat / memory / VCS.** Courier API creds are entered server-side (encrypted in WP
   options) only. Use a courier sandbox where one exists. Real-account label tests create **real waybills** -
-  logged in `docs/test-*-waybills.md` for the **owner** to cancel (Claude never cancels).
+  logged in `docs/test-*-waybills.md` for the **owner** to cancel.
 - **Clean-room:** original code only (no code copied from other plugins).
-- **Workflow:** features go brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`)
-  → subagent-driven execution with per-task review.
 
 ## Docs index
 
 - `docs/wordpress-org-readiness-audit.md` - **pre-publish audit**: i18n / readme.txt / external-services gaps, findings, path to submission
-- `docs/superpowers/specs/2026-06-26-multi-courier-design.md` - multi-courier design
-- `docs/superpowers/specs/2026-07-03-sameday-design.md` + `plans/2026-07-03-sameday.md` - Sameday (built on `feat/sameday`, unverified)
-- `docs/superpowers/specs/2026-07-04-courier-competitive-settings.md` - advanced per-courier parity (post-launch)
-- `docs/superpowers/plans/2026-06-27-econt-phase2.md` - Econt (done, merged)
-- `docs/superpowers/plans/2026-06-28-pigeon-phase3.md` - Pigeon (built, awaiting creds)
-- `docs/superpowers/plans/2026-06-29-expressone-phase4.md` - Express One (planned, gated on BG creds)
-- `docs/superpowers/plans/2026-06-29-boxnow-phase5.md` - BOX NOW (built, merged)
+- `docs/wporg-submission.md` - what was submitted to WordPress.org and the review correspondence
 - `docs/getting-api-credentials.md` - **merchant-facing** guide to getting API access per courier
+- `docs/courier-api-access.md` - which credentials each courier issues, and how to ask for them
 - `docs/courier-api-notes.md` - technical API analysis / framework fit / divergences
 - `docs/testing.md` - running tests per courier · `docs/boxnow-testing.md` - BOX NOW stage-testing guide
-- `docs/test-{speedy,econt,boxnow}-waybills.md` - real/stage test waybills for the owner to cancel
+- `docs/E2E-checklist.md` - the end-to-end pass to run against a real shop before a release
+- `docs/test-{speedy,econt,boxnow,sameday}-waybills.md` - real/stage test waybills for the owner to cancel
 
 ## License
 
