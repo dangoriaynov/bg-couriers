@@ -12,11 +12,9 @@
 /* Courier logo tile (hover hint carries the courier name), like the shipment-panel header. */
 .bgc-ltile{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #c9ced6;border-radius:6px;background:#fff;box-sizing:border-box;cursor:default;flex:0 0 auto;}
 .bgc-clogo{max-width:17px;max-height:17px;width:auto;height:auto;object-fit:contain;display:block;}
-/* data-tip hover bubbles, same as the order-screen shipment panel. */
+/* data-tip hover hints are drawn by assets/js/bgc-tip.js into one bubble on <body> (see bgc-tip.css),
+   so a hint on the last tile of the Waybill column can no longer be cut off by the edge of the table. */
 .bgc-cell,.bgc-cell .bgc-row{overflow:visible;}
-.bgc-cell [data-tip]{position:relative;}
-.bgc-cell [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#1d2327;color:#fff;font-size:11px;font-weight:500;line-height:1;padding:6px 8px;border-radius:6px;pointer-events:none;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);max-width:230px;white-space:normal;width:max-content;}
-.bgc-cell [data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1d2327;z-index:9999;}
 .bgc-ico.bgc-primary{background:#2271b1;border-color:#2271b1!important;color:#fff;}
 .bgc-ico.bgc-primary:hover{background:#1c5d92;border-color:#1c5d92!important;color:#fff;}
 .bgc-ico.bgc-danger{color:#b32d2e;border-color:#e6a2a5!important;}
@@ -46,19 +44,10 @@
   color:#6b7280; cursor:help; }
 .bgc-track-ico svg { display:block; }
 
-/* Two hints in one place: the row's own status bubble and the lock's. Hovering the lock sits INSIDE the
-   status element, so both fired at once and the two bubbles landed on top of each other. A hint whose
-   own child is being hovered stays quiet - the more specific one wins. */
-.bgc-cell [data-tip]:has([data-tip]:hover)::after { content: none !important; }
-.bgc-order-panel [data-tip]:has([data-tip]:hover)::after { content: none !important; }
-
-/* Same at both ends of the waybill column: it sits at the right of the table, so the last tiles would
-   run off the edge, and the first (the courier logo) would spill into the column before it. */
-.bgc-cell [data-tip]:nth-last-child(-n+2):hover::after { left:auto; right:0; transform:none; }
-.bgc-cell [data-tip]:nth-child(-n+2):hover::after { left:0; right:auto; transform:none; }
-
 /* An action the plugin will refuse: dimmed, and stripped of its href so a click cannot go anywhere.
    Pointer events stay ON so the hover hint can still explain why - which is the whole reason the
-   padlock that used to sit here could be dropped: a disabled control says it where the eye already is. */
+   padlock that used to sit here could be dropped: a disabled control says it where the eye already is.
+   That explanation only became legible when the hint moved out of this element: as a ::after it
+   inherited the .4 below, so the reason an action was blocked was itself printed grey on grey. */
 .bgc-ico.bgc-off { opacity:.4; cursor:not-allowed; }
 .bgc-ico.bgc-off:hover { background:#fff; border-color:#e2e6ea; }

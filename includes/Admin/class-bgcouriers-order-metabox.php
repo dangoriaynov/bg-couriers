@@ -15,6 +15,7 @@ class BGCouriers_Order_Metabox {
         if (!$screen || !in_array($screen->id, ['woocommerce_page_wc-orders', 'shop_order'], true)) { return; }
         $css = BGCOURIERS_PATH . 'assets/css/bgc-order-panel.css';
         wp_enqueue_style('bgc-order-panel', BGCOURIERS_URL . 'assets/css/bgc-order-panel.css', [], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
+        BGCouriers_Tips::enqueue(); // the panel's hover hints (data-tip)
     }
 
     public function render($order): void {

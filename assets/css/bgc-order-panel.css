@@ -31,15 +31,12 @@
 .bgc-order-panel .bgc-act.bgc-danger{color:#b32d2e;border-color:#e6a2a5!important;}
 .bgc-order-panel .bgc-act.bgc-danger:hover{background:#fcecec;border-color:#cf6a6f!important;color:#8a1f2b;}
 .bgc-order-panel .bgc-act.bgc-gen{width:auto!important;padding:0 11px!important;gap:6px;font-size:12px;font-weight:600;}
-/* Hover hint bubbles for every element carrying data-tip. */
-/* Hover hints must never be clipped by the panel they live in, and must never run off its right edge.
-   Three parts, applied wherever we show a hint: (1) the containers do not clip; (2) the bubble stacks
-   above everything nearby; (3) the hints on the LAST controls in a row anchor to their right edge instead
-   of centring, because a centred bubble on the rightmost button always overflows the panel. */
+/* Hover hints (data-tip) are drawn by assets/js/bgc-tip.js into one bubble on <body> - see bgc-tip.css.
+   They used to be a ::after on the hovered control itself, which put every hint inside the panel: clipped
+   by it, dimmed with the control, centred by whatever the control's text-align happened to be. Nothing
+   about a hint is styled from here any more; the containers below still refuse to clip, because the
+   editor's select2 dropdowns open out of them too. */
 .bgc-order-panel,.bgc-order-panel .bgc-hd,.bgc-order-panel .bgc-hd-acts{overflow:visible;}
-.bgc-order-panel [data-tip]{position:relative;}
-.bgc-order-panel [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:#1d2327;color:#fff;font-size:11px;font-weight:500;line-height:1;padding:6px 8px;border-radius:6px;pointer-events:none;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);max-width:230px;white-space:normal;width:max-content;}
-.bgc-order-panel [data-tip]:hover::before{content:"";position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1d2327;z-index:9999;}
 .bgc-order-panel .bgc-ed{margin-top:8px;}
 /* Editor form: force a uniform 32px height on native selects + select2 + inputs (WC/theme give */
 /* the native selects a taller height, so !important + the .bgc-order-panel prefix are needed). */
@@ -98,9 +95,6 @@
 .bgc-modal .bgc-btn-danger{background:#b32d2e!important;border-color:#b32d2e!important;color:#fff!important;box-shadow:none!important;}
 .bgc-modal .bgc-btn-danger:hover{background:#8a1f2b!important;border-color:#8a1f2b!important;}
 
-/* Right-edge hints: anchor the bubble to the control's right edge so it stays inside the panel. */
-.bgc-order-panel .bgc-hd-acts > *:nth-last-child(-n+3)[data-tip]:hover::after{left:auto;right:0;transform:none;}
-
 /* Where the shipment is, on the order screen itself. The orders list had it; the one screen you open to
    look at a single order did not, so the answer was always one click away in the wrong direction. */
 /* position:relative + the reserved right padding are for the refresh button pinned into the corner
@@ -112,20 +106,13 @@
 .bgc-shipstate-when { color:#8c8f94; margin-left:auto; white-space:nowrap; }
 .bgc-shipstate .bgc-lock { flex:0 0 auto; font-size:15px; width:15px; height:15px; color:#8c8f94; cursor:help; }
 
-/* Two hints in one place: the row's own status bubble and the lock's. Hovering the lock sits INSIDE the
-   status element, so both fired at once and the two bubbles landed on top of each other. A hint whose
-   own child is being hovered stays quiet - the more specific one wins. */
-.bgc-cell [data-tip]:has([data-tip]:hover)::after { content: none !important; }
-.bgc-order-panel [data-tip]:has([data-tip]:hover)::after { content: none !important; }
-
 /* Ask-the-courier-now button, PINNED to the panel's top-right corner.
    It used to sit at the end of the row, in the flow, so it moved with whatever the courier had said:
    a longer status line, or the lock appearing once the parcel was collected, pushed it onto the next
    line and it read as something left dangling under the panel rather than a control belonging to it.
    Taking it out of the flow fixes the position for good - the text below can say anything, in any
-   language, and the button stays in the corner.
-   The selector needs two classes: `.bgc-order-panel [data-tip]{position:relative}` above would
-   otherwise win on specificity and put the button back in the flow. */
+   language, and the button stays in the corner. It pins against .bgc-shipstate, which is the row's
+   own position:relative above. */
 .bgc-shipstate .bgc-ship-refresh { position:absolute; top:5px; right:6px; margin:0; padding:0;
   width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
   border:1px solid #dcdcde; border-radius:5px; background:#fff; color:#787c82; cursor:pointer;
@@ -136,25 +123,6 @@
 .bgc-ship-refresh.bgc-busy .dashicons { animation:bgc-spin 1s linear infinite; }
 @keyframes bgc-spin { to { transform:rotate(360deg); } }
 
-/* Edge-aware hints, both sides.
-
-   The bubble is centred on its element, which is right in the middle of a row and wrong at either end:
-   at the right it runs past the panel and is clipped by the metabox beside it, at the left it spills
-   into the column before. Both ends are handled BY POSITION, so a hint added to either end later is
-   covered without another round of screenshots.
-
-   Two from each end, because these rows end in pairs (a lock and a refresh; a track and a cancel) and
-   the outermost rule alone left the second one centred - which is exactly how the lock hint escaped. */
-.bgc-order-panel [data-tip]:nth-last-child(-n+2):hover::after { left:auto; right:0; transform:none; }
-.bgc-order-panel [data-tip]:nth-last-child(-n+2):hover::before { left:auto; right:8px; transform:none; }
-.bgc-order-panel [data-tip]:nth-child(-n+2):hover::after { left:0; right:auto; transform:none; }
-.bgc-order-panel [data-tip]:nth-child(-n+2):hover::before { left:8px; right:auto; transform:none; }
-/* The shipment state ends with a lock and a refresh, both carrying long explanations - anchor the whole
-   row right, whatever gets added to the end of it. */
-.bgc-shipstate [data-tip]:hover::after { left:auto; right:0; transform:none; }
-.bgc-shipstate [data-tip]:hover::before { left:auto; right:8px; transform:none; }
-
-/* The shipment-state row keeps its own hints inside the panel too. */
 .bgc-shipstate { overflow:visible; }
 
 /* Blocked while the courier has the parcel.

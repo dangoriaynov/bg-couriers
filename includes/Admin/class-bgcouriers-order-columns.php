@@ -210,6 +210,7 @@ class BGCouriers_Order_Columns {
         $css = BGCOURIERS_PATH . 'assets/css/bgc-orders-list.css';
         $js  = BGCOURIERS_PATH . 'assets/js/bgc-orders-list.js';
         wp_enqueue_style('bgc-orders-list', BGCOURIERS_URL . 'assets/css/bgc-orders-list.css', [], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
+        BGCouriers_Tips::enqueue(); // the tiles' hover hints (data-tip)
         // Built here, not at load time: the colours are per-courier options and this is the only place we
         // know the screen is an orders list (and that the handle above is actually enqueued).
         $tint = self::row_tint_css() . self::stage_color_css();

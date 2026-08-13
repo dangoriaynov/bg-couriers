@@ -1,0 +1,17 @@
+/* The one hover-hint bubble (see assets/js/bgc-tip.js). Lives on <body>, so no panel, metabox or table
+   cell can clip it and no dimmed control can fade it. Typography matches the settings-screen hints:
+   left-aligned and 12px/1.45, because these hints are whole sentences - the old 11px/1 centred bubble
+   turned a three-line explanation into a cramped, ragged block. */
+.bgc-tipbox { position:fixed; left:0; top:0; z-index:1000002; box-sizing:border-box;
+  max-width:300px; width:max-content;
+  background:#1d2327; color:#fff; text-align:left;
+  font:400 12px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; font-style:normal;
+  padding:8px 11px; border-radius:7px; box-shadow:0 5px 18px rgba(0,0,0,.28);
+  pointer-events:none; opacity:0; visibility:hidden; transition:opacity .1s; }
+.bgc-tipbox.bgc-tip-on { opacity:1; visibility:visible; }
+.bgc-tipbox-arr { position:absolute; top:100%; margin-left:-5px;
+  border:5px solid transparent; border-top-color:#1d2327; }
+/* Flipped under the control when there is no room above it. */
+.bgc-tipbox.bgc-tip-below .bgc-tipbox-arr { top:auto; bottom:100%;
+  border-top-color:transparent; border-bottom-color:#1d2327; }
+@media (max-width: 782px) { .bgc-tipbox { max-width:calc(100vw - 24px); } }
