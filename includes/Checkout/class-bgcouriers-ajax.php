@@ -23,9 +23,16 @@ class BGCouriers_Ajax {
      * Lightweight per-IP rate limit for the public endpoints that hit a LIVE courier API. Returns false once
      * the caller exceeds $max requests within $window seconds; the handler then returns an empty result
      * instead of making an outbound call, so anonymous enumeration can't amplify into many courier API calls.
-     * A real checkout makes only a handful of these calls, so the limit never affects legitimate use.
+     *
+     * The budget is per IP, and "a real checkout makes only a handful of these calls" turned out to be
+     * wrong: one checkout load asks availability and offices for every enabled courier, and a customer
+     * who picks a city, switches courier and opens the map spends tens of calls on their own. At 90 a
+     * minute the plugin's own end-to-end suite exhausted it, and so would two customers sharing an
+     * address - an office, or a mobile carrier behind CGNAT, which is most phone traffic here. An
+     * emptied map with no error is the worst possible way to find that out. 300 leaves room for several
+     * real customers at once while still being far below what scraping a nomenclature would need.
      */
-    private static function rate_ok(int $max = 90, int $window = 60): bool {
+    private static function rate_ok(int $max = 300, int $window = 60): bool {
         $key = 'bgcouriers_rl_' . md5(self::client_ip());
         $n   = (int) get_transient($key);
         if ($n >= $max) { return false; }

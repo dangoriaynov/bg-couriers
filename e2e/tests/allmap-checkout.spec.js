@@ -83,6 +83,31 @@ test('combined map: it carries several couriers at once, each with its own price
   await page.waitForTimeout(600);
   expect(await page.locator('.bgc-allmap-item:visible').count()).toBeLessThan(rowsBefore);
   expect(await page.locator('.leaflet-marker-icon').count()).toBeLessThan(pinsBefore);
+
+  // Each chip carries its courier's own logo as well as its colour: the colour identifies a pin,
+  // the logo is what the customer actually recognises.
+  expect(await page.locator('.bgc-allmap-chip img').count()).toBe(couriers.length);
+});
+
+test('combined map: searching narrows the list and the map together @allmap', async ({ page }) => {
+  await addAnyProductToCart(page);
+  await gotoCheckout(page);
+  await page.waitForTimeout(2500);
+  await page.locator('.bgc-allmap-btn').click();
+  await chooseCity(page, 'Пловдив', 'ПЛОВДИВ (4000)');
+  await page.locator('.bgc-allmap-show').click();
+  await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
+
+  const rows0 = await page.locator('.bgc-allmap-item:visible').count();
+  await page.locator('.bgc-allmap-search').fill('тракия');
+  await page.waitForTimeout(700);
+  const rows1 = await page.locator('.bgc-allmap-item:visible').count();
+  const pins1 = await page.locator('.leaflet-marker-icon').count();
+  expect(rows1).toBeGreaterThan(0);
+  expect(rows1).toBeLessThan(rows0);
+  // The two halves must agree: a row the map does not show, or a pin the list does not have, tells
+  // the customer two different things about what is on offer.
+  expect(pins1).toBe(rows1);
 });
 
 test('combined map: choosing a point sets the courier, the delivery type and the office @allmap', async ({ page }) => {

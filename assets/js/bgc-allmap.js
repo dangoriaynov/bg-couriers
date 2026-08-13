@@ -87,7 +87,9 @@
       + '<div class="bgc-allmap-legend" hidden></div>'
       + '</div>'
       + '<div class="bgc-allmap-body" style="display:none;">'
-      + '<div class="bgc-allmap-side"><ul class="bgc-allmap-list"></ul></div>'
+      + '<div class="bgc-allmap-side">'
+      + '<input type="text" class="bgc-allmap-search" autocomplete="off" placeholder="' + esc(I.office_ph || '') + '">'
+      + '<ul class="bgc-allmap-list"></ul></div>'
       + '<div class="bgc-allmap-canvas" id="bgc-allmap-canvas"></div>'
       + '</div></div></div>');
     $('body').append($dlg);
@@ -135,6 +137,7 @@
     $dlg.on('click', '.bgc-allmap-close', close);
     $dlg.on('click', function (e) { if (e.target === $dlg[0]) { close(); } });
     $dlg.on('click', '.bgc-allmap-show', showOffices);
+    $dlg.on('input', '.bgc-allmap-search', applyFilter);
     // The popup's Choose is the only crossing into bgc-checkout.js: hand over the point and let the
     // ordinary flow pick the rate, switch the tab, set city and office, save, recalculate. Delegated
     // on $dlg (not $list) because the popup's markup lives in Leaflet's map pane, not the sidebar.
@@ -151,19 +154,30 @@
     });
   }
 
-  /** Show only the couriers still switched on, in the list and on the map alike. */
+  /**
+   * One filter, two conditions - which couriers are switched on, and what has been typed in the
+   * search. Both apply to the list AND the map: a row the map does not show, or a pin the list does
+   * not have, is the two halves telling the customer different things.
+   */
   function applyFilter() {
     if (!$dlg) { return; }
+    var term = String($dlg.find('.bgc-allmap-search').val() || '').toLowerCase();
+    function shown(p) {
+      if (!p || hidden[p.courier]) { return false; }
+      if (!term) { return true; }
+      var o = p.office || {};
+      return String(o.name || '').toLowerCase().indexOf(term) !== -1
+          || String(o.address || '').toLowerCase().indexOf(term) !== -1;
+    }
     $dlg.find('.bgc-allmap-list .bgc-allmap-item').each(function () {
-      var p = points[+$(this).data('i')];
-      $(this).toggle(!(p && hidden[p.courier]));
+      $(this).toggle(shown(points[+$(this).data('i')]));
     });
     points.forEach(function (p, i) {
       var mk = markers[i];
       if (!mk || !layer) { return; }
-      var off = !!hidden[p.courier];
-      if (off && layer.hasLayer(mk)) { layer.removeLayer(mk); }
-      if (!off && !layer.hasLayer(mk)) { layer.addLayer(mk); }
+      var on = shown(p);
+      if (!on && layer.hasLayer(mk)) { layer.removeLayer(mk); }
+      if (on && !layer.hasLayer(mk)) { layer.addLayer(mk); }
     });
   }
 
@@ -295,9 +309,13 @@
     var seen = [], $legend = $dlg.find('.bgc-allmap-legend').empty();
     points.forEach(function (p) { if (seen.indexOf(p.courier) === -1) { seen.push(p.courier); } });
     seen.forEach(function (cid) {
-      var label = (points.filter(function (p) { return p.courier === cid; })[0] || {}).courierLabel || cid;
+      var first = points.filter(function (p) { return p.courier === cid; })[0] || {};
+      var label = first.courierLabel || cid;
+      // Colour AND logo: the colour is what identifies a pin on the map, the logo is what the customer
+      // actually recognises. The chip has to carry both or it only answers half the question.
       $legend.append('<button type="button" class="bgc-allmap-chip on" data-c="' + esc(cid) + '">'
         + '<span class="bgc-allmap-swatch" style="background:' + colourFor(cid) + '"></span>'
+        + (first.logo ? '<img src="' + esc(first.logo) + '" alt="' + esc(label) + '">' : '')
         + esc(label) + '</button>');
     });
     $legend.attr('hidden', !seen.length);
