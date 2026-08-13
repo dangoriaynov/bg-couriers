@@ -30,17 +30,40 @@
 
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
 
-  // One colour per courier, so the map answers "whose is that pin" without a click - which is the only
-  // reason to put four couriers on one map at all. divIcon, not an image: nothing to fetch, and it
-  // takes the muted treatment for an unavailable courier for free.
-  var PIN_COLOURS = ['#2271b1', '#00814f', '#b26b00', '#8b5cf6', '#b32d2e'];
+  /**
+   * Each courier's pin colour, FIXED - the same on every shop, every visit, until the owner says
+   * otherwise. A colour that moved between sessions would make the legend useless, since the whole
+   * point of it is that a customer learns "the orange ones are Pigeon" once.
+   *
+   * Sampled from the couriers' own logos, then pulled apart where the brands collide: Speedy (#D80030)
+   * and Sameday (#D81818) are both red, and Pigeon (#003078) and Econt are both navy - four couriers
+   * in two colours is no legend at all. So the pairs keep one brand colour each and the other takes a
+   * second colour from its OWN mark: Pigeon's orange accent, and for Sameday a magenta that stays in
+   * its red family without being mistaken for Speedy. BOX NOW's yellow is darkened enough to be seen
+   * against a pale map.
+   *
+   * Deliberately no greens or greys: OpenStreetMap's own parks, water and roads are those, and a pin
+   * has to be obviously not-map.
+   */
+  var PIN_COLOURS = {
+    speedy:  '#D80030', // its own crimson, straight off the logo
+    econt:   '#003D7D', // Econt navy
+    pigeon:  '#F07800', // the orange accent in the Pigeon mark - its navy would clash with Econt
+    sameday: '#C2185B', // magenta: same family as its red, unmistakable next to Speedy's
+    boxnow:  '#E0A800'  // BOX NOW yellow, darkened to hold up on a light map
+  };
+  var PIN_FALLBACK = ['#6A1B9A', '#00838F', '#4E342E', '#1B5E20', '#37474F'];
   var pinColour = {};
   function colourFor(courierId) {
+    if (PIN_COLOURS[courierId]) { return PIN_COLOURS[courierId]; }
+    // A courier added later, before anyone has chosen its colour: give it a stable one from the
+    // reserve rather than something that changes with the order the map happens to load them in.
     if (!pinColour[courierId]) {
-      pinColour[courierId] = PIN_COLOURS[Object.keys(pinColour).length % PIN_COLOURS.length];
+      pinColour[courierId] = PIN_FALLBACK[Object.keys(pinColour).length % PIN_FALLBACK.length];
     }
     return pinColour[courierId];
   }
+
   /** The delivery-type glyph, from the same set the checkout's own tabs use (localised in PHP). */
   function typeGlyph(type) {
     var icons = (window.BGCOURIERS && BGCOURIERS.icons) || {};
@@ -89,12 +112,9 @@
       + '<div class="bgc-allmap-head"><strong>' + esc(I.allmap_title || '') + '</strong>'
       + '<button type="button" class="bgc-allmap-close" aria-label="' + esc(I.close || '') + '">&times;</button></div>'
       + '<div class="bgc-allmap-form">'
-      + '<label class="bgc-allmap-lbl">' + esc(I.city_label || '') + '</label>'
-      + '<div class="bgc-allmap-pick-row">'
       + '<div class="bgc-allmap-cityrow">'
-      + '<input type="text" class="bgc-allmap-cityinput" autocomplete="off" placeholder="' + esc(I.city_ph || '') + '">'
+      + '<input type="text" class="bgc-allmap-cityinput" autocomplete="off" placeholder="' + esc(I.allmap_city_ph || '') + '">'
       + '<ul class="bgc-allmap-cityres" hidden></ul></div>'
-      + '</div>'
       + '<div class="bgc-allmap-legend" hidden></div>'
       + '</div>'
       + '<div class="bgc-allmap-body" style="display:none;">'
@@ -330,11 +350,11 @@
     });
     if (bounds.length) {
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
-      // One step closer than "everything fits". Fitting a whole city's points puts the streets too far
-      // away to read, and a customer is looking for a place they RECOGNISE - a corner, their own
-      // neighbourhood - not for the outline of the city. A few outlying points fall outside the first
-      // view; the list beside the map still has every one of them.
-      map.setZoom(Math.min(map.getZoom() + 1, 17));
+      // Two steps closer than "everything fits". A city fitted whole is a shape, not a place: the
+      // customer is looking for a corner they recognise, and street names only start being readable
+      // about here. The outlying points that fall outside the first view are all still in the list
+      // beside the map, and the map can be dragged.
+      map.setZoom(Math.min(map.getZoom() + 2, 17));
     }
     else { map.setView([42.73, 25.3], 7); }
     map.invalidateSize();

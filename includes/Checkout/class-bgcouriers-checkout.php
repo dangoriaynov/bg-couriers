@@ -226,12 +226,29 @@ class BGCouriers_Checkout {
         if (get_option('bgcouriers_allmap', 'yes') !== 'yes') { return; }
         if (!self::has_pickup_courier()) { return; }
         if (function_exists('is_cart') && is_cart()) { return; } // the pickers belong to checkout
+        // The couriers' own marks, in the order the rates are listed below - the button is a shortcut
+        // into a map of THESE couriers, and showing whose makes that concrete before it is opened.
+        $marks = '';
+        foreach (BGCouriers_Settings::courier_order() as $cid) {
+            if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
+            $methods = BGCouriers_Settings::enabled_methods($cid);
+            if (!in_array('office', $methods, true) && !in_array('automat', $methods, true)) { continue; }
+            $logo = BGCouriers_Couriers::logo_url($cid);
+            if ($logo === '') { continue; }
+            $marks .= '<img class="bgc-allmap-mark" src="' . esc_url($logo) . '" alt="">';
+        }
         echo wp_kses(
             '<tr class="bgc-allmap-open"><td colspan="2"><button type="button" class="bgc-allmap-btn">'
-            . '<span class="bgc-allmap-ico" aria-hidden="true"></span>'
+            . '<span class="bgc-allmap-marks">' . $marks . '</span>'
             . esc_html__('Interactive map', 'bg-couriers')
             . '</button></td></tr>',
-            ['tr' => ['class' => true], 'td' => ['class' => true, 'colspan' => true], 'button' => ['type' => true, 'class' => true], 'span' => ['class' => true, 'aria-hidden' => true]]
+            [
+                'tr'     => ['class' => true],
+                'td'     => ['class' => true, 'colspan' => true],
+                'button' => ['type' => true, 'class' => true],
+                'span'   => ['class' => true, 'aria-hidden' => true],
+                'img'    => ['class' => true, 'src' => true, 'alt' => true],
+            ]
         );
     }
 
@@ -661,7 +678,7 @@ class BGCouriers_Checkout {
                 'allmap_show' => __('Show the offices', 'bg-couriers'),
                 'allmap_na' => __('Not available for this order', 'bg-couriers'),
                 'allmap_choose' => __('Choose', 'bg-couriers'),
-                'city_label' => __('City', 'bg-couriers'),
+                'allmap_city_ph' => __('Choose a city', 'bg-couriers'),
             ],
         ]);
 

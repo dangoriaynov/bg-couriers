@@ -7,6 +7,10 @@
   justify-content: center; gap: 7px; padding: 6px 12px; border: 1px solid #c9ced6; border-radius: 7px;
   background: #fff; color: #2b3440; font-size: 13px; line-height: 1.2; cursor: pointer; }
 .bgc-allmap-btn:hover { border-color: #2271b1; color: #2271b1; }
+/* The couriers' marks sit inside the button, ahead of its text and matched to its cap height, so the
+   row reads as one line rather than a button with a picture stuck on it. */
+.bgc-allmap-marks { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.bgc-allmap-mark { width: auto; height: 1.15em; max-width: 22px; object-fit: contain; display: block; }
 .bgc-allmap-ico { width: 16px; height: 16px; flex: 0 0 auto; background: currentColor;
   -webkit-mask: no-repeat center / 16px 16px; mask: no-repeat center / 16px 16px;
   -webkit-mask-image: var(--bgc-pin); mask-image: var(--bgc-pin); }
@@ -21,8 +25,8 @@
    dropdown inside this box, and positions it absolutely - without a positioned ancestor it lands at the
    far end of the overlay instead of under the field, and with overflow:hidden it would be clipped
    instead. The rounded corners that overflow:hidden used to provide are done by the body below. */
-.bgc-allmap-box { position: relative; background: #fff; border-radius: 12px; width: min(980px, 100%);
-  max-height: 92vh; display: flex; flex-direction: column; overflow: visible;
+.bgc-allmap-box { position: relative; background: #fff; border-radius: 12px; width: min(1240px, 96vw);
+  max-height: 94vh; display: flex; flex-direction: column; overflow: visible;
   margin-top: max(16px, calc(50vh - 110px)); transition: margin-top .35s cubic-bezier(.22,.61,.36,1); }
 .bgc-has-map .bgc-allmap-box { margin-top: 16px; }
 /* Three columns so the caption is centred on the BOX, not on the space left over beside the close
@@ -32,23 +36,24 @@
 .bgc-allmap-head strong { grid-column: 2; text-align: center; }
 .bgc-allmap-head .bgc-allmap-close { grid-column: 3; justify-self: end; }
 .bgc-allmap-close { border: 0; background: none; font-size: 24px; line-height: 1; cursor: pointer; color: #50575e; }
-.bgc-allmap-form { padding: 12px 16px; display: grid; gap: 8px; }
-/* The city and the button that acts on it belong on one line - the button under a field reads as a
-   step of its own, when it is really the same step. */
-.bgc-allmap-pick-row { display: flex; gap: 8px; align-items: flex-start; }
-.bgc-allmap-pick-row .bgc-allmap-cityrow { flex: 1 1 auto; min-width: 0; }
-.bgc-allmap-pick-row .bgc-allmap-show { flex: 0 0 auto; height: 38px; white-space: nowrap; }
+/* One row: the place on the left, who to show on the right. A label above the field said "Град" over
+   a box whose placeholder already says it, and the couriers on a line of their own pushed the map a
+   whole row further down the screen for no information at all. */
+.bgc-allmap-form { padding: 10px 14px; display: flex; align-items: flex-start; gap: 12px; }
+.bgc-allmap-form .bgc-allmap-cityrow { flex: 0 0 auto; width: min(300px, 42%); }
 
 /* Which colour is whose, and a filter in the same control: on a map carrying four couriers the first
    question is what the dots mean and the second is "show me only this one". */
-.bgc-allmap-legend { display: flex; flex-wrap: wrap; gap: 6px; }
-.bgc-allmap-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+/* Wraps to two short rows beside the field rather than one long line under it. */
+.bgc-allmap-legend { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap;
+  align-content: flex-start; gap: 5px; }
+.bgc-allmap-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px;
   border: 1px solid #c9ced6; border-radius: 999px; background: #fff; color: #50575e;
-  font-size: 12px; line-height: 1.4; cursor: pointer; opacity: .45; }
+  font-size: 11px; line-height: 1.35; cursor: pointer; opacity: .45; }
 .bgc-allmap-chip.on { opacity: 1; color: #1d2327; border-color: #a2acb8; }
-.bgc-allmap-swatch { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
-.bgc-allmap-chip img { width: 15px; height: 15px; object-fit: contain; flex: 0 0 auto; }
-.bgc-allmap-lbl { font-size: 12px; font-weight: 600; color: #50575e; }
+.bgc-allmap-swatch { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.bgc-allmap-chip img { width: 13px; height: 13px; object-fit: contain; flex: 0 0 auto; }
+
 /* The city suggest. Anchored to its own input, so nothing computes a position from the page scroll -
    which is what put select2's dropdown at the bottom of the screen inside this fixed overlay. */
 .bgc-allmap-cityrow { position: relative; }
@@ -70,20 +75,23 @@
 .bgc-allmap-body { display: flex; border-top: 1px solid #e6e9ec; overflow: hidden;
   border-radius: 0 0 12px 12px; max-height: 0; opacity: 0;
   transition: max-height .4s cubic-bezier(.22,.61,.36,1), opacity .3s ease .1s; }
-.bgc-has-map .bgc-allmap-body { max-height: 62vh; opacity: 1; }
-.bgc-allmap-body > * { min-height: 380px; }
+.bgc-has-map .bgc-allmap-body { max-height: 72vh; opacity: 1; }
+.bgc-allmap-body > * { min-height: 440px; }
 
 @media (prefers-reduced-motion: reduce) {
   .bgc-allmap-box, .bgc-allmap-body { transition: none; }
 }
-.bgc-allmap-side { width: 300px; flex: 0 0 auto; overflow-y: auto; border-right: 1px solid #e6e9ec;
+.bgc-allmap-side { width: 340px; flex: 0 0 auto; overflow-y: auto; border-right: 1px solid #e6e9ec;
   display: flex; flex-direction: column; }
 /* Searching the list, the same way the per-courier picker does it. Sticky, because the list it
    filters is hundreds of rows long and a search box you have to scroll back up to is not one. */
 /* Search and locate share a row, in the same place as the per-courier picker's, so the two dialogs
    are the same dialog as far as the customer is concerned. */
+/* padding-left matches .bgc-allmap-form's, so the city box and the office search share one left
+   edge - two inputs an inch apart on the vertical read as two unrelated things. */
 .bgc-allmap-searchrow { position: sticky; top: 0; z-index: 2; flex: 0 0 auto; display: flex;
-  align-items: center; gap: 8px; padding: 8px; background: #fff; border-bottom: 1px solid #e6e9ec; }
+  align-items: center; gap: 8px; padding: 8px 8px 8px 14px; background: #fff;
+  border-bottom: 1px solid #e6e9ec; }
 .bgc-allmap-side .bgc-allmap-searchrow .bgc-allmap-search { flex: 1 1 auto; min-width: 0;
   box-sizing: border-box !important; margin: 0 !important; height: 34px !important;
   padding: 0 10px 0 32px !important; border: 1px solid #d8dde3 !important; border-radius: 8px;

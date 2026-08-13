@@ -246,11 +246,26 @@
     })();
   }
 
+  /**
+   * The map needs a city before it can plot anything, so its button follows the city field.
+   *
+   * It used to be decided ONCE, while the block was being built. That is fine when a person picks the
+   * city themselves - the block is rebuilt afterwards and the answer comes out right - but not when
+   * the city arrives from the combined map: the block re-renders, this runs before the city has
+   * landed in it, and the button stays greyed out for good with a city plainly sitting above it.
+   * Bound to the field instead, so it can never disagree with what the field says.
+   */
+  function syncMapBtn($wrap) {
+    var hasCity = !!$wrap.find('.bgc-city').val();
+    $wrap.find('.bgc-map-btn:not(.bgc-addr-map-btn)').prop('disabled', !hasCity)
+      .attr('title', hasCity ? '' : ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || ''));
+  }
+  $(document).on('change', '.bgc-fields .bgc-city', function () { syncMapBtn($(this).closest('.bgc-fields')); });
+
   function initOffice($wrap) {
     var $office = $wrap.find('.bgc-office');
     var hasCity = !!$wrap.find('.bgc-city').val();
-    // The map picker plots a city's offices, so it needs a city first (same as the office dropdown).
-    $wrap.find('.bgc-map-btn').prop('disabled', !hasCity).attr('title', hasCity ? '' : ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || ''));
+    syncMapBtn($wrap);
     if ($office.hasClass('select2-hidden-accessible')) { return; }
     $office.prop('disabled', !hasCity); // no office search until a city is chosen
     sel2($office, {
@@ -499,7 +514,13 @@
   $(document.body).on('click', '.bgc-tab', function (e) {
     e.preventDefault();
     if ($(this).hasClass('bgc-tab-na') || this.disabled) { return; } // unavailable for this city
-    setMethod($(this).closest('.bgc-fields'), $(this).data('method'));
+    var $wrap = $(this).closest('.bgc-fields');
+    // Clicking the tab you are already on is a no-op. It used to run the full switch: the office was
+    // cleared, the whole list re-fetched and the checkout recalculated - so a customer who tapped
+    // "To office" a second time, or hit it while already there, silently lost the office they had
+    // chosen. Nothing about the delivery type has changed, so nothing should happen.
+    if (String($(this).data('method')) === method($wrap)) { return; }
+    setMethod($wrap, $(this).data('method'));
   });
 
   $(document.body).on('change', 'input[name^="shipping_method"]', dimRates);
