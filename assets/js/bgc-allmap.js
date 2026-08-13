@@ -20,6 +20,9 @@
   // array - clicking Choose on it would resolve against the NEW array at the same index and could book a
   // different courier, city or office than the pin the customer actually clicked.
   var $dlg = null, map = null, layer = null, markers = [], points = [], cache = {};
+  // Couriers the customer has switched OFF in the legend. Empty by default - a map that opens
+  // showing only some of what it has would be lying about the choice available.
+  var hidden = {};
 
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
 
@@ -75,10 +78,13 @@
       + '<button type="button" class="bgc-allmap-close" aria-label="' + esc(I.close || '') + '">&times;</button></div>'
       + '<div class="bgc-allmap-form">'
       + '<label class="bgc-allmap-lbl">' + esc(I.city_label || '') + '</label>'
+      + '<div class="bgc-allmap-pick-row">'
       + '<div class="bgc-allmap-cityrow">'
       + '<input type="text" class="bgc-allmap-cityinput" autocomplete="off" placeholder="' + esc(I.city_ph || '') + '">'
       + '<ul class="bgc-allmap-cityres" hidden></ul></div>'
       + '<button type="button" class="button bgc-allmap-show" disabled>' + esc(I.allmap_show || '') + '</button>'
+      + '</div>'
+      + '<div class="bgc-allmap-legend" hidden></div>'
       + '</div>'
       + '<div class="bgc-allmap-body" style="display:none;">'
       + '<div class="bgc-allmap-side"><ul class="bgc-allmap-list"></ul></div>'
@@ -142,6 +148,22 @@
         officeLabel: (p.office.name || '') + ' - ' + (p.office.address || '')
       });
       if (ok) { close(); } // a courier applyPick() cannot find on this page leaves the dialog open
+    });
+  }
+
+  /** Show only the couriers still switched on, in the list and on the map alike. */
+  function applyFilter() {
+    if (!$dlg) { return; }
+    $dlg.find('.bgc-allmap-list .bgc-allmap-item').each(function () {
+      var p = points[+$(this).data('i')];
+      $(this).toggle(!(p && hidden[p.courier]));
+    });
+    points.forEach(function (p, i) {
+      var mk = markers[i];
+      if (!mk || !layer) { return; }
+      var off = !!hidden[p.courier];
+      if (off && layer.hasLayer(mk)) { layer.removeLayer(mk); }
+      if (!off && !layer.hasLayer(mk)) { layer.addLayer(mk); }
     });
   }
 
@@ -266,6 +288,26 @@
     }
     else { map.setView([42.73, 25.3], 7); }
     map.invalidateSize();
+
+    // The legend says which colour is whose AND doubles as the filter - on a map carrying four
+    // couriers at once, "which of these dots is Econt" is the first question, and "show me only
+    // Econt" is the second. Built from the couriers that actually have points in THIS place.
+    var seen = [], $legend = $dlg.find('.bgc-allmap-legend').empty();
+    points.forEach(function (p) { if (seen.indexOf(p.courier) === -1) { seen.push(p.courier); } });
+    seen.forEach(function (cid) {
+      var label = (points.filter(function (p) { return p.courier === cid; })[0] || {}).courierLabel || cid;
+      $legend.append('<button type="button" class="bgc-allmap-chip on" data-c="' + esc(cid) + '">'
+        + '<span class="bgc-allmap-swatch" style="background:' + colourFor(cid) + '"></span>'
+        + esc(label) + '</button>');
+    });
+    $legend.attr('hidden', !seen.length);
+    $legend.off('click').on('click', '.bgc-allmap-chip', function () {
+      var cid = $(this).attr('data-c');
+      hidden[cid] = !hidden[cid];
+      $(this).toggleClass('on', !hidden[cid]);
+      applyFilter();
+    });
+    applyFilter();
 
     $list.off('click').on('click', '.bgc-allmap-item:not(.bgc-na)', function () {
       var mk = markers[+$(this).data('i')];

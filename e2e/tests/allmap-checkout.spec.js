@@ -68,6 +68,21 @@ test('combined map: it carries several couriers at once, each with its own price
   const choosable = await page.locator('.bgc-allmap-item:not(.bgc-na)').count();
   expect(choosable).toBeGreaterThan(0);
   expect(priced).toBe(choosable);
+
+  // The legend names every courier on the map and starts with all of them showing - a map that
+  // opened already filtered would be hiding part of the choice it exists to present.
+  const chips = page.locator('.bgc-allmap-chip');
+  expect(await chips.count()).toBe(couriers.length);
+  expect(await page.locator('.bgc-allmap-chip.on').count()).toBe(couriers.length);
+
+  // And it filters both halves at once: switching a courier off must empty its rows AND its pins,
+  // or the map and the list beside it would disagree about what is on offer.
+  const rowsBefore = await page.locator('.bgc-allmap-item:visible').count();
+  const pinsBefore = await page.locator('.leaflet-marker-icon').count();
+  await chips.first().click();
+  await page.waitForTimeout(600);
+  expect(await page.locator('.bgc-allmap-item:visible').count()).toBeLessThan(rowsBefore);
+  expect(await page.locator('.leaflet-marker-icon').count()).toBeLessThan(pinsBefore);
 });
 
 test('combined map: choosing a point sets the courier, the delivery type and the office @allmap', async ({ page }) => {
