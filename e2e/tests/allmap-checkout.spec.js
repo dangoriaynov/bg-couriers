@@ -346,4 +346,84 @@ test.describe('the combined map on a phone', () => {
     expect(String(await fields.locator('.bgc-office').inputValue())).toBe(String(pick.office.office_id));
     expect(String(await fields.locator('.bgc-city').inputValue())).toBe(String(pick.cityId));
   });
+
+  /**
+   * The zoom buttons must not be printed over what the popup says.
+   *
+   * Leaflet stacks its controls at z-index 800 and its popups at 700, so a popup opening near the
+   * top-left corner had the + and - drawn across its first two lines - the courier's name and the
+   * office name, which are the two things the popup exists to tell you.
+   */
+  test('combined map: the zoom buttons never sit on top of a popup @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+
+    // The pin nearest the top-left corner - the one whose popup lands on the zoom control.
+    await page.evaluate(() => {
+      const c = document.querySelector('.bgc-allmap-canvas').getBoundingClientRect();
+      Array.from(document.querySelectorAll('.leaflet-marker-icon'))
+        .map(el => { const r = el.getBoundingClientRect();
+                     return { el, d: (r.left - c.left) ** 2 + (r.top - c.top) ** 2 }; })
+        .sort((a, b) => a.d - b.d)[0].el.click();
+    });
+    await expect(page.locator('.leaflet-popup')).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(1200);   // let autoPan settle before measuring anything
+
+    const verdict = await page.evaluate(() => {
+      const pop = document.querySelector('.leaflet-popup-content').getBoundingClientRect();
+      const zoom = document.querySelector('.leaflet-control-zoom').getBoundingClientRect();
+      const ox = Math.min(pop.right, zoom.right) - Math.max(pop.left, zoom.left);
+      const oy = Math.min(pop.bottom, zoom.bottom) - Math.max(pop.top, zoom.top);
+      if (ox <= 0 || oy <= 0) { return { overlap: false, popOnTop: true }; }
+      // They do overlap - then the popup has to be the thing under the finger, or its text is
+      // unreadable and its button unpressable.
+      const el = document.elementFromPoint(
+        Math.max(pop.left, zoom.left) + ox / 2, Math.max(pop.top, zoom.top) + oy / 2);
+      return { overlap: true, popOnTop: !!(el && el.closest('.leaflet-popup')),
+               on: el ? el.className.toString().slice(0, 40) : null };
+    });
+    expect(verdict.popOnTop, `zoom control painted over the popup (hit ${verdict.on})`).toBe(true);
+  });
+
+  /**
+   * A chat bubble, cookie bar or back-to-top button must not be painted over a full-screen map.
+   *
+   * The shop's own chat widget does exactly that, and it does not load under Playwright at all - no
+   * iframe, no high-z element - so it cannot be driven here. What CAN be tested is the rule that
+   * decides the outcome: an element with an enormous z-index, added the way those widgets add
+   * theirs, must still end up behind this dialog.
+   */
+  test('combined map: nothing on the page can be painted over the dialog @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+
+    // Stand-in for the chat bubble: bottom-right, fixed, and a z-index far above the old 100000.
+    await page.evaluate(() => {
+      const w = document.createElement('div');
+      w.id = 'probe-widget';
+      w.style.cssText = 'position:fixed;right:16px;bottom:16px;width:64px;height:64px;'
+        + 'border-radius:50%;background:#0a0;z-index:2147483000';
+      document.body.appendChild(w);
+    });
+
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1200);
+
+    // Whatever is painted at the widget's own centre must belong to the dialog, not to the widget.
+    const covered = await page.evaluate(() => {
+      const r = document.querySelector('#probe-widget').getBoundingClientRect();
+      const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { inDialog: !!(el && el.closest('.bgc-allmap-overlay')),
+               hit: el ? (el.id || el.className.toString().slice(0, 40)) : null };
+    });
+    expect(covered.inDialog, `the dialog was painted under the widget (hit ${covered.hit})`).toBe(true);
+  });
 });

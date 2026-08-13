@@ -14,9 +14,9 @@ shipments from the WordPress admin.
 |---|---|---|
 | **Speedy** | ✅ Live on `main` | checkout (office/address/APS), live quotes, labels, tracking, settings |
 | **Econt** | ✅ Live on `main` | + **наложен платеж (COD)** with itemised packing list (опис) & ППП money-transfer agreement - live-verified; E2E 7/7 with Speedy |
-| **Pigeon Express** | ✅ Built on `main` | adapter + method + settings + `@group pigeon` tests (OpenAPI-derived); live-verify pending credentials |
-| **BOX NOW** | ✅ Built on `main` | locker-only, flat-rate, OAuth2, **map-widget** locker picker; stage-verified (test parcels to APM 8009) |
-| **Sameday** | 🟡 Built on `feat/sameday` - **unverified** | adapter + method + settings + tests (SDK-derived). **Auth live-confirmed** against the demo host; the rest of the JSON shapes need a demo login to verify, then merge to `main` |
+| **Pigeon Express** | ✅ Live on `main` | checkout (office/address), live quotes, labels; tracking live-verified against real shipments |
+| **BOX NOW** | ✅ Live on `main` | locker-only, flat-rate, OAuth2, **map-widget** locker picker; full create → label → track → cancel cycle verified. Needs a prepaid gateway to be offered at checkout: it cannot do наложен платеж |
+| **Sameday** | ✅ Live on `main` | checkout (address/APS), live quotes, labels, tracking; create → PDF → track → cancel verified against a live account (easyBox-only on it) |
 | **Express One** | 📋 Planned | turn-key `plans/2026-06-29-expressone-phase4.md` + fixtures; needs a **BG API key** + one live confirm (pickup-point → createshipment encoding) |
 
 ## Features (what's built)

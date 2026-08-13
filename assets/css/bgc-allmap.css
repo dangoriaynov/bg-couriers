@@ -19,7 +19,13 @@
 /* Anchored to the TOP, not centred, so the box can rise on its own terms: align-items cannot be
    animated, a margin can. Before there is a map the box sits near the middle of the screen; when one
    arrives it travels up and the map unrolls beneath it. */
-.bgc-allmap-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100000;
+/* The maximum a z-index can hold, deliberately. This is a full-screen modal, and the things that sit
+   above 100000 on a WooCommerce shop are chat bubbles, cookie bars and back-to-top buttons - all of
+   which were painted over the map, and none of which anybody is going to use while choosing an office.
+   Nothing here touches those elements: the dialog simply outranks them, and they come back the moment
+   it closes. A widget claiming this same value loses on document order, because the dialog is appended
+   to the body at open time - after every script that loaded with the page. */
+.bgc-allmap-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 2147483647;
   display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; }
 /* position:relative + overflow:visible are BOTH load-bearing for the city picker. select2 hangs its
    dropdown inside this box, and positions it absolutely - without a positioned ancestor it lands at the
@@ -106,6 +112,14 @@
 .bgc-allmap-busy { position: absolute; inset: 0; display: flex; align-items: center;
   justify-content: center; background: rgba(255,255,255,.75); z-index: 4; }
 .bgc-allmap-body { position: relative; }
+
+/* Leaflet paints its CONTROLS (z-index 800) above its POPUPS (700), so a popup opening near the
+   top-left corner gets the +/- buttons printed across its first two lines - which is exactly where the
+   courier's name and the office name are. Inside this dialog the popup wins: it is what the customer
+   is reading and it carries the button they have to press, while the zoom buttons are back the instant
+   it closes. autoPanPaddingTopLeft in the JS keeps the two apart in the first place; this is the net
+   for a map too short to pan far enough, which is every phone held sideways. */
+.bgc-allmap-canvas .leaflet-popup-pane { z-index: 900; }
 
 /* Courier pins: a filled dot, coloured per courier by the JS. A muted one belongs to a courier that
    cannot carry this order - it is still shown, because a missing pin reads as "no office here". */

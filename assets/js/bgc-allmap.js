@@ -440,7 +440,10 @@
           // lowest pin put the Choose button 49px UNDERNEATH the pill - painted, and impossible to
           // press. The pill occupies 51px (37 tall, 14 up from the bottom); 78 leaves ~25px of daylight
           // for a popup made taller by a two-line office name.
-          autoPanPaddingBottomRight: L.point(12, 78)
+          autoPanPaddingBottomRight: L.point(12, 78),
+          // ...and the zoom buttons occupy the opposite corner: 10px in from the edge, two 30px
+          // squares tall. Without this the +/- printed straight across the courier and office names.
+          autoPanPaddingTopLeft: L.point(58, 82)
         });
       markers[i] = mk; bounds.push([lat, lng]);
     });
