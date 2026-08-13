@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.10
+Stable tag: 0.2.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.11 =
+* Fixed: the interactive map could come up completely empty for a city, with no error shown. It asked every courier's server directly, for every delivery type, in one request - and if any of them was slow the whole request died. The busiest cities usually worked because their answers were still cached from an earlier customer; quieter ones were a lottery. It now reads the office list the plugin already keeps in sync, so it answers every time.
 
 = 0.2.10 =
 * The city box on the interactive map is now instant. It used to ask the server on every keystroke, and each of those requests costs a full WordPress load - about five seconds on a busy shop - so typing a city name looked like nothing was happening. It now searches the list of places the page already carries, exactly as each courier's own city field has always done.
