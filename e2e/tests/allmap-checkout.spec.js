@@ -74,9 +74,11 @@ test('combined map: the city list comes from the page, not the server @allmap', 
 
   await page.locator('.bgc-allmap-btn').click();
   await page.locator('.bgc-allmap-cityinput').fill('София');
-  // No waitFor on a network response - the whole point is that none is coming.
+  // No waitFor on a network response - the whole point is that none is coming. The timeout here is
+  // generous on purpose: what proves the speed is the request count asserted below, not how quickly a
+  // loaded dev site can paint. Making this tight only bought a flaky test.
   const option = page.locator('.bgc-allmap-cityopt', { hasText: 'СОФИЯ' }).first();
-  await option.waitFor({ state: 'visible', timeout: 4000 });
+  await option.waitFor({ state: 'visible', timeout: 20000 });
   await page.waitForTimeout(800);   // long enough for a debounced request to have gone out
 
   expect(asked, `the city box called the server: ${asked[0] || ''}`).toHaveLength(0);

@@ -165,7 +165,11 @@ class BGCouriers_Ajax {
                     if (!$courier) { return []; } // honor the array return type; the AJAX handler sends the empty JSON
                     $rows = $courier->fetch_offices($city);
                     if (!empty($rows)) { set_transient($tkey, $rows, 6 * HOUR_IN_SECONDS); }
-                } catch (\Exception $e) { $rows = BGCouriers_Nomenclature::offices($courier_id, $city); }
+                // \Throwable, not \Exception: a courier adapter that hits a TypeError - or any Error -
+                // used to walk straight out of here and turn the whole request into a 500, when the
+                // synced table beside it could have answered. Nothing about a broken adapter should
+                // cost the customer their office list.
+                } catch (\Throwable $e) { $rows = BGCouriers_Nomenclature::offices($courier_id, $city); }
             }
         }
         if ($type !== '') {
@@ -241,6 +245,36 @@ class BGCouriers_Ajax {
         // which it is. Every point carries its own type because that is what the checkout must be set
         // to when the point is chosen - it is per point, not per dialog.
         $types = $type === 'both' ? ['office', 'automat'] : [$type];
+        $out = self::allmap_collect($name, $code, $types, false);
+        // Nothing at all from the local nomenclature means this shop has never run a sync - not that the
+        // place is empty. Only then is the live path worth its cost, and only then does one slow courier
+        // matter, because by definition there is nothing to lose.
+        if (!$out) { $out = self::allmap_collect($name, $code, $types, true); }
+        wp_send_json($out);
+    }
+
+    /**
+     * Every enabled courier's points for one place.
+     *
+     * Reads the SYNCED tables, not the couriers' live endpoints. The live path is what
+     * BGCouriers_Ajax::city_offices() does, and it is right for a single courier's own picker - but this
+     * endpoint fans out across every enabled courier and both delivery types, which is up to eight live
+     * API calls inside one request. That reliably killed the request whenever the 6-hour per-city
+     * transient was cold: measured on dev, clearing the transients for Пловдив turned this endpoint from
+     * 200 in ~2s into a 500 with an empty body in ~6s, and the customer got a blank map with no error.
+     * One slow courier should not be able to take down a map of five.
+     *
+     * The tables carry the same thing: the same run gave 37+50 / 36+3 / 16+0 / 0+90 points for Пловдив
+     * against the live 37+50 / 36+3 / 16+0 / 0+91 - a single locker added since the last sync, which the
+     * next sync picks up. A day-old office list is the right trade for a map that always answers.
+     *
+     * @param string $name  Place name as the customer's chosen suggestion spells it.
+     * @param string $code  Post code, '' when unknown.
+     * @param array  $types Delivery types wanted, e.g. ['office','automat'].
+     * @param bool   $live  Ask the couriers directly instead of reading the synced tables.
+     * @return array courier id => ['city_id' => int, 'offices' => array]
+     */
+    private static function allmap_collect(string $name, string $code, array $types, bool $live): array {
         $out = [];
         foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
             if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
@@ -251,7 +285,10 @@ class BGCouriers_Ajax {
             if (!$city) { continue; }
             $rows = [];
             foreach ($wanted as $t) {
-                foreach (self::city_offices($cid, (int) $city['city_id'], $t, '', 100000) as $office) {
+                $found = $live
+                    ? self::city_offices($cid, (int) $city['city_id'], $t, '', 100000)
+                    : BGCouriers_Nomenclature::offices($cid, (int) $city['city_id'], $t);
+                foreach ($found as $office) {
                     $office['type'] = $t;
                     $rows[] = $office;
                 }
@@ -259,7 +296,7 @@ class BGCouriers_Ajax {
             if (!$rows) { continue; }
             $out[$cid] = ['city_id' => (int) $city['city_id'], 'offices' => $rows];
         }
-        wp_send_json($out);
+        return $out;
     }
     public function streets(): void {
         if (!self::rate_ok()) { wp_send_json([]); }
