@@ -30,6 +30,9 @@
   // The office/APS this courier already has selected, when the dialog was opened from its own block.
   // Marked on the map so the customer can see what they picked last time instead of hunting for it.
   var current = { courier: '', officeId: '' };
+  // Which half of the dialog a PHONE is showing. On a desktop both are on screen and this does
+  // nothing - the classes it writes are only read inside the narrow-screen media query.
+  var mode = 'map';
 
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
 
@@ -105,7 +108,30 @@
     meMarker = null;
     layer = null; // the layer group is destroyed along with the map; just drop our reference to it
     markers = []; points = [];
+    mode = 'map';
+    $(window).off('.bgcallmap');
+    $('html, body').removeClass('bgc-allmap-lock');
     if ($dlg) { $dlg.remove(); $dlg = null; }
+  }
+
+  /**
+   * Show one of the two panes, on the screens too small to hold both.
+   *
+   * Leaflet measures its container once and caches the result. A map that was display:none while the
+   * points were plotted comes back the size it was when it was hidden - which is nothing - so the
+   * tiles are grey and fitBounds() left it centred on a rectangle that never existed. Re-measuring on
+   * the way IN is what makes the switch safe to use at any moment, and it is cheap enough to do
+   * unconditionally rather than trying to work out whether this particular screen is a phone.
+   */
+  function setMode(v) {
+    if (!$dlg) { return; }
+    mode = (v === 'list') ? 'list' : 'map';
+    $dlg.toggleClass('bgc-mode-list', mode === 'list').toggleClass('bgc-mode-map', mode === 'map');
+    $dlg.find('.bgc-allmap-switch button').each(function () {
+      var on = $(this).attr('data-v') === mode;
+      $(this).toggleClass('on', on).attr('aria-pressed', on ? 'true' : 'false');
+    });
+    if (mode === 'map' && map) { map.invalidateSize(); }
   }
 
   /**
@@ -123,7 +149,10 @@
                   officeId: String(opts.wrap.find('.bgc-office').val() || '') };
     }
     load();
-    $dlg = $('<div class="bgc-allmap-overlay"><div class="bgc-allmap-box">'
+    // bgc-mode-map is in the markup, not left to a setMode() call after the append: busy() shows the
+    // body and adds bgc-has-map before render() ever runs, and a phone with neither mode class set
+    // would draw BOTH panes for that moment - which is the layout this whole dialog stopped using.
+    $dlg = $('<div class="bgc-allmap-overlay bgc-mode-map"><div class="bgc-allmap-box">'
       + '<div class="bgc-allmap-head"><strong>' + esc(I.allmap_title || '') + '</strong>'
       + '<button type="button" class="bgc-allmap-close" aria-label="' + esc(I.close || '') + '">&times;</button></div>'
       + '<div class="bgc-allmap-form">'
@@ -141,8 +170,23 @@
       + '</div>'
       + '<ul class="bgc-allmap-list"></ul></div>'
       + '<div class="bgc-allmap-canvas" id="bgc-allmap-canvas"></div>'
+      // Floating over the pane rather than sitting in a row of its own: a row would cost the map the
+      // very height this dialog is short of. Hidden outright on a screen wide enough for both panes.
+      + '<div class="bgc-allmap-switch" role="group">'
+      + '<button type="button" data-v="map" class="on" aria-pressed="true">' + esc(I.allmap_map || '') + '</button>'
+      + '<button type="button" data-v="list" aria-pressed="false">' + esc(I.allmap_list || '')
+      + ' <span class="bgc-allmap-n"></span></button>'
+      + '</div>'
       + '</div></div></div>');
     $('body').append($dlg);
+    // A phone's dialog covers the screen, and a page still scrolling behind it moves the map out from
+    // under the finger that was dragging it. Scoped to narrow screens in the stylesheet, so a desktop
+    // keeps its scrollbar and does not shift sideways when the dialog opens.
+    $('html, body').addClass('bgc-allmap-lock');
+    // Rotating the phone, or the URL bar sliding away, changes the map's box without Leaflet noticing.
+    $(window).on('resize.bgcallmap orientationchange.bgcallmap', function () {
+      if (map) { map.invalidateSize(); }
+    });
 
     // Our own city suggest rather than select2. select2 positions its dropdown by arithmetic that
     // adds the page's scroll offset, which a position:fixed overlay does not have, so inside this
@@ -197,6 +241,7 @@
     $dlg.on('click', function (e) { if ($dlg && e.target === $dlg[0]) { close(); } });
     $dlg.on('input', '.bgc-allmap-search', applyFilter);
     $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
+    $dlg.on('click', '.bgc-allmap-switch button', function () { setMode($(this).attr('data-v')); });
     // The popup's Choose is the only crossing into bgc-checkout.js: hand over the point and let the
     // ordinary flow pick the rate, switch the tab, set city and office, save, recalculate. Delegated
     // on $dlg (not $list) because the popup's markup lives in Leaflet's map pane, not the sidebar.
@@ -228,9 +273,15 @@
       return String(o.name || '').toLowerCase().indexOf(term) !== -1
           || String(o.address || '').toLowerCase().indexOf(term) !== -1;
     }
+    // The count rides on the List button because on a phone the list is behind the map: "List (3)"
+    // after typing a street is the only way to know the search found anything without switching over.
+    var n = 0;
     $dlg.find('.bgc-allmap-list .bgc-allmap-item').each(function () {
-      $(this).toggle(shown(points[+$(this).data('i')]));
+      var on = shown(points[+$(this).data('i')]);
+      $(this).toggle(on);
+      if (on) { n++; }
     });
+    $dlg.find('.bgc-allmap-n').text('(' + n + ')');
     points.forEach(function (p, i) {
       var mk = markers[i];
       if (!mk || !layer) { return; }
@@ -306,6 +357,12 @@
   }
 
   function render(data) {
+    // Back to the map before anything is plotted. fitBounds() on a container that is display:none
+    // measures zero and leaves the map centred on a rectangle that does not exist - and unlike the
+    // container's SIZE, which invalidateSize() repairs on the way in, that bad centre survives the
+    // switch: the customer taps Map and lands in the sea. Showing the map is also what a customer who
+    // has just named a new place is asking for.
+    setMode('map');
     // Wipe the PREVIOUS run's pins before plotting new ones. `points`/`markers` below get reassigned to a
     // fresh array on every render, but Leaflet does not know that - a marker it already placed stays on
     // the map with a popup whose Choose button still carries the index into the array it was built
@@ -428,6 +485,9 @@
       if (!mk) { return; }
       $list.find('.active').removeClass('active');
       $(this).addClass('active');
+      // On a phone the list is covering the map, so picking a row means "show me this one" - go to the
+      // map first, THEN centre it, or the pan and the popup both happen somewhere nobody can see.
+      setMode('map');
       map.setView(mk.getLatLng(), Math.max(map.getZoom(), 15));
       mk.openPopup();
     });

@@ -206,3 +206,85 @@ test('combined map: choosing a locker lands on the locker tab, not the address f
   // The address form belongs to the other tab and must not be the one on screen.
   await expect(fields.locator('.bgc-address-rows')).toBeHidden();
 });
+
+/**
+ * The same dialog on a phone.
+ *
+ * These exist because the desktop tests above CANNOT catch what went wrong here. They run at
+ * 1280x720 and passed the entire time the map on a phone was a strip a few dozen pixels tall - the
+ * two panes stacked, each holding a 440px floor, inside a body clipped at 72vh. Every element the
+ * desktop tests look for was present and reported visible; there was simply no room to see any of it.
+ *
+ * So the assertion here is a MEASUREMENT, not a visibility check: how tall is the map actually, in
+ * pixels, on a 390x844 screen. That is the number the customer complained about.
+ */
+test.describe('the combined map on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('combined map: the map gets real height on a phone @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1200);
+
+    // The measurement. The old layout laid the canvas out at 300px and then clipped it - the list
+    // above it claimed 440 of the 607 the body was allowed, and what was left on screen was about
+    // 167px of map. Half the screen is the bar it has to clear now.
+    const canvas = await page.locator('.bgc-allmap-canvas').boundingBox();
+    expect(canvas, 'the map canvas must be laid out').not.toBeNull();
+    expect(canvas.height).toBeGreaterThan(340);
+    expect(canvas.width).toBeGreaterThan(350);
+
+    // ...and it must all be ON the screen. The bounding box is the box the layout ASKED for; the body
+    // has overflow:hidden, so a canvas hanging out of the bottom of it is exactly the sliver the
+    // customer reported while every element on the page still reported itself visible.
+    const body = await page.locator('.bgc-allmap-body').boundingBox();
+    expect(Math.round(canvas.y + canvas.height)).toBeLessThanOrEqual(Math.round(body.y + body.height) + 1);
+    expect(Math.round(body.y + body.height)).toBeLessThanOrEqual(845);
+
+    // Tiles, not a grey rectangle: Leaflet caches the size of its container, and a map built or
+    // fitted while that container was hidden comes back empty however tall the box now is.
+    expect(await page.locator('.leaflet-tile-loaded').count()).toBeGreaterThan(0);
+
+    // Edge to edge, and nothing hanging off the side of the screen.
+    const box = await page.locator('.bgc-allmap-box').boundingBox();
+    expect(Math.round(box.width)).toBe(390);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  });
+
+  test('combined map: the pill swaps the map for the list and back @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1200);
+
+    // The pill only exists where there is a choice to make - a desktop shows both panes at once.
+    const pill = page.locator('.bgc-allmap-switch');
+    await expect(pill).toBeVisible();
+    // It says how many offices are behind it, which is the only way to tell that a search found
+    // anything while the list itself is hidden under the map.
+    await expect(page.locator('.bgc-allmap-n')).toHaveText(/\(\d+\)/);
+
+    await expect(page.locator('.bgc-allmap-canvas')).toBeVisible();
+    await pill.locator('button[data-v="list"]').click();
+    await expect(page.locator('.bgc-allmap-canvas')).toBeHidden();
+    const list = await page.locator('.bgc-allmap-list').boundingBox();
+    expect(list.height).toBeGreaterThan(300);
+
+    // Choosing a row means "show me where that is", so it has to bring the map back with it - and the
+    // map must be able to draw: this is the path where Leaflet was last measured at zero.
+    await page.locator('.bgc-allmap-item:not(.bgc-na)').first().click();
+    await expect(page.locator('.bgc-allmap-canvas')).toBeVisible();
+    await expect(page.locator('.leaflet-popup')).toBeVisible();
+    const canvas = await page.locator('.bgc-allmap-canvas').boundingBox();
+    expect(canvas.height).toBeGreaterThan(340);
+    expect(await page.locator('.leaflet-tile-loaded').count()).toBeGreaterThan(0);
+  });
+});

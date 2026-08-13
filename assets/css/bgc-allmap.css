@@ -129,11 +129,13 @@
 .bgc-allmap-item.bgc-na:hover { background: none; }
 .bgc-allmap-na-note { color: #b32d2e; font-size: 12px; display: block; margin-top: 3px; }
 
-@media (max-width: 720px) {
-  .bgc-allmap-body { flex-direction: column; }
-  .bgc-allmap-side { width: auto; max-height: 40vh; border-right: 0; border-bottom: 1px solid #e6e9ec; }
-  .bgc-allmap-canvas { min-height: 300px; }
-}
+/* The map/list switch. Off on any screen with room for both panes - there is nothing to switch
+   between - and turned on by the narrow-screen block at the foot of this file. Declared here, ahead
+   of that block, because a media query adds no specificity: the later rule is the one that wins. */
+.bgc-allmap-switch { display: none; }
+.bgc-allmap-switch button { border: 0; background: none; border-radius: 999px; padding: 8px 18px;
+  font-size: 13px; line-height: 1; color: #50575e; cursor: pointer; white-space: nowrap; }
+.bgc-allmap-switch button.on { background: #2271b1; color: #fff; }
 
 /* The pin popup: whose it is, what it is called, where it is - then the one thing to do about it.
    The button is centred on its own line because it is the point of the popup, not a footnote to the
@@ -178,4 +180,90 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bgc-allmap-pin.bgc-chosen::before, .bgc-allmap-pin.bgc-chosen::after { animation: none; opacity: .6; }
+}
+
+/* ── Phones, and anything else too short to hold both panes ───────────────────────────────────────
+   The desktop layout is list-beside-map, and each pane carries a 440px floor so neither can collapse
+   into a strip. Stacked on a phone those two floors add up to more than the screen has, the body
+   clips them at 72vh, and what reaches the customer is a few dozen pixels of map - the whole dialog
+   reduced to the one part of it that is useless at that size.
+
+   So a small screen gets ONE pane and the whole screen to put it in, with a floating pill to swap
+   between them: the shape every map on a phone already has. Nothing is removed - the search, the
+   legend, the prices and the list are all still there - they take turns with the map instead of
+   fighting it for the same 600px.
+
+   The height condition matters as much as the width: a phone held sideways is ~840px wide and ~390px
+   tall, so it clears the width test and is the worst case of all for the stacked layout. */
+@media (max-width: 720px), (max-height: 520px) {
+  /* The dialog covers the screen; a page still scrolling behind it drags the map out from under the
+     finger. Scoped to here, so a desktop keeps its scrollbar and nothing shifts when the map opens. */
+  html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
+
+  /* Edge to edge. 16px of dimmed backdrop each side of a dialog that is short of room is 32px spent
+     on decoration. 100dvh, not 100vh: the dynamic unit shrinks when the URL bar is on screen, and a
+     100vh box inside it would push the pill and the last list row underneath that bar. */
+  .bgc-allmap-overlay { padding: 0; overflow: hidden; height: 100vh; height: 100dvh; }
+  .bgc-allmap-box, .bgc-has-map .bgc-allmap-box { width: 100%; max-width: none; height: 100%;
+    max-height: none; margin-top: 0; border-radius: 0; }
+  .bgc-allmap-head { padding: 10px 12px; }
+
+  /* One row of couriers, always, scrolling sideways: wrapped, a fifth courier silently costs a
+     second row of height - and height is the thing this whole block is buying back. */
+  .bgc-allmap-form { padding: 8px 12px; gap: 8px; }
+  .bgc-allmap-legend { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .bgc-allmap-legend::-webkit-scrollbar { display: none; }
+  .bgc-allmap-chip { flex: 0 0 auto; padding: 6px 10px; }
+
+  /* 16px is the threshold below which iOS Safari zooms the page to meet the field - which on a
+     full-screen dialog scrolls half of it out of reach, with no way back but rotating the phone. */
+  .bgc-allmap-cityinput { height: 42px; font-size: 16px; }
+  .bgc-allmap-side .bgc-allmap-searchrow .bgc-allmap-search { height: 40px !important; font-size: 16px; }
+  .bgc-allmap-searchrow .bgc-map-locate { width: 40px; height: 40px; }
+  .bgc-allmap-cityopt { padding: 11px 12px; font-size: 15px; }
+
+  /* Everything the header and the city row leave over goes to the pane. The 440px floor and the 72vh
+     ceiling are both desktop rules, and here they are precisely what squeezed the map flat. */
+  .bgc-has-map .bgc-allmap-body { max-height: none; }
+  .bgc-allmap-body { flex: 1 1 auto; min-height: 0; flex-direction: column; border-radius: 0; }
+  .bgc-allmap-body > * { min-height: 0; }
+  .bgc-allmap-side { width: auto; max-height: none; border-right: 0; }
+  .bgc-allmap-canvas { flex: 1 1 auto; min-height: 0; }
+
+  /* Map mode keeps the search row and drops only the list: that row filters the PINS too, and the
+     locate button in it is a map control. List mode gives the list the whole pane. */
+  .bgc-mode-map .bgc-allmap-side { flex: 0 0 auto; overflow: visible; }
+  .bgc-mode-map .bgc-allmap-list { display: none; }
+  .bgc-mode-list .bgc-allmap-side { flex: 1 1 auto; }
+  .bgc-mode-list .bgc-allmap-canvas { display: none; }
+  .bgc-allmap-item { padding: 12px; }
+  /* Room under the last office for the pill that floats over it - otherwise the row at the bottom of
+     a list of two hundred is the one that cannot be tapped. */
+  .bgc-mode-list .bgc-allmap-list { padding-bottom: 58px; }
+
+  /* Over the pane, not above it: a row of its own would cost the map the height this block exists to
+     give it. Above Leaflet's own controls, which sit at z-index 1000. */
+  .bgc-allmap-switch { display: inline-flex; position: absolute; z-index: 1200; left: 50%;
+    bottom: 14px; transform: translateX(-50%); padding: 3px; border-radius: 999px; background: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,.28); }
+}
+
+/* Narrow, specifically: the place goes on a line of its own, because a city field given 42% of a
+   phone's width is four characters wide. A screen that is merely SHORT is usually a phone held
+   sideways - 844px across - and there the two sit side by side as they do on a desktop, which is one
+   whole row of height the map gets to keep. */
+@media (max-width: 720px) {
+  .bgc-allmap-form { flex-direction: column; }
+  .bgc-allmap-form .bgc-allmap-cityrow { width: 100%; }
+  .bgc-allmap-legend { width: 100%; }
+}
+
+/* Short screens - a phone on its side has about 390px of height for everything. Every row of chrome
+   is taken out of the map, so they all get thinner. */
+@media (max-height: 520px) {
+  .bgc-allmap-head { padding: 6px 12px; }
+  .bgc-allmap-form { padding: 6px 12px; }
+  .bgc-allmap-searchrow { padding: 5px 8px 5px 14px; }
+  .bgc-allmap-switch { bottom: 8px; }
 }

@@ -679,6 +679,9 @@ class BGCouriers_Checkout {
                 'allmap_na' => __('Not available for this order', 'bg-couriers'),
                 'allmap_choose' => __('Choose', 'bg-couriers'),
                 'allmap_city_ph' => __('Choose a city', 'bg-couriers'),
+                // The two halves of the phone-sized dialog, which shows one of them at a time.
+                'allmap_map' => __('Map', 'bg-couriers'),
+                'allmap_list' => __('List', 'bg-couriers'),
             ],
         ]);
 
