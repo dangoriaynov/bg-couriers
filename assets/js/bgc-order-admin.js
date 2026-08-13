@@ -254,11 +254,18 @@
         + '<div class="bgc-map-head"><strong>' + escM(I.map_title || 'Map') + '</strong>'
         + '<button type="button" class="bgc-map-close" aria-label="' + escM(I.close || 'Close') + '">×</button></div>'
         + '<div class="bgc-map-body"><div class="bgc-map-side">'
-        + '<input type="text" class="bgc-map-search" placeholder="' + escM(I.office_ph || 'Search…') + '">'
+        // Search and locate share a row, and locate is an icon with a hint. The shop's own office
+        // picker looks like this, and this dialog is styled from the SAME stylesheet - the checkout's -
+        // so leaving the old full-width button here left a button with a label inside a 38px square.
+        + '<div class="bgc-map-searchrow">'
+        + '<input type="text" class="bgc-map-search" placeholder="' + escM(I.office_ph || '') + '">'
+        + '<button type="button" class="bgc-map-locate" title="' + escM(I.map_locate || '')
+        + '" aria-label="' + escM(I.map_locate || '') + '"></button>'
+        + '</div>'
         + '<ul class="bgc-map-list"></ul></div>'
         + '<div class="bgc-map-canvas" id="bgc-map"></div></div>'
-        + '<div class="bgc-map-actions"><button type="button" class="button bgc-map-locate">' + escM(I.map_locate || 'My location') + '</button>'
-        + '<span class="bgc-map-hint">' + (pts.length ? '' : escM(I.map_none || '')) + '</span></div></div></div>');
+        + '<div class="bgc-map-actions"><span class="bgc-map-hint">'
+        + (pts.length ? '' : escM(I.map_none || '')) + '</span></div></div></div>');
       $('body').append($ov);
       setMapIcons();
       edMap = L.map('bgc-map', { scrollWheelZoom: true });
