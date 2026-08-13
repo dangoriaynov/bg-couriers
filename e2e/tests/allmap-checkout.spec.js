@@ -168,3 +168,41 @@ test('combined map: the place and destination survive a reload @allmap', async (
   await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
   expect(await page.locator('.bgc-allmap-cityinput').inputValue()).toContain('СОФИЯ');
 });
+
+/**
+ * A LOCKER specifically, and from a courier that does not offer offices at all.
+ *
+ * The general test above takes whatever point comes first, which is usually an office - and this case
+ * broke without it noticing: choosing a Sameday locker landed the customer on Sameday's "to address"
+ * tab with an empty street form, the locker saved but invisible. One of the recalculations rendered
+ * the block with no delivery type at all, and the tabs fell back to the courier's first one.
+ */
+test('combined map: choosing a locker lands on the locker tab, not the address form @allmap', async ({ page }) => {
+  await addAnyProductToCart(page);
+  await gotoCheckout(page);
+  await page.waitForTimeout(2500);
+
+  await page.locator('.bgc-allmap-btn').click();
+  await chooseCity(page, 'София', 'СОФИЯ (1000)');
+  await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
+
+  const pick = await page.evaluate(() => {
+    const pts = window.BGCouriersAllMap.points();
+    const i = pts.findIndex(p => p.available && p.type === 'automat');
+    if (i < 0) { return null; }
+    document.querySelectorAll('.bgc-allmap-item')[i].click();
+    return { courier: pts[i].courier, officeId: pts[i].office.office_id, cityId: pts[i].cityId };
+  });
+  expect(pick, 'the map must offer at least one locker').not.toBeNull();
+
+  await page.locator('.bgc-allmap-pick').first().click();
+  await expect(page.locator('.bgc-allmap-overlay')).toHaveCount(0);
+  await page.waitForTimeout(9000);   // long enough for every recalculation this sets off to land
+
+  const fields = page.locator(`.bgc-fields[data-courier="${pick.courier}"]`);
+  expect(await fields.getAttribute('data-method')).toBe('automat');
+  expect(String(await fields.locator('.bgc-office').inputValue())).toBe(String(pick.officeId));
+  expect(String(await fields.locator('.bgc-city').inputValue())).toBe(String(pick.cityId));
+  // The address form belongs to the other tab and must not be the one on screen.
+  await expect(fields.locator('.bgc-address-rows')).toBeHidden();
+});

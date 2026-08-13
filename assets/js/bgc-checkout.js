@@ -540,6 +540,15 @@
     var $wrap = $(this).closest('.bgc-fields');
     clearTimeout(addrT); addrT = setTimeout(function () { saveSelection($wrap); }, 600);
   });
+  // The debounce above is there so every keystroke does not post, but it leaves a 600ms window in
+  // which a recalculation started by something else re-renders this block from a session that has not
+  // been told what was typed - and the house number the customer just entered is simply gone. Leaving
+  // the field commits it at once, which is the moment they stop typing and reach for something else.
+  $(document.body).on('change blur', '.bgc-address-rows input', function () {
+    var $wrap = $(this).closest('.bgc-fields');
+    clearTimeout(addrT);
+    saveSelection($wrap);
+  });
 
   // Emergency help: after repeated checkout failures, show a one-time help box with a phone link.
   (function () {
@@ -638,6 +647,17 @@
         if (checkedVal !== want && checkedVal.indexOf(want + ':') !== 0) { done(); return; }
         if (officeTries >= 3) { done(); return; }                                          // 3. gave it enough tries
         officeTries++;
+        // The delivery TYPE has to be put back too, and before the rest. On one of the recalculations
+        // this pick sets off, the server can render this block with an EMPTY data-method - the session
+        // has not recorded the courier yet at that moment - and renderTabs() then falls back to the
+        // courier's FIRST tab. For Sameday that is "to address", so choosing a locker on the map
+        // landed the customer on an empty address form with the locker still saved underneath.
+        // Set the attribute and re-sync the tabs directly rather than calling setMethod(): that one
+        // clears the office and starts another recalculation, which is what we are already inside of.
+        if (method($w) !== pick.method) {
+          $w.attr('data-method', pick.method);
+          syncMethodUI($w);
+        }
         // The CITY has to be put back first. saveSelection() below sends the whole block - courier,
         // city, office, address - read straight off the fields, so saving while the re-rendered city
         // select is still empty stores site_id 0 and wipes the city that was chosen a moment ago. The
