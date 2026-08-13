@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.9
+Stable tag: 0.2.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.10 =
+* The city box on the interactive map is now instant. It used to ask the server on every keystroke, and each of those requests costs a full WordPress load - about five seconds on a busy shop - so typing a city name looked like nothing was happening. It now searches the list of places the page already carries, exactly as each courier's own city field has always done.
 
 = 0.2.9 =
 * The interactive map now has a layout for phones. It used to stack the list and the map and give each a fixed minimum height, so on a phone the map arrived about 167px tall with the rest cut off. A narrow screen - or a short one, which is a phone held sideways - now shows one of them at a time, full screen, with a floating button to swap between them. The search, the prices and the courier filter are all still there.
