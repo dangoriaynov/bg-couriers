@@ -587,6 +587,10 @@
   var pendingOfficeApply = null;
 
   window.BGCouriersCheckout = {
+    // Shared with bgc-allmap.js so its city box can filter the preloaded index the same way this one
+    // does - "sofia", "София" and "1000" all finding гр. София. Exposed rather than copied: a second
+    // transliteration table would drift from this one the first time either was corrected.
+    textMatch: bgcTextMatch,
     applyPick: function (pick) {
       var $wrap = $('.bgc-fields[data-courier="' + pick.courier + '"]');
       if (!$wrap.length) { return false; }               // that courier is not offered for this cart

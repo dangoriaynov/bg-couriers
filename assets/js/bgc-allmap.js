@@ -37,6 +37,63 @@
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
 
   /**
+   * Every place any enabled courier can deliver to, from the index the checkout already carries.
+   *
+   * BGCOURIERS.cityIndex is localised into the page per courier and per delivery type, as
+   * [city_id, name, post_code, name_lat] rows, and holds only cities that actually HAVE a pickup point -
+   * which is precisely the set this dialog can plot. Merged and de-duplicated on name+post code, the
+   * same key the server's own bgcouriers_allmap_cities uses, so both paths answer alike.
+   *
+   * Built once, lazily: on a big shop this is a few thousand rows and there is no reason to touch them
+   * until somebody types.
+   */
+  var cityList = null;
+  function buildCityList() {
+    var idx = (window.BGCOURIERS && BGCOURIERS.cityIndex) || null;
+    if (!idx) { return null; }
+    var seen = {}, out = [];
+    Object.keys(idx).forEach(function (cid) {
+      ['office', 'automat'].forEach(function (type) {
+        (idx[cid] && idx[cid][type] ? idx[cid][type] : []).forEach(function (r) {
+          var name = r[1], code = String(r[2] || '');
+          var key = String(name).toLowerCase() + '|' + code;
+          if (seen[key]) { return; }
+          seen[key] = true;
+          out.push({ name: name, post_code: code, lat: String(r[3] || '') });
+        });
+      });
+    });
+    out.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    return out;
+  }
+
+  /**
+   * @return {Array|null} Matching places, or null when this shop has no preloaded index and the server
+   *                      has to be asked instead.
+   */
+  function localCities(term) {
+    if (cityList === null) { cityList = buildCityList() || false; }
+    if (!cityList || !cityList.length) { return null; }
+    // The checkout's own matcher, so "sofia", "София" and "1000" all find гр. София here too.
+    var match = (window.BGCouriersCheckout && window.BGCouriersCheckout.textMatch)
+      || function (text, t) { return String(text).toLowerCase().indexOf(t) !== -1; };
+    var t = term.toLowerCase(), out = [];
+    for (var i = 0; i < cityList.length && out.length < 30; i++) {
+      var c = cityList[i];
+      if (match(c.name, t) || (c.lat && c.lat.toLowerCase().indexOf(t) !== -1) || c.post_code.indexOf(t) !== -1) {
+        out.push({ name: c.name, post_code: c.post_code });
+      }
+    }
+    return out;
+  }
+
+  /** The city box says it is working. Only ever seen on a shop with no preloaded index. */
+  function busyCity(on) {
+    if (!$dlg) { return; }
+    $dlg.find('.bgc-allmap-cityrow').toggleClass('bgc-loading', !!on);
+  }
+
+  /**
    * Each courier's pin colour, FIXED - the same on every shop, every visit, until the owner says
    * otherwise. A colour that moved between sessions would make the legend useless, since the whole
    * point of it is that a customer learns "the orange ones are Pigeon" once.
@@ -206,20 +263,34 @@
       // confirm a decision they had just made.
       showOffices();
     }
+    function fill(rows) {
+      $res.empty();
+      (rows || []).forEach(function (r) {
+        var label = r.name + (r.post_code ? ' (' + r.post_code + ')' : '');
+        $('<li class="bgc-allmap-cityopt"></li>').text(label)
+          .attr({ 'data-name': r.name, 'data-code': r.post_code || '' }).appendTo($res);
+      });
+      $res.attr('hidden', !$res.children().length);
+    }
     $input.on('input', function () {
       var term = $.trim($input.val());
       clearTimeout(searchT);
-      if (term.length < 2) { hideRes(); return; }
+      if (term.length < 2) { hideRes(); busyCity(false); return; }
+
+      // Local first, and normally the only path. Asking the server costs a whole admin-ajax boot -
+      // measured at ~5s on the live shop for a request that returns 150 bytes, and the same 5s for an
+      // action with no handler at all, so it is the boot and not this lookup. The courier's own city
+      // box has always felt instant for exactly this reason: it filters a list the page already has.
+      var local = localCities(term);
+      if (local) { busyCity(false); fill(local); return; }
+
+      // No preloaded index on this shop: the round trip is unavoidable, so at least say it is happening.
+      // Silence for five seconds is indistinguishable from a broken field.
+      busyCity(true);
       searchT = setTimeout(function () {
         $.get(BGCOURIERS.ajax, { action: 'bgcouriers_allmap_cities', term: term }, function (rows) {
-          $res.empty();
-          (rows || []).forEach(function (r) {
-            var label = r.name + (r.post_code ? ' (' + r.post_code + ')' : '');
-            $('<li class="bgc-allmap-cityopt"></li>').text(label)
-              .attr({ 'data-name': r.name, 'data-code': r.post_code || '' }).appendTo($res);
-          });
-          $res.attr('hidden', !$res.children().length);
-        });
+          fill(rows);
+        }).always(function () { busyCity(false); });
       }, 220);
     });
     $res.on('click', '.bgc-allmap-cityopt', function () {

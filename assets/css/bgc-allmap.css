@@ -68,6 +68,15 @@
 .bgc-allmap-cityres { position: absolute; z-index: 5; top: calc(100% + 2px); left: 0; right: 0;
   margin: 0; padding: 0; list-style: none; max-height: 240px; overflow-y: auto; background: #fff;
   border: 1px solid #c9ced6; border-radius: 7px; box-shadow: 0 6px 18px rgba(0,0,0,.15); }
+/* The city box is waiting on the server. Normally never seen: the list is filtered out of the index the
+   page already carries, and only a shop with city preloading switched off has to ask. */
+.bgc-allmap-cityrow.bgc-loading::after { content: ""; position: absolute; right: 11px; top: 50%;
+  width: 15px; height: 15px; margin-top: -8px; border-radius: 50%;
+  border: 2px solid #c9ced6; border-top-color: #2271b1; animation: bgc-allmap-spin .7s linear infinite; }
+@keyframes bgc-allmap-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .bgc-allmap-cityrow.bgc-loading::after { animation-duration: 2.4s; }
+}
 .bgc-allmap-cityopt { padding: 8px 12px; cursor: pointer; font-size: 14px; }
 .bgc-allmap-cityopt:hover { background: #f0f6fc; color: #2271b1; }
 /* Office or locker, said on the point itself - the two share one map, because a customer looking for

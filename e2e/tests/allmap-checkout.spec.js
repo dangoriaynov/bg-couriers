@@ -50,6 +50,43 @@ test('combined map: nothing is plotted until a place is chosen @allmap', async (
   await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
 });
 
+/**
+ * The city box must not wait on the server.
+ *
+ * Every admin-ajax request costs a full WordPress boot: measured on the live shop at ~5s, and the SAME
+ * ~5s for an action with no handler at all - so it is the boot, not the lookup. The courier's own city
+ * field has always felt instant because it filters an index the page already carries; this one asked
+ * the server on every keystroke and looked broken for five seconds at a time.
+ *
+ * The assertion is therefore about requests, not milliseconds: a timing threshold would be flaky on a
+ * loaded shop, while "it did not ask" is exactly the property that makes it fast.
+ */
+test('combined map: the city list comes from the page, not the server @allmap', async ({ page }) => {
+  await addAnyProductToCart(page);
+  await gotoCheckout(page);
+  await page.waitForTimeout(2500);
+
+  const asked = [];
+  page.on('request', r => {
+    if (r.url().includes('action=bgcouriers_allmap_cities')
+        || (r.postData() || '').includes('bgcouriers_allmap_cities')) { asked.push(r.url()); }
+  });
+
+  await page.locator('.bgc-allmap-btn').click();
+  await page.locator('.bgc-allmap-cityinput').fill('София');
+  // No waitFor on a network response - the whole point is that none is coming.
+  const option = page.locator('.bgc-allmap-cityopt', { hasText: 'СОФИЯ' }).first();
+  await option.waitFor({ state: 'visible', timeout: 4000 });
+  await page.waitForTimeout(800);   // long enough for a debounced request to have gone out
+
+  expect(asked, `the city box called the server: ${asked[0] || ''}`).toHaveLength(0);
+
+  // And the suggestions it produced locally still work end to end: picking one plots that city.
+  await option.click({ timeout: 10000 });
+  await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+  expect(await page.locator('.bgc-allmap-cityinput').inputValue()).toContain('СОФИЯ');
+});
+
 test('combined map: it carries several couriers at once, each with its own price @allmap', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
