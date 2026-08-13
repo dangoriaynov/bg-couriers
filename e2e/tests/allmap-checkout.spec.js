@@ -7,50 +7,30 @@ const { addAnyProductToCart, gotoCheckout } = require('../helpers/shop');
  * it really does carry more than one courier, and that choosing a point leaves the checkout in exactly
  * the state a manual courier + city + office selection would.
  *
- * Most of these set the city's value directly instead of clicking through select2, which keeps them
- * quick and stable. That shortcut has a cost, and it was paid: it sailed straight past a bug the very
- * first person to open the dialog hit. So ONE test picks the city with the mouse, and it is the one
- * that guards everything the shortcut cannot see.
+ * Every one of them drives the dialog by clicking, including the city. An earlier version set the
+ * city's value in JavaScript because the picker was awkward to drive, and that shortcut walked
+ * straight past a defect the first person to open the dialog hit in one click.
  */
 
 /**
- * Pick a city THROUGH select2, the way a customer does: open it, type, click a result.
+ * Pick a city the way a customer does: type, then click a suggestion.
  *
- * This test exists because the programmatic helper below hid a bug that the very first person to open
- * the dialog hit - select2 hung its dropdown off <body>, far below the overlay's z-index, so the list
- * opened underneath the dialog and no city could be chosen at all. Setting the value in JavaScript
- * sailed straight past it. Anything a customer must click, a test has to click.
+ * Every test here does it this way. An earlier version set the select's value in JavaScript because
+ * select2 was awkward to drive - and that shortcut walked straight past a bug the first person to open
+ * the dialog hit in one click. The suggest is now the plugin's own, so there is nothing left to work
+ * around: anything a customer must click, these click.
  */
-async function chooseCityByClicking(page, term, expectText) {
-  const dlg = page.locator('.bgc-allmap-overlay');
-  await dlg.locator('.select2-selection').click();
-  await page.locator('input.select2-search__field').fill(term);
-  // Wait for a REAL result, not select2's own "Searching…" row, which is also a
-  // .select2-results__option and clicking it does nothing.
-  const option = page.locator('.select2-results__option', { hasText: expectText }).first();
+async function chooseCity(page, term, label) {
+  await page.locator('.bgc-allmap-cityinput').fill(term);
+  const option = page.locator('.bgc-allmap-cityopt', { hasText: label }).first();
   await option.waitFor({ state: 'visible', timeout: 15000 });
-  // Visible to Playwright is not enough: a dropdown painted under the overlay is still "visible".
-  // Clicking it is the assertion - if anything covers it, this throws.
+  // Clicking IS the assertion: a list painted under or outside the dialog still reports itself
+  // visible, but it cannot be clicked.
   await option.click({ timeout: 10000 });
-  await page.waitForTimeout(400);
-  return dlg.locator('.select2-selection').innerText();
+  return page.locator('.bgc-allmap-cityinput').inputValue();
 }
 
-/** Put a place into the dialog's city select the way its own handler expects. */
-async function chooseCity(page, term, postCode) {
-  return page.evaluate(async ([t, pc]) => {
-    const $ = window.jQuery;
-    const rows = await $.get(BGCOURIERS.ajax, { action: 'bgcouriers_allmap_cities', term: t });
-    const r = rows.find(x => x.post_code === pc) || rows[0];
-    if (!r) { return null; }
-    $('.bgc-allmap-city')
-      .append(new Option(r.name + ' (' + r.post_code + ')', r.name + '|' + r.post_code, true, true))
-      .trigger('change');
-    return r.name + ' (' + r.post_code + ')';
-  }, [term, postCode]);
-}
-
-test('combined map: nothing is plotted until a place and a destination are chosen @allmap', async ({ page }) => {
+test('combined map: nothing is plotted until a place is chosen @allmap', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
   await page.waitForTimeout(2500);
@@ -63,21 +43,9 @@ test('combined map: nothing is plotted until a place and a destination are chose
   await expect(dlg.locator('.bgc-allmap-show')).toBeDisabled();
   await expect(dlg.locator('.bgc-allmap-body')).toBeHidden();
 
-  const label = await chooseCity(page, 'София', '1000');
-  expect(label).toBeTruthy();
-  await dlg.locator('.bgc-allmap-type[data-m="office"]').click();
+  const label = await chooseCity(page, 'София', 'СОФИЯ (1000)');
+  expect(label).toContain('СОФИЯ');
   await expect(dlg.locator('.bgc-allmap-show')).toBeEnabled();
-});
-
-test('combined map: the city can actually be picked with the mouse @allmap', async ({ page }) => {
-  await addAnyProductToCart(page);
-  await gotoCheckout(page);
-  await page.waitForTimeout(2500);
-  await page.locator('.bgc-allmap-btn').click();
-
-  const chosen = await chooseCityByClicking(page, 'София', 'СОФИЯ');
-  expect(chosen).toContain('СОФИЯ');
-  await expect(page.locator('.bgc-allmap-show')).toBeEnabled();
 });
 
 test('combined map: it carries several couriers at once, each with its own price @allmap', async ({ page }) => {
@@ -85,8 +53,7 @@ test('combined map: it carries several couriers at once, each with its own price
   await gotoCheckout(page);
   await page.waitForTimeout(2500);
   await page.locator('.bgc-allmap-btn').click();
-  await chooseCity(page, 'София', '1000');
-  await page.locator('.bgc-allmap-type[data-m="office"]').click();
+  await chooseCity(page, 'София', 'СОФИЯ (1000)');
   await page.locator('.bgc-allmap-show').click();
 
   await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
@@ -103,15 +70,14 @@ test('combined map: it carries several couriers at once, each with its own price
   expect(priced).toBe(choosable);
 });
 
-test('combined map: choosing a point sets the courier, the city and the office @allmap', async ({ page }) => {
+test('combined map: choosing a point sets the courier, the delivery type and the office @allmap', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
   await page.waitForTimeout(2500);
   const before = await page.locator('input[name^="shipping_method"]:checked').inputValue();
 
   await page.locator('.bgc-allmap-btn').click();
-  await chooseCity(page, 'София', '1000');
-  await page.locator('.bgc-allmap-type[data-m="office"]').click();
+  await chooseCity(page, 'София', 'СОФИЯ (1000)');
   await page.locator('.bgc-allmap-show').click();
   await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
 
@@ -123,7 +89,7 @@ test('combined map: choosing a point sets the courier, the city and the office @
     const i = pts.findIndex(p => p.available && p.courier !== bare(cur));
     if (i < 0) { return null; }
     document.querySelectorAll('.bgc-allmap-item')[i].click();   // focus it, opening its popup
-    return { i, courier: pts[i].courier, officeId: pts[i].office.office_id };
+    return { i, courier: pts[i].courier, officeId: pts[i].office.office_id, type: pts[i].type };
   }, before);
   expect(pick, 'the map must offer a courier other than the one already chosen').not.toBeNull();
 
@@ -137,24 +103,23 @@ test('combined map: choosing a point sets the courier, the city and the office @
 
   const fields = page.locator(`.bgc-fields[data-courier="${pick.courier}"]`);
   await expect(fields).toBeVisible();
-  expect(await fields.getAttribute('data-method')).toBe('office');
+  // The delivery type comes from the POINT - office and locker share one map now.
+  expect(await fields.getAttribute('data-method')).toBe(pick.type);
   expect(String(await fields.locator('.bgc-office').inputValue())).toBe(String(pick.officeId));
 });
 
-/** The dialog is meant to be easier the second time: it remembers where you were looking. */
+/** The dialog is meant to be easier the second time: it remembers the place you were looking at. */
 test('combined map: the place and destination survive a reload @allmap', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
   await page.waitForTimeout(2500);
   await page.locator('.bgc-allmap-btn').click();
-  await chooseCity(page, 'София', '1000');
-  await page.locator('.bgc-allmap-type[data-m="automat"]').click();
+  await chooseCity(page, 'София', 'СОФИЯ (1000)');
   await page.locator('.bgc-allmap-close').click();
 
   await page.reload();
   await page.waitForTimeout(2500);
   await page.locator('.bgc-allmap-btn').click();
   const dlg = page.locator('.bgc-allmap-overlay');
-  await expect(dlg.locator('.bgc-allmap-type[data-m="automat"]')).toHaveClass(/active/);
   await expect(dlg.locator('.bgc-allmap-show')).toBeEnabled();
 });

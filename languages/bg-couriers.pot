@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-12T22:38:01+00:00\n"
+"POT-Creation-Date: 2026-08-13T05:30:50+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: bg-couriers\n"
@@ -445,8 +445,8 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:209
 #: includes/Admin/class-bgcouriers-order-metabox.php:244
-#: includes/Checkout/class-bgcouriers-checkout.php:658
-#: includes/Checkout/class-bgcouriers-checkout.php:743
+#: includes/Checkout/class-bgcouriers-checkout.php:657
+#: includes/Checkout/class-bgcouriers-checkout.php:742
 msgid "City"
 msgstr ""
 
@@ -457,7 +457,7 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:209
 #: includes/Admin/class-bgcouriers-order-metabox.php:249
-#: includes/Checkout/class-bgcouriers-checkout.php:753
+#: includes/Checkout/class-bgcouriers-checkout.php:752
 msgid "Street"
 msgstr ""
 
@@ -528,7 +528,7 @@ msgid "No address found here - try another spot."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:231
-#: includes/Checkout/class-bgcouriers-checkout.php:750
+#: includes/Checkout/class-bgcouriers-checkout.php:749
 msgid "Map"
 msgstr ""
 
@@ -549,7 +549,7 @@ msgid "Delivery option"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:250
-#: includes/Checkout/class-bgcouriers-checkout.php:754
+#: includes/Checkout/class-bgcouriers-checkout.php:753
 msgid "No."
 msgstr ""
 
@@ -558,7 +558,7 @@ msgid "Pick the address on the map"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:253
-#: includes/Checkout/class-bgcouriers-checkout.php:763
+#: includes/Checkout/class-bgcouriers-checkout.php:762
 msgid "Quarter / complex"
 msgstr ""
 
@@ -567,22 +567,22 @@ msgid "Bl."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:256
-#: includes/Checkout/class-bgcouriers-checkout.php:766
+#: includes/Checkout/class-bgcouriers-checkout.php:765
 msgid "Entr."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:257
-#: includes/Checkout/class-bgcouriers-checkout.php:767
+#: includes/Checkout/class-bgcouriers-checkout.php:766
 msgid "Floor"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:258
-#: includes/Checkout/class-bgcouriers-checkout.php:768
+#: includes/Checkout/class-bgcouriers-checkout.php:767
 msgid "Apt."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:260
-#: includes/Checkout/class-bgcouriers-checkout.php:770
+#: includes/Checkout/class-bgcouriers-checkout.php:769
 msgid "Note"
 msgstr ""
 
@@ -1792,7 +1792,7 @@ msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:228
 #: includes/Checkout/class-bgcouriers-checkout.php:653
-msgid "View all offices on a map"
+msgid "Interactive map"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:252
@@ -1856,12 +1856,12 @@ msgid "Please choose an office/APS for %s."
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:636
-#: includes/Checkout/class-bgcouriers-checkout.php:727
+#: includes/Checkout/class-bgcouriers-checkout.php:726
 msgid "Office"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:636
-#: includes/Checkout/class-bgcouriers-checkout.php:726
+#: includes/Checkout/class-bgcouriers-checkout.php:725
 msgid "APS (locker)"
 msgstr ""
 
@@ -1886,7 +1886,7 @@ msgid "Select a city first"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:642
-#: includes/Checkout/class-bgcouriers-checkout.php:789
+#: includes/Checkout/class-bgcouriers-checkout.php:788
 msgid "Choose a BOX NOW locker"
 msgstr ""
 
@@ -1895,7 +1895,7 @@ msgid "Change locker"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:644
-#: includes/Checkout/class-bgcouriers-checkout.php:748
+#: includes/Checkout/class-bgcouriers-checkout.php:747
 msgid "View on map"
 msgstr ""
 
@@ -1912,22 +1912,18 @@ msgid "Show the offices"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:655
-msgid "Where to"
-msgstr ""
-
-#: includes/Checkout/class-bgcouriers-checkout.php:656
 msgid "Not available for this order"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:657
+#: includes/Checkout/class-bgcouriers-checkout.php:656
 msgid "Choose"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:758
+#: includes/Checkout/class-bgcouriers-checkout.php:757
 msgid "Choose on map"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:765
+#: includes/Checkout/class-bgcouriers-checkout.php:764
 msgid "Block"
 msgstr ""
 

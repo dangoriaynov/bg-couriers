@@ -218,26 +218,39 @@ class BGCouriers_Ajax {
      * the city id IT issued (see BGCouriers_Nomenclature::match_city) - a shared id does not exist.
      */
     public function allmap_offices(): void {
+        // ONE charge for the whole request, deliberately. This does fan out to a lookup per enabled
+        // courier, but that count is a small fixed bound - five couriers exist - not something a caller
+        // can grow, which is what the limiter is for. Charging per courier instead made a single map
+        // opening cost six units of a ninety-per-minute budget shared by everyone behind one IP, and a
+        // shop's customers on the same office or mobile network then got an empty map. The client also
+        // caches per place, so looking at a city twice costs nothing.
         if (!self::rate_ok()) { wp_send_json([]); }
         $name = sanitize_text_field(wp_unslash($_GET['name'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
         $code = sanitize_text_field(wp_unslash($_GET['post_code'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-        $type = sanitize_key(wp_unslash($_GET['type'] ?? 'office')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        if (!in_array($type, ['office', 'automat'], true)) { wp_send_json([]); }
+        $type = sanitize_key(wp_unslash($_GET['type'] ?? 'both')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (!in_array($type, ['office', 'automat', 'both'], true)) { wp_send_json([]); }
+        // 'both' is the normal case: a customer looking for somewhere to collect from does not care
+        // whether the place is a staffed office or a locker, so the map shows both and each point says
+        // which it is. Every point carries its own type because that is what the checkout must be set
+        // to when the point is chosen - it is per point, not per dialog.
+        $types = $type === 'both' ? ['office', 'automat'] : [$type];
         $out = [];
         foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
             if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
-            if (!in_array($type, BGCouriers_Settings::enabled_methods($cid), true)) { continue; }
-            // The rate_ok() call above only charged ONE unit for reaching this endpoint at all, but the
-            // loop below can still fan out into one live courier lookup per enabled courier - up to five
-            // outbound calls from a single request. Charge the same per-IP budget again for every
-            // courier here (rate_ok() increments its transient on each call), so the fan-out itself
-            // cannot amplify past the limit the way a single call already can't.
-            if (!self::rate_ok()) { break; }
+            $carries = BGCouriers_Settings::enabled_methods($cid);
+            $wanted = array_values(array_intersect($types, $carries));
+            if (!$wanted) { continue; }
             $city = BGCouriers_Nomenclature::match_city($cid, $name, $code);
             if (!$city) { continue; }
-            $offices = self::city_offices($cid, (int) $city['city_id'], $type, '', 100000);
-            if (!$offices) { continue; }
-            $out[$cid] = ['city_id' => (int) $city['city_id'], 'offices' => $offices];
+            $rows = [];
+            foreach ($wanted as $t) {
+                foreach (self::city_offices($cid, (int) $city['city_id'], $t, '', 100000) as $office) {
+                    $office['type'] = $t;
+                    $rows[] = $office;
+                }
+            }
+            if (!$rows) { continue; }
+            $out[$cid] = ['city_id' => (int) $city['city_id'], 'offices' => $rows];
         }
         wp_send_json($out);
     }

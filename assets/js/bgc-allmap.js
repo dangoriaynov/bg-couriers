@@ -14,7 +14,7 @@
   var STORE = 'bgcouriers_map_pick';
   // A PLACE, not an id: city ids belong to the courier that issued them, so the dialog remembers what
   // the place is called and lets the server resolve it per courier.
-  var state = { cityName: '', cityCode: '', cityLabel: '', method: 'office' };
+  var state = { cityName: '', cityCode: '', cityLabel: '' };
   // `layer` holds every pin from the CURRENT render, so the next render can wipe it in one call. Without
   // that, a stale pin from a previous Show would stay on the map with a popup baked from the OLD points
   // array - clicking Choose on it would resolve against the NEW array at the same index and could book a
@@ -34,6 +34,13 @@
     }
     return pinColour[courierId];
   }
+  /** The delivery-type glyph, from the same set the checkout's own tabs use (localised in PHP). */
+  function typeGlyph(type) {
+    var icons = (window.BGCOURIERS && BGCOURIERS.icons) || {};
+    return '<span class="bgc-allmap-kind" title="' + esc(typeLabel(type)) + '">' + (icons[type] || '') + '</span>';
+  }
+  function typeLabel(type) { return (type === 'automat' ? I.automat : I.office) || ''; }
+
   function pinIcon(courierId, available) {
     return L.divIcon({
       className: 'bgc-allmap-pin' + (available ? '' : ' bgc-na'),
@@ -48,7 +55,6 @@
       if (v && v.cityName) {
         state.cityName = v.cityName; state.cityCode = v.cityCode || '';
         state.cityLabel = v.cityLabel || v.cityName;
-        state.method = v.method === 'automat' ? 'automat' : 'office';
       }
     } catch (e) { /* private mode, or a value from an older version - start fresh */ }
   }
@@ -69,12 +75,9 @@
       + '<button type="button" class="bgc-allmap-close" aria-label="' + esc(I.close || '') + '">&times;</button></div>'
       + '<div class="bgc-allmap-form">'
       + '<label class="bgc-allmap-lbl">' + esc(I.city_label || '') + '</label>'
-      + '<select class="bgc-allmap-city"><option value=""></option></select>'
-      + '<label class="bgc-allmap-lbl">' + esc(I.allmap_where || '') + '</label>'
-      + '<div class="bgc-allmap-types">'
-      + '<button type="button" class="bgc-allmap-type" data-m="office">' + esc(I.office || '') + '</button>'
-      + '<button type="button" class="bgc-allmap-type" data-m="automat">' + esc(I.automat || '') + '</button>'
-      + '</div>'
+      + '<div class="bgc-allmap-cityrow">'
+      + '<input type="text" class="bgc-allmap-cityinput" autocomplete="off" placeholder="' + esc(I.city_ph || '') + '">'
+      + '<ul class="bgc-allmap-cityres" hidden></ul></div>'
       + '<button type="button" class="button bgc-allmap-show" disabled>' + esc(I.allmap_show || '') + '</button>'
       + '</div>'
       + '<div class="bgc-allmap-body" style="display:none;">'
@@ -83,43 +86,46 @@
       + '</div></div></div>');
     $('body').append($dlg);
 
-    var $city = $dlg.find('.bgc-allmap-city');
-    $city.select2({
-      width: '100%',
-      placeholder: I.city_ph || '',
-      // Without this select2 hangs its dropdown off <body> with its own z-index, which is far below the
-      // overlay's - the list opens UNDERNEATH the dialog and the city cannot be picked at all. The
-      // parent is the OVERLAY, not the white box: the box clips its children (overflow:hidden, for the
-      // rounded corners) and would cut the list off instead.
-      dropdownParent: $dlg,
-      ajax: {
-        url: BGCOURIERS.ajax, dataType: 'json', delay: 200,
-        data: function (p) { return { action: 'bgcouriers_allmap_cities', term: p.term || '' }; },
-        processResults: function (rows) {
-          return { results: (rows || []).map(function (r) {
-            // The VALUE carries the place, because that is what identifies it to every courier.
-            return { id: r.name + '|' + r.post_code, text: r.name + (r.post_code ? ' (' + r.post_code + ')' : '') };
-          }) };
-        }
-      }
-    });
-    if (state.cityName) {
-      $city.append(new Option(state.cityLabel, state.cityName + '|' + state.cityCode, true, true)).trigger('change');
+    // Our own city suggest rather than select2. select2 positions its dropdown by arithmetic that
+    // adds the page's scroll offset, which a position:fixed overlay does not have, so inside this
+    // dialog the list landed hundreds of pixels down the screen - twice, fixed two different ways,
+    // wrong both times. A list anchored to its own input by CSS cannot drift, and it is less code
+    // than the workarounds were.
+    var $input = $dlg.find('.bgc-allmap-cityinput');
+    var $res = $dlg.find('.bgc-allmap-cityres');
+    var searchT = null;
+
+    function hideRes() { $res.attr('hidden', true).empty(); }
+    function pickCity(name, code, label) {
+      state.cityName = name; state.cityCode = code; state.cityLabel = label;
+      $input.val(label);
+      hideRes(); save(); refreshShow();
     }
-    $dlg.find('.bgc-allmap-type[data-m="' + state.method + '"]').addClass('active');
+    $input.on('input', function () {
+      var term = $.trim($input.val());
+      clearTimeout(searchT);
+      if (term.length < 2) { hideRes(); return; }
+      searchT = setTimeout(function () {
+        $.get(BGCOURIERS.ajax, { action: 'bgcouriers_allmap_cities', term: term }, function (rows) {
+          $res.empty();
+          (rows || []).forEach(function (r) {
+            var label = r.name + (r.post_code ? ' (' + r.post_code + ')' : '');
+            $('<li class="bgc-allmap-cityopt"></li>').text(label)
+              .attr({ 'data-name': r.name, 'data-code': r.post_code || '' }).appendTo($res);
+          });
+          $res.attr('hidden', !$res.children().length);
+        });
+      }, 220);
+    });
+    $res.on('click', '.bgc-allmap-cityopt', function () {
+      pickCity($(this).attr('data-name'), $(this).attr('data-code'), $(this).text());
+    });
+    // Typing something new and walking away must not leave a stale place selected.
+    $input.on('blur', function () { setTimeout(hideRes, 150); });
+
+    if (state.cityLabel) { $input.val(state.cityLabel); }
     refreshShow();
 
-    $city.on('change', function () {
-      var parts = String($city.val() || '').split('|');
-      state.cityName = parts[0] || ''; state.cityCode = parts[1] || '';
-      state.cityLabel = $city.find('option:selected').text() || state.cityName;
-      save(); refreshShow();
-    });
-    $dlg.on('click', '.bgc-allmap-type', function () {
-      state.method = $(this).data('m') === 'automat' ? 'automat' : 'office';
-      $dlg.find('.bgc-allmap-type').removeClass('active').filter(this).addClass('active');
-      save(); refreshShow();
-    });
     $dlg.on('click', '.bgc-allmap-close', close);
     $dlg.on('click', function (e) { if (e.target === $dlg[0]) { close(); } });
     $dlg.on('click', '.bgc-allmap-show', showOffices);
@@ -130,7 +136,7 @@
       var p = points[+$(this).data('i')];
       if (!p || !window.BGCouriersCheckout) { return; }
       var ok = window.BGCouriersCheckout.applyPick({
-        courier: p.courier, method: state.method,
+        courier: p.courier, method: p.type,
         cityId: p.cityId, cityLabel: state.cityLabel,
         officeId: p.office.office_id,
         officeLabel: (p.office.name || '') + ' - ' + (p.office.address || '')
@@ -139,9 +145,9 @@
     });
   }
 
-  /** Nothing is plotted until BOTH a place and a destination type are chosen. */
+  /** Nothing is plotted until a place is chosen - the whole country at once would be unusable. */
   function refreshShow() {
-    $dlg.find('.bgc-allmap-show').prop('disabled', !(state.cityName && state.method));
+    $dlg.find('.bgc-allmap-show').prop('disabled', !state.cityName);
   }
 
   /**
@@ -169,11 +175,11 @@
   }
 
   function showOffices() {
-    var key = state.cityName + '|' + state.cityCode + '|' + state.method;
+    var key = state.cityName + '|' + state.cityCode + '|both';
     if (cache[key]) { render(cache[key]); return; }
     $.get(BGCOURIERS.ajax, {
       action: 'bgcouriers_allmap_offices',
-      name: state.cityName, post_code: state.cityCode, type: state.method
+      name: state.cityName, post_code: state.cityCode, type: 'both'
     }, function (data) { cache[key] = data || {}; render(cache[key]); });
   }
 
@@ -193,6 +199,9 @@
           courier: cid, courierLabel: c.label || cid, logo: c.logo || '',
           available: !!c.available, price: c.price || '',
           cityId: data[cid].city_id,          // that courier's OWN id
+          // Per POINT, not per dialog: office and locker share one map, and this is what the
+          // checkout's delivery type must be set to when this particular point is chosen.
+          type: o.type === 'automat' ? 'automat' : 'office',
           office: o
         });
       });
@@ -214,7 +223,7 @@
       $list.append('<li class="bgc-allmap-item' + (p.available ? '' : ' bgc-na') + '" data-i="' + i + '"'
         + ' style="border-left-color:' + colourFor(p.courier) + '">'
         + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
-        + '<span><span class="n">' + esc(p.office.name || '') + '</span>'
+        + '<span><span class="n">' + typeGlyph(p.type) + esc(p.office.name || '') + '</span>'
         + '<span class="a">' + esc(p.office.address || '') + '</span>'
         + (p.available ? '' : '<span class="bgc-allmap-na-note">' + esc(I.allmap_na || '') + '</span>')
         + '</span>'
@@ -224,7 +233,7 @@
       if (!lat && !lng) { return; }          // no coordinates: it stays in the list, off the map
       var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, p.available) }).addTo(layer);
       mk.bindPopup('<div class="bgc-allmap-pop"><strong>' + esc(p.office.name || '') + '</strong><br>'
-        + esc(p.office.address || '') + '<br>' + esc(p.courierLabel)
+        + esc(p.office.address || '') + '<br>' + esc(p.courierLabel) + ' - ' + esc(typeLabel(p.type))
         + (p.available && p.price ? ' - ' + esc(p.price) : '')
         + (p.available
             ? '<br><button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'

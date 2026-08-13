@@ -225,7 +225,7 @@ class BGCouriers_Checkout {
         echo wp_kses(
             '<tr class="bgc-allmap-open"><td colspan="2"><button type="button" class="bgc-allmap-btn">'
             . '<span class="bgc-allmap-ico" aria-hidden="true"></span>'
-            . esc_html__('View all offices on a map', 'bg-couriers')
+            . esc_html__('Interactive map', 'bg-couriers')
             . '</button></td></tr>',
             ['tr' => ['class' => true], 'td' => ['class' => true, 'colspan' => true], 'button' => ['type' => true, 'class' => true], 'span' => ['class' => true, 'aria-hidden' => true]]
         );
@@ -650,9 +650,8 @@ class BGCouriers_Checkout {
                 'addr_map_hint' => __('Click the map or drag the pin to your address.','bg-couriers'),
                 'addr_use' => __('Use this address','bg-couriers'),
                 'addr_none' => __('No address found here - try another spot.','bg-couriers'),
-                'allmap_title' => __('View all offices on a map', 'bg-couriers'),
+                'allmap_title' => __('Interactive map', 'bg-couriers'),
                 'allmap_show' => __('Show the offices', 'bg-couriers'),
-                'allmap_where' => __('Where to', 'bg-couriers'),
                 'allmap_na' => __('Not available for this order', 'bg-couriers'),
                 'allmap_choose' => __('Choose', 'bg-couriers'),
                 'city_label' => __('City', 'bg-couriers'),
