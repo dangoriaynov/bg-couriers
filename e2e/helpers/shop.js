@@ -50,16 +50,26 @@ async function fillGuestBilling(page, d) {
   await set('#billing_phone', d.phone);
 }
 
-// Select a bgc_<courier> shipping method radio (so its .bgc-fields block becomes the active one).
-// WC re-renders the rate radios on every recalc, so a plain .check() races the re-render; we let
-// the initial review settle, skip if already selected, and force-click to bypass the stability wait.
+// Select a bgcouriers_<courier> shipping method radio (so its .bgc-fields block becomes the active
+// one). WC re-renders the rate radios on every recalc, so a plain .check() races the re-render; we
+// let the initial review settle, skip if already selected, and force-click to bypass the stability
+// wait.
+//
+// The prefix is bgcouriers_, not bgc_. It was bgc_ until the plugin-wide rename, and this line was
+// missed: after it, the selector matched nothing, the wait below timed out, the catch swallowed it,
+// and every test carried on with whatever courier happened to be selected already. That made the
+// three Econt tests fail on an assertion three lines later - and, far worse, made the Speedy ones
+// PASS without ever selecting anything, because Speedy is the default. A silent no-op is the one
+// failure mode a best-effort helper must not have, so the miss is now a loud one.
 async function selectShippingMethod(page, courierId) {
   await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(2000); // let the initial order-review render settle
-  const sel = `input[name^="shipping_method"][value^="bgc_${courierId}"]`;
+  const sel = `input[name^="shipping_method"][value^="bgcouriers_${courierId}"]`;
+  const radio = page.locator(sel).first();
+  // Outside the try: a courier that is not on offer at all is a real failure, and swallowing it is
+  // how this went unnoticed. Only the click itself gets the best-effort treatment.
+  await radio.waitFor({ state: 'attached', timeout: 15000 });
   try {
-    const radio = page.locator(sel).first();
-    await radio.waitFor({ state: 'attached', timeout: 15000 });
     if (await radio.isChecked()) { return; } // already the chosen method
     await radio.check({ force: true });
     await page.waitForLoadState('networkidle').catch(() => {});
