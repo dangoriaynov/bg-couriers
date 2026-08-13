@@ -134,10 +134,13 @@
 .bgc-order-panel .bgc-act.bgc-off:hover { border-color:#dcdcde; color:inherit; background:#fff; }
 .bgc-order-panel .bgc-act.bgc-danger.bgc-off:hover { border-color:#f0c7c7; }
 
-/* The delivery editor stays readable while it is locked - only the controls go quiet. */
-.bgc-ed-form.bgc-ed-locked select,
-.bgc-ed-form.bgc-ed-locked input,
-.bgc-ed-form.bgc-ed-locked .button:not(.bgc-ed-save) { pointer-events:none; opacity:.55; }
+/* The delivery editor stays readable while it is locked - only the controls go quiet.
+   Keyed off [disabled], which IS the lock (every control gets it - see disable_controls), so what looks
+   refused and what is refused cannot drift apart. It used to be the other way round: these rules named
+   `select` and `input` and enforced with pointer-events, so the three fields selectWoo replaces with a
+   span of its own were neither dimmed nor stopped - and pointer-events never stopped a keyboard anyway.
+   Nothing here enforces anything now; it only shows what the attribute has already settled. */
+.bgc-ed-form.bgc-ed-locked [disabled] { opacity:.55; cursor:not-allowed; }
 /* A disabled Save has to LOOK disabled even against .button-primary's own colours, or the form says
    "you may save this" while the server has already decided it will not. */
 .bgc-order-panel .bgc-ed-form .bgc-ed-save[disabled] { opacity:.45!important; cursor:not-allowed; }

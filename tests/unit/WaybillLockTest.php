@@ -170,5 +170,40 @@ final class WaybillLockTest extends TestCase {
         foreach (['aria-disabled', 'tabindex', 'class', 'data-tip'] as $attr) {
             $this->assertArrayHasKey($attr, $button, "the panel would strip {$attr} from a button");
         }
+        // The editor locks by putting `disabled` on the controls themselves, so all three tags need it -
+        // a missing entry there is invisible: kses drops the attribute and the field stays editable.
+        foreach (['select', 'input', 'button'] as $tag) {
+            $this->assertArrayHasKey('disabled', BGCouriers_Order_Metabox::EDITOR_TAGS[$tag],
+                "the editor would strip disabled from a {$tag} and leave it live");
+        }
+    }
+
+    /**
+     * Every control, not the ones that happened to be remembered. The lock was a stylesheet before this,
+     * and it reached the two plain selects while city, street and office - the three selectWoo replaces
+     * with a span of its own - stayed fully editable inside a form whose Save was greyed out. That is the
+     * shape of the bug this pins: one rule over the finished markup, so a field added later is covered too.
+     */
+    public function test_locking_the_editor_reaches_every_control(): void {
+        require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-metabox.php';
+        // The real editor's shapes: selectWoo-backed selects, plain inputs, a hidden one, the map button.
+        $form = '<div class="bgc-ed-form bgc-ed-locked">'
+            . '<p><label>Courier</label><select class="bgc-ed-courier" style="min-width:240px;"><option value="speedy" selected>Speedy</option></select></p>'
+            . '<p><select class="bgc-ed-city"><option></option></select><input type="hidden" class="bgc-ed-postcode" value="1137"></p>'
+            . '<p><select class="bgc-ed-office"></select><button type="button" class="button bgc-ed-map"><span class="dashicons"></span></button></p>'
+            . '<div><select class="bgc-ed-street"></select><input class="bgc-ed-streetno" value="230"></div>'
+            . '<input class="bgc-ed-block" value=""><input class="bgc-ed-apartment" value="">'
+            . '<p><button type="button" class="button button-primary bgc-ed-save">Save delivery</button></p></div>';
+
+        $out = BGCouriers_Order_Metabox::disable_controls($form);
+
+        $controls = preg_match_all('/<(?:select|input|button)\b/', $out);
+        $disabled = preg_match_all('/<(?:select|input|button) disabled\b/', $out);
+        $this->assertSame(10, $controls, 'the sample has to hold every control shape the editor uses');
+        $this->assertSame($controls, $disabled, 'a control was left operable while the courier holds the parcel');
+        // Only controls: an <option> or a <label> carrying `disabled` is markup nobody asked for.
+        $this->assertStringNotContainsString('<option disabled', $out);
+        $this->assertStringNotContainsString('<label disabled', $out);
+        $this->assertStringContainsString('<span class="dashicons">', $out);
     }
 }

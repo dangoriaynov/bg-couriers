@@ -157,6 +157,41 @@ class BGCouriers_Order_Metabox {
         'circle' => ['cx' => true, 'cy' => true, 'r' => true],
     ];
 
+    /** Allowed tags/attributes for the delivery editor passed through wp_kses. */
+    const EDITOR_TAGS = [
+        'div'    => ['class' => true, 'style' => true],
+        'p'      => ['class' => true, 'style' => true],
+        'label'  => ['class' => true, 'aria-hidden' => true],
+        'br'     => [],
+        // `disabled` is on every control's list, not just the button's: it is what makes a locked editor
+        // read-only (see disable_controls), and kses drops an attribute it was not told about in silence.
+        'select' => ['class' => true, 'style' => true, 'data-current' => true, 'disabled' => true],
+        'option' => ['value' => true, 'selected' => true],
+        'input'  => ['type' => true, 'class' => true, 'value' => true, 'style' => true, 'disabled' => true],
+        'button' => ['type' => true, 'class' => true, 'title' => true, 'aria-label' => true, 'disabled' => true],
+        'span'   => ['class' => true],
+    ];
+
+    /**
+     * Turn every control in the editor's markup inert.
+     *
+     * Applied to the whole form rather than field by field, because a lock that has to be remembered at
+     * each of nineteen controls is a lock that will be half-applied - it already was. What stood in for
+     * this was a stylesheet naming `select` and `input`, and city, street and office are the three that
+     * selectWoo replaces with a span of its own: no rule reached them, so a collected parcel could be
+     * re-addressed - dropdowns, clear ×, map picker and all - inside a form whose Save was greyed out.
+     * One rule over the finished markup cannot miss a field, and covers whatever is added later.
+     *
+     * Safe as a regex because it runs on markup this class has just built, in which every merchant-supplied
+     * value has already been through esc_attr() - so no `<` survives inside an attribute to be matched.
+     *
+     * @param string $html The editor's markup, as built by render_editor().
+     * @return string The same markup with `disabled` on every select, input and button.
+     */
+    public static function disable_controls(string $html): string {
+        return (string) preg_replace('/<(select|input|button)(?=[\s>])/i', '<$1 disabled', $html);
+    }
+
     /** Collapsible checkout-like editor for the order's delivery details (courier switch, city/office/address). */
     private function render_editor(\WC_Order $order): void {
         $cur_courier = (string) $order->get_meta('_bgcouriers_courier');
@@ -237,7 +272,9 @@ class BGCouriers_Order_Metabox {
         $boxnow_id = $cur_courier === 'boxnow' ? esc_attr((string) $office_id) : '';
         // A collected parcel cannot be re-addressed, so the form is shown READ-ONLY rather than hidden:
         // the merchant still needs to see where the box is going while they ring the courier about it.
-        // Saving is what is blocked - and the server refuses it too, whatever the browser does.
+        // Read-only means every control carries `disabled` (disable_controls, applied to the finished
+        // markup below) - not merely a greyer stylesheet, which a keyboard walks straight past. Saving is
+        // refused by the server too, whatever the browser does.
         $locked = BGCouriers_Labels::is_locked($order);
         $form = '<div class="bgc-ed"><div class="bgc-ed-form' . ($locked ? ' bgc-ed-locked' : '') . '" style="display:none;margin-top:10px;max-width:520px;">'
             . '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>'
@@ -265,7 +302,7 @@ class BGCouriers_Order_Metabox {
             . '<label>' . esc_html__('Locker name', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-name" value="' . $v('boxnow_name') . '"></p>'
             . '<p><label>' . esc_html__('Locker address', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-addr" value="' . $v('boxnow_addr') . '" style="width:100%;"></p>'
             . '</div>'
-            . '<p><button type="button" class="button button-primary bgc-ed-save"' . ($locked ? ' disabled' : '') . '>'
+            . '<p><button type="button" class="button button-primary bgc-ed-save">'
             . esc_html__('Save delivery', 'bg-couriers') . '</button> <span class="bgc-ed-msg"></span></p>';
         if ($locked) {
             $form .= '<p class="description bgc-ed-lockmsg">' . esc_html(BGCouriers_Labels::locked_message()) . '</p>';
@@ -273,17 +310,8 @@ class BGCouriers_Order_Metabox {
             $form .= '<p class="description">' . esc_html__('A waybill exists. Saving voids it and issues a new one matching the new details.', 'bg-couriers') . '</p>';
         }
         $form .= '</div></div>';
+        if ($locked) { $form = self::disable_controls($form); }
 
-        echo wp_kses($form, [
-            'div'    => ['class' => true, 'style' => true],
-            'p'      => ['class' => true, 'style' => true],
-            'label'  => ['class' => true, 'aria-hidden' => true],
-            'br'     => [],
-            'select' => ['class' => true, 'style' => true, 'data-current' => true],
-            'option' => ['value' => true, 'selected' => true],
-            'input'  => ['type' => true, 'class' => true, 'value' => true, 'style' => true],
-            'button' => ['type' => true, 'class' => true, 'title' => true, 'aria-label' => true, 'disabled' => true],
-            'span'   => ['class' => true],
-        ]);
+        echo wp_kses($form, self::EDITOR_TAGS); // every value escaped above; kses is the output-escaping gate
     }
 }

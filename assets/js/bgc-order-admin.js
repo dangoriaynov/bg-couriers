@@ -113,7 +113,19 @@
   // --- the editor itself ------------------------------------------------------------------------
   var $panel = $('.bgc-ed');
   if (!$panel.length) { return; }
-  function sel2($el, opts) { if ($.fn.selectWoo) { $el.selectWoo(opts); } else if ($.fn.select2) { $el.select2(opts); } }
+  // The shipment is with the courier: PHP has rendered every control `disabled`. This flag is the ONE
+  // place the browser asks about that, so nothing here can hand back what the server refused.
+  var LOCKED = $panel.find('.bgc-ed-form').hasClass('bgc-ed-locked');
+  // Belt and braces. A disabled button fires no click, but every handler in here is delegated off the
+  // panel, so one guard bound first covers the map pickers, Save, and anything wired later.
+  if (LOCKED) {
+    $panel.on('click', 'button, .button', function (e) { e.preventDefault(); e.stopImmediatePropagation(); });
+  }
+  // select2 is skipped entirely rather than enhanced-then-disabled: it replaces the <select> with a span
+  // of its own, which no disabled attribute reaches, and that span is exactly how city, street and office
+  // stayed live - clear ×, dropdown and all - inside a form that was supposed to be locked. A plain
+  // disabled <select> showing the current value is inert by construction, and matches the selects above it.
+  function sel2($el, opts) { if (LOCKED) { return; } if ($.fn.selectWoo) { $el.selectWoo(opts); } else if ($.fn.select2) { $el.select2(opts); } }
 
   var $courier = $panel.find('.bgc-ed-courier'),
       $method  = $panel.find('.bgc-ed-method'),
@@ -156,19 +168,21 @@
   // Same guard as checkout: if the chosen office/APS type has NONE in this city, warn and block Save. We
   // already fetched the offices for the select, so a 0-length result means the type isn't available here.
   function updateAvail() {
+    // Nothing here may touch Save while the shipment is locked. This runs on every load, `none` is false
+    // for any ordinary city, and the line below would hand the button straight back - undoing the
+    // disabled state PHP had just printed. The form then looked saveable while the server refused it.
+    if (LOCKED) { return; }
     var m = $method.val(), c = courier(), city = parseInt($city.val() || 0, 10);
     var needs = c !== 'boxnow' && (m === 'office' || m === 'automat');
     var none = needs && city > 0 && officeRows.length === 0;
     $panel.find('.bgc-ed-avail').text(none ? (m === 'automat' ? I.no_automat : I.no_office) : '').toggle(none);
-    // The lock has to be part of this decision, not just PHP's. This function recomputes the Save
-    // button's state on load and on every change, so a server-rendered `disabled` on a locked order
-    // was switched straight back on the moment the city had offices - the form looked editable and
-    // saveable while the server would refuse it, which is the worst of both.
-    var locked = $panel.find('.bgc-ed-form').hasClass('bgc-ed-locked');
-    $panel.find('.bgc-ed-save').prop('disabled', none || locked);
+    $panel.find('.bgc-ed-save').prop('disabled', none);
   }
   function loadOffices() {
     var c = courier(), city = $city.val() || 0, m = $method.val();
+    // A locked editor keeps the office PHP printed: there is nothing to choose between, and re-filling
+    // the list would only be a chance to replace the one the parcel is actually travelling to.
+    if (LOCKED) { return; }
     if (!city || m === 'address' || c === 'boxnow') { officeRows = []; updateAvail(); return; }
     $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) {
       officeRows = rows || [];
