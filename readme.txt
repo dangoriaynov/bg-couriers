@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.8
+Stable tag: 0.2.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,14 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.9 =
+* The interactive map now has a layout for phones. It used to stack the list and the map and give each a fixed minimum height, so on a phone the map arrived about 167px tall with the rest cut off. A narrow screen - or a short one, which is a phone held sideways - now shows one of them at a time, full screen, with a floating button to swap between them. The search, the prices and the courier filter are all still there.
+* Fixed: on the map, the + and - zoom buttons were drawn on top of a pin's popup when it opened near the top-left corner, printing them across the courier and office names.
+* Fixed: the shop's chat bubble was painted over the map, covering part of it on a phone. The map dialog now sits above it, and the bubble comes back when the map closes.
+* Fixed: on a phone, the "Choose" button in a pin's popup could open underneath the map/list switch, where it was visible but could not be pressed.
+* Fixed: hover hints in the admin were cut off at the edge of the panel or the orders table, and a hint explaining why an action is blocked was itself dimmed to the point of being hard to read. Hints are now drawn once, on top of everything, and stay inside the window.
+* Fixed: with a shipment already collected, the delivery editor greyed out the courier and delivery-option fields but left the city, street and office fully editable - dropdowns, clear buttons and the map picker all worked. Every field is now genuinely read-only. Saving was already refused by the server, so no order was ever changed this way.
 
 = 0.2.8 =
 * Fixed: choosing a locker on the interactive map opened that courier's "to address" tab with an empty street form. The locker was saved but invisible, and the customer was being asked for an address for a parcel meant to go to a machine.
