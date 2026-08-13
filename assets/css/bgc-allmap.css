@@ -155,3 +155,27 @@
 .bgc-allmap-pop-a { color: #50575e; line-height: 1.35; margin-bottom: 8px; }
 .bgc-allmap-pop .bgc-allmap-pick { display: block; margin: 0 auto; }
 .bgc-allmap-pop-na { display: block; text-align: center; color: #b32d2e; }
+
+/* The point this courier already has selected. It keeps its courier's colour - taking a hue for
+   "chosen" would break the legend, which is the one thing on the map that must stay true - and says
+   so with movement instead: two rings breathing out of it, which nothing else on the map does. */
+.bgc-allmap-pin.bgc-chosen span { box-shadow: 0 0 0 3px rgba(255,255,255,.95), 0 1px 4px rgba(0,0,0,.5); }
+.bgc-allmap-pin.bgc-chosen::before,
+.bgc-allmap-pin.bgc-chosen::after {
+  content: ""; position: absolute; inset: -3px; border-radius: 50%;
+  border: 2px solid currentColor; color: #1d2327; opacity: 0;
+  animation: bgc-allmap-ping 1.8s cubic-bezier(0, 0, .2, 1) infinite;
+}
+.bgc-allmap-pin.bgc-chosen::after { animation-delay: .9s; }
+@keyframes bgc-allmap-ping {
+  0%   { transform: scale(.9); opacity: .75; }
+  70%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+/* Its row in the list, so the two halves agree about which one it is. */
+.bgc-allmap-item.bgc-chosen { background: #f0f6fc; }
+.bgc-allmap-item.bgc-chosen .n::after { content: " ✓"; color: #00814f; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bgc-allmap-pin.bgc-chosen::before, .bgc-allmap-pin.bgc-chosen::after { animation: none; opacity: .6; }
+}

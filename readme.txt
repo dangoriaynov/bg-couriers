@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.7
+Stable tag: 0.2.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,13 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.2.8 =
+* Fixed: choosing a locker on the interactive map opened that courier's "to address" tab with an empty street form. The locker was saved but invisible, and the customer was being asked for an address for a parcel meant to go to a machine.
+* The office or locker this courier already has selected is now marked on the map with a pulsing ring, so re-opening the map shows you what you chose rather than making you find it again. It keeps its courier's colour - the legend stays true.
+* Fixed: the office map in the order editor had its search box and "show my location" button squashed, because it shares a stylesheet with the checkout's and had been left behind when that one changed. Both now look the same: search and location on one row, location as an icon.
+* Fixed: a house number typed into the address fields could be lost if the checkout recalculated within the second after typing. The fields are now saved as soon as you leave them.
+* Fixed: choosing a point on the map left a JavaScript error in the browser console.
+
 = 0.2.7 =
 * New: an **interactive map** at checkout showing every enabled courier's offices and lockers for a city at once, each with that courier's own price. Pick a point and the courier, delivery type, city and office are filled in for you. A legend names each courier, colours its pins and doubles as a filter; the list beside the map is searchable, and there is a "show my location" button. Offices and lockers share one map, because a customer looking for somewhere to collect a parcel is not thinking in those categories until they see what is nearby. It can be switched off in Settings; it is on by default.
 * Each courier's own "Map" button now opens that same map, filtered to that courier, with the city already chosen carried over. The separate per-courier map is gone: it answered a narrower question, and keeping two meant every fix had to land twice.
@@ -158,6 +165,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
 
 == Upgrade Notice ==
+
+= 0.2.8 =
+Fixes choosing a locker on the interactive map, which landed on an empty address form, and marks the office you already picked when the map is re-opened.
 
 = 0.2.7 =
 Adds an interactive map of every courier's offices and lockers at checkout, and fixes the price shown before a city is chosen, which ignored the weight of the cart.

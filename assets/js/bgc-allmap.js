@@ -27,6 +27,9 @@
   // starts as the only one showing; the customer can switch the others on from the legend, and
   // choosing one of their points moves the whole selection over, exactly as from the map's own button.
   var only = '';
+  // The office/APS this courier already has selected, when the dialog was opened from its own block.
+  // Marked on the map so the customer can see what they picked last time instead of hunting for it.
+  var current = { courier: '', officeId: '' };
 
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
 
@@ -74,9 +77,13 @@
   }
   function typeLabel(type) { return (type === 'automat' ? I.automat : I.office) || ''; }
 
-  function pinIcon(courierId, available) {
+  function isCurrent(p) {
+    return !!current.officeId && p.courier === current.courier
+        && String(p.office.office_id) === current.officeId;
+  }
+  function pinIcon(courierId, available, chosen) {
     return L.divIcon({
-      className: 'bgc-allmap-pin' + (available ? '' : ' bgc-na'),
+      className: 'bgc-allmap-pin' + (available ? '' : ' bgc-na') + (chosen ? ' bgc-chosen' : ''),
       html: '<span style="background:' + colourFor(courierId) + '"></span>',
       iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -9]
     });
@@ -110,6 +117,11 @@
     if ($dlg) { return; }
     opts = opts || {};
     only = opts.only || '';
+    current = { courier: '', officeId: '' };
+    if (opts.wrap && opts.wrap.length) {
+      current = { courier: only || String(opts.wrap.attr('data-courier') || ''),
+                  officeId: String(opts.wrap.find('.bgc-office').val() || '') };
+    }
     load();
     $dlg = $('<div class="bgc-allmap-overlay"><div class="bgc-allmap-box">'
       + '<div class="bgc-allmap-head"><strong>' + esc(I.allmap_title || '') + '</strong>'
@@ -179,7 +191,10 @@
     if (state.cityLabel) { $input.val(state.cityLabel); showOffices(); }
 
     $dlg.on('click', '.bgc-allmap-close', close);
-    $dlg.on('click', function (e) { if (e.target === $dlg[0]) { close(); } });
+    // Guarded: choosing a point closes the dialog and nulls $dlg, and THIS handler still runs as the
+    // same click finishes bubbling - dereferencing a variable the click itself just emptied. It threw
+    // a TypeError into the console of every checkout where somebody chose an office.
+    $dlg.on('click', function (e) { if ($dlg && e.target === $dlg[0]) { close(); } });
     $dlg.on('input', '.bgc-allmap-search', applyFilter);
     $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
     // The popup's Choose is the only crossing into bgc-checkout.js: hand over the point and let the
@@ -330,7 +345,8 @@
       // Inline style, not a class: the colour is assigned at runtime (first-seen-courier order), so
       // there is no fixed set of classes to put in a stylesheet. This markup is built here in JS and
       // printed straight into the DOM, not passed through wp_kses, so the attribute is fine as-is.
-      $list.append('<li class="bgc-allmap-item' + (p.available ? '' : ' bgc-na') + '" data-i="' + i + '"'
+      $list.append('<li class="bgc-allmap-item' + (p.available ? '' : ' bgc-na')
+        + (isCurrent(p) ? ' bgc-chosen' : '') + '" data-i="' + i + '"'
         + ' style="border-left-color:' + colourFor(p.courier) + '">'
         + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
         + '<span><span class="n">' + typeGlyph(p.type) + esc(p.office.name || '') + '</span>'
@@ -341,7 +357,11 @@
         + '</li>');
       var lat = Number(p.office.lat), lng = Number(p.office.lng);
       if (!lat && !lng) { return; }          // no coordinates: it stays in the list, off the map
-      var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, p.available) }).addTo(layer);
+      // The chosen one keeps its courier's colour - a colour of its own would fight the legend, which
+      // is the one thing on this map that has to stay true. It pulses instead: motion says "this one"
+      // without taking a hue away from anybody.
+      var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, p.available, isCurrent(p)),
+        zIndexOffset: isCurrent(p) ? 1000 : 0 }).addTo(layer);
       // Three lines, in the order a person reads them: WHOSE it is, WHAT it is called, WHERE it is.
       // The price rides on the courier line because that is what it belongs to, not to the address.
       mk.bindPopup('<div class="bgc-allmap-pop">'
