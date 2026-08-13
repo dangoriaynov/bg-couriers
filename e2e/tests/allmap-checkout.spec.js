@@ -89,7 +89,8 @@ test('combined map: choosing a point sets the courier, the delivery type and the
     const i = pts.findIndex(p => p.available && p.courier !== bare(cur));
     if (i < 0) { return null; }
     document.querySelectorAll('.bgc-allmap-item')[i].click();   // focus it, opening its popup
-    return { i, courier: pts[i].courier, officeId: pts[i].office.office_id, type: pts[i].type };
+    return { i, courier: pts[i].courier, officeId: pts[i].office.office_id, type: pts[i].type,
+             cityId: pts[i].cityId };
   }, before);
   expect(pick, 'the map must offer a courier other than the one already chosen').not.toBeNull();
 
@@ -106,6 +107,9 @@ test('combined map: choosing a point sets the courier, the delivery type and the
   // The delivery type comes from the POINT - office and locker share one map now.
   expect(await fields.getAttribute('data-method')).toBe(pick.type);
   expect(String(await fields.locator('.bgc-office').inputValue())).toBe(String(pick.officeId));
+  // The CITY is asserted because leaving it out is how a real defect reached the owner: the office
+  // landed, the city came back empty, and an order cannot be placed from an office with no town.
+  expect(String(await fields.locator('.bgc-city').inputValue())).toBe(String(pick.cityId));
 });
 
 /** The dialog is meant to be easier the second time: it remembers the place you were looking at. */

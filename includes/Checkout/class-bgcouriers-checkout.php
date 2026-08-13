@@ -427,6 +427,9 @@ class BGCouriers_Checkout {
      * @return bool
      */
     public static function has_pickup_courier(?array $courier_ids = null): bool {
+        // The merchant's switch comes first: a shop that does not want the combined map should not pay
+        // for its assets either, so this answer gates the enqueue as well as the button.
+        if (get_option('bgcouriers_allmap', 'yes') !== 'yes') { return false; }
         $ids = $courier_ids ?? array_keys(BGCouriers_Couriers::all());
         foreach ($ids as $cid) {
             if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
@@ -599,11 +602,14 @@ class BGCouriers_Checkout {
         wp_enqueue_style('bgc-checkout', BGCOURIERS_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet', 'bgc-rates'], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
         wp_enqueue_script('bgc-checkout', BGCOURIERS_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo', 'bgc-leaflet'], is_file($js) ? (string) filemtime($js) : BGCOURIERS_VERSION, true);
         // The combined map dialog. Separate files on purpose: bgc-checkout.js already carries the
-        // per-courier picker, and that one must keep working exactly as it does.
-        $allmap_css = BGCOURIERS_PATH . 'assets/css/bgc-allmap.css';
-        $allmap_js  = BGCOURIERS_PATH . 'assets/js/bgc-allmap.js';
-        wp_enqueue_style('bgc-allmap', BGCOURIERS_URL . 'assets/css/bgc-allmap.css', ['bgc-checkout'], is_file($allmap_css) ? (string) filemtime($allmap_css) : BGCOURIERS_VERSION);
-        wp_enqueue_script('bgc-allmap', BGCOURIERS_URL . 'assets/js/bgc-allmap.js', ['bgc-checkout'], is_file($allmap_js) ? (string) filemtime($allmap_js) : BGCOURIERS_VERSION, true);
+        // per-courier picker, and that one must keep working exactly as it does. Not loaded at all when
+        // the merchant has switched the map off - an unused script is still a script the customer waits for.
+        if (self::has_pickup_courier()) {
+            $allmap_css = BGCOURIERS_PATH . 'assets/css/bgc-allmap.css';
+            $allmap_js  = BGCOURIERS_PATH . 'assets/js/bgc-allmap.js';
+            wp_enqueue_style('bgc-allmap', BGCOURIERS_URL . 'assets/css/bgc-allmap.css', ['bgc-checkout'], is_file($allmap_css) ? (string) filemtime($allmap_css) : BGCOURIERS_VERSION);
+            wp_enqueue_script('bgc-allmap', BGCOURIERS_URL . 'assets/js/bgc-allmap.js', ['bgc-checkout'], is_file($allmap_js) ? (string) filemtime($allmap_js) : BGCOURIERS_VERSION, true);
+        }
         // When enabled (default), preload each enabled courier's cities-with-offices (office/automat) so the
         // checkout city dropdown needs no AJAX and availability is derived client-side. The AJAX path stays
         // as the fallback + for address (all BG cities). Off => nothing preloaded, pure AJAX as before.

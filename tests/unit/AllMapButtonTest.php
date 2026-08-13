@@ -69,4 +69,28 @@ final class AllMapButtonTest extends TestCase {
         $this->opts([]);
         $this->assertFalse(BGCouriers_Checkout::has_pickup_courier([]));
     }
+
+    /**
+     * The merchant's own switch, and it comes before everything else: a shop that turns the combined
+     * map off must not be served its script either, so this same answer gates the enqueue.
+     */
+    public function test_the_merchant_can_switch_it_off(): void {
+        $this->opts([
+            'bgcouriers_allmap'                => 'no',
+            'bgcouriers_speedy_enabled'        => 'yes',
+            'bgcouriers_speedy_office_enabled' => 'yes',
+        ]);
+        $this->assertFalse(BGCouriers_Checkout::has_pickup_courier(['speedy']));
+    }
+
+    /** And it is ON unless the merchant says otherwise - a fresh install gets the map. */
+    public function test_it_is_on_by_default(): void {
+        $this->opts([
+            'bgcouriers_speedy_enabled'         => 'yes',
+            'bgcouriers_speedy_office_enabled'  => 'yes',
+            'bgcouriers_speedy_address_enabled' => 'yes',
+            'bgcouriers_speedy_automat_enabled' => 'no',
+        ]);   // no bgcouriers_allmap entry at all, so get_option falls back to its default
+        $this->assertTrue(BGCouriers_Checkout::has_pickup_courier(['speedy']));
+    }
 }

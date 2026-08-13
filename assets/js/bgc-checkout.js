@@ -684,6 +684,14 @@
         if (checkedVal !== want && checkedVal.indexOf(want + ':') !== 0) { done(); return; }
         if (officeTries >= 3) { done(); return; }                                          // 3. gave it enough tries
         officeTries++;
+        // The CITY has to be put back first. saveSelection() below sends the whole block - courier,
+        // city, office, address - read straight off the fields, so saving while the re-rendered city
+        // select is still empty stores site_id 0 and wipes the city that was chosen a moment ago. The
+        // customer was left with an office and no town, which is not a state they can order from.
+        var $c = $w.find('.bgc-city');
+        if ($c.length && String($c.val() || '') !== String(pick.cityId)) {
+          $c.append(new Option(pick.cityLabel, pick.cityId, true, true)).val(String(pick.cityId));
+        }
         $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
         saveSelection($w);
       };

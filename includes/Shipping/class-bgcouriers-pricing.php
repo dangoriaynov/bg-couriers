@@ -67,6 +67,8 @@ class BGCouriers_Pricing {
             return new BGCouriers_Quote($price > 0 ? round($price, 2) : 6.99, 0.0, $currency, 'fixed');
         }
         if ($site_id <= 0) {
+            $est = self::reference_for_weight($courier, $method, $packed, $currency);
+            if ($est !== null) { return new BGCouriers_Quote(round($est, 2), 0.0, $currency, 'reference'); }
             $est = self::estimate($courier->id(), $method);
             if ($est !== null) { return new BGCouriers_Quote(round($est, 2), 0.0, $currency, 'reference'); }
         }
@@ -113,6 +115,68 @@ class BGCouriers_Pricing {
      * A no-API price estimate for a courier+method (the cart-page estimate): the cached daily reference,
      * else the configured default price, else null (no estimate available). Store currency, net.
      */
+    /**
+     * The weight a reference price is quoted for: the cart's own, rounded UP to the next half kilo.
+     *
+     * Up, never down - a price quoted for less than the parcel weighs understates what the customer
+     * will pay, which is the failure this whole path exists to stop. Bucketed, because a reference does
+     * not need to tell 3.01 kg from 3.04 kg and a key per exact gram would miss the cache on nearly
+     * every cart, putting a live courier call in front of a page load.
+     *
+     * @param float $weight_kg Cart weight.
+     * @return float The bucket, never below half a kilo.
+     */
+    public static function reference_weight(float $weight_kg): float {
+        if ($weight_kg <= 0) { return 0.5; }
+        return max(0.5, ceil($weight_kg * 2) / 2);
+    }
+
+    /** Transient key for a reference price. Carries the weight, or a heavy cart reads a light one's price. */
+    public static function reference_key(string $courier, string $method, float $weight_kg): string {
+        return 'bgcouriers_ref_' . $courier . '_' . $method . '_' . str_replace('.', '', (string) self::reference_weight($weight_kg));
+    }
+
+    /**
+     * A reference price for the cart's ACTUAL weight, before any city is chosen.
+     *
+     * What used to be shown here was a daily figure quoted for a hardcoded 2 kg parcel whatever the
+     * cart held (see BGCouriers_Sync::reference_shipment), so a 10 kg order advertised the 2 kg price
+     * until the customer picked a city. Quoting the same reference route with the real weight costs one
+     * live call per courier, method and weight bucket, cached for three hours.
+     *
+     * Returns null when the courier cannot be quoted at all, so the caller falls back to the old daily
+     * figure rather than showing nothing.
+     */
+    private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency): ?float {
+        $w    = self::reference_weight((float) ($packed['weight_kg'] ?? 0));
+        $tkey = self::reference_key($courier->id(), $method, $w);
+        $hit  = get_transient($tkey);
+        if (is_array($hit) && isset($hit['p'])) { return (float) $hit['p']; }
+        if (!class_exists('BGCouriers_Sync')) { return null; }
+        $ref = BGCouriers_Sync::reference_shipment($courier->id(), $method);
+        if (!$ref) { return null; }
+        // The route stays the reference one - there is no destination yet, that is the whole situation -
+        // and only the parcel becomes the customer's: their weight, and their box, since a courier
+        // prices volume too. Nothing about where it is going comes from the cart.
+        $shipment = array_merge($ref, [
+            'method'     => $method,
+            'weight_kg'  => $w,
+            'length_cm'  => $packed['length_cm'] ?? $ref['length_cm'],
+            'width_cm'   => $packed['width_cm']  ?? $ref['width_cm'],
+            'height_cm'  => $packed['height_cm'] ?? $ref['height_cm'],
+            'currency'   => $currency,
+            'cod_amount' => 0.0,
+        ]);
+        try {
+            $q = self::quote($courier, $shipment);
+        } catch (\Exception $e) {
+            return null;
+        }
+        if ($q->source !== 'live') { return null; }
+        set_transient($tkey, ['p' => $q->total()], 3 * HOUR_IN_SECONDS);
+        return $q->total();
+    }
+
     public static function estimate(string $courier, string $method): ?float {
         $mc = BGCouriers_Settings::method_config($courier, $method);
         // 'fixed' mode shows its fixed price everywhere; otherwise the daily cached reference, then the default.
