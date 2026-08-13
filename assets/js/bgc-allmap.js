@@ -87,6 +87,11 @@
     $city.select2({
       width: '100%',
       placeholder: I.city_ph || '',
+      // Without this select2 hangs its dropdown off <body> with its own z-index, which is far below the
+      // overlay's - the list opens UNDERNEATH the dialog and the city cannot be picked at all. The
+      // parent is the OVERLAY, not the white box: the box clips its children (overflow:hidden, for the
+      // rounded corners) and would cut the list off instead.
+      dropdownParent: $dlg,
       ajax: {
         url: BGCOURIERS.ajax, dataType: 'json', delay: 200,
         data: function (p) { return { action: 'bgcouriers_allmap_cities', term: p.term || '' }; },

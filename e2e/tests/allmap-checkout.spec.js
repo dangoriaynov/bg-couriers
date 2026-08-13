@@ -7,10 +7,34 @@ const { addAnyProductToCart, gotoCheckout } = require('../helpers/shop');
  * it really does carry more than one courier, and that choosing a point leaves the checkout in exactly
  * the state a manual courier + city + office selection would.
  *
- * The city is chosen by setting the select's value rather than by clicking through select2: select2
- * covers its own control with a rendered span that swallows synthetic clicks, and the dialog listens
- * for `change` either way. Everything the test actually asserts still goes through the real code.
+ * Most of these set the city's value directly instead of clicking through select2, which keeps them
+ * quick and stable. That shortcut has a cost, and it was paid: it sailed straight past a bug the very
+ * first person to open the dialog hit. So ONE test picks the city with the mouse, and it is the one
+ * that guards everything the shortcut cannot see.
  */
+
+/**
+ * Pick a city THROUGH select2, the way a customer does: open it, type, click a result.
+ *
+ * This test exists because the programmatic helper below hid a bug that the very first person to open
+ * the dialog hit - select2 hung its dropdown off <body>, far below the overlay's z-index, so the list
+ * opened underneath the dialog and no city could be chosen at all. Setting the value in JavaScript
+ * sailed straight past it. Anything a customer must click, a test has to click.
+ */
+async function chooseCityByClicking(page, term, expectText) {
+  const dlg = page.locator('.bgc-allmap-overlay');
+  await dlg.locator('.select2-selection').click();
+  await page.locator('input.select2-search__field').fill(term);
+  // Wait for a REAL result, not select2's own "Searching…" row, which is also a
+  // .select2-results__option and clicking it does nothing.
+  const option = page.locator('.select2-results__option', { hasText: expectText }).first();
+  await option.waitFor({ state: 'visible', timeout: 15000 });
+  // Visible to Playwright is not enough: a dropdown painted under the overlay is still "visible".
+  // Clicking it is the assertion - if anything covers it, this throws.
+  await option.click({ timeout: 10000 });
+  await page.waitForTimeout(400);
+  return dlg.locator('.select2-selection').innerText();
+}
 
 /** Put a place into the dialog's city select the way its own handler expects. */
 async function chooseCity(page, term, postCode) {
@@ -43,6 +67,17 @@ test('combined map: nothing is plotted until a place and a destination are chose
   expect(label).toBeTruthy();
   await dlg.locator('.bgc-allmap-type[data-m="office"]').click();
   await expect(dlg.locator('.bgc-allmap-show')).toBeEnabled();
+});
+
+test('combined map: the city can actually be picked with the mouse @allmap', async ({ page }) => {
+  await addAnyProductToCart(page);
+  await gotoCheckout(page);
+  await page.waitForTimeout(2500);
+  await page.locator('.bgc-allmap-btn').click();
+
+  const chosen = await chooseCityByClicking(page, 'София', 'СОФИЯ');
+  expect(chosen).toContain('СОФИЯ');
+  await expect(page.locator('.bgc-allmap-show')).toBeEnabled();
 });
 
 test('combined map: it carries several couriers at once, each with its own price @allmap', async ({ page }) => {
