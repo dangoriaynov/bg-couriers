@@ -145,6 +145,16 @@
     });
   }
 
+  /** The plugin's standard spinner, filling the map area while the couriers are being asked. */
+  function busy(on) {
+    if (!$dlg) { return; }
+    $dlg.find('.bgc-allmap-body').toggle(true);
+    $dlg.find('.bgc-allmap-busy').remove();
+    if (on) {
+      $dlg.find('.bgc-allmap-body').append('<div class="bgc-allmap-busy"><span class="bgc-spinner"></span></div>');
+    }
+  }
+
   /** Nothing is plotted until a place is chosen - the whole country at once would be unusable. */
   function refreshShow() {
     $dlg.find('.bgc-allmap-show').prop('disabled', !state.cityName);
@@ -177,10 +187,15 @@
   function showOffices() {
     var key = state.cityName + '|' + state.cityCode + '|both';
     if (cache[key]) { render(cache[key]); return; }
+    // Every courier's points for a city is a real wait - four live lookups behind one request - and
+    // with nothing on screen the dialog looked like the button had not worked. The plugin's own
+    // spinner, in the space the map is about to fill, so the wait is where the eye already is.
+    busy(true);
     $.get(BGCOURIERS.ajax, {
       action: 'bgcouriers_allmap_offices',
       name: state.cityName, post_code: state.cityCode, type: 'both'
-    }, function (data) { cache[key] = data || {}; render(cache[key]); });
+    }, function (data) { cache[key] = data || {}; render(cache[key]); })
+     .always(function () { busy(false); });
   }
 
   function render(data) {
@@ -241,7 +256,14 @@
         + '</div>');
       markers[i] = mk; bounds.push([lat, lng]);
     });
-    if (bounds.length) { map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); }
+    if (bounds.length) {
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+      // One step closer than "everything fits". Fitting a whole city's points puts the streets too far
+      // away to read, and a customer is looking for a place they RECOGNISE - a corner, their own
+      // neighbourhood - not for the outline of the city. A few outlying points fall outside the first
+      // view; the list beside the map still has every one of them.
+      map.setZoom(Math.min(map.getZoom() + 1, 17));
+    }
     else { map.setView([42.73, 25.3], 7); }
     map.invalidateSize();
 
