@@ -434,7 +434,14 @@
         + (p.available
             ? '<button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'
             : '<em class="bgc-allmap-pop-na">' + esc(I.allmap_na || '') + '</em>')
-        + '</div>');
+        + '</div>', {
+          // Leaflet pans until the popup fits the CONTAINER, and knows nothing about the Map/List pill
+          // floating over the bottom of it. Measured on a 390x844 screen without this: tapping the
+          // lowest pin put the Choose button 49px UNDERNEATH the pill - painted, and impossible to
+          // press. The pill occupies 51px (37 tall, 14 up from the bottom); 78 leaves ~25px of daylight
+          // for a popup made taller by a two-line office name.
+          autoPanPaddingBottomRight: L.point(12, 78)
+        });
       markers[i] = mk; bounds.push([lat, lng]);
     });
     if (bounds.length) {

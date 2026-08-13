@@ -287,4 +287,63 @@ test.describe('the combined map on a phone', () => {
     expect(canvas.height).toBeGreaterThan(340);
     expect(await page.locator('.leaflet-tile-loaded').count()).toBeGreaterThan(0);
   });
+
+  /**
+   * Choosing a point from a phone, all the way into the checkout.
+   *
+   * It taps the LOWEST PIN on the map, which is the case that actually broke, and it must be a pin
+   * rather than a list row: a row calls setView() and re-centres the map, which parks the popup
+   * comfortably in the middle and hides the defect completely. Measured before the fix, tapping the
+   * bottom pin put the Choose button 49px underneath the pill.
+   *
+   * The click on Choose is then deliberately NOT forced. A forced click sails straight through an
+   * element painted over another; an ordinary one fails, which is the only reason this test can tell
+   * the two situations apart.
+   */
+  test('combined map: a point can be chosen on a phone, pill and all @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+
+    // The bottom-most pin currently on screen - the one whose popup has to be panned clear of the pill.
+    await page.evaluate(() => {
+      const pins = Array.from(document.querySelectorAll('.leaflet-marker-icon'))
+        .map(el => ({ el, y: el.getBoundingClientRect().bottom }))
+        .sort((a, b) => b.y - a.y);
+      pins[0].el.click();
+    });
+    await expect(page.locator('.bgc-allmap-pick')).toBeVisible({ timeout: 10000 });
+    // The popup appears BEFORE autoPan has finished sliding the map clear of it - measuring here
+    // measures the map mid-animation, which reads as obscured whether or not it ends up so.
+    await page.waitForTimeout(1200);
+
+    // Clear of the pill, with room to spare - asserted in pixels, because "visible" is exactly what
+    // an obscured button reports.
+    const clearance = await page.evaluate(() => {
+      const b = document.querySelector('.bgc-allmap-pick').getBoundingClientRect();
+      const p = document.querySelector('.bgc-allmap-switch').getBoundingClientRect();
+      return Math.round(p.top - b.bottom);
+    });
+    expect(clearance).toBeGreaterThan(0);
+
+    const pick = await page.evaluate(() =>
+      window.BGCouriersAllMap.points()[+document.querySelector('.bgc-allmap-pick').dataset.i]);
+    expect(pick).toBeTruthy();
+
+    // No force: Playwright refuses an element another one is painted over.
+    await page.locator('.bgc-allmap-pick').first().click({ timeout: 10000 });
+    await expect(page.locator('.bgc-allmap-overlay')).toHaveCount(0);
+    await page.waitForTimeout(9000);
+
+    const fields = page.locator(`.bgc-fields[data-courier="${pick.courier}"]`);
+    await expect(fields).toBeVisible();
+    expect(await fields.getAttribute('data-method')).toBe(pick.type);
+    expect(String(await fields.locator('.bgc-office').inputValue())).toBe(String(pick.office.office_id));
+    expect(String(await fields.locator('.bgc-city').inputValue())).toBe(String(pick.cityId));
+  });
 });
