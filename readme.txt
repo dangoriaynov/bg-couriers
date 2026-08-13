@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.6
+Stable tag: 0.2.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,16 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.2.7 =
+* New: an **interactive map** at checkout showing every enabled courier's offices and lockers for a city at once, each with that courier's own price. Pick a point and the courier, delivery type, city and office are filled in for you. A legend names each courier, colours its pins and doubles as a filter; the list beside the map is searchable, and there is a "show my location" button. Offices and lockers share one map, because a customer looking for somewhere to collect a parcel is not thinking in those categories until they see what is nearby. It can be switched off in Settings; it is on by default.
+* Each courier's own "Map" button now opens that same map, filtered to that courier, with the city already chosen carried over. The separate per-courier map is gone: it answered a narrower question, and keeping two meant every fix had to land twice.
+* Fixed: the delivery price shown BEFORE a city is chosen was quoted for a fixed 2 kg parcel whatever the cart weighed, so a 10 kg order advertised the 2 kg price until the customer picked a town. It is now quoted for the cart's real weight. Prices after a city is chosen were already weight-aware.
+* Fixed: clicking the delivery-type button you are already on cleared the office you had chosen and reloaded the list. It now does nothing, which is what it always should have done.
+* Fixed: with a shipment already collected, the delivery editor's Save button was disabled on the server but switched back on in the browser, so the form invited a save it was always going to refuse. The Orders list now dims the edit pencil instead of showing a padlock beside a control that still looked usable.
+* An order whose parcel has been collected can be worked on again by putting it back to Processing or Pending payment - the waybill can then be cancelled, re-issued and re-addressed as before.
+* The checkout's (i) beside each price is now an icon that says which way the delivery is paid: a banknote when the courier collects the money at the door, a shopping bag when it is already in the order total.
+* The plugin's request limit for its own public lookups was too tight for real use - several customers behind one address (an office, or a mobile network) could exhaust it between them and see an empty map with no error.
+
 = 0.2.6 =
 * The shipment state in the Orders list is now a single icon per status instead of the courier's own sentence. Courier wordings run long, the column is narrow, so the line wrapped and every row stood taller than its own buttons; the icon sits in the button row and the full sentence, with the time it was updated, is on hover. Each status has its own drawing and its own colour.
 * Fixed: those status colours were never actually visible in the Orders list. They were applied as an inline style, which WordPress strips from this column when it prints it, so every row looked the same whatever state its parcel was in.
@@ -148,6 +158,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
 
 == Upgrade Notice ==
+
+= 0.2.7 =
+Adds an interactive map of every courier's offices and lockers at checkout, and fixes the price shown before a city is chosen, which ignored the weight of the cart.
 
 = 0.2.6 =
 The Orders list gets its height back: the shipment state is an icon with a hover hint instead of a wrapping sentence, and the per-status colours are finally visible.
