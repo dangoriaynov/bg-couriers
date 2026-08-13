@@ -23,6 +23,10 @@
   // Couriers the customer has switched OFF in the legend. Empty by default - a map that opens
   // showing only some of what it has would be lying about the choice available.
   var hidden = {};
+  // A courier this dialog was opened FOR, when it was opened from that courier's own Map button. It
+  // starts as the only one showing; the customer can switch the others on from the legend, and
+  // choosing one of their points moves the whole selection over, exactly as from the map's own button.
+  var only = '';
 
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
 
@@ -65,13 +69,21 @@
 
   function close() {
     if (map) { map.remove(); map = null; }
+    meMarker = null;
     layer = null; // the layer group is destroyed along with the map; just drop our reference to it
     markers = []; points = [];
     if ($dlg) { $dlg.remove(); $dlg = null; }
   }
 
-  function open() {
+  /**
+   * @param {Object} [opts] {only: courier id to show alone, wrap: the courier block to seed the city
+   *                         from}. Passed by a courier's own Map button, which opens THIS dialog
+   *                         filtered to itself rather than a second map of its own.
+   */
+  function open(opts) {
     if ($dlg) { return; }
+    opts = opts || {};
+    only = opts.only || '';
     load();
     $dlg = $('<div class="bgc-allmap-overlay"><div class="bgc-allmap-box">'
       + '<div class="bgc-allmap-head"><strong>' + esc(I.allmap_title || '') + '</strong>'
@@ -82,13 +94,16 @@
       + '<div class="bgc-allmap-cityrow">'
       + '<input type="text" class="bgc-allmap-cityinput" autocomplete="off" placeholder="' + esc(I.city_ph || '') + '">'
       + '<ul class="bgc-allmap-cityres" hidden></ul></div>'
-      + '<button type="button" class="button bgc-allmap-show" disabled>' + esc(I.allmap_show || '') + '</button>'
       + '</div>'
       + '<div class="bgc-allmap-legend" hidden></div>'
       + '</div>'
       + '<div class="bgc-allmap-body" style="display:none;">'
       + '<div class="bgc-allmap-side">'
+      + '<div class="bgc-allmap-searchrow">'
       + '<input type="text" class="bgc-allmap-search" autocomplete="off" placeholder="' + esc(I.office_ph || '') + '">'
+      + '<button type="button" class="bgc-map-locate" data-tip="' + esc(I.map_locate || '')
+      + '" aria-label="' + esc(I.map_locate || '') + '"></button>'
+      + '</div>'
       + '<ul class="bgc-allmap-list"></ul></div>'
       + '<div class="bgc-allmap-canvas" id="bgc-allmap-canvas"></div>'
       + '</div></div></div>');
@@ -107,7 +122,10 @@
     function pickCity(name, code, label) {
       state.cityName = name; state.cityCode = code; state.cityLabel = label;
       $input.val(label);
-      hideRes(); save(); refreshShow();
+      hideRes(); save();
+      // Choosing a place IS the instruction to show it. A button afterwards asked the customer to
+      // confirm a decision they had just made.
+      showOffices();
     }
     $input.on('input', function () {
       var term = $.trim($input.val());
@@ -131,13 +149,16 @@
     // Typing something new and walking away must not leave a stale place selected.
     $input.on('blur', function () { setTimeout(hideRes, 150); });
 
-    if (state.cityLabel) { $input.val(state.cityLabel); }
-    refreshShow();
+    // Seed from the courier block the customer is already using, when the dialog has nothing
+    // remembered: they have told the checkout where they are once, and being asked again is the kind
+    // of small rudeness that makes a dialog feel like a form.
+    if (!state.cityName) { seedFromCheckout(opts.wrap); }
+    if (state.cityLabel) { $input.val(state.cityLabel); showOffices(); }
 
     $dlg.on('click', '.bgc-allmap-close', close);
     $dlg.on('click', function (e) { if (e.target === $dlg[0]) { close(); } });
-    $dlg.on('click', '.bgc-allmap-show', showOffices);
     $dlg.on('input', '.bgc-allmap-search', applyFilter);
+    $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
     // The popup's Choose is the only crossing into bgc-checkout.js: hand over the point and let the
     // ordinary flow pick the rate, switch the tab, set city and office, save, recalculate. Delegated
     // on $dlg (not $list) because the popup's markup lives in Leaflet's map pane, not the sidebar.
@@ -181,19 +202,31 @@
     });
   }
 
+  /**
+   * The place already chosen in whichever courier block is open, if there is one. The customer has
+   * told the checkout where they are once; asking again is the small rudeness that makes a dialog
+   * feel like a form.
+   */
+  function seedFromCheckout($from) {
+    var $w = ($from && $from.length) ? $from : $('.bgc-fields[data-courier]:visible').first();
+    if (!$w.length) { return; }
+    var label = $.trim($w.find('.bgc-city option:selected').text() || '');
+    if (!label) { return; }
+    var m = label.match(/^(.*?)\s*\((\d+)\)\s*$/);
+    state.cityName  = m ? m[1] : label;
+    state.cityCode  = m ? m[2] : String($w.find('.bgc-postcode').val() || '');
+    state.cityLabel = label;
+  }
+
   /** The plugin's standard spinner, filling the map area while the couriers are being asked. */
   function busy(on) {
     if (!$dlg) { return; }
     $dlg.find('.bgc-allmap-body').toggle(true);
+    $dlg.addClass('bgc-has-map');
     $dlg.find('.bgc-allmap-busy').remove();
     if (on) {
       $dlg.find('.bgc-allmap-body').append('<div class="bgc-allmap-busy"><span class="bgc-spinner"></span></div>');
     }
-  }
-
-  /** Nothing is plotted until a place is chosen - the whole country at once would be unusable. */
-  function refreshShow() {
-    $dlg.find('.bgc-allmap-show').prop('disabled', !state.cityName);
   }
 
   /**
@@ -258,7 +291,10 @@
       });
     });
 
+    // The box lifts to the top and the map unrolls out from under the city field. Adding the class
+    // AFTER the rows exist means the height it animates to is the real one.
     $dlg.find('.bgc-allmap-body').show();
+    $dlg.addClass('bgc-has-map');
     var $list = $dlg.find('.bgc-allmap-list').empty();
     if (!map) {
       map = L.map('bgc-allmap-canvas', { scrollWheelZoom: true });
@@ -318,6 +354,14 @@
         + (first.logo ? '<img src="' + esc(first.logo) + '" alt="' + esc(label) + '">' : '')
         + esc(label) + '</button>');
     });
+    // Opened from one courier's button: start with just that courier, but say so with the legend
+    // rather than by hiding the others - the whole point is that the rest are one click away.
+    if (only) {
+      seen.forEach(function (cid) { if (cid !== only) { hidden[cid] = true; } });
+      $legend.find('.bgc-allmap-chip').each(function () {
+        $(this).toggleClass('on', $(this).attr('data-c') === only);
+      });
+    }
     $legend.attr('hidden', !seen.length);
     $legend.off('click').on('click', '.bgc-allmap-chip', function () {
       var cid = $(this).attr('data-c');
@@ -335,6 +379,34 @@
       map.setView(mk.getLatLng(), Math.max(map.getZoom(), 15));
       mk.openPopup();
     });
+  }
+
+  /**
+   * Where the customer is, and the few points nearest them - not the whole city again. Same behaviour
+   * as the per-courier picker so the two dialogs answer this the same way.
+   */
+  var meMarker = null;
+  function showMe() {
+    if (!navigator.geolocation || !map) { return; }
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var here = [pos.coords.latitude, pos.coords.longitude];
+      if (meMarker) { meMarker.setLatLng(here); }
+      else {
+        meMarker = L.circleMarker(here, { radius: 7, color: '#fff', weight: 3,
+          fillColor: '#2271b1', fillOpacity: 1 }).addTo(map);
+      }
+      var visible = points.filter(function (p, i) {
+        return markers[i] && layer && layer.hasLayer(markers[i]);
+      });
+      if (!visible.length) { map.setView(here, 14); return; }
+      // Longitude degrees are shorter than latitude ones this far north; ~cos(42°) keeps "nearest"
+      // honest without doing real geodesics for a map frame.
+      var near = visible.map(function (p) {
+        var dlat = Number(p.office.lat) - here[0], dlng = (Number(p.office.lng) - here[1]) * 0.74;
+        return { ll: [Number(p.office.lat), Number(p.office.lng)], d: dlat * dlat + dlng * dlng };
+      }).sort(function (a, b) { return a.d - b.d; }).slice(0, 6).map(function (x) { return x.ll; });
+      map.fitBounds([here].concat(near), { padding: [45, 45], maxZoom: 16 });
+    }, function () {}, { enableHighAccuracy: true, timeout: 8000 });
   }
 
   $(document).on('click', '.bgc-allmap-btn', function (e) { e.preventDefault(); open(); });

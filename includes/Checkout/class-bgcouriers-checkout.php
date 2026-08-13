@@ -220,6 +220,10 @@ class BGCouriers_Checkout {
      * label and a value.
      */
     public function render_allmap_button(): void {
+        // The setting gates THIS button only. The dialog itself is what every courier's own Map button
+        // opens now - there is no second map any more - so switching this off removes the shortcut
+        // above the rates, not the ability to pick a point on a map.
+        if (get_option('bgcouriers_allmap', 'yes') !== 'yes') { return; }
         if (!self::has_pickup_courier()) { return; }
         if (function_exists('is_cart') && is_cart()) { return; } // the pickers belong to checkout
         echo wp_kses(
@@ -427,9 +431,6 @@ class BGCouriers_Checkout {
      * @return bool
      */
     public static function has_pickup_courier(?array $courier_ids = null): bool {
-        // The merchant's switch comes first: a shop that does not want the combined map should not pay
-        // for its assets either, so this answer gates the enqueue as well as the button.
-        if (get_option('bgcouriers_allmap', 'yes') !== 'yes') { return false; }
         $ids = $courier_ids ?? array_keys(BGCouriers_Couriers::all());
         foreach ($ids as $cid) {
             if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }

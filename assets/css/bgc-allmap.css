@@ -12,14 +12,19 @@
   -webkit-mask-image: var(--bgc-pin); mask-image: var(--bgc-pin); }
 :root { --bgc-pin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E"); }
 
+/* Anchored to the TOP, not centred, so the box can rise on its own terms: align-items cannot be
+   animated, a margin can. Before there is a map the box sits near the middle of the screen; when one
+   arrives it travels up and the map unrolls beneath it. */
 .bgc-allmap-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100000;
-  display: flex; align-items: center; justify-content: center; padding: 16px; }
+  display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; }
 /* position:relative + overflow:visible are BOTH load-bearing for the city picker. select2 hangs its
    dropdown inside this box, and positions it absolutely - without a positioned ancestor it lands at the
    far end of the overlay instead of under the field, and with overflow:hidden it would be clipped
    instead. The rounded corners that overflow:hidden used to provide are done by the body below. */
 .bgc-allmap-box { position: relative; background: #fff; border-radius: 12px; width: min(980px, 100%);
-  max-height: 92vh; display: flex; flex-direction: column; overflow: visible; }
+  max-height: 92vh; display: flex; flex-direction: column; overflow: visible;
+  margin-top: max(16px, calc(50vh - 110px)); transition: margin-top .35s cubic-bezier(.22,.61,.36,1); }
+.bgc-has-map .bgc-allmap-box { margin-top: 16px; }
 /* Three columns so the caption is centred on the BOX, not on the space left over beside the close
    button - with space-between it sat visibly left of centre. */
 .bgc-allmap-head { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center;
@@ -60,16 +65,32 @@
 .bgc-allmap-kind svg { display: block; width: 13px; height: 13px; }
 .bgc-allmap-show[disabled] { opacity: .5; cursor: not-allowed; }
 
-.bgc-allmap-body { display: flex; min-height: 380px; border-top: 1px solid #e6e9ec;
-  overflow: hidden; border-radius: 0 0 12px 12px; }
+/* Unrolls from under the city field rather than appearing whole: max-height animates, height does
+   not, and the map only ever needs to grow into the space the box already has. */
+.bgc-allmap-body { display: flex; border-top: 1px solid #e6e9ec; overflow: hidden;
+  border-radius: 0 0 12px 12px; max-height: 0; opacity: 0;
+  transition: max-height .4s cubic-bezier(.22,.61,.36,1), opacity .3s ease .1s; }
+.bgc-has-map .bgc-allmap-body { max-height: 62vh; opacity: 1; }
+.bgc-allmap-body > * { min-height: 380px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bgc-allmap-box, .bgc-allmap-body { transition: none; }
+}
 .bgc-allmap-side { width: 300px; flex: 0 0 auto; overflow-y: auto; border-right: 1px solid #e6e9ec;
   display: flex; flex-direction: column; }
 /* Searching the list, the same way the per-courier picker does it. Sticky, because the list it
    filters is hundreds of rows long and a search box you have to scroll back up to is not one. */
-.bgc-allmap-search { position: sticky; top: 0; z-index: 2; flex: 0 0 auto; box-sizing: border-box;
-  width: 100%; height: 34px; padding: 0 10px; border: 0; border-bottom: 1px solid #e6e9ec;
-  background: #fff; font-size: 13px; }
-.bgc-allmap-search:focus { outline: none; border-bottom-color: #2271b1; }
+/* Search and locate share a row, in the same place as the per-courier picker's, so the two dialogs
+   are the same dialog as far as the customer is concerned. */
+.bgc-allmap-searchrow { position: sticky; top: 0; z-index: 2; flex: 0 0 auto; display: flex;
+  align-items: center; gap: 8px; padding: 8px; background: #fff; border-bottom: 1px solid #e6e9ec; }
+.bgc-allmap-side .bgc-allmap-searchrow .bgc-allmap-search { flex: 1 1 auto; min-width: 0;
+  box-sizing: border-box !important; margin: 0 !important; height: 34px !important;
+  padding: 0 10px 0 32px !important; border: 1px solid #d8dde3 !important; border-radius: 8px;
+  background: #fff no-repeat 9px center / 14px 14px; font-size: 13px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E"); }
+.bgc-allmap-side .bgc-allmap-search:focus { outline: none; border-color: #2271b1 !important; }
+.bgc-allmap-searchrow .bgc-map-locate { width: 34px; height: 34px; border-radius: 8px; }
 .bgc-allmap-list { list-style: none; margin: 0; padding: 0; }
 .bgc-allmap-canvas { flex: 1 1 auto; }
 /* The wait, in the space the map is about to fill. .bgc-spinner is the plugin's own, defined in

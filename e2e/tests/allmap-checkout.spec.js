@@ -39,13 +39,15 @@ test('combined map: nothing is plotted until a place is chosen @allmap', async (
   const dlg = page.locator('.bgc-allmap-overlay');
   await expect(dlg).toBeVisible();
 
-  // This is the rule the owner asked for: no city, no map.
-  await expect(dlg.locator('.bgc-allmap-show')).toBeDisabled();
+  // This is the rule the owner asked for: no city, no map. There is no button to press either -
+  // choosing a place IS the instruction to show it.
   await expect(dlg.locator('.bgc-allmap-body')).toBeHidden();
+  expect(await dlg.locator('.bgc-allmap-show').count()).toBe(0);
 
   const label = await chooseCity(page, 'София', 'СОФИЯ (1000)');
   expect(label).toContain('СОФИЯ');
-  await expect(dlg.locator('.bgc-allmap-show')).toBeEnabled();
+  // The map arrives on its own, and says it is working while it does.
+  await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
 });
 
 test('combined map: it carries several couriers at once, each with its own price @allmap', async ({ page }) => {
@@ -54,7 +56,6 @@ test('combined map: it carries several couriers at once, each with its own price
   await page.waitForTimeout(2500);
   await page.locator('.bgc-allmap-btn').click();
   await chooseCity(page, 'София', 'СОФИЯ (1000)');
-  await page.locator('.bgc-allmap-show').click();
 
   await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
 
@@ -95,7 +96,6 @@ test('combined map: searching narrows the list and the map together @allmap', as
   await page.waitForTimeout(2500);
   await page.locator('.bgc-allmap-btn').click();
   await chooseCity(page, 'Пловдив', 'ПЛОВДИВ (4000)');
-  await page.locator('.bgc-allmap-show').click();
   await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
 
   const rows0 = await page.locator('.bgc-allmap-item:visible').count();
@@ -118,7 +118,6 @@ test('combined map: choosing a point sets the courier, the delivery type and the
 
   await page.locator('.bgc-allmap-btn').click();
   await chooseCity(page, 'София', 'СОФИЯ (1000)');
-  await page.locator('.bgc-allmap-show').click();
   await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
 
   // Take a point belonging to a courier that is NOT the one already selected, so the assertion below
@@ -159,11 +158,13 @@ test('combined map: the place and destination survive a reload @allmap', async (
   await page.waitForTimeout(2500);
   await page.locator('.bgc-allmap-btn').click();
   await chooseCity(page, 'София', 'СОФИЯ (1000)');
+  await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
   await page.locator('.bgc-allmap-close').click();
 
   await page.reload();
   await page.waitForTimeout(2500);
   await page.locator('.bgc-allmap-btn').click();
-  const dlg = page.locator('.bgc-allmap-overlay');
-  await expect(dlg.locator('.bgc-allmap-show')).toBeEnabled();
+  // The remembered place opens straight onto its map - no city to retype, no button to press.
+  await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
+  expect(await page.locator('.bgc-allmap-cityinput').inputValue()).toContain('СОФИЯ');
 });
