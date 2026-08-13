@@ -35,22 +35,25 @@
    * otherwise. A colour that moved between sessions would make the legend useless, since the whole
    * point of it is that a customer learns "the orange ones are Pigeon" once.
    *
-   * Sampled from the couriers' own logos, then pulled apart where the brands collide: Speedy (#D80030)
-   * and Sameday (#D81818) are both red, and Pigeon (#003078) and Econt are both navy - four couriers
-   * in two colours is no legend at all. So the pairs keep one brand colour each and the other takes a
-   * second colour from its OWN mark: Pigeon's orange accent, and for Sameday a magenta that stays in
-   * its red family without being mistaken for Speedy. BOX NOW's yellow is darkened enough to be seen
-   * against a pale map.
+   * Sampled from the couriers' own logos, then pulled apart where the brands collide. Pigeon and
+   * Econt are both navy, so Pigeon takes the orange that is also in its mark. Speedy and Sameday are
+   * both red - and unlike Pigeon, NEITHER has a second colour to fall back on: both marks contain
+   * exactly one hue. Speedy keeps red, because a red parcel is what Speedy is; Sameday gets a colour
+   * that is not in its logo at all, which is worse than taking one from the brand and better than two
+   * pins nobody can tell apart.
    *
    * Deliberately no greens or greys: OpenStreetMap's own parks, water and roads are those, and a pin
    * has to be obviously not-map.
    */
   var PIN_COLOURS = {
-    speedy:  '#D80030', // its own crimson, straight off the logo
-    econt:   '#003D7D', // Econt navy
-    pigeon:  '#F07800', // the orange accent in the Pigeon mark - its navy would clash with Econt
-    sameday: '#C2185B', // magenta: same family as its red, unmistakable next to Speedy's
-    boxnow:  '#E0A800'  // BOX NOW yellow, darkened to hold up on a light map
+    speedy:  '#D00030', // its own crimson - the only colour in the Speedy mark
+    econt:   '#204080', // Econt navy, straight off the logo
+    pigeon:  '#F08010', // the orange in the Pigeon mark; its navy is Econt's
+    boxnow:  '#5A2BC4', // the deep purple of the BOX NOW mark, lightened to hold up on a pale map
+    // Sameday's mark contains ONE colour and it is red (#E02020) - which is Speedy's. Two red pins
+    // are not a legend, so this one is deliberately NOT from its logo: teal is as far from crimson as
+    // this palette gets, and it is not a colour the map itself uses.
+    sameday: '#00838F'
   };
   var PIN_FALLBACK = ['#6A1B9A', '#00838F', '#4E342E', '#1B5E20', '#37474F'];
   var pinColour = {};
@@ -339,12 +342,21 @@
       var lat = Number(p.office.lat), lng = Number(p.office.lng);
       if (!lat && !lng) { return; }          // no coordinates: it stays in the list, off the map
       var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, p.available) }).addTo(layer);
-      mk.bindPopup('<div class="bgc-allmap-pop"><strong>' + esc(p.office.name || '') + '</strong><br>'
-        + esc(p.office.address || '') + '<br>' + esc(p.courierLabel) + ' - ' + esc(typeLabel(p.type))
-        + (p.available && p.price ? ' - ' + esc(p.price) : '')
+      // Three lines, in the order a person reads them: WHOSE it is, WHAT it is called, WHERE it is.
+      // The price rides on the courier line because that is what it belongs to, not to the address.
+      mk.bindPopup('<div class="bgc-allmap-pop">'
+        + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(p.price) + '</span>' : '')
+        + '<div class="bgc-allmap-pop-c">'
+        + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
+        + '<span class="c">' + esc(p.courierLabel) + '</span>'
+        + '</div>'
+        + '<div class="bgc-allmap-pop-n">' + typeGlyph(p.type)
+        + '<span class="t">' + esc(typeLabel(p.type)) + '</span>'
+        + esc(p.office.name || '') + '</div>'
+        + '<div class="bgc-allmap-pop-a">' + esc(p.office.address || '') + '</div>'
         + (p.available
-            ? '<br><button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'
-            : '<br><em>' + esc(I.allmap_na || '') + '</em>')
+            ? '<button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'
+            : '<em class="bgc-allmap-pop-na">' + esc(I.allmap_na || '') + '</em>')
         + '</div>');
       markers[i] = mk; bounds.push([lat, lng]);
     });
