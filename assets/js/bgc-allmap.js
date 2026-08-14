@@ -302,10 +302,14 @@
     // Typing something new and walking away must not leave a stale place selected.
     $input.on('blur', function () { setTimeout(hideRes, 150); });
 
-    // Seed from the courier block the customer is already using, when the dialog has nothing
-    // remembered: they have told the checkout where they are once, and being asked again is the kind
-    // of small rudeness that makes a dialog feel like a form.
-    if (!state.cityName) { seedFromCheckout(opts.wrap); }
+    // The city the CHECKOUT is on right now wins over the one remembered from last time. It used to be
+    // the other way round - remembered first, checkout only as a fallback - so a customer who set their
+    // courier to Ахелой and then opened the map was shown София, because that is where they had been
+    // looking on some earlier visit. The remembered place is a courtesy for when the checkout has no
+    // city yet; it is not news, and it must never overrule what the customer has just chosen.
+    // seedFromCheckout() leaves the loaded values alone when it finds no city, so this is safe to call
+    // unconditionally.
+    seedFromCheckout(opts.wrap);
     if (state.cityLabel) { $input.val(state.cityLabel); showOffices(); }
 
     $dlg.on('click', '.bgc-allmap-close', close);
@@ -635,8 +639,23 @@
       var here = [pos.coords.latitude, pos.coords.longitude];
       if (meMarker) { meMarker.setLatLng(here); }
       else {
-        meMarker = L.circleMarker(here, { radius: 7, color: '#fff', weight: 3,
-          fillColor: '#2271b1', fillOpacity: 1 }).addTo(map);
+        // A teardrop, not another dot. This used to be a filled circle in blue, which is the one shape
+        // every courier pin on this map already has - so "where I am" was indistinguishable from "an
+        // Econt office", and on a screen carrying nine hundred circles it simply disappeared. Telling
+        // them apart by SHAPE survives any future courier colour; the ring underneath pulses, which
+        // nothing else here does except the point already chosen.
+        meMarker = L.marker(here, {
+          zIndexOffset: 2000,          // above every courier pin, including a chosen one
+          icon: L.divIcon({
+            className: 'bgc-allmap-me',
+            html: '<span class="bgc-me-ring"></span>'
+              + '<svg viewBox="0 0 24 34" width="24" height="34" aria-hidden="true">'
+              + '<path d="M12 0C5.4 0 0 5.4 0 12c0 8.4 12 22 12 22s12-13.6 12-22c0-6.6-5.4-12-12-12z"/>'
+              + '<circle cx="12" cy="12" r="4.4"/></svg>',
+            iconSize: [24, 34], iconAnchor: [12, 34]
+          })
+        }).addTo(map);
+        meMarker.bindTooltip(I.map_locate || '', { direction: 'top', offset: [0, -34] });
       }
       var visible = points.filter(function (p, i) {
         return markers[i] && layer && layer.hasLayer(markers[i]);
@@ -671,6 +690,7 @@
   function prefetch() {
     if (!window.BGCOURIERS || !BGCOURIERS.ajax) { return; }
     load();
+    seedFromCheckout();   // same order of precedence as open(), so the RIGHT place is the warm one
     if (!state.cityName) { return; }
     var key = state.cityName + '|' + state.cityCode + '|both';
     if (cache[key]) { return; }

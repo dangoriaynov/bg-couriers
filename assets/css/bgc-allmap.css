@@ -309,3 +309,25 @@
   .bgc-allmap-searchrow { padding: 5px 8px 5px 14px; }
   .bgc-allmap-switch { bottom: 8px; }
 }
+
+/* "You are here". Deliberately a different SHAPE from every courier pin rather than just a different
+   colour: those are all filled circles, so a blue circle for the customer's own position read as one
+   more office - and on a city carrying nine hundred of them it was simply lost. The ring breathes
+   underneath, which nothing else on this map does apart from the point already chosen. */
+.bgc-allmap-me { pointer-events: none; }
+.bgc-allmap-me svg { position: relative; z-index: 2; display: block;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.45)); }
+.bgc-allmap-me svg path { fill: #1769d6; stroke: #fff; stroke-width: 2; paint-order: stroke; }
+.bgc-allmap-me svg circle { fill: #fff; }
+.bgc-allmap-me .bgc-me-ring { position: absolute; left: 50%; bottom: -6px; width: 14px; height: 14px;
+  margin-left: -7px; border-radius: 50%; background: rgba(23,105,214,.35);
+  box-shadow: 0 0 0 2px rgba(23,105,214,.25);
+  animation: bgc-allmap-me-ping 2s cubic-bezier(0, 0, .2, 1) infinite; }
+@keyframes bgc-allmap-me-ping {
+  0%   { transform: scale(.6); opacity: .9; }
+  70%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bgc-allmap-me .bgc-me-ring { animation: none; opacity: .55; transform: scale(1.6); }
+}

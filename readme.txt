@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.14
+Stable tag: 0.2.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.15 =
+* Fixed: the interactive map opened on the town you looked at last time instead of the one currently chosen for the courier, so setting the delivery to another town and opening the map still showed the old one.
+* Your own position on the map is now a distinct pin rather than another coloured dot, which was impossible to pick out among the couriers' points.
 
 = 0.2.14 =
 * Fixed: on the interactive map every point of a courier was labelled with the price of whichever delivery type that courier was currently set to. With Speedy on "to office" its lockers showed the office price, and switching to a locker made its offices show the locker price. Each point is now priced for the way it is actually collected.
