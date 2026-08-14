@@ -536,7 +536,22 @@
         + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(priceLabel(p)) + '</span>' : '')
         + '</div>'
         + '<div class="bgc-allmap-pop-n">' + esc(p.office.name || '') + '</div>'
-        + '<div class="bgc-allmap-pop-a">' + esc(p.office.address || '') + '</div>'
+        + '<div class="bgc-allmap-pop-a">' + esc(p.office.address || '')
+        // "How do I get there, and how long does it take" is the question a pin cannot answer and a
+        // map application can. No origin is given, so Google starts from wherever the customer actually
+        // is - which also means this needs no location permission of our own. Opened in a new tab: the
+        // checkout behind it is half-filled in and must not be navigated away from.
+        + (lat && lng
+            ? '<a class="bgc-allmap-dir" target="_blank" rel="noopener noreferrer"'
+              + ' href="https://www.google.com/maps/dir/?api=1&destination='
+              + encodeURIComponent(lat + ',' + lng) + '"'
+              + ' title="' + esc(I.allmap_directions || '') + '"'
+              + ' aria-label="' + esc(I.allmap_directions || '') + '">'
+              + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"'
+              + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+              + '<polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></a>'
+            : '')
+        + '</div>'
         + (p.available
             ? '<button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'
             : '<em class="bgc-allmap-pop-na">' + esc(I.allmap_na || '') + '</em>')
@@ -567,12 +582,19 @@
       if (!map) { return; }
       map.invalidateSize();
       if (!bounds.length) { map.setView([42.73, 25.3], 7); return; }
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+      // Computed from the BOUNDS, never from the zoom the map happens to be on. It used to read
+      // getZoom() + 2 after a fitBounds, which is only correct if it runs exactly once - and this now
+      // runs up to three times per render (immediately, on the width transition, and on the timeout
+      // behind it), so each pass zoomed two steps further in than the last and the map ended up four to
+      // six steps past where it should be. Framed this way the answer is the same however often it is
+      // asked, which is what lets it be called freely.
+      var box = L.latLngBounds(bounds);
+      var fit = map.getBoundsZoom(box, false, L.point(30, 30));
       // Two steps closer than "everything fits". A city fitted whole is a shape, not a place: the
       // customer is looking for a corner they recognise, and street names only start being readable
       // about here. The outlying points that fall outside the first view are all still in the list
       // beside the map, and the map can be dragged.
-      map.setZoom(Math.min(map.getZoom() + 2, 17));
+      map.setView(box.getCenter(), Math.min(Math.min(fit, 16) + 2, 17), { animate: false });
     }
     frame();  // now, so the tiles start loading at once
     // ...and again when the box stops growing. Both, rather than only the second: transitionend does

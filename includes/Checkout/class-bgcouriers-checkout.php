@@ -685,6 +685,9 @@ class BGCouriers_Checkout {
                 // Said while the couriers are being asked - a spinner alone in a large empty dialog
                 // reads as nothing happening.
                 'allmap_loading' => __('Loading the pickup points…', 'bg-couriers'),
+                // Opens Google Maps directions to the point. No origin is sent - Google uses wherever the
+                // customer is, which is the whole question they are asking.
+                'allmap_directions' => __('Directions', 'bg-couriers'),
             ],
         ]);
 

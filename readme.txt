@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.15
+Stable tag: 0.2.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.16 =
+* Fixed: the map opened zoomed in much too far and re-centred oddly. Introduced in 0.2.12, where the framing began running more than once per view and each pass zoomed two steps further in than the last.
+* A pin's popup is now centred, and its address carries a small button that opens Google Maps directions from wherever you are to that office or locker - so you can see how far it is and start navigating.
 
 = 0.2.15 =
 * Fixed: the interactive map opened on the town you looked at last time instead of the one currently chosen for the courier, so setting the delivery to another town and opening the map still showed the old one.
