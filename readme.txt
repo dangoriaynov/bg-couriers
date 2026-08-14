@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.11
+Stable tag: 0.2.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.12 =
+* The interactive map now opens as a small dialog asking only where you are collecting from, and grows into the full map once it has something to show. It used to open at full width straight away, leaving the city field alone against the left edge of a large empty panel with the sidebar and search box of a list that did not exist yet.
+* While the offices are being fetched the dialog now says so in words. There was a spinner before, but it was a small circle adrift in that empty panel, which read as nothing happening at all.
 
 = 0.2.11 =
 * Fixed: the interactive map could come up completely empty for a city, with no error shown. It asked every courier's server directly, for every delivery type, in one request - and if any of them was slow the whole request died. The busiest cities usually worked because their answers were still cached from an earlier customer; quieter ones were a lottery. It now reads the office list the plugin already keeps in sync, so it answers every time.

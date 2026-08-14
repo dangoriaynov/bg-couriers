@@ -682,6 +682,9 @@ class BGCouriers_Checkout {
                 // The two halves of the phone-sized dialog, which shows one of them at a time.
                 'allmap_map' => __('Map', 'bg-couriers'),
                 'allmap_list' => __('List', 'bg-couriers'),
+                // Said while the couriers are being asked - a spinner alone in a large empty dialog
+                // reads as nothing happening.
+                'allmap_loading' => __('Loading the pickup points…', 'bg-couriers'),
             ],
         ]);
 

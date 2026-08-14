@@ -378,14 +378,26 @@
     state.cityLabel = label;
   }
 
-  /** The plugin's standard spinner, filling the map area while the couriers are being asked. */
+  /**
+   * Say that the couriers are being asked.
+   *
+   * Two shapes, because there are two situations. Opening the dialog on a remembered place used to
+   * unroll the FULL two-pane layout immediately - an empty sidebar, an empty search box and a small
+   * spinner adrift in about 900x400 of white - and then sit there for the length of an admin-ajax
+   * round trip. That reads as nothing happening, which is exactly what it was reported as. Before
+   * there is anything to show, the dialog stays its compact size and says so in words under the city
+   * field. Once a map exists, changing the city dims THAT instead, because the previous answer is
+   * still on screen and worth keeping until the new one arrives.
+   */
   function busy(on) {
     if (!$dlg) { return; }
-    $dlg.find('.bgc-allmap-body').toggle(true);
-    $dlg.addClass('bgc-has-map');
-    $dlg.find('.bgc-allmap-busy').remove();
-    if (on) {
+    $dlg.find('.bgc-allmap-wait, .bgc-allmap-busy').remove();
+    if (!on) { return; }
+    if ($dlg.hasClass('bgc-has-map')) {
       $dlg.find('.bgc-allmap-body').append('<div class="bgc-allmap-busy"><span class="bgc-spinner"></span></div>');
+    } else {
+      $dlg.find('.bgc-allmap-form').after('<div class="bgc-allmap-wait"><span class="bgc-spinner"></span>'
+        + '<span>' + esc(I.allmap_loading || '') + '</span></div>');
     }
   }
 
@@ -518,7 +530,20 @@
         });
       markers[i] = mk; bounds.push([lat, lng]);
     });
-    if (bounds.length) {
+    /**
+     * Measure the container, then frame the points inside it - in that order, and again once the box
+     * has finished growing.
+     *
+     * The dialog opens compact and widens to its full size when a map arrives, and that width is a CSS
+     * transition: for the third of a second it takes, the map's container is still the narrow one.
+     * Leaflet caches whatever it measured, so fitting here alone left the map drawn at the old width
+     * with the rest of the panel blank - the same stale-measurement trap as the phone panes, arriving
+     * this time through an animation I added.
+     */
+    function frame() {
+      if (!map) { return; }
+      map.invalidateSize();
+      if (!bounds.length) { map.setView([42.73, 25.3], 7); return; }
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
       // Two steps closer than "everything fits". A city fitted whole is a shape, not a place: the
       // customer is looking for a corner they recognise, and street names only start being readable
@@ -526,8 +551,14 @@
       // beside the map, and the map can be dragged.
       map.setZoom(Math.min(map.getZoom() + 2, 17));
     }
-    else { map.setView([42.73, 25.3], 7); }
-    map.invalidateSize();
+    frame();  // now, so the tiles start loading at once
+    // ...and again when the box stops growing. Both, rather than only the second: transitionend does
+    // not fire when the transition is suppressed (prefers-reduced-motion), and the timeout is the net
+    // for that as much as for a missed event.
+    $dlg.find('.bgc-allmap-box').off('transitionend.bgcfit').on('transitionend.bgcfit', function (e) {
+      if (e.originalEvent && e.originalEvent.propertyName === 'width') { frame(); }
+    });
+    setTimeout(frame, 420);
 
     // The legend says which colour is whose AND doubles as the filter - on a map carrying four
     // couriers at once, "which of these dots is Econt" is the first question, and "show me only

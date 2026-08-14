@@ -31,10 +31,17 @@
    dropdown inside this box, and positions it absolutely - without a positioned ancestor it lands at the
    far end of the overlay instead of under the field, and with overflow:hidden it would be clipped
    instead. The rounded corners that overflow:hidden used to provide are done by the body below. */
-.bgc-allmap-box { position: relative; background: #fff; border-radius: 12px; width: min(1240px, 96vw);
+/* Two sizes, not one. Before there is a map the dialog holds a single question - which town - so it is
+   the size of that question and sits in the middle of the screen. It used to open at its full 1240px
+   whatever it contained, which put the city field alone against the left edge of a white slab nearly a
+   thousand pixels wide, with the empty sidebar and search box of a list that did not exist yet. The
+   width animates alongside the margin, so choosing a place opens the dialog out rather than replacing
+   one layout with another. */
+.bgc-allmap-box { position: relative; background: #fff; border-radius: 12px; width: min(560px, 94vw);
   max-height: 94vh; display: flex; flex-direction: column; overflow: visible;
-  margin-top: max(16px, calc(50vh - 110px)); transition: margin-top .35s cubic-bezier(.22,.61,.36,1); }
-.bgc-has-map .bgc-allmap-box { margin-top: 16px; }
+  margin-top: max(16px, calc(50vh - 110px));
+  transition: margin-top .35s cubic-bezier(.22,.61,.36,1), width .35s cubic-bezier(.22,.61,.36,1); }
+.bgc-has-map .bgc-allmap-box { margin-top: 16px; width: min(1240px, 96vw); }
 /* Three columns so the caption is centred on the BOX, not on the space left over beside the close
    button - with space-between it sat visibly left of centre. */
 .bgc-allmap-head { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center;
@@ -47,6 +54,16 @@
    whole row further down the screen for no information at all. */
 .bgc-allmap-form { padding: 10px 14px; display: flex; align-items: flex-start; gap: 12px; }
 .bgc-allmap-form .bgc-allmap-cityrow { flex: 0 0 auto; width: min(300px, 42%); }
+/* With no map yet the field IS the dialog's content, so it takes the width rather than hugging the
+   left edge with nothing beside it. The legend is still empty at this point (it carries the couriers
+   found for a place), so there is nothing for it to share the row with. */
+.bgc-allmap-overlay:not(.bgc-has-map) .bgc-allmap-form { padding: 14px; }
+.bgc-allmap-overlay:not(.bgc-has-map) .bgc-allmap-form .bgc-allmap-cityrow { flex: 1 1 auto; width: auto; }
+
+/* Waiting, before there is anything to wait ON. Sits under the city field at the dialog's own width,
+   so the wait is where the eye already is instead of a lone circle in an empty pane. */
+.bgc-allmap-wait { display: flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 0 14px 16px; color: #50575e; font-size: 13px; }
 
 /* Which colour is whose, and a filter in the same control: on a map carrying four couriers the first
    question is what the dots mean and the second is "show me only this one". */

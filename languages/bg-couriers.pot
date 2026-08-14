@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: BG Couriers for WooCommerce 0.2.8\n"
+"Project-Id-Version: BG Couriers for WooCommerce 0.2.11\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-13T17:37:50+00:00\n"
+"POT-Creation-Date: 2026-08-14T18:29:16+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: bg-couriers\n"
@@ -161,7 +161,7 @@ msgstr ""
 
 #. translators: %s: error message from the courier
 #: includes/Admin/class-bgcouriers-labels.php:229
-#: includes/Admin/class-bgcouriers-order-metabox.php:129
+#: includes/Admin/class-bgcouriers-order-metabox.php:130
 #, php-format
 msgid "Label generation failed: %s"
 msgstr ""
@@ -282,40 +282,40 @@ msgstr ""
 
 #. translators: %s: human-readable time difference, e.g. "2 hours"
 #: includes/Admin/class-bgcouriers-order-columns.php:117
-#: includes/Admin/class-bgcouriers-order-metabox.php:110
+#: includes/Admin/class-bgcouriers-order-metabox.php:111
 #, php-format
 msgid "updated %s ago"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-columns.php:165
-#: includes/Admin/class-bgcouriers-order-metabox.php:40
+#: includes/Admin/class-bgcouriers-order-metabox.php:41
 msgid "Edit delivery details"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-columns.php:177
-#: includes/Admin/class-bgcouriers-order-metabox.php:75
+#: includes/Admin/class-bgcouriers-order-metabox.php:76
 msgid "Re-issue waybill (voids the current one)"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-columns.php:187
-#: includes/Admin/class-bgcouriers-order-columns.php:226
+#: includes/Admin/class-bgcouriers-order-columns.php:227
 msgid "Generate"
 msgstr ""
 
 #. translators: %s: waybill number
 #: includes/Admin/class-bgcouriers-order-columns.php:194
-#: includes/Admin/class-bgcouriers-order-metabox.php:92
+#: includes/Admin/class-bgcouriers-order-metabox.php:93
 #, php-format
 msgid "Copy waybill %s"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-columns.php:197
-#: includes/Admin/class-bgcouriers-order-metabox.php:76
+#: includes/Admin/class-bgcouriers-order-metabox.php:77
 msgid "Print label"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-columns.php:198
-#: includes/Admin/class-bgcouriers-order-metabox.php:77
+#: includes/Admin/class-bgcouriers-order-metabox.php:78
 msgid "Track shipment"
 msgstr ""
 
@@ -323,85 +323,85 @@ msgstr ""
 msgid "Cancel waybill"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:220
-#: includes/Admin/class-bgcouriers-order-metabox.php:214
+#: includes/Admin/class-bgcouriers-order-columns.php:221
+#: includes/Admin/class-bgcouriers-order-metabox.php:250
 msgid "Cancel this waybill?"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:221
-#: includes/Admin/class-bgcouriers-order-metabox.php:215
+#: includes/Admin/class-bgcouriers-order-columns.php:222
+#: includes/Admin/class-bgcouriers-order-metabox.php:251
 msgid "This voids the shipment label with the courier. This cannot be undone."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:222
-#: includes/Admin/class-bgcouriers-order-metabox.php:216
+#: includes/Admin/class-bgcouriers-order-columns.php:223
+#: includes/Admin/class-bgcouriers-order-metabox.php:252
 msgid "Yes, cancel it"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:223
-#: includes/Admin/class-bgcouriers-order-metabox.php:217
+#: includes/Admin/class-bgcouriers-order-columns.php:224
+#: includes/Admin/class-bgcouriers-order-metabox.php:253
 msgid "Keep it"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:224
+#: includes/Admin/class-bgcouriers-order-columns.php:225
 msgid "Waybill cancelled"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:225
-#: includes/Admin/class-bgcouriers-order-metabox.php:211
+#: includes/Admin/class-bgcouriers-order-columns.php:226
+#: includes/Admin/class-bgcouriers-order-metabox.php:247
 msgid "Copied to clipboard"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:227
+#: includes/Admin/class-bgcouriers-order-columns.php:228
 msgid "Could not cancel."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:228
-#: includes/Admin/class-bgcouriers-order-metabox.php:218
+#: includes/Admin/class-bgcouriers-order-columns.php:229
+#: includes/Admin/class-bgcouriers-order-metabox.php:254
 msgid "Re-issue this waybill?"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:229
-#: includes/Admin/class-bgcouriers-order-metabox.php:219
+#: includes/Admin/class-bgcouriers-order-columns.php:230
+#: includes/Admin/class-bgcouriers-order-metabox.php:255
 msgid "The current waybill is voided with the courier and a new one is issued from this order's current delivery details, products and settings. This cannot be undone."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:230
-#: includes/Admin/class-bgcouriers-order-metabox.php:220
+#: includes/Admin/class-bgcouriers-order-columns.php:231
+#: includes/Admin/class-bgcouriers-order-metabox.php:256
 msgid "Yes, re-issue it"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:239
+#: includes/Admin/class-bgcouriers-order-columns.php:240
 msgid "Cancel the selected waybills?"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:240
+#: includes/Admin/class-bgcouriers-order-columns.php:241
 msgid "This voids the shipment label with the courier for every selected order. This cannot be undone."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:241
+#: includes/Admin/class-bgcouriers-order-columns.php:242
 msgid "Yes, cancel them"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:242
-#: includes/Admin/class-bgcouriers-order-columns.php:248
+#: includes/Admin/class-bgcouriers-order-columns.php:243
+#: includes/Admin/class-bgcouriers-order-columns.php:249
 msgid "Keep them"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:245
+#: includes/Admin/class-bgcouriers-order-columns.php:246
 msgid "Re-issue the selected waybills?"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:246
+#: includes/Admin/class-bgcouriers-order-columns.php:247
 msgid "Every selected order ends up with a fresh waybill, issued from that order's current delivery details, products and settings. Where a waybill already exists it is voided with the courier first. This cannot be undone."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-columns.php:247
+#: includes/Admin/class-bgcouriers-order-columns.php:248
 msgid "Yes, re-issue them"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:28
-#: includes/Admin/class-bgcouriers-order-metabox.php:208
+#: includes/Admin/class-bgcouriers-order-metabox.php:29
+#: includes/Admin/class-bgcouriers-order-metabox.php:244
 #: includes/Admin/class-bgcouriers-settings.php:494
 #: includes/Admin/class-bgcouriers-wc-settings.php:20
 #: includes/Checkout/class-bgcouriers-checkout.php:659
@@ -410,8 +410,8 @@ msgstr ""
 msgid "To office"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:28
-#: includes/Admin/class-bgcouriers-order-metabox.php:208
+#: includes/Admin/class-bgcouriers-order-metabox.php:29
+#: includes/Admin/class-bgcouriers-order-metabox.php:244
 #: includes/Admin/class-bgcouriers-settings.php:495
 #: includes/Admin/class-bgcouriers-wc-settings.php:21
 #: includes/Checkout/class-bgcouriers-checkout.php:659
@@ -420,8 +420,8 @@ msgstr ""
 msgid "To address"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:28
-#: includes/Admin/class-bgcouriers-order-metabox.php:208
+#: includes/Admin/class-bgcouriers-order-metabox.php:29
+#: includes/Admin/class-bgcouriers-order-metabox.php:244
 #: includes/Admin/class-bgcouriers-settings.php:496
 #: includes/Admin/class-bgcouriers-wc-settings.php:22
 #: includes/Checkout/class-bgcouriers-checkout.php:659
@@ -430,179 +430,179 @@ msgstr ""
 msgid "To APS"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:60
+#: includes/Admin/class-bgcouriers-order-metabox.php:61
 msgid "Generate label"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:79
+#: includes/Admin/class-bgcouriers-order-metabox.php:80
 msgid "Cancel (void) label"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:118
 #: includes/Admin/class-bgcouriers-order-metabox.php:119
+#: includes/Admin/class-bgcouriers-order-metabox.php:120
 msgid "Update from the courier now"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:209
-#: includes/Admin/class-bgcouriers-order-metabox.php:244
-#: includes/Checkout/class-bgcouriers-checkout.php:769
+#: includes/Admin/class-bgcouriers-order-metabox.php:245
+#: includes/Admin/class-bgcouriers-order-metabox.php:282
+#: includes/Checkout/class-bgcouriers-checkout.php:772
 msgid "City"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:209
 #: includes/Admin/class-bgcouriers-order-metabox.php:245
+#: includes/Admin/class-bgcouriers-order-metabox.php:283
 msgid "Office / APS"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:209
-#: includes/Admin/class-bgcouriers-order-metabox.php:249
-#: includes/Checkout/class-bgcouriers-checkout.php:779
+#: includes/Admin/class-bgcouriers-order-metabox.php:245
+#: includes/Admin/class-bgcouriers-order-metabox.php:287
+#: includes/Checkout/class-bgcouriers-checkout.php:782
 msgid "Street"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:210
+#: includes/Admin/class-bgcouriers-order-metabox.php:246
 msgid "Saving…"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:210
+#: includes/Admin/class-bgcouriers-order-metabox.php:246
 msgid "Could not save."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:212
+#: includes/Admin/class-bgcouriers-order-metabox.php:248
 msgid "Asking the courier…"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:213
+#: includes/Admin/class-bgcouriers-order-metabox.php:249
 msgid "Could not reach the courier."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:221
-#: includes/Admin/class-bgcouriers-order-metabox.php:245
+#: includes/Admin/class-bgcouriers-order-metabox.php:257
+#: includes/Admin/class-bgcouriers-order-metabox.php:283
 #: includes/Checkout/class-bgcouriers-checkout.php:669
 msgid "Pick from the map"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:222
+#: includes/Admin/class-bgcouriers-order-metabox.php:258
 #: includes/Checkout/class-bgcouriers-checkout.php:670
 msgid "Choose this location"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:223
+#: includes/Admin/class-bgcouriers-order-metabox.php:259
 #: includes/Checkout/class-bgcouriers-checkout.php:671
 msgid "Show my location"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:224
+#: includes/Admin/class-bgcouriers-order-metabox.php:260
 #: includes/Checkout/class-bgcouriers-checkout.php:672
 msgid "No offices with a map location for this city yet - use the list."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:225
+#: includes/Admin/class-bgcouriers-order-metabox.php:261
 #: includes/Checkout/class-bgcouriers-checkout.php:663
 msgid "Search…"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:226
+#: includes/Admin/class-bgcouriers-order-metabox.php:262
 #: includes/Admin/class-bgcouriers-wc-settings.php:337
 #: includes/Checkout/class-bgcouriers-checkout.php:662
 msgid "Close"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:227
+#: includes/Admin/class-bgcouriers-order-metabox.php:263
 msgid "Choose the address on the map"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:228
+#: includes/Admin/class-bgcouriers-order-metabox.php:264
 msgid "Click the map or drag the pin to the address."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:229
+#: includes/Admin/class-bgcouriers-order-metabox.php:265
 #: includes/Checkout/class-bgcouriers-checkout.php:675
 msgid "Use this address"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:230
+#: includes/Admin/class-bgcouriers-order-metabox.php:266
 #: includes/Checkout/class-bgcouriers-checkout.php:676
 msgid "No address found here - try another spot."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:231
+#: includes/Admin/class-bgcouriers-order-metabox.php:267
 #: includes/Checkout/class-bgcouriers-checkout.php:683
-#: includes/Checkout/class-bgcouriers-checkout.php:776
+#: includes/Checkout/class-bgcouriers-checkout.php:779
 msgid "Map"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:232
+#: includes/Admin/class-bgcouriers-order-metabox.php:268
 msgid "This courier has no office in this city - pick another city or delivery option."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:233
+#: includes/Admin/class-bgcouriers-order-metabox.php:269
 msgid "This courier has no APS/locker in this city - pick another city or delivery option."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:242
+#: includes/Admin/class-bgcouriers-order-metabox.php:280
 msgid "Courier"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:243
+#: includes/Admin/class-bgcouriers-order-metabox.php:281
 msgid "Delivery option"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:250
-#: includes/Checkout/class-bgcouriers-checkout.php:780
+#: includes/Admin/class-bgcouriers-order-metabox.php:288
+#: includes/Checkout/class-bgcouriers-checkout.php:783
 msgid "No."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:251
+#: includes/Admin/class-bgcouriers-order-metabox.php:289
 msgid "Pick the address on the map"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:253
-#: includes/Checkout/class-bgcouriers-checkout.php:789
+#: includes/Admin/class-bgcouriers-order-metabox.php:291
+#: includes/Checkout/class-bgcouriers-checkout.php:792
 msgid "Quarter / complex"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:255
+#: includes/Admin/class-bgcouriers-order-metabox.php:293
 msgid "Bl."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:256
-#: includes/Checkout/class-bgcouriers-checkout.php:792
+#: includes/Admin/class-bgcouriers-order-metabox.php:294
+#: includes/Checkout/class-bgcouriers-checkout.php:795
 msgid "Entr."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:257
-#: includes/Checkout/class-bgcouriers-checkout.php:793
+#: includes/Admin/class-bgcouriers-order-metabox.php:295
+#: includes/Checkout/class-bgcouriers-checkout.php:796
 msgid "Floor"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:258
-#: includes/Checkout/class-bgcouriers-checkout.php:794
+#: includes/Admin/class-bgcouriers-order-metabox.php:296
+#: includes/Checkout/class-bgcouriers-checkout.php:797
 msgid "Apt."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:260
-#: includes/Checkout/class-bgcouriers-checkout.php:796
+#: includes/Admin/class-bgcouriers-order-metabox.php:298
+#: includes/Checkout/class-bgcouriers-checkout.php:799
 msgid "Note"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:263
+#: includes/Admin/class-bgcouriers-order-metabox.php:301
 msgid "Locker id"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:264
+#: includes/Admin/class-bgcouriers-order-metabox.php:302
 msgid "Locker name"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:265
+#: includes/Admin/class-bgcouriers-order-metabox.php:303
 msgid "Locker address"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:268
+#: includes/Admin/class-bgcouriers-order-metabox.php:306
 msgid "Save delivery"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:272
+#: includes/Admin/class-bgcouriers-order-metabox.php:310
 msgid "A waybill exists. Saving voids it and issues a new one matching the new details."
 msgstr ""
 
@@ -1864,12 +1864,12 @@ msgid "Please choose an office/APS for %s."
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:660
-#: includes/Checkout/class-bgcouriers-checkout.php:753
+#: includes/Checkout/class-bgcouriers-checkout.php:756
 msgid "Office"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:660
-#: includes/Checkout/class-bgcouriers-checkout.php:752
+#: includes/Checkout/class-bgcouriers-checkout.php:755
 msgid "APS (locker)"
 msgstr ""
 
@@ -1894,7 +1894,7 @@ msgid "Select a city first"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:666
-#: includes/Checkout/class-bgcouriers-checkout.php:815
+#: includes/Checkout/class-bgcouriers-checkout.php:818
 msgid "Choose a BOX NOW locker"
 msgstr ""
 
@@ -1903,7 +1903,7 @@ msgid "Change locker"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:668
-#: includes/Checkout/class-bgcouriers-checkout.php:774
+#: includes/Checkout/class-bgcouriers-checkout.php:777
 msgid "View on map"
 msgstr ""
 
@@ -1935,11 +1935,15 @@ msgstr ""
 msgid "List"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:784
+#: includes/Checkout/class-bgcouriers-checkout.php:687
+msgid "Loading the pickup points…"
+msgstr ""
+
+#: includes/Checkout/class-bgcouriers-checkout.php:787
 msgid "Choose on map"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:791
+#: includes/Checkout/class-bgcouriers-checkout.php:794
 msgid "Block"
 msgstr ""
 
