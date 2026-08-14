@@ -714,6 +714,7 @@ class BGCouriers_Checkout {
                 // Opens Google Maps directions to the point. No origin is sent - Google uses wherever the
                 // customer is, which is the whole question they are asking.
                 'allmap_directions' => __('Directions', 'bg-couriers'),
+                'clear' => __('Clear', 'bg-couriers'),
             ],
         ]);
 

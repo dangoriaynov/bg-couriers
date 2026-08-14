@@ -159,3 +159,15 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 
 /* The courier rate rows themselves (list, hidden radio, logo, price, chosen-row card) and the (i) hint
    live in bgc-rates.css - the cart renders the same list, so those rules have to load on both pages. */
+
+/* select2's clear sits immediately after the text, so on a wide field it floats in the middle of the
+   box with nothing around it and reads as part of the town's name - "СОФИЯ (1000)✕". Moved to the
+   right-hand end, just inside the arrow, which is where every other control on this checkout keeps it.
+   Scoped to our own fields so no other select2 on the page is touched. */
+.bgc-fields .select2-container--default .select2-selection--single { position: relative; }
+.bgc-fields .select2-container--default .select2-selection--single .select2-selection__clear {
+  position: absolute; right: 26px; top: 50%; transform: translateY(-50%); margin: 0;
+  float: none; padding: 0 4px; font-size: 18px; line-height: 1; color: #6b7280; }
+.bgc-fields .select2-container--default .select2-selection--single .select2-selection__clear:hover { color: #1d2327; }
+/* ...and the text stops before it, rather than running underneath. */
+.bgc-fields .select2-container--default .select2-selection--single .select2-selection__rendered { padding-right: 48px; }

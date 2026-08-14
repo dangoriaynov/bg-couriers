@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.17
+Stable tag: 0.2.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.18 =
+* The town on the interactive map now has a clear (×) button at the right-hand end of the field, and the courier blocks' own city field keeps its × in the same place instead of tucked against the town's name.
+* "Find my location" now works before a town is chosen: it works out which town you are in and opens it.
+* Choosing a town now shows ALL of its offices and lockers at once. It used to open two steps closer, leaving the outlying ones off the screen entirely.
+* Scrolling inside the map dialog no longer scrolls the checkout behind it.
 
 = 0.2.17 =
 * The interactive map now opens on the office or locker you already chose, instead of on the middle of the town where it was impossible to find again. It still shows every courier - it just knows which point is yours.

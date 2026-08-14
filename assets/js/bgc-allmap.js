@@ -229,6 +229,13 @@
       + '<div class="bgc-allmap-form">'
       + '<div class="bgc-allmap-cityrow">'
       + '<input type="text" class="bgc-allmap-cityinput" autocomplete="off" placeholder="' + esc(I.allmap_city_ph || '') + '">'
+      + '<button type="button" class="bgc-allmap-cityclear" hidden aria-label="' + esc(I.clear || '') + '"'
+      + ' title="' + esc(I.clear || '') + '">&times;</button>'
+      // The same "find me" control, for the state where the other one does not exist yet: the search
+      // row lives inside the map's own panel, which is not on screen until there is a town to draw.
+      // That is exactly the moment this button is most useful, and it was unreachable.
+      + '<button type="button" class="bgc-map-locate bgc-allmap-citylocate" data-tip="' + esc(I.map_locate || '')
+      + '" title="' + esc(I.map_locate || '') + '" aria-label="' + esc(I.map_locate || '') + '"></button>'
       + '<ul class="bgc-allmap-cityres" hidden></ul></div>'
       + '<div class="bgc-allmap-legend" hidden></div>'
       + '</div>'
@@ -269,10 +276,25 @@
     var searchT = null;
 
     function hideRes() { $res.attr('hidden', true).empty(); }
+    function syncClear() { $dlg.find('.bgc-allmap-cityclear').attr('hidden', $.trim($input.val()) === '' ? true : null); }
+    /** Back to the one question this dialog starts with: no place, so nothing to plot. */
+    function clearCity() {
+      state.cityName = state.cityCode = state.cityLabel = '';
+      save();
+      $input.val('').focus();
+      hideRes(); syncClear(); busyCity(false);
+      if (map) { map.remove(); map = null; layer = null; }
+      markers = []; points = [];
+      $dlg.removeClass('bgc-has-map');
+      $dlg.find('.bgc-allmap-body').hide().find('.bgc-allmap-list').empty();
+      $dlg.find('.bgc-allmap-legend').attr('hidden', true).empty();
+      $dlg.find('.bgc-allmap-canvas').empty();
+    }
+    $dlg.on('click', '.bgc-allmap-cityclear', function (e) { e.preventDefault(); clearCity(); });
     function pickCity(name, code, label) {
       state.cityName = name; state.cityCode = code; state.cityLabel = label;
       $input.val(label);
-      hideRes(); save();
+      hideRes(); save(); syncClear();
       // Choosing a place IS the instruction to show it. A button afterwards asked the customer to
       // confirm a decision they had just made.
       showOffices();
@@ -286,8 +308,10 @@
       });
       $res.attr('hidden', !$res.children().length);
     }
+    pickCityFn = pickCity;
     $input.on('input', function () {
       var term = $.trim($input.val());
+      syncClear();
       clearTimeout(searchT);
       if (term.length < 2) { hideRes(); busyCity(false); return; }
 
@@ -322,6 +346,7 @@
     // unconditionally.
     seedFromCheckout(opts.wrap);
     if (state.cityLabel) { $input.val(state.cityLabel); showOffices(); }
+    syncClear();
 
     $dlg.on('click', '.bgc-allmap-close', close);
     // Guarded: choosing a point closes the dialog and nulls $dlg, and THIS handler still runs as the
@@ -612,12 +637,13 @@
         return;
       }
       var box = L.latLngBounds(bounds);
-      var fit = map.getBoundsZoom(box, false, L.point(30, 30));
-      // Two steps closer than "everything fits". A city fitted whole is a shape, not a place: the
-      // customer is looking for a corner they recognise, and street names only start being readable
-      // about here. The outlying points that fall outside the first view are all still in the list
-      // beside the map, and the map can be dragged.
-      map.setView(box.getCenter(), Math.min(Math.min(fit, 16) + 2, 17), { animate: false });
+      // Every point in view. It used to open two steps closer than that, on the reasoning that street
+      // names are only readable further in - but a customer who has just named a town wants to see what
+      // it HAS, and the outlying points were simply off the screen with nothing to say they existed.
+      // The padding keeps them off the very edge, and a town with one or two points is capped rather
+      // than zoomed to the rooftops.
+      map.setView(box.getCenter(), Math.min(map.getBoundsZoom(box, false, L.point(34, 34)), 16),
+        { animate: false });
     }
     frame();  // now, so the tiles start loading at once
     // ...and again when the box stops growing. Both, rather than only the second: transitionend does
@@ -677,11 +703,35 @@
    * Where the customer is, and the few points nearest them - not the whole city again. Same behaviour
    * as the per-courier picker so the two dialogs answer this the same way.
    */
-  var meMarker = null;
+  var meMarker = null, pickCityFn = null;
+
+  /**
+   * No town chosen yet, and the customer pressed "find me": answer the question they actually asked.
+   * Without this the button did nothing at all in that state - there is no map to centre and no points
+   * to measure against - which is the one moment it would be most useful.
+   */
+  function cityFromPosition(here) {
+    busyCity(true);
+    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_geocode', lat: here[0], lng: here[1] }, function (geo) {
+      var town = geo && geo.city ? String(geo.city) : '';
+      if (!town || !pickCityFn) { return; }
+      // Resolved against the places this map can actually plot, not taken at face value: the geocoder
+      // spells towns its own way, and a name no courier lists would give an empty map.
+      var rows = localCities(town) || [];
+      var hit = rows[0] || null;
+      if (geo.postcode) {
+        rows.forEach(function (r) { if (String(r.post_code) === String(geo.postcode)) { hit = r; } });
+      }
+      if (!hit) { return; }
+      pickCityFn(hit.name, hit.post_code, hit.name + (hit.post_code ? ' (' + hit.post_code + ')' : ''));
+    }).always(function () { busyCity(false); });
+  }
+
   function showMe() {
-    if (!navigator.geolocation || !map) { return; }
+    if (!navigator.geolocation) { return; }
     navigator.geolocation.getCurrentPosition(function (pos) {
       var here = [pos.coords.latitude, pos.coords.longitude];
+      if (!state.cityName || !map) { cityFromPosition(here); return; }
       if (meMarker) { meMarker.setLatLng(here); }
       else {
         // A teardrop, not another dot. This used to be a filled circle in blue, which is the one shape
