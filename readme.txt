@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.16
+Stable tag: 0.2.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.17 =
+* The interactive map now opens on the office or locker you already chose, instead of on the middle of the town where it was impossible to find again. It still shows every courier - it just knows which point is yours.
+* Fixed: a courier that cannot be used for this order (for example BOX NOW where the shop only takes cash on delivery) no longer shows its logo on the interactive-map button, since it is not in the list of couriers to choose from either.
+* Fixed: the reason a delivery option is unavailable never appeared. The explanation was attached to a disabled button, and a disabled button receives no mouse events, so hovering "To locker" showed nothing - it looked as though the courier does not offer lockers at all rather than "not in this town".
+* The courier and delivery type in a pin's popup now stay on one line, in one size.
 
 = 0.2.16 =
 * Fixed: the map opened zoomed in much too far and re-centred oddly. Introduced in 0.2.12, where the framing began running more than once per view and each pass zoomed two steps further in than the last.

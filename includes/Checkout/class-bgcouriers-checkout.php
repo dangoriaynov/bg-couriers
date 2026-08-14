@@ -219,18 +219,44 @@ class BGCouriers_Checkout {
      * label/td pairs the rows around it use) is deliberate - this row holds one control, not a
      * label and a value.
      */
+    /**
+     * The couriers this cart can ACTUALLY be shipped with, read from the rates on offer.
+     *
+     * Not from the enabled-courier settings, which is a different question. A courier can be switched on
+     * and configured and still be absent from the checkout - BOX NOW is exactly that on a shop whose only
+     * gateway is cash on delivery, because it cannot do ППП and ppp_filter_rates drops it. Built from
+     * settings, the map button showed its mark above a list the customer could not find it in.
+     *
+     * @return array<string,true> courier id => true, for the couriers with a rate in this checkout.
+     */
+    private static function offered_couriers(): array {
+        $out = [];
+        if (!function_exists('WC') || !WC()->shipping()) { return $out; }
+        foreach ((array) WC()->shipping()->get_packages() as $package) {
+            foreach ((array) ($package['rates'] ?? []) as $rate_id => $rate) {
+                $cid = self::courier_from_rate_id((string) $rate_id);
+                if ($cid !== '') { $out[$cid] = true; }
+            }
+        }
+        return $out;
+    }
+
     public function render_allmap_button(): void {
         // The setting gates THIS button only. The dialog itself is what every courier's own Map button
         // opens now - there is no second map any more - so switching this off removes the shortcut
         // above the rates, not the ability to pick a point on a map.
         if (get_option('bgcouriers_allmap', 'yes') !== 'yes') { return; }
-        if (!self::has_pickup_courier()) { return; }
+        // Limited to the couriers actually on offer, so a cart that ends up with only "to address"
+        // couriers gets no button at all rather than one opening an empty map.
+        if (!self::has_pickup_courier(array_keys(self::offered_couriers()))) { return; }
         if (function_exists('is_cart') && is_cart()) { return; } // the pickers belong to checkout
         // The couriers' own marks, in the order the rates are listed below - the button is a shortcut
         // into a map of THESE couriers, and showing whose makes that concrete before it is opened.
         $marks = '';
+        $offered = self::offered_couriers();
         foreach (BGCouriers_Settings::courier_order() as $cid) {
-            if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
+            // On offer for THIS cart, not merely switched on in the settings.
+            if (!isset($offered[$cid])) { continue; }
             $methods = BGCouriers_Settings::enabled_methods($cid);
             if (!in_array('office', $methods, true) && !in_array('automat', $methods, true)) { continue; }
             $logo = BGCouriers_Couriers::logo_url($cid);

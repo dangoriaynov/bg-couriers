@@ -182,21 +182,30 @@
    address it happened to follow. */
 /* Centred, because a popup is a small card about ONE place rather than a column of a list: ragged
    left-aligned lines inside a box this narrow read as an unfinished paragraph. */
-.bgc-allmap-pop { position: relative; min-width: 210px; text-align: center; }
+.bgc-allmap-pop { position: relative; min-width: 210px; text-align: center;
+  font-size: 13px; line-height: 1.4; }
 /* Row 1 - whose it is and how it is collected, which is the pair that decides whether this point is any
    use to you, with the price small at the end of the same line. The price is a fact worth having, not
    the headline, so it stays quiet and out of the reading order. */
-.bgc-allmap-pop-c { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px; }
+/* One line, and it stays one: "До автомат" is longer than "До офис", and wrapped mid-phrase under a
+   courier name set in a different size it read as three separate things rather than one sentence. The
+   popup is allowed to widen instead (see bindPopup's minWidth/maxWidth), which is the cheaper of the
+   two - a slightly wider card against a broken line. */
+.bgc-allmap-pop-c { display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin-bottom: 4px; flex-wrap: nowrap; white-space: nowrap; }
 .bgc-allmap-pop-c img { width: 16px; height: 16px; object-fit: contain; flex: 0 0 auto; }
-.bgc-allmap-pop-c .c { font-weight: 600; }
-.bgc-allmap-pop-c .t { color: #50575e; font-weight: 500; }
+/* Same size for both halves of the line - only weight and colour separate them. They used to inherit
+   two different sizes, which is what made the row look like a collage. */
+.bgc-allmap-pop-c .c { font-weight: 600; font-size: 13px; }
+.bgc-allmap-pop-c .t { color: #50575e; font-weight: 400; font-size: 13px; }
 /* The glyph carries its own right margin for the list rows; in this row the flex gap does that job. */
 .bgc-allmap-pop-c .bgc-allmap-kind { margin-right: 0; }
 .bgc-allmap-pop-price { flex: 0 0 auto; padding: 1px 6px; border-radius: 6px;
   background: #f0f2f4; color: #3c434a; font-size: 11px; font-weight: 600; line-height: 1.5;
   white-space: nowrap; }
 /* Row 2 - which one of them this is. */
-.bgc-allmap-pop-n { font-weight: 600; line-height: 1.3; }
+/* The name IS the heading of this card, so it is the one thing set larger. */
+.bgc-allmap-pop-n { font-weight: 600; font-size: 14px; line-height: 1.3; white-space: normal; }
 /* Row 3 - where it is, a step quieter: by this point you know which place you are looking at. */
 .bgc-allmap-pop-a { color: #50575e; font-size: 12px; line-height: 1.4; margin-bottom: 8px; }
 /* Small on purpose: getting there is a side question, and the point of the popup is still which place

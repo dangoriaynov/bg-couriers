@@ -207,6 +207,17 @@
     if (opts.wrap && opts.wrap.length) {
       current = { courier: only || String(opts.wrap.attr('data-courier') || ''),
                   officeId: String(opts.wrap.find('.bgc-office').val() || '') };
+    } else {
+      // Opened from the shortcut above the rates, which belongs to no courier in particular. It should
+      // still know what the customer has already picked - marking it and opening on it is the whole
+      // reason the per-courier button feels like it remembers - so the chosen point is read from the
+      // block that is currently on screen. `only` is deliberately left empty: this dialog must not
+      // filter down to one courier, it just needs to know which point is already theirs.
+      var $open = $('.bgc-fields[data-courier]:visible').first();
+      if ($open.length) {
+        current = { courier: String($open.attr('data-courier') || ''),
+                    officeId: String($open.find('.bgc-office').val() || '') };
+      }
     }
     load();
     // bgc-mode-map is in the markup, not left to a setMode() call after the append: busy() shows the
@@ -500,7 +511,7 @@
         { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
       layer = L.layerGroup().addTo(map); // holds this and every later render's pins, so they can be cleared as one
     }
-    var bounds = [];
+    var bounds = [], chosenAt = null;
     points.forEach(function (p, i) {
       // Inline style, not a class: the colour is assigned at runtime (first-seen-courier order), so
       // there is no fixed set of classes to put in a stylesheet. This markup is built here in JS and
@@ -561,12 +572,16 @@
           // lowest pin put the Choose button 49px UNDERNEATH the pill - painted, and impossible to
           // press. The pill occupies 51px (37 tall, 14 up from the bottom); 78 leaves ~25px of daylight
           // for a popup made taller by a two-line office name.
+          // Wide enough for "Sameday · До автомат · ~ 1,57 €" to stay on one line, and no wider: the
+          // popup grows to its content between these two.
+          minWidth: 210, maxWidth: 330,
           autoPanPaddingBottomRight: L.point(12, 78),
           // ...and the zoom buttons occupy the opposite corner: 10px in from the edge, two 30px
           // squares tall. Without this the +/- printed straight across the courier and office names.
           autoPanPaddingTopLeft: L.point(58, 82)
         });
       markers[i] = mk; bounds.push([lat, lng]);
+      if (isCurrent(p)) { chosenAt = [lat, lng]; }
     });
     /**
      * Measure the container, then frame the points inside it - in that order, and again once the box
@@ -588,6 +603,14 @@
       // behind it), so each pass zoomed two steps further in than the last and the map ended up four to
       // six steps past where it should be. Framed this way the answer is the same however often it is
       // asked, which is what lets it be called freely.
+      // If this courier already HAS a point chosen, the map opens on it rather than on the whole town.
+      // Centring on the city meant re-opening the dialog put the customer back at the start, hunting a
+      // ring among two hundred identical dots for the choice they had already made. The city is still
+      // one zoom-out away; their own pick is not findable at all by scanning.
+      if (chosenAt) {
+        map.setView(chosenAt, 16, { animate: false });
+        return;
+      }
       var box = L.latLngBounds(bounds);
       var fit = map.getBoundsZoom(box, false, L.point(30, 30));
       // Two steps closer than "everything fits". A city fitted whole is a shape, not a place: the

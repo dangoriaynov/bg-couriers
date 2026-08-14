@@ -116,7 +116,16 @@
     var settled = $wrap.data('bgc-availed');
     $wrap.find('.bgc-tab').each(function () {
       var $t = $(this), m = $t.data('method'), ok = methodOk(av, m);
-      $t.toggleClass('bgc-tab-na', !ok).prop('disabled', !ok).attr('title', ok ? '' : (BGCOURIERS.i18n.na_city || ''));
+      // Marked unavailable WITHOUT the disabled property. A disabled button receives no mouse events, so
+      // the browser never shows its title - the explanation was being attached to the one element that
+      // could not deliver it, and the tab simply looked as though this courier does not do lockers at
+      // all rather than "not in this town". The click handler already ignores .bgc-tab-na, so nothing
+      // was relying on `disabled` to stop the press; aria-disabled carries the state for assistive
+      // technology, which the class alone would not.
+      $t.toggleClass('bgc-tab-na', !ok)
+        .prop('disabled', false)
+        .attr('aria-disabled', ok ? null : 'true')
+        .attr('title', ok ? '' : (BGCOURIERS.i18n.na_city || ''));
       if (ok && firstOk === null) { firstOk = m; }
     });
     if (methodOk(av, method($wrap)) || !firstOk) { $wrap.data('bgc-availed', true); return; }
