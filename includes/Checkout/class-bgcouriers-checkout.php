@@ -737,10 +737,27 @@ class BGCouriers_Checkout {
             }
         }
         $office_option = '';
+        $auto_office = false;
         if ($office_id) {
             $office = BGCouriers_Nomenclature::office_by_id($courier, $office_id);
             if ($office) {
                 $office_option = '<option value="' . esc_attr($office_id) . '" selected>' . esc_html($office['name'] . ' - ' . $office['address']) . '</option>';
+            }
+        } elseif ($site_id && $sel_method !== '' && $sel_method !== 'address') {
+            // A town with exactly ONE office - or one locker - is not a choice, and most towns are like
+            // that. Presenting a dropdown holding a single row and waiting to be told about it is work
+            // for the customer that answers itself.
+            //
+            // Decided HERE rather than in the browser because this block is re-rendered by the server on
+            // every recalculation: doing it in JS meant the selection was made and then wiped by the very
+            // next round, which is the same race that has bitten this file before. Rendered as the chosen
+            // option it simply IS the state, and cannot be lost.
+            $only = BGCouriers_Nomenclature::offices($courier, $site_id, $sel_method);
+            if (count($only) === 1) {
+                $one = $only[0];
+                $office_option = '<option value="' . esc_attr((string) $one['office_id']) . '" selected>'
+                    . esc_html($one['name'] . ' - ' . $one['address']) . '</option>';
+                $auto_office = true;   // the JS stores it once, so the ORDER carries what the field shows
             }
         }
         // Office/automat picker shows for office+automat methods, hides for address.
@@ -773,7 +790,7 @@ class BGCouriers_Checkout {
            . '<select class="bgc-city"><option value=""></option>' . $city_option . '</select>'
            . '<input type="hidden" class="bgc-postcode" value="' . esc_attr($post_code) . '"></div>'
            . '<div class="bgc-field bgc-office-row"' . $office_style . '><label class="bgc-office-label">' . $office_label . '</label>'
-           . '<div class="bgc-office-pick"><select class="bgc-office">' . $office_option . '</select>'
+           . '<div class="bgc-office-pick"><select class="bgc-office"' . ($auto_office ? ' data-auto="1"' : '') . '>' . $office_option . '</select>'
            . '<button type="button" class="bgc-map-btn" title="' . esc_attr__('View on map', 'bg-couriers') . '">'
            . '<svg class="bgc-map-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
            . '<span>' . esc_html__('Map', 'bg-couriers') . '</span></button></div></div>'

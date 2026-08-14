@@ -325,6 +325,7 @@
       var ok = window.BGCouriersCheckout.applyPick({
         courier: p.courier, method: p.type,
         cityId: p.cityId, cityLabel: state.cityLabel,
+        postCode: state.cityCode,   // courier-agnostic, so a later courier switch can find this town again
         officeId: p.office.office_id,
         officeLabel: (p.office.name || '') + ' - ' + (p.office.address || '')
       });

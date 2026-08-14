@@ -225,6 +225,23 @@
       function (rows) { cacheSet(key, rows); });
   }
 
+  /**
+   * Store the office the SERVER chose when a town turned out to have exactly one.
+   *
+   * The choosing happens in render_fields, not here: this block is re-rendered on every recalculation,
+   * so a selection made in the browser was made and then wiped by the very next round - the same race
+   * that has caught this file before. The server renders it as the selected option and marks the field
+   * data-auto; all that is left is to put it in the session once, so the ORDER carries what the customer
+   * can plainly see in the field. Saved without a recalculation, exactly as picking one by hand is.
+   */
+  function autoPickSingle($wrap) {
+    var $o = $wrap.find('.bgc-office');
+    if (!$o.length || $o.attr('data-auto') !== '1') { return; }
+    if (String($o.val() || '') === '') { return; }
+    $o.removeAttr('data-auto');      // once per render; the session now has it
+    saveSelection($wrap);
+  }
+
   /* Once a city is known, quietly fetch the SAME city for the other couriers on the page, so switching
      courier is instant instead of costing a round-trip. Runs at idle, one request at a time, and skips
      anything already cached - it is a nicety, never allowed to compete with what the shopper is doing. */
@@ -506,7 +523,7 @@
       if (!mine) { $wrap.hide().removeClass('bgc-ready'); return; } // hide (and re-arm) the other couriers' fields
       $wrap.show(); // show only the chosen courier's fields (multiple couriers can share a zone)
       if ($wrap.hasClass('bgc-boxnow')) { hideLoader($wrap); reveal($wrap); return; } // locker picked via the map widget - nothing to init
-      renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); hideLoader($wrap);
+      renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); autoPickSingle($wrap); hideLoader($wrap);
       reveal($wrap);
     });
   });
@@ -610,6 +627,11 @@
       //    update_checkout, which re-renders this whole block - so the office cannot be written here
       //    and survive. It is set once the block is final, below.
       var $city = $wrap.find('.bgc-city');
+      // The POST CODE travels with the city, and it is not decoration: it is the only courier-agnostic
+      // handle on a place. Switching courier resolves the same town for the new one from this value
+      // (render_fields' carry branch), so a pick made on the map that left it empty meant the city
+      // silently vanished the moment the customer tried another courier.
+      $wrap.find('.bgc-postcode').val(pick.postCode || '');
       $city.append(new Option(pick.cityLabel, pick.cityId, true, true)).val(String(pick.cityId)).trigger('change');
 
       // 4. the same save + recalculate a manual pick performs
@@ -670,6 +692,9 @@
         if ($c.length && String($c.val() || '') !== String(pick.cityId)) {
           $c.append(new Option(pick.cityLabel, pick.cityId, true, true)).val(String(pick.cityId));
         }
+        // Re-asserted with the city, for the same reason: this block was re-rendered by the server and
+        // the hidden field came back with whatever the session had, which may be nothing yet.
+        $w.find('.bgc-postcode').val(pick.postCode || '');
         $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
         saveSelection($w);
       };
