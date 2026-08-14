@@ -135,6 +135,9 @@
     var icons = (window.BGCOURIERS && BGCOURIERS.icons) || {};
     return '<span class="bgc-allmap-kind" title="' + esc(typeLabel(type)) + '">' + (icons[type] || '') + '</span>';
   }
+  /** "~ 1,52 €" when the figure is this courier's per-type estimate rather than its quoted rate. */
+  function priceLabel(p) { return (p.estimated ? '~ ' : '') + p.price; }
+
   function typeLabel(type) { return (type === 'automat' ? I.automat : I.office) || ''; }
 
   function isCurrent(p) {
@@ -418,6 +421,9 @@
       out[id] = {
         available: true,
         price: $amt.length ? $amt.text() : '',
+        // WHICH delivery type that price belongs to. A rate row shows one number - the one for the type
+        // this courier is currently set to - so it is exact for that type and wrong for the others.
+        method: String($('.bgc-fields[data-courier="' + id + '"]').attr('data-method') || ''),
         logo: $logo.length ? $logo.attr('src') : '',
         label: ($row.find('label').first().text() || id).split(':')[0].trim()
       };
@@ -455,15 +461,24 @@
     var live = couriersOnPage();
     points = []; markers = [];
     Object.keys(data).forEach(function (cid) {
-      var c = live[cid] || { available: false, price: '', logo: '', label: cid };
+      var c = live[cid] || { available: false, price: '', method: '', logo: '', label: cid };
+      var est = data[cid].prices || {};
       (data[cid].offices || []).forEach(function (o) {
+        var type = o.type === 'automat' ? 'automat' : 'office';
+        // The rate row's number is EXACT, but only for the type that courier is currently set to.
+        // Every other type gets the server's per-type figure, marked as the estimate it is - which is
+        // the same thing the rate row itself shows before a city is chosen. Labelling all of them with
+        // the row's one number is what advertised Speedy's lockers at its office price and back again.
+        var exact = c.available && c.method === type && c.price;
         points.push({
           courier: cid, courierLabel: c.label || cid, logo: c.logo || '',
-          available: !!c.available, price: c.price || '',
+          available: !!c.available,
+          price: exact ? c.price : (est[type] || c.price || ''),
+          estimated: !exact && !!est[type],
           cityId: data[cid].city_id,          // that courier's OWN id
           // Per POINT, not per dialog: office and locker share one map, and this is what the
           // checkout's delivery type must be set to when this particular point is chosen.
-          type: o.type === 'automat' ? 'automat' : 'office',
+          type: type,
           office: o
         });
       });
@@ -493,7 +508,7 @@
         + '<span class="a">' + esc(p.office.address || '') + '</span>'
         + (p.available ? '' : '<span class="bgc-allmap-na-note">' + esc(I.allmap_na || '') + '</span>')
         + '</span>'
-        + (p.available && p.price ? '<span class="p">' + esc(p.price) + '</span>' : '')
+        + (p.available && p.price ? '<span class="p">' + esc(priceLabel(p)) + '</span>' : '')
         + '</li>');
       var lat = Number(p.office.lat), lng = Number(p.office.lng);
       if (!lat && !lng) { return; }          // no coordinates: it stays in the list, off the map
@@ -513,7 +528,7 @@
         + '<span class="c">' + esc(p.courierLabel) + '</span>'
         + typeGlyph(p.type)
         + '<span class="t">' + esc(typeLabel(p.type)) + '</span>'
-        + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(p.price) + '</span>' : '')
+        + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(priceLabel(p)) + '</span>' : '')
         + '</div>'
         + '<div class="bgc-allmap-pop-n">' + esc(p.office.name || '') + '</div>'
         + '<div class="bgc-allmap-pop-a">' + esc(p.office.address || '') + '</div>'

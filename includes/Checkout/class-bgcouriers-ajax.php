@@ -294,7 +294,24 @@ class BGCouriers_Ajax {
                 }
             }
             if (!$rows) { continue; }
-            $out[$cid] = ['city_id' => (int) $city['city_id'], 'offices' => $rows];
+            // A price PER DELIVERY TYPE, because a courier does not charge one. The map used to label
+            // every point of a courier with whatever its rate row happened to be showing, which is the
+            // price of the type currently selected: with Speedy on "to office" its lockers were
+            // advertised at 2.64 instead of 1.52, and the moment the customer switched to a locker its
+            // offices were advertised at 1.52 instead. Whichever tab you were on, the other one lied.
+            // estimate() is the same figure the checkout shows before a city is chosen and costs no live
+            // call - it reads the fixed price or the daily cached reference.
+            $prices = [];
+            foreach ($wanted as $t) {
+                $v = BGCouriers_Pricing::estimate($cid, $t);
+                // Decoded, not merely stripped: wc_price() spells the amount with &nbsp; and &euro;, and
+                // the map escapes whatever it is handed before printing it - so the entities would reach
+                // the customer as the literal text "1,52&nbsp;&euro;".
+                if ($v !== null) {
+                    $prices[$t] = html_entity_decode(wp_strip_all_tags(wc_price((float) $v)), ENT_QUOTES, 'UTF-8');
+                }
+            }
+            $out[$cid] = ['city_id' => (int) $city['city_id'], 'prices' => $prices, 'offices' => $rows];
         }
         return $out;
     }
