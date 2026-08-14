@@ -504,15 +504,18 @@
         zIndexOffset: isCurrent(p) ? 1000 : 0 }).addTo(layer);
       // Three lines, in the order a person reads them: WHOSE it is, WHAT it is called, WHERE it is.
       // The price rides on the courier line because that is what it belongs to, not to the address.
+      // Three rows, each answering one question. WHO carries it and HOW it is collected belong
+      // together - they are the pair that decides whether this point suits you at all - with the price
+      // small at the end of that same line. Then WHICH one it is, then WHERE it is, a step quieter.
       mk.bindPopup('<div class="bgc-allmap-pop">'
-        + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(p.price) + '</span>' : '')
         + '<div class="bgc-allmap-pop-c">'
         + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
         + '<span class="c">' + esc(p.courierLabel) + '</span>'
-        + '</div>'
-        + '<div class="bgc-allmap-pop-n">' + typeGlyph(p.type)
+        + typeGlyph(p.type)
         + '<span class="t">' + esc(typeLabel(p.type)) + '</span>'
-        + esc(p.office.name || '') + '</div>'
+        + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(p.price) + '</span>' : '')
+        + '</div>'
+        + '<div class="bgc-allmap-pop-n">' + esc(p.office.name || '') + '</div>'
         + '<div class="bgc-allmap-pop-a">' + esc(p.office.address || '') + '</div>'
         + (p.available
             ? '<button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'
@@ -632,6 +635,38 @@
       map.fitBounds([here].concat(near), { padding: [45, 45], maxZoom: 16 });
     }, function () {}, { enableHighAccuracy: true, timeout: 8000 });
   }
+
+  /**
+   * Fetch the remembered place's points before anybody asks for them, so the dialog opens onto a map
+   * rather than onto a wait.
+   *
+   * This is here instead of the staggered per-courier loading it replaces, because the measurements do
+   * not support staggering. On the live shop: an action with NO handler answers in ~3-4s, ONE courier's
+   * offices in ~4.2s, and ALL FOUR couriers in ~3.0s for 374KB. Asking for four costs no more than
+   * asking for one - the entire wait is WordPress booting, which every request pays in full. Splitting
+   * the request per courier would therefore show the first pins no sooner and multiply the server's
+   * work by four; done one after another it would be several times slower.
+   *
+   * What removes the wait is not asking later. Only for a place the customer has already looked at -
+   * that is both the strongest signal they will open the map again and exactly the case where the
+   * dialog opens straight into a fetch - and only once the page has gone quiet, so it never competes
+   * with the checkout's own recalculations.
+   */
+  function prefetch() {
+    if (!window.BGCOURIERS || !BGCOURIERS.ajax) { return; }
+    load();
+    if (!state.cityName) { return; }
+    var key = state.cityName + '|' + state.cityCode + '|both';
+    if (cache[key]) { return; }
+    $.get(BGCOURIERS.ajax, {
+      action: 'bgcouriers_allmap_offices',
+      name: state.cityName, post_code: state.cityCode, type: 'both'
+    }, function (data) { cache[key] = data || {}; });
+  }
+  $(function () {
+    if (window.requestIdleCallback) { window.requestIdleCallback(prefetch, { timeout: 5000 }); }
+    else { setTimeout(prefetch, 3000); }
+  });
 
   $(document).on('click', '.bgc-allmap-btn', function (e) { e.preventDefault(); open(); });
   window.BGCouriersAllMap = { open: open, close: close, points: function () { return points; } };

@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.12
+Stable tag: 0.2.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.13 =
+* The map dialog now opens straight onto the map for a place you have looked at before - the points are fetched quietly in the background while you fill in the rest of the checkout, instead of after you click.
+* A pin's popup now reads in three lines: the courier and how the parcel is collected (with the price) on the first, the name of the office or locker on the second, and its address on the third.
 
 = 0.2.12 =
 * The interactive map now opens as a small dialog asking only where you are collecting from, and grows into the full map once it has something to show. It used to open at full width straight away, leaving the city field alone against the left edge of a large empty panel with the sidebar and search box of a list that did not exist yet.
