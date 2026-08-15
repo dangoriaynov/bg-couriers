@@ -301,17 +301,34 @@ class BGCouriers_Ajax {
             // offices were advertised at 1.52 instead. Whichever tab you were on, the other one lied.
             // estimate() is the same figure the checkout shows before a city is chosen and costs no live
             // call - it reads the fixed price or the daily cached reference.
-            $prices = [];
-            foreach ($wanted as $t) {
+            // Every method this courier offers, not only the two the map plots. The address price is not
+            // a point on the map, but it is the number the whole map is being compared AGAINST: the
+            // customer is deciding whether walking to an office is worth what home delivery costs.
+            $prices = []; $raw = [];
+            foreach (BGCouriers_Settings::enabled_methods($cid) as $t) {
                 $v = BGCouriers_Pricing::estimate($cid, $t);
                 // Decoded, not merely stripped: wc_price() spells the amount with &nbsp; and &euro;, and
                 // the map escapes whatever it is handed before printing it - so the entities would reach
                 // the customer as the literal text "1,52&nbsp;&euro;".
                 if ($v !== null) {
+                    $raw[$t]    = (float) $v;
                     $prices[$t] = html_entity_decode(wp_strip_all_tags(wc_price((float) $v)), ENT_QUOTES, 'UTF-8');
                 }
             }
-            $out[$cid] = ['city_id' => (int) $city['city_id'], 'prices' => $prices, 'offices' => $rows];
+            // What collecting from a point SAVES against having it brought to the door - formatted here,
+            // where both numbers and the shop's own currency formatter are. Working it out in the browser
+            // would mean parsing "~ 1,57 €" back into a number and re-formatting it, which breaks on the
+            // first shop with a different separator or symbol position.
+            $saves = [];
+            if (isset($raw['address'])) {
+                foreach (['office', 'automat'] as $t) {
+                    if (!isset($raw[$t]) || $raw[$t] >= $raw['address']) { continue; }
+                    $saves[$t] = html_entity_decode(
+                        wp_strip_all_tags(wc_price($raw['address'] - $raw[$t])), ENT_QUOTES, 'UTF-8');
+                }
+            }
+            $out[$cid] = ['city_id' => (int) $city['city_id'], 'prices' => $prices,
+                          'saves' => $saves, 'offices' => $rows];
         }
         return $out;
     }

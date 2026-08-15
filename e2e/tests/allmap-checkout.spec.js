@@ -466,3 +466,72 @@ test.describe('the combined map on a phone', () => {
     expect(covered.inDialog, `the dialog was painted under the widget (hit ${covered.hit})`).toBe(true);
   });
 });
+
+/**
+ * The nearest-office answer.
+ *
+ * The point of this feature is not a distance, it is a DECISION: is walking to an office worth what the
+ * courier charges to bring the parcel to the door. So the test asserts the whole answer - a distance, a
+ * price, the address price beside it - and the property that makes it trustworthy: what it recommends
+ * must be something the customer can actually order. Switching the winning courier off in the legend has
+ * to move the recommendation, not leave a dead one behind.
+ *
+ * Distances are computed in the browser over points already loaded, so nothing here waits on a request.
+ */
+test.describe('nearest office', () => {
+  test.use({ geolocation: { latitude: 42.6795, longitude: 23.3242 }, permissions: ['geolocation'] });
+
+  const metres = (t) => {
+    const m = (t || '').match(/([\d,]+)\s*(м|км|m|km)/);
+    if (!m) { return null; }
+    const v = parseFloat(m[1].replace(',', '.'));
+    return /к/.test(m[2]) || m[2] === 'km' ? v * 1000 : v;
+  };
+
+  test('combined map: it says which office is closest and what that saves @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+
+    // Nothing claimed before we know where the customer is - a distance from nowhere is a lie.
+    expect(await page.locator('.bgc-allmap-near').count()).toBe(0);
+    expect(await page.locator('.bgc-allmap-dist').count()).toBe(0);
+
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(4000);
+
+    const near = page.locator('.bgc-allmap-near');
+    await expect(near).toBeVisible();
+    const text = (await near.textContent()).replace(/\s+/g, ' ');
+    expect(metres(text), `the answer must carry a distance: ${text}`).not.toBeNull();
+
+    // Rows carry their own distance and the list is ordered by it.
+    const order = await page.evaluate(() => Array.from(document.querySelectorAll('.bgc-allmap-item'))
+      .map(r => r.querySelector('.bgc-allmap-dist')?.textContent || null).filter(Boolean));
+    expect(order.length).toBeGreaterThan(50);
+    const nums = order.map(t => { const m = t.match(/([\d,]+)\s*(м|км)/);
+      const v = parseFloat(m[1].replace(',', '.')); return m[2] === 'км' ? v * 1000 : v; });
+    for (let i = 1; i < nums.length; i++) {
+      expect(nums[i], `row ${i} is closer than the one before it`).toBeGreaterThanOrEqual(nums[i - 1] - 1);
+    }
+
+    // Every courier's own nearest, on its chip - that is what makes the couriers comparable.
+    const chips = await page.locator('.bgc-allmap-chip').allTextContents();
+    expect(chips.filter(c => metres(c) !== null).length).toBe(chips.length);
+
+    // The recommendation must follow what is actually orderable.
+    const first = (await near.textContent()).replace(/\s+/g, ' ');
+    const winner = chips.map(c => c.replace(/[\d,]+\s*(м|км)$/, '').trim())
+      .find(name => name && first.includes(name));
+    expect(winner, 'the answer names one of the couriers on the map').toBeTruthy();
+    await page.locator('.bgc-allmap-chip', { hasText: winner }).first().click();
+    await page.waitForTimeout(1200);
+    const second = (await near.textContent()).replace(/\s+/g, ' ');
+    expect(second, 'switching the winner off must hand the answer to somebody else').not.toContain(winner);
+    expect(metres(second)).not.toBeNull();
+  });
+});

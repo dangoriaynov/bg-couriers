@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: BG Couriers for WooCommerce 0.2.17\n"
+"Project-Id-Version: BG Couriers for WooCommerce 0.2.21\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-14T20:19:45+00:00\n"
+"POT-Creation-Date: 2026-08-15T22:11:09+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: bg-couriers\n"
@@ -445,7 +445,7 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:245
 #: includes/Admin/class-bgcouriers-order-metabox.php:282
-#: includes/Checkout/class-bgcouriers-checkout.php:819
+#: includes/Checkout/class-bgcouriers-checkout.php:844
 msgid "City"
 msgstr ""
 
@@ -456,7 +456,7 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:245
 #: includes/Admin/class-bgcouriers-order-metabox.php:287
-#: includes/Checkout/class-bgcouriers-checkout.php:829
+#: includes/Checkout/class-bgcouriers-checkout.php:854
 msgid "Street"
 msgstr ""
 
@@ -528,7 +528,7 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:267
 #: includes/Checkout/class-bgcouriers-checkout.php:709
-#: includes/Checkout/class-bgcouriers-checkout.php:826
+#: includes/Checkout/class-bgcouriers-checkout.php:851
 msgid "Map"
 msgstr ""
 
@@ -549,7 +549,7 @@ msgid "Delivery option"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:288
-#: includes/Checkout/class-bgcouriers-checkout.php:830
+#: includes/Checkout/class-bgcouriers-checkout.php:855
 msgid "No."
 msgstr ""
 
@@ -558,7 +558,7 @@ msgid "Pick the address on the map"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:291
-#: includes/Checkout/class-bgcouriers-checkout.php:839
+#: includes/Checkout/class-bgcouriers-checkout.php:864
 msgid "Quarter / complex"
 msgstr ""
 
@@ -567,22 +567,22 @@ msgid "Bl."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:294
-#: includes/Checkout/class-bgcouriers-checkout.php:842
+#: includes/Checkout/class-bgcouriers-checkout.php:867
 msgid "Entr."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:295
-#: includes/Checkout/class-bgcouriers-checkout.php:843
+#: includes/Checkout/class-bgcouriers-checkout.php:868
 msgid "Floor"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:296
-#: includes/Checkout/class-bgcouriers-checkout.php:844
+#: includes/Checkout/class-bgcouriers-checkout.php:869
 msgid "Apt."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:298
-#: includes/Checkout/class-bgcouriers-checkout.php:846
+#: includes/Checkout/class-bgcouriers-checkout.php:871
 msgid "Note"
 msgstr ""
 
@@ -1779,6 +1779,7 @@ msgid "to an office"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:161
+#: includes/Checkout/class-bgcouriers-checkout.php:721
 msgid "to your address"
 msgstr ""
 
@@ -1864,12 +1865,12 @@ msgid "Please choose an office/APS for %s."
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:686
-#: includes/Checkout/class-bgcouriers-checkout.php:803
+#: includes/Checkout/class-bgcouriers-checkout.php:828
 msgid "Office"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:686
-#: includes/Checkout/class-bgcouriers-checkout.php:802
+#: includes/Checkout/class-bgcouriers-checkout.php:827
 msgid "APS (locker)"
 msgstr ""
 
@@ -1894,7 +1895,7 @@ msgid "Select a city first"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:692
-#: includes/Checkout/class-bgcouriers-checkout.php:865
+#: includes/Checkout/class-bgcouriers-checkout.php:890
 msgid "Choose a BOX NOW locker"
 msgstr ""
 
@@ -1903,7 +1904,7 @@ msgid "Change locker"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:694
-#: includes/Checkout/class-bgcouriers-checkout.php:824
+#: includes/Checkout/class-bgcouriers-checkout.php:849
 msgid "View on map"
 msgstr ""
 
@@ -1947,11 +1948,39 @@ msgstr ""
 msgid "Clear"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:834
+#: includes/Checkout/class-bgcouriers-checkout.php:720
+msgid "Closest to you"
+msgstr ""
+
+#: includes/Checkout/class-bgcouriers-checkout.php:722
+msgid "you save"
+msgstr ""
+
+#: includes/Checkout/class-bgcouriers-checkout.php:723
+msgid "as the crow flies"
+msgstr ""
+
+#: includes/Checkout/class-bgcouriers-checkout.php:724
+msgid "Find the closest office"
+msgstr ""
+
+#: includes/Checkout/class-bgcouriers-checkout.php:725
+msgid "Drag the pin to where you are"
+msgstr ""
+
+#: includes/Checkout/class-bgcouriers-checkout.php:726
+msgid "m"
+msgstr ""
+
+#: includes/Checkout/class-bgcouriers-checkout.php:727
+msgid "km"
+msgstr ""
+
+#: includes/Checkout/class-bgcouriers-checkout.php:859
 msgid "Choose on map"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:841
+#: includes/Checkout/class-bgcouriers-checkout.php:866
 msgid "Block"
 msgstr ""
 

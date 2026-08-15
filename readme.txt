@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.21
+Stable tag: 0.2.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.2.22 =
+* New: the interactive map can tell you which office or locker is closest to you, and what collecting from it saves against delivery to your door. Press "show my location", or drag the pin to where you actually are; the list then sorts by distance, every point shows how far it is, and each courier's own closest point appears on its badge. Distances are worked out in your browser, so your position is not sent anywhere.
 
 = 0.2.21 =
 * Fixed: on the order screen the office map opened underneath the page - the order status and customer selects, and the delivery editor's own fields, were drawn straight through it.

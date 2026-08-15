@@ -715,6 +715,16 @@ class BGCouriers_Checkout {
                 // customer is, which is the whole question they are asking.
                 'allmap_directions' => __('Directions', 'bg-couriers'),
                 'clear' => __('Clear', 'bg-couriers'),
+                // The nearest-office comparison on the map. Short by design: they sit on one line
+                // together with a distance and two prices.
+                'near_title' => __('Closest to you', 'bg-couriers'),
+                'near_to_address' => __('to your address', 'bg-couriers'),
+                'near_save' => __('you save', 'bg-couriers'),
+                'near_straight' => __('as the crow flies', 'bg-couriers'),
+                'near_find' => __('Find the closest office', 'bg-couriers'),
+                'near_drag' => __('Drag the pin to where you are', 'bg-couriers'),
+                'near_m' => __('m', 'bg-couriers'),
+                'near_km' => __('km', 'bg-couriers'),
             ],
         ]);
 

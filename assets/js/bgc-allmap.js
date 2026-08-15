@@ -15,6 +15,10 @@
   // A PLACE, not an id: city ids belong to the courier that issued them, so the dialog remembers what
   // the place is called and lets the server resolve it per courier.
   var state = { cityName: '', cityCode: '', cityLabel: '' };
+  // Where distances are measured FROM. Set by the locate button or by dragging the pin, remembered
+  // with the place. Never sent anywhere: every distance below is worked out in the browser, over
+  // points it already has, so the customer's position does not leave the page.
+  var origin = null;
   // `layer` holds every pin from the CURRENT render, so the next render can wipe it in one call. Without
   // that, a stale pin from a previous Show would stay on the map with a popup baked from the OLD points
   // array - clicking Choose on it would resolve against the NEW array at the same index and could book a
@@ -35,6 +39,35 @@
   var mode = 'map';
 
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
+
+  /**
+   * Metres between two points, by the haversine formula.
+   *
+   * Straight-line, and the interface says so: a real walking route would need a directions API and one
+   * request per point, and calling a straight line "800 m to walk" would be a number the customer could
+   * catch us out on. The exact route is one tap away in the popup's directions link.
+   */
+  function distanceM(a, b) {
+    var R = 6371000, toRad = Math.PI / 180;
+    var dLat = (b.lat - a.lat) * toRad, dLng = (b.lng - a.lng) * toRad;
+    var la1 = a.lat * toRad, la2 = b.lat * toRad;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+          + Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(la1) * Math.cos(la2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  /** "850 m" / "1.2 km" - rounded the way a person says it, not to the metre. */
+  function fmtDist(m) {
+    if (m == null) { return ''; }
+    if (m < 950) { return Math.round(m / 10) * 10 + ' ' + (I.near_m || 'm'); }
+    return (Math.round(m / 100) / 10).toString().replace('.', ',') + ' ' + (I.near_km || 'km');
+  }
+  /** A point's distance from the origin, or null when either end has no coordinates. */
+  function distOf(p) {
+    if (!origin) { return null; }
+    var lat = Number(p.office.lat), lng = Number(p.office.lng);
+    if (!lat && !lng) { return null; }
+    return distanceM(origin, { lat: lat, lng: lng });
+  }
 
   /**
    * Every place any enabled courier can deliver to, from the index the checkout already carries.
@@ -159,9 +192,16 @@
         state.cityName = v.cityName; state.cityCode = v.cityCode || '';
         state.cityLabel = v.cityLabel || v.cityName;
       }
+      if (v && v.origin && v.origin.lat && v.origin.lng) {
+        origin = { lat: Number(v.origin.lat), lng: Number(v.origin.lng) };
+      }
     } catch (e) { /* private mode, or a value from an older version - start fresh */ }
   }
-  function save() { try { window.localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+  function save() {
+    try {
+      window.localStorage.setItem(STORE, JSON.stringify($.extend({}, state, { origin: origin })));
+    } catch (e) {}
+  }
 
   function close() {
     if (map) { map.remove(); map = null; }
@@ -374,6 +414,85 @@
   }
 
   /**
+   * Everything that depends on WHERE the customer is: the per-row distances, the order of the list,
+   * each courier's nearest point in the legend, and the one line that actually answers the question.
+   *
+   * Recomputed on every origin change and every filter change, because "nearest" has to mean nearest
+   * among the points the customer can actually order - a courier switched off in the legend, or one
+   * that cannot carry this order at all, must never be recommended.
+   */
+  function refreshNear() {
+    if (!$dlg) { return; }
+    var $list = $dlg.find('.bgc-allmap-list');
+    $dlg.toggleClass('bgc-has-origin', !!origin);
+    if (!origin) {
+      $list.find('.bgc-allmap-dist').remove();
+      $dlg.find('.bgc-allmap-near').remove();
+      $dlg.find('.bgc-allmap-chip .bgc-chip-d').remove();
+      return;
+    }
+
+    // Distance onto every row, and the best CHOOSABLE point per courier.
+    var best = {}, overall = null;
+    points.forEach(function (p, i) {
+      var d = distOf(p);
+      var $row = $list.find('.bgc-allmap-item[data-i="' + i + '"]');
+      $row.find('.bgc-allmap-dist').remove();
+      if (d == null) { return; }
+      $row.find('.a').append('<span class="bgc-allmap-dist">' + esc(fmtDist(d)) + '</span>');
+      if (!p.available || hidden[p.courier]) { return; }   // not orderable: cannot be "nearest"
+      if (!best[p.courier] || d < best[p.courier].d) { best[p.courier] = { d: d, p: p }; }
+      if (!overall || d < overall.d) { overall = { d: d, p: p }; }
+    });
+
+    // Nearest first. The rows keep their data-i, so only their ORDER changes - the array behind them
+    // is untouched, and every index the markers and the popups carry stays valid.
+    var rows = $list.children('.bgc-allmap-item').get();
+    rows.sort(function (a, b) {
+      var da = distOf(points[+$(a).data('i')]);
+      var db = distOf(points[+$(b).data('i')]);
+      if (da == null) { return 1; }
+      if (db == null) { return -1; }
+      return da - db;
+    });
+    $list.append(rows);
+
+    // Each courier's own nearest, on its legend chip: on a map carrying four couriers the comparison
+    // IS the answer, and the chips are already the place the eye goes to compare them.
+    $dlg.find('.bgc-allmap-chip').each(function () {
+      var cid = $(this).attr('data-c');
+      $(this).find('.bgc-chip-d').remove();
+      if (best[cid]) { $(this).append('<span class="bgc-chip-d">' + esc(fmtDist(best[cid].d)) + '</span>'); }
+    });
+
+    renderNearLine(overall);
+  }
+
+  /** The sentence the whole feature exists for: how far, how much, and what it saves. */
+  function renderNearLine(overall) {
+    $dlg.find('.bgc-allmap-near').remove();
+    if (!overall) { return; }
+    var p = overall.p;
+    var addr = (p.addressPrice || '');
+    var html = '<div class="bgc-allmap-near">'
+      + '<span class="bgc-near-lead">' + esc(I.near_title || '') + '</span>'
+      + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
+      + '<span class="bgc-near-c">' + esc(p.courierLabel) + '</span>'
+      + typeGlyph(p.type)
+      + '<span class="bgc-near-d" title="' + esc(I.near_straight || '') + '">' + esc(fmtDist(overall.d)) + '</span>'
+      + (p.price ? '<span class="bgc-near-p">' + esc(priceLabel(p)) + '</span>' : '');
+    if (addr) {
+      html += '<span class="bgc-near-vs">' + esc(I.near_to_address || '') + ' <b>' + esc(addr) + '</b>'
+        + (p.savesVsAddress
+            ? ' <span class="bgc-near-save">' + esc(I.near_save || '') + ' ' + esc(p.savesVsAddress) + '</span>'
+            : '')
+        + '</span>';
+    }
+    html += '</div>';
+    $dlg.find('.bgc-allmap-body').before(html);
+  }
+
+  /**
    * One filter, two conditions - which couriers are switched on, and what has been typed in the
    * search. Both apply to the list AND the map: a row the map does not show, or a pin the list does
    * not have, is the two halves telling the customer different things.
@@ -397,6 +516,9 @@
       if (on) { n++; }
     });
     $dlg.find('.bgc-allmap-n').text('(' + n + ')');
+    // "Nearest" has to follow the filter: a courier the customer just switched off must stop being
+    // recommended, and the one behind it becomes the answer.
+    refreshNear();
     points.forEach(function (p, i) {
       var mk = markers[i];
       if (!mk || !layer) { return; }
@@ -514,6 +636,10 @@
         points.push({
           courier: cid, courierLabel: c.label || cid, logo: c.logo || '',
           available: !!c.available,
+          // What THIS courier charges to deliver to the door - the number an office is being compared
+          // against. Not a point on the map, which is exactly why it has to travel on the points.
+          addressPrice: est.address || '',
+          savesVsAddress: (data[cid].saves || {})[type] || '',
           price: exact ? c.price : (est[type] || c.price || ''),
           estimated: !exact && !!est[type],
           cityId: data[cid].city_id,          // that courier's OWN id
@@ -686,6 +812,8 @@
     });
     applyFilter();
 
+    refreshNear();
+
     $list.off('click').on('click', '.bgc-allmap-item:not(.bgc-na)', function () {
       var mk = markers[+$(this).data('i')];
       if (!mk) { return; }
@@ -727,31 +855,62 @@
     }).always(function () { busyCity(false); });
   }
 
+  /** Put the pin in the middle of the current view, for the customer to drag onto themselves. */
+  function dropPin() {
+    if (!map) { return; }
+    var c = map.getCenter();
+    origin = { lat: c.lat, lng: c.lng };
+    save();
+    if (meMarker) { meMarker.setLatLng(c); }
+    else { placeMe([c.lat, c.lng]); }
+    refreshNear();
+    if (meMarker && meMarker.openTooltip) { meMarker.openTooltip(); }
+  }
+
+  /**
+   * The customer's own pin. Kept in one place because two things put it on the map now: the locate
+   * button, and dropping it manually when geolocation is refused or unavailable.
+   */
+  function placeMe(here) {
+    if (!map) { return; }
+    if (meMarker) { meMarker.setLatLng(here); return; }
+    // A teardrop, not another dot. This used to be a filled circle in blue, which is the one shape
+    // every courier pin on this map already has - so "where I am" was indistinguishable from "an
+    // Econt office", and on a screen carrying nine hundred circles it simply disappeared. Telling
+    // them apart by SHAPE survives any future courier colour; the ring underneath pulses, which
+    // nothing else here does except the point already chosen.
+    meMarker = L.marker(here, {
+      // Draggable, because geolocation is often a street or two out and the customer knows better
+      // than the browser where they are standing. Dragging it re-answers the whole question, which
+      // costs nothing: every distance is worked out here, over points already loaded.
+      draggable: true,
+      zIndexOffset: 2000,          // above every courier pin, including a chosen one
+      icon: L.divIcon({
+        className: 'bgc-allmap-me',
+        html: '<span class="bgc-me-ring"></span>'
+      + '<svg viewBox="0 0 24 34" width="24" height="34" aria-hidden="true">'
+      + '<path d="M12 0C5.4 0 0 5.4 0 12c0 8.4 12 22 12 22s12-13.6 12-22c0-6.6-5.4-12-12-12z"/>'
+      + '<circle cx="12" cy="12" r="4.4"/></svg>',
+        iconSize: [24, 34], iconAnchor: [12, 34]
+      })
+    }).addTo(map);
+    meMarker.bindTooltip(I.near_drag || I.map_locate || '', { direction: 'top', offset: [0, -34] });
+    meMarker.on('dragend', function () {
+      var ll = meMarker.getLatLng();
+      origin = { lat: ll.lat, lng: ll.lng };
+      save();
+      refreshNear();
+    });
+  }
+
   function showMe() {
-    if (!navigator.geolocation) { return; }
+    if (!navigator.geolocation) { dropPin(); return; }
     navigator.geolocation.getCurrentPosition(function (pos) {
       var here = [pos.coords.latitude, pos.coords.longitude];
+      origin = { lat: here[0], lng: here[1] };
+      save();
       if (!state.cityName || !map) { cityFromPosition(here); return; }
-      if (meMarker) { meMarker.setLatLng(here); }
-      else {
-        // A teardrop, not another dot. This used to be a filled circle in blue, which is the one shape
-        // every courier pin on this map already has - so "where I am" was indistinguishable from "an
-        // Econt office", and on a screen carrying nine hundred circles it simply disappeared. Telling
-        // them apart by SHAPE survives any future courier colour; the ring underneath pulses, which
-        // nothing else here does except the point already chosen.
-        meMarker = L.marker(here, {
-          zIndexOffset: 2000,          // above every courier pin, including a chosen one
-          icon: L.divIcon({
-            className: 'bgc-allmap-me',
-            html: '<span class="bgc-me-ring"></span>'
-              + '<svg viewBox="0 0 24 34" width="24" height="34" aria-hidden="true">'
-              + '<path d="M12 0C5.4 0 0 5.4 0 12c0 8.4 12 22 12 22s12-13.6 12-22c0-6.6-5.4-12-12-12z"/>'
-              + '<circle cx="12" cy="12" r="4.4"/></svg>',
-            iconSize: [24, 34], iconAnchor: [12, 34]
-          })
-        }).addTo(map);
-        meMarker.bindTooltip(I.map_locate || '', { direction: 'top', offset: [0, -34] });
-      }
+      placeMe(here);
       var visible = points.filter(function (p, i) {
         return markers[i] && layer && layer.hasLayer(markers[i]);
       });
@@ -763,7 +922,12 @@
         return { ll: [Number(p.office.lat), Number(p.office.lng)], d: dlat * dlat + dlng * dlng };
       }).sort(function (a, b) { return a.d - b.d; }).slice(0, 6).map(function (x) { return x.ll; });
       map.fitBounds([here].concat(near), { padding: [45, 45], maxZoom: 16 });
-    }, function () {}, { enableHighAccuracy: true, timeout: 8000 });
+      refreshNear();
+    }, function () {
+      // Refused, or no fix. Not a dead end: drop the pin in the middle of what they are looking at and
+      // let them drag it where they live, which is the same answer by a different route.
+      dropPin();
+    }, { enableHighAccuracy: true, timeout: 8000 });
   }
 
   /**

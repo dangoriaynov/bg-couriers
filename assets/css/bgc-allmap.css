@@ -377,3 +377,35 @@
    It was mobile-only before, on the reasoning that a desktop should keep its scrollbar; being able to
    scroll the page out from under an open modal is the worse of the two. */
 html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
+
+/* "Closest to you" - the one line the whole distance feature exists to produce. It sits between the
+   town and the map because that is the reading order of the decision: where am I, what is nearest,
+   and is it worth not paying for the door. Only present once a position is known. */
+.bgc-allmap-near { display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
+  padding: 9px 14px; border-top: 1px solid #e6e9ec; background: #f6f9fc;
+  font-size: 13px; color: #1d2327; }
+.bgc-allmap-near img { width: 16px; height: 16px; object-fit: contain; flex: 0 0 auto; }
+.bgc-near-lead { color: #50575e; }
+.bgc-near-c { font-weight: 600; }
+.bgc-near-d { font-weight: 600; padding: 1px 7px; border-radius: 999px; background: #e3edf7;
+  color: #135e96; cursor: help; }
+.bgc-near-p { font-weight: 600; }
+/* The comparison, pushed to the far end: it is the counter-argument, not the headline. */
+.bgc-near-vs { margin-left: auto; color: #50575e; }
+.bgc-allmap-near .bgc-allmap-kind { color: #50575e; margin-right: 0; }
+
+/* Per-row distance, at the end of the address line where it reads as part of the place. */
+.bgc-allmap-dist { margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #f0f2f4;
+  color: #3c434a; font-size: 11px; font-weight: 600; white-space: nowrap; }
+/* Each courier's own nearest, on its legend chip - the chips are already where couriers get compared. */
+.bgc-chip-d { margin-left: 4px; padding: 0 5px; border-radius: 999px; background: #eef1f4;
+  color: #3c434a; font-weight: 600; }
+
+@media (max-width: 720px), (max-height: 520px) {
+  /* On a phone the comparison drops onto its own line rather than being squeezed off the end. */
+  .bgc-allmap-near { padding: 8px 12px; gap: 6px; }
+  .bgc-near-vs { margin-left: 0; flex-basis: 100%; }
+}
+/* The number the customer is actually weighing: green, because it is the reason to walk. */
+.bgc-near-save { margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+  background: #e6f4ea; color: #14663a; font-weight: 600; }
