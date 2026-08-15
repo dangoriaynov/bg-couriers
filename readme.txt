@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.20
+Stable tag: 0.2.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.2.21 =
+* Fixed: on the order screen the office map opened underneath the page - the order status and customer selects, and the delivery editor's own fields, were drawn straight through it.
+* New screenshots and courier names in the plugin's tags, so it can be found by searching for Speedy, Econt, BOX NOW or Sameday.
 
 = 0.2.20 =
 * Fixed: placing the order immediately after typing the delivery address could be refused for leaving blank the very fields that were filled in on screen. The delivery details are saved separately from the order form, and the order could be sent before that save had arrived. The order now waits for it.
