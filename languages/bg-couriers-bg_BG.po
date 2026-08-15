@@ -18,8 +18,12 @@ msgstr ""
 
 #. Plugin Name of the plugin
 #: bg-couriers.php
+#. The plugin NAME is a proper noun and stays in English. Translated as "BG Couriers за WooCommerce" it
+#. broke WordPress.org's trademark rule, which allows "WooCommerce" in a plugin name only after "for",
+#. "with", "using" or "and" - and "за" is none of those. Plugin Check reads the name in the site's own
+#. language, so a Bulgarian shop was showing a name the directory would not accept.
 msgid "BG Couriers for WooCommerce"
-msgstr "BG Couriers за WooCommerce"
+msgstr ""
 
 #. Plugin URI of the plugin
 #: bg-couriers.php
