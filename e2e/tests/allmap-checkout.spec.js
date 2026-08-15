@@ -117,12 +117,15 @@ test('combined map: it carries several couriers at once, each with its own price
 
   // And it filters both halves at once: switching a courier off must empty its rows AND its pins,
   // or the map and the list beside it would disagree about what is on offer.
+  // :visible on the pins too. A pin switched off is hidden by style and STAYS in the layer - taking a
+  // few hundred markers out of Leaflet and putting them back is what made a legend click block for a
+  // second and a half - so counting the elements no longer counts what is on the map.
   const rowsBefore = await page.locator('.bgc-allmap-item:visible').count();
-  const pinsBefore = await page.locator('.leaflet-marker-icon').count();
+  const pinsBefore = await page.locator('.leaflet-marker-icon:visible').count();
   await chips.first().click();
   await page.waitForTimeout(600);
   expect(await page.locator('.bgc-allmap-item:visible').count()).toBeLessThan(rowsBefore);
-  expect(await page.locator('.leaflet-marker-icon').count()).toBeLessThan(pinsBefore);
+  expect(await page.locator('.leaflet-marker-icon:visible').count()).toBeLessThan(pinsBefore);
 
   // Each chip carries its courier's own logo as well as its colour: the colour identifies a pin,
   // the logo is what the customer actually recognises.
@@ -141,7 +144,7 @@ test('combined map: searching narrows the list and the map together @allmap', as
   await page.locator('.bgc-allmap-search').fill('тракия');
   await page.waitForTimeout(700);
   const rows1 = await page.locator('.bgc-allmap-item:visible').count();
-  const pins1 = await page.locator('.leaflet-marker-icon').count();
+  const pins1 = await page.locator('.leaflet-marker-icon:visible').count();
   expect(rows1).toBeGreaterThan(0);
   expect(rows1).toBeLessThan(rows0);
   // The two halves must agree: a row the map does not show, or a pin the list does not have, tells
@@ -533,5 +536,168 @@ test.describe('nearest office', () => {
     const second = (await near.textContent()).replace(/\s+/g, ' ');
     expect(second, 'switching the winner off must hand the answer to somebody else').not.toContain(winner);
     expect(metres(second)).not.toBeNull();
+  });
+
+  /**
+   * "Show my location" after the town was changed.
+   *
+   * It silently did nothing: clearing the town destroys the map, but the reference to the customer's own
+   * pin survived it, so the next locate took the "we already have one" branch and moved a marker that
+   * belonged to a map no longer on the page. Nothing appeared and nothing complained.
+   *
+   * The test walks the exact path - locate, clear the town, choose another - and also pins the better
+   * behaviour that came with the fix: the position is not forgotten just because the customer looked at
+   * a different town, so the distances come back on their own.
+   */
+  test('combined map: the location pin survives changing the town @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.evaluate(() => localStorage.removeItem('bgcouriers_map_pick'));
+    await page.locator('.bgc-allmap-btn').click();
+
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(3500);
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(1);
+    expect(await page.locator('.bgc-allmap-dist').count()).toBeGreaterThan(50);
+
+    // Clearing the town takes the map, the pin and the answer with it - none of them describe anything
+    // any more.
+    await page.locator('.bgc-allmap-cityclear').click();
+    await page.waitForTimeout(900);
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(0);
+    await expect(page.locator('.bgc-allmap-near')).toHaveCount(0);
+
+    await chooseCity(page, 'Пловдив', 'ПЛОВДИВ (4000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(2500);
+
+    // The customer has not moved, so the pin and the distances are simply there again.
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(1);
+    await expect(page.locator('.bgc-allmap-near')).toBeVisible();
+    expect(await page.locator('.bgc-allmap-dist').count()).toBeGreaterThan(20);
+
+    // And pressing it again in the new town still works, which is what was broken.
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(3500);
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(1);
+  });
+
+  /**
+   * Switching a courier off must answer on the click.
+   *
+   * Reported as the legend "getting stuck", and it was: the handler re-measured every point, looked each
+   * row up by selector in the whole list, and took a few hundred markers out of Leaflet and put them
+   * back - all before the browser was allowed to paint the chip the customer had just pressed. Measured
+   * on Sofia's 912 points, that DOM work alone came to 1580 ms.
+   *
+   * Distances cannot change when a courier is switched off - nobody moved - so the click now only
+   * re-reads cached numbers, and the sweep over rows and pins goes to the next frame.
+   */
+  test('combined map: switching a courier off in the legend answers at once @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(4000);
+
+    const points = await page.locator('.bgc-allmap-item').count();
+    expect(points, 'this only proves anything on a town with a lot of points').toBeGreaterThan(200);
+
+    // Both halves of the answer - the chip's own state and the sentence above the map - measured from
+    // the click to the frame that paints them.
+    const t = await page.evaluate(async () => {
+      const was = document.querySelector('.bgc-allmap-near').textContent;
+      // The chip that OWNS the current answer. Switching any other courier off would correctly leave
+      // the sentence alone, and would prove nothing about whether it followed.
+      const chips = Array.from(document.querySelectorAll('.bgc-allmap-chip.on'));
+      const chip = chips.find(c => {
+        const name = c.textContent.replace(/[\d,]+\s*(м|км)$/, '').trim();
+        return name && was.includes(name);
+      }) || chips[0];
+      const t0 = performance.now();
+      chip.click();
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return { ms: performance.now() - t0, off: !chip.classList.contains('on'),
+               changed: document.querySelector('.bgc-allmap-near').textContent !== was };
+    });
+    expect(t.off, 'the chip is off on the click').toBe(true);
+    expect(t.changed, 'the answer follows the filter').toBe(true);
+    // Generous against the 1580 ms this used to cost: this is about the shape, not a stopwatch.
+    expect(t.ms, `the legend answered in ${Math.round(t.ms)} ms`).toBeLessThan(400);
+  });
+
+  /**
+   * "Closest to you: Speedy, locker, 410 m" - and WHICH one is that?
+   *
+   * Reported exactly that way: the sentence names a courier and a distance but not a place, and there is
+   * no way to tell which of two hundred identical dots it means. The sentence is a button, and pressing
+   * it has to land on that one point.
+   */
+  test('combined map: the answer line points at the office it means @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(4000);
+
+    // Sorted by distance, so the closest office is the first row - and that is what the sentence is
+    // about. Its name is nowhere in the sentence, which is the whole complaint.
+    const closest = (await page.locator('.bgc-allmap-item').first().locator('.n').textContent()).trim();
+    const answer = (await page.locator('.bgc-allmap-near').textContent()).replace(/\s+/g, ' ');
+    expect(closest.length).toBeGreaterThan(3);
+
+    await page.locator('.bgc-near-go').click();
+    await page.waitForTimeout(1200);
+
+    // Its own bubble, open on the map, naming it.
+    const popup = page.locator('.leaflet-popup .bgc-allmap-pop-n');
+    await expect(popup).toBeVisible();
+    const named = (await popup.textContent()).trim();
+    expect(named, `the bubble names the office the answer meant (answer: ${answer})`)
+      .toBe(closest.replace(/^[^\p{L}\d]+/u, '').trim());
+    // ...and the row is marked, so the two halves agree about which one it is.
+    await expect(page.locator('.bgc-allmap-item.active')).toHaveCount(1);
+    expect((await page.locator('.bgc-allmap-item.active .n').textContent()).trim()).toBe(closest);
+  });
+
+  /**
+   * The sentence names the closest point; every OTHER pin then has to be worth comparing against it,
+   * and it cannot be unless it says how far IT is.
+   */
+  test('combined map: a point’s bubble says how far it is from you @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+
+    // Before the customer says where they are, a bubble must not claim a distance from nowhere.
+    await page.locator('.bgc-allmap-item:not(.bgc-na)').first().click();
+    await page.waitForTimeout(1200);
+    await expect(page.locator('.leaflet-popup .bgc-allmap-pop-n')).toBeVisible();
+    expect(await page.locator('.leaflet-popup .bgc-allmap-pop-d').count()).toBe(0);
+
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(4000);
+    // Built when it opens, so a bubble opened AFTER the position is known carries it without a redraw.
+    await page.locator('.bgc-allmap-item:not(.bgc-na)').first().click();
+    await page.waitForTimeout(1200);
+    const d = page.locator('.leaflet-popup .bgc-allmap-pop-d');
+    await expect(d).toBeVisible();
+    expect(metres(await d.textContent()), 'the bubble carries a real distance').not.toBeNull();
   });
 });

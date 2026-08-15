@@ -35,7 +35,11 @@ shipments from the WordPress admin.
 - **One interactive map for every courier** - a bundled-Leaflet (no CDN) map showing every enabled
   courier's offices AND lockers for a town at once, each point priced for the way it is collected. The
   legend names and colours the couriers and doubles as a filter; there is a searchable list beside the
-  map, "show my location", and a directions link per point. Choosing a point sets the courier, delivery
+  map, "show my location", and a directions link per point. **Closest to you** (on by default, one
+  General setting to switch off) sorts the list by distance, puts each courier's own nearest point on
+  its legend badge, and answers the actual question in one line - which point is closest, what it
+  costs, and what it saves against delivery to the door. The answer line is a button that goes to the
+  point it means. Distances are haversine, computed in the browser over points the page already has. Choosing a point sets the courier, delivery
   type, town and office in one go. A courier's own "Map" button opens this same map filtered to it - the
   separate per-courier map was removed, because keeping two meant every fix had to land twice. BoxNow
   keeps its own GPS map widget, which is the only way to pick one of its lockers.

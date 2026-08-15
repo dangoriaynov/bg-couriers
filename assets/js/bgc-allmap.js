@@ -38,7 +38,28 @@
   // nothing - the classes it writes are only read inside the narrow-screen media query.
   var mode = 'map';
 
+  // Distance from `origin` to each point, by the same index as `points`, and the list row for that
+  // same index. Both are caches with one job: a legend click must not re-measure anything and must not
+  // go looking through the DOM for anything. See measureNear()/pickNear().
+  var dists = [], rowEls = [];
+
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
+
+  /**
+   * Is the "closest to you" comparison switched on for this shop?
+   *
+   * It is the one part of the map that asks the browser for a location, so a merchant who would rather
+   * not ask can switch it off without losing the map. Absent (an older page still in a cache) counts as
+   * on, which is the default the setting itself carries - hence 'no' rather than a falsy test, because
+   * wp_localize_script() hands a PHP false over as '' and an absent key is undefined, and only one of
+   * those two means the merchant switched anything off.
+   */
+  function nearOn() { return !window.BGCOURIERS || BGCOURIERS.allmapNearest !== 'no'; }
+
+  /** Run after the browser has had its chance to paint. */
+  function nextFrame(fn) {
+    if (window.requestAnimationFrame) { window.requestAnimationFrame(fn); } else { setTimeout(fn, 16); }
+  }
 
   /**
    * Metres between two points, by the haversine formula.
@@ -207,7 +228,7 @@
     if (map) { map.remove(); map = null; }
     meMarker = null;
     layer = null; // the layer group is destroyed along with the map; just drop our reference to it
-    markers = []; points = [];
+    markers = []; points = []; rowEls = []; dists = [];
     mode = 'map';
     $(window).off('.bgcallmap');
     $('html, body').removeClass('bgc-allmap-lock');
@@ -274,8 +295,12 @@
       // The same "find me" control, for the state where the other one does not exist yet: the search
       // row lives inside the map's own panel, which is not on screen until there is a town to draw.
       // That is exactly the moment this button is most useful, and it was unreachable.
-      + '<button type="button" class="bgc-map-locate bgc-allmap-citylocate" data-tip="' + esc(I.map_locate || '')
-      + '" title="' + esc(I.map_locate || '') + '" aria-label="' + esc(I.map_locate || '') + '"></button>'
+      // Both of them go when the shop has switched the comparison off: nothing else here asks the
+      // browser where the customer is, so leaving the button would be an offer with nothing behind it.
+      + (nearOn()
+          ? '<button type="button" class="bgc-map-locate bgc-allmap-citylocate" data-tip="' + esc(I.map_locate || '')
+            + '" title="' + esc(I.map_locate || '') + '" aria-label="' + esc(I.map_locate || '') + '"></button>'
+          : '')
       + '<ul class="bgc-allmap-cityres" hidden></ul></div>'
       + '<div class="bgc-allmap-legend" hidden></div>'
       + '</div>'
@@ -283,8 +308,10 @@
       + '<div class="bgc-allmap-side">'
       + '<div class="bgc-allmap-searchrow">'
       + '<input type="text" class="bgc-allmap-search" autocomplete="off" placeholder="' + esc(I.office_ph || '') + '">'
-      + '<button type="button" class="bgc-map-locate" data-tip="' + esc(I.map_locate || '')
-      + '" aria-label="' + esc(I.map_locate || '') + '"></button>'
+      + (nearOn()
+          ? '<button type="button" class="bgc-map-locate" data-tip="' + esc(I.map_locate || '')
+            + '" aria-label="' + esc(I.map_locate || '') + '"></button>'
+          : '')
       + '</div>'
       + '<ul class="bgc-allmap-list"></ul></div>'
       + '<div class="bgc-allmap-canvas" id="bgc-allmap-canvas"></div>'
@@ -323,11 +350,17 @@
       save();
       $input.val('').focus();
       hideRes(); syncClear(); busyCity(false);
-      if (map) { map.remove(); map = null; layer = null; }
-      markers = []; points = [];
+      // meMarker must go with the map it was on. Without this the reference survived, the next locate
+      // took the "already have one" branch and moved a marker that belonged to a destroyed map - so
+      // pressing "show my location" after changing the town did nothing at all, silently.
+      if (map) { map.remove(); map = null; layer = null; meMarker = null; }
+      markers = []; points = []; rowEls = []; dists = [];
       $dlg.removeClass('bgc-has-map');
       $dlg.find('.bgc-allmap-body').hide().find('.bgc-allmap-list').empty();
       $dlg.find('.bgc-allmap-legend').attr('hidden', true).empty();
+      // The answer goes with the points it was about. The position itself is kept - the customer has
+      // not moved - so naming another town brings the distances straight back.
+      $dlg.find('.bgc-allmap-near').remove();
       $dlg.find('.bgc-allmap-canvas').empty();
     }
     $dlg.on('click', '.bgc-allmap-cityclear', function (e) { e.preventDefault(); clearCity(); });
@@ -393,7 +426,8 @@
     // same click finishes bubbling - dereferencing a variable the click itself just emptied. It threw
     // a TypeError into the console of every checkout where somebody chose an office.
     $dlg.on('click', function (e) { if ($dlg && e.target === $dlg[0]) { close(); } });
-    $dlg.on('input', '.bgc-allmap-search', applyFilter);
+    $dlg.on('input', '.bgc-allmap-search', scheduleFilter);
+    $dlg.on('click', '.bgc-near-go', function () { focusPoint(+$(this).attr('data-i')); });
     $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
     $dlg.on('click', '.bgc-allmap-switch button', function () { setMode($(this).attr('data-v')); });
     // The popup's Choose is the only crossing into bgc-checkout.js: hand over the point and let the
@@ -421,41 +455,70 @@
    * among the points the customer can actually order - a courier switched off in the legend, or one
    * that cannot carry this order at all, must never be recommended.
    */
-  function refreshNear() {
+  function refreshNear() { measureNear(); pickNear(); }
+
+  /**
+   * The half that costs something: a distance for every point, written onto every row, and the list
+   * put in order of it. Runs when the ORIGIN moves or the points change - never on a filter change,
+   * because switching a courier off in the legend does not move the customer and cannot change a
+   * single one of these numbers.
+   */
+  function measureNear() {
     if (!$dlg) { return; }
     var $list = $dlg.find('.bgc-allmap-list');
-    $dlg.toggleClass('bgc-has-origin', !!origin);
-    if (!origin) {
+    var on = !!origin && nearOn();
+    $dlg.toggleClass('bgc-has-origin', on);
+    dists = [];
+    if (!on) {
       $list.find('.bgc-allmap-dist').remove();
       $dlg.find('.bgc-allmap-near').remove();
       $dlg.find('.bgc-allmap-chip .bgc-chip-d').remove();
       return;
     }
 
-    // Distance onto every row, and the best CHOOSABLE point per courier.
-    var best = {}, overall = null;
     points.forEach(function (p, i) {
       var d = distOf(p);
-      var $row = $list.find('.bgc-allmap-item[data-i="' + i + '"]');
-      $row.find('.bgc-allmap-dist').remove();
-      if (d == null) { return; }
-      $row.find('.a').append('<span class="bgc-allmap-dist">' + esc(fmtDist(d)) + '</span>');
-      if (!p.available || hidden[p.courier]) { return; }   // not orderable: cannot be "nearest"
-      if (!best[p.courier] || d < best[p.courier].d) { best[p.courier] = { d: d, p: p }; }
-      if (!overall || d < overall.d) { overall = { d: d, p: p }; }
+      dists[i] = d;
+      // Scoped to this one row: the version that searched the whole list per point was the quadratic
+      // half of what made a few hundred offices feel heavy.
+      var $a = rowEls[i] ? $(rowEls[i]).find('.a') : $();
+      $a.find('.bgc-allmap-dist').remove();
+      if (d != null) { $a.append('<span class="bgc-allmap-dist">' + esc(fmtDist(d)) + '</span>'); }
     });
 
     // Nearest first. The rows keep their data-i, so only their ORDER changes - the array behind them
-    // is untouched, and every index the markers and the popups carry stays valid.
-    var rows = $list.children('.bgc-allmap-item').get();
-    rows.sort(function (a, b) {
-      var da = distOf(points[+$(a).data('i')]);
-      var db = distOf(points[+$(b).data('i')]);
-      if (da == null) { return 1; }
+    // is untouched, and every index the markers and the popups carry stays valid. Moved through a
+    // fragment so the list is detached, reordered and reinserted once instead of a few hundred times.
+    var order = [];
+    for (var i = 0; i < rowEls.length; i++) { if (rowEls[i]) { order.push(i); } }
+    order.sort(function (a, b) {
+      var da = dists[a], db = dists[b];
+      if (da == null) { return db == null ? a - b : 1; }   // no coordinates: keep them together, at the end
       if (db == null) { return -1; }
       return da - db;
     });
-    $list.append(rows);
+    var frag = document.createDocumentFragment();
+    order.forEach(function (i) { frag.appendChild(rowEls[i]); });
+    if ($list[0]) { $list[0].appendChild(frag); }
+  }
+
+  /**
+   * The half that must be instant: which point is the answer, given what is switched on right now.
+   *
+   * Reads the cached distances and the courier flags - no measuring, no walking the DOM, no touching a
+   * pin - so it can run on the same tick as a legend click. That split is the whole reason switching a
+   * courier off no longer waits: the sentence and the chips change with the click, while the sweep
+   * over every row and every pin goes to the next frame.
+   */
+  function pickNear() {
+    if (!$dlg || !origin || !nearOn()) { return; }
+    var best = {}, overall = null;
+    points.forEach(function (p, i) {
+      var d = dists[i];
+      if (d == null || !p.available || hidden[p.courier]) { return; }   // not orderable: cannot be "nearest"
+      if (!best[p.courier] || d < best[p.courier].d) { best[p.courier] = { d: d, i: i }; }
+      if (!overall || d < overall.d) { overall = { d: d, i: i, p: p }; }
+    });
 
     // Each courier's own nearest, on its legend chip: on a map carrying four couriers the comparison
     // IS the answer, and the chips are already the place the eye goes to compare them.
@@ -468,19 +531,65 @@
     renderNearLine(overall);
   }
 
+  /**
+   * Put a particular point in front of the customer: the map, centred on it, its bubble open, its row
+   * marked and scrolled to, and the pin itself given a moment of its own.
+   *
+   * This is the answer to "which office IS that?" - the question a distance raises and cannot answer.
+   * Reported exactly that way: the line said Speedy, 410 m, and there was no way to tell which of two
+   * hundred identical dots it meant.
+   */
+  function focusPoint(i) {
+    var mk = markers[i], el = rowEls[i];
+    if (!$dlg) { return; }
+    var $list = $dlg.find('.bgc-allmap-list');
+    if (el) {
+      $list.find('.active').removeClass('active');
+      $(el).addClass('active');
+      // Contained on purpose: scrollIntoView() would be allowed to scroll the checkout behind the
+      // dialog as well, and this only ever needs to move the sidebar. Measured against the list's own
+      // box rather than by offsetTop, which is relative to the nearest POSITIONED ancestor - not
+      // necessarily this list, and a wrong answer here scrolls to the wrong row.
+      if ($list[0]) {
+        var top = el.getBoundingClientRect().top - $list[0].getBoundingClientRect().top;
+        $list[0].scrollTop = Math.max(0, $list[0].scrollTop + top - $list[0].clientHeight / 2);
+      }
+    }
+    if (!mk || !map) { return; }
+    // On a phone the list is covering the map, so this has to switch over before it centres anything.
+    setMode('map');
+    map.setView(mk.getLatLng(), Math.max(map.getZoom(), 15));
+    mk.openPopup();
+    if (mk._icon) {
+      var icon = mk._icon;
+      icon.classList.remove('bgc-pin-flash');
+      void icon.offsetWidth;          // restart the animation when the same pin is asked for twice
+      icon.classList.add('bgc-pin-flash');
+      // Taken off again when it finishes: a class that stays on says "this one" about a pin nobody
+      // asked about any more, and it would still be there the next time this pin is the answer.
+      $(icon).one('animationend', function () { icon.classList.remove('bgc-pin-flash'); });
+    }
+  }
+
   /** The sentence the whole feature exists for: how far, how much, and what it saves. */
   function renderNearLine(overall) {
     $dlg.find('.bgc-allmap-near').remove();
     if (!overall) { return; }
     var p = overall.p;
     var addr = (p.addressPrice || '');
+    // The naming half is one button, not decoration. "Speedy · locker · 410 m · ~1,52 €" is the phrase
+    // that raises "which one, though?", so the same phrase - courier, glyph, distance, price, every
+    // part of it - is what answers it. See focusPoint().
     var html = '<div class="bgc-allmap-near">'
+      + '<button type="button" class="bgc-near-go" data-i="' + overall.i + '"'
+      + ' title="' + esc(I.near_which || '') + '">'
       + '<span class="bgc-near-lead">' + esc(I.near_title || '') + '</span>'
       + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
       + '<span class="bgc-near-c">' + esc(p.courierLabel) + '</span>'
       + typeGlyph(p.type)
       + '<span class="bgc-near-d" title="' + esc(I.near_straight || '') + '">' + esc(fmtDist(overall.d)) + '</span>'
-      + (p.price ? '<span class="bgc-near-p">' + esc(priceLabel(p)) + '</span>' : '');
+      + (p.price ? '<span class="bgc-near-p">' + esc(priceLabel(p)) + '</span>' : '')
+      + '</button>';
     if (addr) {
       html += '<span class="bgc-near-vs">' + esc(I.near_to_address || '') + ' <b>' + esc(addr) + '</b>'
         + (p.savesVsAddress
@@ -510,22 +619,44 @@
     // The count rides on the List button because on a phone the list is behind the map: "List (3)"
     // after typing a street is the only way to know the search found anything without switching over.
     var n = 0;
-    $dlg.find('.bgc-allmap-list .bgc-allmap-item').each(function () {
-      var on = shown(points[+$(this).data('i')]);
-      $(this).toggle(on);
+    points.forEach(function (p, i) {
+      var on = shown(p);
       if (on) { n++; }
+      // Plain style writes on cached elements. Wrapping each row in jQuery and looking it up by
+      // selector, per point, per keystroke, is most of what a few hundred offices used to cost.
+      var el = rowEls[i];
+      if (el) { el.style.display = on ? '' : 'none'; }
+      var mk = markers[i];
+      if (!mk) { return; }
+      if (mk._icon) {
+        // Hidden by style rather than taken out of the layer: removing a Leaflet marker tears its icon
+        // and its handlers down and re-adding builds them again, which is the expensive half of a
+        // legend click. The pin stays exactly where it is and simply stops being painted.
+        mk._icon.style.display = on ? '' : 'none';
+        if (!on && mk.isPopupOpen && mk.isPopupOpen()) { mk.closePopup(); }
+      } else if (layer && on && !layer.hasLayer(mk)) {
+        layer.addLayer(mk);   // never plotted yet (or previously removed): it needs a real icon first
+      }
     });
     $dlg.find('.bgc-allmap-n').text('(' + n + ')');
     // "Nearest" has to follow the filter: a courier the customer just switched off must stop being
-    // recommended, and the one behind it becomes the answer.
-    refreshNear();
-    points.forEach(function (p, i) {
-      var mk = markers[i];
-      if (!mk || !layer) { return; }
-      var on = shown(p);
-      if (!on && layer.hasLayer(mk)) { layer.removeLayer(mk); }
-      if (on && !layer.hasLayer(mk)) { layer.addLayer(mk); }
-    });
+    // recommended, and the one behind it becomes the answer. Cheap - it re-reads cached distances.
+    pickNear();
+  }
+
+  /**
+   * One filter sweep on the next frame, however many times it was asked for.
+   *
+   * A legend click changes two things a person can see immediately (the chip, and the sentence above
+   * the map) and one thing that takes a pass over every row and every pin. Running both inline meant
+   * the browser could not paint the first until the second had finished, and switching a courier off
+   * read as the dialog hanging. The visible half now happens on the click; this is the rest.
+   */
+  var filterQueued = false;
+  function scheduleFilter() {
+    if (filterQueued) { return; }
+    filterQueued = true;
+    nextFrame(function () { filterQueued = false; applyFilter(); });
   }
 
   /**
@@ -608,6 +739,54 @@
      .always(function () { busy(false); });
   }
 
+  /**
+   * A point's bubble: three rows, in the order a person reads them - WHOSE it is and HOW it is
+   * collected (with the price, which belongs to that pair), then WHICH one it is, then WHERE it is.
+   *
+   * Built on open rather than on plot, so it can carry how far this particular point is from the
+   * customer. That is the question a pin raises once one distance is on screen: the line above the map
+   * names the closest, and every OTHER pin then has to be worth comparing against it.
+   */
+  function popupHtml(p, i) {
+    var lat = Number(p.office.lat), lng = Number(p.office.lng);
+    var d = nearOn() ? distOf(p) : null;
+    return '<div class="bgc-allmap-pop">'
+      + '<div class="bgc-allmap-pop-c">'
+      + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
+      + '<span class="c">' + esc(p.courierLabel) + '</span>'
+      + typeGlyph(p.type)
+      + '<span class="t">' + esc(typeLabel(p.type)) + '</span>'
+      + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(priceLabel(p)) + '</span>' : '')
+      + '</div>'
+      + '<div class="bgc-allmap-pop-n">' + esc(p.office.name || '') + '</div>'
+      + '<div class="bgc-allmap-pop-a">' + esc(p.office.address || '')
+      // Only once the customer has actually given a position - by pressing "find me" or dragging the
+      // pin. Nothing is asked for on our own account to print this line.
+      + (d != null
+          ? '<span class="bgc-allmap-pop-d" title="' + esc(I.near_straight || '') + '">'
+            + esc(fmtDist(d)) + ' ' + esc(I.near_from_you || '') + '</span>'
+          : '')
+      // "How do I get there, and how long does it take" is the question a pin cannot answer and a
+      // map application can. No origin is given, so Google starts from wherever the customer actually
+      // is - which also means this needs no location permission of our own. Opened in a new tab: the
+      // checkout behind it is half-filled in and must not be navigated away from.
+      + (lat && lng
+          ? '<a class="bgc-allmap-dir" target="_blank" rel="noopener noreferrer"'
+            + ' href="https://www.google.com/maps/dir/?api=1&destination='
+            + encodeURIComponent(lat + ',' + lng) + '"'
+            + ' title="' + esc(I.allmap_directions || '') + '"'
+            + ' aria-label="' + esc(I.allmap_directions || '') + '">'
+            + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"'
+            + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + '<polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></a>'
+          : '')
+      + '</div>'
+      + (p.available
+          ? '<button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'
+          : '<em class="bgc-allmap-pop-na">' + esc(I.allmap_na || '') + '</em>')
+      + '</div>';
+  }
+
   function render(data) {
     // Back to the map before anything is plotted. fitBounds() on a container that is display:none
     // measures zero and leaves the map centred on a rectangle that does not exist - and unlike the
@@ -662,12 +841,12 @@
         { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
       layer = L.layerGroup().addTo(map); // holds this and every later render's pins, so they can be cleared as one
     }
-    var bounds = [], chosenAt = null;
+    var bounds = [], chosenAt = null, rowHtml = [];
     points.forEach(function (p, i) {
       // Inline style, not a class: the colour is assigned at runtime (first-seen-courier order), so
       // there is no fixed set of classes to put in a stylesheet. This markup is built here in JS and
       // printed straight into the DOM, not passed through wp_kses, so the attribute is fine as-is.
-      $list.append('<li class="bgc-allmap-item' + (p.available ? '' : ' bgc-na')
+      rowHtml.push('<li class="bgc-allmap-item' + (p.available ? '' : ' bgc-na')
         + (isCurrent(p) ? ' bgc-chosen' : '') + '" data-i="' + i + '"'
         + ' style="border-left-color:' + colourFor(p.courier) + '">'
         + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
@@ -684,46 +863,15 @@
       // without taking a hue away from anybody.
       var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, p.available, isCurrent(p)),
         zIndexOffset: isCurrent(p) ? 1000 : 0 }).addTo(layer);
-      // Three lines, in the order a person reads them: WHOSE it is, WHAT it is called, WHERE it is.
-      // The price rides on the courier line because that is what it belongs to, not to the address.
-      // Three rows, each answering one question. WHO carries it and HOW it is collected belong
-      // together - they are the pair that decides whether this point suits you at all - with the price
-      // small at the end of that same line. Then WHICH one it is, then WHERE it is, a step quieter.
-      mk.bindPopup('<div class="bgc-allmap-pop">'
-        + '<div class="bgc-allmap-pop-c">'
-        + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
-        + '<span class="c">' + esc(p.courierLabel) + '</span>'
-        + typeGlyph(p.type)
-        + '<span class="t">' + esc(typeLabel(p.type)) + '</span>'
-        + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(priceLabel(p)) + '</span>' : '')
-        + '</div>'
-        + '<div class="bgc-allmap-pop-n">' + esc(p.office.name || '') + '</div>'
-        + '<div class="bgc-allmap-pop-a">' + esc(p.office.address || '')
-        // "How do I get there, and how long does it take" is the question a pin cannot answer and a
-        // map application can. No origin is given, so Google starts from wherever the customer actually
-        // is - which also means this needs no location permission of our own. Opened in a new tab: the
-        // checkout behind it is half-filled in and must not be navigated away from.
-        + (lat && lng
-            ? '<a class="bgc-allmap-dir" target="_blank" rel="noopener noreferrer"'
-              + ' href="https://www.google.com/maps/dir/?api=1&destination='
-              + encodeURIComponent(lat + ',' + lng) + '"'
-              + ' title="' + esc(I.allmap_directions || '') + '"'
-              + ' aria-label="' + esc(I.allmap_directions || '') + '">'
-              + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"'
-              + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-              + '<polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></a>'
-            : '')
-        + '</div>'
-        + (p.available
-            ? '<button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'
-            : '<em class="bgc-allmap-pop-na">' + esc(I.allmap_na || '') + '</em>')
-        + '</div>', {
+      // Contents in popupHtml(), built when the bubble OPENS - the geometry it is framed by stays here,
+      // because it is about this map's furniture rather than about the point.
+      mk.bindPopup(function () { return popupHtml(p, i); }, {
           // Leaflet pans until the popup fits the CONTAINER, and knows nothing about the Map/List pill
           // floating over the bottom of it. Measured on a 390x844 screen without this: tapping the
           // lowest pin put the Choose button 49px UNDERNEATH the pill - painted, and impossible to
           // press. The pill occupies 51px (37 tall, 14 up from the bottom); 78 leaves ~25px of daylight
           // for a popup made taller by a two-line office name.
-          // Wide enough for "Sameday · До автомат · ~ 1,57 €" to stay on one line, and no wider: the
+          // Wide enough for "Sameday \u00b7 \u0414\u043e \u0430\u0432\u0442\u043e\u043c\u0430\u0442 \u00b7 ~ 1,57 \u20ac" to stay on one line, and no wider: the
           // popup grows to its content between these two.
           minWidth: 210, maxWidth: 330,
           autoPanPaddingBottomRight: L.point(12, 78),
@@ -734,6 +882,11 @@
       markers[i] = mk; bounds.push([lat, lng]);
       if (isCurrent(p)) { chosenAt = [lat, lng]; }
     });
+    // One write for the whole sidebar. Appending per point made the browser lay the list out again for
+    // every office in the town; the elements are then kept BY POINT INDEX, so nothing after this - the
+    // distances, the filter, the sort - ever has to look a row up by selector again.
+    $list.html(rowHtml.join(''));
+    rowEls = $list.children('.bgc-allmap-item').get();
     /**
      * Measure the container, then frame the points inside it - in that order, and again once the box
      * has finished growing.
@@ -808,10 +961,19 @@
       var cid = $(this).attr('data-c');
       hidden[cid] = !hidden[cid];
       $(this).toggleClass('on', !hidden[cid]);
-      applyFilter();
+      // The chip and the sentence above the map both change on this tick - neither needs more than
+      // the flags and the cached distances. The sweep over every row and every pin is the slow half
+      // and goes to the next frame, so the click is painted first.
+      pickNear();
+      scheduleFilter();
     });
     applyFilter();
 
+    // The customer has already said where they are, and looking at another town does not move them:
+    // put the pin back so the distances are simply there, rather than asking them to locate again.
+    // Unless the shop has since switched the comparison off - a position remembered in this browser
+    // from before that must not put a pin on the map now.
+    if (origin && nearOn()) { placeMe([origin.lat, origin.lng]); }
     refreshNear();
 
     $list.off('click').on('click', '.bgc-allmap-item:not(.bgc-na)', function () {
@@ -903,7 +1065,21 @@
     });
   }
 
+  /**
+   * Is this point's pin painted right now?
+   *
+   * Not "is it in the layer" any more: a pin switched off in the legend STAYS in the layer and is
+   * hidden by style, because taking a few hundred markers out and putting them back is what made a
+   * legend click feel stuck. Anything asking "what can the customer see" has to ask this instead.
+   */
+  function pinShown(i) {
+    var mk = markers[i];
+    if (!mk || !layer || !layer.hasLayer(mk)) { return false; }
+    return !(mk._icon && mk._icon.style.display === 'none');
+  }
+
   function showMe() {
+    if (!nearOn()) { return; }
     if (!navigator.geolocation) { dropPin(); return; }
     navigator.geolocation.getCurrentPosition(function (pos) {
       var here = [pos.coords.latitude, pos.coords.longitude];
@@ -911,9 +1087,7 @@
       save();
       if (!state.cityName || !map) { cityFromPosition(here); return; }
       placeMe(here);
-      var visible = points.filter(function (p, i) {
-        return markers[i] && layer && layer.hasLayer(markers[i]);
-      });
+      var visible = points.filter(function (p, i) { return pinShown(i); });
       if (!visible.length) { map.setView(here, 14); return; }
       // Longitude degrees are shorter than latitude ones this far north; ~cos(42°) keeps "nearest"
       // honest without doing real geodesics for a map frame.

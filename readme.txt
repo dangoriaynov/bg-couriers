@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.22
+Stable tag: 0.2.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,7 +51,7 @@ This plugin relies on the online APIs of the couriers you enable to calculate sh
 * **BOX NOW** - api-production.boxnow.bg (stage host api-stage.boxnow.bg in test mode), and the locker-selection **map widget map.boxnow.bg**, which is loaded in an iframe **only when the customer opens the BOX NOW locker picker**. Terms: https://boxnow.bg/terms-of-use-for-shipping-services · Privacy: https://boxnow.bg/personal-data-processing-notice
 * **Sameday** - api.sameday.bg (demo host sameday-api-bg.demo.zitec.com in test mode). Terms: https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/ · Privacy: https://sameday.bg/politika-za-poveritelnost/
 
-**Maps:** the office/locker map picker loads map tiles from **OpenStreetMap (tile.openstreetmap.org)** - only when the customer chooses to open the map. The optional **address map picker is DISABLED by default**; if the merchant enables it in the settings, it additionally reverse-geocodes a point via **OpenStreetMap Nominatim (nominatim.openstreetmap.org)** - only the coordinates of the pin the customer drops, only when they drop it, never automatically. OSM tile policy: https://operations.osmfoundation.org/policies/tiles/ · Nominatim policy: https://operations.osmfoundation.org/policies/nominatim/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
+**Maps:** the office/locker map picker loads map tiles from **OpenStreetMap (tile.openstreetmap.org)** - only when the customer chooses to open the map. The optional **address map picker is DISABLED by default**; if the merchant enables it in the settings, it additionally reverse-geocodes a point via **OpenStreetMap Nominatim (nominatim.openstreetmap.org)** - only the coordinates of the pin the customer drops, only when they drop it, never automatically. The interactive map’s “closest to you” (on by default, switchable off) uses that same reverse lookup in one case: when the customer presses “find me” before naming a town, so the town can be filled in for them - their coordinates, at their own press, and nothing else. The distances themselves are computed in the browser and no position is stored on the site. OSM tile policy: https://operations.osmfoundation.org/policies/tiles/ · Nominatim policy: https://operations.osmfoundation.org/policies/nominatim/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
 If the merchant sets a **Google Maps API key** (optional), the address picker instead uses **Google Maps Geocoding (maps.googleapis.com)** for that lookup - sending only the picked coordinates. Google terms: https://cloud.google.com/maps-platform/terms · Privacy: https://policies.google.com/privacy
 
 No data is sent to any service the merchant has not configured, and the plugin sends nothing to the plugin author.
@@ -95,8 +95,15 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.2.23 =
+* Fixed: "show my location" did nothing on the interactive map after you had changed the town.
+* Fixed: switching a courier off in the map's legend could take a second and a half on a big town before anything moved. The legend now answers on the click, and the map catches up behind it.
+* New: the "closest to you" line is a button - press it and the map goes to the office it means, opens it and marks it in the list. It used to name a courier and a distance without saying which of the points it was talking about.
+* New: once you have shown where you are, each point's own bubble says how far it is from you - so the others can be weighed against the closest one.
+* New setting: "Closest to you" on the map can be switched off in WooCommerce → Settings → Shipping → BG Couriers → General. It is on by default.
+
 = 0.2.22 =
-* New: the interactive map can tell you which office or locker is closest to you, and what collecting from it saves against delivery to your door. Press "show my location", or drag the pin to where you actually are; the list then sorts by distance, every point shows how far it is, and each courier's own closest point appears on its badge. Distances are worked out in your browser, so your position is not sent anywhere.
+* New: the interactive map can tell you which office or locker is closest to you, and what collecting from it saves against delivery to your door. Press "show my location", or drag the pin to where you actually are; the list then sorts by distance, every point shows how far it is, and each courier's own closest point appears on its badge. Distances are worked out in your browser. Your position is only ever sent anywhere if you press "show my location" before naming a town - then it is looked up once, to fill the town in for you.
 
 = 0.2.21 =
 * Fixed: on the order screen the office map opened underneath the page - the order status and customer selects, and the delivery editor's own fields, were drawn straight through it.

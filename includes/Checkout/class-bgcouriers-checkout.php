@@ -669,6 +669,15 @@ class BGCouriers_Checkout {
             'nonce' => wp_create_nonce('bgcouriers_checkout'),
             'currency' => get_woocommerce_currency(),
             'preloadCities' => $preload,
+            // "Closest to you" on the interactive map. A merchant can switch the whole comparison off:
+            // it asks the browser for a location, and a shop that would rather not ask at all should
+            // not have to disable the map to avoid it.
+            //
+            // 'yes'/'no' rather than a boolean, deliberately: wp_localize_script() casts every value to
+            // a string, so `false` arrives in JavaScript as '' - which is indistinguishable from a key
+            // that is not there at all. This setting defaults to ON, so those two cases have to be
+            // told apart, and the string is what tells them apart.
+            'allmapNearest' => get_option('bgcouriers_allmap_nearest', 'yes') === 'yes' ? 'yes' : 'no',
             'cityIndex' => $city_index,
             'addressMap' => get_option('bgcouriers_address_map', 'no') === 'yes',
             'googleKey' => (string) get_option('bgcouriers_google_maps_key', ''), // set => Google map + geocoding; else OSM
@@ -725,6 +734,11 @@ class BGCouriers_Checkout {
                 'near_drag' => __('Drag the pin to where you are', 'bg-couriers'),
                 'near_m' => __('m', 'bg-couriers'),
                 'near_km' => __('km', 'bg-couriers'),
+                // The answer line names a courier and a distance but not WHICH point it means; it is a
+                // button, and this says so.
+                'near_which' => __('Show this point on the map', 'bg-couriers'),
+                // On a point's own bubble, once the customer's location is known.
+                'near_from_you' => __('from you', 'bg-couriers'),
             ],
         ]);
 
