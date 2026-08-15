@@ -1,7 +1,7 @@
 === BG Couriers for WooCommerce ===
 Contributors: winter2007d
 Donate link: https://revolut.me/danq6lus
-Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
+Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
@@ -84,12 +84,14 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Screenshots ==
 
-1. Checkout: delivery-type tabs (to office / address / APS locker), searchable city and office pickers, a live per-courier price, and a "Map" button.
-2. Checkout: the office/locker map picker - a searchable list beside the map, markers, and "show my location".
-3. Order screen: the shipment panel (waybill number + print / track / cancel) and the inline delivery editor (courier, delivery option, city, office/APS).
-4. Orders list: the "Waybill" column - generate a label, or print / track / cancel an existing one, per order.
-5. Settings: a courier tab - COD payout method, open-before-payment, contents/package, the delivery-option sub-tabs and per-method prices.
-6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
+1. Checkout: every courier with its own live price, delivery-type tabs (to office / to address / to APS locker) and searchable city and office pickers.
+2. Checkout: choosing an office - the list searches as you type, and each entry shows the full address.
+3. The interactive map: every courier's offices and lockers for a town at once, each priced, with the legend naming and colouring them.
+4. The same map filtered to one courier - the legend doubles as the filter, so you can compare or narrow down.
+5. Cart: what each courier charges, before the customer reaches the checkout.
+6. Order screen: the shipment panel (waybill, print, track, cancel) and the delivery editor - courier, delivery option, town and office, changed in place.
+7. Orders list: the Waybill column - generate a label, or print, track and cancel an existing one, per order.
+8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
 
