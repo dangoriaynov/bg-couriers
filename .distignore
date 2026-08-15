@@ -21,3 +21,4 @@ vendor
 # Translations come from translate.wordpress.org for wordpress.org installs (Plugins Team, round 2).
 # Kept in the repo because our own dev/prod sites deploy by rsync and need the compiled .mo.
 languages
+test-results

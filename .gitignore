@@ -30,3 +30,4 @@ composer.phar
 e2e/node_modules/
 docs/superpowers/
 bin/deploy.conf
+test-results/
