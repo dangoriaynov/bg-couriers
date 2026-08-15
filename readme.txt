@@ -5,7 +5,7 @@ Tags: woocommerce, shipping, bulgaria, courier, cash on delivery
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.19
+Stable tag: 0.2.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 6. Settings: masked credentials with Validate / Sync and the built-in "How do I get API credentials?" hint.
 
 == Changelog ==
+
+= 0.2.20 =
+* Fixed: placing the order immediately after typing the delivery address could be refused for leaving blank the very fields that were filled in on screen. The delivery details are saved separately from the order form, and the order could be sent before that save had arrived. The order now waits for it.
 
 = 0.2.19 =
 * Fixed: a courier forgot which delivery option you had chosen in it as soon as you looked at another one, and its price silently changed to a different delivery's. Choosing a Sameday locker showed 1,30 €, and touching Speedy turned that into 2,87 € - the price of delivery to an address, which had not been asked for. Every courier now remembers its own choice.

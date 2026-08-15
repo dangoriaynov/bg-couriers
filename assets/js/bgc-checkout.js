@@ -455,7 +455,47 @@
     };
   }
   function pushSelection($wrap) { showLoader($wrap); $.post(BGCOURIERS.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
-  function saveSelection($wrap) { $.post(BGCOURIERS.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
+  function saveSelection($wrap) { return $.post(BGCOURIERS.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
+
+  /**
+   * Nothing is ordered until what the customer typed has actually reached the session.
+   *
+   * Every one of these fields is saved by a fire-and-forget POST, and the server validates the order
+   * against the SESSION, not against the form - our fields are not WooCommerce fields and are not
+   * submitted with it. So typing a house number and pressing the button straight after ordered against
+   * a session that had not been told yet, and the customer was refused for leaving blank the very thing
+   * they had just filled in. Reproduced exactly: press 60ms after typing and the order comes back with
+   * "please choose a town" AND "please enter a street and number" - both of which were on screen.
+   *
+   * Caught on the form's own submit, in the CAPTURE phase. WooCommerce's `checkout_place_order` hook
+   * would have been the polite place for this and it is never reached on this shop - the checkout here
+   * posts the form outright rather than over AJAX, so no WooCommerce JS runs at all. Capture is ahead of
+   * every listener and of the native submit, so it holds whichever way the order is being sent.
+   *
+   * The order is held for one flush and then sent again; `resubmitting` is what stops that second pass
+   * from holding it forever, and the timer is there because a save that never answers must not cost the
+   * customer their order - the server will refuse it on its own terms if the data really is missing.
+   */
+  var resubmitting = false;
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || !form.classList || !form.classList.contains('checkout')) { return; }
+    if (resubmitting) { resubmitting = false; return; }   // our own second pass
+    var $wrap = $('.bgc-fields[data-courier="' + chosenCourier() + '"]').first();
+    if (!$wrap.length) { return; }                        // not one of ours - nothing to flush
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    clearTimeout(addrT);                                  // anything still on the debounce goes now
+    var done = false;
+    var go = function () {
+      if (done) { return; }
+      done = true;
+      resubmitting = true;
+      $(form).trigger('submit');
+    };
+    saveSelection($wrap).always(go);
+    setTimeout(go, 5000);
+  }, true);   // CAPTURE: ahead of WooCommerce's own submit handler, and of the native submit
 
   // BOX NOW locker picker - the official map widget (built-in GPS "nearest to me") ---------
   function boxnowUrl() {
