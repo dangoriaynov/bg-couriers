@@ -3,7 +3,7 @@
  * Plugin Name: BG Couriers for WooCommerce
  * Description: Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) - office/address/locker delivery, live rates, labels and tracking.
  * Plugin URI: https://github.com/dangoriaynov/bg-couriers
- * Version: 0.2.18
+ * Version: 0.2.19
  * Author: Дан Горяйнов
  * Author URI: https://github.com/dangoriaynov
  * Requires PHP: 7.4
@@ -17,7 +17,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('BGCOURIERS_VERSION', '0.2.18');
+define('BGCOURIERS_VERSION', '0.2.19');
 define('BGCOURIERS_FILE', __FILE__);
 define('BGCOURIERS_PATH', plugin_dir_path(__FILE__));
 define('BGCOURIERS_URL', plugin_dir_url(__FILE__));

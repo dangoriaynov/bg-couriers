@@ -52,6 +52,24 @@ class BGCouriers_Pricing {
             $city = BGCouriers_Nomenclature::city_by_postcode($courier_id, $postcode);
             if ($city) { $site_id = (int) $city['city_id']; }
         }
+        // What the customer last chose IN THIS courier, if they have been in it. Without this a courier
+        // they had set to a locker was re-quoted for its first enabled method the moment they touched a
+        // different one - so its row advertised the price of a delivery they had not asked for.
+        $mine = (array) $s->get('bgcouriers_sel_by_courier', []);
+        if (isset($mine[$courier_id]) && is_array($mine[$courier_id])) {
+            $m = $mine[$courier_id];
+            $method = (string) ($m['method'] ?? '');
+            if (in_array($method, BGCouriers_Settings::enabled_methods($courier_id), true)) {
+                // The city still comes from the post code above when this courier has none of its own:
+                // ids belong to the courier that issued them, and a remembered one may be stale.
+                $own = (int) ($m['site_id'] ?? 0);
+                return [
+                    'method'    => $method,
+                    'site_id'   => $own > 0 ? $own : $site_id,
+                    'office_id' => $own > 0 ? (int) ($m['office_id'] ?? 0) : 0,
+                ];
+            }
+        }
         return ['method' => $default, 'site_id' => $site_id, 'office_id' => 0];
     }
 

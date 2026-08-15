@@ -747,6 +747,21 @@ class BGCouriers_Checkout {
         $site_id    = $mine ? (int) $s->get('bgcouriers_site_id', 0) : 0;
         $office_id  = $mine ? (int) $s->get('bgcouriers_office_id', 0) : 0;
         $post_code  = $mine ? (string) $s->get('bgcouriers_post_code', '') : '';
+        // Not the current selection, but the customer HAS been in this courier before: show them back
+        // what they chose in it. The price row above is quoted from the same memory
+        // (BGCouriers_Pricing::selection_for), and a block showing "to address" over a locker's price is
+        // the two halves of one row disagreeing about what is being bought.
+        if (!$mine && $s) {
+            $remembered = (array) $s->get('bgcouriers_sel_by_courier', []);
+            $r = isset($remembered[$courier]) && is_array($remembered[$courier]) ? $remembered[$courier] : null;
+            if ($r && in_array((string) ($r['method'] ?? ''), BGCouriers_Settings::enabled_methods($courier), true)) {
+                $sel_method = (string) $r['method'];
+                if ((int) ($r['site_id'] ?? 0) > 0) {
+                    $site_id   = (int) $r['site_id'];
+                    $office_id = (int) ($r['office_id'] ?? 0);
+                }
+            }
+        }
         // Carry the city across a courier switch: postcode is courier-agnostic, so if this courier has no
         // selection yet but the customer already picked a city, pre-fill the same city (resolved for THIS
         // courier). The office stays empty - office ids are courier-specific, so they pick that again.

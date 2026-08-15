@@ -344,6 +344,34 @@ class BGCouriers_Ajax {
         WC()->session->set('bgcouriers_boxnow_name', sanitize_text_field(wp_unslash($_POST['boxnow_name'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- BoxNow locker label
         WC()->session->set('bgcouriers_boxnow_addr', sanitize_text_field(wp_unslash($_POST['boxnow_addr'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         foreach (self::address_fields($_POST) as $k => $v) { WC()->session->set('bgcouriers_addr_' . $k, $v); }
+        self::remember_for_courier(
+            sanitize_key(wp_unslash($_POST['courier'] ?? '')), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+            $method,
+            (int) wp_unslash($_POST['site_id'] ?? 0), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
+            (int) wp_unslash($_POST['office_id'] ?? 0) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
+        );
         wp_send_json_success(['ok' => true]);
+    }
+
+    /**
+     * Remember what was chosen FOR THIS COURIER, beside the single "current selection" the session
+     * already holds.
+     *
+     * The session keeps one selection - courier, method, city, office - and BGCouriers_Pricing::
+     * selection_for() hands it back only to the courier it belongs to. Everybody else was quoted for
+     * their own FIRST enabled method, so the moment a customer touched a second courier, the first one
+     * forgot the delivery type they had picked in it and its row silently reverted to the price of
+     * something else: Sameday showed 1.30 as a locker, then 2.87 the instant Speedy was touched, because
+     * Sameday fell back to "to address". The customer was reading a price for a delivery they had not
+     * chosen.
+     *
+     * This is a memory per courier, written alongside the current selection and never instead of it, so
+     * ordering, validation and the created order all keep reading exactly what they read before.
+     */
+    public static function remember_for_courier(string $courier, string $method, int $site_id, int $office_id): void {
+        if ($courier === '' || !function_exists('WC') || !WC()->session) { return; }
+        $all = (array) WC()->session->get('bgcouriers_sel_by_courier', []);
+        $all[$courier] = ['method' => $method, 'site_id' => $site_id, 'office_id' => $office_id];
+        WC()->session->set('bgcouriers_sel_by_courier', $all);
     }
 }
