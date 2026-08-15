@@ -71,7 +71,7 @@ https://github.com/dangoriaynov/bg-couriers/issues
 == Frequently Asked Questions ==
 
 = Which countries are supported? =
-Bulgaria only.
+Bulgaria only, and every courier here is a Bulgarian network: **Speedy**, **Econt**, **Pigeon Express** and **Sameday** deliver to an office, to a street address or to a locker, and **BOX NOW** delivers to its lockers (APM). There is no international shipping and no other country's couriers - the plugin talks to these five and nothing else.
 
 = Do I need an account with the couriers? =
 Yes. Each courier requires its own API credentials, obtained from that courier. Enter them on the courier's settings tab.
