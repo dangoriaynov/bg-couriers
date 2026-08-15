@@ -512,10 +512,13 @@
    */
   function pickNear() {
     if (!$dlg || !origin || !nearOn()) { return; }
-    var best = {}, overall = null;
+    var best = {}, overall = null, term = searchTerm();
     points.forEach(function (p, i) {
       var d = dists[i];
-      if (d == null || !p.available || hidden[p.courier]) { return; }   // not orderable: cannot be "nearest"
+      // Exactly what applyFilter() shows, not a subset of it. Reading only the legend meant that after
+      // typing a street the sentence still named the closest point in the whole town - a point whose
+      // row and whose pin were both hidden by then, so pressing it opened a bubble over nothing.
+      if (d == null || !p.available || !shown(p, term)) { return; }   // not on offer: cannot be "nearest"
       if (!best[p.courier] || d < best[p.courier].d) { best[p.courier] = { d: d, i: i }; }
       if (!overall || d < overall.d) { overall = { d: d, i: i, p: p }; }
     });
@@ -606,21 +609,32 @@
    * search. Both apply to the list AND the map: a row the map does not show, or a pin the list does
    * not have, is the two halves telling the customer different things.
    */
+  function searchTerm() {
+    return $dlg ? String($dlg.find('.bgc-allmap-search').val() || '').toLowerCase() : '';
+  }
+  /**
+   * Is this point on offer right now - both conditions, the legend AND the search.
+   *
+   * The term is passed in rather than read here: this is asked once per point, and reading the input
+   * inside it would put a DOM lookup back on every one of a town's few hundred offices - the exact cost
+   * the split between measureNear() and pickNear() exists to remove.
+   */
+  function shown(p, term) {
+    if (!p || hidden[p.courier]) { return false; }
+    if (term == null) { term = searchTerm(); }
+    if (!term) { return true; }
+    var o = p.office || {};
+    return String(o.name || '').toLowerCase().indexOf(term) !== -1
+        || String(o.address || '').toLowerCase().indexOf(term) !== -1;
+  }
+
   function applyFilter() {
     if (!$dlg) { return; }
-    var term = String($dlg.find('.bgc-allmap-search').val() || '').toLowerCase();
-    function shown(p) {
-      if (!p || hidden[p.courier]) { return false; }
-      if (!term) { return true; }
-      var o = p.office || {};
-      return String(o.name || '').toLowerCase().indexOf(term) !== -1
-          || String(o.address || '').toLowerCase().indexOf(term) !== -1;
-    }
     // The count rides on the List button because on a phone the list is behind the map: "List (3)"
     // after typing a street is the only way to know the search found anything without switching over.
-    var n = 0;
+    var n = 0, term = searchTerm();
     points.forEach(function (p, i) {
-      var on = shown(p);
+      var on = shown(p, term);
       if (on) { n++; }
       // Plain style writes on cached elements. Wrapping each row in jQuery and looking it up by
       // selector, per point, per keystroke, is most of what a few hundred offices used to cost.

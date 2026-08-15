@@ -500,6 +500,12 @@ test.describe('nearest office', () => {
     await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
     await page.waitForTimeout(1500);
 
+    // The switch travels as a STRING, and the difference matters: wp_localize_script() casts a PHP
+    // false to '', which is what an absent key also looks like - and this setting defaults to ON, so
+    // a falsy test would have switched the feature off for everybody the moment it was sent as a
+    // boolean. It was, and it did.
+    expect(await page.evaluate(() => window.BGCOURIERS && BGCOURIERS.allmapNearest)).toBe('yes');
+
     // Nothing claimed before we know where the customer is - a distance from nowhere is a lie.
     expect(await page.locator('.bgc-allmap-near').count()).toBe(0);
     expect(await page.locator('.bgc-allmap-dist').count()).toBe(0);
@@ -670,6 +676,45 @@ test.describe('nearest office', () => {
     // ...and the row is marked, so the two halves agree about which one it is.
     await expect(page.locator('.bgc-allmap-item.active')).toHaveCount(1);
     expect((await page.locator('.bgc-allmap-item.active .n').textContent()).trim()).toBe(closest);
+  });
+
+  /**
+   * The answer has to obey the search box too, not only the legend.
+   *
+   * It did not: after typing a street the sentence still named the closest point in the whole town -
+   * a point whose row and whose pin were both hidden by then. Pressing it opened a bubble anchored to
+   * a pin nobody could see, which is precisely the confusion the button exists to remove.
+   */
+  test('combined map: the answer follows the search, not just the legend @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(4000);
+    const all = (await page.locator('.bgc-allmap-near').textContent()).replace(/\s+/g, ' ');
+
+    await page.locator('.bgc-allmap-search').fill('люлин');
+    await page.waitForTimeout(900);
+    const rows = await page.locator('.bgc-allmap-item:visible').count();
+    expect(rows, 'the search has to actually narrow something').toBeGreaterThan(0);
+
+    const narrowed = (await page.locator('.bgc-allmap-near').textContent()).replace(/\s+/g, ' ');
+    expect(narrowed, `the answer must change with the search (was: ${all})`).not.toBe(all);
+
+    // Whatever it now names must be a point the customer can see - the first visible row, since the
+    // list is sorted by distance.
+    const firstVisible = (await page.locator('.bgc-allmap-item:visible').first().locator('.n').textContent()).trim();
+    await page.locator('.bgc-near-go').click();
+    await page.waitForTimeout(1200);
+    const named = (await page.locator('.leaflet-popup .bgc-allmap-pop-n').textContent()).trim();
+    expect(named).toBe(firstVisible.replace(/^[^\p{L}\d]+/u, '').trim());
+    // ...and the pin it opened over is painted, not one the search had hidden.
+    await expect(page.locator('.leaflet-popup')).toBeVisible();
+    expect(await page.locator('.bgc-allmap-item.active:visible').count()).toBe(1);
   });
 
   /**
