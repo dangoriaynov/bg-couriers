@@ -14,7 +14,7 @@ shipments from the WordPress admin.
 | **Pigeon Express** | ✅ Live on `main` | checkout (office/address), live quotes, labels; tracking live-verified against real shipments |
 | **BOX NOW** | ✅ Live on `main` | locker-only, flat-rate, OAuth2, **map-widget** locker picker; full create → label → track → cancel cycle verified. Needs a prepaid gateway to be offered at checkout: it cannot do наложен платеж |
 | **Sameday** | ✅ Live on `main` | checkout (address/APS), live quotes, labels, tracking; create → PDF → track → cancel verified against a live account (easyBox-only on it) |
-| **Express One** | 📋 Planned | turn-key `plans/2026-06-29-expressone-phase4.md` + fixtures; needs a **BG API key** + one live confirm (pickup-point → createshipment encoding) |
+| **Express One** | 📋 Planned | needs a **BG API key** + one live confirm (how a pickup-point selection encodes into `/createshipment`) |
 
 ## Features (what's built)
 
@@ -32,25 +32,24 @@ shipments from the WordPress admin.
   for **any** courier (BoxNow needs a locker; a selection made for one courier can't satisfy another),
   with clear per-courier error messages.
 - **Emergency help** - a configurable help phone + message shown after repeated checkout failures.
-- **Interactive map picker for every courier** - BoxNow's own GPS map widget, plus a bundled-Leaflet
-  (no CDN) GPS map for Speedy/Econt/Pigeon/Sameday: a "Map" button by the office dropdown plots the city's
-  offices/APS from stored coordinates, "show my location" geolocation, click a marker to choose.
+- **One interactive map for every courier** - a bundled-Leaflet (no CDN) map showing every enabled
+  courier's offices AND lockers for a town at once, each point priced for the way it is collected. The
+  legend names and colours the couriers and doubles as a filter; there is a searchable list beside the
+  map, "show my location", and a directions link per point. Choosing a point sets the courier, delivery
+  type, town and office in one go. A courier's own "Map" button opens this same map filtered to it - the
+  separate per-courier map was removed, because keeping two meant every fix had to land twice. BoxNow
+  keeps its own GPS map widget, which is the only way to pick one of its lockers.
 - **Settings** - one tab per courier (only the fields each courier actually uses), toggles tinted green/red,
   AJAX save with a toast, default courier, drag-to-order couriers + delivery options, hide-country,
   per-method free-shipping thresholds.
 
 ## Missing / roadmap
 
-- **Sameday → production** - needs a Sameday **demo login** (request from Sameday; no public demo account -
-  the SDK default `test-sameday-username`/`…password` returns 403). Then tick *Sandbox mode*, verify the
-  cities / lockers / ooh / estimate / AWB field names, run a `@sameday` E2E, and merge `feat/sameday` → `main`.
 - **Express One** - build once a **BG API key** arrives (`international@expressone.bg`); the one open shape is
   how a pickup-point selection encodes into `/createshipment`.
-- **WordPress.org** - submitted, awaiting the reviewers. The blockers the audit found are closed:
-  `Domain Path` + `languages/` + a complete bg_BG catalogue (the text domain matches the slug, so WP
-  loads it without `load_plugin_textdomain`), a `readme.txt`, and the **external services** disclosure
-  naming all four courier APIs and the BOX NOW map iframe. Background in
-  `docs/wordpress-org-readiness-audit.md` and `docs/wporg-submission.md`.
+- **WordPress.org** - **published**: https://wordpress.org/plugins/bg-couriers. Releases go out over SVN
+  (`trunk` + `tags/<version>` + `assets/` for the banner, icon and screenshots). Background on how it got
+  there is in `docs/wordpress-org-readiness-audit.md` and `docs/wporg-submission.md`.
 - **Advanced courier parity** (post-launch) - Sameday per-service rows / 3-way pricing / open-package;
   BOX NOW home-delivery + any-APM + returns.
 
@@ -58,21 +57,21 @@ shipments from the WordPress admin.
 
 A small registry makes couriers pluggable; everything resolves a courier by id.
 
-- **`BGC_Couriers`** (`includes/Couriers/class-bgc-couriers.php`) - registry: `register(id,label,factory)` /
-  `get(id)` / `all()`; hooks the `bgc_courier` filter. Couriers are registered in `BGC_Plugin::__construct`.
-- **Courier adapters** - `BGC_Speedy`, `BGC_Econt`, `BGC_Pigeon`, `BGC_Boxnow`, `BGC_Sameday` extend
-  **`BGC_Abstract_Courier`** and implement **`BGC_Courier_Interface`** (`id/label/capabilities/
+- **`BGCouriers_Couriers`** (`includes/Couriers/class-bgcouriers-couriers.php`) - registry: `register(id,label,factory)` /
+  `get(id)` / `all()`; hooks the `bgcouriers_courier` filter. Couriers are registered in `BGCouriers_Plugin::__construct`.
+- **Courier adapters** - `BGCouriers_Speedy`, `BGCouriers_Econt`, `BGCouriers_Pigeon`, `BGCouriers_Boxnow`, `BGCouriers_Sameday` extend
+  **`BGCouriers_Abstract_Courier`** and implement **`BGCouriers_Courier_Interface`** (`id/label/capabilities/
   check_credentials/fetch_cities/fetch_offices/quote/create_label/get_label_pdf/track/tracking_url/
   cancel_label`). Parsers are pure static methods, unit-tested against fixtures (`tests/fixtures/<courier>/`).
-- **Shipping methods** - `BGC_Method_<Courier>` (`WC_Shipping_Method`, id `bgc_<courier>`), registered into
-  the Bulgaria zone via `woocommerce_shipping_methods`. Pricing via `BGC_Pricing` (live quote → cached
+- **Shipping methods** - `BGCouriers_Method_<Courier>` (`WC_Shipping_Method`, id `bgcouriers_<courier>`), registered into
+  the Bulgaria zone via `woocommerce_shipping_methods`. Pricing via `BGCouriers_Pricing` (live quote → cached
   reference → configured default); method-level free-shipping threshold. BoxNow is a flat rate.
 - **Checkout** (`includes/Checkout/`) - `render_fields` emits a courier-aware `.bgc-fields[data-courier]`
   block after each shipping rate (tabs office/address/**APS**; searchable city/office/street via selectWoo);
   BoxNow instead renders a "Choose a BOX NOW locker" button that opens the **map widget**. The JS shows only
   the **chosen** courier's block. Per-city availability greys + disables an option the city lacks. The
   office/APS dropdown is disabled until a city is chosen, then offices are preloaded per courier+city+type and
-  cached client-side. The **selection is tagged with its courier** (`bgc_selection_courier`) so switching
+  cached client-side. The **selection is tagged with its courier** (`bgcouriers_selection_courier`) so switching
   couriers never shows a stale pick, and `validate()` blocks checkout without a valid destination. Pickers do
   not render on the cart page. Redundant standard WC address fields are removed; order address filled in
   `persist()`. Free-shipping notice follows the chosen courier.
@@ -80,14 +79,14 @@ A small registry makes couriers pluggable; everything resolves a courier by id.
   Enable is a **top toggle**; courier + per-method tabs are pills tinted green/red; per-method enable lives on
   its sub-tab (method sub-tabs are hidden for single-method/flat-rate couriers like BoxNow). Credentials show a
   validated state. **AJAX Save** with a top-right toast. General has Default courier, Courier order
-  (drag-sortable → `BGC_Checkout::sort_rates`) and Hide-country. Order panel
+  (drag-sortable → `BGCouriers_Checkout::sort_rates`) and Hide-country. Order panel
   (waybill + generate/print/track), orders-list column, auto-generate on a trigger status.
-- **Cache / pricing** (`includes/Cache/`) - `bgc_cities` / `bgc_offices` tables (`BGC_Schema`),
-  `BGC_Nomenclature` repo. `BGC_Sync` runs for all registered+enabled couriers: weekly full nomenclature
-  sync + a daily reference-price refresh (`seed_rates`) cached in `BGC_Rates`.
-- **Support** (`includes/Support/`) - `BGC_Quote` / `BGC_Label` /
-  `BGC_Tracking` value objects, `BGC_Encryption` (password at rest), `BGC_Api_Exception`.
-- **Settings/config** - `BGC_Settings::courier_config(id)` reads `bgc_<id>_*` options (password encrypted).
+- **Cache / pricing** (`includes/Cache/`) - `bgcouriers_cities` / `bgcouriers_offices` tables (`BGCouriers_Schema`),
+  `BGCouriers_Nomenclature` repo. `BGCouriers_Sync` runs for all registered+enabled couriers: weekly full nomenclature
+  sync + a daily reference-price refresh (`seed_rates`) cached in `BGCouriers_Rates`.
+- **Support** (`includes/Support/`) - `BGCouriers_Quote` / `BGCouriers_Label` /
+  `BGCouriers_Tracking` value objects, `BGCouriers_Encryption` (password at rest), `BGCouriers_Api_Exception`.
+- **Settings/config** - `BGCouriers_Settings::courier_config(id)` reads `bgcouriers_<id>_*` options (password encrypted).
   Each courier uses its **own registered account sender** (Econt profile, Speedy account, BoxNow warehouse,
   Pigeon pickup office, Sameday pickup point) - there is no global sender setting.
 
