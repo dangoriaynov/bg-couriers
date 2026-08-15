@@ -68,7 +68,13 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 @keyframes bgc-spin { to { transform: rotate(360deg); } }
 
 /* Emergency help modal */
-.bgc-emerg-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; }
+/* All three of these are modals, and all three sat below things they had to cover. WooCommerce's own
+   admin stylesheet puts select2 at z-index 999999, so on the order screen the ORDER STATUS and customer
+   selects - and the delivery editor's own city/office fields - were painted straight through the office
+   map. On the checkout the same 100000 lost to the shop's chat bubble. The maximum a z-index can hold is
+   the honest answer for a modal: it is either covering the page or it is not. Nothing here touches those
+   other elements; they simply lose while a dialog is open, and come back when it closes. */
+.bgc-emerg-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .bgc-emerg-box { position: relative; background: #fff; border-radius: 12px; max-width: 420px; width: 100%; padding: 28px 26px; box-shadow: 0 12px 40px rgba(0,0,0,.25); text-align: center; }
 .bgc-emerg-close { position: absolute; top: 8px; right: 12px; border: 0; background: none; font-size: 26px; line-height: 1; color: #888; cursor: pointer; }
 .bgc-emerg-msg { font-size: 16px; line-height: 1.5; margin: 4px 0 18px; color: #222; }
@@ -78,7 +84,7 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 /* BOX NOW locker picker (map widget) */
 .bgc-boxnow-selected { margin-top: 8px; padding: 8px 10px; border: 1px solid #d8dde3; border-radius: 8px; background: #f6f8fa; }
 .bgc-boxnow-selected .bgc-boxnow-addr { color: #555; }
-.bgc-boxnow-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 12px; }
+.bgc-boxnow-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 12px; }
 .bgc-boxnow-modal { position: relative; background: #fff; border-radius: 12px; width: 100%; max-width: 920px; height: 80vh; box-shadow: 0 12px 40px rgba(0,0,0,.3); overflow: hidden; }
 .bgc-boxnow-close { position: absolute; top: 6px; right: 10px; z-index: 2; border: 0; background: rgba(255,255,255,.92); border-radius: 50%; width: 32px; height: 32px; font-size: 22px; line-height: 1; cursor: pointer; }
 .bgc-boxnow-frame { width: 100%; height: 100%; border: 0; }
@@ -107,7 +113,7 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 .bgc-map-btn:focus-visible { opacity: 1; outline: 2px solid currentColor; outline-offset: 1px; }
 .bgc-map-btn:disabled { opacity: .3; cursor: default; background: transparent; }
 .bgc-map-btn .bgc-map-ico { flex: 0 0 auto; display: block; }
-.bgc-map-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.bgc-map-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .bgc-map-box { background: #fff; border-radius: 10px; width: min(860px, 96vw); max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.3); }
 .bgc-map-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #e5e7eb; }
 .bgc-map-close { border: 0; background: none; font-size: 24px; line-height: 1; cursor: pointer; color: #6b7280; }
