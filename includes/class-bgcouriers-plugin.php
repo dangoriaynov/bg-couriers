@@ -88,7 +88,10 @@ class BGCouriers_Plugin {
             $methods['bgcouriers_sameday'] = 'BGCouriers_Method_Sameday';
             return $methods;
         });
-        new BGCouriers_Checkout();
+        $checkout = new BGCouriers_Checkout();
+        // The block checkout fires none of the hooks the classic one does, so the same rules are
+        // re-attached to their Store API counterparts - reusing that same object, not a copy of it.
+        new BGCouriers_Blocks($checkout);
         new BGCouriers_Thankyou(); // order summary on the thank-you step (native hook + shortcode)
         new BGCouriers_Ajax();
         new BGCouriers_Labels(); // status-change hook must fire on front-end order transitions too
