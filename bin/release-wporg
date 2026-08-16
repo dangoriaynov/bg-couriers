@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# Publish the current commit to WordPress.org.
+#
+# Runs LAST, after the shop has been on this exact build and survived it. The directory is the one place
+# a mistake reaches people who cannot be told to wait: a bad tag is downloaded by every install with
+# auto-updates on, and a tag that has shipped must never quietly become different code under the same
+# number - it gets a new number instead.
+#
+# Usage: bin/release-wporg [--yes]
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/deploy.conf
+: "${BGC_SSH_HOST:?set BGC_SSH_HOST in bin/deploy.conf}"
+: "${BGC_SSH_PORT:=22}"
+
+SVN_WC="${BGC_SVN_WC:-$HOME/svn/bg-couriers}"
+SSH=(ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST")
+VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
+P="${BGC_PROD_PATH%/}"
+WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"
+WP="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root"
+
+bash bin/preflight
+
+echo "==> the shop must already be running this build"
+# The rule this encodes: SVN last, prod-verified builds only. Shipping to the directory something the
+# owner's own shop has not run is asking strangers to find the problems first.
+LIVE="$("${SSH[@]}" "$WP --path=${WPROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
+if [ "$LIVE" != "$VERSION" ]; then
+  echo "REFUSING: prod is on ${LIVE}, this is ${VERSION}. Run bin/release-prod first." >&2
+  exit 1
+fi
+echo "  prod is on ${VERSION}"
+
+echo "==> this version must not already be published"
+# Rewriting a published tag is the one irreversible mistake here: installs that already took it never
+# see the change, and the two disagree for good.
+if svn ls --non-interactive "https://plugins.svn.wordpress.org/bg-couriers/tags/${VERSION}" >/dev/null 2>&1; then
+  echo "REFUSING: tags/${VERSION} already exists on WordPress.org. Bump the version instead." >&2
+  exit 1
+fi
+echo "  tags/${VERSION} is free"
+
+echo "==> Plugin Check, on the code that is about to ship"
+# Run against DEV, which must be on the release commit: checking a working copy that is not what gets
+# packaged has caught nothing twice before. It also reads the plugin NAME in the site's language, which
+# is how the trademark rule was broken invisibly on an English install.
+DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
+DEV_V="$("${SSH[@]}" "$WP --path=${DEVROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
+if [ "$DEV_V" != "$VERSION" ]; then
+  echo "REFUSING: dev is on ${DEV_V}; deploy this build to dev first (bin/deploy.sh dev)" >&2
+  exit 1
+fi
+CHECK="$("${SSH[@]}" "$WP --path=${DEVROOT} plugin check bg-couriers 2>&1 | tail -3" || true)"
+echo "$CHECK" | sed 's/^/  /'
+echo "$CHECK" | grep -q "No errors found" || { echo "REFUSING: Plugin Check reported errors" >&2; exit 1; }
+
+echo "==> build"
+bash bin/build-zip >/dev/null
+ZIP="$HOME/Downloads/bg-couriers-${VERSION}.zip"
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+unzip -q "$ZIP" -d "$TMP"
+
+echo "==> audit the package"
+fail=0
+# Anything at the top level that is not the plugin means the excludes have drifted.
+UNEXPECTED="$(cd "$TMP/bg-couriers" && ls -A | grep -vE '^(includes|assets|languages|bg-couriers\.php|readme\.txt|LICENSE)$' || true)"
+[ -z "$UNEXPECTED" ] && echo "  only plugin files" || { echo "  UNEXPECTED IN PACKAGE: $UNEXPECTED"; fail=1; }
+# Hosts, personal numbers and dev scaffolding have each been found in a package at least once.
+# 'winter2007d' is EXPECTED in readme.txt - it is the WordPress.org account that owns the plugin page.
+LEAK="$(grep -rIl 'dev\.dobavki\|886301585\|BGC_SSH\|last-run\|probe_' "$TMP" || true)"
+[ -z "$LEAK" ] && echo "  no host, personal or tooling strings" || { echo "  LEAKED STRINGS IN: $LEAK"; fail=1; }
+ZIP_V="$(grep -m1 '^ \* Version:' "$TMP/bg-couriers/bg-couriers.php" | awk '{print $3}')"
+[ "$ZIP_V" = "$VERSION" ] && echo "  package is ${VERSION}" || { echo "  PACKAGE IS ${ZIP_V}, EXPECTED ${VERSION}"; fail=1; }
+[ -f "$TMP/bg-couriers/languages/bg-couriers-bg_BG.mo" ] && echo "  compiled Bulgarian catalogue included" \
+  || { echo "  NO .mo IN PACKAGE - the plugin would be English on every Bulgarian shop"; fail=1; }
+[ "$fail" -eq 0 ] || { echo "AUDIT FAILED - nothing published" >&2; exit 1; }
+
+if [ "${1:-}" != "--yes" ]; then
+  echo
+  read -r -p "Publish ${VERSION} to wordpress.org? type yes: " c
+  [ "$c" = yes ] || { echo "stopped - nothing published"; exit 1; }
+fi
+
+echo "==> svn trunk"
+# --non-interactive is the safety as much as the convenience: with credentials cached it commits, and
+# without them it errors instead of sitting at a password prompt. No password is ever typed.
+svn up -q --non-interactive "$SVN_WC"
+rsync -a --delete --exclude '.svn' "$TMP/bg-couriers/" "$SVN_WC/trunk/"
+( cd "$SVN_WC" && svn status | awk '$1=="?"{print $2}' | xargs -r svn add -q --non-interactive )
+( cd "$SVN_WC" && svn status | awk '$1=="!"{print $2}' | xargs -r svn rm -q --non-interactive )
+( cd "$SVN_WC" && svn status | sed 's/^/  /' )
+CHANGELOG="$(awk "/^= ${VERSION} =/{f=1;next} /^= /{f=0} f" readme.txt | grep '^\*' | head -1 | sed 's/^\* //')"
+( cd "$SVN_WC" && svn ci --non-interactive -m "${VERSION} - ${CHANGELOG}" | tail -1 )
+
+echo "==> svn tag"
+( cd "$SVN_WC" && svn cp trunk "tags/${VERSION}" -q && svn ci --non-interactive -m "tagging version ${VERSION}" | tail -1 )
+
+echo "==> confirm the directory serves it"
+# The API takes a few minutes to reindex. Poll rather than declaring success from a successful commit:
+# a commit that lands and a version that is downloadable are two different facts.
+for _ in $(seq 1 20); do
+  GOT="$(curl -s "https://api.wordpress.org/plugins/info/1.0/bg-couriers.json" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo '')"
+  [ "$GOT" = "$VERSION" ] && break
+  sleep 30
+done
+echo "  directory reports: ${GOT:-unknown}"
+if [ "$GOT" = "$VERSION" ]; then
+  curl -sL "https://downloads.wordpress.org/plugin/bg-couriers.${VERSION}.zip" -o "$TMP/pub.zip"
+  PUB_V="$(unzip -p "$TMP/pub.zip" bg-couriers/bg-couriers.php | grep -m1 '^ \* Version:' | awk '{print $3}')"
+  echo "  published download is ${PUB_V}"
+  [ "$PUB_V" = "$VERSION" ] || { echo "PUBLISHED PACKAGE DISAGREES" >&2; exit 1; }
+else
+  echo "  not indexed yet - the commits are in; re-check the API in a few minutes"
+fi
+
+echo
+echo "PUBLISHED ${VERSION}: https://wordpress.org/plugins/bg-couriers"

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Deploy the current commit to the live shop, and prove it landed.
+#
+# Order matters and is not negotiable: preflight, BACKUP, deploy, verify, purge, smoke. Everything after
+# the backup can be undone by restoring it, and nothing before the backup touches the site.
+#
+# Usage: bin/release-prod            (asks once, then runs)
+#        bin/release-prod --yes      (no prompt - for when it is already agreed)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/deploy.conf
+: "${BGC_SSH_HOST:?set BGC_SSH_HOST in bin/deploy.conf}"
+: "${BGC_SSH_PORT:=22}"
+: "${BGC_PROD_PATH:?set BGC_PROD_PATH in bin/deploy.conf}"
+
+P="${BGC_PROD_PATH%/}"
+WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"   # .../wp-content/plugins/bg-couriers -> the WP root
+WP="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root --path=${WPROOT}"
+SSH=(ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST")
+VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
+
+bash bin/preflight
+
+# The site the plugin is FOR. Ask unless told not to - deploying to prod is the one step here that a
+# customer can see go wrong.
+if [ "${1:-}" != "--yes" ]; then
+  read -r -p "Deploy ${VERSION} to PROD (${BGC_SSH_HOST})? type yes: " c
+  [ "$c" = yes ] || { echo "stopped"; exit 1; }
+fi
+
+echo "==> backup"
+# Named for the version being REPLACED and stamped, so a second run can never overwrite the archive that
+# is the way back. An earlier draft of this script named it after the version going ON, which meant
+# re-running it replaced a good rollback point with a copy of the code you were trying to roll back from.
+WAS="$("${SSH[@]}" "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r' || echo unknown)"
+BACKUP="$(dirname "$WPROOT")/bg-couriers-backup-${WAS}-$(date +%Y%m%d-%H%M).tgz"
+echo "  replacing ${WAS} with ${VERSION}"
+"${SSH[@]}" "cd \"\$(dirname '$P')\" && tar czf '$BACKUP' bg-couriers && du -h '$BACKUP'"
+
+echo "==> deploy"
+echo yes | bash bin/deploy.sh prod >/dev/null
+"${SSH[@]}" "chown -R dobavki:dobavki '$P'"
+
+echo "==> verify"
+LIVE="$("${SSH[@]}" "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
+if [ "$LIVE" != "$VERSION" ]; then
+  echo "REFUSING TO CONTINUE: prod reports ${LIVE}, expected ${VERSION}" >&2
+  echo "restore with: ssh ... 'cd \$(dirname $P) && rm -rf bg-couriers && tar xzf $BACKUP'" >&2
+  exit 1
+fi
+echo "  prod is running ${LIVE}"
+# Nothing that is not the plugin. Playwright's test-results reached prod once through rsync.
+STRAY="$("${SSH[@]}" "ls -d '$P/test-results' '$P/e2e' '$P/tests' 2>/dev/null" || true)"
+[ -z "$STRAY" ] && echo "  no test leftovers on the server" || { echo "  STRAY ON PROD: $STRAY" >&2; exit 1; }
+
+echo "==> cache"
+# wp-cli has no 'rocket' command on this host; the plugin's own functions do the job.
+"${SSH[@]}" "$WP eval 'if(function_exists(\"rocket_clean_domain\")){rocket_clean_domain();rocket_clean_minify();echo \"WP Rocket purged\";}else{echo \"no WP Rocket\";} echo PHP_EOL;'"
+"${SSH[@]}" "$WP cache flush" >/dev/null 2>&1 || true
+
+echo "==> smoke"
+# The shop's checkout and cart are /order/ and /order-cart/ - /checkout/ and /cart/ 404 here and that is
+# NOT a fault. Do not "fix" this list to the WooCommerce defaults.
+fail=0
+for u in https://dobavki.club/ https://dobavki.club/order/ https://dobavki.club/order-cart/ https://dobavki.club/wp-admin/; do
+  code="$(curl -s -o /dev/null -w '%{http_code}' -L "$u")"
+  printf '  %-38s %s\n' "$u" "$code"
+  [ "$code" = 200 ] || fail=1
+done
+
+# Every courier must be exactly as configured as it was. A release that quietly disables one takes the
+# shop's deliveries with it.
+echo "==> couriers"
+"${SSH[@]}" "$WP eval '
+foreach ([\"speedy\",\"econt\",\"pigeon\",\"boxnow\",\"sameday\"] as \$c) {
+  printf(\"  %-8s enabled=%-4s creds=%s\n\", \$c, get_option(\"bgcouriers_{\$c}_enabled\",\"no\"),
+    BGCouriers_Settings::creds_present(\$c) ? \"yes\" : \"no\");
+}'"
+
+echo
+[ "$fail" -eq 0 ] || { echo "SMOKE FAILED - a page did not return 200. Backup: $BACKUP" >&2; exit 1; }
+echo "PROD is on ${VERSION} ($(git rev-parse --short HEAD)). Backup: ${BACKUP}"
+echo "Next: bin/release-wporg"

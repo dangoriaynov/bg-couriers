@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Everything that must be true before this working copy may be released anywhere.
+#
+# Every check here is one that has actually gone wrong on this plugin at least once. None of them is
+# hypothetical, and the comment on each says which failure it is standing in for. Run on its own to see
+# where things stand; bin/release-prod and bin/release-wporg both run it first and refuse without it.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+fail=0
+ok()   { printf '  \033[32m✓\033[0m %s\n' "$1"; }
+bad()  { printf '  \033[31m✗\033[0m %s\n' "$1"; fail=1; }
+note() { printf '    %s\n' "$1"; }
+
+VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
+echo "Preflight for ${VERSION}"
+
+# --- 1. One version, in all three places -----------------------------------------------------------
+# 0.2.2 shipped with BGCOURIERS_VERSION left at 0.2.1, which serves stale cached assets to every
+# customer: the constant is what busts the browser cache.
+CONST_V="$(grep -m1 "define('BGCOURIERS_VERSION'" bg-couriers.php | sed "s/.*'\([0-9.]*\)'.*/\1/")"
+STABLE_V="$(grep -m1 '^Stable tag:' readme.txt | awk '{print $3}')"
+if [ "$VERSION" = "$CONST_V" ] && [ "$VERSION" = "$STABLE_V" ]; then
+  ok "version is ${VERSION} in the header, BGCOURIERS_VERSION and the readme stable tag"
+else
+  bad "versions disagree: header ${VERSION}, constant ${CONST_V}, stable tag ${STABLE_V}"
+fi
+
+# --- 2. A changelog entry for it --------------------------------------------------------------------
+# WordPress.org shows the changelog on the plugin page; a version with no entry reads as an unexplained
+# update, and merchants deciding whether to apply one have nothing to go on.
+if grep -q "^= ${VERSION} =" readme.txt; then
+  ok "readme.txt has a changelog entry for ${VERSION}"
+else
+  bad "readme.txt has no '= ${VERSION} =' changelog entry"
+fi
+
+# --- 3. A clean tree, pushed ------------------------------------------------------------------------
+# A release must correspond to a commit anybody can fetch. A zip built from uncommitted work cannot be
+# reproduced, and cannot be reverted to.
+if [ -z "$(git status --porcelain)" ]; then
+  ok "working tree is clean"
+else
+  bad "working tree is dirty - commit first, so the release matches a known commit"
+  note "$(git status --porcelain | head -5)"
+fi
+git fetch -q origin main 2>/dev/null || true
+if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main 2>/dev/null || echo none)" ]; then
+  ok "HEAD is pushed to origin/main ($(git rev-parse --short HEAD))"
+else
+  bad "HEAD is not what origin/main points at - push first"
+fi
+
+# --- 4. Translations done in the same change --------------------------------------------------------
+# The standing rule: a user-facing string added without its Bulgarian lands on a Bulgarian shop in
+# English. The owner keeps catching these, which is why it is a gate and not a reminder.
+if command -v msgattrib >/dev/null 2>&1; then
+  # The plugin NAME is deliberately untranslated - translating it broke WordPress.org's trademark rule.
+  UNTRANSLATED="$(msgattrib --untranslated languages/bg-couriers-bg_BG.po \
+    | grep -c '^msgid "' || true)"
+  # 1 = the header entry, 1 = the plugin name. Anything above that is a real gap.
+  if [ "$UNTRANSLATED" -le 2 ]; then
+    ok "Bulgarian catalogue is complete"
+  else
+    bad "$((UNTRANSLATED - 2)) string(s) have no Bulgarian"
+    note "msgattrib --untranslated languages/bg-couriers-bg_BG.po | grep '^msgid'"
+  fi
+else
+  note "msgattrib not installed - skipping the translation check"
+fi
+# A .po edited after the .mo was built means the compile step was forgotten, and .mo is the only one
+# WordPress reads: the translation would simply not appear.
+if [ languages/bg-couriers-bg_BG.po -nt languages/bg-couriers-bg_BG.mo ]; then
+  bad ".po is newer than .mo - run: msgfmt -o languages/bg-couriers-bg_BG.mo languages/bg-couriers-bg_BG.po"
+else
+  ok ".mo is compiled from the current .po"
+fi
+
+# --- 5. Tests ---------------------------------------------------------------------------------------
+if [ "${SKIP_TESTS:-}" = "1" ]; then
+  note "SKIP_TESTS=1 - unit tests not run"
+elif vendor/bin/phpunit --testsuite unit >/tmp/bgc-preflight-tests.log 2>&1; then
+  ok "unit tests pass ($(grep -oE '[0-9]+ tests' /tmp/bgc-preflight-tests.log | head -1))"
+else
+  bad "unit tests FAIL - see /tmp/bgc-preflight-tests.log"
+  note "$(tail -3 /tmp/bgc-preflight-tests.log)"
+fi
+
+# --- 6. Nothing that is not the plugin ---------------------------------------------------------------
+# test-results/.last-run.json has reached the WordPress.org package once and PROD once, by two different
+# routes. It is 45 bytes of Playwright bookkeeping and it should never leave this machine.
+STRAY="$(git ls-files | grep -E '^(test-results|playwright-report|e2e/probe_|.*\.superpowers)' || true)"
+if [ -z "$STRAY" ]; then
+  ok "no test or tooling leftovers are tracked"
+else
+  bad "these are tracked and must not be: $STRAY"
+fi
+
+echo
+if [ "$fail" -ne 0 ]; then echo "PREFLIGHT FAILED"; exit 1; fi
+echo "Preflight OK for ${VERSION}"
