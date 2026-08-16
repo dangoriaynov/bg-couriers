@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.23
+Stable tag: 0.2.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.2.24 =
+* Fixed: on a phone, pressing the closest office could leave the map showing a different part of town with the office's bubble at the edge. Changing the zoom animates, and the bubble was being fitted to the screen while that animation was still running. Picking an office from the list went the same way.
 
 = 0.2.23 =
 * Fixed: "show my location" did nothing on the interactive map after you had changed the town.

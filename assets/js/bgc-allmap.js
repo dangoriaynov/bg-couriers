@@ -577,7 +577,16 @@
     if (!mk || !map) { return; }
     // On a phone the list is covering the map, so this has to switch over before it centres anything.
     setMode('map');
-    map.setView(mk.getLatLng(), Math.max(map.getZoom(), 15));
+    // The pane's height changes whenever the header does - the answer strip appearing is itself such a
+    // change - and Leaflet centres against whatever it last measured. A stale size puts the point
+    // somewhere other than the middle, and on a short pane that can be off the screen altogether.
+    map.invalidateSize();
+    // animate:false, and this is the whole bug it fixes. A setView that changes the zoom ANIMATES, and
+    // openPopup() on the next line starts Leaflet's own auto-pan while that animation is still running -
+    // so the pan is computed against an in-flight view and lands somewhere else, leaving the bubble at
+    // the edge of a map showing a different part of town. It depends on how fast the device draws,
+    // which is why it showed on a phone and never once under a headless desktop browser.
+    map.setView(mk.getLatLng(), Math.max(map.getZoom(), 15), { animate: false });
     mk.openPopup();
     if (mk._icon) {
       var icon = mk._icon;
@@ -1011,16 +1020,11 @@
     if (origin && nearOn()) { placeMe([origin.lat, origin.lng]); }
     refreshNear();
 
+    // A row and the answer strip mean the same thing - "show me this one" - so they go through the same
+    // code now. Each used to centre the map by hand, which put the animation race above in two places
+    // where it could only ever be fixed in one.
     $list.off('click').on('click', '.bgc-allmap-item:not(.bgc-na)', function () {
-      var mk = markers[+$(this).data('i')];
-      if (!mk) { return; }
-      $list.find('.active').removeClass('active');
-      $(this).addClass('active');
-      // On a phone the list is covering the map, so picking a row means "show me this one" - go to the
-      // map first, THEN centre it, or the pan and the popup both happen somewhere nobody can see.
-      setMode('map');
-      map.setView(mk.getLatLng(), Math.max(map.getZoom(), 15));
-      mk.openPopup();
+      focusPoint(+$(this).data('i'));
     });
   }
 

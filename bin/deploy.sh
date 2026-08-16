@@ -27,6 +27,7 @@ esac
 rsync -az --delete \
   --exclude '.git' --exclude '.gitignore' --exclude '.superpowers' --exclude '.claude' \
   --exclude '.phpunit.result.cache' --exclude 'tests' --exclude 'node_modules' \
+  --exclude 'test-results' --exclude 'playwright-report' \
   --exclude 'vendor' --exclude 'docs' --exclude 'bin' --exclude 'e2e' \
   --exclude '.wp-env.json' --exclude 'composer.*' --exclude 'phpunit.xml.dist' \
   --exclude '.wordpress-org' --exclude '.distignore' --exclude '.github' --exclude 'README.md' \

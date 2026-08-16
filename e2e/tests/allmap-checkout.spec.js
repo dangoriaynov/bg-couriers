@@ -300,10 +300,35 @@ test.describe('the combined map on a phone', () => {
     // And pressing it does the same thing it does on a desktop: the map, on that point, open.
     const closest = (await page.locator('.bgc-allmap-item').first().locator('.n').textContent()).trim();
     await near.click();
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1800);
     await expect(page.locator('.leaflet-popup .bgc-allmap-pop-n')).toBeVisible();
     expect((await page.locator('.leaflet-popup .bgc-allmap-pop-n').textContent()).trim())
       .toBe(closest.replace(/^[^\p{L}\d]+/u, '').trim());
+
+    /*
+     * The point must be ON the map, not merely have a bubble. Reported from a phone as "it doesn't
+     * scroll to it - it shows a completely different office": a setView that changes the zoom animates,
+     * and openPopup() right after it started Leaflet's own auto-pan against a view still in flight, so
+     * the map settled somewhere else with the bubble at its edge. Naming the right office is exactly
+     * what the old behaviour still did, so the assertion has to be geometric.
+     */
+    const placed = await page.evaluate(() => {
+      const c = document.querySelector('.bgc-allmap-canvas').getBoundingClientRect();
+      const pin = document.querySelector('.bgc-pin-flash');
+      const pop = document.querySelector('.leaflet-popup');
+      const p = pin && pin.getBoundingClientRect(), q = pop && pop.getBoundingClientRect();
+      const dist = (el) => (el ? (el.textContent.match(/([\d,]+)\s*(м|км)/) || [null])[0] : null);
+      return {
+        pinInside: !!p && p.top >= c.top && p.bottom <= c.bottom,
+        popInside: !!q && q.top >= c.top - 1 && q.bottom <= c.bottom + 1,
+        popDist: dist(document.querySelector('.leaflet-popup .bgc-allmap-pop-d')),
+        nearDist: dist(document.querySelector('.bgc-allmap-near .bgc-near-d')),
+      };
+    });
+    expect(placed.pinInside, `the pin is on the visible map (${JSON.stringify(placed)})`).toBe(true);
+    expect(placed.popInside, 'the whole bubble is on the visible map').toBe(true);
+    // The same point, said twice: the strip's distance and the bubble's must agree.
+    expect(placed.popDist, 'the bubble is the point the strip named').toBe(placed.nearDist);
   });
 
   test('combined map: the map gets real height on a phone @allmap', async ({ page }) => {
