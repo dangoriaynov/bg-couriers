@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.26
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,11 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.3.0 =
+* **The plugin now works on WooCommerce's block checkout.** It did not, and it failed quietly: the courier and its price appeared, there was nowhere at all to choose a town, an office or a locker, and the order could still be placed - reaching you with a courier and no destination. The block checkout is what WooCommerce gives a new shop by default.
+* The same pickers, the same interactive map and the same rules now render inside the block checkout, and an order without a delivery point is refused there with the reason.
+* Fixed: a shop that puts the checkout block on a page other than its configured checkout got courier prices with no pickers at all. The pickers now follow the block, not the page setting.
 
 = 0.2.26 =
 * The plugin's own settings screen now says where to ask a question, with a link to the support forum - and, once, quietly, that you can support the development if you want to. It is one line, it is not dismissible because there is nothing to dismiss, and it appears nowhere else in the admin.

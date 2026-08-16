@@ -22,6 +22,9 @@ defined('ABSPATH') || exit;
  * a valid destination is, and one place that copies it onto the order.
  */
 class BGCouriers_Blocks {
+    /** Shipping-method id prefix, the same one BGCouriers_Checkout uses. */
+    private const RATE_PREFIX = 'bgcouriers_';
+
     /** @var BGCouriers_Checkout the classic-checkout controller, whose rules this reuses verbatim */
     private $checkout;
 
@@ -33,6 +36,80 @@ class BGCouriers_Blocks {
         // ...and writes the chosen courier, delivery type, town and office onto the order once it is
         // allowed through. Without this the order carries a shipping rate and nothing else.
         add_action('woocommerce_store_api_checkout_update_order_from_request', [$this, 'persist'], 10, 2);
+        add_action('wp_enqueue_scripts', [$this, 'assets'], 20);
+        add_action('wp_ajax_bgcouriers_blocks_fields', [$this, 'ajax_fields']);
+        add_action('wp_ajax_nopriv_bgcouriers_blocks_fields', [$this, 'ajax_fields']);
+    }
+
+    /**
+     * Is the page being viewed built out of the checkout BLOCK rather than the shortcode?
+     *
+     * Public because BGCouriers_Checkout::assets() asks it too. That guard used to be is_checkout()
+     * alone, which is true only for the page WooCommerce has been TOLD is the checkout - so a shop that
+     * puts the checkout block on any other page got courier rates, no pickers and no explanation.
+     */
+    public static function is_block_checkout(): bool {
+        if (!function_exists('has_block')) { return false; }
+        $id = get_queried_object_id();
+        return $id && has_block('woocommerce/checkout', $id);
+    }
+
+    /**
+     * The picker's own script, on top of everything the classic checkout already loads.
+     *
+     * `wc-blocks-checkout` is what exposes the slot this fills, and `wp-element` is what renders into it -
+     * both are registered by WooCommerce itself, so there is no build step and no bundled framework here.
+     */
+    public function assets(): void {
+        if (!self::is_block_checkout()) { return; }
+        $js = BGCOURIERS_PATH . 'assets/js/bgc-blocks.js';
+        wp_enqueue_script(
+            'bgc-blocks',
+            BGCOURIERS_URL . 'assets/js/bgc-blocks.js',
+            ['jquery', 'wp-element', 'wp-plugins', 'wc-blocks-checkout', 'bgc-checkout'],
+            is_file($js) ? (string) filemtime($js) : BGCOURIERS_VERSION,
+            true
+        );
+    }
+
+    /**
+     * The very same markup the classic checkout prints under each courier's rate row.
+     *
+     * Rendered here rather than rebuilt in React on purpose. The pickers are a few hundred lines of
+     * behaviour - per-city availability, the office preload, the street search, the interactive map, the
+     * per-courier memory - and a second implementation of them would drift from the first within a
+     * release. What the block checkout is missing is a PLACE to put this markup, not the markup.
+     *
+     * The hidden shipping_method input travels with it: `chosenCourier()` in bgc-checkout.js already
+     * falls back to one, which is the seam that lets every one of those behaviours work unchanged on a
+     * checkout whose radio buttons it cannot see.
+     */
+    public function ajax_fields(): void {
+        if (!function_exists('WC') || !WC()->cart) { wp_send_json_error(['html' => '']); }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render of the customer's own session
+        $chosen = isset($_POST['rate']) ? sanitize_text_field(wp_unslash($_POST['rate'])) : '';
+        if (strpos($chosen, self::RATE_PREFIX) !== 0) { wp_send_json_success(['html' => '', 'courier' => '']); }
+        $courier = substr(explode(':', $chosen)[0], strlen(self::RATE_PREFIX));
+
+        // Shipping has to be worked out first. On an admin-ajax request nothing has asked for it, so
+        // get_packages() answers with an empty array and the markup comes back blank - which looks
+        // exactly like "this courier has no fields" and is why the picker rendered nothing at all.
+        WC()->cart->calculate_shipping();
+
+        $html = '';
+        foreach (WC()->shipping()->get_packages() as $package) {
+            foreach ((array) ($package['rates'] ?? []) as $rate) {
+                if (!is_object($rate) || !method_exists($rate, 'get_method_id')) { continue; }
+                if (substr($rate->get_method_id(), strlen(self::RATE_PREFIX)) !== $courier) { continue; }
+                ob_start();
+                $this->checkout->render_fields($rate, 0);
+                $html .= (string) ob_get_clean();
+            }
+        }
+        if ($html === '') { wp_send_json_success(['html' => '', 'courier' => $courier]); }
+        $html = '<input type="hidden" name="shipping_method[0]" value="' . esc_attr($chosen) . '">'
+            . BGCouriers_Checkout::allmap_button_for_blocks() . $html;
+        wp_send_json_success(['html' => $html, 'courier' => $courier]);
     }
 
     /**

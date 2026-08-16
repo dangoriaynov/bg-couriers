@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
-"POT-Creation-Date: 2026-08-16T12:55:37+00:00\n"
+"POT-Creation-Date: 2026-08-16T17:29:23+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -465,7 +465,7 @@ msgstr "Да, преиздай ги"
 #: includes/Admin/class-bgcouriers-order-metabox.php:244
 #: includes/Admin/class-bgcouriers-settings.php:517
 #: includes/Admin/class-bgcouriers-wc-settings.php:20
-#: includes/Checkout/class-bgcouriers-checkout.php:694
+#: includes/Checkout/class-bgcouriers-checkout.php:729
 #: includes/Checkout/class-bgcouriers-thankyou.php:95
 #: includes/Support/class-bgcouriers-icons.php:68
 msgid "To office"
@@ -475,7 +475,7 @@ msgstr "До офис"
 #: includes/Admin/class-bgcouriers-order-metabox.php:244
 #: includes/Admin/class-bgcouriers-settings.php:518
 #: includes/Admin/class-bgcouriers-wc-settings.php:21
-#: includes/Checkout/class-bgcouriers-checkout.php:694
+#: includes/Checkout/class-bgcouriers-checkout.php:729
 #: includes/Checkout/class-bgcouriers-thankyou.php:95
 #: includes/Support/class-bgcouriers-icons.php:66
 msgid "To address"
@@ -485,7 +485,7 @@ msgstr "До адрес"
 #: includes/Admin/class-bgcouriers-order-metabox.php:244
 #: includes/Admin/class-bgcouriers-settings.php:519
 #: includes/Admin/class-bgcouriers-wc-settings.php:22
-#: includes/Checkout/class-bgcouriers-checkout.php:694
+#: includes/Checkout/class-bgcouriers-checkout.php:729
 #: includes/Checkout/class-bgcouriers-thankyou.php:95
 #: includes/Support/class-bgcouriers-icons.php:67
 msgid "To APS"
@@ -506,7 +506,7 @@ msgstr "Обнови от куриера сега"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:245
 #: includes/Admin/class-bgcouriers-order-metabox.php:282
-#: includes/Checkout/class-bgcouriers-checkout.php:858
+#: includes/Checkout/class-bgcouriers-checkout.php:893
 msgid "City"
 msgstr "Град"
 
@@ -517,7 +517,7 @@ msgstr "Офис / Автомат"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:245
 #: includes/Admin/class-bgcouriers-order-metabox.php:287
-#: includes/Checkout/class-bgcouriers-checkout.php:868
+#: includes/Checkout/class-bgcouriers-checkout.php:903
 msgid "Street"
 msgstr "Улица"
 
@@ -539,34 +539,34 @@ msgstr "Куриерът е недостъпен."
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:257
 #: includes/Admin/class-bgcouriers-order-metabox.php:283
-#: includes/Checkout/class-bgcouriers-checkout.php:704
+#: includes/Checkout/class-bgcouriers-checkout.php:739
 msgid "Pick from the map"
 msgstr "Изберете от картата"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:258
-#: includes/Checkout/class-bgcouriers-checkout.php:705
+#: includes/Checkout/class-bgcouriers-checkout.php:740
 msgid "Choose this location"
 msgstr "Изберете тази локация"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:259
-#: includes/Checkout/class-bgcouriers-checkout.php:706
+#: includes/Checkout/class-bgcouriers-checkout.php:741
 msgid "Show my location"
 msgstr "Покажи моето местоположение"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:260
-#: includes/Checkout/class-bgcouriers-checkout.php:707
+#: includes/Checkout/class-bgcouriers-checkout.php:742
 msgid "No offices with a map location for this city yet - use the list."
 msgstr ""
 "Все още няма офиси с локация на картата за този град - използвайте списъка."
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:261
-#: includes/Checkout/class-bgcouriers-checkout.php:698
+#: includes/Checkout/class-bgcouriers-checkout.php:733
 msgid "Search…"
 msgstr "Търсене…"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:262
 #: includes/Admin/class-bgcouriers-wc-settings.php:353
-#: includes/Checkout/class-bgcouriers-checkout.php:697
+#: includes/Checkout/class-bgcouriers-checkout.php:732
 msgid "Close"
 msgstr "Затвори"
 
@@ -579,18 +579,18 @@ msgid "Click the map or drag the pin to the address."
 msgstr "Кликнете върху картата или преместете маркера до адреса."
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:265
-#: includes/Checkout/class-bgcouriers-checkout.php:710
+#: includes/Checkout/class-bgcouriers-checkout.php:745
 msgid "Use this address"
 msgstr "Използвай този адрес"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:266
-#: includes/Checkout/class-bgcouriers-checkout.php:711
+#: includes/Checkout/class-bgcouriers-checkout.php:746
 msgid "No address found here - try another spot."
 msgstr "Тук не е намерен адрес - опитайте на друго място."
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:267
-#: includes/Checkout/class-bgcouriers-checkout.php:718
-#: includes/Checkout/class-bgcouriers-checkout.php:865
+#: includes/Checkout/class-bgcouriers-checkout.php:753
+#: includes/Checkout/class-bgcouriers-checkout.php:900
 msgid "Map"
 msgstr "Карта"
 
@@ -618,7 +618,7 @@ msgid "Delivery option"
 msgstr "Опция за доставка"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:288
-#: includes/Checkout/class-bgcouriers-checkout.php:869
+#: includes/Checkout/class-bgcouriers-checkout.php:904
 msgid "No."
 msgstr "№"
 
@@ -627,7 +627,7 @@ msgid "Pick the address on the map"
 msgstr "Изберете адреса от картата"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:291
-#: includes/Checkout/class-bgcouriers-checkout.php:878
+#: includes/Checkout/class-bgcouriers-checkout.php:913
 msgid "Quarter / complex"
 msgstr "Квартал / комплекс"
 
@@ -636,22 +636,22 @@ msgid "Bl."
 msgstr "Бл."
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:294
-#: includes/Checkout/class-bgcouriers-checkout.php:881
+#: includes/Checkout/class-bgcouriers-checkout.php:916
 msgid "Entr."
 msgstr "Вход"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:295
-#: includes/Checkout/class-bgcouriers-checkout.php:882
+#: includes/Checkout/class-bgcouriers-checkout.php:917
 msgid "Floor"
 msgstr "Етаж"
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:296
-#: includes/Checkout/class-bgcouriers-checkout.php:883
+#: includes/Checkout/class-bgcouriers-checkout.php:918
 msgid "Apt."
 msgstr "Ап."
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:298
-#: includes/Checkout/class-bgcouriers-checkout.php:885
+#: includes/Checkout/class-bgcouriers-checkout.php:920
 msgid "Note"
 msgstr "Бележка"
 
@@ -2315,7 +2315,7 @@ msgid "to an office"
 msgstr "до офис"
 
 #: includes/Checkout/class-bgcouriers-checkout.php:161
-#: includes/Checkout/class-bgcouriers-checkout.php:730
+#: includes/Checkout/class-bgcouriers-checkout.php:765
 msgid "to your address"
 msgstr "до Вашия адрес"
 
@@ -2335,40 +2335,40 @@ msgstr "≈ %s - крайна цена при поръчката."
 msgid "Flat price %s."
 msgstr "Фиксирана цена %s."
 
-#: includes/Checkout/class-bgcouriers-checkout.php:269
-#: includes/Checkout/class-bgcouriers-checkout.php:712
+#: includes/Checkout/class-bgcouriers-checkout.php:285
+#: includes/Checkout/class-bgcouriers-checkout.php:747
 msgid "Interactive map"
 msgstr "Интерактивна карта"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:299
+#: includes/Checkout/class-bgcouriers-checkout.php:332
 msgid "office"
 msgstr "офис"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:299
+#: includes/Checkout/class-bgcouriers-checkout.php:332
 msgid "address"
 msgstr "адрес"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:299
+#: includes/Checkout/class-bgcouriers-checkout.php:332
 msgid "APS"
 msgstr "автомат"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:317
+#: includes/Checkout/class-bgcouriers-checkout.php:350
 msgid "Estimated shipping (exact price at checkout)"
 msgstr "Приблизителна доставка (точна цена при поръчката)"
 
 #. translators: %s is the courier name.
-#: includes/Checkout/class-bgcouriers-checkout.php:344
+#: includes/Checkout/class-bgcouriers-checkout.php:377
 #, php-format
 msgid "You have free %s delivery! 🎉"
 msgstr "Имате безплатна доставка %s! 🎉"
 
 #. translators: 1: a formatted price, 2: the courier name.
-#: includes/Checkout/class-bgcouriers-checkout.php:347
+#: includes/Checkout/class-bgcouriers-checkout.php:380
 #, php-format
 msgid "Add %1$s more for free %2$s delivery"
 msgstr "Добавете още %1$s за безплатна доставка %2$s"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:498
+#: includes/Checkout/class-bgcouriers-checkout.php:531
 msgid ""
 "Please enter a valid Bulgarian phone number (e.g. 0888 123 456) so the "
 "courier can reach the recipient."
@@ -2377,158 +2377,158 @@ msgstr ""
 "може куриерът да се свърже с получателя."
 
 #. translators: %s: courier name
-#: includes/Checkout/class-bgcouriers-checkout.php:505
+#: includes/Checkout/class-bgcouriers-checkout.php:538
 #, php-format
 msgid "Please choose your %s delivery point before placing the order."
 msgstr "Моля, изберете точка за доставка с %s, преди да направите поръчката."
 
-#: includes/Checkout/class-bgcouriers-checkout.php:511
+#: includes/Checkout/class-bgcouriers-checkout.php:544
 msgid "Please choose a BOX NOW locker before placing the order."
 msgstr "Моля, изберете автомат на BOX NOW, преди да направите поръчката."
 
 #. translators: %s: courier name
-#: includes/Checkout/class-bgcouriers-checkout.php:519
+#: includes/Checkout/class-bgcouriers-checkout.php:552
 #, php-format
 msgid "Please choose a city for %s delivery."
 msgstr "Моля, изберете град за доставка с %s."
 
 #. translators: %s: courier name
-#: includes/Checkout/class-bgcouriers-checkout.php:526
+#: includes/Checkout/class-bgcouriers-checkout.php:559
 #, php-format
 msgid "Please enter a street and number for %s address delivery."
 msgstr "Моля, въведете улица и номер за доставка до адрес с %s."
 
 #. translators: %s: courier name
-#: includes/Checkout/class-bgcouriers-checkout.php:530
+#: includes/Checkout/class-bgcouriers-checkout.php:563
 #, php-format
 msgid "Please choose an office/APS for %s."
 msgstr "Моля, изберете офис/автомат за %s."
 
-#: includes/Checkout/class-bgcouriers-checkout.php:695
-#: includes/Checkout/class-bgcouriers-checkout.php:842
+#: includes/Checkout/class-bgcouriers-checkout.php:730
+#: includes/Checkout/class-bgcouriers-checkout.php:877
 msgid "Office"
 msgstr "Офис"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:695
-#: includes/Checkout/class-bgcouriers-checkout.php:841
+#: includes/Checkout/class-bgcouriers-checkout.php:730
+#: includes/Checkout/class-bgcouriers-checkout.php:876
 msgid "APS (locker)"
 msgstr "Автомат"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:696
+#: includes/Checkout/class-bgcouriers-checkout.php:731
 msgid "Having trouble placing your order? We can help - call us:"
 msgstr "Имате проблем с поръчката? Можем да помогнем - обадете ни се:"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:698
+#: includes/Checkout/class-bgcouriers-checkout.php:733
 msgid "Type a city…"
 msgstr "Въведете град…"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:698
+#: includes/Checkout/class-bgcouriers-checkout.php:733
 msgid "Type a street…"
 msgstr "Въведете улица…"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:699
+#: includes/Checkout/class-bgcouriers-checkout.php:734
 msgid "Not available in this city"
 msgstr "Не е налично в този град"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:700
+#: includes/Checkout/class-bgcouriers-checkout.php:735
 msgid "Select a city first"
 msgstr "Първо изберете град"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:701
-#: includes/Checkout/class-bgcouriers-checkout.php:904
+#: includes/Checkout/class-bgcouriers-checkout.php:736
+#: includes/Checkout/class-bgcouriers-checkout.php:939
 msgid "Choose a BOX NOW locker"
 msgstr "Изберете автомат на BOX NOW"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:702
+#: includes/Checkout/class-bgcouriers-checkout.php:737
 msgid "Change locker"
 msgstr "Смени автомата"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:703
-#: includes/Checkout/class-bgcouriers-checkout.php:863
+#: includes/Checkout/class-bgcouriers-checkout.php:738
+#: includes/Checkout/class-bgcouriers-checkout.php:898
 msgid "View on map"
 msgstr "Виж на картата"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:708
+#: includes/Checkout/class-bgcouriers-checkout.php:743
 msgid "Choose your address on the map"
 msgstr "Изберете адреса си от картата"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:709
+#: includes/Checkout/class-bgcouriers-checkout.php:744
 msgid "Click the map or drag the pin to your address."
 msgstr "Кликнете върху картата или преместете маркера до Вашия адрес."
 
-#: includes/Checkout/class-bgcouriers-checkout.php:713
+#: includes/Checkout/class-bgcouriers-checkout.php:748
 msgid "Show the offices"
 msgstr "Покажи офисите"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:714
+#: includes/Checkout/class-bgcouriers-checkout.php:749
 msgid "Not available for this order"
 msgstr "Не е наличен за тази поръчка"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:715
+#: includes/Checkout/class-bgcouriers-checkout.php:750
 msgid "Choose"
 msgstr "Избери"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:716
+#: includes/Checkout/class-bgcouriers-checkout.php:751
 msgid "Choose a city"
 msgstr "Изберете град"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:719
+#: includes/Checkout/class-bgcouriers-checkout.php:754
 msgid "List"
 msgstr "Списък"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:722
+#: includes/Checkout/class-bgcouriers-checkout.php:757
 msgid "Loading the pickup points…"
 msgstr "Зареждане на офисите и автоматите…"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:725
+#: includes/Checkout/class-bgcouriers-checkout.php:760
 msgid "Directions"
 msgstr "Маршрут"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:726
+#: includes/Checkout/class-bgcouriers-checkout.php:761
 msgid "Clear"
 msgstr "Изчисти"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:729
+#: includes/Checkout/class-bgcouriers-checkout.php:764
 msgid "Closest to you"
 msgstr "Най-близо до вас"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:731
+#: includes/Checkout/class-bgcouriers-checkout.php:766
 msgid "you save"
 msgstr "спестявате"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:732
+#: includes/Checkout/class-bgcouriers-checkout.php:767
 msgid "as the crow flies"
 msgstr "по права линия"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:733
+#: includes/Checkout/class-bgcouriers-checkout.php:768
 msgid "Find the closest office"
 msgstr "Намерете най-близкия офис"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:734
+#: includes/Checkout/class-bgcouriers-checkout.php:769
 msgid "Drag the pin to where you are"
 msgstr "Преместете иглата там, където сте"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:735
+#: includes/Checkout/class-bgcouriers-checkout.php:770
 msgid "m"
 msgstr "м"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:736
+#: includes/Checkout/class-bgcouriers-checkout.php:771
 msgid "km"
 msgstr "км"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:739
+#: includes/Checkout/class-bgcouriers-checkout.php:774
 msgid "Show this point on the map"
 msgstr "Покажи тази точка на картата"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:741
+#: includes/Checkout/class-bgcouriers-checkout.php:776
 msgid "from you"
 msgstr "от вас"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:873
+#: includes/Checkout/class-bgcouriers-checkout.php:908
 msgid "Choose on map"
 msgstr "Изберете от карта"
 
-#: includes/Checkout/class-bgcouriers-checkout.php:880
+#: includes/Checkout/class-bgcouriers-checkout.php:915
 msgid "Block"
 msgstr "Блок"
 

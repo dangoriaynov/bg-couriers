@@ -263,11 +263,11 @@ class BGCouriers_Checkout {
             if ($logo === '') { continue; }
             $marks .= '<img class="bgc-allmap-mark" src="' . esc_url($logo) . '" alt="">';
         }
+        // A <tr> because this is emitted inside WooCommerce's order-review TABLE - a <div> there is
+        // foster-parented straight out of it by the HTML parser. The block checkout is not a table, so
+        // the button itself is built separately and wrapped only here.
         echo wp_kses(
-            '<tr class="bgc-allmap-open"><td colspan="2"><button type="button" class="bgc-allmap-btn">'
-            . '<span class="bgc-allmap-marks">' . $marks . '</span>'
-            . esc_html__('Interactive map', 'bg-couriers')
-            . '</button></td></tr>',
+            '<tr class="bgc-allmap-open"><td colspan="2">' . self::allmap_button_html($marks) . '</td></tr>',
             [
                 'tr'     => ['class' => true],
                 'td'     => ['class' => true, 'colspan' => true],
@@ -276,6 +276,39 @@ class BGCouriers_Checkout {
                 'img'    => ['class' => true, 'src' => true, 'alt' => true],
             ]
         );
+    }
+
+    /** The map button on its own, with no table around it - what the block checkout needs. */
+    public static function allmap_button_html(string $marks = ''): string {
+        return '<button type="button" class="bgc-allmap-btn">'
+            . '<span class="bgc-allmap-marks">' . $marks . '</span>'
+            . esc_html__('Interactive map', 'bg-couriers')
+            . '</button>';
+    }
+
+    /**
+     * The same button, decided the same way, for a checkout that is not a table.
+     *
+     * Without it the block checkout had the map only through each courier's own Map button - which is
+     * DISABLED until a town is chosen, so the one feature that exists to let a customer choose by place
+     * rather than by courier had no way in at all.
+     *
+     * @return string '' when this cart has nothing to show on a map.
+     */
+    public static function allmap_button_for_blocks(): string {
+        if (get_option('bgcouriers_allmap', 'yes') !== 'yes') { return ''; }
+        $offered = self::offered_couriers();
+        if (!self::has_pickup_courier(array_keys($offered))) { return ''; }
+        $marks = '';
+        foreach (BGCouriers_Settings::courier_order() as $cid) {
+            if (!isset($offered[$cid])) { continue; }
+            $methods = BGCouriers_Settings::enabled_methods($cid);
+            if (!in_array('office', $methods, true) && !in_array('automat', $methods, true)) { continue; }
+            $logo = BGCouriers_Couriers::logo_url($cid);
+            if ($logo === '') { continue; }
+            $marks .= '<img class="bgc-allmap-mark" src="' . esc_url($logo) . '" alt="">';
+        }
+        return '<div class="bgc-allmap-open">' . self::allmap_button_html($marks) . '</div>';
     }
 
     /** Prepend the courier's brand logo to its shipping-method radio label (BGCOURIERS methods only). */
@@ -617,7 +650,9 @@ class BGCouriers_Checkout {
     }
     public function assets(): void {
         $on_cart     = function_exists('is_cart') && is_cart();
-        $on_checkout = function_exists('is_checkout') && is_checkout();
+        // ...or any page carrying the checkout BLOCK. is_checkout() is true only for the page WooCommerce
+        // has been told is the checkout; the block can be dropped anywhere.
+        $on_checkout = (function_exists('is_checkout') && is_checkout()) || BGCouriers_Blocks::is_block_checkout();
         if (!$on_cart && !$on_checkout) { return; }
         // The courier rate rows are the same markup on both pages, so their stylesheet loads on both.
         // Without this the cart had no row styling at all and the theme stacked radio, logo, name and

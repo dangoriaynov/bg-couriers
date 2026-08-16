@@ -56,3 +56,47 @@ test('block checkout: an order with no delivery point is refused @blocks', async
   const notice = await page.locator('.wc-block-components-notice-banner').first().textContent().catch(() => '');
   expect((notice || '').replace(/\s+/g, ' '), 'the customer is told why').toContain(courier);
 });
+
+/**
+ * ...and the other half: the pickers now render inside the block, and choosing a point clears the block.
+ *
+ * The markup is the SAME markup the classic checkout gets - rendered by PHP and handed to the block
+ * through a slot fill, rather than reimplemented in React, so there is one picker and not two that drift.
+ * The hidden shipping_method input is the seam that makes it work: chosenCourier() in bgc-checkout.js
+ * already falls back to one, so every behaviour built for the classic checkout runs unchanged on a
+ * checkout whose radio buttons it cannot see.
+ */
+test('block checkout: the courier pickers render, and choosing a point unblocks the order @blocks', async ({ page, baseURL }) => {
+  // The block mounts over a Store API round trip, and Sofia carries 912 points. The default 90s is not
+  // enough for both, and the failure looks like a broken click rather than a slow one.
+  test.setTimeout(240000);
+  await addAnyProductToCart(page);
+  await page.goto((baseURL || 'https://dev.dobavki.club') + BLOCKS_PAGE);
+  await expect(page.locator('.wc-block-checkout, .wp-block-woocommerce-checkout').first()).toBeVisible({ timeout: 30000 });
+
+  // The picker arrives inside the block's shipping step, not merely somewhere on the page.
+  const fields = page.locator('.bgc-blocks-fields .bgc-fields');
+  await expect(fields).toHaveCount(1, { timeout: 30000 });
+  expect(await page.locator('.bgc-blocks-fields .bgc-tab').count(), 'the delivery-type tabs').toBeGreaterThan(1);
+  // The seam. Without it none of the behaviour below can find out which courier it is looking at.
+  expect(await page.locator('input[name^="shipping_method"][type="hidden"]').inputValue())
+    .toMatch(/^bgcouriers_/);
+
+  // Choose a real point, the way a customer does - through the map, which sets courier, type, town and
+  // office in one go and saves through the same AJAX the classic checkout uses.
+  await page.locator('.bgc-allmap-btn, .bgc-blocks-fields .bgc-map-btn').first().click();
+  await expect(page.locator('.bgc-allmap-overlay')).toBeVisible({ timeout: 20000 });
+  await page.locator('.bgc-allmap-cityinput').fill('София');
+  await page.locator('.bgc-allmap-cityopt', { hasText: 'СОФИЯ (1000)' }).first().click({ timeout: 25000 });
+  await page.locator('.bgc-allmap-item').first().waitFor({ state: 'attached', timeout: 30000 });
+  await page.locator('.bgc-allmap-item:not(.bgc-na)').first().click();
+  await page.locator('.leaflet-popup .bgc-allmap-pick').first().click({ timeout: 20000 });
+  await page.waitForTimeout(9000);
+
+  // The Store API must now let the order through: the same endpoint that refused it above.
+  const errors = await page.evaluate(async () => {
+    const r = await fetch('/wp-json/wc/store/v1/cart', { headers: { 'Content-Type': 'application/json' } });
+    return ((await r.json()).errors || []).map(e => e.message || e.code);
+  });
+  expect(errors.join(' | '), 'a chosen destination clears the block').not.toMatch(/точка за доставка|delivery point/i);
+});
