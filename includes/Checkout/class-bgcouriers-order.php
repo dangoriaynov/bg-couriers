@@ -1,6 +1,16 @@
 <?php
 defined('ABSPATH') || exit;
 class BGCouriers_Order {
+    /**
+     * Couriers whose parcel-count and insurance field names are VERIFIED - Speedy against its own
+     * schema (api.speedy.bg/v1/schema), Sameday against a payload we already send successfully.
+     *
+     * The order editor hides both boxes for anyone else. Econt, Pigeon and BOX NOW are not here because
+     * their names for these are unknown, and a field that accepts "3 parcels" and then ships one is a
+     * lie the merchant only discovers at the depot.
+     */
+    const MULTI_PARCEL_COURIERS = ['speedy', 'sameday'];
+
     public static function shipment_from_order(\WC_Order $order): array {
         return [
             'method'       => (string) $order->get_meta('_bgcouriers_method') ?: 'office',

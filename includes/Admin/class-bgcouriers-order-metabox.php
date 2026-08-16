@@ -305,7 +305,10 @@ class BGCouriers_Order_Metabox {
             . '</div>'
             // Not address fields - they are facts about the SHIPMENT, so they sit on their own row after
             // the address and before Save, where they read as "and how is it going" rather than "where".
-            . '<div class="bgc-ed-row">'
+            // Only the couriers whose field names are verified against a payload we actually send honour
+            // these. The row hides for the rest rather than accepting a number and dropping it - a box
+            // that takes "3" and ships one parcel is worse than no box at all.
+            . '<div class="bgc-ed-row bgc-ed-shipfacts" data-couriers="' . esc_attr(implode(',', BGCouriers_Order::MULTI_PARCEL_COURIERS)) . '">'
             . '<div class="bgc-ed-fld"><label>' . esc_html__('Parcels', 'bg-couriers') . '</label>'
             . '<input type="number" min="1" max="99" step="1" class="bgc-ed-parcels" value="' . esc_attr((string) BGCouriers_Order::parcels($order)) . '"></div>'
             . '<div class="bgc-ed-fld"><label>' . esc_html__('Insure for', 'bg-couriers') . '</label>'

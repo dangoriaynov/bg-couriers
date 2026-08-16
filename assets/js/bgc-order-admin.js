@@ -146,6 +146,10 @@
   }
   function updateMode() {
     var isBox = (courier() === 'boxnow'), m = $method.val();
+    // Parcels + insurance only for the couriers that honour them; the server puts the list in the
+    // markup so there is one source of truth for it, not a second copy here.
+    var $facts = $panel.find('.bgc-ed-shipfacts');
+    $facts.toggle(($facts.attr('data-couriers') || '').split(',').indexOf(courier()) !== -1);
     $panel.find('.bgc-ed-boxnow').toggle(isBox);
     $panel.find('.bgc-ed-city-row').toggle(!isBox);
     $panel.find('.bgc-ed-office-row').toggle(!isBox && m !== 'address');
