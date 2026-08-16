@@ -31,3 +31,7 @@ e2e/node_modules/
 docs/superpowers/
 bin/deploy.conf
 test-results/
+# Screenshots a throwaway probe drops beside the specs. One reached a commit; the same class of
+# leftover once reached the WordPress.org package (test-results/.last-run.json).
+e2e/*.png
+e2e/probe_*.spec.js
