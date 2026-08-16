@@ -315,6 +315,16 @@ class BGCouriers_Settings {
      *
      * @return string
      */
+    /**
+     * Does this courier ship a prepaid return waybill with every parcel?
+     *
+     * Off by default because the courier charges for it - a plugin that quietly added a paid service to
+     * every shipment would be spending the merchant's money for them, the same reasoning as insurance.
+     */
+    public static function return_voucher(string $courier): bool {
+        return get_option('bgcouriers_' . $courier . '_return_voucher', 'no') === 'yes';
+    }
+
     public static function open_before_pay(): string {
         $v = (string) get_option('bgcouriers_open_before_pay', '');
         if ($v === '') {

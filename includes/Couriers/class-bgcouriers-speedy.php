@@ -322,6 +322,27 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
                 'ignoreIfNotApplicable'   => true,
             ];
         }
+        /*
+         * Insurance and the prepaid return waybill, both read off Speedy's OWN schema rather than
+         * guessed (api.speedy.bg/v1/schema):
+         *   service.additionalServices.declaredValue   { amount, fragile, ignoreIfNotApplicable }
+         *   service.additionalServices.returns.returnVoucher { serviceId, payer, validityPeriod, ... }
+         * with payer a plain ShipmentRole enum - SENDER | RECIPIENT | THIRD_PARTY.
+         *
+         * ignoreIfNotApplicable is deliberately NOT sent on the declared value, for the same reason it
+         * was removed from cod: it lets Speedy drop the service and hand back a clean-looking label, so
+         * the merchant would believe a parcel was insured when it was not. Better to fail.
+         */
+        $insured = BGCouriers_Order::insurance($order);
+        if ($insured > 0) {
+            $body['service']['additionalServices']['declaredValue'] = ['amount' => $insured];
+        }
+        // Paid by the SENDER - the shop. A return waybill the customer has to pay for is not a return
+        // waybill, it is a leaflet.
+        if (BGCouriers_Settings::return_voucher('speedy')) {
+            $body['service']['additionalServices']['returns']['returnVoucher'] =
+                ['serviceId' => 505, 'payer' => 'SENDER'];
+        }
         $sender = $this->sender_block();
         if ($sender) { $body['sender'] = $sender; }
         return $body;

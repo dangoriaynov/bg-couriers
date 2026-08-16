@@ -601,6 +601,10 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Ship Speedy free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_pricing'],
 
+            ['type' => 'checkbox', 'id' => 'bgcouriers_speedy_return_voucher', 'title' => __('Include a return waybill', 'bg-couriers'),
+                'desc' => __('Send a prepaid return waybill (обратна товарителница) with every Speedy shipment, so a customer can send the parcel back without paying or arranging anything. Speedy charges for it, which is why it is off by default - turn it on if easy returns are part of what you offer.', 'bg-couriers'),
+                'default' => 'no'],
+
             ['type' => 'title', 'id' => 'bgcouriers_speedy_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
             ['type' => 'select', 'id' => 'bgcouriers_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
                 'desc' => __('What the recipient may do before paying. ONE setting for the whole shop, shown here because Speedy and Econt are the couriers that offer it - changing it on either page changes both, because it is a promise made at checkout and cannot differ per courier. Never applied to locker deliveries: there is nobody there to supervise.', 'bg-couriers'),
