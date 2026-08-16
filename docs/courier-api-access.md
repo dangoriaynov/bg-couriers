@@ -71,11 +71,48 @@ offer fully self-service API signup - each requires contacting the courier.
 
 ---
 
+## 5. Български пощи (Bulgarian Posts) - the national post  *(open question: is the API reachable?)*
+
+- **Why it is worth anything at all:** not market share - coverage. They deliver to villages and small
+  settlements the private couriers do not serve, which is the one thing none of the five in this plugin
+  can do. For a shop with customers outside the towns, this is the difference between a sale and a
+  refusal.
+- **What is known:** e-commerce sources describe "API-driven solutions for bulk label creation and
+  automated tracking". That is a description, not documentation.
+- **What is NOT known, and it is the whole question:** there is no public developer documentation, no
+  published way to request access, and no example of a WooCommerce integration. Until someone answers
+  that, this is a lead rather than a plan.
+- **Steps:** ask them directly - what integration exists for online shops, is there an API, how does a
+  business get credentials, and does it carry наложен платеж / пощенски паричен превод. Nothing gets
+  built from the second-hand descriptions above.
+
+---
+
+## Checked and ruled OUT - do not spend time on these again
+
+- **DPD Bulgaria / Рапидо - ALREADY IN THE PLUGIN, as Speedy.** GeoPost/DPDgroup owns Speedy (69.81%
+  from 2021, then the remainder for 130M BGN); `dpd.com/bg/bg/` **redirects to speedy.bg**, and
+  "DPD Economy" is a Speedy service for sending to DPD offices abroad. There is no separate DPD Bulgaria
+  to integrate. If international DPD is ever wanted, it is a `serviceId` inside Speedy's own API, not a
+  new adapter.
+- **Лео Експрес - the company no longer operates.** It survives only in tracking aggregators as history.
+- **PostOne - no trace of an API.** It exists (tracking catalogues, a Facebook support page) but has no
+  documentation site, no published integration route and no sign of shop integrations. Revisit only if a
+  real merchant asks for it by name.
+- **DHL / UPS / FedEx / TNT - out of scope by design.** They are not domestic Bulgarian couriers with
+  cash on delivery, which is what this plugin is for.
+
+**Coverage as it stands:** Еконт 40.2% + Speedy 32.8% of the Bulgarian courier market by revenue (2024)
+= roughly **73%**, plus both locker networks (BOX NOW, Sameday easybox) and Pigeon Express. There is no
+remaining "big player" gap - DPD turned out to be Speedy.
+
+---
+
 ## Roadmap
 
 1. **Speedy** - done, live-verified, on `main`.
 2. **Econt** - Phase 2 (in progress), live-verified against your real account.
-3. **BOX NOW**, **Pigeon Express**, **Express One**, **Европът** - each a Phase-3 adapter on the existing multi-courier
+3. **BOX NOW**, **Pigeon Express**, **Express One**, **Европът**, and possibly **Български пощи** - each a Phase-3 adapter on the existing multi-courier
    framework (registry + `BGC_Method_*` + settings section + `@group <courier>` tests), built once its
    credentials are available. Each follows the same shape as Econt: confirm live API shapes → adapter
    (nomenclature/quote/label/track) → method + settings → checkout + E2E live-verify.
