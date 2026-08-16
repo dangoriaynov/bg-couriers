@@ -45,11 +45,37 @@ offer fully self-service API signup - each requires contacting the courier.
 
 ---
 
+## 4. Европът / Evropat-2000 (Bulgaria) - courier (evropat.bg)  *(owner wrote to them 2026-08-17)*
+
+- **The API key is self-service, and that is what makes this one cheap.** It is generated from the
+  merchant's own account at **https://online.evropat.com** - or by asking sales - and generating it also
+  unlocks the download of their plugin and its instructions. No procurement, no waiting on a person,
+  which is the opposite of Express One.
+- **Auth:** an **API Key**. There is **no public technical documentation**: it ships with the key, so the
+  shapes cannot be mapped until the key exists. Nothing about this courier should be built from the
+  descriptions written by third-party integrators.
+- **Steps to get access:**
+  1. Generate the API Key in the online cabinet, or e-mail **sales@evropat.com** and ask for one.
+  2. Take the documentation and their own WooCommerce plugin that the key unlocks - the plugin is the
+     same kind of readable prior art that made Express One's shapes knowable in advance.
+  3. Drop the key server-side; the adapter goes on the existing multi-courier framework like the rest.
+- **Two things NOT confirmed, and both change what the checkout shows:**
+  - **Lockers/APS are not mentioned anywhere on their site** - only offices and addresses. If that holds,
+    Европът gets two delivery options here, not three.
+  - **Cash on delivery** is not stated in those words, but they do offer a **postal money order**
+    service, which is the mechanism this shop already fiscalises through (`cod_fiscalization = ppp`).
+    Encouraging, not proof - confirm the field name against the real documentation.
+- **Why it is worth doing:** a full national office network, and their own WooCommerce plugin already
+  exists - which is both proof the integration is real and a reminder that our value here is having every
+  courier in one place, not merely supporting this one.
+
+---
+
 ## Roadmap
 
 1. **Speedy** - done, live-verified, on `main`.
 2. **Econt** - Phase 2 (in progress), live-verified against your real account.
-3. **BOX NOW**, **Pigeon Express**, **Express One** - each a Phase-3 adapter on the existing multi-courier
+3. **BOX NOW**, **Pigeon Express**, **Express One**, **Европът** - each a Phase-3 adapter on the existing multi-courier
    framework (registry + `BGC_Method_*` + settings section + `@group <courier>` tests), built once its
    credentials are available. Each follows the same shape as Econt: confirm live API shapes → adapter
    (nomenclature/quote/label/track) → method + settings → checkout + E2E live-verify.
