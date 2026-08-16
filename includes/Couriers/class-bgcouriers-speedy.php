@@ -334,6 +334,17 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
          * the merchant would believe a parcel was insured when it was not. Better to fail.
          */
         $insured = BGCouriers_Order::insurance($order);
+        // Off unless the merchant has said otherwise, and 'cod' takes the number from what the courier
+        // is already collecting rather than asking anyone to type it twice. Speedy charges a premium on
+        // a declared value and pays out only against documents most shops cannot produce, so declaring
+        // by default would be spending the merchant's money for nothing.
+        if ($insured <= 0 && get_option('bgcouriers_speedy_declared_value', 'no') === 'cod') {
+            // Read out of the body being built, NOT recomputed. Recomputing gave 6.00 while the cod in
+            // the same request said 8.52 - the two are not the same sum, because whether the delivery
+            // fee rides in the collected amount is a setting. A "declare the cash-on-delivery amount"
+            // option that declares a different number is worse than no option.
+            $insured = (float) ($body['service']['additionalServices']['cod']['amount'] ?? 0);
+        }
         if ($insured > 0) {
             $body['service']['additionalServices']['declaredValue'] = ['amount' => $insured];
         }
