@@ -208,10 +208,20 @@
 .bgc-allmap-pop-n { font-weight: 600; font-size: 14px; line-height: 1.3; white-space: normal; }
 /* Row 3 - where it is, a step quieter: by this point you know which place you are looking at. */
 .bgc-allmap-pop-a { color: #50575e; font-size: 12px; line-height: 1.4; margin-bottom: 8px; }
+/* Inline, deliberately - and this was tried as a flex row first, which is worse. Flex makes the address
+   ONE item, so the distance and the arrow can only sit beside the whole block or drop underneath it;
+   inline lets them follow the last word, which is where they belong. What flex was reaching for is the
+   two of them staying together, and nowrap gives that on its own: the pair moves down as a pair, and
+   the arrow is never left alone on a line below a distance that stayed up. */
+.bgc-pop-meta { display: inline-block; white-space: nowrap; vertical-align: middle; margin-left: 6px; }
+.bgc-pop-meta > * + * { margin-left: 6px; }
 /* Small on purpose: getting there is a side question, and the point of the popup is still which place
    this is. Sits on the address line because that is what it is about. */
+/* middle, not a pixel offset. It used to be nudged down 5px to look centred against a line of plain
+   text - and then the distance chip joined that line, made it taller, and the arrow was left sitting
+   below everything. Aligning to the line's middle is right whatever else ends up on it. */
 .bgc-allmap-dir { display: inline-flex; align-items: center; justify-content: center; width: 20px;
-  height: 20px; margin-left: 5px; vertical-align: -5px; border: 1px solid #c9ced6; border-radius: 6px;
+  height: 20px; vertical-align: middle; border: 1px solid #c9ced6; border-radius: 6px;
   color: #2271b1; background: #fff; text-decoration: none; }
 .bgc-allmap-dir:hover, .bgc-allmap-dir:focus { border-color: #2271b1; background: #f0f6fc; color: #135e96; }
 .bgc-allmap-dir svg { display: block; }
@@ -420,7 +430,7 @@ html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
 
 /* How far this particular point is - only once the customer has given a position. The line above the
    map names the closest one; every other pin then has to be worth comparing against it. */
-.bgc-allmap-pop-d { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px;
+.bgc-allmap-pop-d { display: inline-block; vertical-align: middle; padding: 0 6px; border-radius: 999px;
   background: #e3edf7; color: #135e96; font-size: 11px; font-weight: 600; white-space: nowrap;
   cursor: help; }
 

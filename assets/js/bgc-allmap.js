@@ -213,14 +213,27 @@
         state.cityName = v.cityName; state.cityCode = v.cityCode || '';
         state.cityLabel = v.cityLabel || v.cityName;
       }
-      if (v && v.origin && v.origin.lat && v.origin.lng) {
-        origin = { lat: Number(v.origin.lat), lng: Number(v.origin.lng) };
-      }
+      // The POSITION is deliberately not restored - see save(). A version that did paint the pin and
+      // every distance on a freshly loaded page, before the browser had asked anything, which is
+      // exactly as unsettling as it sounds. Anything an earlier version left behind is wiped here.
+      if (v && v.origin) { save(); }
     } catch (e) { /* private mode, or a value from an older version - start fresh */ }
   }
+  /**
+   * The remembered TOWN, and nothing else.
+   *
+   * Where the customer is lives in memory for the life of the page - it survives changing the town,
+   * switching courier and closing and reopening the dialog, which is every case it is actually needed
+   * for - and goes when the page does. Keeping it in localStorage meant a reload showed somebody their
+   * own position and the distance to their nearest office having asked nobody, and went on doing it
+   * after the browser's permission had been reset. A permission that can be taken back is not a
+   * permission if the answer is kept anyway.
+   */
   function save() {
     try {
-      window.localStorage.setItem(STORE, JSON.stringify($.extend({}, state, { origin: origin })));
+      window.localStorage.setItem(STORE, JSON.stringify({
+        cityName: state.cityName, cityCode: state.cityCode, cityLabel: state.cityLabel
+      }));
     } catch (e) {}
   }
 
@@ -773,7 +786,11 @@
       + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(priceLabel(p)) + '</span>' : '')
       + '</div>'
       + '<div class="bgc-allmap-pop-n">' + esc(p.office.name || '') + '</div>'
-      + '<div class="bgc-allmap-pop-a">' + esc(p.office.address || '')
+      + '<div class="bgc-allmap-pop-a"><span class="bgc-pop-addr">' + esc(p.office.address || '') + '</span>'
+      // How far it is and how to get there, in one group: two small things about the same question,
+      // and a group is what keeps them from being split across a wrap. The arrow used to be pushed
+      // onto a line of its own by a long address with a distance beside it.
+      + '<span class="bgc-pop-meta">'
       // Only once the customer has actually given a position - by pressing "find me" or dragging the
       // pin. Nothing is asked for on our own account to print this line.
       + (d != null
@@ -794,7 +811,7 @@
             + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
             + '<polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></a>'
           : '')
-      + '</div>'
+      + '</span></div>'
       + (p.available
           ? '<button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'
           : '<em class="bgc-allmap-pop-na">' + esc(I.allmap_na || '') + '</em>')

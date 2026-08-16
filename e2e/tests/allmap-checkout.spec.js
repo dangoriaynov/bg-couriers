@@ -679,6 +679,51 @@ test.describe('nearest office', () => {
   });
 
   /**
+   * A reload must forget where the customer is.
+   *
+   * It did not: the position rode in localStorage next to the remembered town, so opening the checkout
+   * again painted the pin, every distance and the whole answer having asked nobody - and went on doing
+   * it after the browser's own permission had been reset. A permission that can be taken back is not a
+   * permission if the answer is kept anyway. The town is still remembered; the position is not.
+   */
+  test('combined map: a reload does not remember where you are @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(4000);
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(1);
+    await expect(page.locator('.bgc-allmap-near')).toBeVisible();
+
+    // Nothing about the customer's position may survive the page, in storage or anywhere else.
+    const stored = await page.evaluate(() => localStorage.getItem('bgcouriers_map_pick'));
+    expect(stored, 'the town is still remembered').toContain('СОФИЯ');
+    expect(stored, `no position in storage: ${stored}`).not.toMatch(/origin|lat|lng/i);
+
+    await page.reload();
+    await page.waitForTimeout(3000);
+    await page.locator('.bgc-allmap-btn').click();
+    // The town comes back on its own, so the map is drawn - and that is exactly the state in which the
+    // old behaviour showed the pin.
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 25000 });
+    await page.waitForTimeout(2500);
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(0);
+    await expect(page.locator('.bgc-allmap-near')).toHaveCount(0);
+    expect(await page.locator('.bgc-allmap-dist').count()).toBe(0);
+    expect(await page.locator('.bgc-chip-d').count()).toBe(0);
+
+    // ...and it still works when asked.
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(4000);
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(1);
+    await expect(page.locator('.bgc-allmap-near')).toBeVisible();
+  });
+
+  /**
    * The answer has to obey the search box too, not only the legend.
    *
    * It did not: after typing a street the sentence still named the closest point in the whole town -
@@ -744,5 +789,17 @@ test.describe('nearest office', () => {
     const d = page.locator('.leaflet-popup .bgc-allmap-pop-d');
     await expect(d).toBeVisible();
     expect(metres(await d.textContent()), 'the bubble carries a real distance').not.toBeNull();
+
+    // ...on the same line as the directions arrow, and level with it. The arrow used to be nudged down
+    // by a fixed 5px to look centred against a line of plain text; the distance made that line taller
+    // and left the arrow sitting below everything, which is what the owner saw.
+    const level = await page.evaluate(() => {
+      const mid = (sel) => { const el = document.querySelector('.leaflet-popup ' + sel);
+        if (!el) { return null; } const b = el.getBoundingClientRect(); return b.top + b.height / 2; };
+      return { dist: mid('.bgc-allmap-pop-d'), dir: mid('.bgc-allmap-dir') };
+    });
+    expect(level.dir, 'the popup has a directions link').not.toBeNull();
+    expect(Math.abs(level.dir - level.dist),
+      `the arrow sits level with the distance (${JSON.stringify(level)})`).toBeLessThan(3);
   });
 });

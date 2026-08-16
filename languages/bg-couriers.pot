@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: BG Couriers for WooCommerce 0.2.22\n"
+"Project-Id-Version: BG Couriers for WooCommerce 0.2.23\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-15T23:06:42+00:00\n"
+"POT-Creation-Date: 2026-08-15T23:37:32+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: bg-couriers\n"
@@ -1104,7 +1104,7 @@ msgid "“Nearest to you” on the map"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:442
-msgid "On the interactive map, offer to find the customer’s location and then show how far each pickup point is, which one is closest, and what collecting there saves against delivery to the address. The distances are worked out in the customer’s own browser and their position is never stored on the site. The one time the coordinates leave it is when the customer presses “find me” before naming a town - those are then reverse-geocoded to fill the town in for them (see the External services notice). On by default."
+msgid "On the interactive map, offer to find the customer’s location and then show how far each pickup point is, which one is closest, and what collecting there saves against delivery to the address. The distances are worked out in the customer’s own browser; their position is never stored on the site and is forgotten when they leave the page. The one time the coordinates leave the browser is when the customer presses “find me” before naming a town - those are then reverse-geocoded to fill the town in for them (see the External services notice). On by default."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:444
