@@ -14,7 +14,15 @@ cd "$(dirname "$0")/.."
 : "${BGC_SSH_PORT:=22}"
 
 SVN_WC="${BGC_SVN_WC:-$HOME/svn/bg-couriers}"
-SSH=(ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST")
+# The host's login shell prints a manpath locale warning on every single connection. It is noise, and it
+# buries the lines that matter - but stderr and the exit code still have to survive, or a failing remote
+# command would read as a clean one.
+run() {
+  local err rc; err="$(mktemp)"
+  ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST" "$@" 2>"$err"; rc=$?
+  grep -v 'manpath: ' "$err" >&2 || true
+  rm -f "$err"; return $rc
+}
 VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
 P="${BGC_PROD_PATH%/}"
 WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"
@@ -25,7 +33,7 @@ bash bin/preflight
 echo "==> the shop must already be running this build"
 # The rule this encodes: SVN last, prod-verified builds only. Shipping to the directory something the
 # owner's own shop has not run is asking strangers to find the problems first.
-LIVE="$("${SSH[@]}" "$WP --path=${WPROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
+LIVE="$(run "$WP --path=${WPROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
 if [ "$LIVE" != "$VERSION" ]; then
   echo "REFUSING: prod is on ${LIVE}, this is ${VERSION}. Run bin/release-prod first." >&2
   exit 1
@@ -46,12 +54,12 @@ echo "==> Plugin Check, on the code that is about to ship"
 # packaged has caught nothing twice before. It also reads the plugin NAME in the site's language, which
 # is how the trademark rule was broken invisibly on an English install.
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
-DEV_V="$("${SSH[@]}" "$WP --path=${DEVROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
+DEV_V="$(run "$WP --path=${DEVROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
 if [ "$DEV_V" != "$VERSION" ]; then
   echo "REFUSING: dev is on ${DEV_V}; deploy this build to dev first (bin/deploy.sh dev)" >&2
   exit 1
 fi
-CHECK="$("${SSH[@]}" "$WP --path=${DEVROOT} plugin check bg-couriers 2>&1 | tail -3" || true)"
+CHECK="$(run "$WP --path=${DEVROOT} plugin check bg-couriers 2>&1 | tail -3" || true)"
 echo "$CHECK" | sed 's/^/  /'
 echo "$CHECK" | grep -q "No errors found" || { echo "REFUSING: Plugin Check reported errors" >&2; exit 1; }
 

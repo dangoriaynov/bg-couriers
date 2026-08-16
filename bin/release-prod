@@ -16,7 +16,15 @@ cd "$(dirname "$0")/.."
 P="${BGC_PROD_PATH%/}"
 WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"   # .../wp-content/plugins/bg-couriers -> the WP root
 WP="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root --path=${WPROOT}"
-SSH=(ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST")
+# The host's login shell prints a manpath locale warning on every single connection. It is noise, and it
+# buries the lines that matter - but stderr and the exit code still have to survive, or a failing remote
+# command would read as a clean one.
+run() {
+  local err rc; err="$(mktemp)"
+  ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST" "$@" 2>"$err"; rc=$?
+  grep -v 'manpath: ' "$err" >&2 || true
+  rm -f "$err"; return $rc
+}
 VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
 
 bash bin/preflight
@@ -32,17 +40,17 @@ echo "==> backup"
 # Named for the version being REPLACED and stamped, so a second run can never overwrite the archive that
 # is the way back. An earlier draft of this script named it after the version going ON, which meant
 # re-running it replaced a good rollback point with a copy of the code you were trying to roll back from.
-WAS="$("${SSH[@]}" "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r' || echo unknown)"
+WAS="$(run "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r' || echo unknown)"
 BACKUP="$(dirname "$WPROOT")/bg-couriers-backup-${WAS}-$(date +%Y%m%d-%H%M).tgz"
 echo "  replacing ${WAS} with ${VERSION}"
-"${SSH[@]}" "cd \"\$(dirname '$P')\" && tar czf '$BACKUP' bg-couriers && du -h '$BACKUP'"
+run "cd \"\$(dirname '$P')\" && tar czf '$BACKUP' bg-couriers && du -h '$BACKUP'"
 
 echo "==> deploy"
 echo yes | bash bin/deploy.sh prod >/dev/null
-"${SSH[@]}" "chown -R dobavki:dobavki '$P'"
+run "chown -R dobavki:dobavki '$P'"
 
 echo "==> verify"
-LIVE="$("${SSH[@]}" "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
+LIVE="$(run "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
 if [ "$LIVE" != "$VERSION" ]; then
   echo "REFUSING TO CONTINUE: prod reports ${LIVE}, expected ${VERSION}" >&2
   echo "restore with: ssh ... 'cd \$(dirname $P) && rm -rf bg-couriers && tar xzf $BACKUP'" >&2
@@ -50,13 +58,13 @@ if [ "$LIVE" != "$VERSION" ]; then
 fi
 echo "  prod is running ${LIVE}"
 # Nothing that is not the plugin. Playwright's test-results reached prod once through rsync.
-STRAY="$("${SSH[@]}" "ls -d '$P/test-results' '$P/e2e' '$P/tests' 2>/dev/null" || true)"
+STRAY="$(run "ls -d '$P/test-results' '$P/e2e' '$P/tests' 2>/dev/null" || true)"
 [ -z "$STRAY" ] && echo "  no test leftovers on the server" || { echo "  STRAY ON PROD: $STRAY" >&2; exit 1; }
 
 echo "==> cache"
 # wp-cli has no 'rocket' command on this host; the plugin's own functions do the job.
-"${SSH[@]}" "$WP eval 'if(function_exists(\"rocket_clean_domain\")){rocket_clean_domain();rocket_clean_minify();echo \"WP Rocket purged\";}else{echo \"no WP Rocket\";} echo PHP_EOL;'"
-"${SSH[@]}" "$WP cache flush" >/dev/null 2>&1 || true
+run "$WP eval 'if(function_exists(\"rocket_clean_domain\")){rocket_clean_domain();rocket_clean_minify();echo \"WP Rocket purged\";}else{echo \"no WP Rocket\";} echo PHP_EOL;'"
+run "$WP cache flush" >/dev/null 2>&1 || true
 
 echo "==> smoke"
 # The shop's checkout and cart are /order/ and /order-cart/ - /checkout/ and /cart/ 404 here and that is
@@ -71,7 +79,7 @@ done
 # Every courier must be exactly as configured as it was. A release that quietly disables one takes the
 # shop's deliveries with it.
 echo "==> couriers"
-"${SSH[@]}" "$WP eval '
+run "$WP eval '
 foreach ([\"speedy\",\"econt\",\"pigeon\",\"boxnow\",\"sameday\"] as \$c) {
   printf(\"  %-8s enabled=%-4s creds=%s\n\", \$c, get_option(\"bgcouriers_{\$c}_enabled\",\"no\"),
     BGCouriers_Settings::creds_present(\$c) ? \"yes\" : \"no\");
