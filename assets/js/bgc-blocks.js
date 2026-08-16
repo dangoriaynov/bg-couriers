@@ -47,7 +47,7 @@
         var rate = selectedRate();
         if (!rate || rate === inflight.current) { return; }
         inflight.current = rate;
-        $.post(window.BGCOURIERS.ajax, { action: 'bgcouriers_blocks_fields', rate: rate })
+        $.post(window.BGCOURIERS.ajax, { action: 'bgcouriers_blocks_fields', nonce: window.BGCOURIERS.nonce, rate: rate })
           .done(function (res) {
             if (res && res.success) { setData({ rate: rate, html: res.data.html || '' }); }
           });

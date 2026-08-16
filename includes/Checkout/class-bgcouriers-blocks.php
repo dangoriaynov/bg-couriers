@@ -85,8 +85,11 @@ class BGCouriers_Blocks {
      * checkout whose radio buttons it cannot see.
      */
     public function ajax_fields(): void {
+        // The same nonce the classic checkout's own save uses, and verified rather than waved past: this
+        // is a POST, and a POST that renders anything gets checked. It is also the reason the picker can
+        // be trusted to be about THIS visitor's cart and no one else's.
+        check_ajax_referer('bgcouriers_checkout', 'nonce');
         if (!function_exists('WC') || !WC()->cart) { wp_send_json_error(['html' => '']); }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render of the customer's own session
         $chosen = isset($_POST['rate']) ? sanitize_text_field(wp_unslash($_POST['rate'])) : '';
         if (strpos($chosen, self::RATE_PREFIX) !== 0) { wp_send_json_success(['html' => '', 'courier' => '']); }
         $courier = substr(explode(':', $chosen)[0], strlen(self::RATE_PREFIX));
