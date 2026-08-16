@@ -92,6 +92,52 @@ final class EnableValidationTest extends TestCase {
         $this->assertSame('creds_unvalidated', $problems[0]['code']);
     }
 
+    /**
+     * The whole setup sequence, walked from an install where NOTHING is configured.
+     *
+     * This is the test that was missing, and its absence is why a deadlock reached the directory: every
+     * check ever run on this plugin - unit, e2e, by hand - started from a fully configured site, where
+     * `_validated` defaults to yes and the trap cannot spring. A merchant starts from nothing, and each
+     * step below is a state he really passes through.
+     */
+    public function test_the_setup_sequence_from_an_empty_install(): void {
+        BGCouriers_Couriers::reset();
+        BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return new BGCouriers_Speedy([]); });
+
+        // 1. Fresh install: nothing saved. The only complaint may be that there are no credentials.
+        $this->opts([]);
+        $problems = (new BGCouriers_Speedy([]))->enable_problems();
+        $this->assertCount(1, $problems);
+        $this->assertSame('creds_missing', $problems[0]['code']);
+
+        // 2. Credentials typed and saved. Saving a new username sets _validated = no - and THIS is the
+        //    state the merchant is in when he reaches for the check button.
+        $saved = [
+            'bgcouriers_speedy_enabled'   => 'no',
+            'bgcouriers_speedy_username'  => 'u',
+            'bgcouriers_speedy_password'  => 'p',
+            'bgcouriers_speedy_validated' => 'no',
+        ];
+        $this->opts($saved);
+        // The credentials must be reachable HERE, with the courier still off. Everything else follows
+        // from this one property: the check runs, so the flag can become yes, so it can be enabled.
+        $creds = BGCouriers_Settings::courier_credentials('speedy');
+        $this->assertSame('u', $creds['username']);
+        $this->assertTrue(BGCouriers_Settings::creds_present('speedy'));
+        $this->assertNull(BGCouriers_Settings::courier_config('speedy'), 'it is still switched off');
+        $problems = (new BGCouriers_Speedy([]))->enable_problems();
+        $this->assertSame('creds_unvalidated', $problems[0]['code']);
+
+        // 3. The check has run and passed - which is what enabling now does for the merchant.
+        $this->opts(array_merge($saved, ['bgcouriers_speedy_validated' => 'yes']));
+        $this->assertSame([], (new BGCouriers_Speedy([]))->enable_problems(), 'nothing left blocking');
+
+        // 4. Switched on: now, and only now, does it count as a courier the shop offers.
+        $this->opts(array_merge($saved, ['bgcouriers_speedy_validated' => 'yes', 'bgcouriers_speedy_enabled' => 'yes']));
+        $this->assertNotNull(BGCouriers_Settings::courier_config('speedy'));
+        BGCouriers_Couriers::reset();
+    }
+
     public function test_missing_credentials_blocks(): void {
         $this->opts([]);
         $this->assertNotEmpty((new BGCouriers_Speedy([]))->enable_problems());
