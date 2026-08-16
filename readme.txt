@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.25
+Stable tag: 0.2.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -73,6 +73,9 @@ https://github.com/dangoriaynov/bg-couriers/issues
 = Which countries are supported? =
 Bulgaria only, and every courier here is a Bulgarian network: **Speedy**, **Econt**, **Pigeon Express** and **Sameday** deliver to an office, to a street address or to a locker, and **BOX NOW** delivers to its lockers (APM). There is no international shipping and no other country's couriers - the plugin talks to these five and nothing else.
 
+= How can I support the development? =
+The plugin is free, GPL, and stays that way - every courier, every feature, no paid tier. If it has saved you work and you would like to put something behind it: https://revolut.me/danq6lus. It is entirely voluntary and changes nothing about the support you get. Reporting a bug in the [support forum](https://wordpress.org/support/plugin/bg-couriers/), or leaving a review, helps just as much.
+
 = Do I need an account with the couriers? =
 Yes. Each courier requires its own API credentials, obtained from that courier. Enter them on the courier's settings tab.
 
@@ -94,6 +97,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.2.26 =
+* The plugin's own settings screen now says where to ask a question, with a link to the support forum - and, once, quietly, that you can support the development if you want to. It is one line, it is not dismissible because there is nothing to dismiss, and it appears nowhere else in the admin.
 
 = 0.2.25 =
 * Fixed: setting a courier up could not be completed at all on a fresh install. A courier would not turn on until its API credentials had been validated, and validating them was refused until the courier was on - and the refusal said "no credentials saved" about credentials that were saved. Reported by a merchant who installed the plugin and could not get past the settings screen; with apologies.

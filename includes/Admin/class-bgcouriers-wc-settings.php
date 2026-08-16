@@ -173,6 +173,22 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         }
         echo '</div></div>';
 
+        /*
+         * One quiet line at the foot of the plugin's OWN settings screen. Not a notice, not dismissible,
+         * not on any other admin page, no image and no second ask - a merchant who has a question should
+         * not have to go looking for where to ask it, and the donation link is the same one readme.txt
+         * declares to the directory. Deliberately says the money changes nothing about support, because
+         * a plugin that hints otherwise is not free in any sense that matters.
+         */
+        echo wp_kses_post('<p class="bgc-settings-foot">' . sprintf(
+            /* translators: 1: link reading "support forum", 2: link reading "support its development" */
+            esc_html__('BG Couriers is free and open source. Questions and problems: %1$s. If it saves you work you can %2$s - entirely voluntary, and it changes nothing about the support you get.', 'bg-couriers'),
+            '<a href="' . esc_url('https://wordpress.org/support/plugin/bg-couriers/') . '" target="_blank" rel="noopener noreferrer">'
+                . esc_html__('the support forum', 'bg-couriers') . '</a>',
+            '<a href="' . esc_url('https://revolut.me/danq6lus') . '" target="_blank" rel="noopener noreferrer">'
+                . esc_html__('support its development', 'bg-couriers') . '</a>'
+        ) . '</p>');
+
         // Turn every field description into a small (i) that sits inline right after the field label. Text /
         // select / number fields print their description as a <span class="description"> in the value cell; a
         // checkbox prints it as a raw text node inside its <label>. Pull that text out into a (i) on the label
