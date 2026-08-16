@@ -109,6 +109,17 @@ bin/test econt|pigeon|core  # per-courier / framework groups
 - **Per-courier test split:** every PHP test has a class-level `@group speedy|econt|pigeon|boxnow|sameday|core`.
 - **wp-env gotcha:** the wrapper swallows the PHPUnit summary when piped - judge by **exit code 0**.
 - **E2E:** Playwright (`e2e/`), plain JS, `workers:1`, against the live dev site.
+- **Releasing.** Three scripts, run in this order; each refuses rather than half-doing the job.
+  ```bash
+  bin/preflight        # one version in all 3 places, changelog entry, clean+pushed tree,
+                       # Bulgarian complete AND compiled, unit tests, nothing test-shaped tracked
+  bin/release-prod     # backup (named for the version being REPLACED) → deploy → verify → purge → smoke
+  bin/release-wporg    # refuses unless prod already runs this build and the tag is unpublished;
+                       # Plugin Check on dev, audit the zip, then SVN trunk + tag, then confirm the
+                       # directory really serves it
+  ```
+  Every check in `bin/preflight` stands in for something that has gone wrong here at least once; the
+  comment above each says which.
 - **Deploy to dev:** `bash bin/deploy.sh dev` then chown to the site user, activate via wp-admin (wp-cli /
   php-exec are blocked over SSH). The dev site URL/host + credentials + the server-side "probe" technique for
   live API checks are kept **privately, outside this repository** - never in it.
