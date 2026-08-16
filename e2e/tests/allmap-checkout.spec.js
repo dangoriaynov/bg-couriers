@@ -263,6 +263,49 @@ test('combined map: choosing a locker lands on the locker tab, not the address f
 test.describe('the combined map on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
+  /**
+   * The answer, on a phone.
+   *
+   * It sits in the header under the courier chips rather than in a band of its own, and the whole strip
+   * is what you press - which is why it has to be measured, not just found: split into a label and a
+   * small button, the thing a finger has to hit would be a 19px line. Two short lines plus its padding
+   * are what make it a real target.
+   */
+  test('combined map: the answer is a proper tap target on a phone @allmap', async ({ page, context }) => {
+    await context.grantPermissions(['geolocation']);
+    await context.setGeolocation({ latitude: 42.6795, longitude: 23.3242 });
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await page.locator('.bgc-allmap-side .bgc-map-locate').click();
+    await page.waitForTimeout(4000);
+
+    const near = page.locator('.bgc-allmap-near');
+    await expect(near).toBeVisible();
+    const box = await near.boundingBox();
+    expect(box.height, `the strip is ${Math.round(box.height)}px tall`).toBeGreaterThanOrEqual(44);
+
+    // In the header, above the map - not floating over it, and not in a band of its own below it.
+    const form = await page.locator('.bgc-allmap-form').boundingBox();
+    const legend = await page.locator('.bgc-allmap-legend').boundingBox();
+    const body = await page.locator('.bgc-allmap-body').boundingBox();
+    expect(box.y, 'under the courier chips').toBeGreaterThanOrEqual(legend.y + legend.height - 1);
+    expect(box.y + box.height, 'inside the form').toBeLessThanOrEqual(form.y + form.height + 1);
+    expect(box.y + box.height, 'above the map').toBeLessThanOrEqual(body.y + 1);
+
+    // And pressing it does the same thing it does on a desktop: the map, on that point, open.
+    const closest = (await page.locator('.bgc-allmap-item').first().locator('.n').textContent()).trim();
+    await near.click();
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.leaflet-popup .bgc-allmap-pop-n')).toBeVisible();
+    expect((await page.locator('.leaflet-popup .bgc-allmap-pop-n').textContent()).trim())
+      .toBe(closest.replace(/^[^\p{L}\d]+/u, '').trim());
+  });
+
   test('combined map: the map gets real height on a phone @allmap', async ({ page }) => {
     await addAnyProductToCart(page);
     await gotoCheckout(page);
@@ -664,7 +707,7 @@ test.describe('nearest office', () => {
     const answer = (await page.locator('.bgc-allmap-near').textContent()).replace(/\s+/g, ' ');
     expect(closest.length).toBeGreaterThan(3);
 
-    await page.locator('.bgc-near-go').click();
+    await page.locator('.bgc-allmap-near').click();
     await page.waitForTimeout(1200);
 
     // Its own bubble, open on the map, naming it.
@@ -753,7 +796,7 @@ test.describe('nearest office', () => {
     // Whatever it now names must be a point the customer can see - the first visible row, since the
     // list is sorted by distance.
     const firstVisible = (await page.locator('.bgc-allmap-item:visible').first().locator('.n').textContent()).trim();
-    await page.locator('.bgc-near-go').click();
+    await page.locator('.bgc-allmap-near').click();
     await page.waitForTimeout(1200);
     const named = (await page.locator('.leaflet-popup .bgc-allmap-pop-n').textContent()).trim();
     expect(named).toBe(firstVisible.replace(/^[^\p{L}\d]+/u, '').trim());

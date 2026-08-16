@@ -315,7 +315,10 @@
             + '" title="' + esc(I.map_locate || '') + '" aria-label="' + esc(I.map_locate || '') + '"></button>'
           : '')
       + '<ul class="bgc-allmap-cityres" hidden></ul></div>'
-      + '<div class="bgc-allmap-legend" hidden></div>'
+      // The legend and the answer share a column beside the town field. The answer used to be a
+      // full-width band between the form and the map; the chips only ever fill the top of this
+      // space, and a band cost another 41px of a dialog whose whole job is showing a map.
+      + '<div class="bgc-allmap-legendcol"><div class="bgc-allmap-legend" hidden></div></div>'
       + '</div>'
       + '<div class="bgc-allmap-body" style="display:none;">'
       + '<div class="bgc-allmap-side">'
@@ -440,7 +443,7 @@
     // a TypeError into the console of every checkout where somebody chose an office.
     $dlg.on('click', function (e) { if ($dlg && e.target === $dlg[0]) { close(); } });
     $dlg.on('input', '.bgc-allmap-search', scheduleFilter);
-    $dlg.on('click', '.bgc-near-go', function () { focusPoint(+$(this).attr('data-i')); });
+    $dlg.on('click', '.bgc-allmap-near', function () { focusPoint(+$(this).attr('data-i')); });
     $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
     $dlg.on('click', '.bgc-allmap-switch button', function () { setMode($(this).attr('data-v')); });
     // The popup's Choose is the only crossing into bgc-checkout.js: hand over the point and let the
@@ -593,19 +596,20 @@
     if (!overall) { return; }
     var p = overall.p;
     var addr = (p.addressPrice || '');
-    // The naming half is one button, not decoration. "Speedy · locker · 410 m · ~1,52 €" is the phrase
-    // that raises "which one, though?", so the same phrase - courier, glyph, distance, price, every
-    // part of it - is what answers it. See focusPoint().
-    var html = '<div class="bgc-allmap-near">'
-      + '<button type="button" class="bgc-near-go" data-i="' + overall.i + '"'
+    // The whole strip is the button, not a phrase inside it. "Speedy · locker · 410 m · ~1,52 €" is what
+    // raises "which one, though?", so all of it - and the comparison beside it - answers that on a
+    // press (see focusPoint()). One element rather than a nested one because of the phone: there the
+    // strip wraps to two short lines, and those two lines together are the 44px of tappable height a
+    // finger needs. Split in two, the target would be a 20px line.
+    // Not a <div> with a <button> inside for the same reason - one focusable thing, one hit area.
+    var html = '<button type="button" class="bgc-allmap-near" data-i="' + overall.i + '"'
       + ' title="' + esc(I.near_which || '') + '">'
       + '<span class="bgc-near-lead">' + esc(I.near_title || '') + '</span>'
       + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
       + '<span class="bgc-near-c">' + esc(p.courierLabel) + '</span>'
       + typeGlyph(p.type)
       + '<span class="bgc-near-d" title="' + esc(I.near_straight || '') + '">' + esc(fmtDist(overall.d)) + '</span>'
-      + (p.price ? '<span class="bgc-near-p">' + esc(priceLabel(p)) + '</span>' : '')
-      + '</button>';
+      + (p.price ? '<span class="bgc-near-p">' + esc(priceLabel(p)) + '</span>' : '');
     if (addr) {
       html += '<span class="bgc-near-vs">' + esc(I.near_to_address || '') + ' <b>' + esc(addr) + '</b>'
         + (p.savesVsAddress
@@ -613,8 +617,8 @@
             : '')
         + '</span>';
     }
-    html += '</div>';
-    $dlg.find('.bgc-allmap-body').before(html);
+    html += '</button>';
+    $dlg.find('.bgc-allmap-legendcol').append(html);
   }
 
   /**

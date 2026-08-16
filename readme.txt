@@ -102,6 +102,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * New: once you have shown where you are, each point's own bubble says how far it is from you - so the others can be weighed against the closest one.
 * Fixed: the map remembered where you were between visits, so re-opening the checkout could show your location and the distance to your nearest office without asking - and kept doing it after you had reset the browser's permission. It now forgets your position when you leave the page. The town you chose is still remembered.
 * Fixed: in a point's bubble the directions arrow sat below the line instead of on it, once a distance appeared beside the address.
+* The "closest to you" answer now sits in the map's header, directly under the courier badges, instead of in a band of its own - it is more compact, the map is taller for it, and on a phone the whole strip is what you press.
 * New setting: "Closest to you" on the map can be switched off in WooCommerce → Settings → Shipping → BG Couriers → General. It is on by default.
 
 = 0.2.22 =

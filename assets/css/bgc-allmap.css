@@ -68,7 +68,13 @@
 /* Which colour is whose, and a filter in the same control: on a map carrying four couriers the first
    question is what the dots mean and the second is "show me only this one". */
 /* Wraps to two short rows beside the field rather than one long line under it. */
-.bgc-allmap-legend { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap;
+/* Legend on top, the answer under it. The chips fill about 23px of a 60px-tall form row, and the
+   answer used to be a full-width band below the whole thing; this puts it in the space that was
+   already there. */
+.bgc-allmap-legendcol { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+/* Nothing to show it beside yet, and an empty flex child would take half the row from the town field. */
+.bgc-allmap-overlay:not(.bgc-has-map) .bgc-allmap-legendcol { display: none; }
+.bgc-allmap-legend { flex: 0 0 auto; min-width: 0; display: flex; flex-wrap: wrap;
   align-content: flex-start; gap: 5px; }
 .bgc-allmap-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px;
   border: 1px solid #c9ced6; border-radius: 999px; background: #fff; color: #50575e;
@@ -323,7 +329,7 @@
 @media (max-width: 720px) {
   .bgc-allmap-form { flex-direction: column; }
   .bgc-allmap-form .bgc-allmap-cityrow { width: 100%; }
-  .bgc-allmap-legend { width: 100%; }
+  .bgc-allmap-legend, .bgc-allmap-legendcol { width: 100%; }
 }
 
 /* Short screens - a phone on its side has about 390px of height for everything. Every row of chrome
@@ -391,23 +397,21 @@ html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
 /* "Closest to you" - the one line the whole distance feature exists to produce. It sits between the
    town and the map because that is the reading order of the decision: where am I, what is nearest,
    and is it worth not paying for the door. Only present once a position is known. */
-.bgc-allmap-near { display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
-  padding: 9px 14px; border-top: 1px solid #e6e9ec; background: #f6f9fc;
-  font-size: 13px; color: #1d2327; }
-.bgc-allmap-near img { width: 16px; height: 16px; object-fit: contain; flex: 0 0 auto; }
+/* A strip in the header rather than a band across the dialog, so it needs an edge of its own or it
+   reads as a third row of chips. Text-sized, not control-sized: it is a sentence that can be pressed. */
+.bgc-allmap-near { display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  width: 100%; box-sizing: border-box; padding: 4px 9px; border: 1px solid #dde3ea; border-radius: 8px;
+  background: #f6f9fc; font: inherit; font-size: 12.5px; line-height: 1.5; color: #1d2327;
+  text-align: left; cursor: pointer; }
+.bgc-allmap-near:hover { background: #eef4fa; border-color: #c3d3e3; }
+.bgc-allmap-near:focus-visible { outline: 2px solid #2271b1; outline-offset: 1px; }
+.bgc-allmap-near:hover .bgc-near-c { text-decoration: underline; }
+.bgc-allmap-near img { width: 15px; height: 15px; object-fit: contain; flex: 0 0 auto; }
 .bgc-near-lead { color: #50575e; }
 .bgc-near-c { font-weight: 600; }
 .bgc-near-d { font-weight: 600; padding: 1px 7px; border-radius: 999px; background: #e3edf7;
   color: #135e96; cursor: help; }
 .bgc-near-p { font-weight: 600; }
-/* The naming half is a button - it answers "which office IS that?" by going to the point. Styled as
-   the sentence it reads as, not as a control: only the hover says it can be pressed. */
-.bgc-near-go { display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
-  margin: -3px -7px; padding: 3px 7px; border: 0; border-radius: 8px; background: none;
-  font: inherit; color: inherit; text-align: left; cursor: pointer; }
-.bgc-near-go:hover, .bgc-near-go:focus-visible { background: #e8eef5; }
-.bgc-near-go:focus-visible { outline: 2px solid #2271b1; outline-offset: 1px; }
-.bgc-near-go:hover .bgc-near-c { text-decoration: underline; }
 /* The comparison, pushed to the far end: it is the counter-argument, not the headline. */
 .bgc-near-vs { margin-left: auto; color: #50575e; }
 .bgc-allmap-near .bgc-allmap-kind { color: #50575e; margin-right: 0; }
@@ -420,9 +424,14 @@ html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
   color: #3c434a; font-weight: 600; }
 
 @media (max-width: 720px), (max-height: 520px) {
-  /* On a phone the comparison drops onto its own line rather than being squeezed off the end. */
-  .bgc-allmap-near { padding: 8px 12px; gap: 6px; }
+  /* Two short lines rather than one squeezed off the end - the answer, then what it saves. Together
+     with the padding they come to ~48px, which is also the height a finger needs: the strip IS the
+     tap target, so it must not be a single 19px line. */
+  .bgc-allmap-near { padding: 5px 9px; gap: 5px; }
   .bgc-near-vs { margin-left: 0; flex-basis: 100%; }
+  /* The courier's name gives way first if a long one meets a long distance - never the distance or
+     the price, which are the two numbers being weighed. */
+  .bgc-near-c { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 /* The number the customer is actually weighing: green, because it is the reason to walk. */
 .bgc-near-save { margin-left: 6px; padding: 1px 7px; border-radius: 999px;
