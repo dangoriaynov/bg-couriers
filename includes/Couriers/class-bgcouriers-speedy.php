@@ -231,6 +231,10 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     private function build_shipment_body(\WC_Order $order): array {
+        // How many boxes this order actually is. parcelsCount used to be the literal 1, so a shop sending
+        // three got one waybill for one box - see BGCouriers_Order::parcels(). Speedy wants the count AND
+        // an entry per parcel, and the entries' weights must add back up to totalWeight.
+        $parcel_n = BGCouriers_Order::parcels($order);
         $method  = (string) $order->get_meta('_bgcouriers_method') ?: 'address';
         $site_id = (int) $order->get_meta('_bgcouriers_site_id');
         $office  = (int) $order->get_meta('_bgcouriers_office_id');
@@ -261,14 +265,22 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             : 'BOX';
         $contents = BGCouriers_Settings::shipment_contents();
         $dims     = BGCouriers_Settings::box_dims();
+        // One entry per box, weights adding back up to totalWeight - a courier that re-weighs at the
+        // depot bills the difference, so "roughly" is not good enough. Every box gets the configured
+        // size: the plugin knows one box shape, and claiming per-box dimensions it does not have would
+        // be worse than repeating the one it does.
+        $parcels = [];
+        foreach (BGCouriers_Order::parcel_weights(self::order_weight_kg($order), $parcel_n) as $i => $kg) {
+            $parcels[] = ['seqNo' => $i + 1, 'weight' => $kg,
+                          'size' => ['width' => $dims['width'], 'depth' => $dims['length'], 'height' => $dims['height']]];
+        }
         $body = [
             'recipient' => $recipient,
             'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => 505],
-            'content'   => ['parcelsCount' => 1, 'contents' => $contents, 'package' => $package,
+            'content'   => ['parcelsCount' => $parcel_n, 'contents' => $contents, 'package' => $package,
                             'totalWeight' => self::order_weight_kg($order),
                             // ShipmentParcelSize {width,height,depth} cm (schema-confirmed); lockers must fit.
-                            'parcels'     => [['seqNo' => 1, 'weight' => self::order_weight_kg($order),
-                                               'size' => ['width' => $dims['width'], 'depth' => $dims['length'], 'height' => $dims['height']]]]],
+                            'parcels'     => $parcels],
             'payment'   => ['courierServicePayer' => $payer === 'recipient' ? 'RECIPIENT' : 'SENDER'],
             // Printed on the waybill as the merchant's own reference, so it is read by Bulgarian staff and
             // the recipient - translatable rather than a hardcoded English "ORDER".

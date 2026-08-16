@@ -326,6 +326,10 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
      * plus `county`/`countyString` (the county resolves from countyString = our stored region name).
      */
     public static function build_estimate_body(array $s): array {
+        // From the shipment array, never from an order: this is also called at checkout, where no order
+        // exists yet. BGCouriers_Order::shipment_from_order() puts both in for the order-side callers.
+        $parcel_n = max(1, (int) ($s['parcels'] ?? 1));
+        $insured  = max(0.0, (float) ($s['insurance'] ?? 0));
         $type = $s['method'] ?? 'address';
         $w    = max(0.1, (float) ($s['weight_kg'] ?? 1.0));
         $sid  = (int) ($s['site_id'] ?? 0);
@@ -337,11 +341,11 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             'pickupPoint'     => (int) ($s['pickup_point'] ?? get_option('bgcouriers_sameday_pickup_point', 0)),
             'service'         => (string) ($s['service_id'] ?? ''),
             'packageType'     => 0,
-            'packageNumber'   => 1,
+            'packageNumber'   => $parcel_n,
             'packageWeight'   => $w,
             'awbPayment'      => 1, // client (sender) pays the delivery
             'cashOnDelivery'  => 0,
-            'insuredValue'    => 0,
+            'insuredValue'    => $insured,
             'thirdPartyPickup'=> 0,
             'currency'        => (string) ($s['currency'] ?? get_woocommerce_currency()),
             'parcels'         => [array_merge(['weight' => $w], self::parcel_dims())],
@@ -406,6 +410,11 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     public static function build_awb_body(\WC_Order $order, int $service_id = 0, int $pickup_point = 0): array {
+        // How many boxes, and what they are insured for. Both were literals - 1 and 0 - so a shop sending
+        // three parcels got one waybill for one, and insurance was unreachable however much the goods
+        // were worth. See BGCouriers_Order.
+        $parcel_n = BGCouriers_Order::parcels($order);
+        $insured  = BGCouriers_Order::insurance($order);
         $method = (string) $order->get_meta('_bgcouriers_method');
         $w      = max(0.1, self::order_weight_kg($order));
         $is_cod = $order->get_payment_method() === 'cod';
@@ -418,10 +427,10 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             'service'        => (string) ($service_id ?: ''),
             'awbPayment'     => $payer === 'recipient' ? 2 : 1, // 1=CLIENT/sender, 2=RECIPIENT
             'packageType'    => 0,
-            'packageNumber'  => 1,
+            'packageNumber'  => $parcel_n,
             'packageWeight'  => $w,
             'cashOnDelivery' => $is_cod ? self::cod_for_payer($order, $payer) : 0,
-            'insuredValue'   => 0,
+            'insuredValue'   => $insured,
             'thirdPartyPickup' => 0,
             // Sameday's free-text remark on the AWB - the only place it takes a contents description
             // (POST /api/awb has observation/priceObservation/clientObservation and no contents field).
@@ -441,7 +450,10 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
                 'address'      => $addr !== '' ? $addr : '-',
                 'postalCode'   => (string) $order->get_meta('_bgcouriers_post_code'),
             ], static function ($v) { return $v !== ''; }),
-            'parcels'        => [array_merge(['weight' => $w], self::parcel_dims())],
+            'parcels'        => array_map(
+                static function ($kg) { return array_merge(['weight' => $kg], self::parcel_dims()); },
+                BGCouriers_Order::parcel_weights($w, $parcel_n)
+            ),
         ];
         $office = (int) $order->get_meta('_bgcouriers_office_id');
         if ($method === 'automat')    { $body['lockerLastMile'] = $office; }
