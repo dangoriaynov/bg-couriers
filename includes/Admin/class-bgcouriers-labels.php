@@ -244,7 +244,7 @@ class BGCouriers_Labels {
         $parts = [];
         foreach (['courier', 'method', 'site_id', 'office_id', 'post_code', 'street_name', 'street_no',
                   'complex', 'block', 'entrance', 'floor', 'apartment', 'address_note',
-                  'boxnow_name', 'boxnow_addr', 'weight_kg'] as $k) {
+                  'boxnow_name', 'boxnow_addr', 'weight_kg', 'parcels', 'insurance'] as $k) {
             $parts[] = $k . '=' . (string) $order->get_meta('_bgcouriers_' . $k);
         }
         $parts[] = 'name=' . $order->get_formatted_billing_full_name();
@@ -547,6 +547,12 @@ class BGCouriers_Labels {
             'floor' => $t('floor'), 'apartment' => $t('apartment'), 'address_note' => $t('address_note'),
             'boxnow_name' => $t('boxnow_name'), 'boxnow_addr' => $t('boxnow_addr'),
         ]);
+        // Not part of the delivery ADDRESS, so written here rather than through apply_delivery(): the
+        // checkout has no notion of either, and this editor is the only place a merchant sets them.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by check_ajax_referer above
+        $order->update_meta_data('_bgcouriers_parcels', max(1, min(99, absint(wp_unslash($_POST['parcels'] ?? 1)))));
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by check_ajax_referer above
+        $order->update_meta_data('_bgcouriers_insurance', max(0, round((float) wp_unslash($_POST['insurance'] ?? 0), 2)));
         $order->save();
 
         // Issue a fresh waybill from the new details (only if one existed before - a plain save on an order

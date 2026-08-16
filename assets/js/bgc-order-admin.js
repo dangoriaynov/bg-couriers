@@ -389,7 +389,10 @@
       complex: $panel.find('.bgc-ed-complex').val() || '', block: $panel.find('.bgc-ed-block').val() || '',
       entrance: $panel.find('.bgc-ed-entrance').val() || '', floor: $panel.find('.bgc-ed-floor').val() || '',
       apartment: $panel.find('.bgc-ed-apartment').val() || '', address_note: $panel.find('.bgc-ed-note').val() || '',
-      boxnow_name: $panel.find('.bgc-ed-boxnow-name').val() || '', boxnow_addr: $panel.find('.bgc-ed-boxnow-addr').val() || ''
+      boxnow_name: $panel.find('.bgc-ed-boxnow-name').val() || '', boxnow_addr: $panel.find('.bgc-ed-boxnow-addr').val() || '',
+      // How many boxes, and what to insure them for. Blank means the defaults - one parcel, uninsured.
+      parcels: $panel.find('.bgc-ed-parcels').val() || 1,
+      insurance: $panel.find('.bgc-ed-insurance').val() || 0
     };
     if (courier() === 'boxnow') { data.office_id = $panel.find('.bgc-ed-boxnow-id').val() || 0; }
     $.post(C.ajax, data).done(function (r) {

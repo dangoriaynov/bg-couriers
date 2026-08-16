@@ -276,6 +276,7 @@ class BGCouriers_Order_Metabox {
         // markup below) - not merely a greyer stylesheet, which a keyboard walks straight past. Saving is
         // refused by the server too, whatever the browser does.
         $locked = BGCouriers_Labels::is_locked($order);
+        $ins = BGCouriers_Order::insurance($order);
         $form = '<div class="bgc-ed"><div class="bgc-ed-form' . ($locked ? ' bgc-ed-locked' : '') . '" style="display:none;margin-top:10px;max-width:520px;">'
             . '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>'
             . '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>'
@@ -301,6 +302,14 @@ class BGCouriers_Order_Metabox {
             . '<p><label>' . esc_html__('Locker id', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-id" value="' . $boxnow_id . '" style="width:110px;"> '
             . '<label>' . esc_html__('Locker name', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-name" value="' . $v('boxnow_name') . '"></p>'
             . '<p><label>' . esc_html__('Locker address', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-addr" value="' . $v('boxnow_addr') . '" style="width:100%;"></p>'
+            . '</div>'
+            // Not address fields - they are facts about the SHIPMENT, so they sit on their own row after
+            // the address and before Save, where they read as "and how is it going" rather than "where".
+            . '<div class="bgc-ed-row">'
+            . '<div class="bgc-ed-fld"><label>' . esc_html__('Parcels', 'bg-couriers') . '</label>'
+            . '<input type="number" min="1" max="99" step="1" class="bgc-ed-parcels" value="' . esc_attr((string) BGCouriers_Order::parcels($order)) . '"></div>'
+            . '<div class="bgc-ed-fld"><label>' . esc_html__('Insure for', 'bg-couriers') . '</label>'
+            . '<input type="number" min="0" step="0.01" class="bgc-ed-insurance" placeholder="0" value="' . esc_attr($ins > 0 ? (string) $ins : '') . '"></div>'
             . '</div>'
             . '<p><button type="button" class="button button-primary bgc-ed-save">'
             . esc_html__('Save delivery', 'bg-couriers') . '</button> <span class="bgc-ed-msg"></span></p>';
