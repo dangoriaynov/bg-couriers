@@ -60,13 +60,36 @@ class BGCouriers_Settings {
         return get_option($name, $default);
     }
 
-    public static function courier_config(string $courier): ?array {
+    /**
+     * What this courier needs to TALK to its API - and nothing about whether the shop is offering it.
+     *
+     * These two were one question, and that is what deadlocked every new install. Saving a username
+     * sets `_validated = no`; a courier may not be ENABLED until it is validated; validating asked for
+     * courier_config(), which returned null while the courier was disabled - and answered "No
+     * credentials saved" about credentials that were saved and locked on the screen in front of you.
+     * So: you could not enable without validating, could not validate without enabling, and the one
+     * message you were given pointed at the wrong thing entirely. Reported by a merchant who installed
+     * the plugin from WordPress.org and simply could not get past the settings screen.
+     *
+     * Credentials also outlive the toggle in a second way: a courier switched off still has orders that
+     * were placed with it, and printing or tracking those must keep working.
+     */
+    public static function courier_credentials(string $courier): ?array {
         if (!array_key_exists($courier, BGCouriers_Couriers::all())) { return null; }
-        if (get_option('bgcouriers_' . $courier . '_enabled', 'no') !== 'yes') { return null; }
         return [
             'username' => get_option('bgcouriers_' . $courier . '_username', ''),
             'password' => BGCouriers_Encryption::decrypt(get_option('bgcouriers_' . $courier . '_password', '')),
         ];
+    }
+
+    /**
+     * The credentials, but only while the courier is switched on - i.e. "should the shop be using this
+     * courier at all". Every caller asking that question keeps calling this; the ones that only need to
+     * reach the API (validate, sync, labels for orders already placed) use courier_credentials().
+     */
+    public static function courier_config(string $courier): ?array {
+        if (get_option('bgcouriers_' . $courier . '_enabled', 'no') !== 'yes') { return null; }
+        return self::courier_credentials($courier);
     }
 
     /** @return array<string,string> id => label of registered couriers. */
@@ -839,7 +862,9 @@ jQuery(function($){
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
         check_ajax_referer('bgcouriers_admin', 'nonce');
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? 'speedy'));
-        if (!self::courier_config($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
+        // Credentials, not the enable toggle: checking them is exactly what a merchant does BEFORE
+        // switching a courier on, and this used to refuse to run until it was already on.
+        if (!self::creds_present($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
         $c = BGCouriers_Couriers::get($courier);
         $ok = (bool) ($c && $c->check_credentials());
         update_option('bgcouriers_' . $courier . '_validated', $ok ? 'yes' : 'no'); // drives the green/red credentials tint
@@ -857,7 +882,30 @@ jQuery(function($){
         if (!$c || !method_exists($c, 'enable_problems')) {
             wp_send_json_error(['problems' => [['msg' => __('Unknown courier.', 'bg-couriers'), 'fix' => '']]]);
         }
+        /*
+         * Saved credentials that have never been checked: check them HERE.
+         *
+         * Saving a username sets _validated = no, and a courier may not be enabled until it is yes - so
+         * without this the merchant is refused, sent to a button elsewhere on the page, and made to come
+         * back and flip the toggle again. The toggle has already saved the form by the time this runs, so
+         * what gets checked is exactly what is on screen. Entering the credentials and switching the
+         * courier on is now the whole job.
+         */
+        $checked = null;
+        if (self::creds_present($courier) && get_option('bgcouriers_' . $courier . '_validated', 'yes') !== 'yes') {
+            $checked = (bool) $c->check_credentials();
+            update_option('bgcouriers_' . $courier . '_validated', $checked ? 'yes' : 'no');
+        }
         $problems = $c->enable_problems();
+        if ($checked === false) {
+            // We have just asked the courier and it said no. Say that, instead of "not validated yet" -
+            // which would send the merchant to a button that fails in exactly the same way.
+            foreach ($problems as $k => $pr) {
+                if (($pr['code'] ?? '') !== 'creds_unvalidated') { continue; }
+                $problems[$k]['msg'] = __('The courier refused these API credentials.', 'bg-couriers');
+                $problems[$k]['fix'] = __('Check the username/key and password/secret with the courier, press ✕ beside each field to enter them again, then save.', 'bg-couriers');
+            }
+        }
         if (!empty($problems)) { wp_send_json_error(['problems' => array_values($problems)]); }
         wp_send_json_success(['ok' => true]);
     }
@@ -945,7 +993,9 @@ jQuery(function($){
         check_ajax_referer('bgcouriers_admin', 'nonce');
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? 'speedy'));
         $c = BGCouriers_Couriers::get($courier);
-        if (!$c || !self::courier_config($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
+        // Likewise: pulling a courier's towns and offices is a setup step, and a merchant may well want
+        // them in place before the courier goes live on the shop.
+        if (!$c || !self::creds_present($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
         @set_time_limit(180); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- needed for long nomenclature sync
         wp_send_json_success(BGCouriers_Sync::run($c));
     }

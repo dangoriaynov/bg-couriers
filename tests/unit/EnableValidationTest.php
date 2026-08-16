@@ -8,6 +8,8 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-encryption.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-speedy.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-econt.php';
@@ -36,6 +38,58 @@ final class EnableValidationTest extends TestCase {
     /** enabled + credentials saved + validated - the base "ready" state. */
     private function ok(string $c): array {
         return ["bgcouriers_{$c}_enabled" => 'yes', "bgcouriers_{$c}_username" => 'u', "bgcouriers_{$c}_password" => 'p', "bgcouriers_{$c}_validated" => 'yes'];
+    }
+
+    /**
+     * The first-install deadlock, and the one bug in this file that a real merchant hit rather than a
+     * test: saving a username sets _validated = no, a courier may not be ENABLED until that is yes, and
+     * validating it used to require the courier to be enabled - because one function answered both
+     * "what are its credentials" and "is the shop offering it". The answer to the second must not
+     * withhold the first.
+     */
+    public function test_credentials_are_readable_while_the_courier_is_switched_off(): void {
+        $this->opts([
+            'bgcouriers_speedy_enabled'  => 'no',
+            'bgcouriers_speedy_username' => 'u',
+            'bgcouriers_speedy_password' => 'p',
+        ]);
+        // courier_credentials() answers only for a REGISTERED courier, so register one here.
+        BGCouriers_Couriers::reset();
+        BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return new BGCouriers_Speedy([]); });
+
+        // "Is the shop offering this courier?" - no, and that stays true.
+        $this->assertNull(BGCouriers_Settings::courier_config('speedy'));
+        // "What does it need to reach its API?" - a different question, with an answer.
+        $creds = BGCouriers_Settings::courier_credentials('speedy');
+        $this->assertIsArray($creds);
+        $this->assertSame('u', $creds['username']);
+        // ...and the credentials themselves are not in doubt, so nothing may claim they are missing.
+        $this->assertTrue(BGCouriers_Settings::creds_present('speedy'));
+        BGCouriers_Couriers::reset();
+    }
+
+    /** Being switched off is not a credentials problem, and must never be reported as one. */
+    public function test_switched_off_courier_reports_no_credentials_problem(): void {
+        $this->opts([
+            'bgcouriers_speedy_enabled'   => 'no',
+            'bgcouriers_speedy_username'  => 'u',
+            'bgcouriers_speedy_password'  => 'p',
+            'bgcouriers_speedy_validated' => 'yes',
+        ]);
+        $this->assertSame([], (new BGCouriers_Speedy([]))->enable_problems());
+    }
+
+    /** The unvalidated problem is tagged, so the enable check can replace it with what actually happened. */
+    public function test_unvalidated_problem_carries_its_code(): void {
+        $this->opts([
+            'bgcouriers_speedy_enabled'   => 'yes',
+            'bgcouriers_speedy_username'  => 'u',
+            'bgcouriers_speedy_password'  => 'p',
+            'bgcouriers_speedy_validated' => 'no',
+        ]);
+        $problems = (new BGCouriers_Speedy([]))->enable_problems();
+        $this->assertCount(1, $problems);
+        $this->assertSame('creds_unvalidated', $problems[0]['code']);
     }
 
     public function test_missing_credentials_blocks(): void {

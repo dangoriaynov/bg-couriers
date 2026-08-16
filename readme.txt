@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.24
+Stable tag: 0.2.25
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,11 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.2.25 =
+* Fixed: setting a courier up could not be completed at all on a fresh install. A courier would not turn on until its API credentials had been validated, and validating them was refused until the courier was on - and the refusal said "no credentials saved" about credentials that were saved. Reported by a merchant who installed the plugin and could not get past the settings screen; with apologies.
+* Entering the credentials and switching the courier on is now the whole job: turning it on checks them with the courier for you, and says so plainly if they are refused.
+* "Validate credentials" and "Sync now" also work before a courier is switched on, which is when you actually want them.
 
 = 0.2.24 =
 * Fixed: on a phone, pressing the closest office could leave the map showing a different part of town with the office's bubble at the edge. Changing the zoom animates, and the bubble was being fitted to the screen while that animation was still running. Picking an office from the list went the same way.

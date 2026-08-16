@@ -48,6 +48,7 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
         $problems = [];
         if (!BGCouriers_Settings::creds_present($id)) {
             $problems[] = [
+                'code' => 'creds_missing',
                 'msg' => __('API credentials are missing.', 'bg-couriers'),
                 'fix' => __('Enter the username/key and password/secret, then click “Save changes”.', 'bg-couriers'),
             ];
@@ -59,6 +60,10 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
         // legacy installs land on the default.
         } elseif (get_option('bgcouriers_' . $id . '_validated', 'yes') !== 'yes') {
             $problems[] = [
+                // Tagged so the enable check can say what actually happened when it has JUST tried the
+                // credentials and the courier refused them - "not validated yet" would then be a lie,
+                // and it would send the merchant to press a button that fails the same way.
+                'code' => 'creds_unvalidated',
                 'msg' => __('The API credentials have not been validated.', 'bg-couriers'),
                 'fix' => __('Click “Validate credentials” and make sure the check succeeds.', 'bg-couriers'),
             ];

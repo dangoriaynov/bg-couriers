@@ -27,27 +27,33 @@ class BGCouriers_Plugin {
     }
     private function __construct() {
         self::migrate_env_flags();
+        // Built from courier_credentials(), NOT courier_config(): an adapter has to know how to reach its
+        // API whether or not the shop is currently offering that courier. Whether it is OFFERED is asked
+        // separately, by the code that decides it (checkout, the sync loop) - see courier_config().
+        // Built the other way, a disabled courier got an adapter with no credentials at all, so
+        // validating them was impossible until it was enabled, and it could not be enabled until they
+        // were validated.
         BGCouriers_Couriers::register('speedy', __('Speedy', 'bg-couriers'), static function () {
-            return new BGCouriers_Speedy(BGCouriers_Settings::courier_config('speedy') ?: []);
+            return new BGCouriers_Speedy(BGCouriers_Settings::courier_credentials('speedy') ?: []);
         });
         BGCouriers_Couriers::register('econt', __('Econt', 'bg-couriers'), static function () {
-            return new BGCouriers_Econt(BGCouriers_Settings::courier_config('econt') ?: []);
+            return new BGCouriers_Econt(BGCouriers_Settings::courier_credentials('econt') ?: []);
         });
         BGCouriers_Couriers::register('pigeon', __('Pigeon Express', 'bg-couriers'), static function () {
             // Pick the live vs sandbox host from the "Live mode" toggle (resolved here at runtime, not in the
             // constructor, so the constructor stays pure for unit tests). Default = live.
             $base = get_option('bgcouriers_pigeon_live', 'yes') === 'yes' ? BGCouriers_Pigeon::PROD : BGCouriers_Pigeon::DEMO;
-            return new BGCouriers_Pigeon(array_merge(BGCouriers_Settings::courier_config('pigeon') ?: [], ['base' => $base]));
+            return new BGCouriers_Pigeon(array_merge(BGCouriers_Settings::courier_credentials('pigeon') ?: [], ['base' => $base]));
         });
         BGCouriers_Couriers::register('boxnow', __('BOX NOW', 'bg-couriers'), static function () {
-            return new BGCouriers_Boxnow(array_merge(BGCouriers_Settings::courier_config('boxnow') ?: [], [
+            return new BGCouriers_Boxnow(array_merge(BGCouriers_Settings::courier_credentials('boxnow') ?: [], [
                 'api_url'      => get_option('bgcouriers_boxnow_live', 'yes') === 'yes' ? BGCouriers_Boxnow::PROD : BGCouriers_Boxnow::STAGE,
                 'partner_id'   => get_option('bgcouriers_boxnow_partner_id', ''),
                 'warehouse_id' => get_option('bgcouriers_boxnow_warehouse_id', ''),
             ]));
         });
         BGCouriers_Couriers::register('sameday', __('Sameday', 'bg-couriers'), static function () {
-            return new BGCouriers_Sameday(BGCouriers_Settings::courier_config('sameday') ?: []);
+            return new BGCouriers_Sameday(BGCouriers_Settings::courier_credentials('sameday') ?: []);
         });
         BGCouriers_Couriers::boot();
         add_filter('cron_schedules', function ($s) {
