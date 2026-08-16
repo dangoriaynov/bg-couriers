@@ -92,6 +92,9 @@ class BGCouriers_Plugin {
         // The block checkout fires none of the hooks the classic one does, so the same rules are
         // re-attached to their Store API counterparts - reusing that same object, not a copy of it.
         new BGCouriers_Blocks($checkout);
+        // The waybill and the track link, for the person actually waiting for the parcel - the plugin
+        // had no customer-facing tracking at all, and not one WC_Email hook.
+        new BGCouriers_Customer_Tracking();
         new BGCouriers_Thankyou(); // order summary on the thank-you step (native hook + shortcode)
         new BGCouriers_Ajax();
         new BGCouriers_Labels(); // status-change hook must fire on front-end order transitions too

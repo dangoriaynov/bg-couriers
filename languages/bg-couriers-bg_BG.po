@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
-"POT-Creation-Date: 2026-08-16T17:29:23+00:00\n"
+"POT-Creation-Date: 2026-08-16T18:57:09+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -2531,6 +2531,32 @@ msgstr "Изберете от карта"
 #: includes/Checkout/class-bgcouriers-checkout.php:915
 msgid "Block"
 msgstr "Блок"
+
+#: includes/Checkout/class-bgcouriers-customer-tracking.php:99
+msgid "Your parcel"
+msgstr "Вашата пратка"
+
+#. translators: %s: courier name, e.g. Speedy
+#: includes/Checkout/class-bgcouriers-customer-tracking.php:101
+#, php-format
+msgid "Courier: %s"
+msgstr "Куриер: %s"
+
+#. translators: %s: the courier's waybill (tracking) number
+#: includes/Checkout/class-bgcouriers-customer-tracking.php:103
+#, php-format
+msgid "Waybill: %s"
+msgstr "Товарителница: %s"
+
+#: includes/Checkout/class-bgcouriers-customer-tracking.php:109
+msgid "Track this parcel"
+msgstr "Проследете пратката"
+
+#. translators: 1: courier name, 2: waybill number
+#: includes/Checkout/class-bgcouriers-customer-tracking.php:123
+#, php-format
+msgid "Your parcel - courier: %1$s, waybill: %2$s"
+msgstr "Вашата пратка - куриер: %1$s, товарителница: %2$s"
 
 #. translators: 1: the order number, 2: the order date
 #: includes/Checkout/class-bgcouriers-thankyou.php:41

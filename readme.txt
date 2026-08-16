@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.3.1 =
+* **Your customers can now track their own parcel.** The waybill number and a link to the courier's tracking appear on the customer's order page - both after checkout and later in My Account - and in the order emails they receive. Until now only the shop owner could see any of it, so "where is my parcel?" could only be answered by writing to the shop.
+* Nothing is shown before a label exists, and the shop owner's own copies of the emails are left alone.
 
 = 0.3.0 =
 * **The plugin now works on WooCommerce's block checkout.** It did not, and it failed quietly: the courier and its price appeared, there was nowhere at all to choose a town, an office or a locker, and the order could still be placed - reaching you with a courier and no destination. The block checkout is what WooCommerce gives a new shop by default.
