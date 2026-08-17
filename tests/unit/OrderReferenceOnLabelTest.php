@@ -23,6 +23,9 @@ require_once dirname(__DIR__) . '/stubs/wc-order.php';
  * Speedy's builder is a private instance method and BOX NOW's needs a live HTTP context, so neither is
  * reachable from here; both are covered where they are built.
  *
+ * **A courier added later belongs in this file.** The rule it has to satisfy, and the format to send it
+ * in, is written down under "the shipment says which ORDER it is" in `docs/courier-api-notes.md`.
+ *
  * @group core
  */
 final class OrderReferenceOnLabelTest extends TestCase {

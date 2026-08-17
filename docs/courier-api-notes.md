@@ -11,6 +11,38 @@ plugin; not blocked). **All three couriers have real, readable APIs** - only cre
 
 ---
 
+## Convention every adapter follows: the shipment says which ORDER it is
+
+**A new courier is not finished until its shipment carries the shop's order number.** The merchant's
+daily job is the reverse of ours - they are looking at a list of parcels in the courier's own panel and
+need to know which order each one is. A courier told nothing does not leave the field blank: it fills it
+with its own waybill number, which is the one number the merchant already has and the one that finds
+nothing in the shop. That is exactly how it was found, on Econt, on 2026-08-17.
+
+**The value is always `$order->get_order_number()`, never `get_id()`.** They are equal on a plain shop
+and differ the moment a shop numbers its orders through a plugin - and the number to print is the one
+the merchant is shown. Sameday was reading the post id and was corrected.
+
+**The format follows what kind of field the courier gives you:**
+
+| Field it offers | Send | Live examples |
+|---|---|---|
+| A dedicated order-number / reference field | the bare number | Econt `orderNumber`, BOX NOW `orderNumber`, Pigeon `external_reference` |
+| Free text a human reads off the waybill | `sprintf(__('Order %s', 'bg-couriers'), …)` - a bare number there says nothing about what it is | Speedy `ref1` |
+| A field the courier requires to be UNIQUE | suffix it, and say why in the comment | Sameday `clientInternalReference` = `<number>-<timestamp>` (it keeps a **cancelled** AWB's reference forever); BOX NOW retries count up `-2`, `-3` (P410 = duplicate orderNumber, and cancelling does not release it) |
+
+**Read the field name off the courier's own schema before wiring it** - do not infer it from another
+courier or from a plugin that talks to it. Econt's was settled by fetching
+`https://ee.econt.com/services/openapi.yaml` and reading `ShippingLabel`; Speedy publishes a schema ZIP
+at `/v1/schema`; Pigeon an OpenAPI spec. A field name that is merely plausible is how insurance and
+return labels stayed unwired for three couriers.
+
+**Then add the courier to `tests/unit/OrderReferenceOnLabelTest.php`**, which is where this stops being
+a convention and becomes a thing that fails. It builds a body for an order whose displayed number is
+deliberately not its post id, so both halves of the rule are pinned at once.
+
+---
+
 ## 1. Pigeon Express - *best fit, build first when creds arrive*
 
 Source: OpenAPI 3.0 spec at `https://api-docs.pigeonexpress.com/openapi.yaml` (Redoc).
