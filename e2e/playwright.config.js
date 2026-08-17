@@ -2,6 +2,9 @@
 const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests',
+  // Turns dev's auto-labelling off for the run: six of these specs place a COD order, COD lands in
+  // `processing`, and dev auto-labels that status against the couriers' LIVE accounts. See the file.
+  globalSetup: require.resolve('./global-setup.js'),
   timeout: 90000,
   expect: { timeout: 15000 },
   retries: 1,
