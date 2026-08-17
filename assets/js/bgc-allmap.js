@@ -1044,8 +1044,13 @@
             if (d.prices.address) { p.addressPrice = d.prices.address; }
             if (d.saves && d.saves[p.type]) { p.savesVsAddress = d.saves[p.type]; }
           });
-          // Whatever is open re-reads from the same points, and the answer line re-states itself.
-          if (map) { map.closePopup(); }
+          // An open bubble is REFRESHED, never closed. Closing it was my first attempt and it is worse
+          // than a stale price: the customer opens a point, and a second later it shuts by itself with
+          // no explanation. Its content is built by a function, so re-running update() re-reads the
+          // point that just changed.
+          markers.forEach(function (mk) {
+            if (mk && mk.isPopupOpen && mk.isPopupOpen() && mk.getPopup()) { mk.getPopup().update(); }
+          });
           pickNear();
         });
     });

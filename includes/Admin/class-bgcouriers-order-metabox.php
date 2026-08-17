@@ -309,9 +309,13 @@ class BGCouriers_Order_Metabox {
             // these. The row hides for the rest rather than accepting a number and dropping it - a box
             // that takes "3" and ships one parcel is worse than no box at all.
             . '<div class="bgc-ed-row bgc-ed-shipfacts" data-couriers="' . esc_attr(implode(',', BGCouriers_Order::MULTI_PARCEL_COURIERS)) . '">'
-            . '<div class="bgc-ed-fld"><label>' . esc_html__('Parcels', 'bg-couriers') . '</label>'
+            // The row already hides for couriers that ignore these, but the hover says WHICH they are -
+            // a merchant who never sees the row on Econt should not have to guess whether that is a fault.
+            . '<div class="bgc-ed-fld" title="' . esc_attr__('Supported for Speedy and Sameday. The other couriers ignore it.', 'bg-couriers') . '">'
+            . '<label>' . esc_html__('Parcels', 'bg-couriers') . '</label>'
             . '<input type="number" min="1" max="99" step="1" class="bgc-ed-parcels" value="' . esc_attr((string) BGCouriers_Order::parcels($order)) . '"></div>'
-            . '<div class="bgc-ed-fld"><label>' . esc_html__('Insure for', 'bg-couriers') . '</label>'
+            . '<div class="bgc-ed-fld" title="' . esc_attr__('Supported for Speedy and Sameday. The other couriers ignore it.', 'bg-couriers') . '">'
+            . '<label>' . esc_html__('Insure for', 'bg-couriers') . '</label>'
             . '<input type="number" min="0" step="0.01" class="bgc-ed-insurance" placeholder="0" value="' . esc_attr($ins > 0 ? (string) $ins : '') . '"></div>'
             . '</div>'
             . '<p><button type="button" class="button button-primary bgc-ed-save">'

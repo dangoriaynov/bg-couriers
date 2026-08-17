@@ -100,6 +100,21 @@
         var $pill = $('<span class="bgc-unsaved" aria-live="polite"></span>')
             .text(C.unsaved || 'Unsaved changes').insertBefore($save);
 
+        /*
+         * WooCommerce sets window.onbeforeunload ITSELF, and that is what was actually prompting.
+         *
+         * Verified in the browser on a courier tab: our own state said clean - no dirty class, no pill,
+         * the save button not lit - and window.onbeforeunload was still a function. wc-settings.js binds
+         * it on any change to the form, and the credential fields locking is such a change. So every fix
+         * I made to OUR tracking was in the wrong place; ours was already right.
+         *
+         * We share the property deliberately (one prompt, not two), so the last word has to be ours:
+         * after any change has been handled - WooCommerce's handler included - re-assert the verdict.
+         */
+        function enforce() {
+            setTimeout(function () { if (!dirty) { window.onbeforeunload = null; } }, 0);
+        }
+
         function apply(now) {
             if (now === dirty) { return; }
             dirty = now;
@@ -139,9 +154,10 @@
          * form dirty from here.
          */
         $form.on('change input', function (e) {
-            if (!e.originalEvent) { base = $form.serialize(); apply(false); return; }
+            if (!e.originalEvent) { base = $form.serialize(); apply(false); enforce(); return; }
             touched = true;
             check();
+            enforce();
         });
         // select2 reports a genuine choice through its own events - those ARE the person, even though the
         // underlying change is triggered in code.
@@ -165,7 +181,7 @@
         var edited = false;
         $form.on('change input', function () { if (touched) { edited = true; } });
         $(window).on('load', function () {
-            setTimeout(function () { if (!edited) { base = $form.serialize(); apply(false); } }, 0);
+            setTimeout(function () { if (!edited) { base = $form.serialize(); apply(false); } enforce(); }, 0);
         });
 
         // Saving (or any submit) is leaving on purpose - never prompt for that.

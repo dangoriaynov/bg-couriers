@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,14 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.3.2 =
+* New: an order can be **more than one parcel**, and can be **insured** for a value you set - both on the order's delivery panel. Supported for Speedy and Sameday; the boxes are hidden for the couriers that ignore them, so a number you type is never quietly dropped.
+* New: Speedy can send a **prepaid return waybill** with every shipment, so a customer can send the parcel back without arranging anything. Off by default - Speedy charges for it.
+* New: Speedy's **declared value** ("обявена стойност"), off by default, or set to follow the cash-on-delivery amount. Off is deliberate: Speedy charges a premium and pays a claim only against documents most shops cannot produce.
+* Faster: the interactive map now opens straight away on cached prices and refines each courier's real price for the chosen town a moment later, instead of making you wait for every courier before anything is drawn. The prices it shows are the ones the checkout will charge.
+* Fixed: the settings screen warned about unsaved changes on a courier tab nobody had typed into.
+* Fixed: two Speedy settings were drawn outside the settings table, which cost them their (i) hints, their layout and their toggle.
 
 = 0.3.1 =
 * **Your customers can now track their own parcel.** The waybill number and a link to the courier's tracking appear on the customer's order page - both after checkout and later in My Account - and in the order emails they receive. Until now only the shop owner could see any of it, so "where is my parcel?" could only be answered by writing to the shop.

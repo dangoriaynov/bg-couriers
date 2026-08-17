@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
-"POT-Creation-Date: 2026-08-17T12:51:30+00:00\n"
+"POT-Creation-Date: 2026-08-17T13:05:38+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -667,19 +667,24 @@ msgstr "Име на автомат"
 msgid "Locker address"
 msgstr "Адрес на автомат"
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:312
+#: includes/Admin/class-bgcouriers-order-metabox.php:314
+#: includes/Admin/class-bgcouriers-order-metabox.php:317
+msgid "Supported for Speedy and Sameday. The other couriers ignore it."
+msgstr "Поддържа се за Speedy и Sameday. Останалите куриери го игнорират."
+
+#: includes/Admin/class-bgcouriers-order-metabox.php:315
 msgid "Parcels"
 msgstr "Колети"
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:314
+#: includes/Admin/class-bgcouriers-order-metabox.php:318
 msgid "Insure for"
 msgstr "Застраховка за"
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:318
+#: includes/Admin/class-bgcouriers-order-metabox.php:322
 msgid "Save delivery"
 msgstr "Запази доставката"
 
-#: includes/Admin/class-bgcouriers-order-metabox.php:322
+#: includes/Admin/class-bgcouriers-order-metabox.php:326
 msgid ""
 "A waybill exists. Saving voids it and issues a new one matching the new "
 "details."
@@ -1875,11 +1880,13 @@ msgstr "Обявена стойност"
 msgid ""
 "Speedy charges a premium for it, and pays a claim only against documents "
 "most shops cannot produce. Leave off unless you have agreed the claims "
-"process with them."
+"process with them. Declaring a value is supported for Speedy and Sameday; "
+"the other couriers ignore it."
 msgstr ""
 "Speedy начислява надбавка за нея и изплаща щета само срещу документи, които "
 "повечето магазини не могат да осигурят. Оставете изключено, освен ако не сте "
-"уговорили процеса по рекламации със Speedy."
+"уговорили процеса по рекламации със Speedy. Обявяването на стойност се "
+"поддържа за Speedy и Sameday; останалите куриери го игнорират."
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:605
 msgid "Do not declare a value"
@@ -1896,11 +1903,13 @@ msgstr "Обратна товарителница"
 #: includes/Admin/class-bgcouriers-wc-settings.php:610
 msgid ""
 "Send a prepaid return waybill with every shipment, so a customer can send "
-"the parcel back without paying or arranging anything. Speedy charges for it."
+"the parcel back without paying or arranging anything. Speedy charges for it. "
+"Supported for Speedy only - the other couriers have no equivalent here yet."
 msgstr ""
 "Изпраща предплатена обратна товарителница с всяка пратка, за да може клиентът "
 "да върне пратката, без да плаща или да урежда каквото и да е. Speedy таксува "
-"тази услуга."
+"тази услуга. Поддържа се само за Speedy - останалите куриери нямат еквивалент "
+"тук засега."
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:615
 #: includes/Admin/class-bgcouriers-wc-settings.php:672
@@ -2962,6 +2971,24 @@ msgstr "Анулирана"
 #: includes/Support/class-bgcouriers-tracking.php:219
 msgid "On its way"
 msgstr "В движение"
+
+#~ msgid ""
+#~ "Speedy charges a premium for it, and pays a claim only against documents "
+#~ "most shops cannot produce. Leave off unless you have agreed the claims "
+#~ "process with them."
+#~ msgstr ""
+#~ "Speedy начислява надбавка за нея и изплаща щета само срещу документи, "
+#~ "които повечето магазини не могат да осигурят. Оставете изключено, освен "
+#~ "ако не сте уговорили процеса по рекламации със Speedy."
+
+#~ msgid ""
+#~ "Send a prepaid return waybill with every shipment, so a customer can send "
+#~ "the parcel back without paying or arranging anything. Speedy charges for "
+#~ "it."
+#~ msgstr ""
+#~ "Изпраща предплатена обратна товарителница с всяка пратка, за да може "
+#~ "клиентът да върне пратката, без да плаща или да урежда каквото и да е. "
+#~ "Speedy таксува тази услуга."
 
 #~ msgid "Include a return waybill"
 #~ msgstr "Включване на обратна товарителница"
