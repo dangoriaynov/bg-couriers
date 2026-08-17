@@ -77,14 +77,25 @@ offer fully self-service API signup - each requires contacting the courier.
   settlements the private couriers do not serve, which is the one thing none of the five in this plugin
   can do. For a shop with customers outside the towns, this is the difference between a sale and a
   refusal.
-- **What is known:** e-commerce sources describe "API-driven solutions for bulk label creation and
-  automated tracking". That is a description, not documentation.
-- **What is NOT known, and it is the whole question:** there is no public developer documentation, no
-  published way to request access, and no example of a WooCommerce integration. Until someone answers
-  that, this is a lead rather than a plan.
-- **Steps:** ask them directly - what integration exists for online shops, is there an API, how does a
-  business get credentials, and does it carry наложен платеж / пощенски паричен превод. Nothing gets
-  built from the second-hand descriptions above.
+- **Researched 2026-08-17. There is NO publicly accessible API.** Their own site offers integration only
+  "при сключен договор" - under a signed contract - on the INTERKONEKT page
+  (`bgpost.bg/interconnect`), with no endpoints, no REST/SOAP specification, no developer portal and no
+  documentation to download. What is published is a PDF waybill form and web tracking.
+- **The strongest evidence is negative, and it is worth stating plainly.** Not one Bulgarian
+  e-commerce integrator carries them: Izprati lists Спиди, Еконт, Pigeon, Европът, BOX NOW and Sameday -
+  no Български пощи. Neither do CloudCart, SELITON or PRIM.IO. No WooCommerce or OpenCart module exists.
+  These companies exist *to* integrate couriers, and BG Post's village coverage is exactly the gap they
+  would want to fill - so their unanimous absence says the integration is not practically obtainable,
+  not that nobody thought of it. AfterShip carries them for TRACKING only, which any postal operator
+  gets through standard postal tracking and which says nothing about creating shipments.
+- **So this is a phone call, not a research task.** 02/962 50 50 *7678, or the contract address on that
+  page. Three questions, in this order: (1) is there an API for creating waybills, or only the PDF form;
+  (2) what does a shop have to sign to get credentials; (3) does it carry наложен платеж / пощенски
+  паричен превод, which is what this shop fiscalises through.
+- **Treat as BLOCKED until those are answered.** Nothing gets built from second-hand descriptions.
+- **Worth checking first, because it may dissolve the need:** whether Еконт and Speedy already deliver
+  *to address* in the small settlements this was wanted for. If they do, the coverage gap is smaller
+  than it looks and this courier is not worth a contract.
 
 ---
 
