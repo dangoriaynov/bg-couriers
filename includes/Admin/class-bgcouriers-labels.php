@@ -551,8 +551,12 @@ class BGCouriers_Labels {
         // checkout has no notion of either, and this editor is the only place a merchant sets them.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by check_ajax_referer above
         $order->update_meta_data('_bgcouriers_parcels', max(1, min(99, absint(wp_unslash($_POST['parcels'] ?? 1)))));
+        // floatval() rather than the (float) cast this used to be. The cast is exactly as safe - it turns
+        // anything a text box can hold into a number - but it is not on the list of sanitisers Plugin
+        // Check recognises, so it reported the line as unsanitised input and bin/release-wporg refuses to
+        // publish while it does. Same number, and the read side clamps it again anyway.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by check_ajax_referer above
-        $order->update_meta_data('_bgcouriers_insurance', max(0, round((float) wp_unslash($_POST['insurance'] ?? 0), 2)));
+        $order->update_meta_data('_bgcouriers_insurance', max(0, round(floatval(wp_unslash($_POST['insurance'] ?? 0)), 2)));
         $order->save();
 
         // Issue a fresh waybill from the new details (only if one existed before - a plain save on an order
