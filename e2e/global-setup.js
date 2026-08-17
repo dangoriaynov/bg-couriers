@@ -59,10 +59,15 @@ module.exports = async (config) => {
   return async () => {
     // Proof rather than assumption, and it runs whether or not anything was changed: if a waybill did
     // get made, the NUMBER belongs on screen now, not in a sweep somebody runs later.
-    let stray = '';
-    try { stray = sh('waybills'); } catch (e) { console.warn(`[autolabel] waybill check failed: ${e.message}`); }
-    if (stray) {
-      console.error('\n!! REAL WAYBILLS EXIST ON DEV ORDERS - cancel them:\n' + stray + '\n');
+    let swept = '';
+    try { swept = sh('sweep'); } catch (e) { console.warn(`[autolabel] waybill sweep failed: ${e.message}`); }
+    if (swept) {
+      // Printed even when every line says CANCELLED. A cancel that reported success and did not take is
+      // indistinguishable from one that did unless the numbers are on screen to re-check: Speedy and
+      // Sameday answer false for an already-cancelled waybill, and Econt's tracking lags the
+      // cancellation by about five minutes, so the only honest verification is a LATE one.
+      console.error('\n!! waybills existed on dev after this run:\n' + swept +
+        '\n   Re-check each number at the courier in a few minutes - a successful cancel call is not proof.\n');
     }
     if (previous === 'yes') {
       try {
