@@ -124,9 +124,28 @@
             if (e.type === 'keydown' && (e.key === 'Tab' || e.key === 'Shift')) { return; }
             touched = true;
         });
-        $form.on('change input', check);
-        // Colour pickers and select2 fire late / outside the normal flow.
-        $(document).on('select2:select select2:unselect', check);
+        /*
+         * A change fired by CODE is not an edit, and `touched` cannot tell the difference.
+         *
+         * `touched` goes true on the first pointerdown anywhere on the page and stays true - so every
+         * later programmatic change was read as an unsaved edit. That is why opening a courier tab,
+         * clicking anything at all and leaving raised "unsaved changes" on a form nobody had typed into:
+         * select2 settling, the office loader filling itself in, or the credential fields locking would
+         * fire a change after that first click.
+         *
+         * jQuery's .trigger('change') produces an event with NO originalEvent; a real interaction always
+         * has one. That is the discriminator. A programmatic change re-baselines instead of dirtying -
+         * the page changed itself, so its new state becomes the reference and only a person can make the
+         * form dirty from here.
+         */
+        $form.on('change input', function (e) {
+            if (!e.originalEvent) { base = $form.serialize(); apply(false); return; }
+            touched = true;
+            check();
+        });
+        // select2 reports a genuine choice through its own events - those ARE the person, even though the
+        // underlying change is triggered in code.
+        $(document).on('select2:select select2:unselect', function () { touched = true; check(); });
         $(document).on('click', '.iris-picker', function () { touched = true; setTimeout(check, 0); });
 
         // The save is AJAX: the page never reloads, so the baseline taken at load stays behind and every
