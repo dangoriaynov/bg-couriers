@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3.3
+Stable tag: 0.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,48 +13,68 @@ Shipping for Bulgarian stores: Speedy, Econt, BOX NOW, Pigeon Express, Sameday -
 
 == Description ==
 
-BG Couriers adds the major Bulgarian couriers to WooCommerce as shipping methods. At checkout the customer picks a delivery type per courier - **to an office, to an address, or to an APS/locker** - searches for their city and office (or picks it from an **interactive map**), and sees a **live price** from the courier's own API. The merchant generates shipping labels and tracks shipments from the WordPress admin.
+BG Couriers puts Bulgaria's couriers inside WooCommerce: your customer chooses where the parcel goes and sees what that delivery costs, and you print the label and follow the parcel without leaving WordPress.
 
-Deliveries are Bulgaria-only.
+**At the checkout** every courier you switch on shows its own price for the basket, live from that courier's API. Your customer picks how the parcel is delivered - to an office, to an address, or to a locker/APS - and finds the office by typing the town, or by pointing at it on one map that carries every courier's offices and lockers at once, each with its own price. The map can also say which pickup point is closest to them.
+
+**In the admin** one click issues the waybill and the label - one order, or fifty of them into a single PDF (A6 labels or an A4 sheet). The plugin then keeps each shipment's status up to date by itself, and your customer sees the waybill and a tracking link on their order and in the e-mails you already send them.
+
+**It is free**, GPL, and stays that way: every courier, every feature, no paid tier. Deliveries are Bulgaria-only.
 
 **Couriers**
 
-* **Speedy** - office / address / APS, live rates, labels, tracking.
-* **Econt** - office / address / Econtomat, live rates, labels, tracking, and **cash on delivery (наложен платеж)** with an itemised packing list paid out via your postal-money-transfer agreement.
-* **Pigeon Express** - office / address / locker, live rates, labels, tracking.
-* **BOX NOW** - locker (APM) delivery with an embedded GPS map picker, flat rate.
-* **Sameday** - office / address / easyBox, live rates, labels, tracking.
+* **Speedy** - office / address / APS. Live rates, labels, tracking.
+* **Econt** - office / address / Econtomat. Live rates, labels, tracking, and **cash on delivery (наложен платеж)** with an itemised packing list.
+* **Pigeon Express** - office / address / locker. Live rates, labels, tracking.
+* **Sameday** - office / address / easyBox. Live rates, labels, tracking.
+* **BOX NOW** - lockers (APM) only, picked on BOX NOW's own map. Flat rate.
 
-**Highlights**
+**Setting it up**
 
-* Live prices per courier and delivery type, with a daily reference baseline and a configurable fallback.
-* Interactive map picker for offices/lockers (geolocation "nearest to me").
-* Tap anywhere on a courier row at checkout to choose it - a full-width target on phones.
-* Per-order and bulk label generation to a combined PDF (A6 / A4), tracking links.
-* Per-courier settings: only the fields each courier actually needs.
+You need your own account with each courier you want to offer: the prices your customers see and the labels you print are your own contract's, and nothing is resold through this plugin. Once you have the API credentials, a courier takes a couple of minutes:
+
+1. Paste the credentials on that courier's tab and switch the courier on - it checks them with the courier there and then, and says so plainly if they are refused.
+2. Sync its towns and offices - one button.
+3. Add it to your **Bulgaria** shipping zone.
+
+Everything else already has a working default: the prices, the map, the checkout fields and the label size all work as they ship.
+
+**Also included**
+
+* **Cash on delivery (наложен платеж)**, with the choice of who pays the delivery - and the amount to collect follows that choice.
+* Free-shipping thresholds, per courier and per delivery type.
+* Several parcels in one shipment, and insurance for a value you set (Speedy, Sameday).
+* A delivery estimate on the cart page, before the customer reaches the checkout.
+* Works on both the classic and the block checkout.
+* Fully translated to Bulgarian.
 
 == External services ==
 
-This plugin relies on the online APIs of the couriers you enable to calculate shipping prices, create shipping labels and track shipments. Data is sent **only for the couriers you configure**, and only when an action requires it (a checkout price quote, a label generation, or a tracking lookup).
+The plugin uses the online API of each courier **you enable**, to price a delivery, to create a label and to track a parcel. Nothing is sent to a courier you have not configured.
 
-**What is sent and when**
+**What is sent, and when**
 
-* **Price quote (checkout / cart):** the parcel weight, the destination city/office and delivery type. Triggered when a customer views shipping options.
-* **Label creation (admin):** the recipient's name, phone, e-mail, and the chosen address or office/locker, the parcel weight, and - if you enable cash on delivery - the amount to collect and an item list. Triggered when you generate a label.
-* **Tracking:** the waybill number. Triggered when you or the customer open tracking.
+* **Price quote** (cart / checkout) - the parcel weight, the destination town or office, and the delivery type. When the customer views the shipping options.
+* **Label** (admin) - the recipient's name, phone, e-mail, the chosen address or office/locker, the parcel weight, and, with cash on delivery, the amount to collect and the item list. When you generate the label.
+* **Tracking** - the waybill number. When tracking is opened or refreshed.
 
-**Services used** (each only if you enable that courier):
+**Courier APIs**
 
 * **Speedy** - api.speedy.bg. Terms: https://www.speedy.bg/en/terms-and-conditions · Privacy: https://www.speedy.bg/en/privacy-policy
 * **Econt** - ee.econt.com. Terms: https://www.econt.com/en/terms · Privacy: https://www.econt.com/en/privacy-policy
-* **Pigeon Express** - api.pigeonexpress.com (demo host api-demo.pigeonexpress.com in test mode). Terms: https://pigeonexpress.com/terms · Privacy: https://pigeonexpress.com/privacy
-* **BOX NOW** - api-production.boxnow.bg (stage host api-stage.boxnow.bg in test mode), and the locker-selection **map widget map.boxnow.bg**, which is loaded in an iframe **only when the customer opens the BOX NOW locker picker**. Terms: https://boxnow.bg/terms-of-use-for-shipping-services · Privacy: https://boxnow.bg/personal-data-processing-notice
-* **Sameday** - api.sameday.bg (demo host sameday-api-bg.demo.zitec.com in test mode). Terms: https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/ · Privacy: https://sameday.bg/politika-za-poveritelnost/
+* **Pigeon Express** - api.pigeonexpress.com (api-demo.pigeonexpress.com in test mode). Terms: https://pigeonexpress.com/terms · Privacy: https://pigeonexpress.com/privacy
+* **Sameday** - api.sameday.bg (sameday-api-bg.demo.zitec.com in test mode). Terms: https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/ · Privacy: https://sameday.bg/politika-za-poveritelnost/
+* **BOX NOW** - api-production.boxnow.bg (api-stage.boxnow.bg in test mode), plus its locker-picker widget map.boxnow.bg, loaded in an iframe when the customer opens that picker. Terms: https://boxnow.bg/terms-of-use-for-shipping-services · Privacy: https://boxnow.bg/personal-data-processing-notice
 
-**Maps:** the office/locker map picker loads map tiles from **OpenStreetMap (tile.openstreetmap.org)** - only when the customer chooses to open the map. The optional **address map picker is DISABLED by default**; if the merchant enables it in the settings, it additionally reverse-geocodes a point via **OpenStreetMap Nominatim (nominatim.openstreetmap.org)** - only the coordinates of the pin the customer drops, only when they drop it, never automatically. The interactive map’s “closest to you” (on by default, switchable off) uses that same reverse lookup in one case: when the customer presses “find me” before naming a town, so the town can be filled in for them - their coordinates, at their own press, and nothing else. The distances themselves are computed in the browser, and the position is forgotten when the page is closed - it is never stored on the site and never kept between visits. OSM tile policy: https://operations.osmfoundation.org/policies/tiles/ · Nominatim policy: https://operations.osmfoundation.org/policies/nominatim/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
-If the merchant sets a **Google Maps API key** (optional), the address picker instead uses **Google Maps Geocoding (maps.googleapis.com)** for that lookup - sending only the picked coordinates. Google terms: https://cloud.google.com/maps-platform/terms · Privacy: https://policies.google.com/privacy
+**Maps and address lookup**
 
-No data is sent to any service the merchant has not configured, and the plugin sends nothing to the plugin author.
+* **OpenStreetMap tiles** - tile.openstreetmap.org. Map tiles only, loaded when the customer opens a map. Tile policy: https://operations.osmfoundation.org/policies/tiles/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
+* **OpenStreetMap Nominatim** - nominatim.openstreetmap.org. One set of coordinates, turned into an address or a town name. It happens in two cases only: the customer drops a pin on the **address map picker** (a setting, **off by default**), or presses "find me" on the map before naming a town, so the town can be filled in for them. Nominatim policy: https://operations.osmfoundation.org/policies/nominatim/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
+* **Google Maps Geocoding** - maps.googleapis.com. Takes over those same lookups, and only if you set a Google Maps API key in the settings (optional; OpenStreetMap is used if the key is empty or Google does not answer). It receives the coordinates and nothing else. Terms: https://cloud.google.com/maps-platform/terms · Privacy: https://policies.google.com/privacy
+
+The map's "closest to you" (on by default, switchable off) works out the distances in the customer's own browser. Their position is never stored on the site and is forgotten when the page is closed.
+
+No data is sent to any service you have not configured, and the plugin sends nothing to its author.
 
 == Contributing ==
 
@@ -97,6 +117,11 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.3.4 =
+* Fixed: **a shop that prices in grams was quoted for parcels a thousand times too heavy.** WooCommerce hands the shipping method the weight in the shop's own unit; the couriers quote in kilograms, and the number was being passed across unconverted. A 40 g basket was priced as a 40 kg parcel: one courier charged 39,44 € for a locker delivery, another refused the parcel outright - and its configured fallback price then stood in for a delivery it would never have carried. The label was always built with the right weight, so the parcel that went out never matched the price the customer had paid. A shop priced in kilograms was never affected.
+* Fixed: BOX NOW vanished from the checkout of a gram-priced shop for any basket over 20 grams. Its parcel limit was comparing kilograms against grams.
+* Fixed: the optional Google Maps API key was written into the page source of every checkout, where anyone could have used it. Nothing in the browser ever needed it - it is used once, on the server, to turn a point picked on the map into an address. The setting now says so, instead of asking for a Maps JavaScript API this plugin does not use.
 
 = 0.3.3 =
 * Fixed: an Econt shipment now carries **your order number**, so a parcel in Econt's system can be matched back to the order it came from. Econt was the one courier never told it - and a shipment that is not told shows the waybill number in that field instead, which is the number you already have and cannot look an order up with. Speedy, Pigeon Express and BOX NOW have always carried it.
@@ -273,6 +298,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
 
 == Upgrade Notice ==
+
+= 0.3.4 =
+Important for any shop whose weight unit is not the kilogram: delivery was being priced for a parcel a thousand times too heavy, and BOX NOW disappeared from the checkout. Also stops writing an optional Google Maps key into the checkout's page source.
 
 = 0.2.8 =
 Fixes choosing a locker on the interactive map, which landed on an empty address form, and marks the office you already picked when the map is re-opened.
