@@ -24,14 +24,27 @@ run() { ssh -p "${BGC_SSH_PORT:-22}" "$BGC_SSH_HOST" "$@" 2>/dev/null; }
 case "${1:-}" in
   get) run "$WP option get $2" | tr -d '\r' ;;
   set) run "$WP option update $2 $3" >/dev/null ;;
-  # Every waybill on a recent order, printed as "<order id> <courier> <waybill>". The teardown's proof
-  # that the run booked nothing - and, if it did, the NUMBERS, on screen, rather than a discovery weeks
-  # later in the courier's own panel.
-  waybills)
+  # The teardown's proof that the run booked nothing - and its cleanup if it did.
+  #
+  # Turning auto-labelling off should mean there is never anything here. "Should" is not a guarantee: the
+  # retry cron can fire one late, and a run killed before its teardown leaves whatever it made. So this
+  # CANCELS rather than reporting and hoping - the standing rule is that anything created at a courier is
+  # cancelled straight away and its number printed even when the cancel succeeds, because a silent
+  # cleanup that failed looks exactly like one that worked.
+  #
+  # Only ever the suite's OWN orders, matched on the e2e-*@example.com addresses the specs check out
+  # with. Everything else is left strictly alone and printed instead: dev carries real test orders the
+  # owner made, and voiding one of those to tidy up would be a far worse bug than the one this prevents.
+  sweep)
     run "$WP eval '
       foreach (wc_get_orders([\"limit\"=>40,\"orderby\"=>\"ID\",\"order\"=>\"DESC\",\"return\"=>\"objects\"]) as \$o) {
-        \$w = \$o->get_meta(\"_bgcouriers_waybill\");
-        if (\$w !== \"\") { printf(\"%d %s %s\n\", \$o->get_id(), \$o->get_meta(\"_bgcouriers_courier\"), \$w); }
+        \$w = (string) \$o->get_meta(\"_bgcouriers_waybill\");
+        if (\$w === \"\") { continue; }
+        \$mine = (bool) preg_match(\"/^e2e-.*@example\\.com\$/\", (string) \$o->get_billing_email());
+        if (!\$mine) { printf(\"KEPT %d %s %s (not this suite - left alone)\n\", \$o->get_id(), \$o->get_meta(\"_bgcouriers_courier\"), \$w); continue; }
+        try { BGCouriers_Labels::cancel(\$o->get_id());
+              printf(\"CANCELLED %d %s %s\n\", \$o->get_id(), \$o->get_meta(\"_bgcouriers_courier\"), \$w); }
+        catch (\Exception \$e) { printf(\"FAILED %d %s %s - %s\n\", \$o->get_id(), \$o->get_meta(\"_bgcouriers_courier\"), \$w, \$e->getMessage()); }
       }'" | tr -d '\r' ;;
-  *) echo "usage: dev-option.sh get|set|waybills [name] [value]" >&2; exit 1 ;;
+  *) echo "usage: dev-option.sh get|set|sweep [name] [value]" >&2; exit 1 ;;
 esac
