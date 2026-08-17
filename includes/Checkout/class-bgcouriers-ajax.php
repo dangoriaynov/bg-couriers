@@ -3,7 +3,7 @@ defined('ABSPATH') || exit;
 
 class BGCouriers_Ajax {
     public function __construct() {
-        foreach (['search_cities','offices','city_avail','streets','set_selection','geocode','allmap_cities','allmap_offices'] as $a) {
+        foreach (['search_cities','offices','city_avail','streets','set_selection','geocode','allmap_cities','allmap_offices','allmap_prices'] as $a) {
             add_action("wp_ajax_bgcouriers_{$a}", [$this, $a]);
             add_action("wp_ajax_nopriv_bgcouriers_{$a}", [$this, $a]);
         }
@@ -274,6 +274,56 @@ class BGCouriers_Ajax {
      * @param bool   $live  Ask the couriers directly instead of reading the synced tables.
      * @return array courier id => ['city_id' => int, 'offices' => array]
      */
+    /**
+     * The live price for ONE courier in ONE town, asked for after the map is already on screen.
+     *
+     * Split out of allmap_offices deliberately. Quoting inside that request made the first open of a new
+     * town wait on up to three courier calls per courier before a single pin was drawn - correct numbers
+     * on a map that had not arrived yet. The map now opens on the cached reference and each courier's
+     * real figure replaces it as the answer lands, one request per courier, exactly the way the
+     * distances behave.
+     *
+     * One quote per delivery TYPE, never per office: these couriers price by the city pair, so every
+     * office in a town costs the same and quoting each would be hundreds of calls for one answer.
+     */
+    public function allmap_prices(): void {
+        if (!self::rate_ok()) { wp_send_json_error([]); }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only price lookup, no state change
+        $cid  = isset($_GET['courier']) ? sanitize_key(wp_unslash($_GET['courier'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only price lookup, no state change
+        $name = isset($_GET['name']) ? sanitize_text_field(wp_unslash($_GET['name'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only price lookup, no state change
+        $code = isset($_GET['post_code']) ? sanitize_text_field(wp_unslash($_GET['post_code'])) : '';
+        $obj  = $cid !== '' ? BGCouriers_Couriers::get($cid) : null;
+        if (!$obj || !BGCouriers_Settings::courier_config($cid)) { wp_send_json_success(['prices' => [], 'saves' => []]); }
+        $city = BGCouriers_Nomenclature::match_city($cid, $name, $code);
+        if (!$city) { wp_send_json_success(['prices' => [], 'saves' => []]); }
+
+        $packed = BGCouriers_Packer::from_weight(
+            (function_exists('WC') && WC()->cart) ? (float) WC()->cart->get_cart_contents_weight() : 0.0
+        );
+        $prices = []; $raw = [];
+        foreach (BGCouriers_Settings::enabled_methods($cid) as $t) {
+            try {
+                $q = BGCouriers_Pricing::checkout_quote($obj, $t, (int) $city['city_id'], 0, $packed, get_woocommerce_currency());
+                $v = $q ? (float) $q->price : 0.0;
+            } catch (\Throwable $e) { $v = 0.0; }   // one unreachable courier must not empty the map
+            if ($v > 0) {
+                $raw[$t]    = $v;
+                $prices[$t] = html_entity_decode(wp_strip_all_tags(wc_price($v)), ENT_QUOTES, 'UTF-8');
+            }
+        }
+        $saves = [];
+        if (isset($raw['address'])) {
+            foreach (['office', 'automat'] as $t) {
+                if (isset($raw[$t]) && $raw['address'] > $raw[$t]) {
+                    $saves[$t] = html_entity_decode(wp_strip_all_tags(wc_price($raw['address'] - $raw[$t])), ENT_QUOTES, 'UTF-8');
+                }
+            }
+        }
+        wp_send_json_success(['courier' => $cid, 'prices' => $prices, 'saves' => $saves]);
+    }
+
     private static function allmap_collect(string $name, string $code, array $types, bool $live): array {
         $out = [];
         foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
@@ -299,35 +349,20 @@ class BGCouriers_Ajax {
             // price of the type currently selected: with Speedy on "to office" its lockers were
             // advertised at 2.64 instead of 1.52, and the moment the customer switched to a locker its
             // offices were advertised at 1.52 instead. Whichever tab you were on, the other one lied.
-            // Quoted FOR THIS TOWN, not from the daily reference. The reference is a nationwide figure, and
-            // the map is opened on a town the customer has just named - so it was systematically wrong in
-            // the commonest case of all: Econt's София office read 6.27 on the map and 5.06 the moment it
-            // was chosen, because a delivery inside one city is cheaper than the country-wide average.
-            // A price the map advertises and the checkout then contradicts is worse than no price.
-            // One quote per courier per delivery TYPE, not per office: these couriers price by the city
-            // pair, so every office in a town costs the same and quoting each would be hundreds of calls
-            // for one answer. checkout_quote() caches, and falls back to the reference on any failure -
-            // an unreachable courier must leave the map usable, not empty it.
+            // The map opens on the CACHED figure and never waits for a courier. Quoting live here made
+            // the first open of a new town slow enough that the tiles had not painted yet - and a map
+            // that is correct but arrives late is a worse map. The live number follows a moment later
+            // through bgcouriers_allmap_prices, per courier, the same way the distances do.
+            // A price PER DELIVERY TYPE, because a courier does not charge one. The map used to label
+            // every point of a courier with whatever its rate row happened to be showing, which is the
+            // price of the type currently selected: with Speedy on "to office" its lockers were
+            // advertised at 2.64 instead of 1.52, and the moment the customer switched to a locker its
+            // offices were advertised at 1.52 instead. Whichever tab you were on, the other one lied.
             // Every method this courier offers, not only the two the map plots. The address price is not
-            // a point on the map, but it is the number the whole map is being compared AGAINST: the
-            // customer is deciding whether walking to an office is worth what home delivery costs.
+            // a point on the map, but it is the number the whole map is being compared AGAINST.
             $prices = []; $raw = [];
-            // The same weight the checkout prices against, so the two cannot disagree for that reason.
-            $packed = BGCouriers_Packer::from_weight(
-                (function_exists('WC') && WC()->cart) ? (float) WC()->cart->get_cart_contents_weight() : 0.0
-            );
-            $obj = BGCouriers_Couriers::get($cid);
             foreach (BGCouriers_Settings::enabled_methods($cid) as $t) {
-                $v = null;
-                if ($obj) {
-                    try {
-                        $q = BGCouriers_Pricing::checkout_quote(
-                            $obj, $t, (int) $city['city_id'], 0, $packed, get_woocommerce_currency()
-                        );
-                        $v = $q ? (float) $q->price : null;
-                    } catch (\Throwable $e) { $v = null; }
-                }
-                if ($v === null || $v <= 0) { $v = BGCouriers_Pricing::estimate($cid, $t); }
+                $v = BGCouriers_Pricing::estimate($cid, $t);
                 // Decoded, not merely stripped: wc_price() spells the amount with &nbsp; and &euro;, and
                 // the map escapes whatever it is handed before printing it - so the entities would reach
                 // the customer as the literal text "1,52&nbsp;&euro;".

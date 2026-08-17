@@ -24,6 +24,23 @@ case "$TARGET" in
   *) echo "usage: deploy.sh dev|prod"; exit 1;;
 esac
 
+# Untranslated strings are caught HERE, not at release time. bin/preflight blocks a release on them,
+# but that is the last gate - and the owner sees dev long before then. He found "Return waybill" sitting
+# in English on a Bulgarian settings screen; it had been added and the catalogue never regenerated.
+# A warning rather than a refusal: dev is where work in progress belongs.
+if command -v msgattrib >/dev/null 2>&1 && [ -f languages/bg-couriers-bg_BG.po ]; then
+  N="$(msgattrib --untranslated languages/bg-couriers-bg_BG.po | grep -c '^msgid "' || true)"
+  # 1 header entry + 1 deliberately untranslated plugin name.
+  if [ "$N" -gt 2 ]; then
+    printf '\033[31m!! %s string(s) have no Bulgarian.\033[0m Run make-pot + msgmerge + msgfmt.\n' "$((N - 2))" >&2
+    msgattrib --untranslated languages/bg-couriers-bg_BG.po | grep '^msgid "' | grep -v '^msgid ""' \
+      | grep -v 'BG Couriers for WooCommerce' | head -5 | sed 's/^/   /' >&2
+  fi
+  if [ languages/bg-couriers-bg_BG.po -nt languages/bg-couriers-bg_BG.mo ]; then
+    printf '\033[31m!! .po is newer than .mo\033[0m - the translation will not appear. Run msgfmt.\n' >&2
+  fi
+fi
+
 rsync -az --delete \
   --exclude '.git' --exclude '.gitignore' --exclude '.superpowers' --exclude '.claude' \
   --exclude '.phpunit.result.cache' --exclude 'tests' --exclude 'node_modules' \
