@@ -16,6 +16,9 @@ cd "$(dirname "$0")/.."
 P="${BGC_PROD_PATH%/}"
 WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"   # .../wp-content/plugins/bg-couriers -> the WP root
 WP="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root --path=${WPROOT}"
+# The same wp-cli without a site bound to it: the pre-flight Plugin Check below runs against DEV, not
+# against the shop this script deploys to.
+WP_ANY="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root"
 # The host's login shell prints a manpath locale warning on every single connection. It is noise, and it
 # buries the lines that matter - but stderr and the exit code still have to survive, or a failing remote
 # command would read as a clean one.
@@ -28,6 +31,24 @@ run() {
 VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
 
 bash bin/preflight
+
+# --- Plugin Check, BEFORE anything is touched -------------------------------------------------------
+# bin/release-wporg runs this too, and there it is too late: it runs AFTER this script has already put
+# the new version on the live shop, so a refusal there strands the release with prod moved and the
+# directory unpublished. It happened on 0.3.2 - an unsanitised $_POST in new code - and was only caught
+# because the check was run by hand first. It is read-only, so asking first costs nothing.
+#
+# Against DEV, which must therefore be on this build: checking a working copy that is not what gets
+# packaged has caught nothing twice before.
+DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
+DEV_V="$(run "$WP_ANY --path=${DEVROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
+if [ "$DEV_V" != "$VERSION" ]; then
+  echo "REFUSING: dev is on ${DEV_V}; deploy this build to dev first (bin/deploy.sh dev)" >&2
+  exit 1
+fi
+CHECK="$(run "$WP_ANY --path=${DEVROOT} plugin check bg-couriers 2>&1 | tail -3" || true)"
+echo "$CHECK" | sed 's/^/  /'
+echo "$CHECK" | grep -q "No errors found" || { echo "REFUSING: Plugin Check reported errors - prod NOT touched" >&2; exit 1; }
 
 # The site the plugin is FOR. Ask unless told not to - deploying to prod is the one step here that a
 # customer can see go wrong.
