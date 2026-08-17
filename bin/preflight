@@ -89,7 +89,9 @@ fi
 # --- 6. Nothing that is not the plugin ---------------------------------------------------------------
 # test-results/.last-run.json has reached the WordPress.org package once and PROD once, by two different
 # routes. It is 45 bytes of Playwright bookkeeping and it should never leave this machine.
-STRAY="$(git ls-files | grep -E '^(test-results|playwright-report|e2e/probe_|.*\.superpowers)' || true)"
+# An empty LabelAppliedCheckTest.php.bak also rode along for three weeks, which is why an editor's
+# leftover suffix is caught here too - the pattern above could not see it.
+STRAY="$(git ls-files | grep -E '^(test-results|playwright-report|e2e/probe_|.*\.superpowers)|\.(bak|orig|swp|rej)$|~$' || true)"
 if [ -z "$STRAY" ]; then
   ok "no test or tooling leftovers are tracked"
 else
