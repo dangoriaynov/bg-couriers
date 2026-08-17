@@ -1,4 +1,5 @@
 { "data": [
-  {"id":"apm-1001","type":"apm","image":"https://example/150","lat":"42.6977","lng":"23.3219","title":"BOX NOW Витоша","name":"BOX NOW Витоша","addressLine1":"бул. Витоша 1","addressLine2":"София","postalCode":"1000","country":"BG","note":"до супермаркета","expectedDeliveryTime":"<dateTime>"},
-  {"id":"apm-1002","type":"apm","image":"https://example/150","lat":"42.1354","lng":"24.7453","title":"BOX NOW Пловдив","name":"BOX NOW Пловдив","addressLine1":"ул. Тест 5","addressLine2":"Пловдив","postalCode":"4000","country":"BG","note":null,"expectedDeliveryTime":"<dateTime>"}
+  {"id":"5365","type":"apm","image":"https://example/150","lat":"42.702950","lng":"23.312720","title":"Test Locker 1","name":"Test Locker 1","addressLine1":"Цар Симеон 170","addressLine2":"София","postalCode":"1000","country":"BG","note":"до супермаркета","expectedDeliveryTime":"<dateTime>"},
+  {"id":"5363","type":"apm","image":"https://example/150","lat":"1.000000","lng":"1.000000","title":"Тестов Автомат 2","name":"Тестов Автомат 2","addressLine1":"Бул. Република 18","addressLine2":"Варна","postalCode":"9000","country":"BG","note":null,"expectedDeliveryTime":"<dateTime>"},
+  {"type":"apm","lat":"0","lng":"0","name":"No id - BOX NOW has returned these","addressLine1":"","addressLine2":"","postalCode":"","country":"BG"}
 ] }
