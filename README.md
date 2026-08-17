@@ -16,7 +16,7 @@ shipments from the WordPress admin.
 | **Sameday** | ✅ Live on `main` | checkout (address/APS), live quotes, labels, tracking; create → PDF → track → cancel verified against a live account (easyBox-only on it) |
 | **Express One** | 📋 Planned | needs a **BG API key** + one live confirm (how a pickup-point selection encodes into `/createshipment`) |
 | **Европът (Evropat-2000)** | 📋 Planned | API key is **self-service** from online.evropat.com; owner wrote to them 2026-08-17. No public docs - they ship with the key. Lockers unconfirmed (site mentions offices/addresses only) |
-| **Български пощи** | ⛔ Blocked | national post, reaches villages no private courier serves - but **no public API**: integration only under contract, no docs, and *no* Bulgarian integrator carries them (Izprati, CloudCart, SELITON, PRIM.IO all omit them). Needs a phone call before it is a plan |
+| **Български пощи** | ❌ Not planned | no public API - integration only under contract, and *no* Bulgarian integrator carries them (Izprati, CloudCart, SELITON, PRIM.IO all omit them). Dropped 2026-08-17 |
 
 ## Features (what's built)
 

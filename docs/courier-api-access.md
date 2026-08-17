@@ -71,7 +71,7 @@ offer fully self-service API signup - each requires contacting the courier.
 
 ---
 
-## 5. Български пощи (Bulgarian Posts) - the national post  *(open question: is the API reachable?)*
+## 5. Български пощи (Bulgarian Posts) - NOT ON THE ROADMAP  *(owner, 2026-08-17: dropped)*
 
 - **Why it is worth anything at all:** not market share - coverage. They deliver to villages and small
   settlements the private couriers do not serve, which is the one thing none of the five in this plugin
@@ -92,7 +92,8 @@ offer fully self-service API signup - each requires contacting the courier.
   page. Three questions, in this order: (1) is there an API for creating waybills, or only the PDF form;
   (2) what does a shop have to sign to get credentials; (3) does it carry наложен платеж / пощенски
   паричен превод, which is what this shop fiscalises through.
-- **Treat as BLOCKED until those are answered.** Nothing gets built from second-hand descriptions.
+- **Dropped from the roadmap** by the owner once this was known. Kept here so the same research is
+  not repeated: if it ever comes back, it starts at the phone call above, not at a search engine.
 - **Worth checking first, because it may dissolve the need:** whether Еконт and Speedy already deliver
   *to address* in the small settlements this was wanted for. If they do, the coverage gap is smaller
   than it looks and this courier is not worth a contract.
@@ -123,7 +124,7 @@ remaining "big player" gap - DPD turned out to be Speedy.
 
 1. **Speedy** - done, live-verified, on `main`.
 2. **Econt** - Phase 2 (in progress), live-verified against your real account.
-3. **BOX NOW**, **Pigeon Express**, **Express One**, **Европът**, and possibly **Български пощи** - each a Phase-3 adapter on the existing multi-courier
+3. **BOX NOW**, **Pigeon Express**, **Express One**, **Европът** - each a Phase-3 adapter on the existing multi-courier
    framework (registry + `BGC_Method_*` + settings section + `@group <courier>` tests), built once its
    credentials are available. Each follows the same shape as Econt: confirm live API shapes → adapter
    (nomenclature/quote/label/track) → method + settings → checkout + E2E live-verify.
