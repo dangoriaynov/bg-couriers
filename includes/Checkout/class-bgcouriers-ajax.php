@@ -299,14 +299,35 @@ class BGCouriers_Ajax {
             // price of the type currently selected: with Speedy on "to office" its lockers were
             // advertised at 2.64 instead of 1.52, and the moment the customer switched to a locker its
             // offices were advertised at 1.52 instead. Whichever tab you were on, the other one lied.
-            // estimate() is the same figure the checkout shows before a city is chosen and costs no live
-            // call - it reads the fixed price or the daily cached reference.
+            // Quoted FOR THIS TOWN, not from the daily reference. The reference is a nationwide figure, and
+            // the map is opened on a town the customer has just named - so it was systematically wrong in
+            // the commonest case of all: Econt's София office read 6.27 on the map and 5.06 the moment it
+            // was chosen, because a delivery inside one city is cheaper than the country-wide average.
+            // A price the map advertises and the checkout then contradicts is worse than no price.
+            // One quote per courier per delivery TYPE, not per office: these couriers price by the city
+            // pair, so every office in a town costs the same and quoting each would be hundreds of calls
+            // for one answer. checkout_quote() caches, and falls back to the reference on any failure -
+            // an unreachable courier must leave the map usable, not empty it.
             // Every method this courier offers, not only the two the map plots. The address price is not
             // a point on the map, but it is the number the whole map is being compared AGAINST: the
             // customer is deciding whether walking to an office is worth what home delivery costs.
             $prices = []; $raw = [];
+            // The same weight the checkout prices against, so the two cannot disagree for that reason.
+            $packed = BGCouriers_Packer::from_weight(
+                (function_exists('WC') && WC()->cart) ? (float) WC()->cart->get_cart_contents_weight() : 0.0
+            );
+            $obj = BGCouriers_Couriers::get($cid);
             foreach (BGCouriers_Settings::enabled_methods($cid) as $t) {
-                $v = BGCouriers_Pricing::estimate($cid, $t);
+                $v = null;
+                if ($obj) {
+                    try {
+                        $q = BGCouriers_Pricing::checkout_quote(
+                            $obj, $t, (int) $city['city_id'], 0, $packed, get_woocommerce_currency()
+                        );
+                        $v = $q ? (float) $q->price : null;
+                    } catch (\Throwable $e) { $v = null; }
+                }
+                if ($v === null || $v <= 0) { $v = BGCouriers_Pricing::estimate($cid, $t); }
                 // Decoded, not merely stripped: wc_price() spells the amount with &nbsp; and &euro;, and
                 // the map escapes whatever it is handed before printing it - so the entities would reach
                 // the customer as the literal text "1,52&nbsp;&euro;".

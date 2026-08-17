@@ -599,19 +599,18 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'default' => 'yes'],
             ['type' => 'text', 'id' => 'bgcouriers_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Speedy free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
-            ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_pricing'],
-
             ['type' => 'select', 'id' => 'bgcouriers_speedy_declared_value', 'title' => __('Declared value', 'bg-couriers'),
-                'desc' => __('Speedy’s “обявена стойност”. Off by default and deliberately so: Speedy charges a premium on it, and a payout needs documents the courier will ask for and most shops cannot produce - so declaring the goods usually costs money without buying anything. Turn it on only if you have agreed the claims process with Speedy.', 'bg-couriers'),
+                'desc' => __('Speedy charges a premium for it, and pays a claim only against documents most shops cannot produce. Leave off unless you have agreed the claims process with them.', 'bg-couriers'),
                 'options' => [
                     'no'  => __('Do not declare a value', 'bg-couriers'),
                     'cod' => __('Declare the cash-on-delivery amount', 'bg-couriers'),
                 ],
                 'default' => 'no'],
-
-            ['type' => 'checkbox', 'id' => 'bgcouriers_speedy_return_voucher', 'title' => __('Include a return waybill', 'bg-couriers'),
-                'desc' => __('Send a prepaid return waybill (обратна товарителница) with every Speedy shipment, so a customer can send the parcel back without paying or arranging anything. Speedy charges for it, which is why it is off by default - turn it on if easy returns are part of what you offer.', 'bg-couriers'),
+            ['type' => 'checkbox', 'id' => 'bgcouriers_speedy_return_voucher', 'title' => __('Return waybill', 'bg-couriers'),
+                'desc' => __('Send a prepaid return waybill with every shipment, so a customer can send the parcel back without paying or arranging anything. Speedy charges for it.', 'bg-couriers'),
                 'default' => 'no'],
+            ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_pricing'],
+
 
             ['type' => 'title', 'id' => 'bgcouriers_speedy_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
             ['type' => 'select', 'id' => 'bgcouriers_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
