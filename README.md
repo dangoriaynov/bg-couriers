@@ -146,6 +146,7 @@ bin/test econt|pigeon|core  # per-courier / framework groups
 - `docs/getting-api-credentials.md` - **merchant-facing** guide to getting API access per courier
 - `docs/courier-api-access.md` - which credentials each courier issues, and how to ask for them
 - `docs/courier-api-notes.md` - technical API analysis / framework fit / divergences
+- `docs/ui-conventions.md` - **read before adding any control**: why a field outside a section breaks four things at once, why descriptions must fit an (i), and what defaults to OFF
 - `docs/testing.md` - running tests per courier · `docs/boxnow-testing.md` - BOX NOW stage-testing guide
 - `docs/E2E-checklist.md` - the end-to-end pass to run against a real shop before a release
 - `docs/test-{speedy,econt,boxnow,sameday}-waybills.md` - real/stage test waybills for the owner to cancel
