@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3.2
+Stable tag: 0.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.3.3 =
+* Fixed: an Econt shipment now carries **your order number**, so a parcel in Econt's system can be matched back to the order it came from. Econt was the one courier never told it - and a shipment that is not told shows the waybill number in that field instead, which is the number you already have and cannot look an order up with. Speedy, Pigeon Express and BOX NOW have always carried it.
+* Fixed: Sameday's shipment reference was built from WooCommerce's internal order id rather than the order number you are shown. The two are the same on most shops and differ on any shop that numbers its own orders.
 
 = 0.3.2 =
 * New: an order can be **more than one parcel**, and can be **insured** for a value you set - both on the order's delivery panel. Supported for Speedy and Sameday; the boxes are hidden for the couriers that ignore them, so a number you type is never quietly dropped.
