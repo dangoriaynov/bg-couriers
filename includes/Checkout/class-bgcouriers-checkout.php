@@ -715,7 +715,10 @@ class BGCouriers_Checkout {
             'allmapNearest' => get_option('bgcouriers_allmap_nearest', 'yes') === 'yes' ? 'yes' : 'no',
             'cityIndex' => $city_index,
             'addressMap' => get_option('bgcouriers_address_map', 'no') === 'yes',
-            'googleKey' => (string) get_option('bgcouriers_google_maps_key', ''), // set => Google map + geocoding; else OSM
+            // The Google Maps key is deliberately NOT sent to the browser: nothing here loads a Google
+            // map, and the key is only ever used server-side, for the reverse geocode in
+            // BGCouriers_Ajax::geocode(). Localising it printed the merchant's key in the page source of
+            // every checkout, where anyone could spend their Geocoding quota with it.
             'leaflet_images' => BGCOURIERS_URL . 'assets/lib/leaflet/images/', // bundled Leaflet marker icons
             'icons' => BGCouriers_Icons::map(), // same delivery-type glyphs as the admin, shown with text on the tabs
             'emergency' => BGCouriers_Settings::emergency(),
