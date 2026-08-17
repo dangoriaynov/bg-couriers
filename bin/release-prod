@@ -32,6 +32,23 @@ VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
 
 bash bin/preflight
 
+# --- A published version is finished; the next change is the NEXT version -----------------------------
+# Owner's rule, and the reason it is a gate: once WordPress.org serves a version, that number means one
+# exact set of files to every install that took it. Changing what the shop runs under the same number
+# makes prod and the directory disagree for good, and no install that already updated ever sees the
+# difference. So the moment tags/<version> exists, this version is spent - bump instead.
+#
+# Restoring the shop to a version it already ran is the one honest exception, and it says so out loud.
+if svn ls --non-interactive "https://plugins.svn.wordpress.org/bg-couriers/tags/${VERSION}" >/dev/null 2>&1; then
+  if [ "${2:-}" != "--republish" ] && [ "${1:-}" != "--republish" ]; then
+    echo "REFUSING: ${VERSION} is already published on WordPress.org." >&2
+    echo "  Deploying different code under a published number makes prod and the directory disagree." >&2
+    echo "  Bump the version and add a changelog entry, or pass --republish to re-deploy it unchanged." >&2
+    exit 1
+  fi
+  echo "  ${VERSION} is published; re-deploying it unchanged (--republish)"
+fi
+
 # --- Plugin Check, BEFORE anything is touched -------------------------------------------------------
 # bin/release-wporg runs this too, and there it is too late: it runs AFTER this script has already put
 # the new version on the live shop, so a refusal there strands the release with prod moved and the
