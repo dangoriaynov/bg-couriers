@@ -109,8 +109,8 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 1. Checkout: every courier with its own live price, delivery-type tabs (to office / to address / to APS locker) and searchable city and office pickers.
 2. Checkout: choosing an office - the list searches as you type, and each entry shows the full address.
-3. The interactive map: every courier's offices and lockers for a town at once, each priced, with the legend naming and colouring them.
-4. The same map filtered to one courier - the legend doubles as the filter, so you can compare or narrow down.
+3. The interactive map: every courier's offices and lockers for a town at once, each with its own price - and, once the customer shows where they are, how far each one is and which is closest.
+4. Choosing a point: which courier, how the parcel is collected, the price, the address and how far away it is - with one button to take it.
 5. Cart: what each courier charges, before the customer reaches the checkout.
 6. Order screen: the shipment panel (waybill, print, track, cancel) and the delivery editor - courier, delivery option, town and office, changed in place.
 7. Orders list: the Waybill column - generate a label, or print, track and cancel an existing one, per order.
