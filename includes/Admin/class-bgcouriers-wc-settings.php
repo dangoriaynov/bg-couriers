@@ -460,7 +460,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'checkbox', 'id' => 'bgcouriers_address_map', 'title' => __('Address map picker', 'bg-couriers'),
                 'desc' => __('Adds a “Choose on map” pin picker to address delivery that fills the address automatically. When a customer drops a pin, its coordinates are sent to OpenStreetMap Nominatim (or Google, if a key is set below) to look up the address. Off by default.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'text', 'id' => 'bgcouriers_google_maps_key', 'title' => __('Google Maps API key (optional)', 'bg-couriers'),
-                'desc' => __('Optional Google Maps API key for better maps and address lookup (empty = free OpenStreetMap). Needs “Maps JavaScript API” + “Geocoding API”.', 'bg-couriers'),
+                'desc' => __('Used for one thing only: turning a point picked on the map into an address. Leave it empty and OpenStreetMap Nominatim does that free of charge; the maps themselves are OpenStreetMap either way. The key needs Google’s “Geocoding API” and is only ever used from the server.', 'bg-couriers'),
                 'default' => '', 'autoload' => false],
             ['type' => 'checkbox', 'id' => 'bgcouriers_own_address_fields', 'title' => __('Use the plugin’s own address fields', 'bg-couriers'),
                 'desc' => __('Remove WooCommerce’s Address / City / Region / Post code at checkout - the courier’s city, office or automat chosen here IS the delivery address, and asking twice lets the two disagree. Turn this off if your store also ships some other way and needs those fields. On by default.', 'bg-couriers'),
