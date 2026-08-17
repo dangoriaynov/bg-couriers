@@ -1,2 +1,0 @@
-{ "_note": "Express One /places?name=&zipcode=&approx=true - a city+zip VALIDATOR (not a list). SI-shape; confirm BG live.",
-  "data": [ {"StandardAvailable": true, "CargoAvailable": true, "Place": "София", "ZipCode": "1000"} ] }

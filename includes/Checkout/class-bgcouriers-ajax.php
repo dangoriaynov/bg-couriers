@@ -299,7 +299,8 @@ class BGCouriers_Ajax {
         $city = BGCouriers_Nomenclature::match_city($cid, $name, $code);
         if (!$city) { wp_send_json_success(['prices' => [], 'saves' => []]); }
 
-        $packed = BGCouriers_Packer::from_weight(
+        // get_cart_contents_weight() answers in the shop's own weight unit - from_store_weight converts.
+        $packed = BGCouriers_Packer::from_store_weight(
             (function_exists('WC') && WC()->cart) ? (float) WC()->cart->get_cart_contents_weight() : 0.0
         );
         $prices = []; $raw = [];

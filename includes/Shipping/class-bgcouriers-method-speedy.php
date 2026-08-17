@@ -28,7 +28,7 @@ class BGCouriers_Method_Speedy extends WC_Shipping_Method {
         $site_id = $sel['site_id'];
         $office  = $sel['office_id'];
         $weight  = (float) ($package['contents_weight'] ?? 0);
-        $packed  = BGCouriers_Packer::from_weight($weight);
+        $packed  = BGCouriers_Packer::from_store_weight($weight); // $weight is in the SHOP's unit, not kg
 
         // Before a city is chosen use the fast cached daily reference (no live API) so switching couriers
         // stays snappy and the customer can start entering the address; checkout_quote does the exact live
