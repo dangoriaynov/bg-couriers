@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3.4
+Stable tag: 0.3.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.3.5 =
+* Fixed: **the delivery was quoted about 20% too high until the customer chose a town, and dropped as soon as they did.** The price shown before a destination is known was the courier's figure WITH its VAT, and it was then handed to WooCommerce as a net cost - which taxes it again. Every price the plugin produces is now net, from the same place.
+* Fixed: **the interactive map and the checkout could show different prices for the same office.** They worked out the parcel from two different places - the map from the basket's own total, the checkout from what WooCommerce actually ships - and those disagree over anything that is not shipped, such as the container of a product bundle. Both now price the same parcel, and the map prints it the way the row beside it prints it.
 
 = 0.3.4 =
 * Fixed: **a shop that prices in grams was quoted for parcels a thousand times too heavy.** WooCommerce hands the shipping method the weight in the shop's own unit; the couriers quote in kilograms, and the number was being passed across unconverted. A 40 g basket was priced as a 40 kg parcel: one courier charged 39,44 € for a locker delivery, another refused the parcel outright - and its configured fallback price then stood in for a delivery it would never have carried. The label was always built with the right weight, so the parcel that went out never matched the price the customer had paid. A shop priced in kilograms was never affected.
@@ -298,6 +302,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
 
 == Upgrade Notice ==
+
+= 0.3.5 =
+The delivery was quoted about 20% high until a town was chosen, because the pre-town price carried its VAT and was then taxed again. Also makes the interactive map and the checkout price the same parcel, so the price on the map is the price that is charged.
 
 = 0.3.4 =
 Important for any shop whose weight unit is not the kilogram: delivery was being priced for a parcel a thousand times too heavy, and BOX NOW disappeared from the checkout. Also stops writing an optional Google Maps key into the checkout's page source.

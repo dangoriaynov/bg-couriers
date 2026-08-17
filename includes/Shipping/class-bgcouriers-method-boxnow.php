@@ -28,7 +28,7 @@ class BGCouriers_Method_Boxnow extends WC_Shipping_Method {
         // BoxNow parcel limit - hide the method for carts it cannot carry. The cart weight arrives in
         // the shop's own unit, so it is converted first: compared raw, a gram-priced shop hid BOX NOW
         // from every basket over 20 grams.
-        if (BGCouriers_Packer::kg((float) ($package['contents_weight'] ?? 0)) > 20.0) { return; }
+        if (BGCouriers_Pricing::package_parcel($package)['weight_kg'] > 20.0) { return; }
 
         $cost = (float) get_option('bgcouriers_boxnow_flat_price', 0);
         if (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGCouriers_Settings::free_shipping('boxnow'))) {
