@@ -136,6 +136,19 @@
         // save is a real change, not the page settling in.
         $(document).on('bgc:saved', function () { base = $form.serialize(); apply(false); });
 
+        // Re-baseline once everything has finished settling itself. The credential fields LOCK after the
+        // page is ready - render_actions() disables them and blanks their value - and jQuery does not
+        // serialize a disabled field at all, so the form legitimately differs from the baseline taken a
+        // moment earlier. The result was "unsaved changes" on a courier tab nobody had typed into: the
+        // owner opened Pigeon Express, changed nothing, and was challenged on the way out.
+        // Guarded on a REAL edit, not on `touched` - `touched` is set by any pointerdown anywhere on the
+        // page, including the click on the courier tab that is trying to leave.
+        var edited = false;
+        $form.on('change input', function () { if (touched) { edited = true; } });
+        $(window).on('load', function () {
+            setTimeout(function () { if (!edited) { base = $form.serialize(); apply(false); } }, 0);
+        });
+
         // Saving (or any submit) is leaving on purpose - never prompt for that.
         $form.on('submit', function () { window.onbeforeunload = null; });
         $form.find('.submit :input, button[name="save"]').on('click', function () { window.onbeforeunload = null; });
