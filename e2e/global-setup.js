@@ -50,7 +50,12 @@ module.exports = async (config) => {
   }
 
   if (previous !== 'yes') {
-    console.log(`[autolabel] already ${previous} on dev - nothing to change.`);
+    // Said out loud because this run will NOT put it back - it restores only what it changed - and the
+    // likeliest reason to find it off is a previous run killed before its teardown. Silent inheritance
+    // would leave dev never auto-labelling again, which is safe here and wrong for the owner.
+    console.warn(`[autolabel] already ${previous} on dev - left as is, and NOT restored at the end.\n` +
+      '           If no one turned it off deliberately, an interrupted run did: set it back with\n' +
+      '           e2e/dev-option.sh set bgcouriers_autolabel_enabled yes');
   } else {
     sh('set', OPTION, 'no');
     console.log('[autolabel] off for this run (was yes).');
