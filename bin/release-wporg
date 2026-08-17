@@ -108,6 +108,22 @@ rsync -a --delete --exclude '.svn' "$PKG/bg-couriers/" "$SVN_WC/trunk/"
 CHANGELOG="$(awk "/^= ${VERSION} =/{f=1;next} /^= /{f=0} f" readme.txt | grep '^\*' | head -1 | sed 's/^\* //')"
 ( cd "$SVN_WC" && svn ci --non-interactive -m "${VERSION} - ${CHANGELOG}" | tail -1 )
 
+echo "==> svn assets (banner, icon, screenshots)"
+# The plugin PAGE is served from assets/, not from trunk, and this step did not exist: 0.3.5 is a
+# release whose whole point was new screenshots, and publishing it would have left the old ones - taken
+# before the weight fix, advertising 39,44 EUR for a locker delivery - on the page for everyone.
+# generate-assets.py is the source the banner and icon were drawn with; it belongs in git, not here.
+rsync -a --delete --exclude '.svn' --exclude 'generate-assets.py' .wordpress-org/ "$SVN_WC/assets/"
+( cd "$SVN_WC" && svn status assets | awk '$1=="?"{print $2}' | xargs -r svn add -q --non-interactive )
+( cd "$SVN_WC" && svn status assets | awk '$1=="!"{print $2}' | xargs -r svn rm -q --non-interactive )
+ASSET_ST="$(cd "$SVN_WC" && svn status assets)"
+if [ -n "$ASSET_ST" ]; then
+  echo "$ASSET_ST" | sed 's/^/  /'
+  ( cd "$SVN_WC" && svn ci --non-interactive assets -m "${VERSION} assets" | tail -1 )
+else
+  echo "  unchanged"
+fi
+
 echo "==> svn tag"
 ( cd "$SVN_WC" && svn cp trunk "tags/${VERSION}" -q && svn ci --non-interactive -m "tagging version ${VERSION}" | tail -1 )
 
