@@ -3,6 +3,46 @@ defined('ABSPATH') || exit;
 
 class BGCouriers_Pricing {
     /**
+     * The parcel the checkout is pricing - ONE definition of it, for every caller.
+     *
+     * The shipping methods are handed $package['contents_weight'] by WooCommerce; the map's price
+     * endpoint has no package and used to ask WC()->cart->get_cart_contents_weight() instead. Those two
+     * are not the same number: the cart's total counts everything in the basket, the package counts only
+     * what actually gets shipped. A virtual item - a bundle container, a downloadable - is in one and not
+     * the other, and the map then advertised a price the checkout would not charge.
+     *
+     * Reading the shipping packages here IS what the shipping method is given, so both paths now start
+     * from the same figure and convert it the same way.
+     */
+    public static function cart_parcel(): array {
+        $store_weight = 0.0;
+        if (function_exists('WC') && WC() && WC()->cart) {
+            foreach ((array) WC()->cart->get_shipping_packages() as $pkg) {
+                $store_weight += (float) ($pkg['contents_weight'] ?? 0);
+            }
+        }
+        return BGCouriers_Packer::from_store_weight($store_weight);
+    }
+
+    /** The parcel for the one package a shipping method was handed. Same figure, same conversion. */
+    public static function package_parcel(array $package): array {
+        return BGCouriers_Packer::from_store_weight((float) ($package['contents_weight'] ?? 0));
+    }
+
+    /**
+     * A net price as the customer will see it printed.
+     *
+     * Every quote in this plugin is NET - the shipping rate is added with 'taxes' => '', which asks
+     * WooCommerce to work the shipping tax out and add it on top. Anything that prints a price outside a
+     * shipping rate (the map, the "pays at the door" line) therefore has to do the same sum itself, or
+     * it shows a smaller number than the row beside it on a shop that displays prices with tax.
+     */
+    public static function display_price(float $net): float {
+        if ($net <= 0 || !class_exists('WC_Tax') || get_option('woocommerce_tax_display_cart') !== 'incl') { return $net; }
+        return round($net + array_sum(WC_Tax::calc_shipping_tax($net, WC_Tax::get_shipping_tax_rates())), 2);
+    }
+
+    /**
      * Resolve the office to quote against, given the customer's session selection.
      * office/automat with a chosen office → use it. Otherwise quote a representative office (of the
      * chosen city, or - when no city is picked, or the city has none of that type - the first such
@@ -191,8 +231,11 @@ class BGCouriers_Pricing {
             return null;
         }
         if ($q->source !== 'live') { return null; }
-        set_transient($tkey, ['p' => $q->total()], 3 * HOUR_IN_SECONDS);
-        return $q->total();
+        // NET, like every other price here. It was the gross total, and it is handed straight to the
+        // shipping rate's cost - which WooCommerce then taxes again. The delivery was therefore quoted
+        // ~20% high until the customer chose a town, and visibly dropped the moment they did.
+        set_transient($tkey, ['p' => $q->price], 3 * HOUR_IN_SECONDS);
+        return $q->price;
     }
 
     public static function estimate(string $courier, string $method): ?float {

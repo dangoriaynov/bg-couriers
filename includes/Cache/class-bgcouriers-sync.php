@@ -49,7 +49,9 @@ class BGCouriers_Sync {
             if (!$shipment) { continue; }
             try {
                 $q = $courier->quote($shipment);
-                BGCouriers_Rates::set($id, $method, $q->total(), $q->currency);
+                // NET. This is read back as a shipping rate's cost, and a rate's cost is taxed by
+                // WooCommerce on top - storing the gross total charged the VAT twice.
+                BGCouriers_Rates::set($id, $method, $q->price, $q->currency);
                 $n++;
             } catch (\Exception $e) {
                 BGCouriers_Logger::debug('seed_rates: quote failed', ['courier' => $id, 'method' => $method]);

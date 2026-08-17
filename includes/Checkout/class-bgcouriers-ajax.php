@@ -299,15 +299,16 @@ class BGCouriers_Ajax {
         $city = BGCouriers_Nomenclature::match_city($cid, $name, $code);
         if (!$city) { wp_send_json_success(['prices' => [], 'saves' => []]); }
 
-        // get_cart_contents_weight() answers in the shop's own weight unit - from_store_weight converts.
-        $packed = BGCouriers_Packer::from_store_weight(
-            (function_exists('WC') && WC()->cart) ? (float) WC()->cart->get_cart_contents_weight() : 0.0
-        );
+        // The same parcel the shipping methods are priced for - one definition, so the map cannot
+        // advertise a price the checkout will not charge.
+        $packed = BGCouriers_Pricing::cart_parcel();
         $prices = []; $raw = [];
         foreach (BGCouriers_Settings::enabled_methods($cid) as $t) {
             try {
                 $q = BGCouriers_Pricing::checkout_quote($obj, $t, (int) $city['city_id'], 0, $packed, get_woocommerce_currency());
-                $v = $q ? (float) $q->price : 0.0;
+                // Printed the way the shipping row beside it is printed: with the tax when the shop
+                // shows prices with tax. Shown net, the map read cheaper than the checkout it feeds.
+                $v = $q ? BGCouriers_Pricing::display_price((float) $q->price) : 0.0;
             } catch (\Throwable $e) { $v = 0.0; }   // one unreachable courier must not empty the map
             if ($v > 0) {
                 $raw[$t]    = $v;
