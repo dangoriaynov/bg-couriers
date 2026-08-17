@@ -600,14 +600,14 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'text', 'id' => 'bgcouriers_speedy_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship Speedy free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'select', 'id' => 'bgcouriers_speedy_declared_value', 'title' => __('Declared value', 'bg-couriers'),
-                'desc' => __('Speedy charges a premium for it, and pays a claim only against documents most shops cannot produce. Leave off unless you have agreed the claims process with them.', 'bg-couriers'),
+                'desc' => __('Speedy charges a premium for it, and pays a claim only against documents most shops cannot produce. Leave off unless you have agreed the claims process with them. Declaring a value is supported for Speedy and Sameday; the other couriers ignore it.', 'bg-couriers'),
                 'options' => [
                     'no'  => __('Do not declare a value', 'bg-couriers'),
                     'cod' => __('Declare the cash-on-delivery amount', 'bg-couriers'),
                 ],
                 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgcouriers_speedy_return_voucher', 'title' => __('Return waybill', 'bg-couriers'),
-                'desc' => __('Send a prepaid return waybill with every shipment, so a customer can send the parcel back without paying or arranging anything. Speedy charges for it.', 'bg-couriers'),
+                'desc' => __('Send a prepaid return waybill with every shipment, so a customer can send the parcel back without paying or arranging anything. Speedy charges for it. Supported for Speedy only - the other couriers have no equivalent here yet.', 'bg-couriers'),
                 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_pricing'],
 
