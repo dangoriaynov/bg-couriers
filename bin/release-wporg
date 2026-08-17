@@ -64,23 +64,30 @@ echo "$CHECK" | sed 's/^/  /'
 echo "$CHECK" | grep -q "No errors found" || { echo "REFUSING: Plugin Check reported errors" >&2; exit 1; }
 
 echo "==> build"
-bash bin/build-zip >/dev/null
-ZIP="$HOME/Downloads/bg-couriers-${VERSION}.zip"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
-unzip -q "$ZIP" -d "$TMP"
+# Built inside TMP and thrown away with it. The package is a step on the way to SVN, not something
+# anybody keeps: the GitHub releases it used to feed are not published any more, so a release no longer
+# leaves a zip in ~/Downloads (owner, 2026-08-17). `bin/build-zip` on its own still writes there, for the
+# one time somebody actually wants a file to hand to a tester.
+bash bin/build-zip "$TMP" >/dev/null
+ZIP="$TMP/bg-couriers-${VERSION}.zip"
+PKG="$TMP/pkg"
+unzip -q "$ZIP" -d "$PKG"
 
 echo "==> audit the package"
 fail=0
 # Anything at the top level that is not the plugin means the excludes have drifted.
-UNEXPECTED="$(cd "$TMP/bg-couriers" && ls -A | grep -vE '^(includes|assets|languages|bg-couriers\.php|readme\.txt|LICENSE)$' || true)"
+UNEXPECTED="$(cd "$PKG/bg-couriers" && ls -A | grep -vE '^(includes|assets|languages|bg-couriers\.php|readme\.txt|LICENSE)$' || true)"
 [ -z "$UNEXPECTED" ] && echo "  only plugin files" || { echo "  UNEXPECTED IN PACKAGE: $UNEXPECTED"; fail=1; }
 # Hosts, personal numbers and dev scaffolding have each been found in a package at least once.
 # 'winter2007d' is EXPECTED in readme.txt - it is the WordPress.org account that owns the plugin page.
-LEAK="$(grep -rIl 'dev\.dobavki\|886301585\|BGC_SSH\|last-run\|probe_' "$TMP" || true)"
+# Scoped to PKG, not TMP: the zip now lives in TMP too, and grep -I skipping it is not something this
+# check should be relying on to stay correct.
+LEAK="$(grep -rIl 'dev\.dobavki\|886301585\|BGC_SSH\|last-run\|probe_' "$PKG" || true)"
 [ -z "$LEAK" ] && echo "  no host, personal or tooling strings" || { echo "  LEAKED STRINGS IN: $LEAK"; fail=1; }
-ZIP_V="$(grep -m1 '^ \* Version:' "$TMP/bg-couriers/bg-couriers.php" | awk '{print $3}')"
+ZIP_V="$(grep -m1 '^ \* Version:' "$PKG/bg-couriers/bg-couriers.php" | awk '{print $3}')"
 [ "$ZIP_V" = "$VERSION" ] && echo "  package is ${VERSION}" || { echo "  PACKAGE IS ${ZIP_V}, EXPECTED ${VERSION}"; fail=1; }
-[ -f "$TMP/bg-couriers/languages/bg-couriers-bg_BG.mo" ] && echo "  compiled Bulgarian catalogue included" \
+[ -f "$PKG/bg-couriers/languages/bg-couriers-bg_BG.mo" ] && echo "  compiled Bulgarian catalogue included" \
   || { echo "  NO .mo IN PACKAGE - the plugin would be English on every Bulgarian shop"; fail=1; }
 [ "$fail" -eq 0 ] || { echo "AUDIT FAILED - nothing published" >&2; exit 1; }
 
@@ -94,7 +101,7 @@ echo "==> svn trunk"
 # --non-interactive is the safety as much as the convenience: with credentials cached it commits, and
 # without them it errors instead of sitting at a password prompt. No password is ever typed.
 svn up -q --non-interactive "$SVN_WC"
-rsync -a --delete --exclude '.svn' "$TMP/bg-couriers/" "$SVN_WC/trunk/"
+rsync -a --delete --exclude '.svn' "$PKG/bg-couriers/" "$SVN_WC/trunk/"
 ( cd "$SVN_WC" && svn status | awk '$1=="?"{print $2}' | xargs -r svn add -q --non-interactive )
 ( cd "$SVN_WC" && svn status | awk '$1=="!"{print $2}' | xargs -r svn rm -q --non-interactive )
 ( cd "$SVN_WC" && svn status | sed 's/^/  /' )
