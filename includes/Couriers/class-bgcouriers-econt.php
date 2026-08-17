@@ -278,10 +278,14 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     /**
      * Parse the createLabel calculate response into a BGCouriers_Quote.
      *
-     * NOTE on VAT split: The fixture shows totalPrice === totalPriceWithVAT (both 4.68 EUR).
-     * This means either VAT is already included in totalPrice, or VAT is zero-rated.
-     * The tax field is set to max(0, totalPriceWithVAT - totalPrice) which will be 0.0 in
-     * this fixture case. Verify at Task 7 with a live response to confirm the intended split.
+     * VAT split, settled against the live account on 2026-08-18: calculate mode returns no VAT figure
+     * at all. The whole price side of the response is totalPrice, senderDueAmount, receiverDueAmount,
+     * otherDueAmount, discountAmount and the two cd* fields - there is no totalPriceWithVAT, so the
+     * fallback below makes the tax 0 and totalPrice stands as the price.
+     *
+     * That is the right reading: Econt documents totalPrice as the price WITHOUT VAT, and the quote's
+     * price is used as a shipping rate's net cost, which WooCommerce then taxes itself. Speedy, which
+     * does return the split, is parsed the same way - its net `amount`, never its `total`.
      */
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
         $total    = (float) ($resp['label']['totalPrice'] ?? 0);
