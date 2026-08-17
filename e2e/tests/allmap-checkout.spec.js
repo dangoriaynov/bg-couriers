@@ -357,8 +357,11 @@ test.describe('the combined map on a phone', () => {
     expect(Math.round(body.y + body.height)).toBeLessThanOrEqual(845);
 
     // Tiles, not a grey rectangle: Leaflet caches the size of its container, and a map built or
-    // fitted while that container was hidden comes back empty however tall the box now is.
-    expect(await page.locator('.leaflet-tile-loaded').count()).toBeGreaterThan(0);
+    // fitted while that container was hidden comes back empty however tall the box now is. Polled for
+    // the same reason as the switch test below: whether a tile has finished arriving is a race against
+    // the tile server, and nothing this plugin does can win it on the instant.
+    await expect.poll(() => page.locator('.leaflet-tile-loaded').count(), { timeout: 10000 })
+      .toBeGreaterThan(0);
 
     // Edge to edge, and nothing hanging off the side of the screen.
     const box = await page.locator('.bgc-allmap-box').boundingBox();
@@ -395,7 +398,15 @@ test.describe('the combined map on a phone', () => {
     await expect(page.locator('.leaflet-popup')).toBeVisible();
     const canvas = await page.locator('.bgc-allmap-canvas').boundingBox();
     expect(canvas.height).toBeGreaterThan(340);
-    expect(await page.locator('.leaflet-tile-loaded').count()).toBeGreaterThan(0);
+    // Waited for, not sampled - and the wait is the whole point of this line. focusPoint() centres the
+    // row's pin at zoom 15, which on this path is five levels in from the one the town opened at, so
+    // Leaflet retires every tile on screen and asks for a fresh set. Instrumented, the canvas is
+    // already the right size here (390x644, so nothing was measured at zero) and the new tiles are
+    // attached but still in flight; they finish inside 250ms. Reading the count on the instant tested
+    // the tile server's latency, and it failed about half the time. The assertion itself is unchanged:
+    // a map that came back with no size never loads a tile at all, and that still fails, on the timeout.
+    await expect.poll(() => page.locator('.leaflet-tile-loaded').count(), { timeout: 10000 })
+      .toBeGreaterThan(0);
   });
 
   /**
