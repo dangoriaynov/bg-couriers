@@ -344,6 +344,13 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             'weight'              => max(0.1, self::order_weight_kg($order)),
             'shipmentType'        => 'pack',
             'shipmentDescription' => BGCouriers_Settings::shipment_contents(),
+            // The shop's own order number, so a parcel in Econt's panel can be matched back to the order
+            // it came from. Econt was the ONE courier never told this: left unsent, the field shows the
+            // waybill number, which is the number the merchant already had and cannot look anything up
+            // with. Speedy has carried it as ref1 all along, BOX NOW as orderNumber, Pigeon as
+            // external_reference. Field read off Econt's own OpenAPI spec
+            // (ee.econt.com/services/openapi.yaml -> ShippingLabel.orderNumber, string), not guessed.
+            'orderNumber'         => (string) $order->get_order_number(),
         ];
 
         // Econt was the one courier we never told how big the parcel is. It prices on volumetric weight

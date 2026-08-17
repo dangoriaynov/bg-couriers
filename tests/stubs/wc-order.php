@@ -34,7 +34,12 @@ if (!class_exists('WC_Order')) {
         public function get_shipping_total() { return $this->shipping_total; }
         public function get_shipping_tax() { return $this->shipping_tax; }
         public function get_currency() { return $this->currency; }
-        public function get_order_number() { return '1'; }
+        // Settable, because "which order is this parcel" is a property worth testing; '1' by default so
+        // every test written before it was settable still sees what it saw.
+        public string $number = '1';
+        public int $id = 0;
+        public function get_order_number() { return $this->number; }
+        public function get_id() { return $this->id; }
         public function get_payment_method() { return $this->payment_method; }
         public function get_formatted_billing_full_name() { return $this->name; }
         public function get_billing_phone() { return $this->phone; }

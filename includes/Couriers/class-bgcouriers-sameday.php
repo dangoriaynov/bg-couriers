@@ -438,7 +438,10 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             'observation'    => BGCouriers_Settings::shipment_contents(),
             // AWBs must carry a unique clientInternalReference - even a CANCELLED one keeps its reference
             // forever, so a bare order id would break regeneration; suffix with a timestamp.
-            'clientInternalReference' => $order->get_id() . '-' . time(),
+            // The ORDER NUMBER, not the post id: they are the same on a plain shop, but a shop numbering
+            // its orders through a plugin shows the merchant the number this reference is meant to be
+            // matched against. Every other courier already carries get_order_number() for this reason.
+            'clientInternalReference' => $order->get_order_number() . '-' . time(),
             'awbRecipient'   => array_filter([
                 'name'        => $order->get_formatted_billing_full_name(),
                 'phoneNumber' => (string) $order->get_billing_phone(),
