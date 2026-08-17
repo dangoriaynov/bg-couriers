@@ -1,9 +1,48 @@
 # BG Couriers for WooCommerce
 
-WooCommerce shipping plugin for Bulgarian couriers. Ships **to Bulgaria only**. Lets the customer
-pick a delivery type (to office / to address / to APS·locker) per courier at checkout, computes
-**live** prices from each courier's API, and lets the merchant generate shipping labels + track
-shipments from the WordPress admin.
+Ship with Bulgaria's couriers straight from WooCommerce - **Speedy, Econt, Pigeon Express, Sameday
+and BOX NOW**. Your customer picks where the parcel goes and sees what it costs; you print the label
+and follow the parcel without leaving WordPress.
+
+**Install it from WordPress.org:** https://wordpress.org/plugins/bg-couriers/
+Free, GPL, and staying that way - every courier, every feature, no paid tier. Deliveries are
+Bulgaria-only.
+
+![Every courier's offices and lockers for one town, each with its own price](.wordpress-org/screenshot-3.jpg)
+
+### What your customer sees
+
+Every courier you switch on shows its own price for the basket, live from that courier's API. The
+customer picks how the parcel is delivered - **to an office, to an address, or to a locker/APS** -
+and finds the office by typing the town, or by pointing at it on one map that carries every courier's
+offices and lockers at once, each with its own price. The map can also say which pickup point is
+closest to them, and what collecting from it saves against delivery to the door.
+
+### What you get in the admin
+
+One click issues the waybill and the label - one order, or fifty of them into a single PDF (A6 labels
+or an A4 sheet). Each shipment's status is then kept up to date on its own, and your customer sees
+the waybill and a tracking link on their order and in the e-mails you already send them. Cash on
+delivery, several parcels per shipment, insurance and free-shipping thresholds are all settings, not
+code.
+
+### Setting it up
+
+You need your own account with each courier you want to offer - the prices your customers see and
+the labels you print are your own contract's, and nothing is resold through this plugin. Then, per
+courier:
+
+1. Paste the API credentials on that courier's tab and switch the courier on. It checks them with the
+   courier there and then, and says so plainly if they are refused.
+2. Sync its towns and offices - one button.
+3. Add it to your **Bulgaria** shipping zone.
+
+Everything else already has a working default. Getting the credentials is the slow part, and
+[`docs/getting-api-credentials.md`](docs/getting-api-credentials.md) says who to ask, per courier.
+
+Bugs and ideas: https://github.com/dangoriaynov/bg-couriers/issues
+
+---
 
 ## Courier status
 
@@ -18,7 +57,7 @@ shipments from the WordPress admin.
 | **Европът (Evropat-2000)** | 📋 Planned | API key is **self-service** from online.evropat.com; owner wrote to them 2026-08-17. No public docs - they ship with the key. Lockers unconfirmed (site mentions offices/addresses only) |
 | **Български пощи** | ❌ Not planned | no public API - integration only under contract, and *no* Bulgarian integrator carries them (Izprati, CloudCart, SELITON, PRIM.IO all omit them). Dropped 2026-08-17 |
 
-## Features (what's built)
+## Features in detail
 
 - **Delivery types** per courier - to office / to address / to APS (locker) - as searchable checkout tabs
   (BoxNow is locker-only via its map widget).
@@ -59,11 +98,15 @@ shipments from the WordPress admin.
   and Speedy the plugin already covers ~73% of the Bulgarian courier market by revenue.
 - **Express One** - build once a **BG API key** arrives (`international@expressone.bg`); the one open shape is
   how a pickup-point selection encodes into `/createshipment`.
-- **WordPress.org** - **published**: https://wordpress.org/plugins/bg-couriers. Releases go out over SVN
-  (`trunk` + `tags/<version>` + `assets/` for the banner, icon and screenshots). Background on how it got
-  there is in `docs/wordpress-org-readiness-audit.md` and `docs/wporg-submission.md`.
+- **WordPress.org** - published; releases go out over SVN (`trunk` + `tags/<version>` + `assets/` for the
+  banner, icon and screenshots). Background on how it got there is in
+  `docs/wordpress-org-readiness-audit.md` and `docs/wporg-submission.md`.
 - **Advanced courier parity** (post-launch) - Sameday per-service rows / 3-way pricing / open-package;
   BOX NOW home-delivery + any-APM + returns.
+
+---
+
+*Everything below is for whoever works on the plugin.*
 
 ## Architecture (multi-courier framework)
 
