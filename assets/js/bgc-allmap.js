@@ -1013,6 +1013,43 @@
     });
     applyFilter();
 
+    /*
+     * The real prices, fetched per courier once the map is already on screen.
+     *
+     * The map opens on the cached reference so it appears at once; each courier's live figure for THIS
+     * town replaces it as the answer lands. Quoting before the first paint made a new town wait on
+     * several courier calls with nothing drawn - correct numbers on a map that had not arrived. Same
+     * shape as the distances: show what is known, refine what arrives.
+     *
+     * Guarded on the render that started it: a customer who names another town mid-flight must not have
+     * the previous town's prices land on the new map.
+     */
+    var forCity = state.cityName + '|' + state.cityCode;
+    seen.forEach(function (cid) {
+      $.get(BGCOURIERS.ajax, { action: 'bgcouriers_allmap_prices', courier: cid,
+                               name: state.cityName, post_code: state.cityCode })
+        .done(function (res) {
+          if (!$dlg || forCity !== state.cityName + '|' + state.cityCode) { return; }
+          var d = (res && res.success) ? res.data : null;
+          if (!d || !d.prices) { return; }
+          points.forEach(function (p, i) {
+            if (p.courier !== cid) { return; }
+            if (d.prices[p.type]) {
+              // Live now, so it is no longer an estimate and loses the "~".
+              p.price = d.prices[p.type];
+              p.estimated = false;
+              var el = rowEls[i];
+              if (el) { $(el).children('.p').text(priceLabel(p)); }
+            }
+            if (d.prices.address) { p.addressPrice = d.prices.address; }
+            if (d.saves && d.saves[p.type]) { p.savesVsAddress = d.saves[p.type]; }
+          });
+          // Whatever is open re-reads from the same points, and the answer line re-states itself.
+          if (map) { map.closePopup(); }
+          pickNear();
+        });
+    });
+
     // The customer has already said where they are, and looking at another town does not move them:
     // put the pin back so the distances are simply there, rather than asking them to locate again.
     // Unless the shop has since switched the comparison off - a position remembered in this browser
