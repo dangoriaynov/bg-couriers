@@ -262,6 +262,25 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             'shipmentDescription' => BGCouriers_Settings::shipment_contents(),
         ];
 
+        // Наложен платеж, on the QUOTE as well as the label. Econt's fee for collecting the money is
+        // part of the price it answers with (measured 2026-08-18: 5.06 -> 6.60 for a 50 EUR collection,
+        // with shipmentNumber null, so nothing was created). Quoting without it told the customer a
+        // price the shipment could never cost. Field names per Econt's own OpenAPI, ShippingLabelServices.
+        $cd = (float) ($s['cod_amount'] ?? 0);
+        if ($cd > 0 && get_option('bgcouriers_econt_cod_enabled', 'no') === 'yes') {
+            $label['services'] = [
+                'cdAmount'   => $cd,
+                'cdType'     => 'get', // collect from the receiver, as the label does
+                'cdCurrency' => (string) ($s['currency'] ?? 'EUR'),
+            ];
+            // The pay-out agreement, because the fee is quoted AGAINST it. Econt charges 1.54 EUR to
+            // collect 50 without one and 0.78 with this shop's (the agreement carries a discount), so a
+            // quote that omitted it would have overcharged by 0.76 for a shipment the label creates at
+            // the lower price. The label sends the same option - the two must ask the same question.
+            $tpl = (string) get_option('bgcouriers_econt_cd_num', '');
+            if ($tpl !== '') { $label['services']['cdPayOptionsTemplate'] = $tpl; }
+        }
+
         if (($s['method'] ?? 'address') === 'address') {
             $label['receiverAddress'] = [
                 'city'   => ['id' => (int) ($s['site_id'] ?? 0)],
@@ -449,6 +468,15 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $services['cdPayOptionsTemplate'] = (string) get_option('bgcouriers_econt_cd_num', '');
             // Econt totals the опис as sum(price x count) and REJECTS the label unless it equals cdAmount,
             // so the list has to balance to whatever we are collecting, not to the order total.
+        }
+
+        // Частична доставка: the recipient may open the parcel at the counter and keep only part of it.
+        // Econt reconciles what is kept against the packing list above, which is why this is only offered
+        // alongside cash on delivery - without a collection there is nothing to settle at the door. The
+        // merchant decides (Drusoft's plugin turns it on for every COD order; here it is a setting,
+        // because the unkept half travels back at the merchant's expense).
+        if (get_option('bgcouriers_econt_partial_delivery', 'no') === 'yes' && isset($services['cdAmount'])) {
+            $label['partialDelivery'] = true;
         }
 
         // The опис lists what is IN the parcel, which has nothing to do with how it is paid for - it used

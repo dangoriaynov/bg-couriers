@@ -172,7 +172,15 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         }
         $service = ['autoAdjustPickupDate' => true, 'serviceIds' => [505]];
         if (!empty($s['cod_amount'])) {
-            $service['additionalServices']['cod'] = ['amount' => (float) $s['cod_amount'], 'processingType' => 'CASH'];
+            // The SAME processing type the label will use: Speedy prices cash and a postal money
+            // transfer differently, so a quote that always said CASH answered for a shipment the label
+            // was not going to create. BGCouriers_Settings::courier_ppp_payout() is the shop's own
+            // declaration of how this courier pays out.
+            $service['additionalServices']['cod'] = [
+                'amount'         => (float) $s['cod_amount'],
+                'processingType' => (class_exists('BGCouriers_Settings') && BGCouriers_Settings::courier_ppp_payout('speedy'))
+                    ? 'POSTAL_MONEY_TRANSFER' : 'CASH',
+            ];
         }
         return [
             // No 'sender' on a price calc: Speedy expects an object, and PHP's [] serialises to a
@@ -464,15 +472,26 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return empty($resp['error']);
     }
 
-    /** Already cancelled if /track shows the "Canceled" operation (code 128) - so a refused cancel is a no-op. */
+    /**
+     * Already cancelled if /track shows the "Canceled" operation (code 128) - so a refused cancel is a no-op.
+     *
+     * Asked TWICE, a second apart, before it answers no. Speedy posts that operation a moment after it
+     * accepts the cancel: measured 2026-08-18 on a real waybill, the shipment was cancelled at 16:38:25
+     * and operation 128 appeared at 16:38:26. This question is only ever asked when cancel_label() came
+     * back refused, and answering it from a feed that has not caught up yet tells the merchant their
+     * shipment is still live when it is already dead - the one wrong answer that matters here.
+     */
     public function is_cancelled(string $waybill): bool {
-        try {
-            $resp = $this->post_json($this->base . '/track', $this->auth(['parcels' => [['id' => $waybill]]]));
-            foreach (($resp['parcels'][0]['operations'] ?? []) as $op) {
-                if ((int) ($op['operationCode'] ?? 0) === 128
-                    || stripos((string) ($op['description'] ?? ''), 'cancel') !== false) { return true; }
-            }
-        } catch (\Exception $e) { /* can't confirm -> treat as not cancelled */ }
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            if ($attempt > 0) { sleep(1); } // the operation feed lags the cancel by about a second
+            try {
+                $resp = $this->post_json($this->base . '/track', $this->auth(['parcels' => [['id' => $waybill]]]));
+                foreach (($resp['parcels'][0]['operations'] ?? []) as $op) {
+                    if ((int) ($op['operationCode'] ?? 0) === 128
+                        || stripos((string) ($op['description'] ?? ''), 'cancel') !== false) { return true; }
+                }
+            } catch (\Exception $e) { /* can't confirm -> treat as not cancelled */ }
+        }
         return false;
     }
     public function tracking_url(string $waybill): string { return 'https://www.speedy.bg/en/track-shipment?shipmentNumber=' . rawurlencode($waybill); }
