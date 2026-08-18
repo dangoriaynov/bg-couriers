@@ -29,6 +29,7 @@ class BGCouriers_Settings {
         add_action('woocommerce_admin_field_bgcouriers_actions', [$this, 'render_actions']);
         add_action('woocommerce_admin_field_bgcouriers_sortable', [$this, 'render_sortable']);
         add_action('woocommerce_admin_field_bgcouriers_pigeon_pickup', [$this, 'render_pickup']);
+        add_action('woocommerce_admin_field_bgcouriers_pigeon_pickup_city', [$this, 'render_pickup_city']);
         add_action('woocommerce_admin_field_bgcouriers_cred_hint', [$this, 'render_cred_hint']);
         add_action('woocommerce_admin_field_bgcouriers_about', [$this, 'render_about']);
         add_action('woocommerce_admin_field_bgcouriers_ppp_notice', [$this, 'render_ppp_notice']);
@@ -544,6 +545,54 @@ class BGCouriers_Settings {
         echo '<p class="description">' . esc_html($desc) . '</p>';
         $sid = esc_js($id);
         self::inline_js("jQuery(function($){ $('#bgc-sort-{$sid}').sortable({update:function(){ $('#{$sid}').val($(this).children().map(function(){return $(this).data('m');}).get().join(',')); }}); });");
+        echo '</td></tr>';
+    }
+
+    /**
+     * Custom WC field: the town a courier collects from, for a shop whose contract has Pigeon come to
+     * its premises rather than the other way round.
+     *
+     * The same city search the pickup-office picker already uses (AJAX bgcouriers_search_cities), minus
+     * the office half - there is no office in this arrangement. The chosen id lands in the hidden input
+     * named after the option, so WooCommerce saves it like any other field, and leaving the picker alone
+     * keeps what is already saved.
+     */
+    public function render_pickup_city($field): void {
+        $id      = (string) ($field['id'] ?? 'bgcouriers_pigeon_pickup_city_id');
+        $courier = (string) ($field['courier'] ?? 'pigeon');
+        $current = (int) get_option($id, 0);
+        wp_enqueue_script('selectWoo');
+        wp_enqueue_style('select2');
+        $ph      = esc_js(__('Search your town...', 'bg-couriers'));
+        $idjs    = esc_js($id);
+        $cour_js = esc_js($courier);
+
+        $cur_txt = '';
+        if ($current > 0) {
+            $city = BGCouriers_Nomenclature::city_by_id($courier, $current);
+            $cur_txt = $city
+                ? esc_js(trim((string) ($city['name'] ?? '') . (!empty($city['region']) ? ' (' . $city['region'] . ')' : '')))
+                /* translators: %d: town id */
+                : esc_js(sprintf(__('Current town (#%d)', 'bg-couriers'), $current));
+        }
+
+        echo '<tr valign="top"><th scope="row" class="titledesc">' . esc_html($field['title'] ?? '') . '</th><td class="forminp">';
+        echo '<select id="bgcouriers_pickup_city_only" style="min-width:300px;"></select>';
+        echo '<input type="hidden" id="' . esc_attr($id) . '" name="' . esc_attr($id) . '" value="' . esc_attr((string) $current) . '">';
+        echo '<p class="description">' . esc_html($field['desc'] ?? '') . '</p>';
+        self::inline_js("
+jQuery(function($){
+  var \$c=$('#bgcouriers_pickup_city_only'), \$h=$('#{$idjs}');
+  var cur=\$h.val();
+  if(cur && cur!=='0'){ \$c.append(new Option('{$cur_txt}', cur, true, true)); }
+  \$c.select2({ width:'300px', placeholder:'{$ph}', minimumInputLength:1, ajax:{
+    url: ajaxurl, dataType:'json', delay:250,
+    data: function(p){ return { action:'bgcouriers_search_cities', courier:'{$cour_js}', term:p.term }; },
+    processResults: function(d){ return { results: (d.data||d||[]).map(function(c){
+      return { id: c.city_id||c.id, text: (c.name||'') + (c.region ? ' (' + c.region + ')' : '') }; }) }; }
+  }});
+  \$c.on('select2:select', function(e){ \$h.val(e.params.data.id).trigger('change'); });
+});");
         echo '</td></tr>';
     }
 
