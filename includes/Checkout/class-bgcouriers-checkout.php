@@ -468,7 +468,13 @@ class BGCouriers_Checkout {
     public function package_hash($packages) {
         $s = WC()->session;
         if (!$s) { return $packages; }
-        $key = (string) $s->get('bgcouriers_method', '') . ':' . (int) $s->get('bgcouriers_site_id', 0) . ':' . (int) $s->get('bgcouriers_office_id', 0);
+        // The payment method belongs in the key as much as the office does: cash on delivery costs the
+        // courier a collection fee and therefore changes the price. WooCommerce caches a package's rates
+        // against a hash of the package, so without this the shopper switching to cash on delivery would
+        // keep being shown the prepaid price that was cached before they switched.
+        $key = (string) $s->get('bgcouriers_method', '') . ':' . (int) $s->get('bgcouriers_site_id', 0)
+             . ':' . (int) $s->get('bgcouriers_office_id', 0)
+             . ':' . (string) $s->get('chosen_payment_method', '');
         foreach ($packages as $i => $pkg) { $packages[$i]['bgcouriers_selection'] = $key; }
         return $packages;
     }

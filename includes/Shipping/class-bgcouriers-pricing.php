@@ -43,6 +43,26 @@ class BGCouriers_Pricing {
     }
 
     /**
+     * What the courier would be collecting at the door for the basket in front of us, or 0.
+     *
+     * Cash on delivery is not free: the courier charges for collecting the money, and that charge is in
+     * the price it quotes. Measured live on 2026-08-18 for a 50 EUR collection - Econt +1.54, Pigeon
+     * +0.75, Sameday +0.50, Speedy +0.40 - while the checkout asked every courier to price a shipment
+     * with no cash on it, and then charged the customer that number.
+     *
+     * The basis is the goods total, NOT goods + delivery. On an order where the merchant pays the
+     * delivery the courier does collect both, but the delivery is the very thing being priced here and a
+     * price cannot depend on itself. The fee is banded, so the few stotinki of delivery inside the basis
+     * do not move it - and the LABEL still collects the exact amount (see cod_for_payer()).
+     */
+    public static function cart_cod_amount(): float {
+        if (!function_exists('WC') || !WC() || !WC()->cart || !WC()->session) { return 0.0; }
+        if ((string) WC()->session->get('chosen_payment_method', '') !== 'cod') { return 0.0; }
+        $goods = (float) WC()->cart->get_cart_contents_total() + (float) WC()->cart->get_cart_contents_tax();
+        return max(0.0, round($goods, 2));
+    }
+
+    /**
      * Resolve the office to quote against, given the customer's session selection.
      * office/automat with a chosen office → use it. Otherwise quote a representative office (of the
      * chosen city, or - when no city is picked, or the city has none of that type - the first such
@@ -130,10 +150,15 @@ class BGCouriers_Pricing {
             $est = self::estimate($courier->id(), $method);
             if ($est !== null) { return new BGCouriers_Quote(round($est, 2), 0.0, $currency, 'reference'); }
         }
-        // Cache the live quote per courier+method+city+weight. The city now carries across couriers, so
-        // without this every switch would re-hit the courier API; with it, a seen combo is instant.
+        // Cache the live quote per courier+method+city+weight+COD. The city now carries across couriers,
+        // so without this every switch would re-hit the courier API; with it, a seen combo is instant.
+        // COD belongs in the key: it changes the price (measured 2026-08-18 - Econt +1.54, Pigeon +0.75,
+        // Sameday +0.50, Speedy +0.40 on a 50 EUR collection), so a cash-on-delivery basket must not read
+        // a prepaid one's price out of the cache.
+        $cod  = self::cart_cod_amount();
         $w    = round((float) ($packed['weight_kg'] ?? 0), 2);
-        $tkey = 'bgcouriers_q_' . $courier->id() . '_' . $method . '_' . $site_id . '_' . str_replace('.', '', (string) $w);
+        $tkey = 'bgcouriers_q_' . $courier->id() . '_' . $method . '_' . $site_id . '_'
+              . str_replace('.', '', (string) $w) . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '');
         $cached = get_transient($tkey);
         if (is_array($cached) && isset($cached['p'])) {
             return new BGCouriers_Quote((float) $cached['p'], 0.0, (string) ($cached['c'] ?? $currency), 'cached');
@@ -141,7 +166,7 @@ class BGCouriers_Pricing {
         $res = self::resolve_office($courier->id(), $method, $site_id, $office);
         $shipment = array_merge($packed, [
             'method' => $method, 'site_id' => $res['site_id'], 'office_id' => $res['office_id'],
-            'cod_amount' => 0.0, 'currency' => $currency,
+            'cod_amount' => $cod, 'currency' => $currency,
         ]);
         $q = self::quote($courier, $shipment);
         if ($q->source === 'live') { set_transient($tkey, ['p' => $q->price, 'c' => $q->currency], 3 * HOUR_IN_SECONDS); }
@@ -190,8 +215,9 @@ class BGCouriers_Pricing {
     }
 
     /** Transient key for a reference price. Carries the weight, or a heavy cart reads a light one's price. */
-    public static function reference_key(string $courier, string $method, float $weight_kg): string {
-        return 'bgcouriers_ref_' . $courier . '_' . $method . '_' . str_replace('.', '', (string) self::reference_weight($weight_kg));
+    public static function reference_key(string $courier, string $method, float $weight_kg, float $cod = 0.0): string {
+        return 'bgcouriers_ref_' . $courier . '_' . $method . '_' . str_replace('.', '', (string) self::reference_weight($weight_kg))
+             . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '');
     }
 
     /**
@@ -207,7 +233,8 @@ class BGCouriers_Pricing {
      */
     private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency): ?float {
         $w    = self::reference_weight((float) ($packed['weight_kg'] ?? 0));
-        $tkey = self::reference_key($courier->id(), $method, $w);
+        $cod  = self::cart_cod_amount();
+        $tkey = self::reference_key($courier->id(), $method, $w, $cod);
         $hit  = get_transient($tkey);
         if (is_array($hit) && isset($hit['p'])) { return (float) $hit['p']; }
         if (!class_exists('BGCouriers_Sync')) { return null; }
@@ -223,7 +250,7 @@ class BGCouriers_Pricing {
             'width_cm'   => $packed['width_cm']  ?? $ref['width_cm'],
             'height_cm'  => $packed['height_cm'] ?? $ref['height_cm'],
             'currency'   => $currency,
-            'cod_amount' => 0.0,
+            'cod_amount' => $cod,
         ]);
         try {
             $q = self::quote($courier, $shipment);

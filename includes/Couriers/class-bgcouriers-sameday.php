@@ -344,7 +344,12 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             'packageNumber'   => $parcel_n,
             'packageWeight'   => $w,
             'awbPayment'      => 1, // client (sender) pays the delivery
-            'cashOnDelivery'  => 0,
+            // The amount the courier collects at the door. Sameday charges for collecting it and the
+            // charge is in the estimate, so a quote that always said 0 under-quoted every COD order
+            // (measured: 1.30 -> 1.80 on a 50 EUR collection). The vendor's own SDK sends it on the
+            // estimation request too - SamedayPostAwbEstimationRequest has cashOnDelivery beside
+            // insuredValue.
+            'cashOnDelivery'  => max(0.0, (float) ($s['cod_amount'] ?? 0)),
             'insuredValue'    => $insured,
             'thirdPartyPickup'=> 0,
             'currency'        => (string) ($s['currency'] ?? get_woocommerce_currency()),
