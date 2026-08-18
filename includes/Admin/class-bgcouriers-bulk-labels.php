@@ -7,6 +7,7 @@ class BGCouriers_Bulk_Labels {
     const CANCEL   = 'bgcouriers_cancel_labels';
     const PRINT_A4 = 'bgcouriers_print_a4';
     const PRINT_A6 = 'bgcouriers_print_a6';
+    const PICKUP   = 'bgcouriers_pickup';
 
     public function __construct() {
         foreach (['woocommerce_page_wc-orders', 'edit-shop_order'] as $screen) {
@@ -18,7 +19,7 @@ class BGCouriers_Bulk_Labels {
 
     /** Our bulk-action values, in the order they are registered (drives the dropdown grouping in JS). */
     public static function actions(): array {
-        return [self::PRINT_A4, self::PRINT_A6, self::ACTION, self::REGEN, self::CANCEL];
+        return [self::PRINT_A4, self::PRINT_A6, self::ACTION, self::REGEN, self::CANCEL, self::PICKUP];
     }
 
     public function register(array $actions): array {
@@ -27,6 +28,7 @@ class BGCouriers_Bulk_Labels {
         $actions[self::ACTION]   = __('Generate waybils', 'bg-couriers');
         $actions[self::REGEN]    = __('Re-issue waybils', 'bg-couriers');
         $actions[self::CANCEL]   = __('Cancel waybils', 'bg-couriers');
+        $actions[self::PICKUP]   = __('Request a courier', 'bg-couriers');
         return $actions;
     }
 
@@ -40,6 +42,9 @@ class BGCouriers_Bulk_Labels {
     }
 
     public function handle($redirect, $action, $ids) {
+        // Not booked from here. Sending a courier is a real visit at an hour somebody has to choose, so
+        // the selection is carried to the confirm screen and nothing happens until it is confirmed.
+        if ($action === self::PICKUP) { return BGCouriers_Pickup::url(array_map('intval', (array) $ids)); }
         if ($action === self::PRINT_A4) { $this->handle_print('A4', $ids); }
         if ($action === self::PRINT_A6) { $this->handle_print('A6', $ids); }
         if ($action === self::CANCEL)   { return $this->handle_cancel($redirect, $ids); }

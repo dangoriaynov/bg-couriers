@@ -47,7 +47,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
 
     public function id(): string { return 'speedy'; }
     public function label(): string { return 'Speedy'; }
-    public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
+    public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote', 'pickup']; }
 
     private function auth(array $body): array {
         // Default all Speedy API content to Bulgarian (labels, tracking operation names, error messages). A
@@ -494,5 +494,79 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         }
         return false;
     }
+    // ── Pickup request ───────────────────────────────────────────────────────
+
+    /**
+     * Body for POST /pickup. The scope is EXPLICIT_SHIPMENT_ID_LIST because that is the only honest one
+     * here: the merchant ticked particular orders, and the courier must come for those, not for whatever
+     * else the account happens to have open (ALL_CREATED_BY_LOGGED_USER and friends would do that).
+     *
+     * autoAdjustPickupDate stays FALSE deliberately. Letting Speedy move the date to the next it can
+     * manage would answer "booked" for a day the merchant did not choose and will not be packing for.
+     *
+     * @param string[] $waybills
+     * @param array    $opts date (Y-m-d), from/to (H:i), contact, phone
+     */
+    public static function build_pickup_body(array $waybills, array $opts): array {
+        $date = (string) ($opts['date'] ?? '');
+        $from = (string) ($opts['from'] ?? '09:00');
+        return [
+            'pickupDateTime'         => $date . 'T' . $from . ':00',
+            'pickupScope'            => 'EXPLICIT_SHIPMENT_ID_LIST',
+            'explicitShipmentIdList' => array_values(array_map('strval', $waybills)),
+            'visitEndTime'           => (string) ($opts['to'] ?? '18:00'),
+            'contactName'            => (string) ($opts['contact'] ?? ''),
+            'phoneNumber'            => ['number' => (string) ($opts['phone'] ?? '')],
+            'autoAdjustPickupDate'   => false,
+        ];
+    }
+
+    /** PickupResponse -> the order id, as a string. Speedy answers 200 with an `error` node on refusal. */
+    public static function parse_pickup_id(array $resp): string {
+        if (!empty($resp['error'])) {
+            throw new BGCouriers_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message'] ?? 'pickup refused')));
+        }
+        return (string) ($resp['orders'][0]['id'] ?? '');
+    }
+
+    public function request_pickup(array $waybills, array $opts): string {
+        if (empty($waybills)) { throw new BGCouriers_Api_Exception('No shipments to collect'); }
+        $resp = $this->post_json($this->base . '/pickup', $this->auth(self::build_pickup_body($waybills, $opts)));
+        $id   = self::parse_pickup_id($resp);
+        if ($id === '') { throw new BGCouriers_Api_Exception('Speedy: no pickup order in the response'); }
+        return $id;
+    }
+
+    /**
+     * The cut-offs Speedy still accepts for a date. Read-only - it books nothing - so the checkout can
+     * offer the courier's real hours instead of a guess. startingDate is a UNIX timestamp, per the schema.
+     *
+     * @return string[]
+     */
+    public function pickup_terms(string $date): array {
+        $ts = strtotime($date . ' 00:00:00');
+        if (!$ts) { return []; }
+        try {
+            $resp = $this->post_json($this->base . '/pickup/terms', $this->auth([
+                // MILLISECONDS. The schema says "integer" and says no more, and seconds are rejected with
+                // "Началната дата да вземане не трябва да е преди днешната дата" - the value is read as
+                // 1970 and refused for being in the past. Verified live 2026-08-18: seconds fail,
+                // milliseconds answer with the real cut-offs.
+                'startingDate' => $ts * 1000,
+                // Required: without it the answer is "Изисква се идентификатор на услуга". 505 is the
+                // standard service this plugin ships everything with.
+                'serviceId'    => 505,
+            ]));
+        } catch (\Exception $e) { return []; }
+        if (!empty($resp['error'])) { return []; } // Speedy answers 200 with an error node
+        return array_values(array_filter(array_map('strval', (array) ($resp['cutoffs'] ?? []))));
+    }
+
+    /** The request /pickup/terms takes, kept separate so the millisecond rule is testable without a call. */
+    public static function build_pickup_terms_body(string $date): array {
+        $ts = strtotime($date . ' 00:00:00');
+        return ['startingDate' => $ts ? $ts * 1000 : 0, 'serviceId' => 505];
+    }
+
     public function tracking_url(string $waybill): string { return 'https://www.speedy.bg/en/track-shipment?shipmentNumber=' . rawurlencode($waybill); }
 }
