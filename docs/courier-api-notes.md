@@ -103,6 +103,102 @@ base URL + access must be confirmed with Express One BG - do NOT assume the `.si
 
 ---
 
+## 4. Европът / Evropat-2000 - *domain model known from their own manual; API still unseen*
+
+Read from **"Указание за работа с модула ЕВРОПЪТ ОНЛАЙН"** (18 pages, LibreOffice, 2023-09-14), the
+owner's copy of the manual for their web module at https://online.evropat.com. It is a **user manual, not
+an API document** - there is no mention of an API, JSON, XML or an integration anywhere in it. What it
+does give is the complete shape of a Европът товарителница, which is what an adapter has to fill in, and
+it settles two questions that were open.
+
+**SETTLED: no lockers.** Delivery is one of exactly four combinations, and every one of them is an office
+or a door: **ОФ-ОФ** (office to office, до поискване), **ОФ-ВР** (office to the recipient's door),
+**ВР-ОФ** (from the sender's door to an office), **ВР-ВР** (door to door). So Европът gets **two**
+delivery options in our checkout - `office` and `address` - and no `automat`.
+
+**SETTLED: cash on delivery exists, in both forms.** The waybill carries **НП (наложен платеж)** and
+**ППП (пощенски паричен превод)** with the amount, and the direction is **mandatory**: `СЪБЕРИ` (collect
+from the recipient) or `ИЗПЛАТИ` (pay out to them). That maps onto what this shop already fiscalises
+through (`cod_fiscalization = ppp`).
+
+**The four ends, and what they mean for us.** ОФ-ОФ/ОФ-ВР/ВР-ОФ/ВР-ВР encode BOTH ends of the journey, so
+the adapter needs a merchant setting for the SENDER end (drop at an office vs courier collects from the
+premises) as well as the customer's choice for the recipient end. This is the same gap the audit found in
+our Pigeon adapter, which hardcodes `pickup_type: office` - worth solving once, for both.
+
+**Waybill fields, from the manual:**
+
+- **Recipient:** населено място, chosen as `postcode - name - region`; the **serving office is derived
+  automatically from the town**; фирма; адрес with №/блок/вход/етаж/апартамент plus a free-text
+  `адрес пояснение`; получател (three names); телефон.
+- **Shipment kind:** `ДОКУМЕНТ` (a document up to **0.500 kg**) or `КОЛЕТ` (anything else), плюс `БРОЙ`
+  (how many packages) and an `ОПИСАНИЕ` that is required for every parcel, cargo or pallet shipment.
+- **Weight is TARIFF weight**, not the real one: the greater of the actual weight and the volumetric,
+  where **volumetric = width x length x height / 6000** (cm). Dimensions are only filled in when the
+  volumetric figure is the one that applies. Our packer would have to compute this, or send the box and
+  let them.
+- **Services:** SMS/Viber notice, верификация, чупливо, недостатъчна опаковка (which FORBIDS обявена
+  стойност), карго експрес (>= 100 kg), евро палет / нестандартен палет, expres tiers **Е2/Е3/ЕК/ЕМ**,
+  приоритет hour (10:00-18:00, zone 1 only), ОР (обратна разписка), ПД (signed documents back).
+- **Cash on delivery extras:** `ДА СЕ ОТВОРИ ПРЕДИ ПЛАЩАНЕ` - the recipient may open the parcel before
+  paying, which is our open-before-payment service under another name - and `ПРИ ОТКАЗ ДА СЕ ВЪРНЕ ЗА МОЯ
+  СМЕТКА` (a refusal returns at the sender's expense).
+- **Обявена стойност** requires the value AND the document proving it: type (фактура / стокова разписка /
+  друго), number and date. Not optional the way Speedy's declared value is.
+- **Payer:** `ПОДАТЕЛ` / `ПОЛУЧАТЕЛ` / `ТРЕТА СТРАНА`, paid `В БРОЙ` or against a **клиентски номер** in
+  the form `E<three digits><office index>`. Three payers is one more than our sender/recipient model.
+- **Price** comes back computed: a `ТАРИФЕН КОД` derived from sender + recipient + services, plus the
+  month's `ТАКСА ГОРИВО` (fuel surcharge) on top. So their quote already includes the fuel surcharge -
+  do not add one.
+- **Sender-side:** `Изплати НП на мен` covers third-party logistics (shipping from an address that is not
+  the registered one, with the collection still paid to the account holder).
+
+**Operational shape** (useful for what an adapter must expose, and what it need not):
+
+- A waybill can be **saved** (prepared, no print) or **saved and printed**; printing yields **three copies
+  landscape on one A4**, and parcel labels print separately as **A4 or sticker**.
+- Cancelling is `Отказване` in the Пратки menu - and a saved-but-unprinted waybill is a real, cancellable
+  record, not a draft.
+- **Pickup requests are a separate menu** (`Заяви куриер`) with a date and an earliest/latest hour, and a
+  hard cut-off: after **17:30** on a full working day, or **12:00** on a short one, the request rolls to
+  the next working day. If we ever automate pickup requests, that cut-off is the rule to encode.
+- `Разпореждания` is their re-delivery instruction flow for undelivered parcels - no equivalent in this
+  plugin, and none needed for a first adapter.
+- `Фактури и описи` and `НП/ППП информация` are **activated on request** per account, so an adapter must
+  not assume the account can read its own collections.
+
+**Still unknown, and only the API key answers it:** everything about the transport - endpoints, auth
+header, field names, whether a price can be quoted before a waybill is created (the manual only ever
+prices a filled-in waybill), and whether nomenclature (towns/offices) can be pulled at all. Nothing above
+should be turned into code until the real documentation is in hand; it is the domain, not the wire format.
+
+The PDF itself is NOT in this repository - it is Европът's material and 2.4 MB of it; the owner holds the
+copy.
+
+## Courier pickup requests - NOT built, and it is part of the flow, not an extra
+
+A waybill only says a parcel exists. The courier comes for it **on a request that names the specific
+waybills** and a day - that is how these carriers work, and all three APIs that have it are built around
+exactly that. The plugin creates waybills and cannot request a collection for them at all.
+
+| courier | endpoint | shape |
+|---|---|---|
+| **Speedy** | `POST /v1/pickup` | `pickupScope` is an enum - **`EXPLICIT_SHIPMENT_ID_LIST`** (with `explicitShipmentIdList`), `ALL_CREATED_BY_LOGGED_USER`, `ALL_CREATED_BY_SAME_CLIENT`, `ALL_CREATED_BY_SAME_CONTRACT_USER` - plus `pickupDateTime`, `visitEndTime`, `contactName`, `phoneNumber`, `autoAdjustPickupDate`. **`POST /v1/pickup/terms`** answers which windows a date/service/sender actually allows, so the hours are asked for, not guessed. |
+| **Econt** | `ShipmentService.requestCourier.json` | `requestCourierTimeFrom` / `requestCourierTimeTo`, the shipments attached to the request, and a `courierRequestID` back. `ShipmentService.getRequestCourierStatus.json` reads its state. Two format traps, from Drusoft's own code: the attach list wants the **13-digit** waybill numbers, and the times want **`Y-m-d H:i:s`, not ISO 8601**. |
+| **Европът** | web module only | `Заяви куриер`: date, earliest/latest hour, waybills added/removed per request (`Добави пратка` / `Премахни пратка`), and a hard cut-off - after **17:30** on a full day or **12:00** on a short one it rolls to the next working day. The API is unseen. |
+| **Sameday** | none | the SDK has pickup **points** (the merchant's own addresses: Get/Post/Delete) and no courier request. |
+| **Pigeon** | none | absent from the vendor's own `ApiClient`. |
+| **BOX NOW** | none | collection is per contract. |
+
+**The reference plugins have this and we do not:** Drusoft Speedy posts to `/v1/pickup`, Drusoft Econt
+calls `requestCourier`, and ShipBG exposes it as a bulk action on the orders list.
+
+**Shape it should take here:** a bulk action on the orders list over the selected orders that already have
+waybills, grouped by courier (one request per courier - the APIs take a list, so N orders = 1 call), a date
+and a time window offered from Speedy's `pickup/terms` where available, the returned request id stored on
+each order, and the action offered ONLY for couriers that support it. Sameday, Pigeon and BOX NOW must not
+show it at all.
+
 ## Recommended order
 
 1. **Pigeon** - SCAFFOLDED (code on `main`); just needs the API Key/Secret + base URL to live-verify.

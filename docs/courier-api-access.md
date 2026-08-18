@@ -59,12 +59,13 @@ offer fully self-service API signup - each requires contacting the courier.
   2. Take the documentation and their own WooCommerce plugin that the key unlocks - the plugin is the
      same kind of readable prior art that made Express One's shapes knowable in advance.
   3. Drop the key server-side; the adapter goes on the existing multi-courier framework like the rest.
-- **Two things NOT confirmed, and both change what the checkout shows:**
-  - **Lockers/APS are not mentioned anywhere on their site** - only offices and addresses. If that holds,
-    Европът gets two delivery options here, not three.
-  - **Cash on delivery** is not stated in those words, but they do offer a **postal money order**
-    service, which is the mechanism this shop already fiscalises through (`cod_fiscalization = ppp`).
-    Encouraging, not proof - confirm the field name against the real documentation.
+- **Both open questions are now SETTLED**, from their own manual for the online module ("Указание за
+  работа с модула ЕВРОПЪТ ОНЛАЙН", 2023-09-14; see `courier-api-notes.md` for the full domain model):
+  - **No lockers.** Delivery is one of ОФ-ОФ / ОФ-ВР / ВР-ОФ / ВР-ВР - office and door only. Европът gets
+    **two** delivery options here, not three.
+  - **Cash on delivery exists in both forms**: НП (наложен платеж) and ППП (пощенски паричен превод), each
+    with a mandatory direction (`СЪБЕРИ` / `ИЗПЛАТИ`) - so it matches what this shop already fiscalises
+    through (`cod_fiscalization = ppp`). The wire field names are still unknown; only the key unlocks them.
 - **Why it is worth doing:** a full national office network, and their own WooCommerce plugin already
   exists - which is both proof the integration is real and a reminder that our value here is having every
   courier in one place, not merely supporting this one.
