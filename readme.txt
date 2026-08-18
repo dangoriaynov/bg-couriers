@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3.5
+Stable tag: 0.3.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.3.6 =
+* Fixed: **cash on delivery was never priced.** The courier charges a fee for collecting the money at the door, and every quote asked for a shipment carrying none - so a наложен платеж order was quoted the prepaid price and the difference came out of the shop. Measured against live accounts on a 50 EUR collection: Econt +0.78, Pigeon +0.75, Sameday +0.50, Speedy +0.40. The quote now carries the amount, the pay-out agreement and the pay-out method the label will use, so the price shown is the price the shipment costs.
+* Fixed: deleting the plugin left everything behind - its settings, its three tables, its rows in the shipping zone, its scheduled jobs and the label PDFs, which carry a name, an address and a phone number each. Deleting it now removes all of that. Your orders keep their shipment history: that is the shop's record, not the plugin's.
+* Fixed: cancelling a Speedy waybill could report "the courier did not cancel it" when the courier had. Speedy publishes the cancellation about a second after accepting it, and the check was made too early.
+* New: **Econt partial delivery** (частична доставка), off by default - lets the customer open the parcel at the counter and keep only part of it, paying for what they keep. Econt settles it against the packing list the plugin already sends.
 
 = 0.3.5 =
 * Fixed: **the delivery was quoted about 20% too high until the customer chose a town, and dropped as soon as they did.** The price shown before a destination is known was the courier's figure WITH its VAT, and it was then handed to WooCommerce as a net cost - which taxes it again. Every price the plugin produces is now net, from the same place.
@@ -302,6 +308,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
 
 == Upgrade Notice ==
+
+= 0.3.6 =
+Cash on delivery was never priced: the courier's collection fee was missing from every quote, so наложен платеж orders were undercharged. Also makes deleting the plugin actually remove its data, and fixes a false "not cancelled" on Speedy.
 
 = 0.3.5 =
 The delivery was quoted about 20% high until a town was chosen, because the pre-town price carried its VAT and was then taxed again. Also makes the interactive map and the checkout price the same parcel, so the price on the map is the price that is charged.
