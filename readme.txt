@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3.6
+Stable tag: 0.3.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.3.7 =
+* New: **call the courier for the parcels you have made waybills for.** Until now the plugin could create a waybill and nothing else - the parcel then waited for a courier nobody had asked to come. Tick the orders, choose "Request a courier", and pick the day and the hours; one request goes per courier, and its number is written on every order. Speedy also tells the plugin the hours it will still accept, so the times you are offered are the courier's own. Supported by Speedy and Econt; Sameday, Pigeon Express and BOX NOW have no such service and say so instead of quietly doing nothing.
+* New: **Pigeon Express can collect from your address** instead of you dropping parcels at its office - if that is what your contract says. Off by default. The price follows: a collection from your door is quoted differently from a drop at the counter.
+* Fixed: cancelling a Sameday shipment that was already cancelled reported that the courier had refused, and left a dead waybill number stuck on the order.
+* Changed: **BOX NOW is no longer told what a prepaid parcel is worth**, unless you ask for it. BOX NOW's own plugin declares nothing there for a prepaid shipment, and they do not publish what the field costs or covers, so it is now a setting that is off by default. A parcel with cash on delivery still carries its amount, as it must.
 
 = 0.3.6 =
 * Fixed: **cash on delivery was never priced.** The courier charges a fee for collecting the money at the door, and every quote asked for a shipment carrying none - so a наложен платеж order was quoted the prepaid price and the difference came out of the shop. Measured against live accounts on a 50 EUR collection: Econt +0.78, Pigeon +0.75, Sameday +0.50, Speedy +0.40. The quote now carries the amount, the pay-out agreement and the pay-out method the label will use, so the price shown is the price the shipment costs.
@@ -308,6 +314,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Initial release: Speedy, Econt and Pigeon Express - office/address/APS delivery, live rates, labels, tracking.
 
 == Upgrade Notice ==
+
+= 0.3.7 =
+Adds "Request a courier" for Speedy and Econt, so the parcels you have made waybills for actually get collected. BOX NOW is no longer told the value of a prepaid parcel unless you switch it on, matching their own plugin.
 
 = 0.3.6 =
 Cash on delivery was never priced: the courier's collection fee was missing from every quote, so наложен платеж orders were undercharged. Also makes deleting the plugin actually remove its data, and fixes a false "not cancelled" on Speedy.
