@@ -109,6 +109,7 @@ class BGCouriers_Plugin {
             new BGCouriers_Order_Metabox();
             new BGCouriers_Order_Columns();
             new BGCouriers_Bulk_Labels();
+            new BGCouriers_Pickup(); // the "come and collect these" step, from the orders list
             // No Print Invoices & Packing Lists integration lives here. A shop that prints its documents
             // with PIP - or with any of the other document plugins - decides for itself what goes on the
             // sheet and where; that code belongs to whatever prints it. The courier facts it needs are

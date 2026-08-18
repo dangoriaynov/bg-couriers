@@ -15,7 +15,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
 
     public function id(): string { return 'econt'; }
     public function label(): string { return 'Econt'; }
-    public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
+    public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote', 'pickup']; }
 
     public function enable_problems(): array {
         $p = parent::enable_problems();
@@ -688,6 +688,63 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
      * Cancel/delete a waybill.  Live - do NOT call in tests.
      * The owner cancels test waybills manually; this is implemented for completeness.
      */
+    // ── Pickup request ───────────────────────────────────────────────────────
+
+    /**
+     * Body for ShipmentService.requestCourier.json.
+     *
+     * Two formats matter and neither is obvious from the schema, which says only "date-time":
+     *  - the times are `Y-m-d H:i:s`, NOT ISO 8601 (Econt's parser rejects the T);
+     *  - attachShipments takes the 13-digit waybill numbers as strings.
+     * Both are visible in Drusoft's Econt plugin, which has been calling this endpoint in production.
+     *
+     * The sender comes from the account profile, exactly as the label does - the courier is being sent
+     * to the address the shipments are going out from, and there is only one of those.
+     *
+     * @param string[] $waybills
+     * @param array    $opts   date (Y-m-d), from/to (H:i), weight_kg, packs
+     * @param array    $sender The profile from sender_profile().
+     */
+    public static function build_pickup_body(array $waybills, array $opts, array $sender): array {
+        $date = (string) ($opts['date'] ?? '');
+        $fmt  = static function ($d, $t) { return $d . ' ' . $t . ':00'; };
+        return [
+            'requestTimeFrom'   => $fmt($date, (string) ($opts['from'] ?? '09:00')),
+            'requestTimeTo'     => $fmt($date, (string) ($opts['to'] ?? '18:00')),
+            'shipmentType'      => 'pack',
+            'shipmentPackCount' => max(1, (int) ($opts['packs'] ?? count($waybills))),
+            'shipmentWeight'    => max(0.1, (float) ($opts['weight_kg'] ?? 1.0)),
+            'senderClient'      => [
+                'name'   => (string) ($sender['client']['name'] ?? ''),
+                'phones' => array_slice($sender['client']['phones'] ?? [], 0, 1),
+            ],
+            'senderAddress'     => [
+                'city'    => ['id' => (int) ($sender['address']['city']['id'] ?? 0)],
+                'street'  => (string) ($sender['address']['street'] ?? ''),
+                'num'     => (string) ($sender['address']['num'] ?? ''),
+                'quarter' => (string) ($sender['address']['quarter'] ?? ''),
+                'other'   => (string) ($sender['address']['other'] ?? ''),
+            ],
+            'attachShipments'   => array_values(array_map('strval', $waybills)),
+        ];
+    }
+
+    /** RequestCourierResponse -> courierRequestID. */
+    public static function parse_pickup_id(array $resp): string {
+        return (string) ($resp['courierRequestID'] ?? '');
+    }
+
+    public function request_pickup(array $waybills, array $opts): string {
+        if (empty($waybills)) { throw new BGCouriers_Api_Exception('No shipments to collect'); }
+        $resp = $this->post_json(
+            $this->base . '/Shipments/ShipmentService.requestCourier.json',
+            self::build_pickup_body($waybills, $opts, $this->sender_profile())
+        );
+        $id = self::parse_pickup_id($resp);
+        if ($id === '') { throw new BGCouriers_Api_Exception('Econt: no courier request id in the response'); }
+        return $id;
+    }
+
     public function cancel_label(string $waybill): bool {
         try {
             $resp = $this->post_json(

@@ -79,6 +79,31 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
     public function is_cancelled(string $waybill): bool { return false; }
 
     /**
+     * Ask the courier to come and collect THESE waybills, and return its own id for the request.
+     *
+     * A waybill only says a parcel exists. The courier comes for it on a request that names the
+     * shipments and a day - Speedy's own schema puts EXPLICIT_SHIPMENT_ID_LIST first among its scopes,
+     * and Econt attaches the numbers to the request the same way. Couriers with no such API keep this
+     * default and must not be offered the action at all; throwing is what stops a silent no-op that
+     * would leave a merchant waiting for a courier nobody called.
+     *
+     * @param string[] $waybills The shipments to collect.
+     * @param array    $opts     date (Y-m-d), from/to (H:i), contact, phone, weight_kg, packs.
+     * @throws BGCouriers_Api_Exception
+     */
+    public function request_pickup(array $waybills, array $opts): string {
+        throw new BGCouriers_Api_Exception(esc_html__('This courier has no pickup-request service.', 'bg-couriers'));
+    }
+
+    /**
+     * The moments this courier will still accept a collection for, on the given date - [] when it does
+     * not say, in which case the caller offers its own hours rather than inventing the courier's.
+     *
+     * @return string[] Date-time strings as the courier returns them.
+     */
+    public function pickup_terms(string $date): array { return []; }
+
+    /**
      * Paper formats this courier can produce a label in on demand. Default is a single FIXED native format
      * (empty list): the courier returns one PDF and get_label_pdf() ignores $format. Couriers whose API lets
      * us request a size (Speedy paperSize, Sameday type) override this with ['A6','A4'] so the setting/batch

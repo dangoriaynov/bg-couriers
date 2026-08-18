@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
-"POT-Creation-Date: 2026-08-18T13:24:54+00:00\n"
+"POT-Creation-Date: 2026-08-18T18:52:14+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -45,71 +45,78 @@ msgstr "Дан Горяйнов"
 msgid "https://github.com/dangoriaynov"
 msgstr "https://github.com/dangoriaynov"
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:25
+#: includes/Admin/class-bgcouriers-bulk-labels.php:26
 msgid "Print waybils A4"
 msgstr "Печат на товарителници A4"
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:26
+#: includes/Admin/class-bgcouriers-bulk-labels.php:27
 msgid "Print waybils A6"
 msgstr "Печат на товарителници A6"
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:27
+#: includes/Admin/class-bgcouriers-bulk-labels.php:28
 msgid "Generate waybils"
 msgstr "Генериране на товарителници"
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:28
+#: includes/Admin/class-bgcouriers-bulk-labels.php:29
 msgid "Re-issue waybils"
 msgstr "Преиздаване на товарителници"
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:29
+#: includes/Admin/class-bgcouriers-bulk-labels.php:30
 msgid "Cancel waybils"
 msgstr "Анулиране на товарителници"
 
+#: includes/Admin/class-bgcouriers-bulk-labels.php:31
+#: includes/Admin/class-bgcouriers-pickup.php:25
+#: includes/Admin/class-bgcouriers-pickup.php:100
+#: includes/Admin/class-bgcouriers-pickup.php:156
+msgid "Request a courier"
+msgstr "Заяви куриер"
+
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-bulk-labels.php:62
+#: includes/Admin/class-bgcouriers-bulk-labels.php:67
 #, php-format
 msgid "BG Couriers bulk label failed: %s"
 msgstr "Групово генериране на етикети (BG Couriers) е неуспешно: %s"
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-bulk-labels.php:107
+#: includes/Admin/class-bgcouriers-bulk-labels.php:112
 #, php-format
 msgid "BG Couriers bulk print - generate failed: %s"
 msgstr "BG Couriers групов печат - неуспешно генериране: %s"
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:116
+#: includes/Admin/class-bgcouriers-bulk-labels.php:121
 msgid "No labels to print (none could be generated)."
 msgstr "Няма етикети за печат (нито един не можа да се генерира)."
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:120
+#: includes/Admin/class-bgcouriers-bulk-labels.php:125
 #: includes/Admin/class-bgcouriers-labels.php:625
 msgid "The generated file is not a valid PDF."
 msgstr "Генерираният файл не е валиден PDF."
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-bulk-labels.php:152
+#: includes/Admin/class-bgcouriers-bulk-labels.php:157
 #, php-format
 msgid "BG Couriers bulk re-issue failed: %s"
 msgstr "Групово преиздаване на BG Couriers се провали: %s"
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-bulk-labels.php:170
+#: includes/Admin/class-bgcouriers-bulk-labels.php:175
 #, php-format
 msgid "BG Couriers bulk cancel failed: %s"
 msgstr "Груповото анулиране на BG Couriers беше неуспешно: %s"
 
 #. translators: %d: number of labels
-#: includes/Admin/class-bgcouriers-bulk-labels.php:188
+#: includes/Admin/class-bgcouriers-bulk-labels.php:193
 #, php-format
 msgid "Print %d on A4 (packed)"
 msgstr "Печат на %d върху A4 (подредени)"
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:189
+#: includes/Admin/class-bgcouriers-bulk-labels.php:194
 msgid "A6 stickers"
 msgstr "A6 стикери"
 
 #. translators: 1: re-issued (had a waybill) 2: newly generated (had none) 3: skipped 4: failed
-#: includes/Admin/class-bgcouriers-bulk-labels.php:206
+#: includes/Admin/class-bgcouriers-bulk-labels.php:211
 #, php-format
 msgid ""
 "Shipping labels: %1$d re-issued, %2$d newly generated, %3$d skipped, %4$d "
@@ -119,13 +126,13 @@ msgstr ""
 "неуспешни."
 
 #. translators: 1: cancelled 2: skipped 3: failed
-#: includes/Admin/class-bgcouriers-bulk-labels.php:213
+#: includes/Admin/class-bgcouriers-bulk-labels.php:218
 #, php-format
 msgid "Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed."
 msgstr "Товарителници: %1$d анулирани, %2$d пропуснати, %3$d неуспешни."
 
 #. translators: 1: generated 2: reused 3: skipped 4: failed
-#: includes/Admin/class-bgcouriers-bulk-labels.php:219
+#: includes/Admin/class-bgcouriers-bulk-labels.php:224
 #, php-format
 msgid ""
 "Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
@@ -712,6 +719,80 @@ msgctxt "Order bulk action"
 msgid "Change status to shipped"
 msgstr "Промяна на състоянието на изпратена"
 
+#: includes/Admin/class-bgcouriers-pickup.php:74
+#: includes/Admin/class-bgcouriers-settings.php:887
+#: includes/Admin/class-bgcouriers-settings.php:945
+#: includes/Admin/class-bgcouriers-settings.php:974
+msgid "You are not allowed to do this."
+msgstr "Нямате право да извършите това действие."
+
+#: includes/Admin/class-bgcouriers-pickup.php:104
+msgid ""
+"None of the selected orders can be collected: a courier is called for "
+"waybills that already exist, and for couriers that offer the service."
+msgstr ""
+"Нито една от избраните поръчки не може да бъде взета: куриер се заявява за "
+"вече издадени товарителници и за куриери, които предлагат тази услуга."
+
+#. translators: %s: the courier's own cut-off moment, e.g. 2026-08-19T17:00:00+0300
+#: includes/Admin/class-bgcouriers-pickup.php:111
+#, php-format
+msgid "The courier accepts requests up to %s."
+msgstr "Куриерът приема заявки до %s."
+
+#. translators: 1: courier name, 2: how many orders
+#: includes/Admin/class-bgcouriers-pickup.php:133
+#, php-format
+msgid ""
+"%1$s does not offer a pickup request - %2$d order(s) left out. Its parcels "
+"are collected under your contract with them."
+msgstr ""
+"%1$s не предлага заявка за куриер - %2$d поръчка(и) са пропуснати. Неговите "
+"пратки се вземат по договора ви с него."
+
+#. translators: %d: how many orders
+#: includes/Admin/class-bgcouriers-pickup.php:139
+#, php-format
+msgid ""
+"%d order(s) have no waybill yet - generate one first, then call the courier."
+msgstr ""
+"%d поръчка(и) все още нямат товарителница - първо издайте товарителница, после "
+"заявете куриер."
+
+#: includes/Admin/class-bgcouriers-pickup.php:144
+msgid "Day"
+msgstr "Ден"
+
+#: includes/Admin/class-bgcouriers-pickup.php:146
+msgid "Between"
+msgstr "Между"
+
+#: includes/Admin/class-bgcouriers-pickup.php:150
+msgid "Request the courier"
+msgstr "Заяви куриера"
+
+#. translators: 1: courier name, 2: the courier's request id, 3: day, 4: from time, 5: to time
+#: includes/Admin/class-bgcouriers-pickup.php:175
+#, php-format
+msgid "%1$s courier requested (request %2$s) for %3$s, %4$s-%5$s."
+msgstr "Заявен куриер на %1$s (заявка %2$s) за %3$s, %4$s-%5$s."
+
+#. translators: 1: courier name, 2: how many parcels, 3: request id
+#: includes/Admin/class-bgcouriers-pickup.php:181
+#, php-format
+msgid "%1$s will collect %2$d parcel(s). Request %3$s."
+msgstr "%1$s ще вземе %2$d пратка(и). Заявка %3$s."
+
+#. translators: 1: courier name, 2: the courier's own error
+#: includes/Admin/class-bgcouriers-pickup.php:186
+#, php-format
+msgid "%1$s refused the request: %2$s"
+msgstr "%1$s отказа заявката: %2$s"
+
+#: includes/Admin/class-bgcouriers-pickup.php:190
+msgid "Back to orders"
+msgstr "Обратно към поръчките"
+
 #: includes/Admin/class-bgcouriers-settings.php:413
 msgid ""
 "Sameday does not support “the recipient pays the delivery” on this account, "
@@ -1059,12 +1140,6 @@ msgstr "Sameday България:"
 #: includes/Admin/class-bgcouriers-settings.php:1008
 msgid "No credentials saved"
 msgstr "Няма запазени данни за достъп"
-
-#: includes/Admin/class-bgcouriers-settings.php:887
-#: includes/Admin/class-bgcouriers-settings.php:945
-#: includes/Admin/class-bgcouriers-settings.php:974
-msgid "You are not allowed to do this."
-msgstr "Нямате право да извършите това действие."
 
 #: includes/Admin/class-bgcouriers-settings.php:893
 msgid "Unknown courier."
@@ -2053,11 +2128,11 @@ msgid ""
 "sends. Off by default: it is your money at the door, and the return journey "
 "is yours to pay for."
 msgstr ""
-"При поръчка с наложен платеж клиентът може да отвори пратката на гишето и "
-"да задържи само част от нея, като плаща за задържаното - останалото се "
-"връща при вас. Econt сверява задържаното с описа, който плъгинът вече "
-"изпраща. Изключено по подразбиране: това са ваши пари на вратата, а "
-"обратният път е за ваша сметка."
+"При поръчка с наложен платеж клиентът може да отвори пратката на гишето и да "
+"задържи само част от нея, като плаща за задържаното - останалото се връща "
+"при вас. Econt сверява задържаното с описа, който плъгинът вече изпраща. "
+"Изключено по подразбиране: това са ваши пари на вратата, а обратният път е "
+"за ваша сметка."
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:689
 msgid "SMS notification"
@@ -2673,6 +2748,10 @@ msgstr "Данните за достъп до API не са проверени."
 msgid "Click “Validate credentials” and make sure the check succeeds."
 msgstr ""
 "Натиснете „Провери данните за достъп“ и се уверете, че проверката е успешна."
+
+#: includes/Couriers/abstract-bgcouriers-courier.php:95
+msgid "This courier has no pickup-request service."
+msgstr "Този куриер няма услуга за заявка на куриер."
 
 #. translators: %s: human-readable parcel state, e.g. "delivered"
 #: includes/Couriers/class-bgcouriers-boxnow-webhook.php:87
