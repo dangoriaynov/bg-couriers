@@ -77,7 +77,7 @@ unzip -q "$ZIP" -d "$PKG"
 echo "==> audit the package"
 fail=0
 # Anything at the top level that is not the plugin means the excludes have drifted.
-UNEXPECTED="$(cd "$PKG/bg-couriers" && ls -A | grep -vE '^(includes|assets|languages|bg-couriers\.php|readme\.txt|LICENSE)$' || true)"
+UNEXPECTED="$(cd "$PKG/bg-couriers" && ls -A | grep -vE '^(includes|assets|languages|bg-couriers\.php|uninstall\.php|readme\.txt|LICENSE)$' || true)"
 [ -z "$UNEXPECTED" ] && echo "  only plugin files" || { echo "  UNEXPECTED IN PACKAGE: $UNEXPECTED"; fail=1; }
 # Hosts, personal numbers and dev scaffolding have each been found in a package at least once.
 # 'winter2007d' is EXPECTED in readme.txt - it is the WordPress.org account that owns the plugin page.
