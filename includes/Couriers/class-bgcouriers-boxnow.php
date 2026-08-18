@@ -188,7 +188,16 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             'orderNumber'         => $attempt > 1
                 ? $order->get_order_number() . '-' . $attempt
                 : (string) $order->get_order_number(),
-            'invoiceValue'        => $total,
+            // The value declared to BOX NOW for the contents. On a cash-on-delivery parcel it is the
+            // amount being collected and there is no choice about it. On a PREPAID one there is: BOX
+            // NOW's own plugin sends "0" (box-now-delivery.php:687), and we sent the order total on every
+            // shipment. Which is right depends on whether they price liability off it, and they publish
+            // no spec that says - /api/v1/openapi.json and /api/v1/docs are 404 even with a valid token.
+            // So it follows the house rule for anything a courier might charge for: OFF by default,
+            // matching the carrier's own plugin, and the merchant turns it on if they want the value
+            // declared. See docs/courier-api-notes.md.
+            'invoiceValue'        => ($is_cod || get_option('bgcouriers_boxnow_declare_value', 'no') === 'yes')
+                ? $total : '0.00',
             'paymentMode'         => $is_cod ? 'cod' : 'prepaid',
             'amountToBeCollected' => $is_cod ? $total : '0.00',
             'allowReturn'         => get_option('bgcouriers_boxnow_allow_returns', 'no') === 'yes',

@@ -494,7 +494,33 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $r = wp_remote_request($this->base . '/api/awb/' . rawurlencode($waybill), [
             'method' => 'DELETE', 'timeout' => 30, 'headers' => ['X-AUTH-TOKEN' => $this->auth_token()],
         ]);
-        return !is_wp_error($r) && (int) wp_remote_retrieve_response_code($r) < 300;
+        if (is_wp_error($r)) { return false; }
+        $code = (int) wp_remote_retrieve_response_code($r);
+        if ($code < 300) { return true; }
+        // A shipment Sameday does not have is a shipment nobody is coming for, which is the whole point
+        // of cancelling - so 404 counts as done, the way Econt's "не е открита" already does. Without
+        // this, cancelling an AWB that was cancelled earlier (or lives on the demo stack) reported
+        // "the courier did not cancel it" and left a dead number stuck on the order.
+        return $code === 404;
+    }
+
+    /**
+     * Sameday's own view: gone (404) or carrying a cancelled status. Asked when cancel_label() refuses,
+     * to tell "already done" apart from "still live" - the abstract's default says false to everything,
+     * which made every second cancel look like a failure.
+     */
+    public function is_cancelled(string $waybill): bool {
+        try {
+            $t = $this->track($waybill);
+        } catch (\Exception $e) {
+            // 404 from the status endpoint means Sameday has no such AWB any more.
+            return strpos($e->getMessage(), '404') !== false;
+        }
+        $status = function_exists('mb_strtolower') ? mb_strtolower($t->status) : strtolower($t->status);
+        foreach (['анулиран', 'cancel'] as $needle) {
+            if (strpos($status, $needle) !== false) { return true; }
+        }
+        return false;
     }
 
     // ── Tracking ─────────────────────────────────────────────────────────────

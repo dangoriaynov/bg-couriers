@@ -25,9 +25,22 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
 
     public function enable_problems(): array {
         $p = parent::enable_problems();
-        $this->need_option($p, 'bgcouriers_pigeon_pickup_office_id',
-            __('No pickup office ID is set.', 'bg-couriers'),
-            __('Enter the “Pickup office ID” you ship from (used for quotes and labels).', 'bg-couriers'));
+        // Asked for only when the parcels are actually dropped at an office. A shop whose courier comes
+        // to its own address has no pickup office and must not be told to invent one.
+        if (get_option('bgcouriers_pigeon_pickup_from_address', 'no') !== 'yes') {
+            $this->need_option($p, 'bgcouriers_pigeon_pickup_office_id',
+                __('No pickup office ID is set.', 'bg-couriers'),
+                __('Enter the “Pickup office ID” you ship from (used for quotes and labels).', 'bg-couriers'));
+            return $p;
+        }
+        // Collection from an address needs a town at the very least: with only a street line Pigeon has
+        // nowhere to send the courier, and the shipment would quietly go out as an office drop instead.
+        if ((int) get_option('bgcouriers_pigeon_pickup_city_id', 0) <= 0) {
+            $p[] = [
+                'msg' => __('Pigeon is set to collect from your address, but no town is chosen for it.', 'bg-couriers'),
+                'fix' => __('Pick the town the courier comes to - or turn the address collection off and drop the parcels at an office.', 'bg-couriers'),
+            ];
+        }
         return $p;
     }
 
@@ -321,8 +334,13 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      * @param int   $pickup_office_id Merchant's Pigeon pickup office id (from settings).
      * @return array                  JSON-encodable request body.
      */
-    public static function build_calculate_body(array $s, int $pickup_office_id, array $box = ['length' => 40, 'width' => 40, 'height' => 40]): array {
+    public static function build_calculate_body(array $s, int $pickup_office_id, array $box = ['length' => 40, 'width' => 40, 'height' => 40], ?array $pickup = null): array {
         $body = [
+            // Where the parcel STARTS. Pigeon takes either end - a drop at one of its offices, or a
+            // courier to the merchant's own address - and a shop on an address-collection contract could
+            // not be served at all while this said 'office' and nothing else. $pickup is passed by the
+            // live callers (default_pickup() reads the settings); the office form stays the default and
+            // the fallback, so a shop that has not set an address is untouched.
             'pickup_type'      => 'office',
             'pickup_office_id' => $pickup_office_id,
             // Pigeon requires length/width/height on every package (not just weight), else HTTP 422.
@@ -337,6 +355,12 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
             // collects the fee from the recipient at the door (in addition to any COD amount).
             'who_pays'         => (($s['service_payer'] ?? 'sender') === 'recipient') ? 'receiver' : 'sender',
         ];
+
+        if (is_array($pickup) && ($pickup['pickup_type'] ?? '') === 'address' && !empty($pickup['pickup_address']['city_id'])) {
+            unset($body['pickup_office_id']);
+            $body['pickup_type']    = 'address';
+            $body['pickup_address'] = $pickup['pickup_address'];
+        }
 
         if (($s['method'] ?? 'address') === 'address') {
             $body['delivery_type']    = 'address';
@@ -389,7 +413,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         $pickup = (int) get_option('bgcouriers_pigeon_pickup_office_id', 0);
         $resp   = $this->post_json(
             $this->base . '/v1/shipments/calculate',
-            self::build_calculate_body($shipment, $pickup, self::default_box())
+            self::build_calculate_body($shipment, $pickup, self::default_box(), self::default_pickup())
         );
         return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
@@ -407,6 +431,28 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      * @param int       $pickup_office_id Merchant's Pigeon pickup office id (from settings).
      * @return array                     JSON-encodable request body.
      */
+    /**
+     * Where Pigeon collects from, per the merchant's settings.
+     *
+     * Their own plugin offers the same two: drop the parcels at a Pigeon office, or have a courier come
+     * to your premises. The address form needs a city and something to find you by - with only a city
+     * the carrier cannot route a collection - so an incomplete address falls back to the office rather
+     * than sending half an instruction. BGCouriers_Pigeon::enable_problems() says so on the settings
+     * screen, where it can be fixed.
+     *
+     * @return array{pickup_type:string, pickup_address?:array}
+     */
+    public static function default_pickup(): array {
+        if (get_option('bgcouriers_pigeon_pickup_from_address', 'no') !== 'yes') { return ['pickup_type' => 'office']; }
+        $city = (int) get_option('bgcouriers_pigeon_pickup_city_id', 0);
+        $addr = trim((string) get_option('bgcouriers_pigeon_pickup_address', ''));
+        if ($city <= 0) { return ['pickup_type' => 'office']; }
+        $out = ['city_id' => $city, 'additional_info' => $addr !== '' ? $addr : '-'];
+        $street = (int) get_option('bgcouriers_pigeon_pickup_street_id', 0);
+        if ($street > 0) { $out['street_id'] = $street; }
+        return ['pickup_type' => 'address', 'pickup_address' => $out];
+    }
+
     public static function build_shipment_body(\WC_Order $order, int $pickup_office_id): array {
         $s = [
             'method'         => (string) $order->get_meta('_bgcouriers_method'),
@@ -424,7 +470,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
                 : 0.0,
         ];
 
-        $body = self::build_calculate_body($s, $pickup_office_id, self::default_box());
+        $body = self::build_calculate_body($s, $pickup_office_id, self::default_box(), self::default_pickup());
 
         // Stamp our order number as the external reference so every shipment is identifiable in the Pigeon
         // dashboard / by support (Pigeon has no list or search-by-order API, so this is the only way to
