@@ -41,23 +41,29 @@ class BGCouriers_Pickup {
      * courier with no pickup service must not be offered one. Both are reported rather than dropped
      * silently, so the merchant learns why an order is not in the list.
      *
-     * @return array{groups:array<string,array>, no_waybill:int[], unsupported:array<string,int[]>}
+     * Every selected id leaves this method in exactly one of the four: nothing is skipped without a
+     * reason the merchant can read. The fourth is the one that should never happen - an order that no
+     * longer loads, or a waybill whose courier the plugin cannot name - and it is counted precisely
+     * because a silent disappearance there would be indistinguishable from a request that went out.
+     *
+     * @return array{groups:array<string,array>, no_waybill:int[], unsupported:array<string,int[]>, unresolved:int[]}
      */
     public static function group(array $order_ids): array {
-        $groups = []; $no_waybill = []; $unsupported = [];
+        $groups = []; $no_waybill = []; $unsupported = []; $unresolved = [];
         foreach (array_map('intval', $order_ids) as $oid) {
             $order = wc_get_order($oid);
-            if (!$order) { continue; }
+            if (!$order) { $unresolved[] = $oid; continue; }
             $waybill = (string) $order->get_meta('_bgcouriers_waybill');
             if ($waybill === '') { $no_waybill[] = $oid; continue; }
             $cid = (string) $order->get_meta('_bgcouriers_courier');
             $c   = $cid !== '' ? BGCouriers_Couriers::get($cid) : null;
-            if (!$c) { continue; }
+            if (!$c) { $unresolved[] = $oid; continue; }
             if (!in_array('pickup', $c->capabilities(), true)) { $unsupported[$cid][] = $oid; continue; }
             $groups[$cid][] = ['order_id' => $oid, 'waybill' => $waybill,
                                'weight_kg' => BGCouriers_Abstract_Courier::order_weight_kg($order)];
         }
-        return ['groups' => $groups, 'no_waybill' => $no_waybill, 'unsupported' => $unsupported];
+        return ['groups' => $groups, 'no_waybill' => $no_waybill,
+                'unsupported' => $unsupported, 'unresolved' => $unresolved];
     }
 
     /** The day to offer: today while the courier will still come, otherwise the next working day. */
@@ -100,9 +106,13 @@ class BGCouriers_Pickup {
         echo '<div class="wrap bgc-pickup"><h1>' . esc_html__('Request a courier', 'bg-couriers') . '</h1>';
 
         if (empty($g['groups'])) {
+            // Still say WHY, one line per reason: "none of these can be collected" without the reason
+            // is the same dead end as dropping them silently.
             echo '<div class="notice notice-warning"><p>'
                . esc_html__('None of the selected orders can be collected: a courier is called for waybills that already exist, and for couriers that offer the service.', 'bg-couriers')
-               . '</p></div></div>';
+               . '</p></div>';
+            $this->render_exclusions($g);
+            echo '</div>';
             return;
         }
         if ($cutoffs) {
@@ -125,7 +135,26 @@ class BGCouriers_Pickup {
             echo '</ul>';
         }
 
-        // Convention 11: what cannot be requested is shown with its reason, not hidden.
+        $this->render_exclusions($g);
+
+        echo '<table class="form-table"><tbody>'
+           . '<tr><th scope="row"><label for="bgcouriers_date">' . esc_html__('Day', 'bg-couriers') . '</label></th>'
+           . '<td><input type="date" id="bgcouriers_date" name="bgcouriers_date" value="' . esc_attr($date) . '" required /></td></tr>'
+           . '<tr><th scope="row"><label for="bgcouriers_from">' . esc_html__('Between', 'bg-couriers') . '</label></th>'
+           . '<td><input type="time" id="bgcouriers_from" name="bgcouriers_from" value="14:00" required /> &ndash; '
+           . '<input type="time" name="bgcouriers_to" value="17:00" required /></td></tr>'
+           . '</tbody></table>';
+        submit_button(__('Request the courier', 'bg-couriers'), 'primary', 'bgcouriers_confirm');
+        echo '</form></div>';
+    }
+
+    /**
+     * Convention 11: what cannot be requested is shown with its reason, not hidden.
+     *
+     * Printed whether or not anything is left to request - a selection that yields nothing still has to
+     * say what happened to it.
+     */
+    private function render_exclusions(array $g): void {
         foreach ($g['unsupported'] as $cid => $oids) {
             $c = BGCouriers_Couriers::get($cid);
             echo '<p class="description" style="opacity:.7">' . esc_html(sprintf(
@@ -139,16 +168,12 @@ class BGCouriers_Pickup {
                 __('%d order(s) have no waybill yet - generate one first, then call the courier.', 'bg-couriers'),
                 count($g['no_waybill']))) . '</p>';
         }
-
-        echo '<table class="form-table"><tbody>'
-           . '<tr><th scope="row"><label for="bgcouriers_date">' . esc_html__('Day', 'bg-couriers') . '</label></th>'
-           . '<td><input type="date" id="bgcouriers_date" name="bgcouriers_date" value="' . esc_attr($date) . '" required /></td></tr>'
-           . '<tr><th scope="row"><label for="bgcouriers_from">' . esc_html__('Between', 'bg-couriers') . '</label></th>'
-           . '<td><input type="time" id="bgcouriers_from" name="bgcouriers_from" value="14:00" required /> &ndash; '
-           . '<input type="time" name="bgcouriers_to" value="17:00" required /></td></tr>'
-           . '</tbody></table>';
-        submit_button(__('Request the courier', 'bg-couriers'), 'primary', 'bgcouriers_confirm');
-        echo '</form></div>';
+        if (!empty($g['unresolved'])) {
+            echo '<p class="description" style="opacity:.7">' . esc_html(sprintf(
+                /* translators: %d: how many orders */
+                __('%d order(s) could not be read - no courier is recorded on them, or the order is gone. Nothing is requested for those.', 'bg-couriers'),
+                count($g['unresolved']))) . '</p>';
+        }
     }
 
     /** One request per courier: the APIs take a list, so ten orders with one courier are one call. */
