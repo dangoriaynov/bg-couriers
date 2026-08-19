@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
-"POT-Creation-Date: 2026-08-18T19:09:09+00:00\n"
+"POT-Creation-Date: 2026-08-19T14:23:26+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -67,8 +67,8 @@ msgstr "Анулиране на товарителници"
 
 #: includes/Admin/class-bgcouriers-bulk-labels.php:31
 #: includes/Admin/class-bgcouriers-pickup.php:25
-#: includes/Admin/class-bgcouriers-pickup.php:100
-#: includes/Admin/class-bgcouriers-pickup.php:156
+#: includes/Admin/class-bgcouriers-pickup.php:106
+#: includes/Admin/class-bgcouriers-pickup.php:181
 msgid "Request a courier"
 msgstr "Заяви куриер"
 
@@ -719,14 +719,14 @@ msgctxt "Order bulk action"
 msgid "Change status to shipped"
 msgstr "Промяна на състоянието на изпратена"
 
-#: includes/Admin/class-bgcouriers-pickup.php:74
+#: includes/Admin/class-bgcouriers-pickup.php:80
 #: includes/Admin/class-bgcouriers-settings.php:936
 #: includes/Admin/class-bgcouriers-settings.php:994
 #: includes/Admin/class-bgcouriers-settings.php:1023
 msgid "You are not allowed to do this."
 msgstr "Нямате право да извършите това действие."
 
-#: includes/Admin/class-bgcouriers-pickup.php:104
+#: includes/Admin/class-bgcouriers-pickup.php:112
 msgid ""
 "None of the selected orders can be collected: a courier is called for "
 "waybills that already exist, and for couriers that offer the service."
@@ -735,13 +735,25 @@ msgstr ""
 "вече издадени товарителници и за куриери, които предлагат тази услуга."
 
 #. translators: %s: the courier's own cut-off moment, e.g. 2026-08-19T17:00:00+0300
-#: includes/Admin/class-bgcouriers-pickup.php:111
+#: includes/Admin/class-bgcouriers-pickup.php:121
 #, php-format
 msgid "The courier accepts requests up to %s."
 msgstr "Куриерът приема заявки до %s."
 
+#: includes/Admin/class-bgcouriers-pickup.php:141
+msgid "Day"
+msgstr "Ден"
+
+#: includes/Admin/class-bgcouriers-pickup.php:143
+msgid "Between"
+msgstr "Между"
+
+#: includes/Admin/class-bgcouriers-pickup.php:147
+msgid "Request the courier"
+msgstr "Заяви куриера"
+
 #. translators: 1: courier name, 2: how many orders
-#: includes/Admin/class-bgcouriers-pickup.php:133
+#: includes/Admin/class-bgcouriers-pickup.php:162
 #, php-format
 msgid ""
 "%1$s does not offer a pickup request - %2$d order(s) left out. Its parcels "
@@ -751,7 +763,7 @@ msgstr ""
 "пратки се вземат по договора ви с него."
 
 #. translators: %d: how many orders
-#: includes/Admin/class-bgcouriers-pickup.php:139
+#: includes/Admin/class-bgcouriers-pickup.php:168
 #, php-format
 msgid ""
 "%d order(s) have no waybill yet - generate one first, then call the courier."
@@ -759,37 +771,35 @@ msgstr ""
 "%d поръчка(и) все още нямат товарителница - първо издайте товарителница, "
 "после заявете куриер."
 
-#: includes/Admin/class-bgcouriers-pickup.php:144
-msgid "Day"
-msgstr "Ден"
-
-#: includes/Admin/class-bgcouriers-pickup.php:146
-msgid "Between"
-msgstr "Между"
-
-#: includes/Admin/class-bgcouriers-pickup.php:150
-msgid "Request the courier"
-msgstr "Заяви куриера"
+#. translators: %d: how many orders
+#: includes/Admin/class-bgcouriers-pickup.php:174
+#, php-format
+msgid ""
+"%d order(s) could not be read - no courier is recorded on them, or the order "
+"is gone. Nothing is requested for those."
+msgstr ""
+"%d поръчка(и) не могат да бъдат прочетени - по тях няма записан куриер или "
+"поръчката вече я няма. За тях не се заявява нищо."
 
 #. translators: 1: courier name, 2: the courier's request id, 3: day, 4: from time, 5: to time
-#: includes/Admin/class-bgcouriers-pickup.php:175
+#: includes/Admin/class-bgcouriers-pickup.php:200
 #, php-format
 msgid "%1$s courier requested (request %2$s) for %3$s, %4$s-%5$s."
 msgstr "Заявен куриер на %1$s (заявка %2$s) за %3$s, %4$s-%5$s."
 
 #. translators: 1: courier name, 2: how many parcels, 3: request id
-#: includes/Admin/class-bgcouriers-pickup.php:181
+#: includes/Admin/class-bgcouriers-pickup.php:206
 #, php-format
 msgid "%1$s will collect %2$d parcel(s). Request %3$s."
 msgstr "%1$s ще вземе %2$d пратка(и). Заявка %3$s."
 
 #. translators: 1: courier name, 2: the courier's own error
-#: includes/Admin/class-bgcouriers-pickup.php:186
+#: includes/Admin/class-bgcouriers-pickup.php:211
 #, php-format
 msgid "%1$s refused the request: %2$s"
 msgstr "%1$s отказа заявката: %2$s"
 
-#: includes/Admin/class-bgcouriers-pickup.php:190
+#: includes/Admin/class-bgcouriers-pickup.php:215
 msgid "Back to orders"
 msgstr "Обратно към поръчките"
 
@@ -2204,12 +2214,12 @@ msgstr "Куриерът взема от моя адрес"
 #: includes/Admin/class-bgcouriers-wc-settings.php:718
 msgid ""
 "Turn on if your Pigeon contract has the courier come to your premises "
-"instead of you dropping parcels at an office. Off means you drop them at "
-"the office chosen below."
+"instead of you dropping parcels at an office. Off means you drop them at the "
+"office chosen below."
 msgstr ""
 "Включете, ако договорът ви с Pigeon предвижда куриерът да идва при вас, "
-"вместо вие да оставяте пратките в офис. Изключено означава, че ги оставяте "
-"в избрания по-долу офис."
+"вместо вие да оставяте пратките в офис. Изключено означава, че ги оставяте в "
+"избрания по-долу офис."
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:721
 msgid "Collection town"
@@ -2220,8 +2230,8 @@ msgid ""
 "The town the courier comes to. Only used when the collection is from your "
 "address."
 msgstr ""
-"Населеното място, до което идва куриерът. Използва се само когато "
-"вземането е от вашия адрес."
+"Населеното място, до което идва куриерът. Използва се само когато вземането "
+"е от вашия адрес."
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:724
 msgid "Collection address"
@@ -2229,8 +2239,8 @@ msgstr "Адрес за вземане"
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:725
 msgid ""
-"Street, number and anything that helps the courier find you. Only used "
-"when the collection is from your address."
+"Street, number and anything that helps the courier find you. Only used when "
+"the collection is from your address."
 msgstr ""
 "Улица, номер и всичко, което помага на куриера да ви намери. Използва се "
 "само когато вземането е от вашия адрес."
@@ -2391,14 +2401,14 @@ msgstr "Обявяване на стойност за предплатени п�
 #: includes/Admin/class-bgcouriers-wc-settings.php:816
 msgid ""
 "Send the order total to BOX NOW as the declared value of a parcel that is "
-"already paid for. Off by default, which is what BOX NOW's own plugin "
-"sends: they do not publish what the field costs or covers. A parcel with "
-"cash on delivery always carries its amount."
+"already paid for. Off by default, which is what BOX NOW's own plugin sends: "
+"they do not publish what the field costs or covers. A parcel with cash on "
+"delivery always carries its amount."
 msgstr ""
 "Изпраща сумата на поръчката към BOX NOW като обявена стойност на вече "
-"платена пратка. Изключено по подразбиране - точно това изпраща и "
-"собственият плъгин на BOX NOW: те не публикуват какво струва и какво "
-"покрива това поле. Пратка с наложен платеж винаги носи своята сума."
+"платена пратка. Изключено по подразбиране - точно това изпраща и собственият "
+"плъгин на BOX NOW: те не публикуват какво струва и какво покрива това поле. "
+"Пратка с наложен платеж винаги носи своята сума."
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:818
 msgid "Allow returns"
@@ -3008,11 +3018,11 @@ msgstr ""
 
 #: includes/Couriers/class-bgcouriers-pigeon.php:41
 msgid ""
-"Pick the town the courier comes to - or turn the address collection off "
-"and drop the parcels at an office."
+"Pick the town the courier comes to - or turn the address collection off and "
+"drop the parcels at an office."
 msgstr ""
-"Изберете населеното място, до което идва куриерът - или изключете "
-"вземането от адрес и оставяйте пратките в офис."
+"Изберете населеното място, до което идва куриерът - или изключете вземането "
+"от адрес и оставяйте пратките в офис."
 
 #: includes/Couriers/class-bgcouriers-pigeon.php:516
 msgid ""
