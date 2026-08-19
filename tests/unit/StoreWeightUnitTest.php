@@ -5,7 +5,7 @@ use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
 
 /**
- * A shop does not have to price in kilograms, and this one does not: dobavki.club sets
+ * A shop does not have to price in kilograms, and the one this was found on did not: it sets
  * woocommerce_weight_unit to GRAMS, so every weight WooCommerce hands a shipping method - the
  * package's contents_weight, the cart's get_cart_contents_weight() - arrives in grams.
  *

@@ -12,6 +12,10 @@ cd "$(dirname "$0")/.."
 : "${BGC_SSH_HOST:?set BGC_SSH_HOST in bin/deploy.conf}"
 : "${BGC_SSH_PORT:=22}"
 : "${BGC_PROD_PATH:?set BGC_PROD_PATH in bin/deploy.conf}"
+# Which shop this deploys to is the operator's, not the plugin's: the smoke URLs and the user the files
+# must belong to live in bin/deploy.conf (gitignored) and nowhere in this repository. No smoke list, no
+# release - a deploy nobody checked is the one that takes a shop down quietly.
+: "${BGC_PROD_SMOKE_URLS:?set BGC_PROD_SMOKE_URLS in bin/deploy.conf (space-separated URLs that must answer 200)}"
 
 P="${BGC_PROD_PATH%/}"
 WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"   # .../wp-content/plugins/bg-couriers -> the WP root
@@ -85,7 +89,7 @@ run "cd \"\$(dirname '$P')\" && tar czf '$BACKUP' bg-couriers && du -h '$BACKUP'
 
 echo "==> deploy"
 echo yes | bash bin/deploy.sh prod >/dev/null
-run "chown -R dobavki:dobavki '$P'"
+[ -n "${BGC_PROD_OWNER:-}" ] && run "chown -R ${BGC_PROD_OWNER} '$P'"
 
 echo "==> verify"
 LIVE="$(run "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
@@ -105,10 +109,11 @@ run "$WP eval 'if(function_exists(\"rocket_clean_domain\")){rocket_clean_domain(
 run "$WP cache flush" >/dev/null 2>&1 || true
 
 echo "==> smoke"
-# The shop's checkout and cart are /order/ and /order-cart/ - /checkout/ and /cart/ 404 here and that is
-# NOT a fault. Do not "fix" this list to the WooCommerce defaults.
+# The list is the shop's own, from bin/deploy.conf: a shop may well serve its cart and checkout from
+# pages that are not the WooCommerce defaults, and then /cart/ and /checkout/ 404 without anything being
+# wrong. Put the URLs that actually matter for that shop in the config.
 fail=0
-for u in https://dobavki.club/ https://dobavki.club/order/ https://dobavki.club/order-cart/ https://dobavki.club/wp-admin/; do
+for u in $BGC_PROD_SMOKE_URLS; do
   code="$(curl -s -o /dev/null -w '%{http_code}' -L "$u")"
   printf '  %-38s %s\n' "$u" "$code"
   [ "$code" = 200 ] || fail=1

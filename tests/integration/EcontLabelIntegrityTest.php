@@ -29,7 +29,7 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $order->save();
 
         $sender = [
-            'client'  => ['name' => 'ЗЕЛЕНИ ООД', 'phones' => ['0700123456'], 'juridicalEntity' => true, 'molName' => 'Иван'],
+            'client'  => ['name' => 'ПРИМЕР ООД', 'phones' => ['0700123456'], 'juridicalEntity' => true, 'molName' => 'Иван'],
             'address' => ['city' => ['id' => 41], 'street' => 'бул. Витоша', 'num' => '1', 'other' => ''],
         ];
 
@@ -143,7 +143,7 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $order->save();
 
         $sender = [
-            'client'  => ['name' => 'ЗЕЛЕНИ ООД', 'phones' => ['0700123456'], 'juridicalEntity' => true, 'molName' => 'Иван'],
+            'client'  => ['name' => 'ПРИМЕР ООД', 'phones' => ['0700123456'], 'juridicalEntity' => true, 'molName' => 'Иван'],
             'address' => ['city' => ['id' => 41], 'street' => 'бул. Витоша', 'num' => '1', 'other' => ''],
         ];
 

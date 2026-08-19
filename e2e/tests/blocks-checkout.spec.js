@@ -23,7 +23,7 @@ const BLOCKS_PAGE = '/blocks-checkout-test/';
 
 test('block checkout: an order with no delivery point is refused @blocks', async ({ page, baseURL }) => {
   await addAnyProductToCart(page);
-  await page.goto((baseURL || 'https://dev.dobavki.club') + BLOCKS_PAGE);
+  await page.goto(baseURL + BLOCKS_PAGE);
   // The block checkout mounts, fetches the cart and resolves shipping rates before anything is real.
   await expect(page.locator('.wc-block-checkout, .wp-block-woocommerce-checkout').first()).toBeVisible({ timeout: 30000 });
   await page.waitForTimeout(6000);
@@ -71,7 +71,7 @@ test('block checkout: the courier pickers render, and choosing a point unblocks 
   // enough for both, and the failure looks like a broken click rather than a slow one.
   test.setTimeout(240000);
   await addAnyProductToCart(page);
-  await page.goto((baseURL || 'https://dev.dobavki.club') + BLOCKS_PAGE);
+  await page.goto(baseURL + BLOCKS_PAGE);
   await expect(page.locator('.wc-block-checkout, .wp-block-woocommerce-checkout').first()).toBeVisible({ timeout: 30000 });
 
   // The picker arrives inside the block's shipping step, not merely somewhere on the page.

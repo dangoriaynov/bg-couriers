@@ -27,7 +27,7 @@ with production credentials + real APMs (see the last section).
 ## Testing limitations - IMPORTANT, follow exactly
 - ✅ Generate **test waybills only to APM `8009`**.
 - 🚫 **Do NOT use APMs from the real widget map** - those are **production-only** and must not receive stage shipments.
-- Stage labels are throwaway test data → log each one in `docs/test-boxnow-waybills.md`; the **owner cancels** them (Claude never cancels test waybills).
+- Stage labels are throwaway test data → keep a log of each one; the **owner cancels** them (Claude never cancels test waybills).
 
 ## How to test (end to end)
 1. **Auth** - `POST /api/v1/auth-sessions` → Bearer token. Send `X-PartnerID: 11239` + `Authorization: Bearer <token>` on every subsequent call.
@@ -36,7 +36,7 @@ with production credentials + real APMs (see the last section).
 4. **Create the shipment** - `POST /api/v1/delivery-requests` with `origin.locationId` = `5726` (or `2`), `destination.locationId` = `8009`, plus `orderNumber`, `invoiceValue`, `paymentMode` (`prepaid` / `cod` + `amountToBeCollected`), `items[]` → returns `{referenceNumber, parcels:[{id}]}`.
 5. **Label** - fetch the PDF: `/api/v1/labels` (the official plugin uses this) or `/api/v1/parcels/{id}/label.pdf` (the manual) - try `/labels` first.
 6. **Track** - `GET /api/v1/parcels` → parcel `state` + `events` (also pushed via webhook).
-7. **Log** the `referenceNumber` in `docs/test-boxnow-waybills.md` for the owner to cancel.
+7. **Log** the `referenceNumber` for the owner to cancel.
 
 ## Going to production
 Same flow, swapping: production base `https://api.boxnow.bg`, **production** Client ID/Secret + Partner ID,
