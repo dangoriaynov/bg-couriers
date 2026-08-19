@@ -35,7 +35,7 @@ final class PickupRequestTest extends TestCase {
 
     private function opts(): array {
         return ['date' => '2026-08-19', 'from' => '14:00', 'to' => '17:30',
-                'contact' => 'ЗЕЛЕНИ ДОБАВКИ ООД', 'phone' => '0886301585', 'weight_kg' => 2.4, 'packs' => 3];
+                'contact' => 'ПРИМЕР ООД', 'phone' => '0888123456', 'weight_kg' => 2.4, 'packs' => 3];
     }
 
     /** The merchant ticked particular orders; the courier must come for those and not for the account's rest. */
@@ -49,7 +49,7 @@ final class PickupRequestTest extends TestCase {
         $b = BGCouriers_Speedy::build_pickup_body(['63710932641'], $this->opts());
         $this->assertSame('2026-08-19T14:00:00', $b['pickupDateTime']);
         $this->assertSame('17:30', $b['visitEndTime']);
-        $this->assertSame('0886301585', $b['phoneNumber']['number']);
+        $this->assertSame('0888123456', $b['phoneNumber']['number']);
     }
 
     /** Moving the date is Speedy's to offer and not ours to accept: the merchant packs for the day they chose. */

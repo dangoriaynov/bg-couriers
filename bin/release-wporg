@@ -11,6 +11,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 . bin/deploy.conf
 : "${BGC_SSH_HOST:?set BGC_SSH_HOST in bin/deploy.conf}"
+# What must never reach the package is the operator's, so the list of it is too: an alternation of the
+# host names, phone numbers and anything else private, in bin/deploy.conf (gitignored). Unset means STOP,
+# not "nothing to check" - this grep is the last thing between a private string and a public zip.
+: "${BGC_LEAK_PATTERNS:?set BGC_LEAK_PATTERNS in bin/deploy.conf (a grep -E alternation of strings that must never be published)}"
 : "${BGC_SSH_PORT:=22}"
 
 SVN_WC="${BGC_SVN_WC:-$HOME/svn/bg-couriers}"
@@ -79,11 +83,12 @@ fail=0
 # Anything at the top level that is not the plugin means the excludes have drifted.
 UNEXPECTED="$(cd "$PKG/bg-couriers" && ls -A | grep -vE '^(includes|assets|languages|bg-couriers\.php|uninstall\.php|readme\.txt|LICENSE)$' || true)"
 [ -z "$UNEXPECTED" ] && echo "  only plugin files" || { echo "  UNEXPECTED IN PACKAGE: $UNEXPECTED"; fail=1; }
-# Hosts, personal numbers and dev scaffolding have each been found in a package at least once.
-# 'winter2007d' is EXPECTED in readme.txt - it is the WordPress.org account that owns the plugin page.
-# Scoped to PKG, not TMP: the zip now lives in TMP too, and grep -I skipping it is not something this
-# check should be relying on to stay correct.
-LEAK="$(grep -rIl 'dev\.dobavki\|886301585\|BGC_SSH\|last-run\|probe_' "$PKG" || true)"
+# Hosts, personal numbers and dev scaffolding have each been found in a package at least once. The
+# private half of the list comes from the config; the tooling half is the same for everyone. Note that
+# the WordPress.org contributor name IS expected in readme.txt - it owns the plugin page - so do not put
+# it in BGC_LEAK_PATTERNS. Scoped to PKG, not TMP: the zip now lives in TMP too, and grep -I skipping it
+# is not something this check should be relying on to stay correct.
+LEAK="$(grep -rIlE "${BGC_LEAK_PATTERNS}|BGC_SSH|last-run|probe_" "$PKG" || true)"
 [ -z "$LEAK" ] && echo "  no host, personal or tooling strings" || { echo "  LEAKED STRINGS IN: $LEAK"; fail=1; }
 ZIP_V="$(grep -m1 '^ \* Version:' "$PKG/bg-couriers/bg-couriers.php" | awk '{print $3}')"
 [ "$ZIP_V" = "$VERSION" ] && echo "  package is ${VERSION}" || { echo "  PACKAGE IS ${ZIP_V}, EXPECTED ${VERSION}"; fail=1; }

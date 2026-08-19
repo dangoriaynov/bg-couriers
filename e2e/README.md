@@ -1,5 +1,8 @@
 # bg-couriers E2E (Playwright)
-Runs against a live site (default https://dev.dobavki.club).
+Runs against a live site - your own dev shop. Its address goes in `bin/deploy.conf` as
+`BGC_E2E_BASE_URL` (or `BASE_URL=...` for one run); there is no default, and the suite refuses to
+start without one. These specs place COD orders, and a COD order on a site with live courier
+credentials books a real shipment.
 
 ## Run
     cd e2e && npm install && npx playwright install chromium

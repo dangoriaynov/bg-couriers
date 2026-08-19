@@ -105,8 +105,7 @@ Bugs and ideas: https://github.com/dangoriaynov/bg-couriers/issues
 - **Express One** - build once a **BG API key** arrives (`international@expressone.bg`); the one open shape is
   how a pickup-point selection encodes into `/createshipment`.
 - **WordPress.org** - published; releases go out over SVN (`trunk` + `tags/<version>` + `assets/` for the
-  banner, icon and screenshots). Background on how it got there is in
-  `docs/wordpress-org-readiness-audit.md` and `docs/wporg-submission.md`.
+  banner, icon and screenshots).
 - **Advanced courier parity** (post-launch) - Sameday per-service rows / 3-way pricing / open-package;
   BOX NOW home-delivery + any-APM + returns.
 
@@ -185,22 +184,22 @@ bin/test econt|pigeon|core  # per-courier / framework groups
 
 - **Credentials never in chat / memory / VCS.** Courier API creds are entered server-side (encrypted in WP
   options) only. Use a courier sandbox where one exists. Real-account label tests create **real waybills** -
-  logged in `docs/test-*-waybills.md` for the **owner** to cancel.
+  logged **privately, outside this repository** for the **owner** to cancel.
 - **Clean-room:** original code only (no code copied from other plugins).
 
 ## Docs index
 
-- `docs/wordpress-org-readiness-audit.md` - **pre-publish audit**: i18n / readme.txt / external-services gaps, findings, path to submission
-- `docs/wporg-submission.md` - what was submitted to WordPress.org and the review correspondence
 - `docs/getting-api-credentials.md` - **merchant-facing** guide to getting API access per courier
 - `docs/courier-api-access.md` - which credentials each courier issues, and how to ask for them
 - `docs/courier-api-notes.md` - technical API analysis / framework fit / divergences
 - `docs/ui-conventions.md` - **read before adding any control**: why a field outside a section breaks four things at once, why descriptions must fit an (i), and what defaults to OFF
 - `docs/testing.md` - running tests per courier · `docs/boxnow-testing.md` - BOX NOW stage-testing guide
-- `docs/E2E-checklist.md` - the end-to-end pass to run against a real shop before a release
-- `docs/test-{speedy,econt,boxnow,sameday}-waybills.md` - real/stage test waybills for the owner to cancel
+
+Anything tied to one particular shop - the release runbook, the end-to-end checklist against a live site,
+the log of real test waybills - is kept outside this repository. What lives here is what applies to
+anyone running the plugin.
 
 ## License
 
-GPLv2-or-later - intended for a free **WordPress.org** release (see the readiness audit for what's left).
+GPLv2-or-later - published free on **WordPress.org**.
 © Dan Goriaynov.

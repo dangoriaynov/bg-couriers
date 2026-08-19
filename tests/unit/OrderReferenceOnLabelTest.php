@@ -49,7 +49,7 @@ final class OrderReferenceOnLabelTest extends TestCase {
     }
 
     private function sender(): array {
-        return ['client' => ['name' => 'ЗЕЛЕНИ ДОБАВКИ ООД', 'phones' => ['0888123456']],
+        return ['client' => ['name' => 'ПРИМЕР ООД', 'phones' => ['0888123456']],
                 'address' => ['city' => ['id' => 41], 'street' => '', 'num' => '73',
                               'quarter' => 'жк Гоце Делчев', 'other' => 'бл.73']];
     }

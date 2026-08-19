@@ -3,3 +3,7 @@ BGC_SSH_HOST="user@example.com"
 BGC_SSH_PORT=22
 BGC_DEV_PATH="/path/to/dev/wp-content/plugins/bg-couriers/"
 BGC_PROD_PATH="/path/to/prod/wp-content/plugins/bg-couriers/"
+BGC_PROD_OWNER="user:group"                       # optional: chown the deployed files to this after rsync
+BGC_PROD_SMOKE_URLS="https://example.com/ https://example.com/wp-admin/"   # must all answer 200 after a prod deploy
+BGC_E2E_BASE_URL="https://dev.example.com"        # the shop the Playwright suite drives (no default: it places COD orders)
+BGC_LEAK_PATTERNS="dev\.example\.com|0888123456"  # grep -E alternation: strings that must never reach the WordPress.org zip

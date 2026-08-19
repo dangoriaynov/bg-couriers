@@ -12,7 +12,7 @@ const { test, expect } = require('@playwright/test');
  * The stylesheet and script are pulled from the deployed dev site, so this tests what is actually
  * being served rather than a local copy.
  */
-const BASE = process.env.BGC_BASE || 'https://dev.dobavki.club';
+const BASE = process.env.BGC_BASE || require('../config').baseURL();
 const ASSETS = BASE + '/wp-content/plugins/bg-couriers/assets';
 
 /** A stand-in for the orders-list cell: one dimmed action, one ordinary button, one anchor. */

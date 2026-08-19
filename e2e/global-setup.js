@@ -25,8 +25,9 @@ module.exports = async (config) => {
   const baseURL = process.env.BASE_URL || (config.projects[0] && config.projects[0].use.baseURL) || '';
 
   // Only the shared dev site has live courier credentials behind it. A run pointed anywhere else - a
-  // local wp-env, somebody's own copy - has nothing to protect and no reason to need SSH.
-  if (!/dev\.dobavki\.club/.test(baseURL)) {
+  // local wp-env, somebody's own copy - has nothing to protect and no reason to need SSH. Which one is
+  // the shared dev site is the operator's own address, from bin/deploy.conf; baseURL() refuses to guess.
+  if (baseURL.replace(/\/+$/, '') !== require('./config').baseURL()) {
     console.log(`[autolabel] ${baseURL} is not the dev site - leaving its settings alone.`);
     return undefined;
   }
