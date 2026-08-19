@@ -1,32 +1,75 @@
 # bg-couriers E2E (Playwright)
-Runs against a live site - your own dev shop. Its address goes in `bin/deploy.conf` as
-`BGC_E2E_BASE_URL` (or `BASE_URL=...` for one run); there is no default, and the suite refuses to
-start without one. These specs place COD orders, and a COD order on a site with live courier
-credentials books a real shipment.
+
+Runs against a live site - your own dev shop, with the couriers' real accounts behind it. Its address
+goes in `bin/deploy.conf` as `BGC_E2E_BASE_URL` (or `BASE_URL=...` for one run); there is no default,
+and the suite refuses to start without one.
+
+**What a run does to that site.** It places real orders, and it leaves them there. What it no longer
+does is book shipments: `global-setup.js` turns dev's `bgcouriers_autolabel_enabled` off for the length
+of the run and puts it back afterwards. Six of these specs pay by cash on delivery, WooCommerce puts a
+COD order straight into `processing`, and dev auto-labels that status - so a full run used to book six
+real parcels every time, with nobody meaning to. The setup needs SSH to dev to do that (same
+`bin/deploy.conf`) and **refuses to start without it** rather than running blind; `BGC_ALLOW_AUTOLABEL=1`
+overrides that, and is only honest if you have turned the setting off yourself. A run pointed at anything
+other than that dev address - a local wp-env, your own copy - says so and leaves its settings alone: only
+the shared dev site has live courier accounts behind it.
+
+Afterwards it sweeps dev for waybills and prints any it finds, even when every line says CANCELLED - a
+cancel that reported success and did not take looks exactly like one that worked, so the numbers belong
+on screen where someone can re-check them at the courier.
 
 ## Run
     cd e2e && npm install && npx playwright install chromium
-    npx playwright test            # all
+    npx playwright test            # everything except the real-waybill spec
     npx playwright test --headed   # watch
     npx playwright show-report
 
-## The one spec that books a real shipment
-
-`intl-speedy-ro.spec.js` places an order to **Romania** and then books the waybill for it at Speedy, on
-purpose. Speedy's domestic service and its international one are mutually exclusive - each is refused
-where the other applies - so a waybill coming back is the only proof that the international one was used.
-It is left out of an ordinary run and asked for by name:
-
-    BGC_REAL_WAYBILL=1 npx playwright test intl-speedy-ro
-
-It voids the waybill again in `afterEach` and prints the number either way. Dev must be set up for it
-first: Romania switched on in the Speedy settings + **Sync now** run since, and Romania in a WooCommerce
-shipping zone that carries the Speedy method. Without those the spec fails and says which one is missing.
+From the repo root, `bin/test` runs PHPUnit and then this suite, and `bin/test speedy` narrows both to
+one courier. Neither of them runs the real-waybill spec: `grepInvert` in `playwright.config.js` holds it
+back until it is asked for by name.
 
 ## Prerequisites on the target site
-Speedy enabled + valid creds + **Sync now** run (cities/offices cached); the
-"Speedy" (bgc_speedy) method added to the Bulgaria shipping zone; Cash on Delivery
-enabled; ≥1 purchasable product. Login flows (later) read creds from `e2e/.env`.
+- Speedy enabled with valid credentials, and **Sync now** run since (cities/offices cached).
+- The **Speedy** method (`bgcouriers_speedy`) added to the shipping zone that covers Bulgaria.
+- Cash on delivery enabled, and at least one purchasable product.
+- SSH to dev configured in `bin/deploy.conf` - `global-setup.js` and `dev-option.sh` both need it.
+
+## Delivery to another country: the one spec that books a real shipment
+
+`intl-speedy-ro.spec.js` places an order to **Romania** and then books the waybill for it at Speedy, on
+purpose. Speedy's domestic service (505) and its international one (202) are mutually exclusive - each is
+refused outright where the other applies - so a waybill coming back is the only proof that the
+international one was used. A mistake here does not produce a wrong label, it produces no label at all.
+
+Dev needs three things first, and none of them is something the plugin can do for itself:
+
+1. **Speedy → "Also deliver to" includes Romania** (`bgcouriers_speedy_intl_countries`), saved, and
+   **Sync now** pressed afterwards. A courier's towns and offices are cached per country; without the
+   sync the Romanian ones are simply not there.
+2. **Romania in a WooCommerce shipping zone that carries the Speedy method.** Without it Speedy is not
+   offered for the address at all and the order cannot be placed.
+3. At least one purchasable product.
+
+Each is asserted in the spec with the reason rather than skipped past: it is only ever run on purpose,
+and a silent skip would answer "does it work?" with "nothing happened".
+
+    cd e2e && BGC_REAL_WAYBILL=1 npx playwright test intl-speedy-ro
+
+The order is **prepaid**, and that is the feature rather than a convenience: cash on delivery here is
+receipted through Speedy's ППП, no courier's ППП crosses the border, and Speedy refuses the whole quote
+when asked for one abroad - so the plugin takes COD off the checkout for a foreign address, and the spec
+asserts that too. The spec switches dev's bank transfer on for its own run and off again afterwards
+(`dev-option.sh gateway bacs yes|no`), because a payment method left enabled changes what every other
+spec sees.
+
+It prints, and you should read, three lines:
+
+    [intl] order total with Romanian delivery: …
+    [intl] WAYBILL 63712538954 speedy
+    [intl] order 394: CANCELLED 63712538954
+
+The waybill is voided in `afterEach` and the number is printed whether the cancel worked or not. Re-check
+it at Speedy a few minutes later anyway - the suite's own sweep is the second net, not a guarantee.
 
 ## The block checkout
 

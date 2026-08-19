@@ -56,7 +56,12 @@ bin/test econt|pigeon|core  # per-courier / framework groups
 
 - **Per-courier test split:** every PHP test has a class-level `@group speedy|econt|pigeon|boxnow|sameday|core`.
 - **wp-env gotcha:** the wrapper swallows the PHPUnit summary when piped - judge by **exit code 0**.
-- **E2E:** Playwright (`e2e/`), plain JS, `workers:1`, against the live dev site.
+- **E2E:** Playwright (`e2e/`), plain JS, `workers:1`, against the live dev site - whose address goes in
+  `bin/deploy.conf` (no default) and which the run reaches over SSH to turn auto-labelling off for its
+  length, so that a suite paying by cash on delivery does not book six real parcels. One spec books a
+  real shipment on purpose - the parcel to another country - and is held out of every ordinary run:
+  `cd e2e && BGC_REAL_WAYBILL=1 npx playwright test intl-speedy-ro`. Setup recipe and what to check
+  afterwards: [`e2e/README.md`](e2e/README.md).
 - **Releasing.** Three scripts, run in this order; each refuses rather than half-doing the job.
   ```bash
   bin/preflight        # one version in all 3 places, changelog entry, clean+pushed tree,
