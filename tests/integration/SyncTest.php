@@ -36,8 +36,11 @@ final class SyncTest extends WP_UnitTestCase {
         $this->assertSame(2, $r1['cities']);
         $this->assertSame(3, $r1['offices']); // 2 offices + 1 automat, one bulk call
         $this->assertSame(3, $r1['rates']); // address + office + automat, each from the first city (Sofia) + its representative office
-        $this->assertEqualsWithDelta(6.0, BGCouriers_Rates::get('speedy','office'), 0.001);
-        $this->assertEqualsWithDelta(6.0, BGCouriers_Rates::get('speedy','automat'), 0.001);
+        // NET, not the 6.00 gross this once expected: a reference rate is read back as a shipping
+        // cost, and WooCommerce taxes a shipping cost on top - storing the gross charged the VAT twice
+        // (fixed in 0.3.5; this expectation was left behind).
+        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','office'), 0.001);
+        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','automat'), 0.001);
 
         // Second run: Varna gone -> pruned.
         $courier->cities = [['city_id'=>1,'name'=>'Sofia','name_lat'=>'Sofia','post_code'=>'1000','region'=>'Sofia']];

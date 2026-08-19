@@ -10,6 +10,19 @@ credentials books a real shipment.
     npx playwright test --headed   # watch
     npx playwright show-report
 
+## The one spec that books a real shipment
+
+`intl-speedy-ro.spec.js` places an order to **Romania** and then books the waybill for it at Speedy, on
+purpose. Speedy's domestic service and its international one are mutually exclusive - each is refused
+where the other applies - so a waybill coming back is the only proof that the international one was used.
+It is left out of an ordinary run and asked for by name:
+
+    BGC_REAL_WAYBILL=1 npx playwright test intl-speedy-ro
+
+It voids the waybill again in `afterEach` and prints the number either way. Dev must be set up for it
+first: Romania switched on in the Speedy settings + **Sync now** run since, and Romania in a WooCommerce
+shipping zone that carries the Speedy method. Without those the spec fails and says which one is missing.
+
 ## Prerequisites on the target site
 Speedy enabled + valid creds + **Sync now** run (cities/offices cached); the
 "Speedy" (bgc_speedy) method added to the Bulgaria shipping zone; Cash on Delivery

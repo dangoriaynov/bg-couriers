@@ -26,6 +26,19 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
         throw new BGCouriers_Api_Exception(esc_html('Request failed: ' . $last));
     }
 
+    /**
+     * Countries this courier can deliver to BESIDES the shop's own, as ISO-3166 alpha-2 codes.
+     *
+     * Empty for every courier by default, deliberately: a courier that has not been measured against a
+     * foreign destination does not get to guess at one. A courier overrides this only with countries
+     * whose towns and offices it actually publishes AND whose service the account can book - both of
+     * which are questions about the courier, not about the shop. What the SHOP has switched on is
+     * BGCouriers_Settings::intl_countries(), which can only ever be a subset of this.
+     *
+     * @return string[]
+     */
+    public function intl_countries(): array { return []; }
+
     /** Seam: overridden in tests; real impl calls wp_remote_post. */
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [

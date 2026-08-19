@@ -96,7 +96,8 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         $rows = self::parse_offices($this->post_json($this->base . '/Nomenclatures/NomenclaturesService.getOffices.json', ['countryCode' => 'BGR']));
         return $city_id > 0 ? array_values(array_filter($rows, static function ($o) use ($city_id) { return $o['city_id'] === $city_id; })) : $rows;
     }
-    public function search_streets(int $city_id, string $term): array {
+    /** $country is accepted so every courier answers the same call; Econt delivers in Bulgaria only. */
+    public function search_streets(int $city_id, string $term, string $country = ''): array {
         $rows = self::parse_streets($this->post_json($this->base . '/Nomenclatures/NomenclaturesService.getStreets.json', ['cityID' => $city_id]));
         if ($term === '') { return $rows; }
         $t = function_exists('mb_strtolower') ? mb_strtolower($term) : strtolower($term);

@@ -239,6 +239,11 @@ class BGCouriers_Order_Metabox {
             // Separate nonce: the tracking refresh is an admin action, not part of saving delivery details.
             'adminNonce' => wp_create_nonce('bgcouriers_admin'),
             'orderId' => $order->get_id(),
+            // Where this order is going. Every nomenclature lookup the editor makes is a question about a
+            // country - a courier's towns and offices are per-country - and without it the editor asked
+            // about the shop's own. A Romanian order then offered Bulgarian towns to move it to, and the
+            // office list for the town it is actually going to came back empty.
+            'country' => BGCouriers_Settings::order_country($order),
             'caps'    => $caps,
             'leaflet_images' => BGCOURIERS_URL . 'assets/lib/leaflet/images/',
             'methodLabels' => ['office' => __('To office', 'bg-couriers'), 'address' => __('To address', 'bg-couriers'), 'automat' => __('To APS', 'bg-couriers')],

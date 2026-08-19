@@ -71,17 +71,41 @@ class BGCouriers_Pricing {
      *
      * @return array{office_id:int, site_id:int}
      */
-    public static function resolve_office(string $courier, string $method, int $site_id, int $office): array {
+    public static function resolve_office(string $courier, string $method, int $site_id, int $office, string $country = ''): array {
         if ($office <= 0 && in_array($method, ['office', 'automat'], true)) {
             $rep = $site_id > 0 ? BGCouriers_Nomenclature::offices($courier, $site_id, $method) : [];
             if (!empty($rep[0]['office_id'])) {
                 $office = (int) $rep[0]['office_id'];
             } else {
-                $first = BGCouriers_Nomenclature::first_office($courier, $method);
+                // In the DESTINATION country: a representative office is only representative of the
+                // place the parcel is going, and the courier prices a route, not an office. '' would
+                // mean "any country" to the repository, and with two of them in the table the collation
+                // would pick which - so it resolves to the shop's own, never to whatever sorts first.
+                $first = BGCouriers_Nomenclature::first_office($courier, $method, self::country_or_home($country));
                 if (!empty($first['office_id'])) { $office = (int) $first['office_id']; $site_id = (int) $first['city_id']; }
             }
         }
         return ['office_id' => $office, 'site_id' => $site_id];
+    }
+
+    /** '' means the shop's own country here, never "any country" - see resolve_office(). */
+    private static function country_or_home(string $country): string {
+        $c = strtoupper(trim($country));
+        return $c !== '' ? $c : BGCouriers_Settings::home_country();
+    }
+
+    /**
+     * Where this package is going, as ISO alpha-2.
+     *
+     * The delivery box's own answer first - the customer chose it there, and the town and office ids in
+     * the session were looked up against it - then WooCommerce's package destination, which is what a
+     * cart-page estimate has before anyone has touched the delivery box, then the shop's own country.
+     */
+    public static function destination_country(array $package = []): string {
+        $s = (function_exists('WC') && WC()->session) ? WC()->session : null;
+        $c = $s ? strtoupper(trim((string) $s->get('bgcouriers_country', ''))) : '';
+        if ($c === '') { $c = strtoupper(trim((string) ($package['destination']['country'] ?? ''))); }
+        return $c !== '' ? $c : BGCouriers_Settings::home_country();
     }
 
     /**
@@ -93,23 +117,28 @@ class BGCouriers_Pricing {
      *  - every other listed courier -> the SAME destination city resolved in ITS OWN nomenclature via the
      *    shared postcode (office 0 = a representative office), so its listed price is stable and correct.
      *
-     * @return array{method:string, site_id:int, office_id:int}
+     * @return array{method:string, site_id:int, office_id:int, country:string}
      */
     public static function selection_for(string $courier_id): array {
         $default = BGCouriers_Settings::enabled_methods($courier_id)[0] ?? 'office';
         $s = (function_exists('WC') && WC()->session) ? WC()->session : null;
-        if (!$s) { return ['method' => $default, 'site_id' => 0, 'office_id' => 0]; }
+        if (!$s) { return ['method' => $default, 'site_id' => 0, 'office_id' => 0, 'country' => '']; }
+        // One destination for the whole basket - the customer is one person at one address - so unlike
+        // the city and office ids this is NOT per courier and does not need re-resolving for each.
+        $country = self::destination_country();
         if ((string) $s->get('bgcouriers_selection_courier', '') === $courier_id) {
             return [
                 'method'    => (string) $s->get('bgcouriers_method', '') ?: $default,
                 'site_id'   => (int) $s->get('bgcouriers_site_id', 0),
                 'office_id' => (int) $s->get('bgcouriers_office_id', 0),
+                'country'   => $country,
             ];
         }
         $site_id  = 0;
         $postcode = (string) $s->get('bgcouriers_post_code', '');
         if ($postcode !== '') {
-            $city = BGCouriers_Nomenclature::city_by_postcode($courier_id, $postcode);
+            // With the post code alone, "1000" is Sofia and Bucharest at once; the country decides which.
+            $city = BGCouriers_Nomenclature::city_by_postcode($courier_id, $postcode, $country);
             if ($city) { $site_id = (int) $city['city_id']; }
         }
         // What the customer last chose IN THIS courier, if they have been in it. Without this a courier
@@ -127,10 +156,11 @@ class BGCouriers_Pricing {
                     'method'    => $method,
                     'site_id'   => $own > 0 ? $own : $site_id,
                     'office_id' => $own > 0 ? (int) ($m['office_id'] ?? 0) : 0,
+                    'country'   => $country,
                 ];
             }
         }
-        return ['method' => $default, 'site_id' => $site_id, 'office_id' => 0];
+        return ['method' => $default, 'site_id' => $site_id, 'office_id' => 0, 'country' => $country];
     }
 
     /**
@@ -138,17 +168,27 @@ class BGCouriers_Pricing {
      * reference (no API call) - so switching couriers stays snappy and the customer can start entering the
      * address immediately. Once a real city is chosen we do the exact live quote against the resolved office.
      */
-    public static function checkout_quote(BGCouriers_Courier_Interface $courier, string $method, int $site_id, int $office, array $packed, string $currency): BGCouriers_Quote {
+    public static function checkout_quote(BGCouriers_Courier_Interface $courier, string $method, int $site_id, int $office, array $packed, string $currency, string $country = ''): BGCouriers_Quote {
+        // Abroad, every number that is not a live quote for THIS destination is a Bulgarian number:
+        // the fixed price the merchant typed for domestic delivery, the daily reference quoted against a
+        // Bulgarian office, the flat 6.99 last resort. None of them is what a parcel to another country
+        // costs, and showing one is worse than showing no price at all - the shop would eat the
+        // difference on every order without ever seeing it. So abroad it is a live price or nothing.
+        $abroad = BGCouriers_Settings::is_intl($country);
         // 'fixed' mode: a predefined flat price, regardless of address - never call the API or cache.
-        if (BGCouriers_Settings::price_mode($courier->id(), $method) === 'fixed') {
+        if (!$abroad && BGCouriers_Settings::price_mode($courier->id(), $method) === 'fixed') {
             $price = (float) BGCouriers_Settings::method_config($courier->id(), $method)['price'];
             return new BGCouriers_Quote($price > 0 ? round($price, 2) : 6.99, 0.0, $currency, 'fixed');
         }
         if ($site_id <= 0) {
-            $est = self::reference_for_weight($courier, $method, $packed, $currency);
+            // The reference route is resolved in the destination country, so a customer who has said
+            // "Romania" but not yet which town sees a Romanian price, not a Bulgarian one.
+            $est = self::reference_for_weight($courier, $method, $packed, $currency, $country);
             if ($est !== null) { return new BGCouriers_Quote(round($est, 2), 0.0, $currency, 'reference'); }
-            $est = self::estimate($courier->id(), $method);
-            if ($est !== null) { return new BGCouriers_Quote(round($est, 2), 0.0, $currency, 'reference'); }
+            if (!$abroad) {
+                $est = self::estimate($courier->id(), $method);
+                if ($est !== null) { return new BGCouriers_Quote(round($est, 2), 0.0, $currency, 'reference'); }
+            }
         }
         // Cache the live quote per courier+method+city+weight+COD. The city now carries across couriers,
         // so without this every switch would re-hit the courier API; with it, a seen combo is instant.
@@ -157,16 +197,19 @@ class BGCouriers_Pricing {
         // a prepaid one's price out of the cache.
         $cod  = self::cart_cod_amount();
         $w    = round((float) ($packed['weight_kg'] ?? 0), 2);
+        // The country joins the key only when it is not home, so every domestic key stays exactly what
+        // it was - a shop that never ships abroad does not re-quote everything the day it updates.
         $tkey = 'bgcouriers_q_' . $courier->id() . '_' . $method . '_' . $site_id . '_'
-              . str_replace('.', '', (string) $w) . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '');
+              . str_replace('.', '', (string) $w) . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '')
+              . ($abroad ? '_' . strtolower($country) : '');
         $cached = get_transient($tkey);
         if (is_array($cached) && isset($cached['p'])) {
             return new BGCouriers_Quote((float) $cached['p'], 0.0, (string) ($cached['c'] ?? $currency), 'cached');
         }
-        $res = self::resolve_office($courier->id(), $method, $site_id, $office);
+        $res = self::resolve_office($courier->id(), $method, $site_id, $office, $country);
         $shipment = array_merge($packed, [
             'method' => $method, 'site_id' => $res['site_id'], 'office_id' => $res['office_id'],
-            'cod_amount' => $cod, 'currency' => $currency,
+            'cod_amount' => $cod, 'currency' => $currency, 'country' => $country,
         ]);
         $q = self::quote($courier, $shipment);
         if ($q->source === 'live') { set_transient($tkey, ['p' => $q->price, 'c' => $q->currency], 3 * HOUR_IN_SECONDS); }
@@ -178,10 +221,21 @@ class BGCouriers_Pricing {
         $mode    = BGCouriers_Settings::price_mode($courier->id(), $method);
         $store   = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : '';
         $default = (float) BGCouriers_Settings::method_config($courier->id(), $method)['price'];
+        $abroad  = BGCouriers_Settings::is_intl((string) ($shipment['country'] ?? ''));
         // Live API for 'live' and 'fallback' (not 'fixed').
         if ($mode !== 'fixed' && in_array('live_quote', $courier->capabilities(), true)) {
             try { return $courier->quote($shipment); }
-            catch (\Exception $e) { BGCouriers_Logger::debug('live quote failed -> fallback', ['courier' => $courier->id()]); }
+            catch (\Exception $e) {
+                BGCouriers_Logger::debug('live quote failed -> fallback', ['courier' => $courier->id()]);
+                // Abroad there is nothing below this line to fall back TO: every one of those prices was
+                // set or measured for a domestic parcel. The failure is passed on and the caller offers
+                // no rate, so the shop finds out at the checkout rather than in its courier invoice.
+                if ($abroad) { throw $e; }
+            }
+        }
+        if ($abroad) {
+            throw new BGCouriers_Api_Exception(sprintf('%s: no live price for %s',
+                $courier->id(), (string) ($shipment['country'] ?? '')));
         }
         // No live price (fixed mode, or the API failed). 'fixed'/'fallback' prefer the configured price;
         // 'live' prefers the daily cached reference. All amounts are already in the store currency.
@@ -215,9 +269,12 @@ class BGCouriers_Pricing {
     }
 
     /** Transient key for a reference price. Carries the weight, or a heavy cart reads a light one's price. */
-    public static function reference_key(string $courier, string $method, float $weight_kg, float $cod = 0.0): string {
+    public static function reference_key(string $courier, string $method, float $weight_kg, float $cod = 0.0, string $country = ''): string {
         return 'bgcouriers_ref_' . $courier . '_' . $method . '_' . str_replace('.', '', (string) self::reference_weight($weight_kg))
-             . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '');
+             . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '')
+             // Home keeps the bare key it always had; another country gets its own, or the two would
+             // read each other's price out of the cache.
+             . (BGCouriers_Settings::is_intl($country) ? '_' . strtolower($country) : '');
     }
 
     /**
@@ -231,14 +288,14 @@ class BGCouriers_Pricing {
      * Returns null when the courier cannot be quoted at all, so the caller falls back to the old daily
      * figure rather than showing nothing.
      */
-    private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency): ?float {
+    private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency, string $country = ''): ?float {
         $w    = self::reference_weight((float) ($packed['weight_kg'] ?? 0));
         $cod  = self::cart_cod_amount();
-        $tkey = self::reference_key($courier->id(), $method, $w, $cod);
+        $tkey = self::reference_key($courier->id(), $method, $w, $cod, $country);
         $hit  = get_transient($tkey);
         if (is_array($hit) && isset($hit['p'])) { return (float) $hit['p']; }
         if (!class_exists('BGCouriers_Sync')) { return null; }
-        $ref = BGCouriers_Sync::reference_shipment($courier->id(), $method);
+        $ref = BGCouriers_Sync::reference_shipment($courier->id(), $method, $country);
         if (!$ref) { return null; }
         // The route stays the reference one - there is no destination yet, that is the whole situation -
         // and only the parcel becomes the customer's: their weight, and their box, since a courier
@@ -246,6 +303,8 @@ class BGCouriers_Pricing {
         $shipment = array_merge($ref, [
             'method'     => $method,
             'weight_kg'  => $w,
+            // From the reference route, which resolved it: '' here means the shop's own country.
+            'country'    => (string) ($ref['country'] ?? $country),
             'length_cm'  => $packed['length_cm'] ?? $ref['length_cm'],
             'width_cm'   => $packed['width_cm']  ?? $ref['width_cm'],
             'height_cm'  => $packed['height_cm'] ?? $ref['height_cm'],

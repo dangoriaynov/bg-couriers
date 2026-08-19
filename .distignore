@@ -10,6 +10,7 @@
 .phpunit.result.cache
 .DS_Store
 README.md
+CONTRIBUTING.md
 composer.json
 composer.lock
 phpunit.xml.dist

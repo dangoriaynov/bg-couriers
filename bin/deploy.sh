@@ -47,6 +47,6 @@ rsync -az --delete \
   --exclude 'test-results' --exclude 'playwright-report' \
   --exclude 'vendor' --exclude 'docs' --exclude 'bin' --exclude 'e2e' \
   --exclude '.wp-env.json' --exclude 'composer.*' --exclude 'phpunit.xml.dist' \
-  --exclude '.wordpress-org' --exclude '.distignore' --exclude '.github' --exclude 'README.md' \
+  --exclude '.wordpress-org' --exclude '.distignore' --exclude '.github' --exclude 'README.md' --exclude 'CONTRIBUTING.md' \
   -e "ssh -p ${BGC_SSH_PORT}" ./ "${BGC_SSH_HOST}:${DEST}"
 echo "Synced to ${TARGET}. Activate via wp-admin."

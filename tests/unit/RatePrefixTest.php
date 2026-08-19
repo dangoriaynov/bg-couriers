@@ -42,6 +42,8 @@ final class RatePrefixTest extends TestCase {
         // returns false, which is exactly the state that makes ppp_filter_rates do its filtering.
         $gateways = new class { public function payment_gateways(): array { return []; } };
         Functions\when('WC')->justReturn(new class($gateways) {
+            /** No session in a unit test: the destination country then falls back to the shop's own. */
+            public $session = null;
             private $g;
             public function __construct($g) { $this->g = $g; }
             public function payment_gateways() { return $this->g; }

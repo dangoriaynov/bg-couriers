@@ -31,11 +31,12 @@ rm -rf "$DEST/tests" "$DEST/e2e" "$DEST/bin" "$DEST/node_modules" \
        "$DEST/.github" "$DEST/.wp-env.json" "$DEST/phpunit.xml" "$DEST/phpunit.xml.dist" \
        "$DEST/composer.json" "$DEST/composer.lock" "$DEST/package.json" "$DEST/package-lock.json" \
        "$DEST/.gitattributes" "$DEST/.gitignore" "$DEST/CLAUDE.md" \
-       "$DEST/docs" "$DEST/README.md" "$DEST/.distignore" "$DEST/.superpowers" \
+       "$DEST/docs" "$DEST/README.md" "$DEST/CONTRIBUTING.md" "$DEST/.distignore" "$DEST/.superpowers" \
        "$DEST/test-results" "$DEST/playwright-report" \
        "$DEST/.wordpress-org"
 # .wordpress-org holds the banner/icon artwork, which belongs in SVN's assets/ directory - NOT inside
-# the plugin. docs/ and README.md are for whoever works on the code, not for whoever installs it.
+# the plugin. docs/, README.md and CONTRIBUTING.md are for whoever works on the code, not for whoever
+# installs it.
 find "$DEST" -name '.DS_Store' -delete
 
 rm -f "$OUT"; mkdir -p "$(dirname "$OUT")"

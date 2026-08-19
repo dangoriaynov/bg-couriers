@@ -32,6 +32,12 @@
   }
 
   function courier($wrap) { return $wrap.attr('data-courier') || 'speedy'; }
+  // Where the parcel is going. The select only exists on a shop that delivers to more than one country;
+  // everywhere else the attribute the server rendered is the answer.
+  function country($wrap) {
+    var $c = $wrap.find('.bgc-country');
+    return ($c.length && $c.val()) || $wrap.attr('data-country') || BGCOURIERS.homeCountry || 'BG';
+  }
   function caps($wrap) {
     var enabled = ($wrap.attr('data-methods') || 'office,address,automat').split(',');
     var order   = ($wrap.attr('data-order')   || 'office,address,automat').split(',');
@@ -89,9 +95,17 @@
   // Per-city availability: grey out + disable a delivery option the chosen city has none of.
   var availCache = {};
   function methodOk(av, m) { return m === 'address' || (m === 'office' && av.office) || (m === 'automat' && av.automat); }
+  // The preloaded city index is built for ONE country - the shop's own, or whichever the page was
+  // rendered for. It is not merely incomplete for another country, it is empty of it: every lookup comes
+  // back "no such town, no offices here", which is indistinguishable from an answer. So abroad the index
+  // is not consulted at all and the original AJAX path answers instead.
+  function indexUsable($wrap) {
+    return !!BGCOURIERS.preloadCities
+      && country($wrap) === (BGCOURIERS.cityIndexCountry || BGCOURIERS.homeCountry || 'BG');
+  }
   // Derive availability from the preloaded index (no AJAX) when the switch is on; else null -> AJAX below.
   function cityAvailLocal($wrap, city) {
-    if (!BGCOURIERS.preloadCities) { return null; }
+    if (!indexUsable($wrap)) { return null; }
     var idx = BGCOURIERS.cityIndex && BGCOURIERS.cityIndex[courier($wrap)];
     if (!idx) { return null; }
     function has(list) { var a = idx[list] || []; for (var i = 0; i < a.length; i++) { if (a[i][0] == city) { return true; } } return false; }
@@ -100,12 +114,12 @@
   function applyAvail($wrap) {
     var city = $wrap.find('.bgc-city').val() || 0;
     if (!city) { $wrap.find('.bgc-tab').removeClass('bgc-tab-na').prop('disabled', false).attr('title', ''); return; }
-    var key = courier($wrap) + ':' + city;
+    var key = courier($wrap) + ':' + country($wrap) + ':' + city;
     if (availCache[key] === undefined) {
       var local = cityAvailLocal($wrap, city);
       if (local) { availCache[key] = local; }
       else {
-        $.get(BGCOURIERS.ajax, { action: 'bgcouriers_city_avail', courier: courier($wrap), city_id: city }, function (res) {
+        $.get(BGCOURIERS.ajax, { action: 'bgcouriers_city_avail', courier: courier($wrap), country: country($wrap), city_id: city }, function (res) {
           availCache[key] = { office: !!(res && res.office), automat: !!(res && res.automat) };
           applyAvail($wrap);
         });
@@ -158,7 +172,7 @@
         transport: function (params, success, failure) {
           var m = method($wrap), cour = courier($wrap);
           var idx = BGCOURIERS.cityIndex && BGCOURIERS.cityIndex[cour];
-          if (BGCOURIERS.preloadCities && m !== 'address' && idx && idx[m]) {
+          if (indexUsable($wrap) && m !== 'address' && idx && idx[m]) {
             var term = ((params.data && params.data.term) || '').toLowerCase(), rows = idx[m], out = [];
             for (var i = 0; i < rows.length && out.length < 200; i++) {
               var a = rows[i]; // [city_id, name, post_code, name_lat]
@@ -172,7 +186,7 @@
           }
           return noAbortTransport(params, success, failure); // original AJAX path, untouched
         },
-        data: function (params) { return { action: 'bgcouriers_search_cities', courier: courier($wrap), term: params.term || '' }; },
+        data: function (params) { return { action: 'bgcouriers_search_cities', courier: courier($wrap), country: country($wrap), term: params.term || '' }; },
         processResults: function (rows) {
           var counts = {};
           rows.forEach(function (r) { counts[r.name] = (counts[r.name] || 0) + 1; });
@@ -189,16 +203,36 @@
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
       $wrap.find('.bgc-map-btn').prop('disabled', false).attr('title', '');
       resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
-      idle(function () { prefetchOtherCouriers($wrap.find('.bgc-city').val() || 0, method($wrap)); });
+      idle(function () { prefetchOtherCouriers($wrap.find('.bgc-city').val() || 0, method($wrap), country($wrap)); });
     });
     // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
     $city.on('select2:clear', function () {
       $wrap.find('.bgc-postcode').val('');
       $wrap.find('.bgc-map-btn').prop('disabled', true).attr('title', (BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || '');
       resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
-      idle(function () { prefetchOtherCouriers($wrap.find('.bgc-city').val() || 0, method($wrap)); });
+      idle(function () { prefetchOtherCouriers($wrap.find('.bgc-city').val() || 0, method($wrap), country($wrap)); });
     });
   }
+
+  // A town, an office and a street all belong to the country they were chosen in: an id from one country
+  // means a different place - or nothing at all - in the other. So changing it clears them rather than
+  // carrying them over, and asks the server for a fresh price.
+  $(document).on('change', '.bgc-fields .bgc-country', function () {
+    var $wrap = $(this).closest('.bgc-fields');
+    $wrap.attr('data-country', $(this).val() || '');
+    var $city = $wrap.find('.bgc-city');
+    $city.val('').trigger('change.select2');
+    $wrap.find('.bgc-postcode').val('');
+    resetOffice($wrap); resetStreet($wrap);
+    $wrap.find('.bgc-map-btn').prop('disabled', true);
+    $wrap.removeData('bgc-availed');       // availability was worked out for the other country
+    // WooCommerce's own country field goes with it, so the order that is finally posted says where it is
+    // going. Namespaced trigger: it repaints the select without firing WooCommerce's own change handler,
+    // which would recalculate the checkout a second time on top of the one below.
+    var $wc = $('#shipping_country, #billing_country');
+    if ($wc.length) { $wc.val($(this).val()).trigger('change.select2'); }
+    showLoader($wrap); pushSelection($wrap);
+  });
 
   // Office / automat - preloaded per city+method, cached client-side until refresh; search is then local.
   var officeCache = {}; // 'courier:city:type' -> all office rows for that city+type
@@ -225,12 +259,17 @@
     if (window.requestIdleCallback) { requestIdleCallback(fn, { timeout: 2000 }); } else { setTimeout(fn, 400); }
   }
 
+  // Every office lookup names the country. A courier's office list is per-country, and one asked without
+  // it answers for its home country - which for a foreign town is an empty list, not an error. The cache
+  // key carries it for the same reason: an empty answer under a key that does not say which country was
+  // asked about is a wrong answer that outlives the question.
+  function officeKey($wrap, city, m) { return courier($wrap) + ':' + country($wrap) + ':' + city + ':' + m; }
   function preloadOffices($wrap) {
     var city = $wrap.find('.bgc-city').val() || 0, m = method($wrap);
     if (!city || m === 'address') { return; }
-    var key = courier($wrap) + ':' + city + ':' + m;
+    var key = officeKey($wrap, city, m);
     if (cacheGet(key) !== undefined) { return; }
-    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: courier($wrap), city_id: city, type: m, all: 1 },
+    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: courier($wrap), country: country($wrap), city_id: city, type: m, all: 1 },
       function (rows) { cacheSet(key, rows); });
   }
 
@@ -254,20 +293,24 @@
   /* Once a city is known, quietly fetch the SAME city for the other couriers on the page, so switching
      courier is instant instead of costing a round-trip. Runs at idle, one request at a time, and skips
      anything already cached - it is a nicety, never allowed to compete with what the shopper is doing. */
-  function prefetchOtherCouriers(city, m) {
+  function prefetchOtherCouriers(city, m, ctry) {
     if (!city || m === 'address') { return; }
     var seen = {}, queue = [];
     $('.bgc-fields').each(function () {
-      var c = $(this).attr('data-courier');
+      var $o = $(this), c = $o.attr('data-courier');
       if (!c || seen[c]) { return; }
+      // Only a courier the parcel could actually go to this same country with. The town id belongs to one
+      // country's nomenclature, and warming another country's courier with it would cache an empty list
+      // against a town that is simply not theirs.
+      if (country($o) !== ctry) { return; }
       seen[c] = 1;
-      if (cacheGet(c + ':' + city + ':' + m) === undefined) { queue.push(c); }
+      if (cacheGet(c + ':' + ctry + ':' + city + ':' + m) === undefined) { queue.push(c); }
     });
     (function next() {
       if (!queue.length) { return; }
       var c = queue.shift();
-      $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: c, city_id: city, type: m, all: 1 })
-        .done(function (rows) { cacheSet(c + ':' + city + ':' + m, rows); })
+      $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: c, country: ctry, city_id: city, type: m, all: 1 })
+        .done(function (rows) { cacheSet(c + ':' + ctry + ':' + city + ':' + m, rows); })
         .always(function () { idle(next); });
     })();
   }
@@ -299,7 +342,7 @@
       ajax: {
         delay: 0,
         transport: function (params, success, failure) {
-          var d = params.data, key = d.courier + ':' + d.city_id + ':' + d.type, term = (d.term || '').toLowerCase();
+          var d = params.data, key = d.courier + ':' + d.country + ':' + d.city_id + ':' + d.type, term = (d.term || '').toLowerCase();
           function done(rows) {
             success(term ? rows.filter(function (o) {
               // Office names/addresses are Cyrillic only - also match their Latin transliteration so a
@@ -309,13 +352,13 @@
           }
           var hit = cacheGet(key);
           if (hit !== undefined) { done(hit); return { abort: function () {} }; } // cached: no request at all
-          var req = $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: d.courier, city_id: d.city_id, type: d.type, all: 1 });
+          var req = $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: d.courier, country: d.country, city_id: d.city_id, type: d.type, all: 1 });
           req.done(function (rows) { cacheSet(key, rows); done(officeCache[key]); });
           req.fail(function (x, status) { if (status !== 'abort') { failure(); } });
           return req;
         },
         data: function (params) {
-          return { courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
+          return { courier: courier($wrap), country: country($wrap), city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
         },
         processResults: function (rows) {
           return { results: rows.map(function (o) { return { id: o.office_id, text: o.name + ' - ' + o.address }; }) };
@@ -376,7 +419,7 @@
     }
     function findCity(term, cb) {
       if (!term) { cb(null); return; }
-      $.get(BGCOURIERS.ajax, { action: 'bgcouriers_search_cities', courier: courier($wrap), term: term }, function (rows) {
+      $.get(BGCOURIERS.ajax, { action: 'bgcouriers_search_cities', courier: courier($wrap), country: country($wrap), term: term }, function (rows) {
         cb((rows && rows.length) ? rows[0] : null);
       });
     }
@@ -433,7 +476,7 @@
       width: '100%', tags: true, allowClear: true, minimumInputLength: 2, placeholder: (BGCOURIERS.i18n && BGCOURIERS.i18n.street_ph) || '',
       ajax: {
         url: BGCOURIERS.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
-        data: function (params) { return { action: 'bgcouriers_streets', courier: courier($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
+        data: function (params) { return { action: 'bgcouriers_streets', courier: courier($wrap), country: country($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
         processResults: function (rows) { return { results: rows.map(function (s) { return { id: s.name, text: s.label || s.name }; }) }; }
       },
       createTag: function (params) { var t = (params.term || '').trim(); return t ? { id: t, text: t } : null; }
@@ -444,7 +487,7 @@
   // Save the selection ------------------------------------------------------
   function selectionData($wrap) {
     return {
-      action: 'bgcouriers_set_selection', nonce: BGCOURIERS.nonce, courier: courier($wrap), method: method($wrap),
+      action: 'bgcouriers_set_selection', nonce: BGCOURIERS.nonce, courier: courier($wrap), country: country($wrap), method: method($wrap),
       site_id: $wrap.find('.bgc-city').val() || 0,
       office_id: $wrap.find('.bgc-office').val() || 0,
       post_code: $wrap.find('.bgc-postcode').val() || '',

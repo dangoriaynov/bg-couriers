@@ -3,6 +3,16 @@ defined('ABSPATH') || exit;
 
 class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     const BG_COUNTRY_ID = 100;
+    /**
+     * Speedy's own country ids, by ISO-3166 alpha-2, read off /location/country?isoAlpha2=XX.
+     *
+     * Only countries Speedy publishes a full site nomenclature for are here (`siteNomen: 1`), because a
+     * town-and-office picker is the only checkout this plugin has. Greece is `siteNomen: 2` - post-code
+     * addressing, no office list - and everything else nearby is `0`: free text, no towns, no offices.
+     * Measured 2026-08-19; the unfiltered /location/country call answers with ten countries, all 0, and
+     * must not be used to decide this.
+     */
+    const COUNTRY_IDS = ['BG' => 100, 'RO' => 642];
     const BASE = 'https://api.speedy.bg/v1'; // Speedy has no separate demo/sandbox host
     /** Operation code of "Доставка на клиент" - the operation logged when the customer receives it. */
     const OP_DELIVERED = '-14';
@@ -33,8 +43,8 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return max(0.0, round($total - $shipping_total - $shipping_tax, 2));
     }
 
-    public static function build_address(int $site_id, array $fields): array {
-        $addr = ['countryId' => self::BG_COUNTRY_ID, 'siteId' => $site_id];
+    public static function build_address(int $site_id, array $fields, string $country = ''): array {
+        $addr = ['countryId' => self::dest_country_id($country), 'siteId' => $site_id];
         $map = ['complex' => 'complexName', 'street' => 'streetName', 'street_no' => 'streetNo',
                 'block' => 'blockNo', 'entrance' => 'entranceNo', 'floor' => 'floorNo',
                 'apartment' => 'apartmentNo', 'note' => 'addressNote'];
@@ -47,6 +57,61 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
 
     public function id(): string { return 'speedy'; }
     public function label(): string { return 'Speedy'; }
+
+    /**
+     * Romania, and for now only Romania.
+     *
+     * Not a limit of the API but of what has been proven: a real BG->RO waybill was created, printed and
+     * cancelled on 2026-08-19 (service 202, payer SENDER). Nothing else has been.
+     */
+    public function intl_countries(): array { return ['RO']; }
+
+    /** Speedy's numeric country id for an ISO code; 0 when Speedy is not asked to deliver there. */
+    public static function country_id(string $iso): int {
+        return self::COUNTRY_IDS[strtoupper(trim($iso))] ?? 0;
+    }
+
+    /**
+     * The country id to send for a destination. '' is the shop's own country, which is what every
+     * domestic caller passes; an unknown country is refused rather than quietly turned into Bulgaria.
+     * Falling back would attach countryId 100 to a foreign site id and Speedy would answer about some
+     * Bulgarian village with the same number - a wrong price nobody can see is wrong.
+     */
+    private static function dest_country_id(string $iso): int {
+        $c = strtoupper(trim($iso));
+        if ($c === '' || $c === 'BG') { return self::BG_COUNTRY_ID; }
+        $id = self::country_id($c);
+        if ($id <= 0) { throw new BGCouriers_Api_Exception('Speedy does not deliver to ' . $c); }
+        return $id;
+    }
+
+    /**
+     * Speedy's parcel service per destination country. Measured 2026-08-19 against /calculate with a
+     * 1 kg parcel: 505 for Bulgaria, 202 (SPEEDY CEE ECONOMY) for Romania. The two are DISJOINT - 202
+     * to a Bulgarian office and 505 to a Romanian one are both refused with
+     * sla.serviceId.allowed_service_validator.service-not-allowed - so this is a lookup, not a default
+     * with an exception, and a country that is not in it has no answer at all.
+     *
+     * /services/destination is the general form of this and is deliberately not used yet: it needs a
+     * full sender+recipient pair, which puts a live call inside the checkout path that the price cache
+     * exists to avoid, and with two countries it can only ever answer with these same two numbers. When
+     * a third country is added, discovery earns its place.
+     */
+    const SERVICE_IDS = ['BG' => 505, 'RO' => 202];
+
+    /** The service id for a destination country; '' = the shop's own. Unknown countries are refused. */
+    public static function service_id(string $iso = ''): int {
+        $c = strtoupper(trim($iso));
+        if ($c === '') { $c = 'BG'; }
+        if (!isset(self::SERVICE_IDS[$c])) { throw new BGCouriers_Api_Exception('Speedy has no service for ' . $c); }
+        return self::SERVICE_IDS[$c];
+    }
+
+    /** Is this destination outside the country the shop ships from? */
+    private static function is_abroad(string $iso): bool {
+        $c = strtoupper(trim($iso));
+        return $c !== '' && $c !== 'BG';
+    }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote', 'pickup']; }
 
     private function auth(array $body): array {
@@ -62,9 +127,13 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         } catch (BGCouriers_Api_Exception $e) { return false; }
     }
 
-    public function fetch_cities(): array {
+    /**
+     * @param string $country ISO alpha-2; '' = the shop's own country. /location/site/csv/642 answers in
+     *                        exactly the same CSV shape as /100, so the parser below is country-blind.
+     */
+    public function fetch_cities(string $country = ''): array {
         // The CSV export returns ALL sites; plain /location/site returns only a small default set.
-        $res = $this->http_post($this->base . '/location/site/csv/' . self::BG_COUNTRY_ID, $this->auth(['language' => 'BG']));
+        $res = $this->http_post($this->base . '/location/site/csv/' . self::dest_country_id($country), $this->auth(['language' => 'BG']));
         if (is_wp_error($res) || (int) wp_remote_retrieve_response_code($res) !== 200) { return []; }
         return self::parse_sites_csv((string) wp_remote_retrieve_body($res));
     }
@@ -100,16 +169,16 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return $out;
     }
 
-    public function fetch_offices(int $city_id): array {
-        $body = ['countryId' => self::BG_COUNTRY_ID, 'language' => 'BG'];
+    public function fetch_offices(int $city_id, string $country = ''): array {
+        $body = ['countryId' => self::dest_country_id($country), 'language' => 'BG'];
         if ($city_id > 0) { $body['siteId'] = $city_id; }
         $r = $this->post_json($this->base . '/location/office', $this->auth($body));
         return self::parse_offices($r);
     }
 
-    public function search_streets(int $site_id, string $term): array {
+    public function search_streets(int $site_id, string $term, string $country = ''): array {
         $r = $this->post_json($this->base . '/location/street', $this->auth([
-            'countryId' => self::BG_COUNTRY_ID, 'language' => 'BG', 'siteId' => $site_id, 'name' => $term,
+            'countryId' => self::dest_country_id($country), 'language' => 'BG', 'siteId' => $site_id, 'name' => $term,
         ]));
         return self::parse_streets($r);
     }
@@ -164,21 +233,23 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     public static function build_calculate_body(array $s): array {
+        $country   = (string) ($s['country'] ?? '');
         $recipient = ['privatePerson' => true];
         if (($s['method'] ?? 'address') === 'address') {
-            $recipient['addressLocation'] = ['countryId' => self::BG_COUNTRY_ID, 'siteId' => (int) $s['site_id']];
+            $recipient['addressLocation'] = ['countryId' => self::dest_country_id($country), 'siteId' => (int) $s['site_id']];
         } else { // office or automat
             $recipient['pickupOfficeId'] = (int) $s['office_id'];
         }
-        $service = ['autoAdjustPickupDate' => true, 'serviceIds' => [505]];
+        $service = ['autoAdjustPickupDate' => true, 'serviceIds' => [self::service_id($country)]];
         if (!empty($s['cod_amount'])) {
             // The SAME processing type the label will use: Speedy prices cash and a postal money
             // transfer differently, so a quote that always said CASH answered for a shipment the label
-            // was not going to create. BGCouriers_Settings::courier_ppp_payout() is the shop's own
-            // declaration of how this courier pays out.
+            // was not going to create. ppp_payout_reaches() is the shop's own declaration of how this
+            // courier pays out, and whether that arrangement reaches the destination at all - abroad it
+            // does not, and a quote that asked for one came back with no price whatsoever.
             $service['additionalServices']['cod'] = [
                 'amount'         => (float) $s['cod_amount'],
-                'processingType' => (class_exists('BGCouriers_Settings') && BGCouriers_Settings::courier_ppp_payout('speedy'))
+                'processingType' => (class_exists('BGCouriers_Settings') && BGCouriers_Settings::ppp_payout_reaches('speedy', $country))
                     ? 'POSTAL_MONEY_TRANSFER' : 'CASH',
             ];
         }
@@ -188,7 +259,11 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             'recipient' => $recipient,
             'service'   => $service,
             'content'   => ['parcelsCount' => 1, 'totalWeight' => (float) ($s['weight_kg'] ?? 2.0)],
-            'payment'   => ['courierServicePayer' => 'RECIPIENT'],
+            // RECIPIENT is what a domestic quote asks for. Abroad it is refused outright
+            // (payment.csPayment.payerRole.service-payer-validator.payer-not-allowed-for-service on 202,
+            // measured 2026-08-19): an international parcel is the sender's to pay for, and the shop
+            // charges the customer for it at the checkout instead.
+            'payment'   => ['courierServicePayer' => self::is_abroad($country) ? 'SENDER' : 'RECIPIENT'],
         ];
     }
 
@@ -246,11 +321,18 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         $method  = (string) $order->get_meta('_bgcouriers_method') ?: 'address';
         $site_id = (int) $order->get_meta('_bgcouriers_site_id');
         $office  = (int) $order->get_meta('_bgcouriers_office_id');
+        // Where it is going decides the service, the payer and which extras are allowed at all.
+        $country = BGCouriers_Settings::order_country($order);
+        $abroad  = self::is_abroad($country);
         // trim() so an empty shipping name ("" joined = " ", which is truthy) still falls back to billing.
         $recipient = [
             'privatePerson' => true,
             'clientName'    => trim($order->get_formatted_shipping_full_name()) ?: trim($order->get_formatted_billing_full_name()),
-            'phone1'        => ['number' => $order->get_billing_phone()],
+            // Domestic: exactly the number the customer typed, which is what has always worked. Abroad a bare
+            // 07xx says nothing about which country it rings, so it goes in full international form.
+            'phone1'        => ['number' => $abroad
+                ? (BGCouriers_Phone::e164((string) $order->get_billing_phone(), BGCouriers_Phone::cc_for($country)) ?: (string) $order->get_billing_phone())
+                : $order->get_billing_phone()],
             'email'         => BGCouriers_Settings::label_email($order),
         ];
         if ($method === 'address') {
@@ -263,11 +345,13 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
                 'floor'     => $order->get_meta('_bgcouriers_floor'),
                 'apartment' => $order->get_meta('_bgcouriers_apartment'),
                 'note'      => $order->get_meta('_bgcouriers_address_note'),
-            ]);
+            ], $country);
         } else {
             $recipient['pickupOfficeId'] = $office;
         }
-        $payer   = self::service_payer('speedy', $order);
+        // Abroad the shop pays and bills it on: Speedy refuses a RECIPIENT payer on the international
+        // service, so "the customer pays the courier" is not on offer there whatever the settings say.
+        $payer   = $abroad ? 'sender' : self::service_payer('speedy', $order);
         $package = in_array(get_option('bgcouriers_speedy_package', 'BOX'), ['BOX', 'ENVELOPE', 'PALLET'], true)
             ? (string) get_option('bgcouriers_speedy_package', 'BOX')
             : 'BOX';
@@ -284,7 +368,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         }
         $body = [
             'recipient' => $recipient,
-            'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => 505],
+            'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => self::service_id($country)],
             'content'   => ['parcelsCount' => $parcel_n, 'contents' => $contents, 'package' => $package,
                             'totalWeight' => self::order_weight_kg($order),
                             // ShipmentParcelSize {width,height,depth} cm (schema-confirmed); lockers must fit.
@@ -300,7 +384,11 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         if ($order->get_payment_method() === 'cod') {
             $cod = self::cod_for_payer($order, $payer);
             if ($cod > 0) {
-                $processing_type = BGCouriers_Settings::courier_ppp_payout('speedy') ? 'POSTAL_MONEY_TRANSFER' : 'CASH';
+                // Abroad this is always CASH, whatever the merchant's Speedy contract says at home: the
+                // postal money transfer is a Bulgarian instrument and Speedy refuses it for a foreign
+                // address (see BGCouriers_Settings::ppp_payout_reaches). Asking for one there is not a
+                // worse label - it is no label, and before that no price and no courier on offer at all.
+                $processing_type = BGCouriers_Settings::ppp_payout_reaches('speedy', $country) ? 'POSTAL_MONEY_TRANSFER' : 'CASH';
                 // NO ignoreIfNotApplicable here, deliberately. That flag lets Speedy accept the shipment
                 // and silently drop the cash on delivery - the waybill then prints with nothing to
                 // collect and the goods leave for free, which nobody notices until the money is missing.
@@ -321,11 +409,13 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         // Open-before-payment (OBPD): allow/test inspection before the customer pays. Never sent for
         // locker (automat) deliveries - there is no courier at an APT to supervise an inspection, so the
         // field stays at the API's own default there.
+        // Nor abroad: obpd is a FORBIDDEN additional service on the international service, and sending a
+        // forbidden one is refused outright rather than ignored.
         $obpd_val = BGCouriers_Settings::open_before_pay();
-        if ($method !== 'automat' && ($obpd_val === 'open' || $obpd_val === 'test')) {
+        if (!$abroad && $method !== 'automat' && ($obpd_val === 'open' || $obpd_val === 'test')) {
             $body['service']['additionalServices']['obpd'] = [
                 'option'                  => strtoupper($obpd_val),
-                'returnShipmentServiceId' => 505,
+                'returnShipmentServiceId' => self::service_id($country),
                 'returnShipmentPayer'     => 'SENDER',
                 'ignoreIfNotApplicable'   => true,
             ];
@@ -358,9 +448,11 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         }
         // Paid by the SENDER - the shop. A return waybill the customer has to pay for is not a return
         // waybill, it is a leaflet.
-        if (BGCouriers_Settings::return_voucher('speedy')) {
+        // Also forbidden on the international service - there is no return voucher to print for a parcel
+        // that leaves the country, so the shipment is created without one instead of failing.
+        if (!$abroad && BGCouriers_Settings::return_voucher('speedy')) {
             $body['service']['additionalServices']['returns']['returnVoucher'] =
-                ['serviceId' => 505, 'payer' => 'SENDER'];
+                ['serviceId' => self::service_id($country), 'payer' => 'SENDER'];
         }
         $sender = $this->sender_block();
         if ($sender) { $body['sender'] = $sender; }
@@ -554,7 +646,8 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
                 // milliseconds answer with the real cut-offs.
                 'startingDate' => $ts * 1000,
                 // Required: without it the answer is "Изисква се идентификатор на услуга". 505 is the
-                // standard service this plugin ships everything with.
+                // domestic service - this asks when a courier can come to the SHOP, which is in Bulgaria
+                // whatever the parcels' destinations are.
                 'serviceId'    => 505,
             ]));
         } catch (\Exception $e) { return []; }
