@@ -134,6 +134,10 @@
       $street  = $panel.find('.bgc-ed-street');
 
   function courier() { return $courier.val(); }
+  // Where this order is going. Every nomenclature lookup below is a question about a country - towns and
+  // offices are per-country, and a courier asked without one answers for its home country, which for a
+  // foreign order is an empty list rather than an error.
+  function country() { return C.country || 'BG'; }
   function resetOffice() { $office.val(null).trigger('change'); }
   function resetStreet() { $street.val(null).trigger('change'); }
 
@@ -158,7 +162,7 @@
 
   sel2($city, { width: '100%', allowClear: true, placeholder: I.city, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
-      data: function (params) { return { action: 'bgcouriers_search_cities', courier: courier(), term: params.term || '' }; },
+      data: function (params) { return { action: 'bgcouriers_search_cities', courier: courier(), country: country(), term: params.term || '' }; },
       processResults: function (rows) { return { results: (rows || []).map(function (r) {
         return { id: r.city_id, text: r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), post_code: r.post_code }; }) }; }
     }
@@ -188,7 +192,7 @@
     // the list would only be a chance to replace the one the parcel is actually travelling to.
     if (LOCKED) { return; }
     if (!city || m === 'address' || c === 'boxnow') { officeRows = []; updateAvail(); return; }
-    $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) {
+    $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, country: country(), city_id: city, type: m, all: 1 }, function (rows) {
       officeRows = rows || [];
       var cur = $office.val();
       $office.empty().append('<option></option>');
@@ -218,7 +222,7 @@
   function reResolveCity() {
     var name = cityName();
     if (!name) { loadOffices(); return; }
-    $.get(C.ajax, { action: 'bgcouriers_search_cities', courier: courier(), term: name }, function (rows) {
+    $.get(C.ajax, { action: 'bgcouriers_search_cities', courier: courier(), country: country(), term: name }, function (rows) {
       rows = rows || [];
       var lc = name.toLowerCase();
       var m = null, i;
@@ -259,7 +263,7 @@
   function officesFor(cb) {
     var c = courier(), city = $city.val() || 0, m = $method.val();
     if (!city || m === 'address' || c === 'boxnow') { cb([]); return; }
-    $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, city_id: city, type: m, all: 1 }, function (rows) { cb(rows || []); }, 'json');
+    $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, country: country(), city_id: city, type: m, all: 1 }, function (rows) { cb(rows || []); }, 'json');
   }
   function openMap() {
     if (!window.L) { return; }
@@ -338,7 +342,7 @@
       if (geo.number) { $panel.find('.bgc-ed-streetno').val(geo.number); }
     }
     function pick(r) { $city.empty().append(new Option(r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), r.city_id, true, true)).trigger('change.select2'); }
-    function find(term, cb) { if (!term) { cb(null); return; } $.get(C.ajax, { action: 'bgcouriers_search_cities', courier: courier(), term: term }, function (rows) { cb((rows && rows.length) ? rows[0] : null); }); }
+    function find(term, cb) { if (!term) { cb(null); return; } $.get(C.ajax, { action: 'bgcouriers_search_cities', courier: courier(), country: country(), term: term }, function (rows) { cb((rows && rows.length) ? rows[0] : null); }); }
     find(geo.city, function (r) {
       if (r) { pick(r); fields(geo.postcode || r.post_code || ''); return; }
       find(geo.postcode, function (r2) { if (r2) { pick(r2); fields(geo.postcode || r2.post_code || ''); } else { $city.val(null).trigger('change.select2'); fields(geo.postcode || ''); } });

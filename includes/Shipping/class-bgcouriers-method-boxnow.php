@@ -30,6 +30,10 @@ class BGCouriers_Method_Boxnow extends WC_Shipping_Method {
         // from every basket over 20 grams.
         if (BGCouriers_Pricing::package_parcel($package)['weight_kg'] > 20.0) { return; }
 
+        // BOX NOW is a Bulgarian locker network and offers no other country, so this is only ever a
+        // "not this courier" for an address abroad - which is exactly what it should answer.
+        if (!BGCouriers_Settings::ships_to('boxnow', BGCouriers_Pricing::destination_country($package))) { return; }
+
         $cost = (float) get_option('bgcouriers_boxnow_flat_price', 0);
         if (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGCouriers_Settings::free_shipping('boxnow'))) {
             $cost = 0.0;

@@ -240,6 +240,73 @@ class BGCouriers_Settings {
     }
 
 
+    /**
+     * The country the shop ships FROM.
+     *
+     * Every courier in this plugin is a Bulgarian network and every account's sender address is
+     * Bulgarian, so this is BG - it is a named thing rather than a literal because "is this destination
+     * abroad" is now asked in the pricing, the payer, the service, the checkout and the label, and a
+     * question asked in five places must be answered in one.
+     */
+    public static function home_country(): string { return 'BG'; }
+
+    /**
+     * Countries this courier is configured to deliver to besides home, as ISO alpha-2.
+     *
+     * Empty unless the merchant has chosen some AND the courier still offers them: an option left behind
+     * by a courier that later dropped a country must not keep quoting it. Off for every existing shop,
+     * which is the whole point - nothing about a Bulgaria-only shop changes until someone ticks a box.
+     *
+     * @param string $courier Courier id.
+     * @param object|null $co  The courier itself, when the caller already holds it - it is the authority
+     *                         on what it can do, and passing it keeps this answerable without the
+     *                         registry (which is not up in every context that asks).
+     * @return string[]
+     */
+    public static function intl_countries(string $courier, $co = null): array {
+        $saved = get_option('bgcouriers_' . $courier . '_intl_countries', []);
+        if (!is_array($saved) || !$saved) { return []; }
+        if (!$co && class_exists('BGCouriers_Couriers')) { $co = BGCouriers_Couriers::get($courier); }
+        $can = ($co && method_exists($co, 'intl_countries')) ? $co->intl_countries() : [];
+        $want = array_map('strtoupper', array_map('strval', $saved));
+        return array_values(array_intersect($want, $can));
+    }
+
+    /** Can this courier take a parcel to this country at all - home, or one the merchant switched on? */
+    public static function ships_to(string $courier, string $country, $co = null): bool {
+        $c = strtoupper(trim($country));
+        return $c === '' || $c === self::home_country() || in_array($c, self::intl_countries($courier, $co), true);
+    }
+
+    /**
+     * Is this destination outside the shop's own country - the question the service id, the payer and the
+     * whole "no quiet fallback" rule turn on. '' is home: an order with no country yet is not abroad.
+     */
+    public static function is_intl(string $country): bool {
+        $c = strtoupper(trim($country));
+        return $c !== '' && $c !== self::home_country();
+    }
+
+    /**
+     * Where an order is actually going, as ISO alpha-2.
+     *
+     * The plugin's own meta first: it is what the customer picked in the delivery box, and it is the
+     * country the town and office ids were looked up in. WooCommerce's shipping country is the fallback
+     * for every order made before this existed (and for one edited by hand), and the shop's own country
+     * is the last word - an order with nothing at all is domestic, as every order was until now.
+     */
+    public static function order_country(\WC_Order $order): string {
+        $c = strtoupper(trim((string) $order->get_meta('_bgcouriers_country')));
+        if ($c === '') { $c = strtoupper(trim((string) $order->get_shipping_country())); }
+        if ($c === '') { $c = strtoupper(trim((string) $order->get_billing_country())); }
+        return $c !== '' ? $c : self::home_country();
+    }
+
+    /** Every country this courier delivers to, home first - the checkout's country dropdown. */
+    public static function delivery_countries(string $courier, $co = null): array {
+        return array_merge([self::home_country()], self::intl_countries($courier, $co));
+    }
+
     /** Auto-generate labels when an order reaches a status. */
     public static function autolabel(): array {
         return [
@@ -344,6 +411,23 @@ class BGCouriers_Settings {
         // ППП today, but the merchant can flip it on the day it does - no code change needed.
         $default = in_array($courier, ['speedy', 'econt'], true) ? 'yes' : 'no';
         return get_option('bgcouriers_' . $courier . '_ppp_payout', $default) === 'yes';
+    }
+
+    /**
+     * Does this courier's ППП payout reach this destination?
+     *
+     * ППП is a Bulgarian postal money transfer, and it stops at the border. Speedy refuses it outright for
+     * a foreign address - sla.cod.moneyTransfer.cod_sub_service_validator.money-transfer-not-allowed-for-
+     * foreign-countries, measured 2026-08-19 - and the whole price calculation is refused with it, so a
+     * checkout that kept asking for one simply stopped offering the courier at all. Abroad the money can
+     * only be collected as plain CASH.
+     *
+     * Which matters twice over. It decides the processingType the shipment is created with, and it decides
+     * whether cash-on-delivery may be offered at all: a shop whose COD is legal only BECAUSE the courier
+     * does the ППП has no such arrangement abroad, so an international order there has to be prepaid.
+     */
+    public static function ppp_payout_reaches(string $courier, string $country): bool {
+        return self::courier_ppp_payout($courier) && !self::is_intl($country);
     }
 
     /** Whether COD is legally usable with this courier: the merchant issues receipts, or the courier does ППП. */
@@ -566,6 +650,9 @@ class BGCouriers_Settings {
         $ph      = esc_js(__('Search your town...', 'bg-couriers'));
         $idjs    = esc_js($id);
         $cour_js = esc_js($courier);
+        // The shop's OWN country: this picker names where a parcel is collected FROM, which is always
+        // home, while the lookup would otherwise inherit whatever destination a browsing session held.
+        $home_js = esc_js(self::home_country());
 
         $cur_txt = '';
         if ($current > 0) {
@@ -587,7 +674,7 @@ jQuery(function($){
   if(cur && cur!=='0'){ \$c.append(new Option('{$cur_txt}', cur, true, true)); }
   \$c.select2({ width:'300px', placeholder:'{$ph}', minimumInputLength:1, ajax:{
     url: ajaxurl, dataType:'json', delay:250,
-    data: function(p){ return { action:'bgcouriers_search_cities', courier:'{$cour_js}', term:p.term }; },
+    data: function(p){ return { action:'bgcouriers_search_cities', courier:'{$cour_js}', country:'{$home_js}', term:p.term }; },
     processResults: function(d){ return { results: (d.data||d||[]).map(function(c){
       return { id: c.city_id||c.id, text: (c.name||'') + (c.region ? ' (' + c.region + ')' : '') }; }) }; }
   }});
@@ -612,6 +699,9 @@ jQuery(function($){
         $ph_off  = esc_js(__('Pick the pickup office', 'bg-couriers'));
         $idjs    = esc_js($id);
         $cour_js = esc_js($courier);
+        // The shop's OWN country: this picker names where a parcel is collected FROM, which is always
+        // home, while the lookup would otherwise inherit whatever destination a browsing session held.
+        $home_js = esc_js(self::home_country());
 
         // Resolve the SAVED office to its city + name/address so both dropdowns open pre-filled with a
         // readable label (city name, "office - address"), exactly like the checkout picker - not a bare "#id".
@@ -647,7 +737,7 @@ jQuery(function($){
   if(curCity && curCity!=='0'){ \$c.append(new Option('{$cur_city_txt}', curCity, true, true)); }
   \$c.select2({ width:'300px', placeholder:'{$ph_city}', minimumInputLength:1, ajax:{
     url: ajaxurl, dataType:'json', delay:250,
-    data:function(p){ return {action:'bgcouriers_search_cities', courier:'{$cour_js}', term:p.term||''}; },
+    data:function(p){ return {action:'bgcouriers_search_cities', courier:'{$cour_js}', country:'{$home_js}', term:p.term||''}; },
     processResults:function(d){ return {results:(d||[]).map(function(c){ return {id:c.city_id, text:(c.name||'')+(c.region?(' ('+c.region+')'):'')}; })}; }
   }});
   \$o.select2({ width:'300px', placeholder:'{$ph_off}' });
@@ -657,7 +747,7 @@ jQuery(function($){
   function loadOffices(cid, keep){
     if(!cid || cid==='0'){ return; }
     \$o.prop('disabled',true);
-    $.getJSON(ajaxurl, {action:'bgcouriers_offices', courier:'{$cour_js}', city_id:cid, type:'office', all:1}, function(rows){
+    $.getJSON(ajaxurl, {action:'bgcouriers_offices', courier:'{$cour_js}', country:'{$home_js}', city_id:cid, type:'office', all:1}, function(rows){
       rows = rows || [];
       \$o.empty();
       rows.forEach(function(r){ \$o.append(new Option((r.name||'')+(r.address?(' - '+r.address):''), r.office_id)); });

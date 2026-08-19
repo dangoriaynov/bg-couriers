@@ -226,6 +226,52 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     /** Brand colour per courier - original, trademark-safe (not the couriers' logos). */
+    /**
+     * The country choices for a courier's "Also deliver to" - what the COURIER can do, named the way
+     * WooCommerce names countries so the merchant reads one vocabulary across the two screens. Never a
+     * free list of the world: a country not in here has not been measured, and offering it would promise
+     * a delivery the plugin cannot price.
+     *
+     * @return array<string,string> ISO alpha-2 => country name.
+     */
+    private static function intl_country_options(string $courier): array {
+        $co = class_exists('BGCouriers_Couriers') ? BGCouriers_Couriers::get($courier) : null;
+        $iso = ($co && method_exists($co, 'intl_countries')) ? $co->intl_countries() : [];
+        // WC_Countries directly rather than WC()->countries: this list is built while the settings page
+        // is assembled, which happens in contexts (and tests) where the WC() singleton is not up yet.
+        $names = class_exists('WC_Countries') ? (array) (new WC_Countries())->get_countries() : [];
+        $out = [];
+        foreach ($iso as $c) { $out[$c] = (string) ($names[$c] ?? $c); }
+        return $out;
+    }
+
+    /**
+     * What the merchant has to know before switching a country on, and only what is true for THIS shop.
+     *
+     * Three things beyond the tick decide whether a parcel can actually go: a WooCommerce shipping zone
+     * that carries this courier, the towns and offices that arrive with the next Sync, and - for a shop
+     * whose cash-on-delivery is legal only because the courier does the ППП - a prepaid way to pay, since
+     * no courier's ППП crosses the border. The last sentence is left out where it does not apply: a shop
+     * with a cash register is not warned about an arrangement it does not use.
+     *
+     * @param string $courier Courier id.
+     * @param string $name    The courier's own name, as it reads in the sentence.
+     * @return string
+     */
+    private static function intl_countries_desc(string $courier, string $name): string {
+        $desc = sprintf(
+            /* translators: %s: courier name */
+            __('Countries besides Bulgaria that %s may deliver to. Leave empty for a Bulgaria-only shop. Two more things have to be true for an order to reach here: the country must be in a WooCommerce shipping zone that carries this courier\'s method, and the towns and offices for it come with the next Sync.', 'bg-couriers'),
+            $name
+        );
+        if (class_exists('BGCouriers_Settings')
+            && BGCouriers_Settings::cod_fiscalization() === 'ppp'
+            && BGCouriers_Settings::courier_ppp_payout($courier)) {
+            $desc .= ' ' . __('Cash on delivery does not travel: ППП is a Bulgarian postal money transfer and the courier refuses it for a foreign address, so international orders here can only be prepaid ones. Add a card or bank-transfer payment method, or they will have no way to pay.', 'bg-couriers');
+        }
+        return $desc;
+    }
+
     private static function courier_color(string $id): string {
         $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034'];
         return $map[$id] ?? '#6b7280';
@@ -591,6 +637,10 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     'PALLET'   => __('Pallet', 'bg-couriers'),
                 ],
                 'default' => 'BOX'],
+            ['type' => 'multiselect', 'id' => 'bgcouriers_speedy_intl_countries', 'title' => __('Also deliver to', 'bg-couriers'),
+                'options' => self::intl_country_options('speedy'), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
+                'desc' => self::intl_countries_desc('speedy', __('Speedy', 'bg-couriers')),
+                'default' => []],
             ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_speedy_pricing', 'title' => __('Pricing', 'bg-couriers')],

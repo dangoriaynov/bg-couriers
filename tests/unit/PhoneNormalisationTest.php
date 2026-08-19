@@ -152,6 +152,20 @@ final class PhoneNormalisationTest extends TestCase {
         $this->assertGreaterThanOrEqual(0.1, $body['items'][0]['weight'], 'couriers reject a lighter parcel');
     }
 
+    /**
+     * A Romanian recipient writes 0722 123 456 exactly as a Bulgarian writes 0888 123 456. Read with the
+     * shop's own calling code it becomes a Bulgarian number that rings someone else.
+     */
+    public function test_a_national_number_is_read_in_the_delivery_country(): void {
+        $this->assertSame('40', BGCouriers_Phone::cc_for('RO'));
+        $this->assertSame('359', BGCouriers_Phone::cc_for('BG'));
+        $this->assertSame('359', BGCouriers_Phone::cc_for(''), 'unknown country: the shop is at home');
+        $this->assertSame('+40722123456', BGCouriers_Phone::e164('0722 123 456', BGCouriers_Phone::cc_for('RO')));
+        $this->assertSame('+359888123456', BGCouriers_Phone::e164('0888 123 456', BGCouriers_Phone::cc_for('BG')));
+        // Already international: the country code it carries wins over the one assumed for it.
+        $this->assertSame('+40722123456', BGCouriers_Phone::e164('+40 722 123 456', BGCouriers_Phone::cc_for('BG')));
+    }
+
     /** Same for the merchant's own missing number, which is a settings problem and says so. */
     public function test_no_sender_phone_is_refused_with_a_reason(): void {
         $this->options('');

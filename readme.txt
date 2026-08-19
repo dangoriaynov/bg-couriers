@@ -19,7 +19,7 @@ BG Couriers puts Bulgaria's couriers inside WooCommerce: your customer chooses w
 
 **In the admin** one click issues the waybill and the label - one order, or fifty of them into a single PDF (A6 labels or an A4 sheet). The plugin then keeps each shipment's status up to date by itself, and your customer sees the waybill and a tracking link on their order and in the e-mails you already send them.
 
-**It is free**, GPL, and stays that way: every courier, every feature, no paid tier. Deliveries are Bulgaria-only.
+**It is free**, GPL, and stays that way: every courier, every feature, no paid tier. Deliveries are within Bulgaria, and Speedy can also take a parcel to another country if you switch that country on.
 
 **Couriers**
 
@@ -35,7 +35,7 @@ You need your own account with each courier you want to offer: the prices your c
 
 1. Paste the credentials on that courier's tab and switch the courier on - it checks them with the courier there and then, and says so plainly if they are refused.
 2. Sync its towns and offices - one button.
-3. Add it to your **Bulgaria** shipping zone.
+3. Add it to your **Bulgaria** shipping zone - and to the zone of any other country you deliver to.
 
 Everything else already has a working default: the prices, the map, the checkout fields and the label size all work as they ship.
 
@@ -44,6 +44,7 @@ Everything else already has a working default: the prices, the map, the checkout
 * **Cash on delivery (наложен платеж)**, with the choice of who pays the delivery - and the amount to collect follows that choice.
 * Free-shipping thresholds, per courier and per delivery type.
 * Several parcels in one shipment, and insurance for a value you set (Speedy, Sameday).
+* Delivery to another country with Speedy, off until you name the countries yourself.
 * A delivery estimate on the cart page, before the customer reaches the checkout.
 * Works on both the classic and the block checkout.
 * Fully translated to Bulgarian.
@@ -86,12 +87,12 @@ https://github.com/dangoriaynov/bg-couriers/issues
 1. Upload the plugin to `/wp-content/plugins/bg-couriers` (or install via the Plugins screen) and activate it. WooCommerce must be active.
 2. Go to **WooCommerce → Settings → BG Couriers**.
 3. Open a courier's tab, enter its API credentials, click **Validate**, then **Sync** its cities/offices.
-4. Add the courier's shipping method to your **Bulgaria** shipping zone (WooCommerce → Settings → Shipping).
+4. Add the courier's shipping method to your **Bulgaria** shipping zone (WooCommerce → Settings → Shipping), and to the zone of any other country you deliver to.
 
 == Frequently Asked Questions ==
 
 = Which countries are supported? =
-Bulgaria only, and every courier here is a Bulgarian network: **Speedy**, **Econt**, **Pigeon Express** and **Sameday** deliver to an office, to a street address or to a locker, and **BOX NOW** delivers to its lockers (APM). There is no international shipping and no other country's couriers - the plugin talks to these five and nothing else.
+Bulgaria, by five Bulgarian networks: **Speedy**, **Econt**, **Pigeon Express** and **Sameday** deliver to an office, to a street address or to a locker, and **BOX NOW** delivers to its lockers (APM). **Speedy** can also carry a parcel abroad: name the countries on its settings tab, sync, and put each one in a WooCommerce shipping zone that carries Speedy's method - the customer then picks the country, the town and the office as usual, and the price is the courier's own live one. Two things to know about it. There is no fallback price abroad, so a courier that cannot quote live is simply not offered rather than guessing with a Bulgarian rate. And if your cash on delivery is receipted through the courier's ППП, it stops at the border - the plugin hides cash on delivery for a foreign address, so those orders have to be prepaid. The other four couriers are domestic only.
 
 = How can I support the development? =
 The plugin is free, GPL, and stays that way - every courier, every feature, no paid tier. If it has saved you work and you would like to put something behind it: https://revolut.me/danq6lus. It is entirely voluntary and changes nothing about the support you get. Reporting a bug in the [support forum](https://wordpress.org/support/plugin/bg-couriers/), or leaving a review, helps just as much.

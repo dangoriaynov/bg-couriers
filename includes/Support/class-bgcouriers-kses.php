@@ -50,12 +50,16 @@ class BGCouriers_Kses {
     public static function checkout_fields(): array {
         return self::glyphs() + [
             'div'    => ['class' => true, 'style' => true, 'aria-hidden' => true, 'data-courier' => true,
-                         'data-method' => true, 'data-methods' => true, 'data-order' => true, 'data-locker' => true],
+                         'data-method' => true, 'data-methods' => true, 'data-order' => true, 'data-locker' => true,
+                         'data-country' => true],
             'span'   => ['class' => true, 'aria-hidden' => true, 'data-tip' => true, 'aria-label' => true],
             'label'  => ['class' => true, 'for' => true],
             'strong' => ['class' => true],
             'br'     => [],
-            'select' => ['class' => true, 'style' => true, 'data-current' => true, 'name' => true, 'id' => true],
+            // data-auto marks an office the server chose because the town has exactly one; without it in
+            // this list wp_kses() removed the attribute and the browser never stored that choice.
+            'select' => ['class' => true, 'style' => true, 'data-current' => true, 'name' => true, 'id' => true,
+                         'data-auto' => true],
             'option' => ['value' => true, 'selected' => true],
             'input'  => ['type' => true, 'class' => true, 'value' => true, 'name' => true, 'id' => true,
                          'style' => true, 'placeholder' => true, 'autocomplete' => true, 'readonly' => true],

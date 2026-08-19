@@ -209,7 +209,8 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      * @param string $term     Search term.
      * @return array[]         Matching parsed street rows.
      */
-    public function search_streets(int $city_id, string $term): array {
+    /** $country is accepted so every courier answers the same call; Pigeon delivers in Bulgaria only. */
+    public function search_streets(int $city_id, string $term, string $country = ''): array {
         $rows = self::parse_streets($this->get_json('/v1/cities/' . $city_id . '/streets'));
         if ($term === '') {
             return $rows;

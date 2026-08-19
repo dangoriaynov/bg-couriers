@@ -19,6 +19,20 @@ class BGCouriers_Phone {
     const DEFAULT_CC = '359';
 
     /**
+     * Calling code per delivery country.
+     *
+     * A recipient in Romania writes 07xx xxx xxx exactly as a Bulgarian writes 08xx xxx xxx, and neither
+     * number says which country it belongs to. Assuming the shop's own country for both would hand the
+     * courier a Bulgarian number for a parcel going to Bucharest.
+     */
+    const CC = ['BG' => '359', 'RO' => '40'];
+
+    /** The calling code for an ISO alpha-2 country, falling back to the domestic one. */
+    public static function cc_for(string $iso): string {
+        return self::CC[strtoupper(trim($iso))] ?? self::DEFAULT_CC;
+    }
+
+    /**
      * A phone number in E.164 (+359888123456), or '' if there is nothing usable in the input.
      *
      * Returning '' rather than a half-converted string is deliberate: the caller can then say "this

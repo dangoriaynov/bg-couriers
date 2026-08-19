@@ -35,6 +35,7 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-sync.php';
+require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 
 /** A courier whose two nomenclature endpoints can be made to succeed, come back empty, or throw. */
 final class SyncFakeCourier implements BGCouriers_Courier_Interface {
@@ -43,16 +44,36 @@ final class SyncFakeCourier implements BGCouriers_Courier_Interface {
     public $cities_throw = false;
     public $offices_throw = false;
     public $offices_called = false;
+    /** Countries this courier says it can deliver to besides home. */
+    public $intl = [];
+    /** Per-country rows, as a real courier's foreign nomenclature would answer. */
+    public $cities_by_country = [];
+    public $offices_by_country = [];
+    /** Countries whose foreign fetch must throw. */
+    public $throw_for = [];
+    /** Every country actually asked for, in order. */
+    public $asked = [];
+
+    public function intl_countries(): array { return $this->intl; }
 
     public function id(): string { return 'fake'; }
     public function label(): string { return 'Fake'; }
     public function capabilities(): array { return []; }
-    public function fetch_cities(): array {
+    public function fetch_cities(string $country = ''): array {
+        if ($country !== '') {
+            $this->asked[] = $country;
+            if (in_array($country, $this->throw_for, true)) { throw new BGCouriers_Api_Exception('city endpoint down'); }
+            return $this->cities_by_country[$country] ?? [];
+        }
         if ($this->cities_throw) { throw new BGCouriers_Api_Exception('city endpoint down'); }
         return $this->cities;
     }
-    public function fetch_offices(int $city_id = 0): array {
+    public function fetch_offices(int $city_id = 0, string $country = ''): array {
         $this->offices_called = true;
+        if ($country !== '') {
+            if (in_array($country, $this->throw_for, true)) { throw new BGCouriers_Api_Exception('office endpoint down'); }
+            return $this->offices_by_country[$country] ?? [];
+        }
         if ($this->offices_throw) { throw new BGCouriers_Api_Exception('office endpoint down'); }
         return $this->offices;
     }
@@ -80,6 +101,8 @@ final class SyncNomenclatureTest extends TestCase {
         Functions\when('__')->returnArg(1);
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
         Functions\when('delete_transient')->justReturn(true);
+        // A shop that has switched no second country on - which is every shop until someone does.
+        Functions\when('get_option')->alias(static function ($name, $default = '') { return $default; });
         $GLOBALS['wpdb'] = $this->db = new BGCouriers_Fake_Wpdb();
     }
 
@@ -188,6 +211,62 @@ final class SyncNomenclatureTest extends TestCase {
         $this->assertSame(1, $this->inserts('offices'));
         $ins = array_values(array_filter($this->db->queries,
             static fn($q) => strpos($q, 'INSERT INTO wp_bgcouriers_offices') !== false));
-        $this->assertStringContainsString('fake|42|42|0|automat', $ins[0], 'city_id bound as 0, not dropped');
+        $this->assertStringContainsString('fake|BG|42|42|0|automat', $ins[0], 'city_id bound as 0, not dropped');
+    }
+
+    /** Nobody has asked for a second country: the courier is called exactly as it always was. */
+    public function test_a_bulgaria_only_shop_syncs_one_country_and_tags_it(): void {
+        $c = new SyncFakeCourier();
+        $c->intl   = ['RO'];   // the courier CAN, but the shop has not asked
+        $c->cities = [['city_id' => 1, 'name' => 'София']];
+
+        BGCouriers_Sync::run($c);
+
+        $this->assertSame([], $c->asked, 'no country was switched on - none may be fetched');
+        $ins = array_values(array_filter($this->db->queries,
+            static fn($q) => strpos($q, 'INSERT INTO wp_bgcouriers_cities') !== false));
+        $this->assertStringContainsString('fake|BG|1|', $ins[0], 'a row with no country is Bulgarian');
+    }
+
+    /** With Romania switched on, both countries are fetched and each row carries its own. */
+    public function test_an_enabled_country_is_fetched_and_tagged(): void {
+        Functions\when('get_option')->alias(static function ($name, $default = '') {
+            return $name === 'bgcouriers_fake_intl_countries' ? ['RO'] : $default;
+        });
+        $c = new SyncFakeCourier();
+        $c->intl              = ['RO'];
+        $c->cities            = [['city_id' => 1, 'name' => 'София']];
+        $c->cities_by_country = ['RO' => [['city_id' => 6420001, 'name' => 'Bucuresti']]];
+
+        $out = BGCouriers_Sync::run($c);
+
+        $this->assertSame(['RO'], $c->asked);
+        $this->assertSame(2, $out['cities'], 'both countries land in the same table');
+        $ins = array_values(array_filter($this->db->queries,
+            static fn($q) => strpos($q, 'INSERT INTO wp_bgcouriers_cities') !== false));
+        $this->assertStringContainsString('fake|BG|1|', $ins[0]);
+        $this->assertStringContainsString('fake|RO|6420001|', $ins[1]);
+    }
+
+    /**
+     * The half-failure one level down: Bulgaria answered, Romania timed out. Pruning everything this run
+     * did not touch would delete every Romanian town the shop has, so the delete is confined to Bulgaria.
+     */
+    public function test_a_failed_country_is_not_pruned_away(): void {
+        Functions\when('get_option')->alias(static function ($name, $default = '') {
+            return $name === 'bgcouriers_fake_intl_countries' ? ['RO'] : $default;
+        });
+        $c = new SyncFakeCourier();
+        $c->intl      = ['RO'];
+        $c->cities    = [['city_id' => 1, 'name' => 'София']];
+        $c->throw_for = ['RO'];
+
+        BGCouriers_Sync::run($c);
+
+        $del = array_values(array_filter($this->db->queries,
+            static fn($q) => strpos($q, 'DELETE FROM wp_bgcouriers_cities') !== false));
+        $this->assertNotEmpty($del, 'Bulgaria was refreshed, so stale Bulgarian rows may go');
+        $this->assertStringContainsString('country IN (%s)', $del[0]);
+        $this->assertStringNotContainsString('RO', substr($del[0], strpos($del[0], '/*')), 'Romania was never refreshed');
     }
 }

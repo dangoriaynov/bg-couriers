@@ -72,13 +72,18 @@ class BGCouriers_Checkout {
      * COD payment gateway - the order must be prepaid. Couriers that do ППП (or the cash-register mode) are
      * unaffected.
      *
+     * The same is true of every courier the moment the parcel leaves the country: ППП is a Bulgarian postal
+     * money transfer and the courier refuses it for a foreign address, so a shop whose cash-on-delivery is
+     * legal only BECAUSE the courier does the ППП has no such arrangement abroad. Its international orders
+     * are prepaid ones. Nothing changes for a shop that ships at home only, or one with a cash register.
+     *
      * @param array $gateways id => WC_Payment_Gateway
      * @return array
      */
     public function ppp_filter_gateways($gateways) {
         if (!is_array($gateways) || BGCouriers_Settings::cod_fiscalization() !== 'ppp') { return $gateways; }
         $courier = self::chosen_bgc_courier();
-        if ($courier !== '' && !BGCouriers_Settings::courier_ppp_payout($courier)) {
+        if ($courier !== '' && !BGCouriers_Settings::ppp_payout_reaches($courier, BGCouriers_Pricing::destination_country())) {
             foreach ($gateways as $gid => $gw) {
                 if (BGCouriers_Settings::is_cod_gateway((string) $gid, $gw)) { unset($gateways[$gid]); }
             }
@@ -91,15 +96,20 @@ class BGCouriers_Checkout {
      * is unusable (COD only, no way to fiscalise) - so drop its shipping rates. When a prepaid gateway exists
      * the courier stays (usable for prepaid; COD is just hidden for it by ppp_filter_gateways above).
      *
+     * A parcel leaving the country is the same case: no courier's ППП follows it, so such a shop cannot sell
+     * abroad at all until it offers a prepaid way to pay. Which is why the settings screen says so beside the
+     * countries themselves, rather than letting the merchant find out from an empty checkout.
+     *
      * @param array $rates
      * @param array $package
      * @return array
      */
     public function ppp_filter_rates($rates, $package) {
         if (BGCouriers_Settings::cod_fiscalization() !== 'ppp' || BGCouriers_Settings::has_prepaid_gateway()) { return $rates; }
+        $country = BGCouriers_Pricing::destination_country($package);
         foreach ($rates as $id => $rate) {
             $courier = self::courier_from_rate_id((string) $id);
-            if ($courier !== '' && !BGCouriers_Settings::courier_ppp_payout($courier)) { unset($rates[$id]); }
+            if ($courier !== '' && !BGCouriers_Settings::ppp_payout_reaches($courier, $country)) { unset($rates[$id]); }
         }
         return $rates;
     }
@@ -402,10 +412,13 @@ class BGCouriers_Checkout {
         // merchant opts to forward it to the courier).
         if (isset($fields['billing']['billing_phone'])) { $fields['billing']['billing_phone']['required'] = true; }
         if (isset($fields['billing']['billing_email'])) { $fields['billing']['billing_email']['required'] = false; }
-        // When the country field is hidden (BG-only store), pin it to BG so the hidden field still submits.
+        // When the country field is hidden, pin it to the country the delivery box is actually quoting
+        // for, so the hidden field still submits - and submits the right one. A shop that delivers
+        // nowhere else keeps sending its own country exactly as before.
         if (get_option('bgcouriers_hide_country', 'no') === 'yes') {
+            $country = BGCouriers_Pricing::destination_country();
             foreach (['billing', 'shipping'] as $g) {
-                if (isset($fields[$g][$g . '_country'])) { $fields[$g][$g . '_country']['default'] = 'BG'; }
+                if (isset($fields[$g][$g . '_country'])) { $fields[$g][$g . '_country']['default'] = $country; }
             }
         }
         return $fields;
@@ -530,12 +543,17 @@ class BGCouriers_Checkout {
         // Validate the phone FORMAT (it's already required elsewhere) so a malformed number is caught here
         // with a friendly message, not as a cryptic courier API rejection after the order is placed. Bulgarian
         // numbers: 0 + 8-9 digits (e.g. 0888123456) or +359 + 8-9 digits; separators are stripped first.
-        $phone = isset($data['billing_phone']) ? (string) $data['billing_phone'] : '';
-        if ($phone !== '') {
+        // Abroad the same rule would reject the recipient's own perfectly good number, so there the test is
+        // only that the number can be turned into something a courier will accept, in that country's code.
+        $phone   = isset($data['billing_phone']) ? (string) $data['billing_phone'] : '';
+        $country = BGCouriers_Pricing::destination_country();
+        if ($phone !== '' && !BGCouriers_Settings::is_intl($country)) {
             $digits = preg_replace('/[\s\-()]/', '', $phone);
             if (!preg_match('/^(\+?359|0)\d{8,9}$/', (string) $digits)) {
                 $errors->add('bgc', __('Please enter a valid Bulgarian phone number (e.g. 0888 123 456) so the courier can reach the recipient.', 'bg-couriers'));
             }
+        } elseif ($phone !== '' && !BGCouriers_Phone::usable($phone, BGCouriers_Phone::cc_for($country))) {
+            $errors->add('bgc', __('Please enter a valid phone number so the courier can reach the recipient.', 'bg-couriers'));
         }
         $s = WC()->session;
         // The saved selection must belong to the courier actually chosen - switching couriers voids the old pick.
@@ -575,6 +593,7 @@ class BGCouriers_Checkout {
         $s = WC()->session; if (!$s) { return; }
         self::apply_delivery($order, [
             'courier'      => $courier,
+            'country'      => BGCouriers_Pricing::destination_country(),
             'method'       => (string) $s->get('bgcouriers_method', ''),
             'site_id'      => (int) $s->get('bgcouriers_site_id', 0),
             'office_id'    => (int) $s->get('bgcouriers_office_id', 0),
@@ -608,7 +627,14 @@ class BGCouriers_Checkout {
             ? 'automat'
             : ((string) $g('method') ?: (BGCouriers_Settings::enabled_methods($courier)[0] ?? 'office'));
 
+        // The country is NOT defaulted to the shop's own here. The admin order editor posts a delivery
+        // without one, and defaulting would quietly move a Romanian order back to Bulgaria the first time
+        // someone opened it and pressed save - and with it the service the label is booked under.
+        $country = strtoupper(trim((string) $g('country')));
+        if ($country === '') { $country = BGCouriers_Settings::order_country($order); }
+
         $order->update_meta_data('_bgcouriers_courier', $courier);
+        $order->update_meta_data('_bgcouriers_country', $country);
         $order->update_meta_data('_bgcouriers_method', $method);
         $order->update_meta_data('_bgcouriers_site_id', (int) $g('site_id', 0));
         $order->update_meta_data('_bgcouriers_office_id', (int) $g('office_id', 0));
@@ -644,7 +670,7 @@ class BGCouriers_Checkout {
             $line2 = (string) ($o['address'] ?? '');
         }
         foreach (['billing', 'shipping'] as $grp) {
-            $order->{"set_{$grp}_country"}('BG');
+            $order->{"set_{$grp}_country"}($country);
             $order->{"set_{$grp}_city"}($name);
             $order->{"set_{$grp}_state"}($region);
             $order->{"set_{$grp}_postcode"}($post);
@@ -702,7 +728,9 @@ class BGCouriers_Checkout {
         $city_index = [];
         if ($preload) {
             foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
-                if (BGCouriers_Settings::courier_config($cid)) { $city_index[$cid] = BGCouriers_Nomenclature::city_index($cid); }
+                if (BGCouriers_Settings::courier_config($cid)) {
+                    $city_index[$cid] = BGCouriers_Nomenclature::city_index($cid, BGCouriers_Pricing::destination_country());
+                }
             }
         }
         wp_localize_script('bgc-checkout', 'BGCOURIERS', [
@@ -710,6 +738,10 @@ class BGCouriers_Checkout {
             'nonce' => wp_create_nonce('bgcouriers_checkout'),
             'currency' => get_woocommerce_currency(),
             'preloadCities' => $preload,
+            // The shop's own country, and the one the preloaded city index was actually built for: pick
+            // another country and that index is a list of the wrong towns, so the browser stops using it.
+            'homeCountry' => BGCouriers_Settings::home_country(),
+            'cityIndexCountry' => BGCouriers_Pricing::destination_country(),
             // "Closest to you" on the interactive map. A merchant can switch the whole comparison off:
             // it asks the browser for a location, and a shop that would rather not ask at all should
             // not have to disable the map to avoid it.
@@ -836,7 +868,7 @@ class BGCouriers_Checkout {
         if (!$mine && $s) {
             $carry_pc = (string) $s->get('bgcouriers_post_code', '');
             if ($carry_pc !== '') {
-                $carry_city = BGCouriers_Nomenclature::city_by_postcode($courier, $carry_pc);
+                $carry_city = BGCouriers_Nomenclature::city_by_postcode($courier, $carry_pc, BGCouriers_Pricing::destination_country());
                 if ($carry_city) { $site_id = (int) $carry_city['city_id']; $post_code = $carry_pc; }
             }
         }
@@ -885,6 +917,24 @@ class BGCouriers_Checkout {
             ? esc_html__('APS (locker)', 'bg-couriers')
             : esc_html__('Office', 'bg-couriers');
 
+        // Where this parcel is going. A shop that delivers only at home has one country and is shown no
+        // choice at all - the field would be a dropdown with a single entry, asking a question that has
+        // one answer. It renders as a data attribute regardless, so the browser always knows.
+        $countries = BGCouriers_Settings::delivery_countries($courier);
+        $country   = BGCouriers_Pricing::destination_country();
+        if (!in_array($country, $countries, true)) { $country = BGCouriers_Settings::home_country(); }
+        $country_row = '';
+        if (count($countries) > 1) {
+            $names = (function_exists('WC') && WC()->countries) ? WC()->countries->get_countries() : [];
+            $opts  = '';
+            foreach ($countries as $c) {
+                $opts .= '<option value="' . esc_attr($c) . '"' . ($c === $country ? ' selected' : '') . '>'
+                    . esc_html((string) ($names[$c] ?? $c)) . '</option>';
+            }
+            $country_row = '<div class="bgc-field bgc-country-field"><label>' . esc_html__('Country', 'bg-couriers') . '</label>'
+                . '<select class="bgc-country">' . $opts . '</select></div>';
+        }
+
         // Only the chosen courier's block is visible from the server - the others render hidden so the page
         // doesn't briefly show every courier's fields expanded before the JS hides them. JS keeps this in sync.
         $hide = self::chosen_courier() !== $courier ? ' style="display:none;"' : '';
@@ -892,10 +942,12 @@ class BGCouriers_Checkout {
         // and wp_kses() restricts the result to the tags this form is made of.
         $html = '<div class="bgc-fields" data-courier="' . esc_attr($courier) . '" data-method="' . esc_attr($sel_method) . '"'
            . ' data-methods="' . esc_attr(implode(',', BGCouriers_Settings::enabled_methods($courier))) . '"'
-           . ' data-order="' . esc_attr(implode(',', BGCouriers_Settings::method_order($courier))) . '"' . $hide . '>'
+           . ' data-order="' . esc_attr(implode(',', BGCouriers_Settings::method_order($courier))) . '"'
+           . ' data-country="' . esc_attr($country) . '"' . $hide . '>'
            . '<div class="bgc-loader" aria-hidden="true"><span class="bgc-spinner"></span></div>'
            . '<div class="bgc-tabs" role="tablist"></div>'
            . '<div class="bgc-panel">'
+           . $country_row
            // The postcode rides along in the city label as "Name (1234)" (search + disambiguation); its value
            // is kept in a hidden field - it's never sent to a courier, only used to carry the city across a
            // courier switch and to set the order's postcode record.

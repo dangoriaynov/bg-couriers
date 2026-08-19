@@ -103,11 +103,30 @@ class BGCouriers_Ajax {
         foreach ($keys as $k) { $out[$k] = sanitize_text_field((string) ($src[$k] ?? '')); }
         return $out;
     }
+    /**
+     * The country a lookup is asking about.
+     *
+     * The request carries it because the browser knows it first: the customer changes the country and the
+     * dropdown asks for towns in the same breath as the selection is being saved, and answering that from
+     * the session would list the towns of the country they have just left. Only a country the courier is
+     * actually switched on for is honoured; anything else falls back to the saved selection.
+     */
+    private static function request_country(string $courier): string {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
+        $c = strtoupper(sanitize_text_field(wp_unslash($_REQUEST['country'] ?? '')));
+        return in_array($c, BGCouriers_Settings::delivery_countries($courier), true)
+            ? $c
+            : BGCouriers_Pricing::destination_country();
+    }
+
     public static function search_cities_data(): array {
         $courier = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
         // No term -> first N cities alphabetically; with a term -> matches, N max (sorted by name).
-        return BGCouriers_Nomenclature::search_cities($courier, $term, BGCouriers_Settings::dropdown_limit());
+        // In the destination country only: the customer is choosing where THEIR parcel goes, and a
+        // Bulgaria-only shop asks for the one country it has, exactly as before.
+        return BGCouriers_Nomenclature::search_cities($courier, $term, BGCouriers_Settings::dropdown_limit(),
+                                                      self::request_country($courier));
     }
     public function search_cities(): void { wp_send_json(self::search_cities_data()); }
     public function offices(): void {
@@ -118,7 +137,7 @@ class BGCouriers_Ajax {
         $type = sanitize_key(wp_unslash($_GET['type'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         $limit = !empty($_GET['all']) ? 100000 : BGCouriers_Settings::dropdown_limit(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- all=1 -> the full city list, for the client cache
-        wp_send_json(self::city_offices($courier, $city, $type, $term, $limit));
+        wp_send_json(self::city_offices($courier, $city, $type, $term, $limit, self::request_country($courier)));
     }
 
     /** Which office types a city has (so the checkout can grey out a delivery option the city lacks). */
@@ -127,13 +146,17 @@ class BGCouriers_Ajax {
         $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
         if ($city <= 0) { wp_send_json(['office' => false, 'automat' => false]); }
+        $country = self::request_country($courier_id);
         // Cache the availability per courier+city - it was uncached, so every call hit the live API.
-        $tkey   = 'bgcouriers_avail_' . $courier_id . '_' . $city;
+        // The country is part of the key as well as of the question: a courier that is asked about a
+        // foreign town without it answers for its home country and finds nothing there, and an answer
+        // of "this town has no offices" is indistinguishable from the truth once it is cached.
+        $tkey   = 'bgcouriers_avail_' . $courier_id . '_' . $country . '_' . $city;
         $cached = get_transient($tkey);
         if (is_array($cached)) { wp_send_json($cached); }
         $office = false; $automat = false;
         $rows = [];
-        try { $c = BGCouriers_Couriers::get($courier_id); if ($c) { $rows = $c->fetch_offices($city); } }
+        try { $c = BGCouriers_Couriers::get($courier_id); if ($c) { $rows = $c->fetch_offices($city, $country); } }
         catch (\Exception $e) { $rows = []; }
         if (empty($rows)) { $rows = BGCouriers_Nomenclature::offices($courier_id, $city); } // fallback to cache
         foreach ($rows as $o) {
@@ -149,13 +172,18 @@ class BGCouriers_Ajax {
      * Office/automat list for one city - fetched LIVE per-city (the country-wide nomenclature
      * is capped by Speedy and misses most cities), filtered by type + search term, sorted by
      * office number, limited to N. Falls back to the cached nomenclature when the API is down.
+     *
+     * The country is asked for and not assumed. A courier's office endpoint is scoped to a country, and a
+     * request that leaves it out is answered for the courier's home one - so a Romanian town produced an
+     * empty list rather than an error, which reads exactly like a town with no offices in it. Empty of
+     * offices is a legitimate answer for a small place, so nothing downstream could tell the two apart.
      */
-    public static function city_offices(string $courier_id, int $city, string $type, string $term = '', int $limit = 5): array {
+    public static function city_offices(string $courier_id, int $city, string $type, string $term = '', int $limit = 5, string $country = ''): array {
         $rows = [];
         if ($city > 0) {
             // Cache the (live) office list per courier+city - offices change rarely, so this turns the first
             // fetch into an instant response for everyone after, killing the checkout's biggest round-trip.
-            $tkey   = 'bgcouriers_off_' . $courier_id . '_' . $city;
+            $tkey   = 'bgcouriers_off_' . $courier_id . '_' . $country . '_' . $city;
             $cached = get_transient($tkey);
             if (is_array($cached)) {
                 $rows = $cached;
@@ -163,7 +191,7 @@ class BGCouriers_Ajax {
                 try {
                     $courier = BGCouriers_Couriers::get($courier_id);
                     if (!$courier) { return []; } // honor the array return type; the AJAX handler sends the empty JSON
-                    $rows = $courier->fetch_offices($city);
+                    $rows = $courier->fetch_offices($city, $country);
                     if (!empty($rows)) { set_transient($tkey, $rows, 6 * HOUR_IN_SECONDS); }
                 // \Throwable, not \Exception: a courier adapter that hits a TypeError - or any Error -
                 // used to walk straight out of here and turn the whole request into a 500, when the
@@ -207,9 +235,10 @@ class BGCouriers_Ajax {
         $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
         $seen = [];
         $out  = [];
+        $country = BGCouriers_Pricing::destination_country();
         foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
             if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
-            foreach (BGCouriers_Nomenclature::search_cities($cid, $term, 30) as $row) {
+            foreach (BGCouriers_Nomenclature::search_cities($cid, $term, 30, $country) as $row) {
                 $lower = function_exists('mb_strtolower') ? mb_strtolower($row['name'], 'UTF-8') : strtolower($row['name']);
                 $key = $lower . '|' . $row['post_code'];
                 if (isset($seen[$key])) { continue; }
@@ -296,7 +325,9 @@ class BGCouriers_Ajax {
         $code = isset($_GET['post_code']) ? sanitize_text_field(wp_unslash($_GET['post_code'])) : '';
         $obj  = $cid !== '' ? BGCouriers_Couriers::get($cid) : null;
         if (!$obj || !BGCouriers_Settings::courier_config($cid)) { wp_send_json_success(['prices' => [], 'saves' => []]); }
-        $city = BGCouriers_Nomenclature::match_city($cid, $name, $code);
+        // A town name and post code are only unique inside a country: "1000" is Sofia and Bucharest.
+        $country = BGCouriers_Pricing::destination_country();
+        $city = BGCouriers_Nomenclature::match_city($cid, $name, $code, $country);
         if (!$city) { wp_send_json_success(['prices' => [], 'saves' => []]); }
 
         // The same parcel the shipping methods are priced for - one definition, so the map cannot
@@ -305,7 +336,7 @@ class BGCouriers_Ajax {
         $prices = []; $raw = [];
         foreach (BGCouriers_Settings::enabled_methods($cid) as $t) {
             try {
-                $q = BGCouriers_Pricing::checkout_quote($obj, $t, (int) $city['city_id'], 0, $packed, get_woocommerce_currency());
+                $q = BGCouriers_Pricing::checkout_quote($obj, $t, (int) $city['city_id'], 0, $packed, get_woocommerce_currency(), $country);
                 // Printed the way the shipping row beside it is printed: with the tax when the shop
                 // shows prices with tax. Shown net, the map read cheaper than the checkout it feeds.
                 $v = $q ? BGCouriers_Pricing::display_price((float) $q->price) : 0.0;
@@ -328,17 +359,18 @@ class BGCouriers_Ajax {
 
     private static function allmap_collect(string $name, string $code, array $types, bool $live): array {
         $out = [];
+        $country = BGCouriers_Pricing::destination_country();
         foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
             if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes') { continue; }
             $carries = BGCouriers_Settings::enabled_methods($cid);
             $wanted = array_values(array_intersect($types, $carries));
             if (!$wanted) { continue; }
-            $city = BGCouriers_Nomenclature::match_city($cid, $name, $code);
+            $city = BGCouriers_Nomenclature::match_city($cid, $name, $code, $country);
             if (!$city) { continue; }
             $rows = [];
             foreach ($wanted as $t) {
                 $found = $live
-                    ? self::city_offices($cid, (int) $city['city_id'], $t, '', 100000)
+                    ? self::city_offices($cid, (int) $city['city_id'], $t, '', 100000, $country)
                     : BGCouriers_Nomenclature::offices($cid, (int) $city['city_id'], $t);
                 foreach ($found as $office) {
                     $office['type'] = $t;
@@ -401,7 +433,7 @@ class BGCouriers_Ajax {
                 $courier = BGCouriers_Couriers::get($courier_id);
                 if (!$courier) { wp_send_json([]); }
                 if (method_exists($courier, 'search_streets')) {
-                    $out = array_slice($courier->search_streets($city, $term), 0, BGCouriers_Settings::dropdown_limit());
+                    $out = array_slice($courier->search_streets($city, $term, self::request_country($courier_id)), 0, BGCouriers_Settings::dropdown_limit());
                 }
             } catch (\Exception $e) { $out = []; }
         }
@@ -413,6 +445,23 @@ class BGCouriers_Ajax {
         if (!in_array($method, ['address', 'office', 'automat'], true)) { $method = 'office'; }
         WC()->session->set('bgcouriers_method', $method);
         WC()->session->set('bgcouriers_selection_courier', sanitize_key(wp_unslash($_POST['courier'] ?? ''))); // which courier this selection belongs to
+        // Only a country this courier is actually switched on for. Anything else - a stale one left in a
+        // tab, a hand-made POST - falls back to the shop's own country rather than reaching an API that
+        // would have to guess a service for it.
+        $country = strtoupper(sanitize_text_field(wp_unslash($_POST['country'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        $allowed = BGCouriers_Settings::delivery_countries(sanitize_key(wp_unslash($_POST['courier'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        $country = in_array($country, $allowed, true) ? $country : BGCouriers_Settings::home_country();
+        WC()->session->set('bgcouriers_country', $country);
+        // WooCommerce decides which shipping ZONE a cart is in from the customer's own shipping country,
+        // not from anything of ours - so a courier switched on for Romania is still never asked for a
+        // price until the customer is in Romania as far as WooCommerce is concerned. Written only when it
+        // actually differs: this endpoint is called on every field save, and a shop that delivers at home
+        // only never reaches the write at all.
+        if (function_exists('WC') && WC()->customer
+            && strtoupper((string) WC()->customer->get_shipping_country()) !== $country) {
+            WC()->customer->set_shipping_country($country);
+            WC()->customer->save();
+        }
         WC()->session->set('bgcouriers_site_id', (int) wp_unslash($_POST['site_id'] ?? 0)); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
         WC()->session->set('bgcouriers_office_id', (int) wp_unslash($_POST['office_id'] ?? 0)); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
         WC()->session->set('bgcouriers_post_code', sanitize_text_field(wp_unslash($_POST['post_code'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
