@@ -89,6 +89,105 @@ test('combined map: the city list comes from the page, not the server @allmap', 
   expect(await page.locator('.bgc-allmap-cityinput').inputValue()).toContain('СОФИЯ');
 });
 
+/**
+ * The town box is a DROPDOWN, the way the courier's own city field is.
+ *
+ * It used to answer only to typing, which asked the customer to name a town before anything had told
+ * them there was a list of towns to choose from - and a shop does not deliver everywhere, so guessing
+ * at a name is exactly the wrong way round. Pressing the field, or its arrow, must show what is on
+ * offer; typing narrows it from there.
+ */
+test('combined map: the town box opens as a list, without typing @allmap', async ({ page }) => {
+  await addAnyProductToCart(page);
+  await gotoCheckout(page);
+  await page.waitForTimeout(2500);
+  await page.locator('.bgc-allmap-btn').click();
+
+  const input = page.locator('.bgc-allmap-cityinput');
+  const opts = page.locator('.bgc-allmap-cityopt');
+  // An empty field offers the list and has nothing to clear; the two controls share one slot.
+  await expect(page.locator('.bgc-allmap-citycaret')).toBeVisible();
+  await expect(page.locator('.bgc-allmap-cityclear')).toBeHidden();
+  await expect(opts).toHaveCount(0);
+
+  await input.click();
+  await expect(opts.first()).toBeVisible({ timeout: 15000 });
+  const whole = await opts.count();
+  expect(whole, 'pressing the field opened a list of one').toBeGreaterThan(1);
+
+  // Typing still narrows the same list.
+  await input.fill('София');
+  await expect(opts.first()).toBeVisible({ timeout: 15000 });
+  expect(await opts.count()).toBeLessThan(whole);
+  await expect(opts.first()).toContainText('СОФИЯ');
+
+  // And the arrow closes what it opened.
+  await page.locator('.bgc-allmap-cityclear').click();
+  await expect(page.locator('.bgc-allmap-citycaret')).toBeVisible();
+  await page.locator('.bgc-allmap-citycaret').click();
+  await expect(opts.first()).toBeVisible({ timeout: 15000 });
+  await page.locator('.bgc-allmap-citycaret').click();
+  await expect(opts).toHaveCount(0);
+
+  // A place picked out of the opened list plots, exactly as a typed one does.
+  await input.click();
+  await expect(opts.first()).toBeVisible({ timeout: 15000 });
+  const chosen = await opts.first().innerText();
+  await opts.first().click();
+  expect(await input.inputValue()).toBe(chosen.trim());
+  await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
+  // Chosen: now there is something to clear and nothing left to offer.
+  await expect(page.locator('.bgc-allmap-cityclear')).toBeVisible();
+  await expect(page.locator('.bgc-allmap-citycaret')).toBeHidden();
+
+  // Pressing a field that already holds a town shows the WHOLE list again, not the one town it
+  // matches - otherwise the only way to change your mind is to delete the name by hand first.
+  await input.click();
+  await expect(opts.first()).toBeVisible({ timeout: 15000 });
+  expect(await opts.count()).toBe(whole);
+});
+
+test('combined map: the town list answers the keyboard @allmap', async ({ page }) => {
+  await addAnyProductToCart(page);
+  await gotoCheckout(page);
+  await page.waitForTimeout(2500);
+  await page.locator('.bgc-allmap-btn').click();
+
+  const input = page.locator('.bgc-allmap-cityinput');
+  const opts = page.locator('.bgc-allmap-cityopt');
+  // The pointer is left where the Map button was, which is under the dialog. A list opening beneath a
+  // resting cursor gets a mouseenter from the browser, and hovering IS how a row is picked out here -
+  // so the keys would be starting from a row nobody chose. Park it in the corner.
+  await page.mouse.move(5, 5);
+  await input.focus();
+  await input.press('ArrowDown');                       // opens it, as a select does
+  await expect(opts.first()).toBeVisible({ timeout: 15000 });
+
+  await input.press('ArrowDown');
+  await expect(opts.first()).toHaveClass(/is-active/);
+  // The same highlight, in the form a screen reader can hear: the class alone is only for the sighted.
+  await expect(input).toHaveAttribute('aria-activedescendant', String(await opts.first().getAttribute('id')));
+  await input.press('ArrowDown');
+  await expect(opts.nth(1)).toHaveClass(/is-active/);
+  await input.press('ArrowUp');
+  await expect(opts.first()).toHaveClass(/is-active/);
+
+  const chosen = (await opts.first().innerText()).trim();
+  await input.press('Enter');
+  expect(await input.inputValue()).toBe(chosen);
+  // Enter chose a town; it did not send the order behind the dialog.
+  await expect(page.locator('.bgc-allmap-overlay')).toBeVisible();
+  await expect(page).toHaveURL(/porachka/);
+
+  await input.press('ArrowDown');
+  await expect(opts.first()).toBeVisible({ timeout: 15000 });
+  await input.press('Escape');
+  await expect(opts).toHaveCount(0);
+  // And the pointer goes with the rows it named - a reader must not be left announcing a gone one.
+  await expect(input).not.toHaveAttribute('aria-activedescendant', /./);
+  await expect(page.locator('.bgc-allmap-overlay'), 'Escape closed the dialog, not the list').toBeVisible();
+});
+
 test('combined map: it carries several couriers at once, each with its own price @allmap', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);

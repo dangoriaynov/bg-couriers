@@ -101,7 +101,9 @@
   .bgc-allmap-cityrow.bgc-loading::after { animation-duration: 2.4s; }
 }
 .bgc-allmap-cityopt { padding: 8px 12px; cursor: pointer; font-size: 14px; }
-.bgc-allmap-cityopt:hover { background: #f0f6fc; color: #2271b1; }
+/* is-active is the same highlight the mouse gives, for the arrow keys and for the town already
+   chosen: opening the list on a place should point AT it, not at the top of a few thousand others. */
+.bgc-allmap-cityopt:hover, .bgc-allmap-cityopt.is-active { background: #f0f6fc; color: #2271b1; }
 /* Office or locker, said on the point itself - the two share one map, because a customer looking for
    somewhere to collect from does not think in those categories until they see what is nearby. */
 .bgc-allmap-kind { display: inline-flex; vertical-align: -2px; margin-right: 5px; color: #6b7280; }
@@ -372,6 +374,19 @@
 /* The field makes room for it, and gives way entirely to the spinner while one is running. */
 .bgc-allmap-cityinput { padding-right: 34px; }
 .bgc-allmap-cityrow.bgc-loading .bgc-allmap-cityclear { display: none; }
+
+/* The arrow, in the ×'s slot - the two are never both wanted, since an empty field has nothing to
+   clear and a filled one has already been answered. Without it the box looked like somewhere to type
+   a name from memory, when behind it there was always a list to pick from. */
+.bgc-allmap-citycaret { position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: none;
+  cursor: pointer; }
+.bgc-allmap-citycaret::before { content: ""; position: absolute; left: 50%; top: 50%;
+  width: 7px; height: 7px; margin: -6px 0 0 -4px; border: solid #6b7280; border-width: 0 2px 2px 0;
+  transform: rotate(45deg); }
+.bgc-allmap-citycaret:hover, .bgc-allmap-citycaret:focus { background: #f0f2f4; }
+.bgc-allmap-citycaret:hover::before { border-color: #1d2327; }
+.bgc-allmap-cityrow.bgc-loading .bgc-allmap-citycaret { display: none; }
 
 /* "Find me" beside the town field, for the state before there is a map - the other one lives inside
    the map's panel, which does not exist yet. Hidden again the moment the map arrives, so there is
