@@ -125,11 +125,18 @@ async function fillStreet(page, fields, term) {
 async function choosePayment(page, id) {
   const radio = page.locator(`#payment_method_${id}`);
   await expect(radio, `the "${id}" payment method is not on this checkout`).toHaveCount(1);
-  if (!(await radio.isChecked())) {
-    await radio.check();
-    await page.waitForTimeout(1000);   // WooCommerce redraws the payment box after the choice
-    await expect(radio).toBeChecked();
-  }
+  if (await radio.isChecked()) { return; }
+
+  // Two things sit on top of that radio and take the click meant for it: the store notice, which is
+  // pinned to the foot of the window wherever the page is scrolled to, and WooCommerce's own <label>,
+  // which covers the radio it belongs to. Neither is a fault - the label IS what a person clicks - so
+  // the banner goes and the label is clicked, rather than forcing a click through them.
+  await dismissStoreBanner(page);
+  const label = page.locator(`label[for="payment_method_${id}"]`);
+  if (await label.count()) { await label.click(); } else { await radio.check({ force: true }); }
+
+  await page.waitForTimeout(1000);   // WooCommerce redraws the payment box after the choice
+  await expect(radio, `the "${id}" payment method would not stay chosen`).toBeChecked();
 }
 
 module.exports = { addAnyProductToCart, choosePayment, gotoCheckout, fillGuestBilling, dismissStoreBanner, selectShippingMethod, selectSpeedyTab, selectCity, pickFirstOffice, fillStreet };
