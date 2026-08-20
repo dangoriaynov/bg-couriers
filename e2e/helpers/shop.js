@@ -114,4 +114,22 @@ async function fillStreet(page, fields, term) {
   await opt.click();
 }
 
-module.exports = { addAnyProductToCart, gotoCheckout, fillGuestBilling, dismissStoreBanner, selectShippingMethod, selectSpeedyTab, selectCity, pickFirstOffice, fillStreet };
+/**
+ * Pick a payment method by its WooCommerce id, when the checkout offers a choice.
+ *
+ * The COD specs used to rely on the shop having exactly ONE gateway enabled: whatever was preselected
+ * was cash on delivery, so nothing had to say so. The day a second one is switched on - and the
+ * international spec switches bank transfer on every time it runs - those specs would place bank-transfer
+ * orders instead and keep passing, testing the wrong thing in silence.
+ */
+async function choosePayment(page, id) {
+  const radio = page.locator(`#payment_method_${id}`);
+  await expect(radio, `the "${id}" payment method is not on this checkout`).toHaveCount(1);
+  if (!(await radio.isChecked())) {
+    await radio.check();
+    await page.waitForTimeout(1000);   // WooCommerce redraws the payment box after the choice
+    await expect(radio).toBeChecked();
+  }
+}
+
+module.exports = { addAnyProductToCart, choosePayment, gotoCheckout, fillGuestBilling, dismissStoreBanner, selectShippingMethod, selectSpeedyTab, selectCity, pickFirstOffice, fillStreet };
