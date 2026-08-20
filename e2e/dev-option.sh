@@ -9,7 +9,7 @@
 #   e2e/dev-option.sh set bgcouriers_autolabel_enabled no
 #   e2e/dev-option.sh label 1234        # book the waybill for order 1234 (the international spec)
 #   e2e/dev-option.sh cancel 1234       # and void it again
-#   e2e/dev-option.sh gateway bacs yes  # switch a payment gateway on for one spec
+#   e2e/dev-option.sh gateway bacs yes  # switch a payment gateway on for one spec (no value = read it)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -74,7 +74,13 @@ case "${1:-}" in
   # else. Switched back off in the spec's teardown, because a payment method left enabled changes what
   # every other spec sees.
   #
-  #   e2e/dev-option.sh gateway bacs yes|no
+  #   e2e/dev-option.sh gateway bacs yes|no   # set, and print what it now is
+  #   e2e/dev-option.sh gateway bacs           # just read it
+  # Reading matters as much as writing: the spec puts back what it FOUND rather than a hard-coded "no".
+  # Forcing it off at the end is how dev was left unable to quote a foreign address at all - the shop had
+  # no prepaid gateway, so every rate abroad was correctly refused, and the next person to open the
+  # checkout saw an empty delivery box with no explanation.
+  #
   # Through the gateway's own settings API rather than by patching the option: a gateway that has never
   # been configured has no option row at all, and `option patch` on a missing option does nothing at all
   # and says nothing about it.
@@ -82,8 +88,9 @@ case "${1:-}" in
     run "$WP eval '
       \$g = WC()->payment_gateways()->payment_gateways()[\"$2\"] ?? null;
       if (!\$g) { print(\"NO GATEWAY $2\n\"); return; }
-      \$g->update_option(\"enabled\", \"$3\");
-      printf(\"%s=%s\n\", \"$2\", \$g->get_option(\"enabled\"));'" | tr -d '\r' ;;
+      \$want = \"${3:-}\";
+      if (\$want !== \"\") { \$g->update_option(\"enabled\", \$want); }
+      printf(\"%s\n\", \$g->get_option(\"enabled\"));'" | tr -d '\r' ;;
   # One meta value off one order, for a spec that has to check what the checkout actually wrote.
   meta) run "$WP eval 'print((string) wc_get_order((int) $2)->get_meta(\"$3\"));'" | tr -d '\r' ;;
   *) echo "usage: dev-option.sh get|set|sweep|label|cancel|meta [name|order_id] [value|meta_key]" >&2; exit 1 ;;

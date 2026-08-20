@@ -39,9 +39,17 @@ const dev = (...args) => execFileSync('bash', [SH, ...args], { encoding: 'utf8' 
 
 let orderId = '';
 
-// The one prepaid way to pay this shop has. Enabled for this spec only; see the note above.
-test.beforeAll(() => { console.log(`[intl] ${dev('gateway', 'bacs', 'yes')}`); });
-test.afterAll(() => { console.log(`[intl] ${dev('gateway', 'bacs', 'no')}`); });
+// The one prepaid way to pay this shop has. Enabled for this spec only, and afterwards put back the way
+// it was FOUND rather than switched off: a shop whose cash on delivery is legal only through the
+// courier's ППП has no way to be paid abroad, so with no prepaid gateway every rate for a foreign
+// address is correctly refused - and dev, left that way by an earlier run of this spec, then showed
+// whoever opened the checkout next an empty delivery box.
+let prepaidWas = 'no';
+test.beforeAll(() => {
+  prepaidWas = dev('gateway', 'bacs');
+  console.log(`[intl] bank transfer was ${prepaidWas}, on for this spec: ${dev('gateway', 'bacs', 'yes')}`);
+});
+test.afterAll(() => { console.log(`[intl] bank transfer back to ${dev('gateway', 'bacs', prepaidWas)}`); });
 
 test.afterEach(async () => {
   if (!orderId) { return; }
