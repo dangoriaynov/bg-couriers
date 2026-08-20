@@ -80,6 +80,37 @@ final class NoShippingAbroadTest extends WP_UnitTestCase {
     }
 
     /**
+     * The payment box under it is WooCommerce's, and it goes empty for the same reason.
+     *
+     * Abroad, under ППП, the plugin takes cash on delivery away itself - and on a shop with no prepaid
+     * method that leaves nothing at all, so WooCommerce prints "Sorry, it seems that there are no
+     * available payment methods". On a Bulgarian shop that is a stock English sentence which names
+     * neither the cause nor a way out, directly underneath our own message that names both.
+     */
+    public function test_the_empty_payment_box_says_why_and_offers_the_way_back(): void {
+        update_option('bgcouriers_cod_fiscalization', 'ppp');
+        $this->deliver_to('RO');
+        $out = $this->checkout()->no_payment_reason('Sorry, it seems that there are no available payment methods.');
+        $this->assertStringNotContainsString('Sorry, it seems', $out);
+        $this->assertStringContainsString('Romania', $out, 'it must name where the parcel was going');
+        $this->assertStringStartsWith(wc_get_checkout_url(), $this->way_back($out), 'and carry the way back');
+    }
+
+    public function test_at_home_the_payment_box_keeps_woocommerces_own_message(): void {
+        update_option('bgcouriers_cod_fiscalization', 'ppp');
+        $this->deliver_to('BG');
+        $this->assertSame('the original', $this->checkout()->no_payment_reason('the original'),
+            'an empty payment box at home is the shop\'s own business, not ours to explain');
+    }
+
+    public function test_a_shop_with_its_own_cash_register_keeps_woocommerces_message_abroad_too(): void {
+        update_option('bgcouriers_cod_fiscalization', 'register');
+        $this->deliver_to('RO');
+        $this->assertSame('the original', $this->checkout()->no_payment_reason('the original'),
+            'nothing was taken away by us, so nothing here is ours to explain');
+    }
+
+    /**
      * The way back changes the session, so it is a request that has to prove it was meant. Without this
      * any page could carry a link that quietly moved a customer's delivery country.
      */
