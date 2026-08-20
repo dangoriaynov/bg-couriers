@@ -22,7 +22,16 @@ DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
 WP="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root --path=${DEVROOT}"
 # The host's login shell prints a manpath locale warning on every connection; it would otherwise end up
 # in the value this script returns.
-run() { ssh -p "${BGC_SSH_PORT:-22}" "$BGC_SSH_HOST" "$@" 2>/dev/null; }
+#
+# The timeouts are not politeness. Playwright calls this through execFileSync, which blocks the worker's
+# event loop, so while ssh waits NOTHING else in the run can happen - not the spec's own 90s timeout, not
+# the teardown that sweeps for waybills. A laptop that slept mid-command left one of these hanging for
+# thirteen hours with a freshly booked waybill on a live courier account on the other side of it. Now the
+# connection dies within a minute and the spec fails, which is a thing that can be seen and acted on.
+run() {
+  ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+    -p "${BGC_SSH_PORT:-22}" "$BGC_SSH_HOST" "$@" 2>/dev/null
+}
 
 case "${1:-}" in
   get) run "$WP option get $2" | tr -d '\r' ;;
