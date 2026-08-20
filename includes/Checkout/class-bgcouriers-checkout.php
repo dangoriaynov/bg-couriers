@@ -64,6 +64,81 @@ class BGCouriers_Checkout {
         // COD fiscalisation (ППП) rules: gate the COD payment gateway / courier rates at runtime.
         add_filter('woocommerce_available_payment_gateways', [$this, 'ppp_filter_gateways']);
         add_filter('woocommerce_package_rates', [$this, 'ppp_filter_rates'], 25, 2);
+        // A foreign address with nothing to choose from is a dead end unless it says why and offers the
+        // way out - see no_shipping_reason() and reset_country().
+        add_filter('woocommerce_no_shipping_available_html', [$this, 'no_shipping_reason']);
+        add_filter('woocommerce_cart_no_shipping_available_html', [$this, 'no_shipping_reason']);
+        add_action('template_redirect', [$this, 'reset_country']);
+    }
+
+    /**
+     * Say why a parcel to another country has no delivery options, and offer the way back.
+     *
+     * WooCommerce's own sentence there is "please ensure that your address has been entered correctly",
+     * which is wrong twice over abroad: the address is fine, and there is nothing in it to correct. The
+     * customer is also STUCK - the country is chosen inside the delivery box, the delivery box is drawn
+     * against a shipping rate, and there are no rates - so without a way back the only escape from a
+     * country the shop cannot deliver to is to clear the site's cookies.
+     *
+     * Only ever replaces the message for a foreign destination. Domestically WooCommerce's sentence is
+     * the right one (the address really can be wrong) and is left exactly as it is.
+     *
+     * @param string $html
+     * @return string
+     */
+    public function no_shipping_reason($html) {
+        if (!function_exists('WC') || !class_exists('BGCouriers_Pricing')) { return $html; }
+        $country = BGCouriers_Pricing::destination_country();
+        if (!BGCouriers_Settings::is_intl($country)) { return $html; }
+        $home  = BGCouriers_Settings::home_country();
+        $names = WC()->countries ? (array) WC()->countries->get_countries() : [];
+        $there = (string) ($names[$country] ?? $country);
+        $here  = (string) ($names[$home] ?? $home);
+        // The one cause the plugin can name with certainty: it removed the rates itself, because a shop
+        // whose cash on delivery is legal only through the courier's ППП has no way to be paid abroad.
+        if (BGCouriers_Settings::cod_fiscalization() === 'ppp' && !BGCouriers_Settings::has_prepaid_gateway()) {
+            /* translators: %s: country name */
+            $msg = sprintf(__('Delivery to %s can only be paid in advance, and this shop has no prepaid payment method at the moment.', 'bg-couriers'), $there);
+        } else {
+            /* translators: %s: country name */
+            $msg = sprintf(__('No courier can deliver to %s at the moment.', 'bg-couriers'), $there);
+        }
+        /* translators: %s: the shop's own country */
+        $back = sprintf(__('Deliver in %s instead', 'bg-couriers'), $here);
+        $url  = add_query_arg('bgcouriers_home', wp_create_nonce('bgcouriers_home'));
+        return '<span class="bgc-no-shipping">' . esc_html($msg) . ' <a href="' . esc_url($url) . '">'
+            . esc_html($back) . '</a></span>';
+    }
+
+    /**
+     * The way back out of a country the shop cannot deliver to.
+     *
+     * The town and the office in the session were looked up in that country's own nomenclature, so they
+     * are dropped with it - keeping them would quote the next courier against a city id that means a
+     * different place at home. WooCommerce's own shipping country goes back too: it is what decides the
+     * shipping zone, and a customer left in a zone with no methods is exactly the state being escaped.
+     */
+    public function reset_country(): void {
+        if (!isset($_GET['bgcouriers_home']) || !function_exists('WC') || !WC()->session) { return; }
+        $nonce = sanitize_text_field(wp_unslash($_GET['bgcouriers_home']));
+        if (!wp_verify_nonce($nonce, 'bgcouriers_home')) { return; }
+        $home = BGCouriers_Settings::home_country();
+        WC()->session->set('bgcouriers_country', $home);
+        WC()->session->set('bgcouriers_site_id', 0);
+        WC()->session->set('bgcouriers_office_id', 0);
+        WC()->session->set('bgcouriers_post_code', '');
+        WC()->session->set('bgcouriers_sel_by_courier', []);
+        if (WC()->customer) {
+            WC()->customer->set_shipping_country($home);
+            // Billing only when the plugin owns the address fields - then the country box on screen is the
+            // hidden one it pins itself, and leaving it abroad would fail validation with nothing visible
+            // to correct. A shop that kept WooCommerce's own fields has a billing country the customer
+            // typed, which is theirs and none of this function's business.
+            if (BGCouriers_Settings::own_address_fields()) { WC()->customer->set_billing_country($home); }
+            WC()->customer->save();
+        }
+        wp_safe_redirect(remove_query_arg('bgcouriers_home'));
+        exit;
     }
 
     /**
