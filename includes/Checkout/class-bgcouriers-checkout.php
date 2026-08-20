@@ -68,6 +68,9 @@ class BGCouriers_Checkout {
         // way out - see no_shipping_reason() and reset_country().
         add_filter('woocommerce_no_shipping_available_html', [$this, 'no_shipping_reason']);
         add_filter('woocommerce_cart_no_shipping_available_html', [$this, 'no_shipping_reason_cart']);
+        // ...and the payment box below it, which WooCommerce fills with its own "no available payment
+        // methods" when this plugin is the one that took them away - see no_payment_reason().
+        add_filter('woocommerce_no_available_payment_methods_message', [$this, 'no_payment_reason']);
         add_action('template_redirect', [$this, 'reset_country']);
     }
 
@@ -91,10 +94,8 @@ class BGCouriers_Checkout {
         if (!function_exists('WC') || !class_exists('BGCouriers_Pricing')) { return $html; }
         $country = BGCouriers_Pricing::destination_country();
         if (!BGCouriers_Settings::is_intl($country)) { return $html; }
-        $home  = BGCouriers_Settings::home_country();
         $names = WC()->countries ? (array) WC()->countries->get_countries() : [];
         $there = (string) ($names[$country] ?? $country);
-        $here  = (string) ($names[$home] ?? $home);
         // The one cause the plugin can name with certainty: it removed the rates itself, because a shop
         // whose cash on delivery is legal only through the courier's ППП has no way to be paid abroad.
         if (BGCouriers_Settings::cod_fiscalization() === 'ppp' && !BGCouriers_Settings::has_prepaid_gateway()) {
@@ -104,15 +105,56 @@ class BGCouriers_Checkout {
             /* translators: %s: country name */
             $msg = sprintf(__('No courier can deliver to %s at the moment.', 'bg-couriers'), $there);
         }
+        return '<span class="bgc-no-shipping">' . esc_html($msg) . ' ' . $this->home_link($cart) . '</span>';
+    }
+
+    /**
+     * The link that puts the delivery country back home, ready to print.
+     *
+     * Built off a NAMED page rather than the current URL: the totals block and the payment box are both
+     * re-rendered inside WooCommerce's own AJAX refresh, where the request is /?wc-ajax=update_order_review
+     * - and a link built off that takes the customer to a page whose entire body is "-1".
+     *
+     * @param bool $cart Whether the block being filtered is the cart page's.
+     * @return string
+     */
+    private function home_link(bool $cart = false): string {
+        $home  = BGCouriers_Settings::home_country();
+        $names = WC()->countries ? (array) WC()->countries->get_countries() : [];
         /* translators: %s: the shop's own country */
-        $back = sprintf(__('Deliver in %s instead', 'bg-couriers'), $here);
-        // Named page, not the current URL: both totals blocks are re-rendered inside WooCommerce's own
-        // AJAX refresh, where the request is /?wc-ajax=update_order_review - and a link built off that
-        // takes the customer to a page whose entire body is "-1".
+        $back = sprintf(__('Deliver in %s instead', 'bg-couriers'), (string) ($names[$home] ?? $home));
         $base = $cart ? wc_get_cart_url() : wc_get_checkout_url();
         $url  = add_query_arg('bgcouriers_home', wp_create_nonce('bgcouriers_home'), $base);
-        return '<span class="bgc-no-shipping">' . esc_html($msg) . ' <a href="' . esc_url($url) . '">'
-            . esc_html($back) . '</a></span>';
+        return '<a href="' . esc_url($url) . '">' . esc_html($back) . '</a>';
+    }
+
+    /**
+     * Say why the payment box is empty, when this plugin is the reason it is.
+     *
+     * Abroad, a shop whose cash on delivery is receipted through the courier's ППП has no way at all to be
+     * paid: no courier performs a ППП across the border, so the plugin removes cash on delivery - and on a
+     * shop with no prepaid method that leaves nothing. WooCommerce then prints "Sorry, it seems that there
+     * are no available payment methods", which says neither what happened nor how to get out of it, and on
+     * a Bulgarian shop it is in English besides. The customer already read the reason above the payment
+     * box; this replaces the stock sentence with the same way back, so the screen ends in an exit rather
+     * than in a dead stop.
+     *
+     * Only ever for a foreign destination and only under ППП. Any other empty payment box belongs to the
+     * shop, not to this plugin, and keeps WooCommerce's own wording.
+     *
+     * @param string $msg
+     * @return string
+     */
+    public function no_payment_reason($msg) {
+        if (!function_exists('WC') || !class_exists('BGCouriers_Pricing')) { return $msg; }
+        if (BGCouriers_Settings::cod_fiscalization() !== 'ppp') { return $msg; }
+        $country = BGCouriers_Pricing::destination_country();
+        if (!BGCouriers_Settings::is_intl($country)) { return $msg; }
+        $names = WC()->countries ? (array) WC()->countries->get_countries() : [];
+        /* translators: %s: country name */
+        $there = sprintf(__('No payment method is available for delivery to %s.', 'bg-couriers'),
+            (string) ($names[$country] ?? $country));
+        return '<span class="bgc-no-payment">' . esc_html($there) . ' ' . $this->home_link() . '</span>';
     }
 
     /**

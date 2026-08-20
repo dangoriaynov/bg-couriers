@@ -58,6 +58,19 @@ test('an undeliverable country says why, and takes the customer back @speedy', a
   await expect(page.locator('#payment_method_cod'),
     'cash on delivery is still offered for a country the shop says must be prepaid').toHaveCount(0);
 
+  // The payment box goes empty for the same reason, and WooCommerce fills it with its own "Sorry, it
+  // seems that there are no available payment methods" - a stock English sentence on a Bulgarian shop,
+  // naming neither the cause nor a way out, directly under our message that names both. That is what
+  // the owner saw and called a broken checkout.
+  const pay = page.locator('#payment');
+  await expect(pay, 'the stock English payment notice is still what ends the screen')
+    .not.toContainText('no available payment methods');
+  const noPay = page.locator('.bgc-no-payment');
+  await expect(noPay).toBeVisible({ timeout: 10000 });
+  await expect(noPay).toContainText('Румъния');
+  await expect(noPay.locator('a[href*="bgcouriers_home"]'),
+    'the payment box has to lead out of the dead end too').toHaveCount(1);
+
   // And now the screen itself. Named country, stated reason, and a way out.
   const dead = page.locator('.bgc-no-shipping');
   await expect(dead, 'the customer got WooCommerce\'s stock message instead of the reason')

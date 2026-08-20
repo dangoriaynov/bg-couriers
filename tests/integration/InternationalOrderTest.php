@@ -146,6 +146,36 @@ final class InternationalOrderTest extends WP_UnitTestCase {
         delete_option('bgcouriers_speedy_ppp_payout');
     }
 
+    /**
+     * And the merchant hears it where the countries are chosen, not from a customer's empty checkout.
+     *
+     * The field already explains that an international order can only be a prepaid one. This is the same
+     * fact once it has stopped being advice: with no prepaid method enabled, the countries picked here
+     * are picked for nothing - no rate is offered for them at all.
+     */
+    public function test_the_country_field_warns_when_the_shop_has_nothing_to_prepay_with(): void {
+        if (!class_exists('BGCouriers_WC_Settings')) { $this->markTestSkipped('settings page not loaded'); }
+        if (BGCouriers_Settings::has_prepaid_gateway()) {
+            $this->markTestSkipped('this test shop has a prepaid gateway enabled, so there is nothing to warn about');
+        }
+        update_option('bgcouriers_cod_fiscalization', 'ppp');
+        update_option('bgcouriers_speedy_ppp_payout', 'yes');
+        $desc = new ReflectionMethod('BGCouriers_WC_Settings', 'intl_countries_desc');
+        $desc->setAccessible(true);
+
+        update_option('bgcouriers_speedy_intl_countries', []);
+        $this->assertStringNotContainsString('no prepaid payment method enabled', $desc->invoke(null, 'speedy', 'Speedy'),
+            'a Bulgaria-only shop is not doing anything wrong and must not be told it is');
+
+        update_option('bgcouriers_speedy_intl_countries', ['RO']);
+        $this->assertStringContainsString('no prepaid payment method enabled', $desc->invoke(null, 'speedy', 'Speedy'),
+            'countries are chosen but nothing can pay for them - that has to be said here');
+
+        delete_option('bgcouriers_speedy_intl_countries');
+        delete_option('bgcouriers_cod_fiscalization');
+        delete_option('bgcouriers_speedy_ppp_payout');
+    }
+
     public function test_a_domestic_order_is_booked_exactly_as_before(): void {
         if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
         $order = wc_create_order();

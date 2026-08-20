@@ -268,6 +268,17 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             && BGCouriers_Settings::cod_fiscalization() === 'ppp'
             && BGCouriers_Settings::courier_ppp_payout($courier)) {
             $desc .= ' ' . __('Cash on delivery does not travel: ППП is a Bulgarian postal money transfer and the courier refuses it for a foreign address, so international orders here can only be prepaid ones. Add a card or bank-transfer payment method, or they will have no way to pay.', 'bg-couriers');
+            // Said as a warning rather than as advice once it is no longer hypothetical: countries are
+            // chosen here, and with nothing to prepay with they are chosen for nothing - the checkout
+            // offers no delivery price for them at all. A merchant who reads this field is the one who
+            // can fix it, and finding out from a customer's empty checkout instead is how it went.
+            // The merchant's own choice, read straight from the option rather than through
+            // BGCouriers_Settings::intl_countries(): that one intersects with what the courier supports
+            // via the registry, and what matters here is only that something was picked.
+            $picked = get_option('bgcouriers_' . $courier . '_intl_countries', []);
+            if (!BGCouriers_Settings::has_prepaid_gateway() && is_array($picked) && $picked) {
+                $desc .= ' <strong>' . esc_html__('Your shop has no prepaid payment method enabled right now, so orders to these countries cannot be paid for at all: no delivery price is offered for them at checkout.', 'bg-couriers') . '</strong>';
+            }
         }
         return $desc;
     }
