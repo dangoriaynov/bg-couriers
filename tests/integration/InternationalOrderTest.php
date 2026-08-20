@@ -128,6 +128,17 @@ final class InternationalOrderTest extends WP_UnitTestCase {
         $this->assertArrayNotHasKey('cod', $abroad, 'no ППП abroad, so no cash on delivery');
         $this->assertArrayHasKey('bacs', $abroad, 'prepaid is exactly what is left');
 
+        // And with NO shipping method chosen at all, which is the state a shop with no prepaid gateway is
+        // actually in abroad: every rate for the foreign address is refused, so there is no chosen courier
+        // to ask about the ППП. Asking one was the bug - cash on delivery stayed on screen underneath a
+        // message saying the order could only be prepaid. The destination alone decides.
+        WC()->session->set('chosen_shipping_methods', []);
+        $this->assertArrayNotHasKey('cod', $checkout->ppp_filter_gateways($gateways),
+            'nothing was chosen because nothing was on offer - that is not a reason to allow COD abroad');
+        WC()->session->set('bgcouriers_country', 'BG');
+        $this->assertArrayHasKey('cod', $checkout->ppp_filter_gateways($gateways),
+            'at home with no courier chosen the shop\'s own arrangement stands');
+
         // Cleared, not set back to Bulgaria: an empty session country is the state every other test here
         // starts from, and leaving a value behind makes destination_country() answer for them too.
         WC()->session->set('bgcouriers_country', '');

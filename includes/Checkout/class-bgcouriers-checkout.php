@@ -67,7 +67,7 @@ class BGCouriers_Checkout {
         // A foreign address with nothing to choose from is a dead end unless it says why and offers the
         // way out - see no_shipping_reason() and reset_country().
         add_filter('woocommerce_no_shipping_available_html', [$this, 'no_shipping_reason']);
-        add_filter('woocommerce_cart_no_shipping_available_html', [$this, 'no_shipping_reason']);
+        add_filter('woocommerce_cart_no_shipping_available_html', [$this, 'no_shipping_reason_cart']);
         add_action('template_redirect', [$this, 'reset_country']);
     }
 
@@ -84,9 +84,10 @@ class BGCouriers_Checkout {
      * the right one (the address really can be wrong) and is left exactly as it is.
      *
      * @param string $html
+     * @param bool   $cart Whether the totals block being filtered is the cart page's.
      * @return string
      */
-    public function no_shipping_reason($html) {
+    public function no_shipping_reason($html, $cart = false) {
         if (!function_exists('WC') || !class_exists('BGCouriers_Pricing')) { return $html; }
         $country = BGCouriers_Pricing::destination_country();
         if (!BGCouriers_Settings::is_intl($country)) { return $html; }
@@ -105,9 +106,23 @@ class BGCouriers_Checkout {
         }
         /* translators: %s: the shop's own country */
         $back = sprintf(__('Deliver in %s instead', 'bg-couriers'), $here);
-        $url  = add_query_arg('bgcouriers_home', wp_create_nonce('bgcouriers_home'));
+        // Named page, not the current URL: both totals blocks are re-rendered inside WooCommerce's own
+        // AJAX refresh, where the request is /?wc-ajax=update_order_review - and a link built off that
+        // takes the customer to a page whose entire body is "-1".
+        $base = $cart ? wc_get_cart_url() : wc_get_checkout_url();
+        $url  = add_query_arg('bgcouriers_home', wp_create_nonce('bgcouriers_home'), $base);
         return '<span class="bgc-no-shipping">' . esc_html($msg) . ' <a href="' . esc_url($url) . '">'
             . esc_html($back) . '</a></span>';
+    }
+
+    /**
+     * The same message on the cart page, where the way back is the cart itself.
+     *
+     * @param string $html
+     * @return string
+     */
+    public function no_shipping_reason_cart($html) {
+        return $this->no_shipping_reason($html, true);
     }
 
     /**
@@ -157,8 +172,16 @@ class BGCouriers_Checkout {
      */
     public function ppp_filter_gateways($gateways) {
         if (!is_array($gateways) || BGCouriers_Settings::cod_fiscalization() !== 'ppp') { return $gateways; }
+        $country = BGCouriers_Pricing::destination_country();
         $courier = self::chosen_bgc_courier();
-        if ($courier !== '' && !BGCouriers_Settings::ppp_payout_reaches($courier, BGCouriers_Pricing::destination_country())) {
+        // Abroad the destination alone decides, with no courier asked. The ППП is a Bulgarian postal money
+        // transfer and none of them performs one across the border, so there is nothing that could be
+        // chosen to bring it back. Waiting for a chosen courier is what left cash on delivery on screen
+        // beside a message saying the order could only be prepaid: every rate for the foreign address had
+        // been refused, so there was no chosen courier to ask about.
+        $strip = BGCouriers_Settings::is_intl($country)
+            || ($courier !== '' && !BGCouriers_Settings::ppp_payout_reaches($courier, $country));
+        if ($strip) {
             foreach ($gateways as $gid => $gw) {
                 if (BGCouriers_Settings::is_cod_gateway((string) $gid, $gw)) { unset($gateways[$gid]); }
             }
