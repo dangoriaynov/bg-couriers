@@ -38,12 +38,13 @@ const SH = path.join(__dirname, '..', 'dev-option.sh');
 const dev = (...args) => execFileSync('bash', [SH, ...args], { encoding: 'utf8' }).trim();
 
 let orderId = '';
+let booked = '';
 
 // The one prepaid way to pay this shop has. Enabled for this spec only, and afterwards put back the way
 // it was FOUND rather than switched off: a shop whose cash on delivery is legal only through the
 // courier's ППП has no way to be paid abroad, so with no prepaid gateway every rate for a foreign
-// address is correctly refused - and dev, left that way by an earlier run of this spec, then showed
-// whoever opened the checkout next an empty delivery box.
+// address is correctly refused - and dev, left that way by an earlier run of this spec, then showed the
+// next person who picked a foreign country an empty delivery box.
 let prepaidWas = 'no';
 test.beforeAll(() => {
   prepaidWas = dev('gateway', 'bacs');
@@ -53,12 +54,24 @@ test.afterAll(() => { console.log(`[intl] bank transfer back to ${dev('gateway',
 
 test.afterEach(async () => {
   if (!orderId) { return; }
-  const out = dev('cancel', orderId);
-  console.log(`[intl] order ${orderId}: ${out}`);
+  const id = orderId;
   orderId = '';
+  let out;
+  try {
+    out = dev('cancel', id);
+  } catch (e) {
+    // The cancel itself failed to run - ssh refused, timed out, dev unreachable. That leaves a LIVE
+    // waybill on a shared live courier account, and the one thing that makes it recoverable is the
+    // number, said here rather than only inside a stack trace nobody scrolls to.
+    console.log(`[intl] CANCEL FAILED TO RUN for order ${id} - ${booked || 'waybill unknown'} MAY STILL BE LIVE`);
+    console.log(`[intl] void it by hand: bash e2e/dev-option.sh cancel ${id}`);
+    throw e;
+  }
+  console.log(`[intl] order ${id}: ${out}`);
   // Printed AND asserted: leaving a live waybill behind on a shared live account is the one outcome
   // this spec must never have.
-  expect(out, 'the booked waybill must be voided again').toMatch(/^(CANCELLED|NOTHING)/);
+  expect(out, `the booked waybill must be voided again (order ${id}, ${booked || 'waybill unknown'})`)
+    .toMatch(/^(CANCELLED|NOTHING)/);
 });
 
 test('speedy guest checkout to ROMANIA books a real waybill @speedy @books-real-waybill', async ({ page }) => {
@@ -136,7 +149,7 @@ test('speedy guest checkout to ROMANIA books a real waybill @speedy @books-real-
 
   // And now the courier itself. Auto-labelling is off for the whole run (global-setup), so this is the
   // only waybill the suite books, and it books it deliberately.
-  const booked = dev('label', orderId);
+  booked = dev('label', orderId);
   console.log(`[intl] ${booked}`);
   expect(booked, 'Speedy refused the Romanian shipment').toMatch(/^WAYBILL \S+ speedy$/);
 });

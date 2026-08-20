@@ -61,7 +61,7 @@ when asked for one abroad - so the plugin takes COD off the checkout for a forei
 asserts that too. The spec switches dev's bank transfer on for its own run and afterwards puts it back
 the way it FOUND it (`dev-option.sh gateway bacs [yes|no]`, which reads with no value given) - a payment
 method left enabled changes what every other spec sees, and one left disabled is worse: it is how dev
-came to show whoever opened the checkout next an empty delivery box (below).
+came to show the next person who picked a foreign country an empty delivery box (below).
 
 It prints, and you should read, three lines:
 
