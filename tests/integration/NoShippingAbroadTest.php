@@ -40,6 +40,11 @@ final class NoShippingAbroadTest extends WP_UnitTestCase {
         );
     }
 
+    /** The href out of the message, or '' if there is none. */
+    private function way_back(string $html): string {
+        return preg_match('/href="([^"]+)"/', $html, $m) ? html_entity_decode($m[1]) : '';
+    }
+
     public function test_abroad_it_names_the_country_and_offers_the_way_back(): void {
         update_option('bgcouriers_cod_fiscalization', 'ppp'); // no prepaid gateway is enabled in a test shop
         $this->deliver_to('RO');
@@ -47,6 +52,31 @@ final class NoShippingAbroadTest extends WP_UnitTestCase {
         $this->assertStringNotContainsString('the original', $out);
         $this->assertStringContainsString('Romania', $out, 'the message must name where the parcel was going');
         $this->assertStringContainsString('bgcouriers_home', $out, 'and carry the link back out of it');
+    }
+
+    /**
+     * The link has to name the page it goes to.
+     *
+     * Both totals blocks are re-rendered inside WooCommerce's own AJAX refresh, so the current URL at the
+     * moment this message is built is /?wc-ajax=update_order_review. A link built off it - which is what
+     * add_query_arg() does when given no base - sends the customer to a page whose entire body is "-1".
+     * That shipped once and was caught in a browser, not here; these two assertions are what would have
+     * caught it here.
+     */
+    public function test_the_way_back_points_at_the_checkout_page_and_not_at_the_ajax_url(): void {
+        update_option('bgcouriers_cod_fiscalization', 'ppp');
+        $this->deliver_to('RO');
+        $href = $this->way_back($this->checkout()->no_shipping_reason('the original'));
+        $this->assertStringStartsWith(wc_get_checkout_url(), $href, 'the way back must be the checkout page');
+        $this->assertStringNotContainsString('wc-ajax', $href, 'never the AJAX endpoint the message was drawn in');
+    }
+
+    public function test_on_the_cart_the_way_back_is_the_cart(): void {
+        update_option('bgcouriers_cod_fiscalization', 'ppp');
+        $this->deliver_to('RO');
+        $href = $this->way_back($this->checkout()->no_shipping_reason_cart('the original'));
+        $this->assertStringStartsWith(wc_get_cart_url(), $href, 'a customer on the cart stays on the cart');
+        $this->assertStringNotContainsString('wc-ajax', $href);
     }
 
     /**

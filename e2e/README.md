@@ -58,9 +58,10 @@ and a silent skip would answer "does it work?" with "nothing happened".
 The order is **prepaid**, and that is the feature rather than a convenience: cash on delivery here is
 receipted through Speedy's ППП, no courier's ППП crosses the border, and Speedy refuses the whole quote
 when asked for one abroad - so the plugin takes COD off the checkout for a foreign address, and the spec
-asserts that too. The spec switches dev's bank transfer on for its own run and off again afterwards
-(`dev-option.sh gateway bacs yes|no`), because a payment method left enabled changes what every other
-spec sees.
+asserts that too. The spec switches dev's bank transfer on for its own run and afterwards puts it back
+the way it FOUND it (`dev-option.sh gateway bacs [yes|no]`, which reads with no value given) - a payment
+method left enabled changes what every other spec sees, and one left disabled is worse: it is how dev
+came to show whoever opened the checkout next an empty delivery box (below).
 
 It prints, and you should read, three lines:
 
@@ -70,6 +71,19 @@ It prints, and you should read, three lines:
 
 The waybill is voided in `afterEach` and the number is printed whether the cancel worked or not. Re-check
 it at Speedy a few minutes later anyway - the suite's own sweep is the second net, not a guarantee.
+
+## A country the shop cannot deliver to
+
+`intl-no-delivery.spec.js` drives the other side of the same feature, and books nothing: with no prepaid
+gateway on the shop, a ППП checkout has no way at all to be paid abroad, so every rate for the foreign
+address is refused on purpose - and the country picker, which is drawn underneath a rate, goes with them.
+What the customer was left with was WooCommerce's stock "please ensure that your address has been entered
+correctly", about an address with nothing wrong with it, and nothing on the page to change it back with.
+
+The spec asserts the message names the country and carries the way back out, follows that link, and
+checks the delivery options return. It forces bank transfer **off** for its own length (and back to what
+it found), because with a prepaid method there is no dead end to test, and it asserts dev is in ППП mode
+first rather than failing later for the wrong reason. It runs with every other spec.
 
 ## The block checkout
 
