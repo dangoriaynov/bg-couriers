@@ -81,9 +81,20 @@ What the customer was left with was WooCommerce's stock "please ensure that your
 correctly", about an address with nothing wrong with it, and nothing on the page to change it back with.
 
 The spec asserts the message names the country and carries the way back out, follows that link, and
-checks the delivery options return. It forces bank transfer **off** for its own length (and back to what
+checks the delivery options return. It also asserts the **payment box** below it: with cash on delivery
+correctly removed and nothing prepaid to replace it, WooCommerce fills that box with its own "Sorry, it
+seems that there are no available payment methods" - a stock English sentence on a Bulgarian shop, naming
+neither the cause nor a way out. The plugin replaces it (`.bgc-no-payment`) with the same reason and the
+same link, so the screen ends in an exit rather than a dead stop. It forces bank transfer **off** for its own length (and back to what
 it found), because with a prepaid method there is no dead end to test, and it asserts dev is in ППП mode
 first rather than failing later for the wrong reason. It runs with every other spec.
+
+## Which payment method a spec uses
+
+Every COD spec calls `choosePayment(page, 'cod')` before placing its order. It used to rely on the shop
+having exactly one gateway enabled, which is a promise nobody made: switch bank transfer on - and the
+international spec does that on every run - and those six specs would place bank-transfer orders instead
+and keep passing, testing the wrong thing in silence.
 
 ## The block checkout
 

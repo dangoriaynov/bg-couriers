@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMethod, selectSpeedyTab, selectCity, pickFirstOffice } = require('../helpers/shop');
+const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMethod, selectSpeedyTab, selectCity, pickFirstOffice, choosePayment } = require('../helpers/shop');
 
 function amount(text) { const m = (text || '').match(/[\d]+[,.][\d]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
@@ -29,6 +29,7 @@ test('speedy guest checkout to AUTOMAT (locker), COD @speedy', async ({ page }) 
   expect(total).toBeGreaterThan(sub); // shipping (+VAT) added on top of goods (ship parse is informational with 2 methods in the zone)
 
   await fillGuestBilling(page, { first: 'Тест', last: 'Автомат', email: 'e2e-apt@example.com', phone: '0888123456' });
+  await choosePayment(page, 'cod');
   await page.locator('#place_order').click();
 
   await expect(page).toHaveURL(/order-received/i, { timeout: 30000 });
