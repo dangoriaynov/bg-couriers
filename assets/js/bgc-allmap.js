@@ -37,6 +37,10 @@
   // Which half of the dialog a PHONE is showing. On a desktop both are on screen and this does
   // nothing - the classes it writes are only read inside the narrow-screen media query.
   var mode = 'map';
+  // Where the parcel is going, read off the checkout when the dialog opens. The preloaded city index
+  // is built for ONE country, so this is what decides whether it may be consulted at all - see
+  // localCities(). Fixed at open: the checkout cannot change country underneath an open dialog.
+  var dest = '';
 
   // Distance from `origin` to each point, by the same index as `points`, and the list row for that
   // same index. Both are caches with one job: a legend click must not re-measure anything and must not
@@ -90,6 +94,23 @@
     return distanceM(origin, { lat: lat, lng: lng });
   }
 
+  /** The one country BGCOURIERS.cityIndex was built for. */
+  function homeIndexCountry() {
+    var B = window.BGCOURIERS || {};
+    return String(B.cityIndexCountry || B.homeCountry || 'BG');
+  }
+  /**
+   * Where the parcel is going, as the checkout has it at this moment. Read from the courier block the
+   * dialog was opened from when there is one, otherwise from whichever block is on screen - the same
+   * fallback open() uses to find the point already chosen.
+   */
+  function checkoutCountry($wrap) {
+    var $w = ($wrap && $wrap.length) ? $wrap : $('.bgc-fields[data-courier]:visible').first();
+    if (!$w.length) { return homeIndexCountry(); }
+    var $sel = $w.find('.bgc-country');
+    return String(($sel.length && $sel.val()) || $w.attr('data-country') || homeIndexCountry());
+  }
+
   /**
    * Every place any enabled courier can deliver to, from the index the checkout already carries.
    *
@@ -126,6 +147,11 @@
    *                      has to be asked instead.
    */
   function localCities(term) {
+    // Abroad the index is not merely short of a few towns, it holds none of that country at all, so
+    // every lookup in it comes back "no such place" - which is indistinguishable from an answer. The
+    // server endpoint knows where the parcel is going and is asked instead. Same rule, same reason, as
+    // indexUsable() in bgc-checkout.js.
+    if (dest && dest !== homeIndexCountry()) { return null; }
     if (cityList === null) { cityList = buildCityList() || false; }
     if (!cityList || !cityList.length) { return null; }
     // The checkout's own matcher, so "sofia", "София" and "1000" all find гр. София here too.
@@ -277,6 +303,7 @@
     if ($dlg) { return; }
     opts = opts || {};
     only = opts.only || '';
+    dest = checkoutCountry(opts.wrap);
     current = { courier: '', officeId: '' };
     if (opts.wrap && opts.wrap.length) {
       current = { courier: only || String(opts.wrap.attr('data-courier') || ''),
@@ -302,7 +329,14 @@
       + '<button type="button" class="bgc-allmap-close" aria-label="' + esc(I.close || '') + '">&times;</button></div>'
       + '<div class="bgc-allmap-form">'
       + '<div class="bgc-allmap-cityrow">'
-      + '<input type="text" class="bgc-allmap-cityinput" autocomplete="off" placeholder="' + esc(I.allmap_city_ph || '') + '">'
+      + '<input type="text" class="bgc-allmap-cityinput" autocomplete="off" role="combobox"'
+      + ' aria-expanded="false" aria-autocomplete="list" aria-controls="bgc-allmap-cityres"'
+      + ' placeholder="' + esc(I.allmap_city_ph || '') + '">'
+      // The arrow says this is a list to open, not a box to guess into. It shares its slot with the ×
+      // below: an empty field has nothing to clear and a whole list to offer, a filled one the other
+      // way about. Same label as the field, so no new string to translate for it.
+      + '<button type="button" class="bgc-allmap-citycaret" tabindex="-1" aria-label="'
+      + esc(I.allmap_city_ph || '') + '"></button>'
       + '<button type="button" class="bgc-allmap-cityclear" hidden aria-label="' + esc(I.clear || '') + '"'
       + ' title="' + esc(I.clear || '') + '">&times;</button>'
       // The same "find me" control, for the state where the other one does not exist yet: the search
@@ -314,7 +348,9 @@
           ? '<button type="button" class="bgc-map-locate bgc-allmap-citylocate" data-tip="' + esc(I.map_locate || '')
             + '" title="' + esc(I.map_locate || '') + '" aria-label="' + esc(I.map_locate || '') + '"></button>'
           : '')
-      + '<ul class="bgc-allmap-cityres" hidden></ul></div>'
+      // The id is fixed rather than generated: open() returns early while a dialog is up, so there is
+      // never a second one of these on the page to collide with.
+      + '<ul class="bgc-allmap-cityres" id="bgc-allmap-cityres" role="listbox" hidden></ul></div>'
       // The legend and the answer share a column beside the town field. The answer used to be a
       // full-width band between the form and the map; the chips only ever fill the top of this
       // space, and a band cost another 41px of a dialog whose whole job is showing a map.
@@ -356,10 +392,19 @@
     // than the workarounds were.
     var $input = $dlg.find('.bgc-allmap-cityinput');
     var $res = $dlg.find('.bgc-allmap-cityres');
-    var searchT = null;
+    var searchT = null, blurT = null;
 
-    function hideRes() { $res.attr('hidden', true).empty(); }
-    function syncClear() { $dlg.find('.bgc-allmap-cityclear').attr('hidden', $.trim($input.val()) === '' ? true : null); }
+    function resOpen() { return !$res.is('[hidden]') && !!$res.children().length; }
+    function hideRes() {
+      $res.attr('hidden', true).empty();
+      $input.attr('aria-expanded', 'false').removeAttr('aria-activedescendant');
+    }
+    // The × and the arrow share one slot at the end of the field, and never both at once.
+    function syncClear() {
+      var empty = $.trim($input.val()) === '';
+      $dlg.find('.bgc-allmap-cityclear').attr('hidden', empty ? true : null);
+      $dlg.find('.bgc-allmap-citycaret').attr('hidden', empty ? null : true);
+    }
     /** Back to the one question this dialog starts with: no place, so nothing to plot. */
     function clearCity() {
       state.cityName = state.cityCode = state.cityLabel = '';
@@ -390,19 +435,48 @@
     }
     function fill(rows) {
       $res.empty();
-      (rows || []).forEach(function (r) {
+      (rows || []).forEach(function (r, i) {
         var label = r.name + (r.post_code ? ' (' + r.post_code + ')' : '');
-        $('<li class="bgc-allmap-cityopt"></li>').text(label)
-          .attr({ 'data-name': r.name, 'data-code': r.post_code || '' }).appendTo($res);
+        // Every row needs an id of its own for aria-activedescendant to be able to name one.
+        $('<li class="bgc-allmap-cityopt" role="option"></li>').text(label)
+          .attr({ id: 'bgc-allmap-cityopt-' + i, 'data-name': r.name, 'data-code': r.post_code || '' })
+          .appendTo($res);
       });
-      $res.attr('hidden', !$res.children().length);
+      var any = !!$res.children().length;
+      $res.attr('hidden', !any);
+      $input.attr('aria-expanded', any ? 'true' : 'false');
+      // The place already chosen is marked where the list opens on it, so pressing the arrow says
+      // "this one" rather than dropping the customer at the top of a few thousand towns.
+      if (any && state.cityLabel) {
+        setActive($res.children().filter(function () { return $(this).text() === state.cityLabel; }).first());
+      }
+      scrollActive();
+    }
+    /**
+     * The highlight, wherever it comes from - the mouse, the arrow keys, or the town already chosen.
+     * The class and aria-activedescendant are one thing and not two: a reader announces the row the
+     * input POINTS at, so a highlight the attribute did not follow is one only sighted people get.
+     */
+    function setActive($li) {
+      $res.children().removeClass('is-active');
+      if ($li && $li.length) {
+        $li.addClass('is-active');
+        $input.attr('aria-activedescendant', $li.attr('id'));
+      } else {
+        $input.removeAttr('aria-activedescendant');
+      }
+    }
+    function scrollActive() {
+      var el = $res.children('.is-active')[0];
+      if (el && el.scrollIntoView) { el.scrollIntoView({ block: 'nearest' }); }
     }
     pickCityFn = pickCity;
-    $input.on('input', function () {
-      var term = $.trim($input.val());
-      syncClear();
+    /**
+     * The places on offer for `term`, which may be empty - an empty term is the OPENED DROPDOWN, and
+     * both paths answer it with the first towns on the list rather than with nothing.
+     */
+    function search(term) {
       clearTimeout(searchT);
-      if (term.length < 2) { hideRes(); busyCity(false); return; }
 
       // Local first, and normally the only path. Asking the server costs a whole admin-ajax boot -
       // measured at ~5s on the live shop for a request that returns 150 bytes, and the same 5s for an
@@ -411,20 +485,70 @@
       var local = localCities(term);
       if (local) { busyCity(false); fill(local); return; }
 
-      // No preloaded index on this shop: the round trip is unavoidable, so at least say it is happening.
-      // Silence for five seconds is indistinguishable from a broken field.
+      // No preloaded index on this shop, or the parcel is going abroad, where the index holds nothing:
+      // the round trip is unavoidable, so at least say it is happening. Silence for five seconds is
+      // indistinguishable from a broken field. A single letter is not worth a trip for a list that
+      // would come back thousands long and cut to 30; opening the box with nothing typed IS, because
+      // that list is the answer to "what can I choose from".
+      if (term.length === 1) { hideRes(); busyCity(false); return; }
       busyCity(true);
       searchT = setTimeout(function () {
         $.get(BGCOURIERS.ajax, { action: 'bgcouriers_allmap_cities', term: term }, function (rows) {
           fill(rows);
         }).always(function () { busyCity(false); });
       }, 220);
+    }
+    /**
+     * Open it as a dropdown - everything on offer, whatever is in the box. The chosen name is selected
+     * with it, so typing replaces the town instead of appending to "СОФИЯ (1000)" and finding nothing.
+     */
+    function openList() {
+      // A close left over from the press that opened this. Clearing the town takes the focus to the ×
+      // and back, and the arrow is a button of its own: either can leave a blur timer in flight that
+      // would wipe, a moment later, the list this call is about to put up.
+      clearTimeout(blurT);
+      if (!$input.is(':focus')) { $input.trigger('focus'); }
+      if ($input.val()) { try { $input[0].select(); } catch (e) {} }
+      search('');
+    }
+    $input.on('input', function () { syncClear(); search($.trim($input.val())); });
+    // A press on the field opens the list, exactly as pressing the courier's own city select does.
+    // This box used to answer only to typing, which asked the customer to name a town before they had
+    // been shown that there was a list of them at all.
+    $input.on('click', function () { if (!resOpen()) { openList(); } });
+    // mousedown with the default prevented, not click: the arrow would otherwise take the focus off the
+    // input on the way down, whose blur closes the list - so the press would open a list and shut it
+    // again in one go.
+    $dlg.on('mousedown', '.bgc-allmap-citycaret', function (e) {
+      e.preventDefault();
+      if (resOpen()) { hideRes(); } else { openList(); }
     });
+    $input.on('keydown', function (e) {
+      var k = e.key;
+      if (k === 'ArrowDown' && !resOpen()) { e.preventDefault(); openList(); return; }
+      if (k === 'Escape' && resOpen()) { e.preventDefault(); hideRes(); return; }
+      if (!resOpen()) { return; }
+      if (k === 'ArrowDown' || k === 'ArrowUp') {
+        e.preventDefault();
+        var $opts = $res.children(), $cur = $opts.filter('.is-active');
+        var i = $cur.length ? $opts.index($cur) : -1;
+        i = (k === 'ArrowDown') ? Math.min(i + 1, $opts.length - 1) : Math.max(i - 1, 0);
+        setActive($opts.eq(i));
+        scrollActive();
+      } else if (k === 'Enter') {
+        var $a = $res.children('.is-active');
+        // Only when one is picked out: Enter on a list nobody has moved through must not choose the
+        // first town in the country, and it must not submit the checkout behind the dialog either.
+        if ($a.length) { e.preventDefault(); $a.trigger('click'); }
+      }
+    });
+    $res.on('mouseenter', '.bgc-allmap-cityopt', function () { setActive($(this)); });
     $res.on('click', '.bgc-allmap-cityopt', function () {
       pickCity($(this).attr('data-name'), $(this).attr('data-code'), $(this).text());
     });
-    // Typing something new and walking away must not leave a stale place selected.
-    $input.on('blur', function () { setTimeout(hideRes, 150); });
+    // Typing something new and walking away must not leave a stale place selected. Held in a variable
+    // so openList() can call it off - see there.
+    $input.on('blur', function () { clearTimeout(blurT); blurT = setTimeout(hideRes, 150); });
 
     // The city the CHECKOUT is on right now wins over the one remembered from last time. It used to be
     // the other way round - remembered first, checkout only as a fallback - so a customer who set their
