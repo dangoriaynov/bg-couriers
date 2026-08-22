@@ -1,0 +1,37 @@
+{
+    "success": true,
+    "data": {
+        "reference_number": "458640894807",
+        "external_reference": "6251",
+        "note": "Непотърсена пратка - връщане 458824370227",
+        "status": "Непотърсена",
+        "status_code": "shipment_untracked",
+        "created_at": "2026-08-10T15:10:27+03:00",
+        "expected_delivery_date": "2026-08-13T00:00:00+03:00",
+        "delivery_date": null,
+        "packages": [
+            { "tracking_number": "458640894807-1", "weight": "0.510" }
+        ],
+        "tracking": [
+            { "status": "Регистрирана пратка", "status_code": "shipment_registered", "note": "Начален статус при създаване", "created_at": "2026-08-10T15:10:27+03:00" },
+            { "status": "Приета в офис", "status_code": "shipment_accepted_in_office", "note": "Статус: Приета в офис", "created_at": "2026-08-12T18:44:32+03:00" },
+            { "status": "В процес на доставка", "status_code": "shipment_in_delivery", "note": "Статус: В процес на доставка", "created_at": "2026-08-12T19:30:18+03:00" },
+            { "status": "В сортировачен център", "status_code": "shipment_in_sorting_center", "note": "Статус: В сортировачен център", "created_at": "2026-08-12T22:12:57+03:00" },
+            { "status": "В процес на доставка", "status_code": "shipment_in_delivery", "note": "Статус: В процес на доставка", "created_at": "2026-08-13T04:52:16+03:00" },
+            { "status": "Готова за взимане в офис/АПС", "status_code": "shipment_delivered_to_office", "note": "Статус: Готова за взимане в офис/АПС", "created_at": "2026-08-13T08:54:03+03:00" },
+            { "status": "Непотърсена", "status_code": "shipment_untracked", "note": "Статус: Непотърсена", "created_at": "2026-08-21T06:00:05+03:00" }
+        ],
+        "chain_before": [],
+        "chain_after": [
+            {
+                "reference_number": "458824370227",
+                "external_reference": "6251",
+                "status": "Готова за взимане в офис/АПС",
+                "status_code": "shipment_delivered_to_office",
+                "created_at": "2026-08-21T06:00:05+03:00",
+                "delivery_date": null,
+                "packages": [ { "tracking_number": "458824370227-1", "weight": "0.510" } ]
+            }
+        ]
+    }
+}

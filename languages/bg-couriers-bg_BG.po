@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/bg-couriers\n"
-"POT-Creation-Date: 2026-08-20T20:31:53+00:00\n"
+"POT-Creation-Date: 2026-08-22T10:05:45+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -2548,21 +2548,27 @@ msgstr ""
 "подразбиране от вашия Speedy акаунт). Изключено = изрично забранява "
 "плащането с карта за тази опция за доставка."
 
+#. translators: 1: courier name, 2: the waybill number the return travels under
+#: includes/Cache/class-bgcouriers-tracking-poller.php:105
+#, php-format
+msgid "%1$s: the parcel is coming back under a new waybill - %2$s."
+msgstr "%1$s: пратката се връща с нова товарителница - %2$s."
+
 #. translators: 1: courier name, 2: what stage the shipment is at, 3: the courier's own wording
-#: includes/Cache/class-bgcouriers-tracking-poller.php:131
+#: includes/Cache/class-bgcouriers-tracking-poller.php:150
 #, php-format
 msgid "%1$s - %2$s: \"%3$s\""
 msgstr "%1$s - %2$s: „%3$s“"
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:141
+#: includes/Cache/class-bgcouriers-tracking-poller.php:160
 msgid "BG Couriers: the parcel came back to you (auto status)."
 msgstr "BG Couriers: пратката се върна при Вас (автоматичен статус)."
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:147
+#: includes/Cache/class-bgcouriers-tracking-poller.php:166
 msgid "BG Couriers: shipment delivered (auto status)."
 msgstr "BG Couriers: пратката е доставена (автоматичен статус)."
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:192
+#: includes/Cache/class-bgcouriers-tracking-poller.php:211
 msgid "BG Couriers: the courier has picked up the shipment (auto status)."
 msgstr "BG Couriers: куриерът взе пратката (автоматичен статус)."
 
