@@ -629,13 +629,17 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         if (!is_array($chain) || $chain === []) { return ''; }
         // Newest wins: a parcel can be chained more than once (redirected, then returned), and it is the
         // last leg that says where the goods are now. Sorting on the courier's own timestamp rather than
-        // trusting the array order, which nothing documents.
+        // trusting the array order, which nothing documents - and PARSING that timestamp rather than
+        // comparing the strings, because Bulgaria drops from +03:00 to +02:00 on the last Sunday in
+        // October and across that one hour the later leg reads as the earlier one.
         $ref = '';
-        $at  = '';
+        $at  = 0;
         foreach ($chain as $leg) {
             if (!is_array($leg)) { continue; }
-            $when = (string) ($leg['created_at'] ?? '');
-            if ($ref === '' || strcmp($when, $at) >= 0) { $ref = (string) ($leg['reference_number'] ?? ''); $at = $when; }
+            $leg_ref = (string) ($leg['reference_number'] ?? '');
+            if ($leg_ref === '') { continue; } // a leg with no number is nothing we could ask about
+            $when = (int) strtotime((string) ($leg['created_at'] ?? ''));
+            if ($ref === '' || $when >= $at) { $ref = $leg_ref; $at = $when; }
         }
         return $ref;
     }
