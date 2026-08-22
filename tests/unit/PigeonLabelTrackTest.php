@@ -121,6 +121,35 @@ final class PigeonLabelTrackTest extends TestCase {
             BGCouriers_Pigeon::chained_ref($this->fx('track-unclaimed-return-chain.json')));
     }
 
+    /**
+     * Which leg is the current one is decided on the courier's own clock, not on the order the array
+     * happens to arrive in - a parcel can be chained twice (redirected, then returned). Comparing the
+     * timestamps as TEXT works right up to the last Sunday in October, when Bulgaria drops from +03:00 to
+     * +02:00 and the later of two legs can read as the earlier one.
+     */
+    public function test_the_newest_leg_wins_across_the_clock_change(): void {
+        $resp = ['data' => ['chain_after' => [
+            ['reference_number' => 'earlier', 'created_at' => '2026-10-25T03:30:00+03:00'], // 00:30 UTC
+            ['reference_number' => 'later',   'created_at' => '2026-10-25T03:00:00+02:00'], // 01:00 UTC
+        ]]];
+        $this->assertSame('later', BGCouriers_Pigeon::chained_ref($resp));
+        $this->assertSame('later', BGCouriers_Pigeon::chained_ref(
+            ['data' => ['chain_after' => array_reverse($resp['data']['chain_after'])]]));
+    }
+
+    /**
+     * A leg with no number of its own is nothing we can ask about - it must not shoulder aside the one we
+     * can. The loop used to let any later entry through once it had seen a blank, whatever its date.
+     */
+    public function test_a_leg_with_no_number_never_displaces_a_real_one(): void {
+        $blank = ['reference_number' => '',             'created_at' => '2026-08-22T10:00:00+03:00'];
+        $real  = ['reference_number' => '458824370227', 'created_at' => '2026-08-21T06:00:05+03:00'];
+        $this->assertSame('458824370227', BGCouriers_Pigeon::chained_ref(['data' => ['chain_after' => [$blank, $real]]]));
+        $this->assertSame('458824370227', BGCouriers_Pigeon::chained_ref(['data' => ['chain_after' => [$real, $blank]]]));
+        $this->assertSame('', BGCouriers_Pigeon::chained_ref(
+            ['data' => ['chain_after' => [['created_at' => '2026-08-22T10:00:00+03:00']]]]));
+    }
+
     /** No chain, nothing to follow - the common case must not cost a second request. */
     public function test_a_shipment_with_no_chain_asks_for_nothing_more(): void {
         $this->assertSame('', BGCouriers_Pigeon::chained_ref($this->fx('track.json')));
