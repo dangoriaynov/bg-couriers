@@ -600,11 +600,103 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
     }
 
     /**
+     * The status codes that, ON A RETURN LEG, mean the goods are back within the shop's reach. Pigeon
+     * words the end of a return with the very same codes it uses to end a delivery - the "office" in
+     * "Готова за взимане в офис/АПС" is simply the SHOP's office this time - so these only ever carry
+     * this meaning after follow_chain() has established that the leg is a journey home.
+     *
+     * @var string[]
+     */
+    private const RETURN_HOME = ['shipment_returned', 'shipment_delivered_to_recipient',
+        'shipment_delivered_to_office', 'shipment_left_in_locker', 'shipment_held_by_sender'];
+
+    /** A chained shipment whose FIRST event is this one was created to carry a parcel back. */
+    private const RETURN_OPENS = 'shipment_returning_to_sender';
+
+    /**
+     * The reference number of the shipment that carries on from this one, or '' when there is none.
+     *
+     * Pigeon never walks the booked waybill through 'returning_to_sender' / 'returned'. A parcel nobody
+     * collected FREEZES on "Непотърсена" for good, and the journey home travels under a brand new number
+     * linked from `chain_after` - so a return read off the booked number alone is simply invisible.
+     * A redirection chains the same way, which is why the caller still has to check what the new leg is.
+     *
+     * @param array $resp Decoded GET /v1/shipments/{ref}/track response.
+     * @return string The newest chained reference number, or ''.
+     */
+    public static function chained_ref(array $resp): string {
+        $chain = $resp['data']['chain_after'] ?? [];
+        if (!is_array($chain) || $chain === []) { return ''; }
+        // Newest wins: a parcel can be chained more than once (redirected, then returned), and it is the
+        // last leg that says where the goods are now. Sorting on the courier's own timestamp rather than
+        // trusting the array order, which nothing documents.
+        $ref = '';
+        $at  = '';
+        foreach ($chain as $leg) {
+            if (!is_array($leg)) { continue; }
+            $when = (string) ($leg['created_at'] ?? '');
+            if ($ref === '' || strcmp($when, $at) >= 0) { $ref = (string) ($leg['reference_number'] ?? ''); $at = $when; }
+        }
+        return $ref;
+    }
+
+    /**
+     * Join a shipment to the leg that carries on from it, when that leg is a journey home.
+     *
+     * The result reads as ONE shipment: the whole history out and back, the return's own wording, and -
+     * deliberately - the RETURN's number as the waybill, because that is what the shop has to quote at
+     * the counter to get its goods back. The phase is translated into the two codes our stage rules
+     * already understand, so nothing downstream has to know Pigeon chains anything.
+     *
+     * A chain that is NOT a return (a redirection makes one too, and that parcel is still going forward)
+     * leaves the outward verdict exactly as it was.
+     *
+     * @param array $outward Decoded track response for the booked waybill.
+     * @param array $chained Decoded track response for the shipment named by chained_ref().
+     * @return BGCouriers_Tracking
+     */
+    public static function follow_chain(array $outward, array $chained): BGCouriers_Tracking {
+        $out = self::parse_tracking($outward);
+        $ret = self::parse_tracking($chained);
+        if ((string) ($ret->events[0]['code'] ?? '') !== self::RETURN_OPENS) { return $out; }
+        $home = in_array($ret->phase, self::RETURN_HOME, true);
+        return new BGCouriers_Tracking(
+            $ret->waybill,
+            $ret->status,
+            array_merge($out->events, $ret->events),
+            $home ? 'shipment_returned' : self::RETURN_OPENS,
+            true, // a parcel that is on its way back was plainly collected in the first place
+            true
+        );
+    }
+
+    /**
      * Fetch live tracking info for a reference number.  Live - do NOT call in tests.
+     *
+     * Follows the return chain when there is one - see chained_ref(). The extra request is only ever made
+     * for a shipment that has actually been chained, which for a healthy parcel is never.
      */
     public function track(string $waybill): BGCouriers_Tracking {
         $resp = $this->get_json('/v1/shipments/' . rawurlencode($waybill) . '/track');
+        $next = self::chained_ref($resp);
+        if ($next !== '' && $next !== $waybill) {
+            try {
+                return self::follow_chain($resp, $this->get_json('/v1/shipments/' . rawurlencode($next) . '/track'));
+            } catch (\Exception $e) {
+                // The chain is extra detail, not the answer. A second call that failed must not throw away
+                // the first one - the poller would read that as "ask again next time" and show nothing.
+                self::log_chain_failure($next, $e);
+            }
+        }
         return self::parse_tracking($resp);
+    }
+
+    /** Why a return leg could not be read. Its own method so track() stays about tracking. */
+    private static function log_chain_failure(string $ref, \Exception $e): void {
+        if (class_exists('BGCouriers_Logger')) {
+            BGCouriers_Logger::debug('pigeon: could not read the chained shipment - the outward leg stands',
+                ['ref' => $ref, 'error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -614,7 +706,11 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      */
     public function is_cancelled(string $waybill): bool {
         try {
-            $status = $this->track($waybill)->status;
+            // The booked waybill's OWN status, never the chained return leg's: a parcel travelling back
+            // has not been cancelled, and reading the return's wording here would answer about the wrong
+            // shipment (and cost a second request to do it).
+            $status = self::parse_tracking(
+                $this->get_json('/v1/shipments/' . rawurlencode($waybill) . '/track'))->status;
         } catch (\Exception $e) {
             return false;
         }

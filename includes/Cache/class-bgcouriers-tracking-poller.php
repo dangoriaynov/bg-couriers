@@ -94,6 +94,19 @@ class BGCouriers_Tracking_Poller {
             $order->save();
         }
 
+        // Pigeon carries a return home under a BRAND NEW waybill and freezes the booked one on
+        // "Непотърсена" for good, so the number the shop must quote at the counter to get its goods back
+        // is one it has never been told. The order's own waybill is deliberately left alone: the label,
+        // the cancel call and the waybill lock are all keyed on it.
+        if ($t->waybill !== '' && $t->waybill !== $wb
+            && (string) $order->get_meta('_bgcouriers_return_waybill') !== $t->waybill) {
+            $order->update_meta_data('_bgcouriers_return_waybill', $t->waybill);
+            /* translators: 1: courier name, 2: the waybill number the return travels under */
+            $order->add_order_note(sprintf(__('%1$s: the parcel is coming back under a new waybill - %2$s.', 'bg-couriers'),
+                $courier->label(), $t->waybill));
+            $order->save();
+        }
+
         $stage = $t->stage();
         // Mark a finished shipment done BEFORE the change check. A parcel that is already delivered stops
         // changing, so a check that returns early on "no change" never got here - and the same handful of
@@ -119,7 +132,13 @@ class BGCouriers_Tracking_Poller {
         }
 
         $key = $t->status;
-        if ($key === '' || $key === (string) $order->get_meta('_bgcouriers_track_status')) { return; } // no change
+        // No change - but the STAGE is checked too, not just the courier's wording. The two do not always
+        // move together: Pigeon words the end of a return exactly as it words the end of a delivery, so a
+        // parcel that came back to the shop's own office can arrive carrying a status line the order has
+        // already seen, and a text-only check would swallow the one poll where 'returned' fires - the
+        // order marked finished and never moved.
+        if (($key === '' || $key === (string) $order->get_meta('_bgcouriers_track_status'))
+            && $stage === $stored_stage) { return; }
         // _track_status is the courier's own key (Speedy's is an operation code like "-14") and exists to
         // detect change - it is never what we show.
         $order->update_meta_data('_bgcouriers_track_status', $key);

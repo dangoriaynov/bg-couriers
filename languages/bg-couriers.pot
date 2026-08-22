@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-20T20:31:53+00:00\n"
+"POT-Creation-Date: 2026-08-22T10:05:45+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: bg-couriers\n"
@@ -1954,21 +1954,27 @@ msgstr ""
 msgid "Let the customer pay the cash-on-delivery amount by card at handover (your Speedy account default). Off explicitly forbids card payment for this delivery option."
 msgstr ""
 
+#. translators: 1: courier name, 2: the waybill number the return travels under
+#: includes/Cache/class-bgcouriers-tracking-poller.php:105
+#, php-format
+msgid "%1$s: the parcel is coming back under a new waybill - %2$s."
+msgstr ""
+
 #. translators: 1: courier name, 2: what stage the shipment is at, 3: the courier's own wording
-#: includes/Cache/class-bgcouriers-tracking-poller.php:131
+#: includes/Cache/class-bgcouriers-tracking-poller.php:150
 #, php-format
 msgid "%1$s - %2$s: \"%3$s\""
 msgstr ""
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:141
+#: includes/Cache/class-bgcouriers-tracking-poller.php:160
 msgid "BG Couriers: the parcel came back to you (auto status)."
 msgstr ""
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:147
+#: includes/Cache/class-bgcouriers-tracking-poller.php:166
 msgid "BG Couriers: shipment delivered (auto status)."
 msgstr ""
 
-#: includes/Cache/class-bgcouriers-tracking-poller.php:192
+#: includes/Cache/class-bgcouriers-tracking-poller.php:211
 msgid "BG Couriers: the courier has picked up the shipment (auto status)."
 msgstr ""
 
