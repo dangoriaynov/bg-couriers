@@ -233,6 +233,9 @@ final class SyncNomenclatureTest extends TestCase {
         Functions\when('get_option')->alias(static function ($name, $default = '') {
             return $name === 'bgcouriers_fake_intl_countries' ? ['RO'] : $default;
         });
+        Functions\when('apply_filters')->alias(static function ($hook, $value = null) {
+            return $hook === 'bgcouriers_intl_enabled' ? true : $value;   // the feature is off as the plugin ships
+        });
         $c = new SyncFakeCourier();
         $c->intl              = ['RO'];
         $c->cities            = [['city_id' => 1, 'name' => 'София']];
@@ -255,6 +258,9 @@ final class SyncNomenclatureTest extends TestCase {
     public function test_a_failed_country_is_not_pruned_away(): void {
         Functions\when('get_option')->alias(static function ($name, $default = '') {
             return $name === 'bgcouriers_fake_intl_countries' ? ['RO'] : $default;
+        });
+        Functions\when('apply_filters')->alias(static function ($hook, $value = null) {
+            return $hook === 'bgcouriers_intl_enabled' ? true : $value;   // the feature is off as the plugin ships
         });
         $c = new SyncFakeCourier();
         $c->intl      = ['RO'];

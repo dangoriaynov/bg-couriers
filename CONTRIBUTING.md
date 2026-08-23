@@ -17,7 +17,9 @@ A small registry makes couriers pluggable; everything resolves a courier by id.
   to WooCommerce via `woocommerce_shipping_methods` and added by the merchant to whichever zone the parcels
   go to. Pricing via `BGCouriers_Pricing` (live quote → cached reference → configured default); method-level
   free-shipping threshold. BoxNow is a flat rate. **Abroad there is no fallback:** every cached or configured
-  price is a Bulgarian one, so a destination outside the home country is priced live or not offered at all.
+  price is a Bulgarian one, so a destination outside the home country is priced live or not offered at all -
+  and delivery abroad is switched off entirely for now
+  ([`docs/international-shipping.md`](docs/international-shipping.md)).
 - **Checkout** (`includes/Checkout/`) - `render_fields` emits a courier-aware `.bgc-fields[data-courier]`
   block after each shipping rate (tabs office/address/**APS**; searchable city/office/street via selectWoo);
   BoxNow instead renders a "Choose a BOX NOW locker" button that opens the **map widget**. The JS shows only
@@ -58,10 +60,10 @@ bin/test econt|pigeon|core  # per-courier / framework groups
 - **wp-env gotcha:** the wrapper swallows the PHPUnit summary when piped - judge by **exit code 0**.
 - **E2E:** Playwright (`e2e/`), plain JS, `workers:1`, against the live dev site - whose address goes in
   `bin/deploy.conf` (no default) and which the run reaches over SSH to turn auto-labelling off for its
-  length, so that a suite paying by cash on delivery does not book six real parcels. One spec books a
-  real shipment on purpose - the parcel to another country - and is held out of every ordinary run:
-  `cd e2e && BGC_REAL_WAYBILL=1 npx playwright test intl-speedy-ro`. Setup recipe and what to check
-  afterwards: [`e2e/README.md`](e2e/README.md).
+  length, so that a suite paying by cash on delivery does not book six real parcels. The three `intl-*`
+  specs are skipped while delivery abroad is off - one of them books a real shipment on purpose and was
+  held out of every ordinary run besides (`cd e2e && BGC_REAL_WAYBILL=1 npx playwright test
+  intl-speedy-ro`). Setup recipe and what to check afterwards: [`e2e/README.md`](e2e/README.md).
 - **Releasing.** Three scripts, run in this order; each refuses rather than half-doing the job.
   ```bash
   bin/preflight        # one version in all 3 places, changelog entry, clean+pushed tree,

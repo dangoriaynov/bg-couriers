@@ -625,6 +625,17 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     private function speedy_courier_fields(): array {
+        // "Also deliver to" is left out of the page entirely while international delivery is off (see
+        // BGCouriers_Settings::intl_enabled()) - not rendered empty. WooCommerce saves every field the
+        // page declares, and a multiselect with no options posts nothing: showing it would quietly wipe
+        // the merchant's saved countries on their next Save, and those are meant to survive until the
+        // feature is finished.
+        $intl = BGCouriers_Settings::intl_enabled() ? [
+            ['type' => 'multiselect', 'id' => 'bgcouriers_speedy_intl_countries', 'title' => __('Also deliver to', 'bg-couriers'),
+                'options' => self::intl_country_options('speedy'), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
+                'desc' => self::intl_countries_desc('speedy', __('Speedy', 'bg-couriers')),
+                'default' => []],
+        ] : [];
         return [
             ['type' => 'title', 'id' => 'bgcouriers_speedy', 'title' => ''],
             ['type' => 'bgcouriers_ppp_notice', 'id' => 'bgcouriers_ppp_notice_speedy', 'courier' => 'speedy'],
@@ -648,10 +659,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     'PALLET'   => __('Pallet', 'bg-couriers'),
                 ],
                 'default' => 'BOX'],
-            ['type' => 'multiselect', 'id' => 'bgcouriers_speedy_intl_countries', 'title' => __('Also deliver to', 'bg-couriers'),
-                'options' => self::intl_country_options('speedy'), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
-                'desc' => self::intl_countries_desc('speedy', __('Speedy', 'bg-couriers')),
-                'default' => []],
+            ...$intl,
             ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_speedy_pricing', 'title' => __('Pricing', 'bg-couriers')],
