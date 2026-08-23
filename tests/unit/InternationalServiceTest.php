@@ -22,7 +22,11 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  * @group speedy
  */
 final class InternationalServiceTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
+    protected function setUp(): void {
+        parent::setUp();
+        Monkey\setUp();
+        Functions\when('esc_html')->returnArg(1); // exception messages are esc_html()'d (Plugin Check)
+    }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function body(string $country, string $method = 'address'): array {
