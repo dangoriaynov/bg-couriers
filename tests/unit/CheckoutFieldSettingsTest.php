@@ -65,6 +65,29 @@ final class CheckoutFieldSettingsTest extends TestCase {
     }
 
     /**
+     * The e-mail is the one field this plugin makes OPTIONAL that WooCommerce ships as required, so it
+     * is the one a store may want back. Off by default - every shop that already runs this keeps the
+     * checkout it has - and the phone is not part of the choice: every courier's label is built with it.
+     */
+    public function test_the_email_is_optional_until_the_store_asks_for_it(): void {
+        require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-checkout.php';
+        $checkout = (new ReflectionClass('BGCouriers_Checkout'))->newInstanceWithoutConstructor();
+        $fields   = ['billing' => [
+            'billing_phone' => ['required' => false], 'billing_email' => ['required' => true],
+        ]];
+
+        $this->options([]);
+        $this->assertFalse(BGCouriers_Settings::require_email());
+        $this->assertFalse($checkout->simplify_fields($fields)['billing']['billing_email']['required']);
+
+        $this->options(['bgcouriers_require_email' => 'yes']);
+        $this->assertTrue(BGCouriers_Settings::require_email());
+        $asked = $checkout->simplify_fields($fields);
+        $this->assertTrue($asked['billing']['billing_email']['required']);
+        $this->assertTrue($asked['billing']['billing_phone']['required'], 'the phone is never part of the choice');
+    }
+
+    /**
      * The calculator is gated by a WooCommerce OPTION, so the plugin short-circuits it. Off, the
      * short-circuit must pass the incoming value straight through - that is what tells WooCommerce to
      * read its own option and show the calculator.
@@ -88,6 +111,8 @@ final class CheckoutFieldSettingsTest extends TestCase {
             $this->assertMatchesRegularExpression("/'id' => '{$id}'.*?'default' => 'yes'/s", $settings,
                 "$id must be offered in the settings page and default to yes");
         }
+        $this->assertMatchesRegularExpression("/'id' => 'bgcouriers_require_email'.*?'default' => 'no'/s", $settings,
+            'the e-mail requirement must be offered in the settings page, and off out of the box');
         $this->assertStringNotContainsString(
             '.woocommerce-shipping-calculator',
             (string) file_get_contents(dirname(__DIR__, 2) . '/assets/css/bgc-cart.css'),

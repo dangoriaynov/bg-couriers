@@ -344,6 +344,19 @@ class BGCouriers_Settings {
     }
 
     /**
+     * Whether the checkout insists on an e-mail address.
+     *
+     * OFF by default, which is what this plugin has always done: it takes WooCommerce's required e-mail
+     * field and makes it optional, because a courier label needs a phone and not an address to write to.
+     * A shop that sends order e-mails, or issues invoices, needs the address after all - and until now
+     * the only way back was a snippet in functions.php. The phone is not part of this choice: every
+     * courier's waybill is built with it.
+     */
+    public static function require_email(): bool {
+        return get_option('bgcouriers_require_email', 'no') === 'yes';
+    }
+
+    /**
      * Whether the plugin's own delivery fields replace WooCommerce's address fields at checkout.
      *
      * ON by default, because that is how the plugin is meant to be used: the courier's city, office or
