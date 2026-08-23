@@ -104,10 +104,21 @@ final class InternationalServiceTest extends TestCase {
         $this->assertSame(0, BGCouriers_Speedy::country_id('DE'));
     }
 
+    /**
+     * International delivery is switched off in the plugin as it ships (see intl_enabled()), so the tests
+     * that hold the machinery to its measured answers turn it on the way a site would.
+     */
+    private function intl_on(): void {
+        Functions\when('apply_filters')->alias(function ($hook, $value = null) {
+            return $hook === 'bgcouriers_intl_enabled' ? true : $value;
+        });
+    }
+
     public function test_ships_to_is_home_plus_what_the_merchant_switched_on(): void {
         Functions\when('get_option')->alias(function ($name, $default = false) {
             return $name === 'bgcouriers_speedy_intl_countries' ? ['RO'] : $default;
         });
+        $this->intl_on();
         $speedy = new BGCouriers_Speedy([]);
         $this->assertTrue(BGCouriers_Settings::ships_to('speedy', 'BG', $speedy));
         $this->assertTrue(BGCouriers_Settings::ships_to('speedy', 'RO', $speedy));
@@ -122,10 +133,30 @@ final class InternationalServiceTest extends TestCase {
             // deliver there must not keep quoting it.
             return $name === 'bgcouriers_boxnow_intl_countries' ? ['RO'] : $default;
         });
+        $this->intl_on();
         // Only what the question needs: the courier is asked one thing here, what countries it offers.
         $co = new class { public function intl_countries(): array { return []; } };
         $this->assertTrue(BGCouriers_Settings::ships_to('boxnow', 'BG', $co));
         $this->assertFalse(BGCouriers_Settings::ships_to('boxnow', 'RO', $co));
         $this->assertSame(['BG'], BGCouriers_Settings::delivery_countries('boxnow', $co));
+    }
+
+    /**
+     * What actually ships: nothing leaves the country. The parts above are built and measured, but the
+     * feature is not finished (docs/international-shipping.md), so it is off unless a site turns the
+     * filter on - and off means off even for a shop that has picked a country and put this courier's
+     * method in that country's shipping zone. Every method asks ships_to() before it quotes.
+     */
+    public function test_nothing_leaves_the_country_while_the_feature_is_unfinished(): void {
+        Functions\when('get_option')->alias(function ($name, $default = false) {
+            return $name === 'bgcouriers_speedy_intl_countries' ? ['RO'] : $default;
+        });
+        Functions\when('apply_filters')->returnArg(2);   // no site has said otherwise
+        $speedy = new BGCouriers_Speedy([]);
+        $this->assertFalse(BGCouriers_Settings::intl_enabled());
+        $this->assertSame([], BGCouriers_Settings::intl_countries('speedy', $speedy), 'the saved choice is kept, not offered');
+        $this->assertFalse(BGCouriers_Settings::ships_to('speedy', 'RO', $speedy));
+        $this->assertTrue(BGCouriers_Settings::ships_to('speedy', 'BG', $speedy), 'home is untouched');
+        $this->assertSame(['BG'], BGCouriers_Settings::delivery_countries('speedy', $speedy));
     }
 }

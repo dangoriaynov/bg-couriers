@@ -32,6 +32,11 @@ const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMetho
  * the plugin takes cash on delivery off the checkout the moment the destination is abroad, and this
  * spec asserts that too. Bank transfer is switched on for the run and off again after, because a
  * payment method left enabled changes what every other spec sees.
+ *
+ * SKIPPED while international delivery is unfinished and switched off in the plugin: no shop is
+ * offered a foreign rate at all, so the country picker this spec drives is never rendered. Turn it
+ * back on with add_filter('bgcouriers_intl_enabled', '__return_true') on the site under test and
+ * drop the .skip. See docs/international-shipping.md.
  */
 
 const SH = path.join(__dirname, '..', 'dev-option.sh');
@@ -74,7 +79,7 @@ test.afterEach(async () => {
     .toMatch(/^(CANCELLED|NOTHING)/);
 });
 
-test('speedy guest checkout to ROMANIA books a real waybill @speedy @books-real-waybill', async ({ page }) => {
+test.skip('speedy guest checkout to ROMANIA books a real waybill @speedy @books-real-waybill', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
   await selectShippingMethod(page, 'speedy');

@@ -251,11 +251,33 @@ class BGCouriers_Settings {
     public static function home_country(): string { return 'BG'; }
 
     /**
+     * Is delivery outside the shop's own country offered at all?
+     *
+     * No, and deliberately: the pieces are built and one real BG->RO waybill was created, printed and
+     * cancelled on a live account, but the feature is not finished - see docs/international-shipping.md
+     * for what is proven and what is still missing. Until it is, no shop gets half of it by accident,
+     * so this is one switch that answers for the whole plugin rather than a setting on a page.
+     *
+     * A site that wants the unfinished thing anyway says so and takes what comes with it:
+     *
+     *     add_filter('bgcouriers_intl_enabled', '__return_true');
+     *
+     * Nothing is thrown away while it is off. A merchant's chosen countries stay in their option and
+     * come back exactly as they were the day this returns true.
+     */
+    public static function intl_enabled(): bool {
+        return (bool) apply_filters('bgcouriers_intl_enabled', false);
+    }
+
+    /**
      * Countries this courier is configured to deliver to besides home, as ISO alpha-2.
      *
-     * Empty unless the merchant has chosen some AND the courier still offers them: an option left behind
-     * by a courier that later dropped a country must not keep quoting it. Off for every existing shop,
-     * which is the whole point - nothing about a Bulgaria-only shop changes until someone ticks a box.
+     * Empty unless international delivery is switched on AND the merchant has chosen some AND the
+     * courier still offers them: an option left behind by a courier that later dropped a country must
+     * not keep quoting it. Empty is the answer for every shop as the plugin ships, which is the whole
+     * point - this is the one place the rest of the plugin asks where a parcel may go, so answering
+     * "home only" here is what keeps a foreign address out of the pricing, the checkout, the sync and
+     * the label, even on a shop that has put this courier's method in a foreign country's zone.
      *
      * @param string $courier Courier id.
      * @param object|null $co  The courier itself, when the caller already holds it - it is the authority
@@ -264,6 +286,7 @@ class BGCouriers_Settings {
      * @return string[]
      */
     public static function intl_countries(string $courier, $co = null): array {
+        if (!self::intl_enabled()) { return []; }
         $saved = get_option('bgcouriers_' . $courier . '_intl_countries', []);
         if (!is_array($saved) || !$saved) { return []; }
         if (!$co && class_exists('BGCouriers_Couriers')) { $co = BGCouriers_Couriers::get($courier); }

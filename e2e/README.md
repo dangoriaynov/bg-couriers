@@ -36,6 +36,11 @@ back until it is asked for by name.
 
 ## Delivery to another country: the one spec that books a real shipment
 
+> **All three `intl-*` specs are skipped.** Delivery abroad is unfinished and switched off in the plugin,
+> so no shop is offered a foreign rate and there is nothing for them to drive. To run them, put
+> `add_filter('bgcouriers_intl_enabled', '__return_true');` on the site under test, drop the `.skip`, and
+> do the three things below. See [`docs/international-shipping.md`](../docs/international-shipping.md).
+
 `intl-speedy-ro.spec.js` places an order to **Romania** and then books the waybill for it at Speedy, on
 purpose. Speedy's domestic service (505) and its international one (202) are mutually exclusive - each is
 refused outright where the other applies - so a waybill coming back is the only proof that the
@@ -43,7 +48,7 @@ international one was used. A mistake here does not produce a wrong label, it pr
 
 Dev needs three things first, and none of them is something the plugin can do for itself:
 
-1. **Speedy → "Also deliver to" includes Romania** (`bgcouriers_speedy_intl_countries`), saved, and
+1. **The `bgcouriers_intl_enabled` filter on**, and then **Speedy → "Also deliver to" includes Romania** (`bgcouriers_speedy_intl_countries`), saved, and
    **Sync now** pressed afterwards. A courier's towns and offices are cached per country; without the
    sync the Romanian ones are simply not there.
 2. **Romania in a WooCommerce shipping zone that carries the Speedy method.** Without it Speedy is not

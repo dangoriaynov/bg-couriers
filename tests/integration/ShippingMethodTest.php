@@ -66,6 +66,9 @@ final class ShippingMethodTest extends WP_UnitTestCase {
      */
     public function test_an_enabled_country_with_no_live_price_gets_no_rate(): void {
         update_option('bgcouriers_speedy_intl_countries', ['RO']);
+        // Switched on the way an unfinished feature is switched on - see BGCouriers_Settings::intl_enabled().
+        // Without it the rate list is empty for the wrong reason and this test would prove nothing.
+        add_filter('bgcouriers_intl_enabled', '__return_true');
         $fake = new class extends BGCouriers_Abstract_Courier {
             public function id(): string { return 'speedy'; }
             public function label(): string { return 'Speedy'; }
@@ -93,6 +96,7 @@ final class ShippingMethodTest extends WP_UnitTestCase {
         $m->calculate_shipping(['contents_weight' => 1.0, 'destination' => ['country' => 'RO']]);
         WC()->session->set('bgcouriers_country', '');
         delete_option('bgcouriers_speedy_intl_countries');
+        remove_filter('bgcouriers_intl_enabled', '__return_true');
 
         $this->assertEmpty($m->rates, 'no live price abroad means no delivery offered, not a home price');
     }

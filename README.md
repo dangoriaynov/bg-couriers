@@ -6,7 +6,7 @@ and follow the parcel without leaving WordPress.
 
 **Install it from WordPress.org:** https://wordpress.org/plugins/bg-couriers/
 Free, GPL, and staying that way - every courier, every feature, no paid tier. Deliveries are within
-Bulgaria, and Speedy can also take a parcel to another country once you name it.
+Bulgaria.
 
 ![Every courier's offices and lockers for one town, each with its own price](.wordpress-org/screenshot-3.jpg)
 
@@ -49,7 +49,7 @@ Working on the code: [`CONTRIBUTING.md`](CONTRIBUTING.md) - architecture, tests,
 
 | Courier | Status | Notes |
 |---|---|---|
-| **Speedy** | ✅ Live on `main` | checkout (office/address/APS), live quotes, labels, tracking, settings; the only courier that also delivers **abroad** (verified end to end to Romania) |
+| **Speedy** | ✅ Live on `main` | checkout (office/address/APS), live quotes, labels, tracking, settings |
 | **Econt** | ✅ Live on `main` | + **наложен платеж (COD)** with itemised packing list (опис) & ППП money-transfer agreement - live-verified; E2E 7/7 with Speedy |
 | **Pigeon Express** | ✅ Live on `main` | checkout (office/address), live quotes, labels; tracking live-verified against real shipments |
 | **BOX NOW** | ✅ Live on `main` | locker-only, flat-rate, OAuth2, **map-widget** locker picker; full create → label → track → cancel cycle verified. Needs a prepaid gateway to be offered at checkout: it cannot do наложен платеж |
@@ -85,12 +85,10 @@ Working on the code: [`CONTRIBUTING.md`](CONTRIBUTING.md) - architecture, tests,
   type, town and office in one go. A courier's own "Map" button opens this same map filtered to it - the
   separate per-courier map was removed, because keeping two meant every fix had to land twice. BoxNow
   keeps its own GPS map widget, which is the only way to pick one of its lockers.
-- **Delivery to another country** (Speedy) - off until the merchant names the countries. The customer picks
-  the country, then the town and office in that country's own nomenclature, and pays the courier's live
-  price for it. There is deliberately no fallback price abroad: every non-live price the plugin holds is a
-  Bulgarian one, so a courier that cannot quote is not offered rather than guessing. Cash on delivery
-  receipted through the courier's ППП is hidden for a foreign address - a Bulgarian postal money transfer
-  does not cross the border, and Speedy refuses the whole quote when asked for one.
+- **Delivery to another country** (Speedy) - built and measured against a live account, and **switched off
+  in the plugin**: the feature is not finished, so no shop is offered a delivery outside Bulgaria and no
+  setting turns one on. What exists, what is missing and how to run it anyway:
+  [`docs/international-shipping.md`](docs/international-shipping.md).
 - **Settings** - one tab per courier (only the fields each courier actually uses), toggles tinted green/red,
   AJAX save with a toast, default courier, drag-to-order couriers + delivery options, hide-country,
   per-method free-shipping thresholds.
