@@ -5,7 +5,13 @@ defined('ABSPATH') || exit;
 // query uses $wpdb->prepare() with $wpdb->prefix table names (interpolated table names cannot be bound as
 // placeholders); these tables ARE the local cache of the couriers' nomenclatures (synced, transient-wrapped
 // where hot), so object-cache layering adds nothing. Silence the custom-table DB sniffs for this file.
-// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+//
+// UnfinishedPrepare belongs to the same list for a reason of its own: a read here builds its WHERE with
+// country_sql() and then prepares "$sql . ' LIMIT 1'", so the placeholders are in the variable and the
+// literal handed to prepare() has none of them. The sniff reads only the literal and calls that a
+// prepare with arguments and nothing to bind - it cannot see the query it is judging. The arguments are
+// appended in the same order the clauses are, by the one helper that adds either.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 class BGCouriers_Nomenclature {
     /** ISO-3166 alpha-2, upper case; anything unrecognisable is the home country, as every old row is. */
