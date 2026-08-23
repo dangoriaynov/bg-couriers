@@ -548,10 +548,13 @@ class BGCouriers_Checkout {
                 unset($fields[$g][$g . '_' . $f]);
             }
         }
-        // A courier label needs a recipient phone, so require it; the e-mail is optional (only used if the
-        // merchant opts to forward it to the courier).
+        // A courier label needs a recipient phone, so require it. The e-mail is not the courier's business
+        // (it is only forwarded if the merchant opts to), so it is optional unless the SHOP asks for it -
+        // for its own order e-mails or invoices, which is a question about the shop and not about delivery.
         if (isset($fields['billing']['billing_phone'])) { $fields['billing']['billing_phone']['required'] = true; }
-        if (isset($fields['billing']['billing_email'])) { $fields['billing']['billing_email']['required'] = false; }
+        if (isset($fields['billing']['billing_email'])) {
+            $fields['billing']['billing_email']['required'] = BGCouriers_Settings::require_email();
+        }
         // When the country field is hidden, pin it to the country the delivery box is actually quoting
         // for, so the hidden field still submits - and submits the right one. A shop that delivers
         // nowhere else keeps sending its own country exactly as before.
