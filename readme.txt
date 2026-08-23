@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.3.7
+Stable tag: 0.3.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,7 +19,7 @@ BG Couriers puts Bulgaria's couriers inside WooCommerce: your customer chooses w
 
 **In the admin** one click issues the waybill and the label - one order, or fifty of them into a single PDF (A6 labels or an A4 sheet). The plugin then keeps each shipment's status up to date by itself, and your customer sees the waybill and a tracking link on their order and in the e-mails you already send them.
 
-**It is free**, GPL, and stays that way: every courier, every feature, no paid tier. Deliveries are within Bulgaria, and Speedy can also take a parcel to another country if you switch that country on.
+**It is free**, GPL, and stays that way: every courier, every feature, no paid tier. Deliveries are within Bulgaria.
 
 **Couriers**
 
@@ -44,7 +44,6 @@ Everything else already has a working default: the prices, the map, the checkout
 * **Cash on delivery (наложен платеж)**, with the choice of who pays the delivery - and the amount to collect follows that choice.
 * Free-shipping thresholds, per courier and per delivery type.
 * Several parcels in one shipment, and insurance for a value you set (Speedy, Sameday).
-* Delivery to another country with Speedy, off until you name the countries yourself.
 * A delivery estimate on the cart page, before the customer reaches the checkout.
 * Works on both the classic and the block checkout.
 * Fully translated to Bulgarian.
@@ -92,7 +91,7 @@ https://github.com/dangoriaynov/bg-couriers/issues
 == Frequently Asked Questions ==
 
 = Which countries are supported? =
-Bulgaria, by five Bulgarian networks: **Speedy**, **Econt**, **Pigeon Express** and **Sameday** deliver to an office, to a street address or to a locker, and **BOX NOW** delivers to its lockers (APM). **Speedy** can also carry a parcel abroad: name the countries on its settings tab, sync, and put each one in a WooCommerce shipping zone that carries Speedy's method - the customer then picks the country, the town and the office as usual, and the price is the courier's own live one. Two things to know about it. There is no fallback price abroad, so a courier that cannot quote live is simply not offered rather than guessing with a Bulgarian rate. And if your cash on delivery is receipted through the courier's ППП, it stops at the border - the plugin hides cash on delivery for a foreign address, so those orders have to be prepaid. The other four couriers are domestic only.
+Bulgaria, by five Bulgarian networks: **Speedy**, **Econt**, **Pigeon Express** and **Sameday** deliver to an office, to a street address or to a locker, and **BOX NOW** delivers to its lockers (APM). Delivery outside Bulgaria is not offered.
 
 = How can I support the development? =
 The plugin is free, GPL, and stays that way - every courier, every feature, no paid tier. If it has saved you work and you would like to put something behind it: https://revolut.me/danq6lus. It is entirely voluntary and changes nothing about the support you get. Reporting a bug in the [support forum](https://wordpress.org/support/plugin/bg-couriers/), or leaving a review, helps just as much.
@@ -119,6 +118,13 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.3.8 =
+* New: **the checkout can insist on an e-mail address** - a setting, off by default. The plugin makes the field optional (a waybill is built with the phone number), and until now a shop that needed the address had to edit its theme.
+* Fixed: **a Pigeon Express parcel that came back never moved the order.** The journey home travels under a second waybill the order was never told about.
+* Fixed: "Request a courier" now names every ticked order it leaves out, instead of quietly shrinking the list you are about to confirm.
+* Fixed: an address the shop cannot deliver to now says so, and offers the way back - it used to end in WooCommerce's "check your address" about an address with nothing wrong with it.
+* Changed: the map's town field opens its whole list when you press it; it used to answer only to typing.
+
 = 0.3.7 =
 * New: **Request a courier** - tick the orders, pick a day, the courier comes for those parcels (Speedy, Econt).
 * New: Pigeon Express can collect from your address instead of you dropping parcels at its office.
@@ -138,6 +144,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 Older entries: https://github.com/dangoriaynov/bg-couriers/blob/main/docs/CHANGELOG.md
 
 == Upgrade Notice ==
+
+= 0.3.8 =
+The checkout can now require an e-mail address (off by default). A Pigeon Express parcel sent back by an uncollected delivery moves the order again.
 
 = 0.3.7 =
 Adds "Request a courier" for Speedy and Econt. BOX NOW is no longer told the value of a prepaid parcel unless you enable it.
