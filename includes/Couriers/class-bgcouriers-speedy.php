@@ -81,7 +81,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         $c = strtoupper(trim($iso));
         if ($c === '' || $c === 'BG') { return self::BG_COUNTRY_ID; }
         $id = self::country_id($c);
-        if ($id <= 0) { throw new BGCouriers_Api_Exception('Speedy does not deliver to ' . $c); }
+        if ($id <= 0) { throw new BGCouriers_Api_Exception(esc_html('Speedy does not deliver to ' . $c)); }
         return $id;
     }
 
@@ -103,7 +103,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public static function service_id(string $iso = ''): int {
         $c = strtoupper(trim($iso));
         if ($c === '') { $c = 'BG'; }
-        if (!isset(self::SERVICE_IDS[$c])) { throw new BGCouriers_Api_Exception('Speedy has no service for ' . $c); }
+        if (!isset(self::SERVICE_IDS[$c])) { throw new BGCouriers_Api_Exception(esc_html('Speedy has no service for ' . $c)); }
         return self::SERVICE_IDS[$c];
     }
 

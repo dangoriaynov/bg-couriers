@@ -234,8 +234,8 @@ class BGCouriers_Pricing {
             }
         }
         if ($abroad) {
-            throw new BGCouriers_Api_Exception(sprintf('%s: no live price for %s',
-                $courier->id(), (string) ($shipment['country'] ?? '')));
+            throw new BGCouriers_Api_Exception(esc_html(sprintf('%s: no live price for %s',
+                $courier->id(), (string) ($shipment['country'] ?? ''))));
         }
         // No live price (fixed mode, or the API failed). 'fixed'/'fallback' prefer the configured price;
         // 'live' prefers the daily cached reference. All amounts are already in the store currency.
