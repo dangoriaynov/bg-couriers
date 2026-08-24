@@ -55,6 +55,9 @@ class BGCouriers_Plugin {
         BGCouriers_Couriers::register('sameday', __('Sameday', 'bg-couriers'), static function () {
             return new BGCouriers_Sameday(BGCouriers_Settings::courier_credentials('sameday') ?: []);
         });
+        BGCouriers_Couriers::register('expressone', __('Express One', 'bg-couriers'), static function () {
+            return new BGCouriers_Expressone(BGCouriers_Settings::courier_credentials('expressone') ?: []);
+        });
         BGCouriers_Couriers::boot();
         add_filter('cron_schedules', function ($s) {
             $s['weekly']    = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
@@ -86,6 +89,7 @@ class BGCouriers_Plugin {
             $methods['bgcouriers_pigeon'] = 'BGCouriers_Method_Pigeon';
             $methods['bgcouriers_boxnow'] = 'BGCouriers_Method_Boxnow';
             $methods['bgcouriers_sameday'] = 'BGCouriers_Method_Sameday';
+            $methods['bgcouriers_expressone'] = 'BGCouriers_Method_Expressone';
             return $methods;
         });
         $checkout = new BGCouriers_Checkout();
