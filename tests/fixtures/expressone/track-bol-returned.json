@@ -1,0 +1,60 @@
+{
+ "message": "",
+ "status": true,
+ "data": [
+  {
+   "DATE": "2026-08-20 09:12:00",
+   "STATUS_ID": 0,
+   "STATUS_NAME": "Създадена товарителница",
+   "SUBSTATUS_NAME": "",
+   "LOCATION": "СОФИЯ",
+   "OFFICE": "",
+   "OFFICE_ID": null
+  },
+  {
+   "DATE": "2026-08-20 17:40:00",
+   "STATUS_ID": 2,
+   "STATUS_NAME": "Приета от куриер",
+   "SUBSTATUS_NAME": "",
+   "LOCATION": "СОФИЯ",
+   "OFFICE": "",
+   "OFFICE_ID": null
+  },
+  {
+   "DATE": "2026-08-21 08:05:00",
+   "STATUS_ID": 3,
+   "STATUS_NAME": "Пристигнала в офис",
+   "SUBSTATUS_NAME": "",
+   "LOCATION": "ПЛОВДИВ",
+   "OFFICE": "PUP 1052",
+   "OFFICE_ID": 220593
+  },
+  {
+   "DATE": "2026-08-23 11:00:00",
+   "STATUS_ID": 8,
+   "STATUS_NAME": "Неуспешен разнос",
+   "SUBSTATUS_NAME": "СТИКЕР - Получателят отсъства",
+   "LOCATION": "ПЛОВДИВ",
+   "OFFICE": "",
+   "OFFICE_ID": null
+  },
+  {
+   "DATE": "2026-08-24 09:00:00",
+   "STATUS_ID": 101,
+   "STATUS_NAME": "Събитие",
+   "SUBSTATUS_NAME": "Изтекла резервация в АПС",
+   "LOCATION": "ПЛОВДИВ",
+   "OFFICE": "",
+   "OFFICE_ID": null
+  },
+  {
+   "DATE": "2026-08-25 16:20:00",
+   "STATUS_ID": 12,
+   "STATUS_NAME": "Върната към подател",
+   "SUBSTATUS_NAME": "",
+   "LOCATION": "СОФИЯ",
+   "OFFICE": "",
+   "OFFICE_ID": null
+  }
+ ]
+}
