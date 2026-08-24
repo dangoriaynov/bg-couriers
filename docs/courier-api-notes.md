@@ -78,30 +78,59 @@ Source: BG Partner API manual v1.65 (`boxnow.bg/en/partner-api`).
   4. COD via `amountToBeCollected` (0-5000); compartment size S/M/L; hide method when cart exceeds locker size.
 - **What's needed:** OAuth2 client_id+secret (sandbox+prod) → adapter (token caching, destinations/origins, delivery-requests, label, parcels/webhook) **+ a locker-picker checkout component** + a flat-rate config + an origin-warehouse setting. More work than Pigeon/Econt because of the UX divergence.
 
-## 3. Express One (Bulgaria) - *API IS readable (via its open-source plugin); medium effort*
+## 3. Express One (Bulgaria) - *BUILT 2026-08-25, measured against the live test account*
 
-Source (2026-06-29): Express One's **official open-source WooCommerce plugin** `express-one-shipment`
-(wordpress.org/plugins/express-one-shipment/, GPL) - read its source for the exact endpoints/shapes
-(facts, not copied code). Express One BG is part of the **Austrian Post** CEE network; the plugin's API
-host is `https://api.expressone.si/`.
-**Caveat:** that plugin is Express One's **Slovenia** instance (default sender country `SI`, tracking
-`inet.expressone.si`). The API *style* (apikey + these endpoints) is the group's, but the **Bulgaria**
-base URL + access must be confirmed with Express One BG - do NOT assume the `.si` host serves BG.
+`https://system.expressone.bg/api/web`. **Everything below came back from the API**, not from its
+documentation and not from Express One's Slovenian open-source plugin - the two systems are unrelated
+and the earlier notes here (`api.expressone.si`, `apikey=` in the query, flat rate, no lockers, no
+tracking, no cancel) described the wrong courier entirely. Full write-up:
+`docs/superpowers/specs/2026-08-25-expressone-design.md`.
 
-- **Auth:** an **API Key** (`apikey=` query param, also in POST bodies), issued by Express One. No OAuth.
-- **Endpoints (`api.expressone.si/...`):**
-  - `GET /apiuserinfo?apikey=` - validate credentials / account info (→ `check_credentials`).
-  - `GET /places?apikey=` - cities/postcodes (→ `fetch_cities` / address validation).
-  - `GET /parcelshops?isActive=true&apikey=` - **pickup points** (parcel shops): `{id, pickupCodes, name, address, city, postcode/zip, GeoLat, GeoLong}` (→ `fetch_offices`, type "office"/pickup-point).
-  - `GET /checkcountryiseligible?apikey=` - is a ZIP/country deliverable.
-  - `POST /createshipment` (apikey in body) - recipient `{name, countryCode, zipcode, city, streetAndNumber, telephone, notifyEmail}`, `sender`, `isSenderNonCustomer`, `codValue`/`codCurrency` (COD), `collies` (parcels), `pickupCodes` (for pickup-point delivery) → returns a barcode/shipment id. `POST /updateshipment`.
-  - `GET /pdfinternal` (+ `/layouts`) - the PDF label.
-- **Delivery types:** **Home delivery** (recipient address) + **Pickup Point** (parcelshop ≈ office). **No locker/automat.**
-- **No `calculate`/price endpoint** → the plugin uses a **configured Delivery Fee** → **flat/configured rate** (like BoxNow), no `live_quote`.
-- **Framework fit:** ⚠️ partial. `capabilities()` = `['address','office']` (pickup-point as "office"); flat-rate (no live quote). Maps reasonably to the existing checkout (address + office tabs), but: cities come from `/places` (not a Speedy-style nomenclature - confirm pagination/shape live), offices = `parcelshops`, and pricing is flat (override `BGC_Pricing`). COD via `codValue/codCurrency`.
-- **What's needed:** an **API Key** from Express One (international@expressone.bg / sales) - then a normal adapter built against the plugin-derived shapes (validate via `/apiuserinfo`; `/places`+`/parcelshops` nomenclature; `/createshipment`+`/pdfinternal` label; flat-rate config). Confirm exact request/response shapes live with the key (the plugin reveals the structure; field nuances + a tracking endpoint need live confirmation).
+- **Auth:** `POST /1/authorize {username,password}` → `data.authorization_code`; `POST /1/accesstoken
+  {authorization_code}` → `data.access_token` (+ `expires_at`, unix, ~24 h). Every later call carries
+  `X-Access-Token`. The BOL account is NOT the my.expressone.bg login.
+- **The envelope decides, the HTTP code does not.** Everything is HTTP 200: success is
+  `{"status":true,"data":…}`, refusal `{"status":0,"error_code":200,"message":"…"}`. `data` is a JSON
+  array from some endpoints and an object keyed `"1","2","3"…` from others (list-office).
+- **Rate limit: >60 requests/minute blocks the IP for 30 minutes.** Never fan a call out per city.
+- **Currency: EUR** (`/1/list-bol` prints `"COD": "0.00 EUR"`).
+- **`/1/list-city {country_id:100}`** - one call, 9000 rows, **4337 distinct**: it is town × postcode
+  (Sofia alone is 964 rows), `ID` is the ЕКАТТЕ code, `COUNTRY_ID` is space-padded. Dedupe by `ID`.
+- **`/1/list-office {country_id:100}`** - one call for the whole country: 490 points, 247 towns.
+  `LOCATION_TYPE` 2 = own depot, 3 = partner counter (PUP), **4 = EXOBOX locker**. Carries lat/lng,
+  `POSTCODE`, `MAX_PARCEL_WEIGHT` (31-32 kg) and dimensions, hours `D1`-`D7`. `ID` is an int from the
+  per-city call and a **string** from the country-wide one.
+- **`/1/list-street {city_id}`** - per town, 4884 rows for Sofia, no search term. Live, never synced.
+- **`/1/list-object`** - the account's own sender addresses (18 on the test account). Its `ID` is the
+  `SEND_OFFICE_ID` every waybill needs.
+- **`/1/calculate-bol`** - a real quote, and the destination TYPE changes it: the same 1 kg parcel to
+  Sofia was 4.76 to an address, 4.06 to a counter, 3.73 to a locker (the last two only when
+  `TAKE_OFFICE_ID` is sent). Itemised `TAX_SERVICE`/`TAX_FUEL`/`TAX_COD`/`INSURANCE`/`TAX_VAT`/`TOTAL`;
+  **`TOTAL` includes VAT**, so what WooCommerce is given is `TOTAL - TAX_VAT`.
+- **`/1/create-bol`** - `SEND_OFFICE_ID`, receiver name/phone/country/city id **and `RECEIVER_CITY`, the
+  town NAME, which is required even with the id** ("The RECEIVER_CITY field cannot be empty!"), then
+  `TAKE_OFFICE_ID` or the street fields; `CONTENT` + `WEIGHT` required; `COD`, `INSURANCE`, `PACK_COUNT`,
+  `CLIENT_REFERENCE`, `CHECK_BEFORE_PAY`, `PAYER` (0 sender / 1 receiver). Answers `BILLOFLADING`,
+  `TOTAL`, `PACKS[]` **and the label itself, base64, in `LABEL`** - printing costs no second call.
+- **`/1/print-bol`** - `pdfformat` 0 = the account's own setting, 1 = PDF, 2 = label, 3 = ZPL, 4 = ZPL
+  vertical (4 really does answer `^XA`).
+- **`/1/cancel-bol`** → `SUCCESS: 1`; **a second cancel answers an empty `data`**, and `/1/bol-info` then
+  reports `STATUS_ID 7`. Already-cancelled must read as cancelled.
+- **`/1/track-bol` / `/1/track-bols`** - an untouched shipment answers one row of `"N/A"` with a null
+  status: that is "no events", not a failure. Statuses (read off 32 shipments, undocumented): 0 booked,
+  1 ordered, 2 picked up, 3 at the office, 5 out for delivery, **6 delivered**, **7 cancelled**,
+  8 failed attempt (+ substatus), 10 finalised, **12 returned to sender**, 101 an event whose meaning is
+  in its substatus text ("Налична за получаване в АПС", "Изтекла резервация в АПС", …).
+  **A delivered parcel was observed ending 6 → 10 → 7**, so the newest event is NOT the verdict: 6 and 12
+  are facts about the parcel and outrank the paperwork that follows them.
+- **Customer tracking:** `https://expressone.bg/bg/tracking/<BILLOFLADING>` (a path, not a query - the
+  page's own form posts `form[bols]`).
+- **`/1/request-courier` {count, weight, readiness, take_office_id}** → `data.REQUEST`.
+- Also there and unused: `/1/list-all-status`, `/1/list-bol`, `/1/bol-finance-info`, `/1/list-cod-order`
+  (max 35 days), `/1/info-cod-order[-detailed]`, `/1/list-invoice`, `/1/list-return-redirect`.
+- **Documentation disagrees with the API** in at least: `/1/me` is documented POST and is GET-only, and
+  neither the currency, the status vocabulary nor the required `RECEIVER_CITY` is in it.
 
----
 
 ## 4. Европът / Evropat-2000 - *domain model known from their own manual; API still unseen*
 

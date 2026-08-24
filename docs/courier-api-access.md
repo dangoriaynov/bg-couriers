@@ -34,16 +34,18 @@ offer fully self-service API signup - each requires contacting the courier.
   3. There is **no self-service portal** - credentials are issued by their team.
   4. Hand me the API Key/Secret server-side; the `pigeon` adapter is partly mapped already from prior art.
 
-## 3. Express One (Bulgaria) - courier (expressone.bg)  *(newly added to the roadmap)*
+## 3. Express One (Bulgaria) - courier (expressone.bg)  *(BUILT 2026-08-25, on a test account)*
 
-- **API IS readable** (2026-06-29): Express One BG is part of the Austrian Post CEE network; the API host is the group's **`https://api.expressone.si/`**, and Express One's **official open-source WooCommerce plugin** (wordpress.org/plugins/express-one-shipment/) reveals the endpoints/shapes. Full technical map in `docs/courier-api-notes.md`. Only an **API Key** is needed from them.
-- **Auth:** **API Key** (sent as `apikey=` query param + in POST bodies). Endpoints: `/apiuserinfo`, `/places`, `/parcelshops` (pickup points), `/checkcountryiseligible`, `/createshipment`, `/updateshipment`, `/pdfinternal` (label). Delivery = home + pickup-point; flat rate (no live quote).
-- **Steps to get access:**
-  1. Contact Express One Bulgaria - **international@expressone.bg** (or the office number on expressone.bg) - and request an **API Key** for shipment integration.
-  2. Ask for: the **API Key**, a **test account** if available, and confirmation of the BG base URL (the open-source plugin uses `api.expressone.si`).
-  3. Drop the API Key server-side; I'll build the `expressone` adapter against the plugin-derived shapes (validate via `/apiuserinfo`, confirm field nuances live).
-
----
+- **Access obtained.** Express One issued a **test-environment** USERNAME + PASSWORD and a sender object
+  id (`SEND_OFFICE_ID`) created for this shop. Real credentials follow "upon successful integration".
+- **API docs:** https://system.expressone.bg/api/web/site/documentation - and it disagrees with the API
+  in several places, so `docs/courier-api-notes.md` records what the API actually answered.
+- **Auth:** `POST /1/authorize` (username+password) → `POST /1/accesstoken` → `X-Access-Token`. The BOL
+  account is a different account from the my.expressone.bg web login.
+- **What it turned out to support:** office, address AND locker delivery, live per-destination prices,
+  labels (PDF and ZPL), cancellation, tracking and a courier pickup request - everything this plugin
+  asks of a courier.
+- **Still needed from them:** production credentials, and the production sender object id.
 
 ## 4. Европът / Evropat-2000 (Bulgaria) - courier (evropat.bg)  *(owner wrote to them 2026-08-17)*
 
