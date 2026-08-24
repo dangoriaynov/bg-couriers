@@ -16,17 +16,43 @@ class BGCouriers_Pricing {
      */
     public static function cart_parcel(): array {
         $store_weight = 0.0;
+        $has = false;
         if (function_exists('WC') && WC() && WC()->cart) {
             foreach ((array) WC()->cart->get_shipping_packages() as $pkg) {
                 $store_weight += (float) ($pkg['contents_weight'] ?? 0);
+                $has = $has || !empty($pkg['contents']);
             }
         }
-        return BGCouriers_Packer::from_store_weight($store_weight);
+        return self::weigh($store_weight, $has);
     }
 
     /** The parcel for the one package a shipping method was handed. Same figure, same conversion. */
     public static function package_parcel(array $package): array {
-        return BGCouriers_Packer::from_store_weight((float) ($package['contents_weight'] ?? 0));
+        return self::weigh((float) ($package['contents_weight'] ?? 0), !empty($package['contents']));
+    }
+
+    /**
+     * The parcel to quote for, given what the shop says it weighs.
+     *
+     * A package that HAS something in it and still weighs nothing is not a 0.1 kg parcel - it is a parcel
+     * nobody has weighed, because the products carry no weight. The LABEL has always read it that way:
+     * with nothing to add up, BGCouriers_Abstract_Courier::order_weight_kg() falls to the shop's default
+     * weight. The checkout fell to the 0.1 kg floor instead, so the customer was quoted for a tenth of a
+     * kilogram and the courier was then handed the shop's default - two different parcels for one order,
+     * with the difference coming out of the shop. Found on dev 2026-08-25, driving Express One through a
+     * real checkout: quoted 2.70 for a basket whose waybill went out declaring 1 kg, which costs 3.38.
+     *
+     * The floor still stands for a weight that really is small (a gram-priced shop's two 10 g items have
+     * been weighed), and for a cart with nothing to ship at all, where there is no parcel to price.
+     *
+     * @param float $store_weight The weight in the shop's own unit.
+     * @param bool  $has_contents Whether there is anything in the package to weigh in the first place.
+     */
+    private static function weigh(float $store_weight, bool $has_contents): array {
+        if ($store_weight <= 0 && $has_contents && class_exists('BGCouriers_Settings')) {
+            return BGCouriers_Packer::from_weight(BGCouriers_Settings::default_weight_kg());
+        }
+        return BGCouriers_Packer::from_store_weight($store_weight);
     }
 
     /**

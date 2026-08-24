@@ -72,6 +72,31 @@ final class OnePriceForOneParcelTest extends TestCase {
         $this->assertSame(0.1, BGCouriers_Pricing::cart_parcel()['weight_kg']);
     }
 
+    /**
+     * A basket that HAS something in it and still weighs nothing is not a 0.1 kg parcel - it is a parcel
+     * nobody has weighed, because the products carry no weight.
+     *
+     * The label has always read it that way: with nothing to add up it uses the shop's default weight.
+     * The checkout fell to the floor instead, so the customer was quoted for a tenth of a kilogram and
+     * the courier was handed the shop's default. Found on dev driving Express One through a real
+     * checkout: quoted 2.70 against a waybill declaring 1 kg, which costs 3.38.
+     */
+    public function test_a_parcel_nobody_weighed_is_priced_as_the_shop_s_default(): void {
+        require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
+        Functions\when('wc_get_weight')->alias(static function ($w, $to, $from = '') { return ((float) $w) / 1000; });
+        Functions\when('get_option')->alias(static fn($n, $d = false) => $n === 'bgcouriers_default_weight_kg' ? 1.0 : $d);
+
+        $this->assertSame(1.0, BGCouriers_Pricing::package_parcel(
+            ['contents_weight' => 0, 'contents' => [['x' => 1]]])['weight_kg'],
+            'the same parcel the label will declare');
+        $this->assertSame(0.1, BGCouriers_Pricing::package_parcel(
+            ['contents_weight' => 0, 'contents' => []])['weight_kg'],
+            'nothing to ship is not a parcel to price');
+        $this->assertSame(0.1, BGCouriers_Pricing::package_parcel(
+            ['contents_weight' => 20, 'contents' => [['x' => 1]]])['weight_kg'],
+            'two 10 g items HAVE been weighed - the floor is the honest answer there');
+    }
+
     public function test_a_price_printed_beside_a_tax_inclusive_row_carries_the_tax(): void {
         $this->shop([400.0], 'incl');
         $this->assertSame(6.07, BGCouriers_Pricing::display_price(5.06));
