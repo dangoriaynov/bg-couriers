@@ -38,6 +38,20 @@ class BGCouriers_Tracking {
         'shipment_cancelled'              => 'cancelled',
         'shipment_returning_to_sender'    => 'returning',
         'shipment_returned'               => 'returned',
+        // Express One's are numbers, so they are prefixed with the courier - "6" on its own would be
+        // anybody's. Read off 32 shipments on the test account 2026-08-25; the names are its own words.
+        'expressone_0'  => 'registered',   // Създадена товарителница - the label exists, the parcel does not move
+        'expressone_1'  => 'registered',   // Създадена поръчка
+        'expressone_2'  => 'transit',      // Приета от куриер
+        'expressone_3'  => 'ready',        // Пристигнала в офис - waiting for the customer, not delivered
+        'expressone_5'  => 'transit',      // Предадена на куриер
+        'expressone_6'  => 'delivered',    // Доставена
+        'expressone_7'  => 'cancelled',    // Анулирана
+        'expressone_8'  => 'transit',      // Неуспешен разнос - an attempt that failed; the parcel is still out
+        'expressone_12' => 'returned',     // Върната към подател
+        // 10 "Финализирана" is deliberately absent. It is the accounting close and says nothing about
+        // where the parcel is - it was observed both after a delivery and before a cancellation - so it
+        // falls through to 'transit', which never ends a shipment and never completes an order.
     ];
 
     /**

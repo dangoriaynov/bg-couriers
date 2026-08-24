@@ -1,0 +1,19 @@
+{
+ "message": "",
+ "status": true,
+ "data": [
+  {
+   "DATE": "N/A",
+   "STATUS_ID": null,
+   "STATUS_NAME": "N/A",
+   "STATUS_NAME_EN": null,
+   "SUBSTATUS_ID": null,
+   "SUBSTATUS_NAME": null,
+   "SUBSTATUS_NAME_EN": null,
+   "LOCATION": null,
+   "CONSIGNEE": null,
+   "OFFICE": "N/A",
+   "OFFICE_ID": null
+  }
+ ]
+}

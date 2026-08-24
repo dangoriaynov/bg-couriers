@@ -1,0 +1,18 @@
+{
+ "message": "",
+ "status": true,
+ "data": {
+  "ERROR": 0,
+  "ERROR_MESSAGE": null,
+  "FIX_HOUR": "0.00",
+  "RETURN_RECEIPT": "0.00",
+  "RETURN_DOCUMENTS": "0.00",
+  "TAX_COD": "0.35",
+  "INSURANCE": "0.00",
+  "TAX_INSURANCE": "0.000000",
+  "TAX_SERVICE": "3.27",
+  "TAX_FUEL": "0.78",
+  "TAX_VAT": "0.88",
+  "TOTAL": "5.28"
+ }
+}

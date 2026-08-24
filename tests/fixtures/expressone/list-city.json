@@ -1,0 +1,105 @@
+{
+ "message": "",
+ "status": true,
+ "data": [
+  {
+   "ID": 12345,
+   "NAME": "БЕЗПОЩЕНСКО",
+   "COUNTRY_ID": "100         ",
+   "DISTRICT": "ВАРНА",
+   "MUNICIPALITY": "ВАРНА",
+   "CITY_TYPE": "С.",
+   "POSTCODE": null,
+   "EKNM": "12345",
+   "DELIVERY_WEEK_DAYS": "1010100                     "
+  },
+  {
+   "ID": 68134,
+   "NAME": "СОФИЯ",
+   "COUNTRY_ID": "100         ",
+   "DISTRICT": "СОФИЯ - ГРАД",
+   "MUNICIPALITY": "СТОЛИЧНА",
+   "CITY_TYPE": "ГР.",
+   "POSTCODE": 1000,
+   "EKNM": "68134",
+   "DELIVERY_WEEK_DAYS": "1111110                     "
+  },
+  {
+   "ID": 68134,
+   "NAME": "СОФИЯ",
+   "COUNTRY_ID": "100         ",
+   "DISTRICT": "СОФИЯ - ГРАД",
+   "MUNICIPALITY": "СТОЛИЧНА",
+   "CITY_TYPE": "ГР.",
+   "POSTCODE": 1111,
+   "EKNM": "68134",
+   "DELIVERY_WEEK_DAYS": "1111110                     "
+  },
+  {
+   "ID": 68134,
+   "NAME": "СОФИЯ",
+   "COUNTRY_ID": "100         ",
+   "DISTRICT": "СОФИЯ - ГРАД",
+   "MUNICIPALITY": "СТОЛИЧНА",
+   "CITY_TYPE": "ГР.",
+   "POSTCODE": 1113,
+   "EKNM": "68134",
+   "DELIVERY_WEEK_DAYS": "1111110                     "
+  },
+  {
+   "ID": 55419,
+   "NAME": "ПАНЧАРЕВО",
+   "COUNTRY_ID": "100         ",
+   "DISTRICT": "СОФИЯ - ГРАД",
+   "MUNICIPALITY": "СТОЛИЧНА",
+   "CITY_TYPE": "С.",
+   "POSTCODE": 1137,
+   "EKNM": "55419",
+   "DELIVERY_WEEK_DAYS": "1111100                     "
+  },
+  {
+   "ID": 44063,
+   "NAME": "ЛОЗЕН",
+   "COUNTRY_ID": "100         ",
+   "DISTRICT": "СОФИЯ - ГРАД",
+   "MUNICIPALITY": "СТОЛИЧНА",
+   "CITY_TYPE": "С.",
+   "POSTCODE": 1151,
+   "EKNM": "44063",
+   "DELIVERY_WEEK_DAYS": "1111100                     "
+  },
+  {
+   "ID": 22472,
+   "NAME": "ДОЛНИ ПАСАРЕЛ",
+   "COUNTRY_ID": "100         ",
+   "DISTRICT": "СОФИЯ - ГРАД",
+   "MUNICIPALITY": "СТОЛИЧНА",
+   "CITY_TYPE": "С.",
+   "POSTCODE": 1165,
+   "EKNM": "22472",
+   "DELIVERY_WEEK_DAYS": "1111100                     "
+  },
+  {
+   "ID": 14831,
+   "NAME": "ГЕРМАН",
+   "COUNTRY_ID": "100         ",
+   "DISTRICT": "СОФИЯ - ГРАД",
+   "MUNICIPALITY": "СТОЛИЧНА",
+   "CITY_TYPE": "С.",
+   "POSTCODE": 1186,
+   "EKNM": "14831",
+   "DELIVERY_WEEK_DAYS": "1111100                     "
+  },
+  {
+   "ID": 12345,
+   "NAME": "БЕЗПОЩЕНСКО",
+   "COUNTRY_ID": "100         ",
+   "DISTRICT": "ВАРНА",
+   "MUNICIPALITY": "ВАРНА",
+   "CITY_TYPE": "С.",
+   "POSTCODE": 9000,
+   "EKNM": "12345",
+   "DELIVERY_WEEK_DAYS": "1010100                     "
+  }
+ ]
+}

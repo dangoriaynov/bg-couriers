@@ -1,0 +1,19 @@
+{
+ "message": "",
+ "status": true,
+ "data": {
+  "ERROR": 0,
+  "ERROR_MESSAGE": null,
+  "TOTAL": "4.56",
+  "COD": 50,
+  "BILLOFLADING": 29801952,
+  "RETURN_CODE": "0E0D",
+  "PACKS": [
+   {
+    "BARCODE": null,
+    "PACKID": "29801952"
+   }
+  ],
+  "LABEL": "JVBERi0xLjQK"
+ }
+}

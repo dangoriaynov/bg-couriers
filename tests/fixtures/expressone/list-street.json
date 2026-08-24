@@ -1,0 +1,41 @@
+{
+ "message": "",
+ "status": true,
+ "data": [
+  {
+   "ID": 143,
+   "CITY_ID": 68134,
+   "NAME": "1",
+   "TYPE_NAME": "УЛ.",
+   "STREET_TYPE_ID": 1
+  },
+  {
+   "ID": 3387,
+   "CITY_ID": 68134,
+   "NAME": "1",
+   "TYPE_NAME": "АЛ.",
+   "STREET_TYPE_ID": 1
+  },
+  {
+   "ID": 145,
+   "CITY_ID": 68134,
+   "NAME": "10",
+   "TYPE_NAME": "УЛ.",
+   "STREET_TYPE_ID": 1
+  },
+  {
+   "ID": 3731,
+   "CITY_ID": 68134,
+   "NAME": "10-ТИ КИЛОМЕТЪР",
+   "TYPE_NAME": "УЛ.",
+   "STREET_TYPE_ID": 1
+  },
+  {
+   "ID": 146,
+   "CITY_ID": 68134,
+   "NAME": "100",
+   "TYPE_NAME": "УЛ.",
+   "STREET_TYPE_ID": 1
+  }
+ ]
+}
