@@ -322,6 +322,12 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     }
 
     /**
+     * Yes: /1/create-bol refuses RECEIVER_STREET without RECEIVER_STREET_ID, and an id only exists for a
+     * street off its own list. A typed one produces an order that cannot be turned into a waybill.
+     */
+    public function street_list_only(): bool { return true; }
+
+    /**
      * A town's whole street list, kept for a day.
      *
      * Sofia's is 4884 rows and there is no way to ask for one street, so every address label and every

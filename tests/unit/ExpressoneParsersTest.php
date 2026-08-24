@@ -248,6 +248,31 @@ final class ExpressoneParsersTest extends TestCase {
             implode(' | ', array_column($t->events, 'name')), 'the substatus is where a 101 keeps its meaning');
     }
 
+    /**
+     * The checkout's street box must stop offering a typed street for this courier, because a typed one
+     * cannot become a waybill. Driven on dev before it was fixed: the picker offered "БУЛ. ПРОФ. ЦВЕТАН
+     * ЛАЗАРОВ", select2's tag took the typed "Цветан Лазаров" instead, the order was placed happily, and
+     * the label refused hours later with nobody left to ask.
+     */
+    public function test_this_courier_delivers_only_to_streets_it_lists(): void {
+        $this->assertTrue((new BGCouriers_Expressone([]))->street_list_only());
+        $other = new class ([]) extends BGCouriers_Abstract_Courier {
+            public function id(): string { return 'other'; }
+            public function label(): string { return 'Other'; }
+            public function capabilities(): array { return ['address']; }
+            public function check_credentials(): bool { return true; }
+            public function fetch_cities(): array { return []; }
+            public function fetch_offices(int $c): array { return []; }
+            public function quote(array $s): BGCouriers_Quote { return new BGCouriers_Quote(0, 0, 'EUR', 'live'); }
+            public function create_label(\WC_Order $o): BGCouriers_Label { return new BGCouriers_Label(''); }
+            public function get_label_pdf(string $w, string $f = ''): string { return ''; }
+            public function cancel_label(string $w): bool { return true; }
+            public function track(string $w): BGCouriers_Tracking { return new BGCouriers_Tracking('', '', []); }
+            public function tracking_url(string $w): string { return ''; }
+        };
+        $this->assertFalse($other->street_list_only(), 'a courier that takes an address as text keeps free typing');
+    }
+
     public function test_the_customer_is_given_a_link_that_carries_the_number(): void {
         $this->assertSame('https://expressone.bg/bg/tracking/29801952',
             (new BGCouriers_Expressone([]))->tracking_url('29801952'));
