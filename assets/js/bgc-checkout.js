@@ -468,18 +468,28 @@
   }
   $(document).on('click', '.bgc-addr-map-btn', function (e) { e.preventDefault(); openAddressMap($(this).closest('.bgc-fields')); });
 
-  // Street (autocomplete via /location/street; tags:true keeps free-typed streets working).
+  // Street (autocomplete via the chosen courier's own street list).
+  //
+  // Free typing stays on for the couriers that deliver to an address written as text - most of them -
+  // and is switched OFF for one that cannot: Express One refuses a street it was not given an id for,
+  // and an id only exists for a street off its list. Letting a customer type one there produces an
+  // order nobody can print a waybill for, and the refusal arrives at the packing table.
   function initStreet($wrap) {
     var $street = $wrap.find('.bgc-street');
     if (!$street.length || $street[0].tagName !== 'SELECT' || $street.hasClass('select2-hidden-accessible')) { return; }
+    var listOnly = ((BGCOURIERS.streetListOnly || []).indexOf(courier($wrap)) !== -1);
     sel2($street, {
-      width: '100%', tags: true, allowClear: true, minimumInputLength: 2, placeholder: (BGCOURIERS.i18n && BGCOURIERS.i18n.street_ph) || '',
+      width: '100%', tags: !listOnly, allowClear: true, minimumInputLength: 2, placeholder: (BGCOURIERS.i18n && BGCOURIERS.i18n.street_ph) || '',
       ajax: {
         url: BGCOURIERS.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
         data: function (params) { return { action: 'bgcouriers_streets', courier: courier($wrap), country: country($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
         processResults: function (rows) { return { results: rows.map(function (s) { return { id: s.name, text: s.label || s.name }; }) }; }
       },
-      createTag: function (params) { var t = (params.term || '').trim(); return t ? { id: t, text: t } : null; }
+      createTag: function (params) {
+        if (listOnly) { return null; }   // this courier delivers only to streets it lists
+        var t = (params.term || '').trim();
+        return t ? { id: t, text: t } : null;
+      }
     });
     $street.on('select2:select', function () { saveSelection($wrap); });
   }

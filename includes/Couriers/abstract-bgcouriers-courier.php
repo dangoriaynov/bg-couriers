@@ -39,6 +39,17 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      */
     public function intl_countries(): array { return []; }
 
+    /**
+     * Must a street come from THIS courier's own list, or may the customer type one?
+     *
+     * Typing one is right for most: Speedy and Econt take an address as text and deliver to it. Express
+     * One does not - it refuses a street it was not given an id for, and the only way to have that id is
+     * to have picked the street off its list. Where that is true the checkout must stop offering the
+     * free-typed option, because the refusal otherwise arrives at the packing table, hours after the
+     * customer has gone.
+     */
+    public function street_list_only(): bool { return false; }
+
     /** Seam: overridden in tests; real impl calls wp_remote_post. */
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [

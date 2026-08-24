@@ -568,6 +568,20 @@ class BGCouriers_Checkout {
     }
 
     /**
+     * The couriers whose street box may only offer what they list.
+     *
+     * @return string[] Courier ids.
+     */
+    private static function street_list_only_couriers(): array {
+        $out = [];
+        foreach (array_keys(BGCouriers_Couriers::all()) as $id) {
+            $co = BGCouriers_Couriers::get($id);
+            if ($co && method_exists($co, 'street_list_only') && $co->street_list_only()) { $out[] = $id; }
+        }
+        return $out;
+    }
+
+    /**
      * Short-circuit WooCommerce's "enable the cart shipping calculator" option to 'no' while the setting
      * asks for it. Returning the incoming $pre unchanged means "do not short-circuit", so unticking the
      * setting hands the option straight back to WooCommerce.
@@ -895,6 +909,9 @@ class BGCouriers_Checkout {
             // told apart, and the string is what tells them apart.
             'allmapNearest' => get_option('bgcouriers_allmap_nearest', 'yes') === 'yes' ? 'yes' : 'no',
             'cityIndex' => $city_index,
+            // Couriers whose street box must not accept a typed street (see street_list_only()). A list
+            // rather than a flag per courier, so the browser can ask about whichever one is chosen.
+            'streetListOnly' => self::street_list_only_couriers(),
             'addressMap' => get_option('bgcouriers_address_map', 'no') === 'yes',
             // The Google Maps key is deliberately NOT sent to the browser: nothing here loads a Google
             // map, and the key is only ever used server-side, for the reverse geocode in
