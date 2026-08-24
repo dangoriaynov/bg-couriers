@@ -51,10 +51,10 @@ Working on the code: [`CONTRIBUTING.md`](CONTRIBUTING.md) - architecture, tests,
 |---|---|---|
 | **Speedy** | ✅ Live on `main` | checkout (office/address/APS), live quotes, labels, tracking, settings |
 | **Econt** | ✅ Live on `main` | + **наложен платеж (COD)** with itemised packing list (опис) & ППП money-transfer agreement - live-verified; E2E 7/7 with Speedy |
+| **Express One** | 🧪 On `main`, test account | checkout (office/address/EXOBOX locker), live quotes per destination type, labels, tracking, cancel, courier request; measured end to end on Express One's **test** environment - production credentials not yet issued |
 | **Pigeon Express** | ✅ Live on `main` | checkout (office/address), live quotes, labels; tracking live-verified against real shipments |
 | **BOX NOW** | ✅ Live on `main` | locker-only, flat-rate, OAuth2, **map-widget** locker picker; full create → label → track → cancel cycle verified. Needs a prepaid gateway to be offered at checkout: it cannot do наложен платеж |
 | **Sameday** | ✅ Live on `main` | checkout (address/APS), live quotes, labels, tracking; create → PDF → track → cancel verified against a live account (easyBox-only on it) |
-| **Express One** | 📋 Planned | needs a **BG API key** + one live confirm (how a pickup-point selection encodes into `/createshipment`) |
 | **Европът (Evropat-2000)** | 📋 Planned | API key is **self-service** from online.evropat.com; owner wrote to them 2026-08-17. No public API docs - they ship with the key. Their **online-module manual is read** and the domain is mapped (`docs/courier-api-notes.md`): **no lockers** (ОФ-ОФ/ОФ-ВР/ВР-ОФ/ВР-ВР only), НП + ППП both present, tariff weight is volumetric `w*l*h/6000` |
 | **Български пощи** | ❌ Not planned | no public API - integration only under contract, and *no* Bulgarian integrator carries them (Izprati, CloudCart, SELITON, PRIM.IO all omit them). Dropped 2026-08-17 |
 
