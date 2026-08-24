@@ -55,6 +55,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             'pigeon' => __('Pigeon Express', 'bg-couriers'),
             'boxnow' => __('BOX NOW', 'bg-couriers'),
             'sameday' => __('Sameday', 'bg-couriers'),
+            'expressone' => __('Express One', 'bg-couriers'),
             'about'  => __('About', 'bg-couriers'),
         ];
     }
@@ -142,6 +143,13 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             }
             return $f;
         }
+        if ($section === 'expressone') {
+            $f = $this->expressone_courier_fields();
+            foreach (self::$method_labels as $m => $label) {
+                $f = array_merge($f, $this->method_fields('expressone', $m, $label));
+            }
+            return $f;
+        }
         return $this->general_fields();
     }
 
@@ -168,6 +176,8 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             $this->output_courier('boxnow');
         } elseif ($current_section === 'sameday') {
             $this->output_courier('sameday');
+        } elseif ($current_section === 'expressone') {
+            $this->output_courier('expressone');
         } else {
             WC_Admin_Settings::output_fields($this->general_fields());
         }
@@ -284,7 +294,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     private static function courier_color(string $id): string {
-        $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034'];
+        $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034', 'expressone' => '#7AB800'];
         return $map[$id] ?? '#6b7280';
     }
 
@@ -856,6 +866,73 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Enable if your Sameday contract pays COD out via ППП (пощенски паричен превод). Off = COD needs your own cash register.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'sectionend', 'id' => 'bgcouriers_sameday_cod'],
         ];
+    }
+
+    /**
+     * Express One - office/address/EXOBOX locker + live quote, and a courier it can call.
+     *
+     * The one field that is its own: where the parcel is collected FROM. Express One calls those the
+     * account's "objects" and the test account holds eighteen of them; the id goes on every waybill as
+     * SEND_OFFICE_ID, so a mistyped one is a courier sent to the wrong warehouse. It is a list read from
+     * the account, never a number to type - and it stays empty and disabled until the credentials work,
+     * because there is nothing to read it from before that.
+     */
+    private function expressone_courier_fields(): array {
+        $cur = get_woocommerce_currency();
+        return [
+            ['type' => 'title', 'id' => 'bgcouriers_expressone', 'title' => ''],
+            ['type' => 'bgcouriers_ppp_notice', 'id' => 'bgcouriers_ppp_notice_expressone', 'courier' => 'expressone'],
+            ['type' => 'bgcouriers_cred_hint', 'id' => 'bgcouriers_expressone_credhint', 'courier' => 'expressone'],
+            ['type' => 'checkbox', 'id' => 'bgcouriers_expressone_enabled', 'title' => __('Enable Express One', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgcouriers_expressone_username', 'title' => __('API username', 'bg-couriers'),
+                'desc' => __('The username Express One issued for the API. It is not the one you sign in to my.expressone.bg with.', 'bg-couriers'),
+                'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
+            ['type' => 'password', 'id' => 'bgcouriers_expressone_password', 'title' => __('API password', 'bg-couriers'),
+                'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
+            ['type' => 'bgcouriers_actions', 'id' => 'bgcouriers_expressone_actions'],
+            ['type' => 'sectionend', 'id' => 'bgcouriers_expressone'],
+
+            ['type' => 'title', 'id' => 'bgcouriers_expressone_delivery', 'title' => __('Delivery & label', 'bg-couriers')],
+            ['type' => 'select', 'id' => 'bgcouriers_expressone_sender_object', 'title' => __('Send parcels from', 'bg-couriers'),
+                'desc' => __('Which of your Express One addresses the courier collects from. The list comes from your account - validate the credentials above and save, and it fills in.', 'bg-couriers'),
+                'options' => self::expressone_sender_options(), 'default' => ''],
+            ['type' => 'select', 'id' => 'bgcouriers_expressone_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
+                'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')], 'default' => 'A6'],
+            ['type' => 'sectionend', 'id' => 'bgcouriers_expressone_delivery'],
+
+            ['type' => 'title', 'id' => 'bgcouriers_expressone_pricing', 'title' => __('Pricing', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgcouriers_expressone_ship_in_total', 'title' => __('Delivery in the order total', 'bg-couriers'),
+                'desc' => __('On: the customer pays delivery together with the order. Off: delivery is not charged at checkout - the estimated price is shown for information and the customer pays the courier on delivery; cash on delivery then collects only the goods total.', 'bg-couriers'),
+                'default' => 'yes'],
+            ['type' => 'text', 'id' => 'bgcouriers_expressone_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
+                'desc' => __('Ship Express One free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'sectionend', 'id' => 'bgcouriers_expressone_pricing'],
+
+            ['type' => 'title', 'id' => 'bgcouriers_expressone_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgcouriers_expressone_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
+                'desc' => __('Enable if your Express One contract pays COD out via ППП (пощенски паричен превод). Off = COD needs your own cash register.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'sectionend', 'id' => 'bgcouriers_expressone_cod'],
+        ];
+    }
+
+    /**
+     * The account's own addresses, as a picker. Empty until the credentials work - and it says so rather
+     * than showing a blank list, because a merchant looking at an empty dropdown cannot tell "not fetched
+     * yet" from "you have none".
+     *
+     * @return array<string,string>
+     */
+    private static function expressone_sender_options(): array {
+        $out = ['' => __('- not chosen -', 'bg-couriers')];
+        if (!class_exists('BGCouriers_Couriers')) { return $out; }
+        $co = BGCouriers_Couriers::get('expressone');
+        if (!$co || !method_exists($co, 'sender_objects')) { return $out; }
+        try {
+            foreach ($co->sender_objects() as $id => $line) { $out[(string) $id] = $line; }
+        } catch (\Exception $e) {
+            $out[''] = __('- enter your credentials and save, then this list fills in -', 'bg-couriers');
+        }
+        return $out;
     }
 
     /** BOX NOW - locker-only, flat-rate, OAuth2. Only the fields BoxNow actually uses (no dangling params). */
