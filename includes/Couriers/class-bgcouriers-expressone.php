@@ -414,9 +414,31 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         // shipment (0.3.6 shipped exactly that mistake for every other courier).
         $cod = (float) ($s['cod_amount'] ?? 0);
         if ($cod > 0) { $body['COD'] = round($cod, 2); }
-        $ins = (float) ($s['insurance'] ?? 0);
-        if ($ins > 0) { $body['INSURANCE'] = round($ins, 2); }
+        $ins = self::insured_value($s);
+        if ($ins > 0) { $body['INSURANCE'] = $ins; }
         return $body;
+    }
+
+    /**
+     * What the shipment is declared to be worth.
+     *
+     * Express One's own rule, from their integration developer (2026-08-25): **every cash-on-delivery
+     * shipment carries a declared value.** Their API does not enforce it - it accepts a collection with
+     * no insurance perfectly happily - so this is the plugin's job, and getting it wrong is not a
+     * rejection, it is a parcel travelling outside the terms the courier expects.
+     *
+     * The money being collected at the door is what the parcel is worth, so that is what is declared,
+     * unless the merchant has put a higher figure on the order themselves - theirs wins, since they are
+     * the ones who know what is in the box.
+     *
+     * It is charged for. That is why it also has to reach the QUOTE: a price that leaves the insurance
+     * out is a price lower than the invoice, and the shop pays the difference on every order. The same
+     * fault as cash on delivery itself in 0.3.6.
+     */
+    private static function insured_value(array $s): float {
+        $ins = (float) ($s['insurance'] ?? 0);
+        $cod = (float) ($s['cod_amount'] ?? 0);
+        return round(max($ins, $cod > 0 ? $cod : 0.0), 2);
     }
 
     /**
@@ -534,8 +556,18 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         }
         $cod = (float) ($s['cod_amount'] ?? 0);
         if ($cod > 0) { $body['COD'] = round($cod, 2); }
-        $ins = (float) ($s['insurance'] ?? 0);
-        if ($ins > 0) { $body['INSURANCE'] = round($ins, 2); }
+        $ins = self::insured_value($s);
+        if ($ins > 0) { $body['INSURANCE'] = $ins; }
+        // Services this courier's own integration developer asked us NOT to offer (2026-08-25), listed
+        // because the API accepts every one of them and the next person to read its field list would
+        // otherwise have no way to know:
+        //   FIX_HOUR, SATURDAY_DELIVERY - not provided at all, whatever the API does with them.
+        //   RETURN_RECEIPT             - a paid service for institutional clients. On a shop it would
+        //                                mostly be ticked by mistake, which puts work on the courier
+        //                                and a charge on the merchant's invoice, and then a claim.
+        //   FRAGILE                    - only ever alongside a declared value. Their rule, not enforced
+        //                                by the API, so it would have to be enforced here.
+        //
         // One promise made at the checkout, kept on the waybill: the shop-wide "open before payment".
         // Never for a locker - there is nobody there to supervise it.
         if ($method !== 'automat' && in_array(get_option('bgcouriers_open_before_pay', 'no'), ['open', 'test'], true)) {
@@ -678,10 +710,10 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
      * are only counted and weighed here, and the collection is from the account's own sender address.
      *
      * It answers `ERROR: 0` and nothing else - no request number, whatever shape the call takes (four
-     * were tried on the test account 2026-08-25). The documented `REQUEST` field is used when it is
-     * there, which it may well be on a production account; when it is not, the request was still
-     * ACCEPTED, and an empty reference is the honest way to say "the courier is coming, and it gave us
-     * nothing to call this by". A refusal still throws, so the two can never be confused.
+     * were tried on the test account 2026-08-25). Their own integration developer confirmed why: there
+     * IS no individual order number here, the shipment numbers are the visit. So an empty reference is
+     * not a gap to work around, it is the answer; the documented `REQUEST` field is still used if a
+     * production account ever fills it in. A refusal still throws, so the two can never be confused.
      */
     public function request_pickup(array $waybills, array $opts): string {
         $from = trim((string) ($opts['from'] ?? ''));

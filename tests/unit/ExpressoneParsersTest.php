@@ -276,6 +276,46 @@ final class ExpressoneParsersTest extends TestCase {
         $this->assertSame(0, $sender['PDF_FORMAT'], 'the account decides the layout, not the plugin');
     }
 
+    /**
+     * Every cash-on-delivery shipment carries a declared value - Express One's own rule, given by their
+     * integration developer, and NOT enforced by their API: it accepts a collection with no insurance
+     * quite happily, so a parcel would simply travel outside the terms the courier expects.
+     *
+     * It is a paid service, which is why the same rule has to reach the QUOTE. A price that leaves the
+     * insurance out is lower than the invoice that follows it, and the shop pays the difference on
+     * every order - the same fault cash on delivery itself had in 0.3.6.
+     */
+    public function test_a_collection_at_the_door_is_always_declared_at_its_value(): void {
+        $ship = BGCouriers_Expressone::build_shipment_body($this->shipment(['cod_amount' => 48.0]));
+        $this->assertSame(48.0, $ship['COD']);
+        $this->assertSame(48.0, $ship['INSURANCE'], 'the money at the door IS what the parcel is worth');
+
+        $quote = BGCouriers_Expressone::build_calculate_body(
+            ['method' => 'office', 'office_id' => 220593, 'city_id' => 68134, 'weight_kg' => 1.0, 'cod_amount' => 48.0]);
+        $this->assertSame(48.0, $quote['INSURANCE'], 'or the checkout quotes less than the courier bills');
+
+        // A merchant who declared more than the collection knows what is in the box; theirs stands.
+        $more = BGCouriers_Expressone::build_shipment_body($this->shipment(['cod_amount' => 48.0, 'insurance' => 300.0]));
+        $this->assertSame(300.0, $more['INSURANCE']);
+
+        // And a prepaid parcel is still only insured if someone asked for it - it costs money.
+        $prepaid = BGCouriers_Expressone::build_shipment_body($this->shipment());
+        $this->assertArrayNotHasKey('INSURANCE', $prepaid);
+    }
+
+    /**
+     * Three services their developer asked us not to offer. The API accepts all of them, so nothing but
+     * this test says they must not go.
+     */
+    public function test_the_services_the_courier_asked_us_not_to_send_are_not_sent(): void {
+        foreach ([$this->shipment(['cod_amount' => 20.0]), $this->shipment(['insurance' => 50.0])] as $s) {
+            $body = BGCouriers_Expressone::build_shipment_body($s);
+            foreach (['FIX_HOUR', 'SATURDAY_DELIVERY', 'RETURN_RECEIPT', 'FRAGILE'] as $service) {
+                $this->assertArrayNotHasKey($service, $body, $service . ' is not offered by this courier');
+            }
+        }
+    }
+
     /** Several parcels and a declared value, both measured as applied. */
     public function test_parcels_and_a_declared_value_travel_with_the_shipment(): void {
         $b = BGCouriers_Expressone::build_shipment_body($this->shipment(['parcels' => 3, 'insurance' => 60.0]));
