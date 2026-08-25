@@ -195,16 +195,27 @@ class BGCouriers_Pickup {
                     $order = wc_get_order($r['order_id']);
                     if (!$order) { continue; }
                     $order->update_meta_data(self::META, $id);
-                    $order->add_order_note(sprintf(
+                    // A courier that accepts the request without giving it a number - Express One does -
+                    // still had the request accepted. Printing "(request )" would read as a fault, and
+                    // leaving the note out would lose the fact that a courier is coming at all.
+                    $order->add_order_note($id !== '' ? sprintf(
                         /* translators: 1: courier name, 2: the courier's request id, 3: day, 4: from time, 5: to time */
                         __('%1$s courier requested (request %2$s) for %3$s, %4$s-%5$s.', 'bg-couriers'),
-                        $c->label(), $id, $opts['date'], $opts['from'], $opts['to']));
+                        $c->label(), $id, $opts['date'], $opts['from'], $opts['to']
+                    ) : sprintf(
+                        /* translators: 1: courier name, 2: day, 3: from time, 4: to time */
+                        __('%1$s courier requested for %2$s, %3$s-%4$s. The courier gave no request number.', 'bg-couriers'),
+                        $c->label(), $opts['date'], $opts['from'], $opts['to']));
                     $order->save();
                 }
-                echo '<div class="notice notice-success"><p>' . esc_html(sprintf(
+                echo '<div class="notice notice-success"><p>' . esc_html($id !== '' ? sprintf(
                     /* translators: 1: courier name, 2: how many parcels, 3: request id */
                     __('%1$s will collect %2$d parcel(s). Request %3$s.', 'bg-couriers'),
-                    $c->label(), count($waybills), $id)) . '</p></div>';
+                    $c->label(), count($waybills), $id
+                ) : sprintf(
+                    /* translators: 1: courier name, 2: how many parcels */
+                    __('%1$s will collect %2$d parcel(s). It gave no request number.', 'bg-couriers'),
+                    $c->label(), count($waybills))) . '</p></div>';
             } catch (\Exception $e) {
                 echo '<div class="notice notice-error"><p>' . esc_html(sprintf(
                     /* translators: 1: courier name, 2: the courier's own error */

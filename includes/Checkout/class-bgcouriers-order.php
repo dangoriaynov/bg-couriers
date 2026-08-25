@@ -9,7 +9,14 @@ class BGCouriers_Order {
      * their names for these are unknown, and a field that accepts "3 parcels" and then ships one is a
      * lie the merchant only discovers at the depot.
      */
-    const MULTI_PARCEL_COURIERS = ['speedy', 'sameday'];
+    /**
+     * The couriers whose API takes a parcel count and a declared value, and applies them.
+     *
+     * Membership is earned by measurement, never by the field existing in a document: Express One was
+     * added after a shipment booked with PACK_COUNT 3 and INSURANCE 60 came back listing three parcels,
+     * a declared 60.00, and a price that had risen for it (2026-08-25, its test account).
+     */
+    const MULTI_PARCEL_COURIERS = ['speedy', 'sameday', 'expressone'];
 
     public static function shipment_from_order(\WC_Order $order): array {
         return [

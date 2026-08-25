@@ -485,7 +485,9 @@ class BGCouriers_Settings {
         // billed to the merchant by contract. So for BOX NOW delivery is always charged with the order.
         // Econt does support it - paymentReceiverMethod + paymentReceiverAmountIsPercent, verified live
         // against ee.econt.com: the whole fee moves from senderDueAmount to receiverDueAmount.
-        if (!in_array($courier, ['speedy', 'pigeon', 'sameday', 'econt'], true)) { return true; }
+        // Express One does too: PAYER 1 was booked on its test account 2026-08-25 and the shipment came
+        // back reading "Получател", with and without a cash-on-delivery amount on it.
+        if (!in_array($courier, ['speedy', 'pigeon', 'sameday', 'econt', 'expressone'], true)) { return true; }
         $v = (string) get_option('bgcouriers_' . $courier . '_ship_in_total', '');
         if ($v === '') { // pre-toggle installs: honor the old "Who pays delivery" select
             return get_option('bgcouriers_' . $courier . '_service_payer', 'sender') !== 'recipient';
@@ -990,6 +992,19 @@ jQuery(function($){
                     'receive'   => __('username + password (+ pickup point and per-type service IDs)', 'bg-couriers'),
                     'url_label' => __('Sameday Bulgaria:', 'bg-couriers'),
                     'url'       => 'https://sameday.bg',
+                ];
+            case 'expressone':
+                return [
+                    'intro' => __('Express One issues API access to contract clients, and starts you on a test environment before the live one.', 'bg-couriers'),
+                    'steps' => [
+                        __('Have (or open) an Express One business contract.', 'bg-couriers'),
+                        __('Ask your account manager for REST API access. They issue a username and password for the API - these are NOT your my.expressone.bg login.', 'bg-couriers'),
+                        __('Ask for the id of the address the courier collects from; it appears in "Send parcels from" below once the credentials validate.', 'bg-couriers'),
+                        __('Enter the username and password below, click Validate, then Sync. Test credentials are usually issued first, and the live ones once the integration works.', 'bg-couriers'),
+                    ],
+                    'receive'   => __('API username + password (+ the address parcels are collected from)', 'bg-couriers'),
+                    'url_label' => __('Express One API documentation:', 'bg-couriers'),
+                    'url'       => 'https://system.expressone.bg/api/web/site/documentation',
                 ];
         }
         return [];

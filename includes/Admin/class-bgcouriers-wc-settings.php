@@ -896,8 +896,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'select', 'id' => 'bgcouriers_expressone_sender_object', 'title' => __('Send parcels from', 'bg-couriers'),
                 'desc' => __('Which of your Express One addresses the courier collects from. The list comes from your account - validate the credentials above and save, and it fills in.', 'bg-couriers'),
                 'options' => self::expressone_sender_options(), 'default' => ''],
-            ['type' => 'select', 'id' => 'bgcouriers_expressone_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
-                'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')], 'default' => 'A6'],
             ['type' => 'sectionend', 'id' => 'bgcouriers_expressone_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_expressone_pricing', 'title' => __('Pricing', 'bg-couriers')],
