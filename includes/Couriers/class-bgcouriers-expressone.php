@@ -513,6 +513,8 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
             // from the "delivery in the order total" setting, and the COD amount above follows the same
             // answer - the two must agree or the courier collects the wrong money.
             'PAYER'               => ($s['payer'] ?? 'sender') === 'recipient' ? 1 : 0,
+            // 0 = whatever this Express One account is set to print (see label_formats()).
+            'PDF_FORMAT'          => 0,
         ];
         $pk = trim((string) ($s['post_code'] ?? ''));
         if ($pk !== '') { $body['RECEIVER_PK'] = $pk; }
@@ -557,14 +559,25 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         return new BGCouriers_Label($waybill, $pdf);
     }
 
-    /** A6 is the label layout their account prints, A4 the plain PDF one. ZPL (3, 4) is a printer's business. */
-    public function label_formats(): array { return ['A6', 'A4']; }
+    /**
+     * No choice of paper, deliberately.
+     *
+     * Their PDF_FORMAT is documented 0 = the account's own label settings, 1 = PDF, 2 = label, 3 and 4 =
+     * ZPL. Measured on one waybill 2026-08-25: **0, 1 and 2 returned byte-identical PDFs** - the same
+     * 162045 bytes, the same 416.69 x 282.61 pt page, which is a ~147 x 100 mm label - and only the ZPL
+     * pair differed. So there is no A4 here to offer, and a paper-size select on the tab would be a
+     * control that changes nothing.
+     *
+     * The label layout belongs to the merchant's own Express One account, which is why every request
+     * asks for format 0 and lets that account answer. Set it where Express One set it.
+     */
+    public function label_formats(): array { return []; }
 
     public function get_label_pdf(string $waybill, string $format = ''): string {
         $data = self::unwrap($this->call('/1/print-bol', [
             'bol_id'       => $waybill,
             'by_reference' => 0,
-            'pdfformat'    => strtoupper($format) === 'A4' ? 1 : 2,
+            'pdfformat'    => 0,   // the account's own layout; this courier offers no size to choose
         ]));
         $pdf = (string) base64_decode((string) ($data['LABEL'] ?? ''), true);
         if (strpos($pdf, '%PDF') !== 0) { throw new BGCouriers_Api_Exception('Express One: the label is not a PDF'); }
@@ -660,20 +673,30 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     /**
      * Ask a courier to come for the parcels.
      *
-     * Express One takes a count and a total weight rather than the waybills themselves, so the request
-     * is about the pile on the merchant's desk and not about particular shipments - which is why the
-     * waybills are only counted and weighed here.
+     * Express One takes a count, a total weight and a time it can come, and NOT the waybills: the request
+     * is about the pile on the merchant's desk rather than about particular shipments. So the waybills
+     * are only counted and weighed here, and the collection is from the account's own sender address.
+     *
+     * It answers `ERROR: 0` and nothing else - no request number, whatever shape the call takes (four
+     * were tried on the test account 2026-08-25). The documented `REQUEST` field is used when it is
+     * there, which it may well be on a production account; when it is not, the request was still
+     * ACCEPTED, and an empty reference is the honest way to say "the courier is coming, and it gave us
+     * nothing to call this by". A refusal still throws, so the two can never be confused.
      */
     public function request_pickup(array $waybills, array $opts): string {
+        $from = trim((string) ($opts['from'] ?? ''));
+        $to   = trim((string) ($opts['to'] ?? ''));
         $d = self::unwrap($this->call('/1/request-courier', [
-            'count'          => max(1, count($waybills)),
+            'count'          => max(1, (int) ($opts['packs'] ?? count($waybills))),
             'weight'         => max(0.1, (float) ($opts['weight_kg'] ?? count($waybills))),
-            'readiness'      => (string) ($opts['ready_time'] ?? ''),
+            'readiness'      => $from !== '' && $to !== '' ? $from . '-' . $to : $from,
             'take_office_id' => (int) get_option('bgcouriers_expressone_sender_object', 0),
         ]));
-        $id = trim((string) ($d['REQUEST'] ?? ''));
-        if ($id === '') { throw new BGCouriers_Api_Exception('Express One: no pickup request id in the answer'); }
-        return $id;
+        if ((int) ($d['ERROR'] ?? 0) !== 0) {
+            throw new BGCouriers_Api_Exception(esc_html('Express One refused the pickup: '
+                . (string) ($d['ERROR_MESSAGE'] ?: 'no reason given')));
+        }
+        return trim((string) ($d['REQUEST'] ?? ''));
     }
 
     /** The sender address is the one setting nothing else can stand in for. */

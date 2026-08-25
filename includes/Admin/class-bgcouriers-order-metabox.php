@@ -282,6 +282,15 @@ class BGCouriers_Order_Metabox {
         // refused by the server too, whatever the browser does.
         $locked = BGCouriers_Labels::is_locked($order);
         $ins = BGCouriers_Order::insurance($order);
+        // The hover says WHICH couriers honour the two boxes below, and says it from the same list the
+        // row hides itself by - a sentence naming two couriers went on saying "Speedy and Sameday"
+        // after a third had joined them.
+        $all  = BGCouriers_Couriers::all();
+        $able = array_map(static function ($id) use ($all) { return (string) ($all[$id] ?? $id); },
+            BGCouriers_Order::MULTI_PARCEL_COURIERS);
+        /* translators: %s: a list of courier names. */
+        $shipfacts_tip = sprintf(__('Supported for %s. The other couriers ignore it.', 'bg-couriers'),
+            implode(', ', $able));
         $form = '<div class="bgc-ed"><div class="bgc-ed-form' . ($locked ? ' bgc-ed-locked' : '') . '" style="display:none;margin-top:10px;max-width:520px;">'
             . '<p><label>' . esc_html__('Courier', 'bg-couriers') . '</label><br><select class="bgc-ed-courier" style="min-width:240px;">' . $opts . '</select></p>'
             . '<p><label>' . esc_html__('Delivery option', 'bg-couriers') . '</label><br><select class="bgc-ed-method" data-current="' . esc_attr($cur_method) . '" style="min-width:240px;"></select></p>'
@@ -316,10 +325,10 @@ class BGCouriers_Order_Metabox {
             . '<div class="bgc-ed-row bgc-ed-shipfacts" data-couriers="' . esc_attr(implode(',', BGCouriers_Order::MULTI_PARCEL_COURIERS)) . '">'
             // The row already hides for couriers that ignore these, but the hover says WHICH they are -
             // a merchant who never sees the row on Econt should not have to guess whether that is a fault.
-            . '<div class="bgc-ed-fld" title="' . esc_attr__('Supported for Speedy and Sameday. The other couriers ignore it.', 'bg-couriers') . '">'
+            . '<div class="bgc-ed-fld" title="' . esc_attr($shipfacts_tip) . '">'
             . '<label>' . esc_html__('Parcels', 'bg-couriers') . '</label>'
             . '<input type="number" min="1" max="99" step="1" class="bgc-ed-parcels" value="' . esc_attr((string) BGCouriers_Order::parcels($order)) . '"></div>'
-            . '<div class="bgc-ed-fld" title="' . esc_attr__('Supported for Speedy and Sameday. The other couriers ignore it.', 'bg-couriers') . '">'
+            . '<div class="bgc-ed-fld" title="' . esc_attr($shipfacts_tip) . '">'
             . '<label>' . esc_html__('Insure for', 'bg-couriers') . '</label>'
             . '<input type="number" min="0" step="0.01" class="bgc-ed-insurance" placeholder="0" value="' . esc_attr($ins > 0 ? (string) $ins : '') . '"></div>'
             . '</div>'

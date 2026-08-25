@@ -254,6 +254,38 @@ final class ExpressoneParsersTest extends TestCase {
      * ЛАЗАРОВ", select2's tag took the typed "Цветан Лазаров" instead, the order was placed happily, and
      * the label refused hours later with nobody left to ask.
      */
+    /**
+     * No paper size is offered, because the courier has none to give. Measured on one waybill: PDF_FORMAT
+     * 0, 1 and 2 came back byte-identical - the same 162045 bytes and the same 416.69 x 282.61 pt page -
+     * and only the two ZPL formats differed. A select on the tab would have been a control that changes
+     * nothing, so the label layout stays where the merchant set it, in their Express One account.
+     */
+    public function test_no_paper_size_is_offered_because_the_courier_has_none(): void {
+        $this->assertSame([], (new BGCouriers_Expressone([]))->label_formats());
+        $this->assertStringNotContainsString('bgcouriers_expressone_label_paper_size',
+            (string) file_get_contents(dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-wc-settings.php'),
+            'a setting the courier cannot honour must not be on its tab');
+    }
+
+    /** Who pays the delivery reaches the waybill as the field Express One reads it from. */
+    public function test_who_pays_is_asked_for_in_the_courier_s_own_terms(): void {
+        $sender = BGCouriers_Expressone::build_shipment_body($this->shipment(['payer' => 'sender']));
+        $recip  = BGCouriers_Expressone::build_shipment_body($this->shipment(['payer' => 'recipient']));
+        $this->assertSame(0, $sender['PAYER']);
+        $this->assertSame(1, $recip['PAYER'], 'booked on the test account and read back as "Получател"');
+        $this->assertSame(0, $sender['PDF_FORMAT'], 'the account decides the layout, not the plugin');
+    }
+
+    /** Several parcels and a declared value, both measured as applied. */
+    public function test_parcels_and_a_declared_value_travel_with_the_shipment(): void {
+        $b = BGCouriers_Expressone::build_shipment_body($this->shipment(['parcels' => 3, 'insurance' => 60.0]));
+        $this->assertSame(3, $b['PACK_COUNT']);
+        $this->assertSame(60.0, $b['INSURANCE']);
+        $plain = BGCouriers_Expressone::build_shipment_body($this->shipment());
+        $this->assertSame(1, $plain['PACK_COUNT']);
+        $this->assertArrayNotHasKey('INSURANCE', $plain, 'insuring costs money - it is opt-in per order');
+    }
+
     public function test_this_courier_delivers_only_to_streets_it_lists(): void {
         $this->assertTrue((new BGCouriers_Expressone([]))->street_list_only());
         $other = new class ([]) extends BGCouriers_Abstract_Courier {
@@ -271,6 +303,35 @@ final class ExpressoneParsersTest extends TestCase {
             public function tracking_url(string $w): string { return ''; }
         };
         $this->assertFalse($other->street_list_only(), 'a courier that takes an address as text keeps free typing');
+    }
+
+    /**
+     * A pickup this courier accepted but gave no number for is still a courier coming.
+     *
+     * Measured four ways on the test account: /1/request-courier answers {"ERROR":0,"ERROR_MESSAGE":false}
+     * and nothing else - no REQUEST, whatever is sent. Throwing there would tell a merchant the courier
+     * refused a request it had accepted; returning a number that does not exist would be worse.
+     */
+    public function test_a_pickup_with_no_reference_is_still_a_pickup(): void {
+        $co = new class ([]) extends BGCouriers_Expressone {
+            public array $sent = [];
+            public array $answer = ['status' => true, 'data' => ['ERROR' => 0, 'ERROR_MESSAGE' => false]];
+            protected function call(string $path, array $body = []): array { $this->sent = $body; return $this->answer; }
+        };
+        Functions\when('get_option')->alias(static fn($k, $d = false) => $k === 'bgcouriers_expressone_sender_object' ? 387431 : $d);
+
+        $this->assertSame('', $co->request_pickup(['1', '2'],
+            ['from' => '15:00', 'to' => '17:00', 'packs' => 2, 'weight_kg' => 3.5]));
+        $this->assertSame('15:00-17:00', $co->sent['readiness'], 'the screen gives from/to, not a single time');
+        $this->assertSame(2, $co->sent['count']);
+        $this->assertSame(387431, $co->sent['take_office_id'], 'collected from the account address, not from nowhere');
+
+        $co->answer = ['status' => true, 'data' => ['ERROR' => 0, 'REQUEST' => '778899']];
+        $this->assertSame('778899', $co->request_pickup(['1'], []), 'and a number is used when there is one');
+
+        $co->answer = ['status' => true, 'data' => ['ERROR' => 3, 'ERROR_MESSAGE' => 'no couriers today']];
+        $this->expectException(BGCouriers_Api_Exception::class);
+        $co->request_pickup(['1'], []);
     }
 
     public function test_the_customer_is_given_a_link_that_carries_the_number(): void {
