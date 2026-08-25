@@ -42,6 +42,12 @@ add_action('before_woocommerce_init', function () {
 
 add_action('plugins_loaded', function () {
     if (!class_exists('WooCommerce')) { return; }
+    // Whether this site had the plugin before THIS request - asked here because the next few lines are
+    // what stops it being answerable afterwards, and a migration that has to tell a fresh install from
+    // an existing one has no other way to know (see BGCouriers_Plugin::pin_who_pays_delivery()).
+    if (!defined('BGCOURIERS_NEW_INSTALL')) {
+        define('BGCOURIERS_NEW_INSTALL', get_option('bgcouriers_db_version', '') === '');
+    }
     // Run schema upgrades on version change (dbDelta is idempotent - adds new columns like office lat/lng
     // to existing installs, since the activation hook doesn't fire on a plugin update).
     if (get_option('bgcouriers_db_version') !== BGCOURIERS_VERSION) {
