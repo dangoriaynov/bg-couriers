@@ -489,8 +489,14 @@ class BGCouriers_Settings {
         // back reading "Получател", with and without a cash-on-delivery amount on it.
         if (!in_array($courier, ['speedy', 'pigeon', 'sameday', 'econt', 'expressone'], true)) { return true; }
         $v = (string) get_option('bgcouriers_' . $courier . '_ship_in_total', '');
-        if ($v === '') { // pre-toggle installs: honor the old "Who pays delivery" select
-            return get_option('bgcouriers_' . $courier . '_service_payer', 'sender') !== 'recipient';
+        if ($v === '') {
+            // Unset means a shop that has never opened the setting, and it now means OFF: the customer
+            // pays the courier at the door and the shop's books carry the goods, not a delivery fee it
+            // collects and pays straight out again. A shop that was already running when this changed
+            // keeps what it had - BGCouriers_Plugin::pin_who_pays_delivery() writes its answer down
+            // before this line is ever reached, so this default only ever meets a new install.
+            // The pre-toggle "Who pays delivery" select is still honoured where one was saved.
+            return get_option('bgcouriers_' . $courier . '_service_payer', 'recipient') !== 'recipient';
         }
         return $v !== 'no';
     }

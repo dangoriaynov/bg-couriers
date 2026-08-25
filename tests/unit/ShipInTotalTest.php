@@ -33,10 +33,39 @@ final class ShipInTotalTest extends TestCase {
         return BGCouriers_Payer_Probe::payer_of($courier);
     }
 
-    public function test_defaults_to_included(): void {
+    /**
+     * A shop that has never opened the setting does NOT charge delivery with the order.
+     *
+     * It used to, and the owner changed it: a shop that collects a delivery fee and pays it straight
+     * out again carries the turnover and keeps none of it, and the customer paying the courier at the
+     * door is what the shop actually wants. An install that already existed keeps whatever it had -
+     * BGCouriers_Plugin::pin_who_pays_delivery() writes that down for it - so this default only ever
+     * meets a shop being set up now.
+     */
+    public function test_a_new_shop_does_not_charge_delivery_with_the_order(): void {
         $this->options([]);
+        $this->assertFalse(BGCouriers_Settings::ship_in_total('speedy'));
+        $this->assertSame('recipient', self::payer('speedy'));
+        foreach (['econt', 'pigeon', 'sameday', 'expressone'] as $c) {
+            $this->assertFalse(BGCouriers_Settings::ship_in_total($c), $c . ' must not charge it either');
+        }
+    }
+
+    /** Ticking it still does what it says. */
+    public function test_a_shop_that_asks_for_it_charges_delivery_with_the_order(): void {
+        $this->options(['bgcouriers_speedy_ship_in_total' => 'yes']);
         $this->assertTrue(BGCouriers_Settings::ship_in_total('speedy'));
         $this->assertSame('sender', self::payer('speedy'));
+    }
+
+    /** And the tabs offer it unticked, or the screen would disagree with the code behind it. */
+    public function test_every_tab_offers_it_off(): void {
+        $settings = (string) file_get_contents(dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-wc-settings.php');
+        preg_match_all("/'id' => 'bgcouriers_([a-z]+)_ship_in_total'.*?'default' => '(yes|no)'/s", $settings, $m);
+        $this->assertNotEmpty($m[1], 'the toggle must be on the tabs at all');
+        foreach ($m[1] as $i => $courier) {
+            $this->assertSame('no', $m[2][$i], $courier . ' offers the toggle ticked');
+        }
     }
 
     public function test_toggle_off_means_recipient_pays(): void {
@@ -54,6 +83,13 @@ final class ShipInTotalTest extends TestCase {
         $this->options(['bgcouriers_sameday_service_payer' => 'recipient']);
         $this->assertFalse(BGCouriers_Settings::ship_in_total('sameday'));
         $this->assertSame('recipient', self::payer('sameday'));
+    }
+
+    /** The other half of that back-compat: a shop that had chosen "the sender pays" still does. */
+    public function test_legacy_sender_select_honored_when_toggle_unset(): void {
+        $this->options(['bgcouriers_sameday_service_payer' => 'sender']);
+        $this->assertTrue(BGCouriers_Settings::ship_in_total('sameday'));
+        $this->assertSame('sender', self::payer('sameday'));
     }
 
     /**

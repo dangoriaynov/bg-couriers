@@ -11,6 +11,37 @@ class BGCouriers_Plugin {
      * existing setting over (once) so a courier that was left on test is not silently switched to the live
      * API. After the first save the _live option exists and this is a no-op.
      */
+    /**
+     * Keep an existing shop charging delivery the way it charges it today.
+     *
+     * "Delivery in the order total" used to default to ON, and now defaults to OFF - the shop that
+     * asked for this one wants the customer to pay the courier at the door, so its books carry the
+     * goods and not a delivery it collects and pays straight out again. That is the right default for
+     * a new shop and a silent change of the money for an old one: a shop that never opened the setting
+     * would stop charging delivery with the order the moment it updated, and would find out from its
+     * customers.
+     *
+     * So the change applies to NEW installs only. An install that already exists - which is exactly an
+     * install that has a bgcouriers_db_version recorded - gets its current answer written down as its
+     * own choice, once, and goes on doing what it was doing. Nothing here overwrites a setting a
+     * merchant has actually made: only an option that was never saved is filled in.
+     */
+    private static function pin_who_pays_delivery(): void {
+        if (get_option('bgcouriers_who_pays_pinned', '') === 'yes') { return; }
+        update_option('bgcouriers_who_pays_pinned', 'yes');
+        // A site being set up right now should have the new default, so there is nothing to pin. The
+        // flag is read rather than the db_version, because by the time this runs the version has just
+        // been written and a fresh install is indistinguishable from an old one.
+        if (defined('BGCOURIERS_NEW_INSTALL') && BGCOURIERS_NEW_INSTALL) { return; }
+        foreach (array_keys(BGCouriers_Couriers::all()) as $id) {
+            if (get_option('bgcouriers_' . $id . '_ship_in_total', '') !== '') { continue; }
+            // What this shop is charging at this moment, worked out the old way: the pre-toggle
+            // "who pays delivery" select when there is one, and otherwise the old default, ON.
+            $was = get_option('bgcouriers_' . $id . '_service_payer', 'sender') !== 'recipient' ? 'yes' : 'no';
+            update_option('bgcouriers_' . $id . '_ship_in_total', $was);
+        }
+    }
+
     private static function migrate_env_flags(): void {
         foreach (['pigeon', 'sameday', 'boxnow'] as $c) {
             if (get_option("bgcouriers_{$c}_live", null) === null && get_option("bgcouriers_{$c}_sandbox", null) !== null) {
@@ -59,6 +90,9 @@ class BGCouriers_Plugin {
             return new BGCouriers_Expressone(BGCouriers_Settings::courier_credentials('expressone') ?: []);
         });
         BGCouriers_Couriers::boot();
+        // AFTER the registry is populated: this walks every courier, and called any earlier it walks an
+        // empty list and writes down that it is done. Which is exactly what it did the first time.
+        self::pin_who_pays_delivery();
         add_filter('cron_schedules', function ($s) {
             $s['weekly']    = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
             $s['bgcouriers_30min'] = ['interval' => 30 * MINUTE_IN_SECONDS, 'display' => 'Every 30 minutes'];

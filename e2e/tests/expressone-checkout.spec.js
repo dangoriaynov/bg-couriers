@@ -25,13 +25,29 @@ const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMetho
 
 function amount(text) { const m = (text || '').match(/[\d]+[,.][\d]+/); return m ? parseFloat(m[0].replace(',', '.')) : 0; }
 
+/**
+ * The money, and the one rule this shop cares most about: the delivery must NOT be inside the order.
+ *
+ * "Delivery in the order total" is off for every courier here but Sameday, deliberately - a shop that
+ * collects a delivery fee and pays it straight out again carries the turnover and keeps none of it. So
+ * the courier's price is shown for information and the customer pays it at the door, and the order
+ * total is the goods. `total > sub` would NOT catch a regression here: this shop shows its subtotal net
+ * of VAT, so the tax alone already makes the total bigger. What proves it is that the total is less
+ * than the goods plus the delivery.
+ */
 async function totals(page, label) {
   const sub = amount(await page.locator('.cart-subtotal .woocommerce-Price-amount').first().innerText());
+  // THIS courier's own row, not the first price in the block: six couriers are offered here and the
+  // block lists them all, so `.first()` reads whichever happens to be at the top - which is how the
+  // same 2,10 was reported for an office, a locker and an address that cost three different amounts.
+  const ship = amount(await page.locator('label[for^="shipping_method_0_bgcouriers_expressone"]').first().innerText());
   const total = amount(await page.locator('.order-total .woocommerce-Price-amount').first().innerText());
-  console.log(`[expressone ${label}] subtotal ${sub}, total ${total}`);
-  expect(sub, 'the basket has to cost something for the shipping to be visible on top of it').toBeGreaterThan(0);
-  expect(total, 'delivery is charged with the order on dev, so the total must exceed the goods').toBeGreaterThan(sub);
-  return { sub, total };
+  console.log(`[expressone ${label}] goods ${sub}, delivery shown ${ship}, total ${total}`);
+  expect(sub, 'the basket has to cost something').toBeGreaterThan(0);
+  expect(ship, 'the courier\'s price has to be shown, even when the customer pays it at the door').toBeGreaterThan(0);
+  expect(total, 'the delivery is inside the order total - the shop would be collecting it and paying it straight out')
+    .toBeLessThan(sub + ship);
+  return { sub, ship, total };
 }
 
 async function start(page, method) {
