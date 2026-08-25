@@ -197,11 +197,20 @@
     // are not a legend, so this one is deliberately NOT from its logo: teal is as far from crimson as
     // this palette gets, and it is not a colour the map itself uses.
     sameday: '#00838F',
-    // Express One's mark is orange (#E47800) and graphite. The orange is Pigeon's pin to within ΔE 2.9
-    // - the same colour, for a customer's purposes - and the graphite is the grey this palette rules
-    // out. So its own hue is kept and taken DOWN until it separates: #904E00 is ΔE 25 from Pigeon,
-    // which is more than any two colours already on this map are apart (Econt and BOX NOW are 15.8).
-    expressone: '#904E00'
+    // Express One's mark is orange (#E47800) and graphite - and the orange IS Pigeon's pin: ΔE 2.9, the
+    // same colour to anyone reading a legend. The graphite is the grey this palette rules out.
+    //
+    // The first attempt kept the brand hue and only darkened it (#904E00, ΔE 25 from Pigeon). On paper
+    // that beat every pair already on this map; in front of the owner's eyes it was unusable, and he
+    // was right - at pin size hue is what the eye sorts by, and two pins of one hue are one colour with
+    // a lighting difference. Lightness is not separation.
+    //
+    // So this follows what Sameday's line above already decided: a courier whose brand colour is taken
+    // gets a colour that is NOT in its logo. The hue wheel had exactly two free arcs - green/yellow
+    // (which the rule below rules out, it is what OSM paints parks with) and the magenta between BOX
+    // NOW's violet and Speedy's crimson. Magenta it is: ΔE 24 from the nearest pin against 15.8 for the
+    // closest pair already here, and nothing on an OpenStreetMap tile is this colour.
+    expressone: '#E0189B'
   };
   var PIN_FALLBACK = ['#6A1B9A', '#00838F', '#4E342E', '#1B5E20', '#37474F'];
   var pinColour = {};
