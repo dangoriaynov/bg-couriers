@@ -9,7 +9,7 @@ Stable tag: 0.3.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Shipping for Bulgarian stores: Speedy, Econt, BOX NOW, Pigeon Express, Sameday - office/address/locker delivery, live rates, labels, tracking.
+Bulgaria's couriers in WooCommerce: Speedy, Econt, BOX NOW, Pigeon, Sameday, Express One - office, address and locker delivery, live rates, labels.
 
 == Description ==
 
@@ -28,6 +28,7 @@ BG Couriers puts Bulgaria's couriers inside WooCommerce: your customer chooses w
 * **Pigeon Express** - office / address / locker. Live rates, labels, tracking.
 * **Sameday** - office / address / easyBox. Live rates, labels, tracking.
 * **BOX NOW** - lockers (APM) only, picked on BOX NOW's own map. Flat rate.
+* **Express One** - office / address / EXOBOX locker. Live rates, labels, tracking. The address is chosen from Express One's own street list, which is what its waybills require.
 
 **Setting it up**
 
@@ -64,6 +65,7 @@ The plugin uses the online API of each courier **you enable**, to price a delive
 * **Econt** - ee.econt.com. Terms: https://www.econt.com/en/terms · Privacy: https://www.econt.com/en/privacy-policy
 * **Pigeon Express** - api.pigeonexpress.com (api-demo.pigeonexpress.com in test mode). Terms: https://pigeonexpress.com/terms · Privacy: https://pigeonexpress.com/privacy
 * **Sameday** - api.sameday.bg (sameday-api-bg.demo.zitec.com in test mode). Terms: https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/ · Privacy: https://sameday.bg/politika-za-poveritelnost/
+* **Express One** - system.expressone.bg. Terms: https://expressone.bg/bg/terms · Privacy: https://expressone.bg/bg/privacy-policy
 * **BOX NOW** - api-production.boxnow.bg (api-stage.boxnow.bg in test mode), plus its locker-picker widget map.boxnow.bg, loaded in an iframe when the customer opens that picker. Terms: https://boxnow.bg/terms-of-use-for-shipping-services · Privacy: https://boxnow.bg/personal-data-processing-notice
 
 **Maps and address lookup**
@@ -91,7 +93,7 @@ https://github.com/dangoriaynov/bg-couriers/issues
 == Frequently Asked Questions ==
 
 = Which countries are supported? =
-Bulgaria, by five Bulgarian networks: **Speedy**, **Econt**, **Pigeon Express** and **Sameday** deliver to an office, to a street address or to a locker, and **BOX NOW** delivers to its lockers (APM). Delivery outside Bulgaria is not offered.
+Bulgaria, by six Bulgarian networks: **Speedy**, **Econt**, **Pigeon Express**, **Sameday** and **Express One** deliver to an office, to a street address or to a locker, and **BOX NOW** delivers to its lockers (APM). Delivery outside Bulgaria is not offered.
 
 = How can I support the development? =
 The plugin is free, GPL, and stays that way - every courier, every feature, no paid tier. If it has saved you work and you would like to put something behind it: https://revolut.me/danq6lus. It is entirely voluntary and changes nothing about the support you get. Reporting a bug in the [support forum](https://wordpress.org/support/plugin/bg-couriers/), or leaving a review, helps just as much.

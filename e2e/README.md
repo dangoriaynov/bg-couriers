@@ -34,6 +34,19 @@ back until it is asked for by name.
 - Cash on delivery enabled, and at least one purchasable product.
 - SSH to dev configured in `bin/deploy.conf` - `global-setup.js` and `dev-option.sh` both need it.
 
+## Express One
+
+`expressone-checkout.spec.js` drives all three delivery kinds - office, EXOBOX locker and address -
+against Express One's TEST environment, so the prices are the courier's own and no real parcel is
+created. It needs three things on the site under test: Express One enabled with credentials and a
+sender address chosen, its method in the Bulgarian shipping zone, and - because the shop receipts
+наложен платеж through ППП - "COD payout via ППП" ticked on its tab, or cash on delivery is correctly
+withheld and the spec says so.
+
+The address test is the one worth keeping: Express One refuses a street it was not given an id for, so
+the checkout must not accept a typed one. Before that was fixed, this spec placed an order the shop
+could not print a waybill for.
+
 ## Delivery to another country: the one spec that books a real shipment
 
 > **All three `intl-*` specs are skipped.** Delivery abroad is unfinished and switched off in the plugin,
