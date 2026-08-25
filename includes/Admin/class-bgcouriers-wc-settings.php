@@ -294,7 +294,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     private static function courier_color(string $id): string {
-        $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034', 'expressone' => '#904E00'];
+        $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034', 'expressone' => '#E0189B'];
         return $map[$id] ?? '#6b7280';
     }
 
