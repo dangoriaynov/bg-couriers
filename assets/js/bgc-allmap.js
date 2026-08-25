@@ -196,7 +196,12 @@
     // Sameday's mark contains ONE colour and it is red (#E02020) - which is Speedy's. Two red pins
     // are not a legend, so this one is deliberately NOT from its logo: teal is as far from crimson as
     // this palette gets, and it is not a colour the map itself uses.
-    sameday: '#00838F'
+    sameday: '#00838F',
+    // Express One's mark is orange (#E47800) and graphite. The orange is Pigeon's pin to within ΔE 2.9
+    // - the same colour, for a customer's purposes - and the graphite is the grey this palette rules
+    // out. So its own hue is kept and taken DOWN until it separates: #904E00 is ΔE 25 from Pigeon,
+    // which is more than any two colours already on this map are apart (Econt and BOX NOW are 15.8).
+    expressone: '#904E00'
   };
   var PIN_FALLBACK = ['#6A1B9A', '#00838F', '#4E342E', '#1B5E20', '#37474F'];
   var pinColour = {};

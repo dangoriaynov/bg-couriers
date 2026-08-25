@@ -31,7 +31,8 @@ final class BGCouriers_Couriers {
 
     /** Bundled brand-logo filename for a courier (assets/img/couriers/), or '' if none. */
     public static function logo_file(string $id): string {
-        $map = ['speedy' => 'speedy.png', 'econt' => 'econt.png', 'pigeon' => 'pigeon.png', 'boxnow' => 'boxnow.svg', 'sameday' => 'sameday.png'];
+        $map = ['speedy' => 'speedy.png', 'econt' => 'econt.png', 'pigeon' => 'pigeon.png', 'boxnow' => 'boxnow.svg',
+                'sameday' => 'sameday.png', 'expressone' => 'expressone.png'];
         return $map[$id] ?? '';
     }
 

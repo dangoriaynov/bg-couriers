@@ -13,7 +13,7 @@ class BGCouriers_Order_Columns {
         'pigeon'  => '#00a32a', // green
         'boxnow'  => '#8c4bd6', // violet
         'sameday' => '#e08a00', // amber
-        'expressone' => '#0f766e', // teal - the five above were taken, and it stays readable behind black text
+        'expressone' => '#904E00', // its own orange, taken down until it parts from Pigeon's (see the map's PIN_COLOURS)
     ];
     /** How much of the chosen colour actually reaches the row: resting, and under the cursor. */
     const TINT_ALPHA       = 0.13;
