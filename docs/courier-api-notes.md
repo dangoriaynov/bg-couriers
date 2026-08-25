@@ -145,6 +145,24 @@ tracking, no cancel) described the wrong courier entirely. Full write-up:
 - **Cash on delivery pays out through ППП** on this shop's contract (owner, 2026-08-25), so the courier
   is ticked for it; without that tick a shop that fiscalises through ППП is correctly offered no
   наложен платеж for Express One, the way BOX NOW is not.
+- **RULES FROM THEIR OWN INTEGRATION DEVELOPER** (2026-08-25, after they validated nine test shipments).
+  None of these is enforced by the API, which accepts every one of the fields quite happily:
+  - **`FIX_HOUR` and `SATURDAY_DELIVERY` are not provided at all** - never offer them, never send them.
+  - **`RETURN_RECEIPT`** is a paid service aimed at institutional clients. Their advice for a shop: it
+    would mostly be ticked by mistake, which puts extra work on the courier and a charge on the
+    merchant's invoice, and a claim afterwards. Left to us; not offered.
+  - **`FRAGILE` only ever together with `INSURANCE`.**
+  - **EVERY cash-on-delivery shipment carries an `INSURANCE`** (declared value). The plugin declares the
+    collected amount, or the merchant's own higher figure - and puts the same number in the QUOTE,
+    because the service is charged for and a price without it is lower than the invoice that follows.
+  - `CREATE_REQUEST` needs no companion fields: "Игнорирайте тези параметри" about
+    SEND_HOUR/SEND_MIN/WORK_HOUR/WORK_MIN.
+  - **`/1/request-courier` has no request number by design**: "Полученият номер на пратка представлява и
+    самата поръчка за посещения. Няма индивидуален номер на поръчка."
+- **The three PDF formats are one label on this account.** 0, 1 and 2 came back the same length, the
+  same page box (416.69 x 282.61 pt, a ~147 x 100 mm label) and the same drawn content; they differ in
+  132 bytes, all of them the embedded `/LastModified` timestamps. Samples were sent to Express One to
+  confirm it is not something peculiar to the test account.
 - **The street box must not accept a typed street** for this courier - `street_list_only()` says so and
   the checkout turns select2's free tagging off for it. Found by driving a real order on dev: the picker
   offered "БУЛ. ПРОФ. ЦВЕТАН ЛАЗАРОВ", the typed "Цветан Лазаров" was stored instead, the order was

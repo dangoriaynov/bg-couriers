@@ -204,7 +204,7 @@ class BGCouriers_Pickup {
                         $c->label(), $id, $opts['date'], $opts['from'], $opts['to']
                     ) : sprintf(
                         /* translators: 1: courier name, 2: day, 3: from time, 4: to time */
-                        __('%1$s courier requested for %2$s, %3$s-%4$s. The courier gave no request number.', 'bg-couriers'),
+                        __('%1$s courier requested for %2$s, %3$s-%4$s. This courier issues no separate request number - the waybills themselves are the request.', 'bg-couriers'),
                         $c->label(), $opts['date'], $opts['from'], $opts['to']));
                     $order->save();
                 }
@@ -214,7 +214,7 @@ class BGCouriers_Pickup {
                     $c->label(), count($waybills), $id
                 ) : sprintf(
                     /* translators: 1: courier name, 2: how many parcels */
-                    __('%1$s will collect %2$d parcel(s). It gave no request number.', 'bg-couriers'),
+                    __('%1$s will collect %2$d parcel(s). This courier issues no separate request number.', 'bg-couriers'),
                     $c->label(), count($waybills))) . '</p></div>';
             } catch (\Exception $e) {
                 echo '<div class="notice notice-error"><p>' . esc_html(sprintf(
