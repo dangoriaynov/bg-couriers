@@ -130,6 +130,13 @@ tracking, no cancel) described the wrong courier entirely. Full write-up:
   (max 35 days), `/1/info-cod-order[-detailed]`, `/1/list-invoice`, `/1/list-return-redirect`.
 - **Documentation disagrees with the API** in at least: `/1/me` is documented POST and is GET-only, and
   neither the currency, the status vocabulary nor the required `RECEIVER_CITY` is in it.
+- **Cash on delivery pays out through ППП** on this shop's contract (owner, 2026-08-25), so the courier
+  is ticked for it; without that tick a shop that fiscalises through ППП is correctly offered no
+  наложен платеж for Express One, the way BOX NOW is not.
+- **The street box must not accept a typed street** for this courier - `street_list_only()` says so and
+  the checkout turns select2's free tagging off for it. Found by driving a real order on dev: the picker
+  offered "БУЛ. ПРОФ. ЦВЕТАН ЛАЗАРОВ", the typed "Цветан Лазаров" was stored instead, the order was
+  placed happily, and the label was refused afterwards with the customer long gone.
 
 
 ## 4. Европът / Evropat-2000 - *domain model known from their own manual; API still unseen*

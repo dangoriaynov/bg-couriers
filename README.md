@@ -51,7 +51,7 @@ Working on the code: [`CONTRIBUTING.md`](CONTRIBUTING.md) - architecture, tests,
 |---|---|---|
 | **Speedy** | ✅ Live on `main` | checkout (office/address/APS), live quotes, labels, tracking, settings |
 | **Econt** | ✅ Live on `main` | + **наложен платеж (COD)** with itemised packing list (опис) & ППП money-transfer agreement - live-verified; E2E 7/7 with Speedy |
-| **Express One** | 🧪 On `main`, test account | checkout (office/address/EXOBOX locker), live quotes per destination type, labels, tracking, cancel, courier request; measured end to end on Express One's **test** environment - production credentials not yet issued |
+| **Express One** | 🧪 On `main`, test account | checkout (office/address/EXOBOX locker), live quotes per destination type, labels, tracking, cancel, courier request. Driven through the real checkout on dev - all three delivery kinds ordered, booked, printed, tracked and cancelled - against Express One's **test** environment; production credentials not yet issued. Its street box takes only streets Express One lists, because its waybills refuse anything else |
 | **Pigeon Express** | ✅ Live on `main` | checkout (office/address), live quotes, labels; tracking live-verified against real shipments |
 | **BOX NOW** | ✅ Live on `main` | locker-only, flat-rate, OAuth2, **map-widget** locker picker; full create → label → track → cancel cycle verified. Needs a prepaid gateway to be offered at checkout: it cannot do наложен платеж |
 | **Sameday** | ✅ Live on `main` | checkout (address/APS), live quotes, labels, tracking; create → PDF → track → cancel verified against a live account (easyBox-only on it) |
