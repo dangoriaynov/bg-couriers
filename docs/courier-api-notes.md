@@ -126,6 +126,18 @@ tracking, no cancel) described the wrong courier entirely. Full write-up:
 - **Customer tracking:** `https://expressone.bg/bg/tracking/<BILLOFLADING>` (a path, not a query - the
   page's own form posts `form[bols]`).
 - **`/1/request-courier` {count, weight, readiness, take_office_id}** → `data.REQUEST`.
+- **`CREATE_REQUEST: 1` on create-bol makes a COLLECTION ORDER instead of a waybill** - a courier comes
+  to the sender's address for it, rather than the parcel being dropped at a counter. Undocumented: it is
+  in neither the API documentation nor their own rest-api-helper, and came from their developer. The
+  record it makes reads `STATUS_ID 1 "Създадена поръчка"` where an ordinary one reads `0 "Създадена
+  товарителница"`, and it answers with an empty `PACKS` and no `RETURN_CODE`. `SEND_HOUR`/`SEND_MIN`/
+  `WORK_HOUR`/`WORK_MIN` are accepted alongside it (the window the courier may come in).
+- **Additional services, all measured as applied** (each changes the price, which is how one can tell
+  the courier did not quietly drop it): `COD`, `INSURANCE` (обявена стойност), `CHECK_BEFORE_PAY`
+  (преглед преди плащане), `PACK_COUNT`, `PAYER`, and - not offered by this plugin yet - `FRAGILE`,
+  `RETURN_RECEIPT` (обратна разписка), `RETURN_DOCUMENTS`, `SATURDAY_DELIVERY`, `FIX_HOUR` (a three-part
+  string, e.g. `ПРЕДИ:15:30`). Base 1.5 kg parcel to a Sofia counter 4.06; fragile + return receipt
+  5.51; Saturday + return documents 6.23; fix hour 6.25.
 - Also there and unused: `/1/list-all-status`, `/1/list-bol`, `/1/bol-finance-info`, `/1/list-cod-order`
   (max 35 days), `/1/info-cod-order[-detailed]`, `/1/list-invoice`, `/1/list-return-redirect`.
 - **Documentation disagrees with the API** in at least: `/1/me` is documented POST and is GET-only, and
