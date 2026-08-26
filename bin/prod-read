@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# Read production. Never write to it.
+#
+# The rule for this repository is that nothing experiments on the live shop - no test orders, no
+# waybills, no settings changes (a test order once summoned a real courier and ate real stock). But
+# ANSWERING a question about a live order is not experimenting on it, and having no way to look was
+# its own failure mode: the last one ended in "the courier probably cancelled the waybill" with
+# nobody able to say whether it had.
+#
+# So this is the read-only half, and the refusal is mechanical rather than a promise: a query that is
+# not a single SELECT / SHOW / DESCRIBE never leaves this machine. No UPDATE, no DELETE, no DDL, no
+# second statement smuggled in behind a semicolon, no INTO OUTFILE writing a file on the server.
+#
+# The server itself is NOT in this file - host, port, database and prefix come from bin/deploy.conf,
+# which is gitignored, exactly as bin/deploy.sh does it. This repository is public.
+#
+#   ./bin/prod-read order 12345           every _bgcouriers_* meta on an order, plus its order notes
+#   ./bin/prod-read recent sameday 7      that courier's orders of the last N days, with waybill+stage
+#   ./bin/prod-read option bgcouriers_autolabel_enabled
+#   ./bin/prod-read sql "SELECT ..."      anything else, subject to the checks above
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+[ -f bin/deploy.conf ] && . bin/deploy.conf
+: "${BGC_SSH_HOST:?set BGC_SSH_HOST in bin/deploy.conf (see bin/deploy.conf.example)}"
+: "${BGC_SSH_PORT:=22}"
+: "${BGC_PROD_DB:?set BGC_PROD_DB in bin/deploy.conf - the production database name}"
+: "${BGC_DB_PREFIX:=wp_}"
+
+P="$BGC_DB_PREFIX"
+
+# One statement, on stdin, so nothing has to survive two levels of shell quoting.
+run_sql() {
+  ssh -p "$BGC_SSH_PORT" -o BatchMode=yes -o ConnectTimeout=20 "$BGC_SSH_HOST" \
+      "mysql --batch --default-character-set=utf8mb4 ${2:---table} $BGC_PROD_DB" <<< "$1"
+}
+
+# The gate. Everything that reaches the server goes through here.
+read_only() {
+  local q="$1" head
+  head="$(printf '%s' "$q" | tr -d '\n' | sed 's/^[[:space:]]*//' | cut -c1-9 | tr '[:lower:]' '[:upper:]')"
+  case "$head" in
+    SELECT*|SHOW*|DESCRIBE*|DESC\ *) ;;
+    *) echo "prod-read: only SELECT / SHOW / DESCRIBE are allowed here." >&2; exit 2;;
+  esac
+  # A semicolon is how a second statement gets in; a comment is how the first one gets hidden.
+  case "$q" in
+    *";"*)  echo "prod-read: one statement only - no ';'." >&2; exit 2;;
+    *"/*"*) echo "prod-read: no comments in the query." >&2; exit 2;;
+  esac
+  # SELECT ... INTO OUTFILE writes a file on the server. It is a SELECT and it is not a read.
+  if printf '%s' "$q" | grep -qiE 'into[[:space:]]+(out|dump)file'; then
+    echo "prod-read: INTO OUTFILE / DUMPFILE writes to the server." >&2; exit 2
+  fi
+  run_sql "$q" "${2:---table}"
+}
+
+num()  { case "$1" in ''|*[!0-9]*) echo "prod-read: '$1' is not a number." >&2; exit 2;; esac; }
+word() { case "$1" in ''|*[!A-Za-z0-9_-]*) echo "prod-read: '$1' is not a plain name." >&2; exit 2;; esac; }
+
+# HPOS or the old post table? The shop decides, and the meta lives in a different place either way.
+hpos() {
+  local n
+  n="$(read_only "SHOW TABLES LIKE '${P}wc_orders'" --skip-column-names | wc -l | tr -d ' ')"
+  [ "$n" -gt 0 ]
+}
+
+case "${1:-}" in
+  order)
+    id="${2:?usage: bin/prod-read order <order id>}"; num "$id"
+    if hpos; then
+      echo "-- order"
+      read_only "SELECT id, status, date_created_gmt, total_amount, payment_method
+                 FROM ${P}wc_orders WHERE id = $id"
+      echo "-- bg couriers meta"
+      read_only "SELECT meta_key, meta_value FROM ${P}wc_orders_meta
+                 WHERE order_id = $id AND meta_key LIKE '_bgcouriers%' ORDER BY meta_key"
+    else
+      echo "-- order"
+      read_only "SELECT ID, post_status, post_date_gmt FROM ${P}posts WHERE ID = $id"
+      echo "-- bg couriers meta"
+      read_only "SELECT meta_key, meta_value FROM ${P}postmeta
+                 WHERE post_id = $id AND meta_key LIKE '_bgcouriers%' ORDER BY meta_key"
+    fi
+    # The tracking history a merchant actually reads: the poller writes every status change here.
+    echo "-- order notes"
+    read_only "SELECT comment_ID, comment_date, comment_content FROM ${P}comments
+               WHERE comment_post_ID = $id AND comment_type = 'order_note' ORDER BY comment_ID"
+    ;;
+
+  recent)
+    courier="${2:?usage: bin/prod-read recent <courier> [days]}"; word "$courier"
+    days="${3:-7}"; num "$days"
+    m="MAX(CASE WHEN m.meta_key="
+    if hpos; then
+      read_only "SELECT o.id, o.status, o.date_created_gmt,
+                        ${m}'_bgcouriers_waybill'    THEN m.meta_value END) AS waybill,
+                        ${m}'_bgcouriers_method'     THEN m.meta_value END) AS method,
+                        ${m}'_bgcouriers_track_stage' THEN m.meta_value END) AS stage,
+                        ${m}'_bgcouriers_track_text'  THEN m.meta_value END) AS courier_says,
+                        FROM_UNIXTIME(${m}'_bgcouriers_track_updated' THEN m.meta_value END)) AS checked
+                 FROM ${P}wc_orders o JOIN ${P}wc_orders_meta m ON m.order_id = o.id
+                 WHERE o.date_created_gmt > NOW() - INTERVAL $days DAY
+                 GROUP BY o.id, o.status, o.date_created_gmt
+                 HAVING ${m}'_bgcouriers_courier' THEN m.meta_value END) = '$courier'
+                 ORDER BY o.id DESC"
+    else
+      read_only "SELECT p.ID, p.post_status, p.post_date_gmt,
+                        ${m}'_bgcouriers_waybill'    THEN m.meta_value END) AS waybill,
+                        ${m}'_bgcouriers_method'     THEN m.meta_value END) AS method,
+                        ${m}'_bgcouriers_track_stage' THEN m.meta_value END) AS stage,
+                        ${m}'_bgcouriers_track_text'  THEN m.meta_value END) AS courier_says,
+                        FROM_UNIXTIME(${m}'_bgcouriers_track_updated' THEN m.meta_value END)) AS checked
+                 FROM ${P}posts p JOIN ${P}postmeta m ON m.post_id = p.ID
+                 WHERE p.post_type = 'shop_order' AND p.post_date_gmt > NOW() - INTERVAL $days DAY
+                 GROUP BY p.ID, p.post_status, p.post_date_gmt
+                 HAVING ${m}'_bgcouriers_courier' THEN m.meta_value END) = '$courier'
+                 ORDER BY p.ID DESC"
+    fi
+    ;;
+
+  option)
+    name="${2:?usage: bin/prod-read option <option name>}"; word "$name"
+    read_only "SELECT option_name, option_value, autoload FROM ${P}options WHERE option_name = '$name'"
+    ;;
+
+  sql)
+    read_only "${2:?usage: bin/prod-read sql \"SELECT ...\"}"
+    ;;
+
+  *)
+    sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac

@@ -7,3 +7,5 @@ BGC_PROD_OWNER="user:group"                       # optional: chown the deployed
 BGC_PROD_SMOKE_URLS="https://example.com/ https://example.com/wp-admin/"   # must all answer 200 after a prod deploy
 BGC_E2E_BASE_URL="https://dev.example.com"        # the shop the Playwright suite drives (no default: it places COD orders)
 BGC_LEAK_PATTERNS="dev\.example\.com|0888123456"  # grep -E alternation: strings that must never reach the WordPress.org zip
+BGC_PROD_DB="wordpress"                           # production database name, read-only queries via bin/prod-read
+BGC_DB_PREFIX="wp_"                               # WordPress table prefix on that database
