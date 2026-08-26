@@ -328,6 +328,17 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     public function street_list_only(): bool { return true; }
 
     /**
+     * An EXOBOX takes no money.
+     *
+     * Express One does not carry наложен платеж to a locker at the moment (theirs, 2026-08-26), and
+     * their API will not say so: /1/create-bol accepts COD beside TAKE_OFFICE_ID exactly as happily as
+     * it accepts it for a courier delivery. So the refusal has to come from here, at the checkout,
+     * rather than from the depot with the customer long gone - the same shape of fault as the typed
+     * street this courier refuses (see street_list_only()).
+     */
+    public function no_cod_methods(): array { return ['automat']; }
+
+    /**
      * A town's whole street list, kept for a day.
      *
      * Sofia's is 4884 rows and there is no way to ask for one street, so every address label and every

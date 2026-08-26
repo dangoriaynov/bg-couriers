@@ -26,6 +26,11 @@
 .bgc-tab.bgc-tab-na { background: #f3f4f5; color: #a7aaad; border-color: #e2e6ea; cursor: not-allowed;
   box-shadow: none; opacity: .7; text-decoration: line-through; pointer-events: none; }
 
+/* "cash on delivery is not available here" - shown under the tabs for a delivery kind the courier
+   collects no money at (Express One's EXOBOX lockers). A note, not an error: nothing is wrong yet. */
+.bgc-nocod { margin: -4px 0 10px; padding: 8px 11px; border: 1px solid #f0d9a8; border-radius: 8px;
+  background: #fdf6e6; color: #6b5314; font-size: 13px; line-height: 1.45; }
+
 /* Panel + compact fields */
 .bgc-panel { display: flex; flex-direction: column; gap: 10px; }
 .bgc-field { display: flex; flex-direction: column; min-width: 0; }

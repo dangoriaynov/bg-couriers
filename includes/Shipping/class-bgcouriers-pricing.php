@@ -81,9 +81,16 @@ class BGCouriers_Pricing {
      * price cannot depend on itself. The fee is banded, so the few stotinki of delivery inside the basis
      * do not move it - and the LABEL still collects the exact amount (see cod_for_payer()).
      */
-    public static function cart_cod_amount(): float {
+    public static function cart_cod_amount(string $courier = '', string $method = ''): float {
         if (!function_exists('WC') || !WC() || !WC()->cart || !WC()->session) { return 0.0; }
         if ((string) WC()->session->get('chosen_payment_method', '') !== 'cod') { return 0.0; }
+        // A collection this courier cannot make is not a collection to pay for. The checkout does take
+        // the cash-on-delivery gateway away while such a delivery is chosen, but the session still reads
+        // 'cod' during the very recalculation that removes it - and shipping is priced before the payment
+        // box is re-rendered. Without this line an Express One locker row would be quoted with a
+        // collection fee AND the declared value that always accompanies one, for a shipment that is about
+        // to become prepaid: an overcharge on the customer, on every such order.
+        if ($courier !== '' && !BGCouriers_Settings::cod_allowed_for($courier, $method)) { return 0.0; }
         $goods = (float) WC()->cart->get_cart_contents_total() + (float) WC()->cart->get_cart_contents_tax();
         return max(0.0, round($goods, 2));
     }
@@ -221,7 +228,7 @@ class BGCouriers_Pricing {
         // COD belongs in the key: it changes the price (measured 2026-08-18 - Econt +1.54, Pigeon +0.75,
         // Sameday +0.50, Speedy +0.40 on a 50 EUR collection), so a cash-on-delivery basket must not read
         // a prepaid one's price out of the cache.
-        $cod  = self::cart_cod_amount();
+        $cod  = self::cart_cod_amount($courier->id(), $method);
         $w    = round((float) ($packed['weight_kg'] ?? 0), 2);
         // The country joins the key only when it is not home, so every domestic key stays exactly what
         // it was - a shop that never ships abroad does not re-quote everything the day it updates.
@@ -316,7 +323,7 @@ class BGCouriers_Pricing {
      */
     private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency, string $country = ''): ?float {
         $w    = self::reference_weight((float) ($packed['weight_kg'] ?? 0));
-        $cod  = self::cart_cod_amount();
+        $cod  = self::cart_cod_amount($courier->id(), $method);
         $tkey = self::reference_key($courier->id(), $method, $w, $cod, $country);
         $hit  = get_transient($tkey);
         if (is_array($hit) && isset($hit['p'])) { return (float) $hit['p']; }

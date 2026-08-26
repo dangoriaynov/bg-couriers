@@ -151,6 +151,16 @@ tracking, no cancel) described the wrong courier entirely. Full write-up:
   - **`RETURN_RECEIPT`** is a paid service aimed at institutional clients. Their advice for a shop: it
     would mostly be ticked by mistake, which puts extra work on the courier and a charge on the
     merchant's invoice, and a claim afterwards. Left to us; not offered.
+  - **NO наложен платеж to an EXOBOX locker** (2026-08-26) and **a recipient phone is mandatory for
+    one**. Neither is enforced by the API - `/1/create-bol` takes `COD` beside `TAKE_OFFICE_ID` quite
+    happily - so a locker parcel would print, travel and be handed over collecting nothing. Held in the
+    plugin instead, in the three places the rule leaks out of otherwise:
+    `BGCouriers_Expressone::no_cod_methods()` declares it, the checkout takes the cash-on-delivery
+    gateway away while a locker is chosen (and stops quoting a collection fee for one), and
+    `BGCouriers_Labels::generate()` refuses to book the waybill at all. Filterable through
+    `bgcouriers_no_cod_methods` - the courier said "at the moment". The phone half is the checkout's
+    own: a blank number is now refused on the BLOCK checkout too, where the field's required-ness is
+    WooCommerce's setting rather than ours.
   - **`FRAGILE` only ever together with `INSURANCE`.**
   - **EVERY cash-on-delivery shipment carries an `INSURANCE`** (declared value). The plugin declares the
     collected amount, or the merchant's own higher figure - and puts the same number in the QUOTE,

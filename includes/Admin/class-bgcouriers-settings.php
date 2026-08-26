@@ -466,8 +466,33 @@ class BGCouriers_Settings {
         return self::courier_ppp_payout($courier) && !self::is_intl($country);
     }
 
-    /** Whether COD is legally usable with this courier: the merchant issues receipts, or the courier does ППП. */
-    public static function cod_allowed_for(string $courier): bool {
+    /**
+     * Delivery kinds this courier cannot collect cash on - see BGCouriers_Abstract_Courier::no_cod_methods().
+     *
+     * Filtered rather than hardcoded here on purpose. The courier told us "at the moment", which is a
+     * rule with an expiry date on it, and a shop that hears from Express One before we do can lift it
+     * (or a shop whose own contract differs can add one) without waiting for a release.
+     *
+     * @return string[]
+     */
+    public static function no_cod_methods(string $courier): array {
+        $co   = class_exists('BGCouriers_Couriers') ? BGCouriers_Couriers::get($courier) : null;
+        $list = ($co && method_exists($co, 'no_cod_methods')) ? (array) $co->no_cod_methods() : [];
+        return array_values(array_filter((array) apply_filters('bgcouriers_no_cod_methods', $list, $courier), 'is_string'));
+    }
+
+    /**
+     * Whether cash on delivery may be used - with this courier, and for this kind of delivery.
+     *
+     * Two independent reasons it may not be. The merchant's own: a shop with no cash register fiscalises
+     * through the courier's ППП, so a courier that does not do one cannot legally take the money. And the
+     * courier's own: Express One collects nothing at an EXOBOX locker. Both answer the same question, so
+     * they are answered in one place - the checkout, the quote and the waybill all ask it here.
+     *
+     * @param string $method '' when the delivery kind is not known (or not being asked about).
+     */
+    public static function cod_allowed_for(string $courier, string $method = ''): bool {
+        if ($method !== '' && in_array($method, self::no_cod_methods($courier), true)) { return false; }
         return self::cod_fiscalization() === 'cash_register' || self::courier_ppp_payout($courier);
     }
 

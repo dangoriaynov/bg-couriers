@@ -51,7 +51,7 @@ class BGCouriers_Kses {
         return self::glyphs() + [
             'div'    => ['class' => true, 'style' => true, 'aria-hidden' => true, 'data-courier' => true,
                          'data-method' => true, 'data-methods' => true, 'data-order' => true, 'data-locker' => true,
-                         'data-country' => true],
+                         'data-country' => true, 'data-nocod' => true],
             'span'   => ['class' => true, 'aria-hidden' => true, 'data-tip' => true, 'aria-label' => true],
             'label'  => ['class' => true, 'for' => true],
             'strong' => ['class' => true],

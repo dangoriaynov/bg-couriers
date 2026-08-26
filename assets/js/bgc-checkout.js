@@ -62,6 +62,12 @@
     $wrap.find('.bgc-tabs').html(html);
   }
 
+  // Delivery kinds this courier collects no cash at (server-rendered; empty on a shop with no cash on
+  // delivery to lose). Express One carries no наложен платеж to an EXOBOX locker.
+  function noCod($wrap) {
+    return ($wrap.attr('data-nocod') || '').split(',').filter(function (t) { return t !== ''; });
+  }
+
   // Keep the visible panel (tabs / office label / address rows) in sync with the method.
   function syncMethodUI($wrap) {
     var m = method($wrap), isAddr = m === 'address';
@@ -69,6 +75,33 @@
     $wrap.find('.bgc-address-rows').toggle(isAddr);
     $wrap.find('.bgc-office-row').toggle(!isAddr);
     if (!isAddr) { $wrap.find('.bgc-office-label').text(officeLabel(m)); }
+    // The payment box below is re-rendered by the recalculation this tab triggers, and cash on delivery
+    // simply vanishes from it. Said here, beside the tab that caused it, rather than left to be noticed.
+    var gone = noCod($wrap).indexOf(m) !== -1;
+    $wrap.find('.bgc-nocod').toggle(gone);
+    if ($wrap.is(':visible')) { hideCodRows(gone); }
+  }
+
+  // Take the cash-on-delivery rows off the payment box with the tab that made them impossible.
+  //
+  // The server has already removed the gateway (an order carrying it is refused), but that only reaches
+  // the page when WooCommerce's payment fragment is replaced - and on this checkout it is not. Leaving
+  // the radio there put the note and the thing it says is unavailable side by side, and pushed the
+  // refusal all the way to the Order button.
+  function hideCodRows(hide) {
+    var ids = BGCOURIERS.codGateways || [];
+    if (!ids.length) { return; }
+    ids.forEach(function (id) {
+      var $li = $('.wc_payment_method.payment_method_' + id);
+      if (!$li.length) { return; }
+      $li.toggle(!hide);
+      var $radio = $li.find('input[name="payment_method"]');
+      $radio.prop('disabled', hide);
+      // A hidden radio that is still the chosen one would post anyway - move to the first row left.
+      if (hide && $radio.is(':checked')) {
+        $('.wc_payment_method:visible input[name="payment_method"]').first().prop('checked', true).trigger('click');
+      }
+    });
   }
 
   function resetOffice($wrap) {

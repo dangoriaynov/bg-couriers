@@ -62,7 +62,7 @@ class BGCouriers_Checkout {
         add_filter('woocommerce_update_order_review_fragments', [$this, 'free_notice_fragment']);
         add_filter('woocommerce_shipping_chosen_method', [$this, 'default_courier'], 10, 3);
         // COD fiscalisation (ППП) rules: gate the COD payment gateway / courier rates at runtime.
-        add_filter('woocommerce_available_payment_gateways', [$this, 'ppp_filter_gateways']);
+        add_filter('woocommerce_available_payment_gateways', [$this, 'cod_filter_gateways']);
         add_filter('woocommerce_package_rates', [$this, 'ppp_filter_rates'], 25, 2);
         // A foreign address with nothing to choose from is a dead end unless it says why and offers the
         // way out - see no_shipping_reason() and reset_country().
@@ -147,6 +147,20 @@ class BGCouriers_Checkout {
      */
     public function no_payment_reason($msg) {
         if (!function_exists('WC') || !class_exists('BGCouriers_Pricing')) { return $msg; }
+        // The other way this box empties: a shop whose only way to be paid is cash, and a delivery the
+        // courier collects no cash at. Here the way out is not a different country - it is one box higher
+        // up the same page, so the sentence names it instead of offering a link somewhere else.
+        $chosen = self::chosen_bgc_courier();
+        if ($chosen !== '') {
+            $kind = self::chosen_method($chosen);
+            if (in_array($kind, BGCouriers_Settings::no_cod_methods($chosen), true)) {
+                $names = BGCouriers_Couriers::all();
+                return '<span class="bgc-no-payment">' . esc_html(sprintf(
+                    /* translators: 1: courier name, 2: the delivery option, e.g. "an APS (locker)" */
+                    __('%1$s does not collect cash on delivery to %2$s, and this shop offers no other way to pay at the moment. Choose another delivery option above.', 'bg-couriers'),
+                    (string) ($names[$chosen] ?? $chosen), self::kind_label($kind))) . '</span>';
+            }
+        }
         if (BGCouriers_Settings::cod_fiscalization() !== 'ppp') { return $msg; }
         $country = BGCouriers_Pricing::destination_country();
         if (!BGCouriers_Settings::is_intl($country)) { return $msg; }
@@ -199,21 +213,31 @@ class BGCouriers_Checkout {
     }
 
     /**
-     * When the merchant relies on the courier's ППП (has no cash register), a courier that does NOT offer ППП
-     * cannot legally take cash-on-delivery. So while such a courier is the chosen shipping method, remove the
-     * COD payment gateway - the order must be prepaid. Couriers that do ППП (or the cash-register mode) are
-     * unaffected.
+     * Take cash on delivery off the checkout while the delivery in front of us cannot carry it.
      *
-     * The same is true of every courier the moment the parcel leaves the country: ППП is a Bulgarian postal
-     * money transfer and the courier refuses it for a foreign address, so a shop whose cash-on-delivery is
-     * legal only BECAUSE the courier does the ППП has no such arrangement abroad. Its international orders
-     * are prepaid ones. Nothing changes for a shop that ships at home only, or one with a cash register.
+     * Two reasons, and both are about THIS order rather than about the shop's preferences.
+     *
+     * The merchant's: when the merchant relies on the courier's ППП (has no cash register), a courier that
+     * does NOT offer ППП cannot legally take cash-on-delivery. So while such a courier is the chosen
+     * shipping method, the COD gateway goes - the order must be prepaid. Couriers that do ППП (or the
+     * cash-register mode) are unaffected. The same is true of every courier the moment the parcel leaves
+     * the country: ППП is a Bulgarian postal money transfer and the courier refuses it for a foreign
+     * address, so a shop whose cash-on-delivery is legal only BECAUSE the courier does the ППП has no
+     * such arrangement abroad. Its international orders are prepaid ones.
+     *
+     * The courier's: a courier may collect money from a person and not from a machine - Express One
+     * carries no наложен платеж to an EXOBOX locker (theirs, 2026-08-26), while BOX NOW's lockers and
+     * Econt's automats do. So the DELIVERY KIND is asked about too, per courier: the kind is read from
+     * BGCouriers_Pricing::selection_for(), the same per-courier memory the price row is quoted from,
+     * because the bare session key is one value shared by every courier the customer has opened.
+     *
+     * Nothing changes for a shop that ships at home only, with a cash register, to offices and addresses.
      *
      * @param array $gateways id => WC_Payment_Gateway
      * @return array
      */
-    public function ppp_filter_gateways($gateways) {
-        if (!is_array($gateways) || BGCouriers_Settings::cod_fiscalization() !== 'ppp') { return $gateways; }
+    public function cod_filter_gateways($gateways) {
+        if (!is_array($gateways)) { return $gateways; }
         $country = BGCouriers_Pricing::destination_country();
         $courier = self::chosen_bgc_courier();
         // Abroad the destination alone decides, with no courier asked. The ППП is a Bulgarian postal money
@@ -221,8 +245,8 @@ class BGCouriers_Checkout {
         // chosen to bring it back. Waiting for a chosen courier is what left cash on delivery on screen
         // beside a message saying the order could only be prepaid: every rate for the foreign address had
         // been refused, so there was no chosen courier to ask about.
-        $strip = BGCouriers_Settings::is_intl($country)
-            || ($courier !== '' && !BGCouriers_Settings::ppp_payout_reaches($courier, $country));
+        $strip = (BGCouriers_Settings::cod_fiscalization() === 'ppp' && BGCouriers_Settings::is_intl($country))
+            || ($courier !== '' && !BGCouriers_Settings::cod_allowed_for($courier, self::chosen_method($courier)));
         if ($strip) {
             foreach ($gateways as $gid => $gw) {
                 if (BGCouriers_Settings::is_cod_gateway((string) $gid, $gw)) { unset($gateways[$gid]); }
@@ -234,7 +258,7 @@ class BGCouriers_Checkout {
     /**
      * If the merchant relies on ППП AND the shop offers NO prepaid gateway at all, a courier that can't do ППП
      * is unusable (COD only, no way to fiscalise) - so drop its shipping rates. When a prepaid gateway exists
-     * the courier stays (usable for prepaid; COD is just hidden for it by ppp_filter_gateways above).
+     * the courier stays (usable for prepaid; COD is just hidden for it by cod_filter_gateways above).
      *
      * A parcel leaving the country is the same case: no courier's ППП follows it, so such a shop cannot sell
      * abroad at all until it offers a prepaid way to pay. Which is why the settings screen says so beside the
@@ -252,6 +276,60 @@ class BGCouriers_Checkout {
             if ($courier !== '' && !BGCouriers_Settings::ppp_payout_reaches($courier, $country)) { unset($rates[$id]); }
         }
         return $rates;
+    }
+
+    /**
+     * The delivery kind (address/office/automat) the customer has chosen for THIS courier.
+     *
+     * Through the pricing's per-courier memory rather than the bare `bgcouriers_method` session key:
+     * that key holds one value for the whole session, so a customer who looked at Econt's locker and
+     * then chose Express One to an address would be judged on the locker they did not order.
+     */
+    private static function chosen_method(string $courier): string {
+        return (string) (BGCouriers_Pricing::selection_for($courier)['method'] ?? '');
+    }
+
+    /** The ids of the shop's enabled cash-on-delivery gateways, for the checkout script. @return string[] */
+    private static function cod_gateway_ids(): array {
+        $wc  = function_exists('WC') ? WC() : null;
+        $out = [];
+        if (!$wc || !$wc->payment_gateways()) { return $out; }
+        foreach ($wc->payment_gateways()->payment_gateways() as $gid => $gw) {
+            if (is_object($gw) && $gw->enabled === 'yes' && BGCouriers_Settings::is_cod_gateway((string) $gid, $gw)) {
+                $out[] = (string) $gid;
+            }
+        }
+        return $out;
+    }
+
+    /** "an office" / "an address" / "an APS (locker)" - a delivery kind as it reads inside a sentence. */
+    private static function kind_label(string $m): string {
+        $k = [
+            'office'  => __('an office', 'bg-couriers'),
+            'address' => __('an address', 'bg-couriers'),
+            'automat' => __('an APS (locker)', 'bg-couriers'),
+        ];
+        return $k[$m] ?? $m;
+    }
+
+    /**
+     * Delivery kinds to warn about inside this courier's own block: the ones it collects no cash at.
+     *
+     * Only on a shop that offers cash on delivery at all - where nobody can choose it, nothing
+     * disappears when the locker is picked and a note explaining the disappearance is a puzzle rather
+     * than an answer.
+     *
+     * @return string[]
+     */
+    private static function nocod_for_ui(string $courier): array {
+        $list = BGCouriers_Settings::no_cod_methods($courier);
+        if (!$list) { return []; }
+        $wc = function_exists('WC') ? WC() : null;
+        if (!$wc || !$wc->payment_gateways()) { return []; }
+        foreach ($wc->payment_gateways()->payment_gateways() as $gid => $gw) {
+            if (is_object($gw) && $gw->enabled === 'yes' && BGCouriers_Settings::is_cod_gateway((string) $gid, $gw)) { return $list; }
+        }
+        return [];
     }
 
     /** The courier id of the customer's chosen BGCOURIERS shipping method this session, or '' if none. */
@@ -712,6 +790,29 @@ class BGCouriers_Checkout {
         } elseif ($phone !== '' && !BGCouriers_Phone::usable($phone, BGCouriers_Phone::cc_for($country))) {
             $errors->add('bgc', __('Please enter a valid phone number so the courier can reach the recipient.', 'bg-couriers'));
         }
+        // A phone is not optional here. It is how the courier reaches the recipient, and Express One will
+        // not carry a parcel to a locker without one (theirs, 2026-08-26). The classic checkout marks the
+        // field required itself (see the checkout_fields filter), so WooCommerce has already refused an
+        // empty one and saying it twice would only be noise - hence the look for its own error code. The
+        // BLOCK checkout takes the field's required-ness from WooCommerce's own phone setting instead, and
+        // on a shop where that is "optional" an order reached the courier carrying no number at all.
+        if (trim($phone) === '' && !in_array('billing_phone_required', (array) $errors->get_error_codes(), true)) {
+            $errors->add('bgc', __('Please enter a phone number so the courier can reach the recipient.', 'bg-couriers'));
+        }
+        // Cash on delivery this courier cannot collect for this kind of delivery. The gateway is already
+        // gone from the checkout while such a delivery is chosen (cod_filter_gateways), so this is the belt
+        // to those braces: a form rendered before the locker was picked, or a Store API request that never
+        // saw a payment box at all. Only the courier's own rule is answered here - a shop that cannot
+        // fiscalise cash is a different refusal, and WooCommerce makes it itself by having no such gateway.
+        $kind = self::chosen_method($courier);
+        $pay  = isset($data['payment_method']) ? (string) $data['payment_method']
+              : (string) (WC()->session ? WC()->session->get('chosen_payment_method', '') : '');
+        if ($pay === 'cod' && in_array($kind, BGCouriers_Settings::no_cod_methods($courier), true)) {
+            $errors->add('bgc', sprintf(
+                /* translators: 1: courier name, 2: the delivery option, e.g. "an APS (locker)" */
+                __('%1$s does not collect cash on delivery to %2$s. Choose another delivery option, or pay in advance.', 'bg-couriers'),
+                $label, self::kind_label($kind)));
+        }
         $s = WC()->session;
         // The saved selection must belong to the courier actually chosen - switching couriers voids the old pick.
         if ((string) $s->get('bgcouriers_selection_courier', '') !== $courier) {
@@ -912,6 +1013,12 @@ class BGCouriers_Checkout {
             // Couriers whose street box must not accept a typed street (see street_list_only()). A list
             // rather than a flag per courier, so the browser can ask about whichever one is chosen.
             'streetListOnly' => self::street_list_only_couriers(),
+            // The cash-on-delivery payment rows, by gateway id. The server takes the gateway away for a
+            // delivery the courier collects no money at (cod_filter_gateways), but that only reaches the
+            // page if WooCommerce's payment fragment is actually replaced - and on this shop's checkout
+            // it is not. Without this the customer read "cash on delivery is not available" with the cash
+            // on delivery radio still sitting under it, chose it, and was refused after pressing Order.
+            'codGateways' => self::cod_gateway_ids(),
             'addressMap' => get_option('bgcouriers_address_map', 'no') === 'yes',
             // The Google Maps key is deliberately NOT sent to the browser: nothing here loads a Google
             // map, and the key is only ever used server-side, for the reverse geocode in
@@ -1097,15 +1204,22 @@ class BGCouriers_Checkout {
 
         // Only the chosen courier's block is visible from the server - the others render hidden so the page
         // doesn't briefly show every courier's fields expanded before the JS hides them. JS keeps this in sync.
-        $hide = self::chosen_courier() !== $courier ? ' style="display:none;"' : '';
+        $hide  = self::chosen_courier() !== $courier ? ' style="display:none;"' : '';
+        $nocod = self::nocod_for_ui($courier);
         // Built up first, then escaped once at output - every field inside is already esc_attr/esc_html'd,
         // and wp_kses() restricts the result to the tags this form is made of.
         $html = '<div class="bgc-fields" data-courier="' . esc_attr($courier) . '" data-method="' . esc_attr($sel_method) . '"'
            . ' data-methods="' . esc_attr(implode(',', BGCouriers_Settings::enabled_methods($courier))) . '"'
            . ' data-order="' . esc_attr(implode(',', BGCouriers_Settings::method_order($courier))) . '"'
-           . ' data-country="' . esc_attr($country) . '"' . $hide . '>'
+           . ' data-country="' . esc_attr($country) . '"'
+           // Which tabs take the cash-on-delivery gateway away with them, so the note below can say so
+           // as the customer clicks rather than leaving them to notice that their payment method went.
+           . ' data-nocod="' . esc_attr(implode(',', $nocod)) . '"' . $hide . '>'
            . '<div class="bgc-loader" aria-hidden="true"><span class="bgc-spinner"></span></div>'
            . '<div class="bgc-tabs" role="tablist"></div>'
+           . ($nocod ? '<div class="bgc-nocod" style="display:none;">'
+               . esc_html__('Cash on delivery is not available for this delivery option - choose another one, or pay in advance.', 'bg-couriers')
+               . '</div>' : '')
            . '<div class="bgc-panel">'
            . $country_row
            // The postcode rides along in the city label as "Name (1234)" (search + disambiguation); its value
