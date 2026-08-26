@@ -92,6 +92,19 @@ class BGCouriers_Labels {
         $courier_id = (string) $order->get_meta('_bgcouriers_courier');
         $courier = $courier_id ? BGCouriers_Couriers::get($courier_id) : null;
         if (!$courier) { throw new BGCouriers_Api_Exception(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
+        // Money the courier cannot collect where this parcel is going. Express One carries no наложен
+        // платеж to an EXOBOX locker, and its API takes the COD field there quite happily - so a waybill
+        // booked from an order edited in the admin, or placed before this rule existed, would print,
+        // travel, and be handed over collecting nothing. Refused once, here, in the single place every
+        // label is made, rather than in each courier that ever grows such a rule.
+        $ship_method = (string) $order->get_meta('_bgcouriers_method');
+        if ($order->get_payment_method() === 'cod'
+            && in_array($ship_method, BGCouriers_Settings::no_cod_methods($courier_id), true)) {
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(
+                /* translators: 1: courier name, 2: the delivery option, e.g. "To APS" */
+                __('%1$s does not collect cash on delivery for this delivery option (%2$s). Change the delivery, or mark the order paid, before booking the waybill.', 'bg-couriers'),
+                $courier->label(), BGCouriers_Icons::method_label($ship_method))));
+        }
         $label = $courier->create_label($order);
         // Never store an empty waybill: a courier API that "succeeded" without returning a shipment id
         // did NOT create a shipment (guards every courier against 200-with-error-body responses).

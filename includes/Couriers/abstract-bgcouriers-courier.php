@@ -50,6 +50,24 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      */
     public function street_list_only(): bool { return false; }
 
+    /**
+     * Delivery kinds this courier CANNOT collect cash on.
+     *
+     * Cash on delivery is a service of the courier, not of the shop, and a courier may offer it to a
+     * person and not to a machine: Express One does not collect наложен платеж at an EXOBOX locker
+     * (their own words, 2026-08-26), while BOX NOW's lockers and Econt's automats do. So this is asked
+     * of each courier per delivery kind rather than assumed of every locker.
+     *
+     * Empty for every courier by default. What it returns is enforced in three places, because a rule
+     * held in only one of them is a rule that leaks: the checkout takes the cash-on-delivery gateway
+     * away while such a delivery is chosen, the quote stops paying for a collection that cannot happen,
+     * and the waybill refuses to be booked at all. Without the last one an order edited in the admin
+     * would still print a locker label carrying money nobody can hand over.
+     *
+     * @return string[] subset of capabilities(), e.g. ['automat']
+     */
+    public function no_cod_methods(): array { return []; }
+
     /** Seam: overridden in tests; real impl calls wp_remote_post. */
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [
