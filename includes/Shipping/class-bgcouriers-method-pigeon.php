@@ -21,6 +21,13 @@ class BGCouriers_Method_Pigeon extends WC_Shipping_Method {
     }
 
     public function calculate_shipping($package = []) {
+        // Switched off on its settings tab = not offered, whatever the shipping zone still holds. Every
+        // other place already asked this (the cart estimate, the map, the office lookups, the sync); the
+        // shipping method - the one that actually puts the courier in front of a customer - did not, so
+        // "Enable Pigeon Express" was a switch that changed everything except the checkout. A zone entry is
+        // ordinary WooCommerce furniture and a merchant may well leave one in place while a courier is
+        // being set up, or after switching it off; it must not quote in the meantime.
+        if (BGCouriers_Settings::courier_config('pigeon') === null) { return; }
         // Price against THIS courier's own selection (the session's single selection is tagged with the
         // courier it was made for; city/office ids are per-courier and must not leak across couriers).
         $sel     = BGCouriers_Pricing::selection_for('pigeon');
