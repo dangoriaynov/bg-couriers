@@ -338,6 +338,23 @@ class BGCouriers_Settings {
         ];
     }
 
+    /**
+     * Should an order with THIS courier get its waybill by itself?
+     *
+     * Not one answer for the whole shop, because creating a waybill does not mean the same thing to
+     * every courier. To Sameday it means "the parcel exists, come and get it": a waybill issued four
+     * seconds after checkout brought its courier to the door the same morning, for a parcel the shop
+     * was not sending until the next day, and the courier voided it on the spot (2026-08-26). Speedy
+     * and Econt are asked to come in a separate request, so an early waybill costs them nothing.
+     *
+     * '' (the default) follows the general setting; 'yes'/'no' on a courier's own tab overrule it.
+     */
+    public static function autolabel_for(string $courier): bool {
+        $own = (string) get_option('bgcouriers_' . $courier . '_autolabel', '');
+        if ($own === 'yes' || $own === 'no') { return $own === 'yes'; }
+        return self::autolabel()['enabled'];
+    }
+
     /** Whether the customer's e-mail may be sent to the courier when generating a label. */
     public static function send_email(): bool {
         return get_option('bgcouriers_send_email', 'no') === 'yes';

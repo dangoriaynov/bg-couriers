@@ -35,12 +35,15 @@ class BGCouriers_Labels {
         add_action('woocommerce_saved_order_items', [$this, 'maybe_regenerate_on_change'], 90, 1);
     }
 
-    /** Auto-generate a label when an order reaches the configured status. */
+    /** Auto-generate a label when an order reaches the configured status - if THIS courier is set to. */
     public function maybe_auto_generate($order_id, $old_status, $new_status, $order): void {
         $cfg = BGCouriers_Settings::autolabel();
-        if (!$cfg['enabled']) { return; }
         if ('wc-' . $new_status !== $cfg['status']) { return; }
         if (!self::order_courier($order)) { return; } // any BGCOURIERS courier, not just Speedy
+        // Per courier, because a waybill does not mean the same thing to each of them - see
+        // BGCouriers_Settings::autolabel_for(). A shop that packs in the evening needs it off for the
+        // couriers that come for the parcel as soon as one exists, and on for the rest.
+        if (!BGCouriers_Settings::autolabel_for((string) $order->get_meta('_bgcouriers_courier'))) { return; }
         if ($order->get_meta('_bgcouriers_waybill') !== '') { return; }
         self::attempt_auto_label((int) $order_id);
     }
