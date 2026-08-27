@@ -57,9 +57,9 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     private static function autolabel_row(string $courier): array {
         return ['type' => 'select', 'id' => 'bgcouriers_' . $courier . '_autolabel',
             'title' => __('Auto-generate labels', 'bg-couriers'),
-            'desc'  => __('Issuing a waybill is what tells some couriers the parcel exists - Sameday sends a courier for it the same day - so a shop that packs in the evening wants this off for those and on for the rest.', 'bg-couriers'),
+            'desc'  => __('Issuing a waybill is what tells some couriers the parcel exists - Sameday sends a courier for it the same day, with no separate request - so for those the default here is OFF whatever the general setting says, and the waybill is issued when you print it. Every other courier follows the general setting.', 'bg-couriers'),
             'options' => [
-                ''    => __('Follow the general setting', 'bg-couriers'),
+                ''    => __('Default for this courier', 'bg-couriers'),
                 'yes' => __('On - as soon as the order reaches the trigger status', 'bg-couriers'),
                 'no'  => __('Off - I issue the waybill myself, when the parcel is packed', 'bg-couriers'),
             ],

@@ -3,6 +3,15 @@ use PHPUnit\Framework\TestCase;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-speedy.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 
 /**
@@ -18,13 +27,40 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  * @group core
  */
 final class AutolabelPerCourierTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+    protected function setUp(): void {
+        parent::setUp(); Monkey\setUp();
+        Functions\when('__')->returnArg(1);
+        BGCouriers_Couriers::reset();
+        BGCouriers_Couriers::register('sameday', 'Sameday', static function () { return new BGCouriers_Sameday([]); });
+        BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return new BGCouriers_Speedy([]); });
+    }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
 
     private function options(array $map): void {
         Functions\when('get_option')->alias(static function ($name, $default = false) use ($map) {
             return $map[$name] ?? $default;
         });
+    }
+
+    /**
+     * The default a shop gets before it has thought about any of this - and the reason it is a fact
+     * about the courier rather than a name in a list somewhere: Sameday comes for the parcel as soon as
+     * a waybill exists, so it starts OFF even on a shop that has automatic labels switched on.
+     */
+    public function test_a_courier_that_comes_for_the_parcel_starts_off(): void {
+        $this->options(['bgcouriers_autolabel_enabled' => 'yes']);
+        $this->assertTrue((new BGCouriers_Sameday([]))->books_pickup_on_create());
+        $this->assertFalse(BGCouriers_Settings::autolabel_for('sameday'), 'automatic labels must not summon a courier by default');
+        $this->assertTrue(BGCouriers_Settings::autolabel_for('speedy'), 'every other courier is unaffected');
+    }
+
+    /** The merchant can still say yes - it is a default, not a prohibition. */
+    public function test_the_default_can_be_overruled_back_on(): void {
+        $this->options([
+            'bgcouriers_autolabel_enabled' => 'yes',
+            'bgcouriers_sameday_autolabel' => 'yes',
+        ]);
+        $this->assertTrue(BGCouriers_Settings::autolabel_for('sameday'));
     }
 
     public function test_a_courier_that_has_said_nothing_follows_the_general_setting(): void {
