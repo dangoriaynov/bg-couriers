@@ -776,7 +776,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $st = $resp['shipmentStatuses'][0] ?? [];
             if (!empty($st['error'])) { return true; } // not found -> gone
             $status = mb_strtolower((string) ($st['status']['shortDeliveryStatus'] ?? '') . ' ' . (string) ($st['status']['shortDeliveryStatusEn'] ?? ''));
-            if (mb_strpos($status, 'анулир') !== false || strpos($status, 'cancel') !== false) { return true; }
+            if (BGCouriers_Tracking::reads_cancelled($status)) { return true; }
             foreach (($st['status']['trackingEvents'] ?? []) as $ev) {
                 if (($ev['destinationType'] ?? '') === 'canceled') { return true; }
             }

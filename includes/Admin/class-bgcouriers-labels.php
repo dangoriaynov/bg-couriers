@@ -337,7 +337,14 @@ class BGCouriers_Labels {
         // the shipment is still live (never silently drop an active shipment).
         $already = false;
         if (!$courier->cancel_label($waybill)) {
-            if (!$courier->is_cancelled($waybill)) {
+            // A refused cancel is only a failure while the shipment is still alive. One the courier has
+            // already killed itself is precisely what the merchant is trying to clear, and refusing to
+            // clear it leaves a shop unable to re-issue a label for a parcel nobody is coming for - which
+            // is what "Re-issue waybill" exists to do, and it must not depend on the dead one's consent.
+            // The courier's own answer is asked first; where it has none, or misreads its own wording,
+            // what the tracking poll has ALREADY recorded on this order counts as the answer.
+            $stage = (string) $order->get_meta('_bgcouriers_track_stage');
+            if (!$courier->is_cancelled($waybill) && $stage !== 'cancelled') {
                 throw new BGCouriers_Api_Exception(esc_html__('The courier did not cancel the waybill.', 'bg-couriers'));
             }
             $already = true;

@@ -516,11 +516,10 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             // 404 from the status endpoint means Sameday has no such AWB any more.
             return strpos($e->getMessage(), '404') !== false;
         }
-        $status = function_exists('mb_strtolower') ? mb_strtolower($t->status) : strtolower($t->status);
-        foreach (['анулиран', 'cancel'] as $needle) {
-            if (strpos($status, $needle) !== false) { return true; }
-        }
-        return false;
+        // Sameday says it outright in expeditionSummary.canceled, which parse_tracking now carries as
+        // the phase; the wording is the fallback, and it is read with the same vocabulary the orders
+        // list uses rather than a shorter one of this class's own.
+        return $t->stage() === 'cancelled' || BGCouriers_Tracking::reads_cancelled($t->human());
     }
 
     // ── Tracking ─────────────────────────────────────────────────────────────
@@ -562,7 +561,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $summary = (array) ($resp['expeditionSummary'] ?? []);
         $status  = (string) ($cur['status'] ?? ($events ? $events[count($events) - 1]['name'] : 'unknown'));
         // Sameday states the outcome outright, so the verdict does not depend on reading Bulgarian prose.
-        $phase = !empty($summary['delivered']) ? 'DELIVERED' : '';
+        $phase = !empty($summary['delivered']) ? 'DELIVERED' : (!empty($summary['canceled']) ? 'CANCELLED' : '');
         return new BGCouriers_Tracking($waybill, $status, $events, $phase, null, true);
     }
 

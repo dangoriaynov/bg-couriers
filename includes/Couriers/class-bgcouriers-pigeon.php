@@ -718,8 +718,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         } catch (\Exception $e) {
             return false;
         }
-        $s = function_exists('mb_strtolower') ? mb_strtolower($status) : strtolower($status);
-        return strpos($s, 'отказ') !== false || strpos($s, 'анулир') !== false || strpos($s, 'cancel') !== false;
+        return BGCouriers_Tracking::reads_cancelled($status);
     }
 
     /**
