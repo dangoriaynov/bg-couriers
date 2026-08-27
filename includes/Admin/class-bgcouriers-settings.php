@@ -352,6 +352,13 @@ class BGCouriers_Settings {
     public static function autolabel_for(string $courier): bool {
         $own = (string) get_option('bgcouriers_' . $courier . '_autolabel', '');
         if ($own === 'yes' || $own === 'no') { return $own === 'yes'; }
+        // Nobody has said. A courier that comes for the parcel as soon as a waybill exists starts OFF,
+        // whatever the general setting says: the shop that has not thought about this yet is exactly the
+        // one that would otherwise lose a collection to it, and every shop would lose the same one.
+        // Nothing changes for an install that already existed - BGCouriers_Plugin::pin_autolabel()
+        // writes its current answer down before this line is ever reached on it.
+        $co = class_exists('BGCouriers_Couriers') ? BGCouriers_Couriers::get($courier) : null;
+        if ($co && method_exists($co, 'books_pickup_on_create') && $co->books_pickup_on_create()) { return false; }
         return self::autolabel()['enabled'];
     }
 

@@ -46,6 +46,7 @@ Everything else already has a working default: the prices, the map, the checkout
 * Free-shipping thresholds, per courier and per delivery type.
 * Several parcels in one shipment, and insurance for a value you set (Speedy, Sameday).
 * A delivery estimate on the cart page, before the customer reaches the checkout.
+* Labels issued automatically when an order reaches a status you choose - or per courier, or not at all.
 * Works on both the classic and the block checkout.
 * Fully translated to Bulgarian.
 
@@ -97,6 +98,11 @@ Bulgaria, by six Bulgarian networks: **Speedy**, **Econt**, **Pigeon Express**, 
 
 = How can I support the development? =
 The plugin is free, GPL, and stays that way - every courier, every feature, no paid tier. If it has saved you work and you would like to put something behind it: https://revolut.me/danq6lus. It is entirely voluntary and changes nothing about the support you get. Reporting a bug in the [support forum](https://wordpress.org/support/plugin/bg-couriers/), or leaving a review, helps just as much.
+
+= When is the waybill created, and when should it be? =
+Either when you choose, or by itself. **Auto-generate labels** (BG Couriers -> General) issues the waybill the moment an order reaches the status you pick; each courier's own tab can overrule that for itself. With it off, an order shows a **Generate** button instead, and the bulk action **Print waybills A4/A6** creates any that are missing and hands you one PDF - so you print at the packing table and the waybill is made at that moment.
+
+It matters more than it sounds. For most couriers a waybill is only data, and the visit is a separate request you make with **Request a courier**. **Sameday has no such request**: creating the AWB is what puts the parcel in that day's collection list, and its courier comes for it - measured within two hours. A waybill issued the moment an order is paid therefore sends a van to a parcel nobody has packed yet, the courier finds an empty counter and voids the waybill. So for couriers that behave that way this plugin leaves automatic labels **off by default**, whatever the general setting says, and you turn them on only if your parcels really are ready that early. Shops that were already running keep whatever they had.
 
 = Do I need an account with the couriers? =
 Yes. Each courier requires its own API credentials, obtained from that courier. Enter them on the courier's settings tab.

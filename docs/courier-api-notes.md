@@ -179,6 +179,22 @@ tracking, no cancel) described the wrong courier entirely. Full write-up:
   placed happily, and the label was refused afterwards with the customer long gone.
 
 
+### Sameday summons itself
+
+**There is no pickup API.** `capabilities()` has no `pickup` and `request_pickup()` is not implemented -
+the "Request a courier" screen lists Sameday as unsupported. What brings the courier is **creating the
+AWB**: it enters the pickup point's collection list for that day. Measured on prod order 11260
+(2026-08-26): waybill created 09:44:04 by auto-label, four seconds after checkout; by 11:45 it read
+**"Отказ от взимане от подател"** - the courier had come and gone while the parcel was still on the
+shelf, and the order itself said "Изпращане в: четвъртък 27 август".
+
+`POST /api/awb` carries no pickup date to push it back with (`deliveryInterval` is about delivery), so
+the only lever is WHEN the waybill is created. Hence `books_pickup_on_create()` on the courier and the
+per-courier "Auto-generate labels" row: a courier that answers true starts with automatic labels OFF
+whatever the shop-wide setting says, and existing installs are pinned to what they had by
+`BGCouriers_Plugin::pin_autolabel()`. Questions still out with Sameday: a cutoff hour, whether the
+portal has a pickup schedule, whether a refused AWB can be reused and whether it is charged.
+
 ## 4. Европът / Evropat-2000 - *domain model known from their own manual; API still unseen*
 
 Read from **"Указание за работа с модула ЕВРОПЪТ ОНЛАЙН"** (18 pages, LibreOffice, 2023-09-14), the

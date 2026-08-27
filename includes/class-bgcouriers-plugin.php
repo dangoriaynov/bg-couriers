@@ -42,6 +42,28 @@ class BGCouriers_Plugin {
         }
     }
 
+    /**
+     * A courier that comes for the parcel as soon as a waybill exists now starts with automatic labels
+     * OFF (see BGCouriers_Settings::autolabel_for). That is the right default for a shop being set up
+     * today, and it must NOT quietly become the answer for one that is already running: a shop relying
+     * on automatic labels would simply stop producing them, and find out when nothing shipped.
+     *
+     * So the answer such a shop has right now - the general setting - is written down for those
+     * couriers, once, before the new default can ever be reached.
+     */
+    private static function pin_autolabel(): void {
+        if (get_option('bgcouriers_autolabel_pinned', '') === 'yes') { return; }
+        update_option('bgcouriers_autolabel_pinned', 'yes');
+        if (defined('BGCOURIERS_NEW_INSTALL') && BGCOURIERS_NEW_INSTALL) { return; }
+        $was = get_option('bgcouriers_autolabel_enabled', 'no') === 'yes' ? 'yes' : 'no';
+        foreach (array_keys(BGCouriers_Couriers::all()) as $id) {
+            $co = BGCouriers_Couriers::get($id);
+            if (!$co || !method_exists($co, 'books_pickup_on_create') || !$co->books_pickup_on_create()) { continue; }
+            if (get_option('bgcouriers_' . $id . '_autolabel', '') !== '') { continue; }
+            update_option('bgcouriers_' . $id . '_autolabel', $was);
+        }
+    }
+
     private static function migrate_env_flags(): void {
         foreach (['pigeon', 'sameday', 'boxnow'] as $c) {
             if (get_option("bgcouriers_{$c}_live", null) === null && get_option("bgcouriers_{$c}_sandbox", null) !== null) {
@@ -93,6 +115,7 @@ class BGCouriers_Plugin {
         // AFTER the registry is populated: this walks every courier, and called any earlier it walks an
         // empty list and writes down that it is done. Which is exactly what it did the first time.
         self::pin_who_pays_delivery();
+        self::pin_autolabel();
         add_filter('cron_schedules', function ($s) {
             $s['weekly']    = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
             $s['bgcouriers_30min'] = ['interval' => 30 * MINUTE_IN_SECONDS, 'display' => 'Every 30 minutes'];

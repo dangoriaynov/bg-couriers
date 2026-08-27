@@ -68,6 +68,21 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      */
     public function no_cod_methods(): array { return []; }
 
+    /**
+     * Does creating a waybill, on its own, bring this courier to the door?
+     *
+     * For most of them it does not: a waybill is data, and the visit is a separate request the shop
+     * makes when it is ready (see request_pickup()). Sameday is not like that - an AWB enters its pickup
+     * point's collection list and a courier comes for it, measured within two hours on 2026-08-26.
+     *
+     * Which decides ONE thing: whether a shop that has said nothing gets its labels issued automatically
+     * for this courier. A waybill created the moment an order is paid is harmless where nobody acts on
+     * it, and where somebody does it summons a van to a parcel that is not packed - the courier finds an
+     * empty counter, voids the waybill, and the shop learns of it hours later from a quiet order note.
+     * That is not a setting a merchant should have to discover by losing a collection.
+     */
+    public function books_pickup_on_create(): bool { return false; }
+
     /** Seam: overridden in tests; real impl calls wp_remote_post. */
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [

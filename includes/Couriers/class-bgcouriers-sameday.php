@@ -35,6 +35,14 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     public function label(): string { return 'Sameday'; }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
 
+    /**
+     * Yes - and there is no request to make: Sameday has no pickup API at all. The AWB itself is what
+     * puts the parcel in the day's collection list for its pickup point. Measured on order 11260:
+     * waybill 09:44:04, and by 11:45 it had come back "Отказ от взимане от подател" - the courier had
+     * been and gone while the parcel was still on the shelf, three hours after the order was placed.
+     */
+    public function books_pickup_on_create(): bool { return true; }
+
     /** Stable Sameday service codes per delivery type (24H home / Locker NextDay / PUDO). */
     const SERVICE_CODES = ['address' => '24', 'automat' => 'LN', 'office' => 'PP'];
 
