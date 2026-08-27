@@ -47,6 +47,25 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce's own documented filter pattern for a WC_Settings_Page (woocommerce_get_sections_<page id>), required for WC extensions to hook our sections.
     public function get_sections() { return apply_filters('woocommerce_get_sections_' . $this->id, $this->sections()); }
 
+    /**
+     * "Auto-generate labels" on a courier's own tab: follow the general setting, or overrule it here.
+     *
+     * The same row on every tab rather than one written out six times - and it is a three-state select,
+     * not a checkbox, because "I have not said" and "no" are different answers: a shop that turns the
+     * general setting on later should get it for the couriers it never spoke about.
+     */
+    private static function autolabel_row(string $courier): array {
+        return ['type' => 'select', 'id' => 'bgcouriers_' . $courier . '_autolabel',
+            'title' => __('Auto-generate labels', 'bg-couriers'),
+            'desc'  => __('Issuing a waybill is what tells some couriers the parcel exists - Sameday sends a courier for it the same day - so a shop that packs in the evening wants this off for those and on for the rest.', 'bg-couriers'),
+            'options' => [
+                ''    => __('Follow the general setting', 'bg-couriers'),
+                'yes' => __('On - as soon as the order reaches the trigger status', 'bg-couriers'),
+                'no'  => __('Off - I issue the waybill myself, when the parcel is packed', 'bg-couriers'),
+            ],
+            'default' => '', 'autoload' => false];
+    }
+
     private function sections(): array {
         return [
             ''       => __('General', 'bg-couriers'),
@@ -573,7 +592,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'title', 'id' => 'bgcouriers_labels', 'title' => __('Label generation', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgcouriers_autolabel_enabled',
                 'title' => __('Auto-generate labels', 'bg-couriers'),
-                'desc' => __('Automatically generate a shipping label when an order reaches the status below.', 'bg-couriers'), 'default' => 'no'],
+                'desc' => __('Automatically generate a shipping label when an order reaches the status below. This is the default for every courier; each courier\'s own tab can overrule it - which matters because issuing a waybill is what tells some couriers a parcel is ready to be collected.', 'bg-couriers'), 'default' => 'no'],
             ['type' => 'select', 'id' => 'bgcouriers_autolabel_status', 'title' => __('Trigger status', 'bg-couriers'),
                 'options' => $statuses, 'default' => 'wc-processing'],
             ['type' => 'checkbox', 'id' => 'bgcouriers_send_email',
@@ -673,6 +692,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 ],
                 'default' => 'BOX'],
             ...$intl,
+            self::autolabel_row('speedy'),
             ['type' => 'sectionend', 'id' => 'bgcouriers_speedy_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_speedy_pricing', 'title' => __('Pricing', 'bg-couriers')],
@@ -741,6 +761,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Econt labels are A4-landscape only (fixed by its API). The bulk “Print A4” packs several per sheet without scaling.', 'bg-couriers'),
                 'options' => ['A4' => __('A4-landscape (fixed by Econt)', 'bg-couriers')],
                 'default' => 'A4'],
+            self::autolabel_row('econt'),
             ['type' => 'sectionend', 'id' => 'bgcouriers_econt_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_econt_pricing', 'title' => __('Pricing', 'bg-couriers')],
@@ -809,6 +830,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'bgcouriers_pigeon_pickup', 'id' => 'bgcouriers_pigeon_pickup_office_id',
                 'title' => __('Pickup office', 'bg-couriers'),
                 'desc' => __('The Pigeon office you drop parcels at. Search your city, then pick the office.', 'bg-couriers')],
+            self::autolabel_row('pigeon'),
             ['type' => 'sectionend', 'id' => 'bgcouriers_pigeon_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_pigeon_pricing', 'title' => __('Pricing', 'bg-couriers')],
@@ -851,6 +873,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'default' => '', 'custom_attributes' => ['min' => '0', 'step' => '1'], 'autoload' => false],
             ['type' => 'select', 'id' => 'bgcouriers_sameday_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
                 'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')], 'default' => 'A6'],
+            self::autolabel_row('sameday'),
             ['type' => 'sectionend', 'id' => 'bgcouriers_sameday_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_sameday_pricing', 'title' => __('Pricing', 'bg-couriers')],
@@ -896,6 +919,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'select', 'id' => 'bgcouriers_expressone_sender_object', 'title' => __('Send parcels from', 'bg-couriers'),
                 'desc' => __('Which of your Express One addresses the courier collects from. The list comes from your account - validate the credentials above and save, and it fills in.', 'bg-couriers'),
                 'options' => self::expressone_sender_options(), 'default' => ''],
+            self::autolabel_row('expressone'),
             ['type' => 'sectionend', 'id' => 'bgcouriers_expressone_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_expressone_pricing', 'title' => __('Pricing', 'bg-couriers')],
@@ -963,6 +987,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Send the order total to BOX NOW as the declared value of a parcel that is already paid for. Off by default, which is what BOX NOW\'s own plugin sends: they do not publish what the field costs or covers. A parcel with cash on delivery always carries its amount.', 'bg-couriers'),
                 'default' => 'no'],
             ['type' => 'checkbox', 'id' => 'bgcouriers_boxnow_allow_returns', 'title' => __('Allow returns', 'bg-couriers'), 'default' => 'no'],
+            self::autolabel_row('boxnow'),
             ['type' => 'sectionend', 'id' => 'bgcouriers_boxnow_delivery'],
 
             ['type' => 'title', 'id' => 'bgcouriers_boxnow_pricing', 'title' => __('Pricing', 'bg-couriers')],
