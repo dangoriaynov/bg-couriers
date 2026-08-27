@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -126,6 +126,11 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.4.1 =
+* Fixed: **a courier you had switched off was still offered at the checkout.** Everything else respected the switch - the cart estimate, the map, the office lookups - but the shipping method itself never asked, so a courier left in a shipping zone kept pricing and kept being shown while its own settings tab said it was off.
+* New: **automatic labels can now be decided per courier**, not once for the whole shop. Each courier's tab has its own answer: follow the general setting, on, or off.
+* Changed: **for a courier that comes for the parcel as soon as a waybill exists, automatic labels now start off.** Most couriers are asked to collect in a separate request, so issuing the waybill early costs nothing; Sameday has no such request - creating the shipment is what puts it in that day's collection list, and the courier arrives within a couple of hours. A waybill issued the moment an order is paid therefore sends a van to a parcel nobody has packed. Shops that were already running keep whatever they had.
+
 = 0.4.0 =
 * New: **Express One, a sixth courier** - to its offices, to an address, and to its EXOBOX lockers, with live prices for each destination, labels, tracking, cancellation and a courier request. Its street list is its own: Express One refuses an address it was not given a street id for, so the checkout offers only streets it knows rather than letting one be typed and refused hours later at the packing table.
 * New: **Express One carries no cash on delivery to a locker** (the courier's own rule), so the checkout stops offering наложен платеж the moment a locker is chosen, says why, and prices the delivery without a collection fee it will not charge. A waybill that would collect nothing is refused before it is printed.
@@ -160,6 +165,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 Older entries: https://github.com/dangoriaynov/bg-couriers/blob/main/docs/CHANGELOG.md
 
 == Upgrade Notice ==
+
+= 0.4.1 =
+A courier you had switched off was still being offered at the checkout. Automatic labels can now be set per courier, and start off for couriers that come for the parcel as soon as a waybill exists (Sameday).
 
 = 0.4.0 =
 Adds Express One as a sixth courier. Fixes a real overcharge: a product with no weight was quoted at 100 g and posted at a kilo, on every courier. "Re-issue waybill" no longer fails when the courier has already voided the old one.
