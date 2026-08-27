@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.8
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,14 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.4.0 =
+* New: **Express One, a sixth courier** - to its offices, to an address, and to its EXOBOX lockers, with live prices for each destination, labels, tracking, cancellation and a courier request. Its street list is its own: Express One refuses an address it was not given a street id for, so the checkout offers only streets it knows rather than letting one be typed and refused hours later at the packing table.
+* New: **Express One carries no cash on delivery to a locker** (the courier's own rule), so the checkout stops offering наложен платеж the moment a locker is chosen, says why, and prices the delivery without a collection fee it will not charge. A waybill that would collect nothing is refused before it is printed.
+* Fixed: **a parcel nobody weighed was quoted at 100 g and posted at a kilo** - every courier. The checkout priced a shipment lighter than the one the label went out with, and the difference came out of the shop on every order for a product with no weight on it.
+* Fixed: **"Re-issue waybill" could be stopped by the waybill it was replacing.** If the courier had already voided the shipment itself - a collection it refused, a parcel it never took - clearing the dead number was reported as a failure, and the shop was left unable to issue a new label for a parcel nobody was coming for.
+* Fixed: the phone number is now required on the block checkout too. It was required on the classic one; on the block checkout WooCommerce's own setting decided, and a shop that had it optional sent orders to the courier with no number to call.
+* Changed: **a new shop no longer charges the delivery inside the order total.** Collecting a fee and paying it straight out again puts turnover through the books that the shop never keeps, so the customer now pays the courier at the door and the price is shown for information. A shop that was already running keeps exactly what it had.
+
 = 0.3.8 =
 * New: **the checkout can insist on an e-mail address** - a setting, off by default. The plugin makes the field optional (a waybill is built with the phone number), and until now a shop that needed the address had to edit its theme.
 * Fixed: **a Pigeon Express parcel that came back never moved the order.** The journey home travels under a second waybill the order was never told about.
@@ -146,6 +154,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 Older entries: https://github.com/dangoriaynov/bg-couriers/blob/main/docs/CHANGELOG.md
 
 == Upgrade Notice ==
+
+= 0.4.0 =
+Adds Express One as a sixth courier. Fixes a real overcharge: a product with no weight was quoted at 100 g and posted at a kilo, on every courier. "Re-issue waybill" no longer fails when the courier has already voided the old one.
 
 = 0.3.8 =
 The checkout can now require an e-mail address (off by default). A Pigeon Express parcel sent back by an uncollected delivery moves the order again.
