@@ -15,6 +15,9 @@ class BGCouriers_Tracking {
     private const PHASES = [
         // Speedy trackPhase values that really do end a shipment.
         'DELIVERED'                => 'delivered',
+        // Couriers that state the outcome outright rather than in prose (Sameday's expeditionSummary
+        // has delivered and canceled as flags), so the verdict does not depend on reading Bulgarian.
+        'CANCELLED'                => 'cancelled',
         'RETURN_TO_SENDER'         => 'returned',
         'DELIVERED_BACK_TO_SENDER' => 'returned',
         // Pigeon. Still on the merchant's desk - the label exists, the parcel has not been collected.
@@ -177,6 +180,19 @@ class BGCouriers_Tracking {
 
     /** Speedy operations that mean the same thing, checked before any text. @var string[] */
     public const READY_CODES = ['134', '1134'];
+
+    /**
+     * Does this status line mean the shipment is cancelled?
+     *
+     * Asked by the couriers' own is_cancelled() as well as by the orders list, and that is the point.
+     * Each courier used to keep its own handful of words - Sameday looked for "анулиран"/"cancel",
+     * Pigeon also for "отказ" - so the same shipment could read Cancelled in the orders column and NOT
+     * cancelled to the code deciding whether a dead waybill may be cleared. Sameday's own
+     * "Отказ от взимане от подател" fell in exactly that gap, on a live order (2026-08-26).
+     */
+    public static function reads_cancelled(string $status): bool {
+        return self::classify($status) === 'cancelled';
+    }
 
     public static function classify(string $status): string {
         $s = function_exists('mb_strtolower') ? mb_strtolower($status) : strtolower($status);

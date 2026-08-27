@@ -37,6 +37,37 @@ final class CancelIsIdempotentTest extends TestCase {
         return new BGCouriers_Sameday([]);
     }
 
+    /**
+     * The word the shop's own orders column had been reading as "Отменена" for hours, while the code
+     * that decides whether the dead number may be cleared did not recognise it.
+     *
+     * Sameday refused to collect from the sender on 2026-08-26 (a parcel booked seconds after checkout,
+     * for a dispatch a day later) and worded it "Отказ от взимане от подател". Its own is_cancelled()
+     * looked only for "анулиран"/"cancel", so "Re-issue waybill" - whose whole purpose is to replace a
+     * spent one - would have refused with "the courier did not cancel the waybill". One vocabulary now
+     * answers the question everywhere: BGCouriers_Tracking::reads_cancelled().
+     */
+    public function test_a_refusal_to_collect_reads_as_cancelled(): void {
+        $this->assertTrue(BGCouriers_Tracking::reads_cancelled('Отказ от взимане от подател'));
+        $this->assertTrue(BGCouriers_Tracking::reads_cancelled('Анулирана пратка'));
+        $this->assertTrue(BGCouriers_Tracking::reads_cancelled('Cancelled by sender'));
+    }
+
+    /** ...and a shipment that is merely moving must never read that way. */
+    public function test_a_live_shipment_does_not_read_as_cancelled(): void {
+        $this->assertFalse(BGCouriers_Tracking::reads_cancelled('Приета от куриер'));
+        $this->assertFalse(BGCouriers_Tracking::reads_cancelled('Доставена'));
+    }
+
+    /** Sameday states it outright, and the flag beats any reading of the wording. */
+    public function test_the_canceled_flag_is_enough_on_its_own(): void {
+        $t = BGCouriers_Sameday::parse_tracking(
+            ['expeditionSummary' => ['canceled' => true],
+             'expeditionStatus'  => ['status' => 'нещо, което правилата не разпознават']],
+            '1ABC');
+        $this->assertSame('cancelled', $t->stage());
+    }
+
     public function test_a_deleted_shipment_reports_success(): void {
         $this->assertTrue($this->sameday_answering(204)->cancel_label('1ABC'));
     }
