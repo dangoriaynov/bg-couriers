@@ -9,3 +9,16 @@ BGC_E2E_BASE_URL="https://dev.example.com"        # the shop the Playwright suit
 BGC_LEAK_PATTERNS="dev\.example\.com|0888123456"  # grep -E alternation: strings that must never reach the WordPress.org zip
 BGC_PROD_DB="wordpress"                           # production database name, read-only queries via bin/prod-read
 BGC_DB_PREFIX="wp_"                               # WordPress table prefix on that database
+
+# --- Sites inside LXC containers (optional) ------------------------------------------------------
+# Set these when the shop does not live on a machine you can SSH into directly, but in a container on
+# one that you can. Every script that talks to a site then goes through `lxc exec` on that host instead
+# of connecting to the site itself. Leave them unset and everything behaves exactly as before.
+#
+# A half-set route is refused rather than falling back: BGC_LXC_HOST without the container name for the
+# target you asked for is an error, because the quiet fallback is how a deploy lands on the machine
+# nobody is looking at.
+#BGC_LXC_HOST="user@10.0.0.1"     # the host that holds the containers
+#BGC_LXC_DEV="mysite-dev"          # container serving the dev site
+#BGC_LXC_PROD="mysite-web"         # container serving production
+#BGC_WP_BIN="wp"                   # the wp-cli invocation on that machine (a CWP box hides php under /opt/alt)

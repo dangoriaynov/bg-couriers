@@ -31,6 +31,15 @@ P="$BGC_DB_PREFIX"
 
 # One statement, on stdin, so nothing has to survive two levels of shell quoting.
 run_sql() {
+  # Prod lives in an LXC container now. Reading the WRONG machine is not a harmless mistake here: this
+  # script exists to answer questions about production, and a stale copy answers them plausibly and
+  # wrongly - which it did on 2026-08-31, when the payment gateways of a decommissioned box were read
+  # as production's.
+  if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_PROD:-}" ]; then
+    ssh -o BatchMode=yes -o ConnectTimeout=25 "$BGC_LXC_HOST" \
+        "lxc exec ${BGC_LXC_PROD} -- mysql --batch --default-character-set=utf8mb4 ${2:---table} $BGC_PROD_DB" <<< "$1"
+    return
+  fi
   ssh -p "$BGC_SSH_PORT" -o BatchMode=yes -o ConnectTimeout=20 "$BGC_SSH_HOST" \
       "mysql --batch --default-character-set=utf8mb4 ${2:---table} $BGC_PROD_DB" <<< "$1"
 }

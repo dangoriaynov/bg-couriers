@@ -28,7 +28,14 @@ WP_ANY="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root"
 # command would read as a clean one.
 run() {
   local err rc; err="$(mktemp)"
-  ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST" "$@" 2>"$err"; rc=$?
+  # Prod moved into an LXC container that does not take our SSH key, so the way in is the host that
+  # holds it. Transport only - what is run, and the gates around it, are unchanged. A release that
+  # reached the wrong machine would report success about a shop nobody is looking at.
+  if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_PROD:-}" ]; then
+    ssh -o ConnectTimeout=25 "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_PROD} -- bash -lc $(printf '%q' "$*")" 2>"$err"; rc=$?
+  else
+    ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST" "$@" 2>"$err"; rc=$?
+  fi
   grep -v 'manpath: ' "$err" >&2 || true
   rm -f "$err"; return $rc
 }
