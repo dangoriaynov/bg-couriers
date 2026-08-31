@@ -997,9 +997,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'sectionend', 'id' => 'bgcouriers_evropat'],
 
             ['type' => 'title', 'id' => 'bgcouriers_evropat_delivery', 'title' => __('Delivery & label', 'bg-couriers')],
-            ['type' => 'select', 'id' => 'bgcouriers_evropat_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
-                'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
-                'default' => 'A6'],
             ['type' => 'select', 'id' => 'bgcouriers_evropat_sender_file', 'title' => __('Send parcels from', 'bg-couriers'),
                 'desc' => __('Which of your Европът addresses the parcels are sent from. The list comes from your account - enter the key above and save, and it fills in. It also decides the town every price is quoted from.', 'bg-couriers'),
                 'options' => self::evropat_sender_options(), 'default' => ''],

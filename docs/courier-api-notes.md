@@ -243,10 +243,15 @@ field below was found without guessing, and it is the technique to reach for fir
   is a merchant setting (`bgcouriers_evropat_sender_end`) and not an assumption.
 - **Price is by ZONE, not by distance.** Sofia -> Varna quoted identically to Sofia -> Sofia; both are
   zone 1.
-- **The price is NET.** Nothing in the entire API mentions VAT - no request field, no response field,
-  no example, no error. `price` is the exact sum of the parts it lists (3.313 service + 1.27551 fuel =
-  4.5885) and `fuelTaxPrice` is exactly `fuelTaxValue` percent of `mainServicePrice`. The fuel
-  surcharge is therefore already inside the quote: **do not add one.**
+- **The price is GROSS - and the API never says so.** There is not one mention of VAT in any request,
+  response, example or error, and `price` is the exact sum of the parts listed beside it (3.313 service
+  + 1.27551 fuel = 4.5885), which reads exactly like a net total. **The printed товарителница is what
+  settles it:** its price block is headed **"ЦЕНА С ДДС"** and its total is that same 4.59 EUR - the
+  amount the payer hands over at the door (waybill 9107785603). Every quote in this plugin is net,
+  because the rate is added with `taxes => ''` and WooCommerce puts the shipping tax on top, so the
+  figure is split back with `BGCouriers_Pricing::split_gross()` using the shop's own shipping rates -
+  the very ones WooCommerce is about to re-add. Passing it through untouched is the 0.3.5 double-VAT
+  fault. The fuel surcharge is inside the quote too: **do not add one.**
 - **Two currencies in every answer,** and which is which belongs to the ACCOUNT: this one answers
   `mainCurrency: EURO` / `secondCurrency: BGN` while their own documented example answers the other way
   round. Reading `price` blindly is a 1.95583x error waiting for the first shop set up the other way.
@@ -264,6 +269,17 @@ field below was found without guessing, and it is the technique to reach for fir
 - **An office delivery overwrites the recipient address with the office's own,** exactly as documented:
   a waybill sent with `recipientAddress: "СОФИЯ Ул. Градинарска 7"` came back as
   `recipientAddress: "УЛ. ГРАДИНАРСКА"` + `recipientAddressNumber: "7"`.
+- **The label is a LINK, not bytes.** `/printshipment` answers in the ordinary envelope with a URL -
+  `{"error":null,"response":"https://api.evropat.com/printshipment?clientKey=...&barcode=..."}` - and the
+  document is a GET away. Their success example says "Binary of PDF printout"; their own description one
+  line above says "get the URL of the PDF file", and the description is right. **That URL carries the
+  account's API key in its query string**, so it is fetched server-side and dropped: never returned,
+  stored, logged, or put in an exception message.
+- **There is no paper size.** `format` is documented A4/A6/sticker and is read and ignored: all three
+  answered with a link ending `format=A4` and all three documents were the same 93819 bytes. So this
+  courier declares no `label_formats()` and its tab offers no paper select - a control that changes
+  nothing is exactly the decoration the Express One audit went looking for. The printout is their
+  standard **three copies landscape on one A4**, as the 2023 manual described.
 - **Cancelling.** `/cancelshipment` answers a bare `true`. A SECOND cancel of the same waybill is
   refused with `INVALID_SHIPMENT_STATE` rather than answering "already done", so `is_cancelled()` has
   to read the history - an API cancel lands on status **18** ("Анулирана от експорт" /
@@ -276,14 +292,24 @@ field below was found without guessing, and it is the technique to reach for fir
   included - and nothing there shows one waybill to somebody who is not signed in. So `tracking_url()`
   is empty and the admin's Track button is not rendered at all for this courier.
 
-### The live proof, and the one gap
+### The live proof
 
-One waybill (Sofia -> Sofia, office to office, 1 kg, no cash on delivery) was created and cancelled in
-the same run on 2026-08-31: created -> status 1, `priceTotal` 4.59 matching `/calculateprice`,
-cancelled -> status 18, second cancel refused. **Printing is the one thing still unproven end to end:**
-the first attempt used the documented `/print`, which does not exist, and by the time `/printshipment`
-was found the waybill was cancelled and no longer printable. The endpoint and its parameter name are
-confirmed from the API's own error echo; the bytes coming back as a PDF are not.
+The whole cycle was driven through the plugin's own code on 2026-08-31 - Sofia -> Sofia, office to
+office, 1 kg, no cash on delivery:
+
+    created 9107785603 -> printed (PDF, 93807 bytes, three copies on one A4)
+      -> tracked (status 2 "Разпечатана" -> our stage `registered`: still on the merchant's desk)
+      -> cancelled -> is_cancelled() true
+
+Getting there cost three earlier waybills, each spent on something the documentation had wrong: the
+weight field, the print endpoint's name, and then the discovery that it answers with a link rather than
+a document.
+
+**The printed waybill is what corrected the VAT reading above** - no amount of reading the API would
+have. It also confirmed two things that were until then only inferred: `senderFileID` really does fill
+the whole sender half from the cabinet, and `shipmentMoreInfo` prints the order number in the
+"Др. условия" box, which is the only reference field this courier has.
+
 
 ### Not built
 

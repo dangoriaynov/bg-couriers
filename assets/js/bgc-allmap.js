@@ -211,14 +211,17 @@
     // NOW's violet and Speedy's crimson. Magenta it is: ΔE 24 from the nearest pin against 15.8 for the
     // closest pair already here, and nothing on an OpenStreetMap tile is this colour.
     expressone: '#E0189B',
-    // The seventh courier arrives at a full wheel. The six hues above sit at roughly 29 (Pigeon), 185
-    // (Sameday), 222 (Econt), 257 (BOX NOW), 322 (Express One) and 345 (Speedy) degrees, and the one
-    // wide gap left - 29 to 185 - is the green/yellow band this palette rules out, because it is what
-    // OpenStreetMap paints parks and motorways with. So the widest USABLE gap is 257 to 322, and this
-    // sits in the middle of it. Европът's own mark could not be sampled: evropat.com serves its
-    // application shell for every path, /favicon.png included, so there is no logo file to read a brand
-    // colour out of. PROVISIONAL - Express One's pin was computed the same way and the owner's eye
-    // overruled the first attempt; this one has not been through that yet.
+    // Европът's mark carries exactly two colours, sampled off their own logo: red #DB1F26 (hue 358)
+    // and navy #293B81 (hue 228). BOTH are taken, and taken by near-identical neighbours - Speedy's
+    // crimson is hue 345 and Econt's navy is hue 222, which is 13 and 6 degrees away. At pin size that
+    // is the same colour twice, the thing the Express One attempt proved cannot be fixed by adjusting
+    // lightness.
+    //
+    // So this follows Sameday and Express One before it: a courier whose brand colours are taken gets
+    // one that is not in its logo. The six hues here sit at 29 (Pigeon), 185 (Sameday), 222 (Econt),
+    // 257 (BOX NOW), 322 (Express One) and 345 (Speedy); the one wide gap, 29 to 185, is the
+    // green/yellow band this palette rules out as what OpenStreetMap paints parks and motorways with.
+    // That leaves 257-322 as the widest usable arc, and this sits in the middle of it.
     evropat: '#9B26B6'
   };
   var PIN_FALLBACK = ['#6A1B9A', '#00838F', '#4E342E', '#1B5E20', '#37474F'];

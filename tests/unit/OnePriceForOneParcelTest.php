@@ -5,13 +5,7 @@ use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.php';
 
-if (!class_exists('WC_Tax')) {
-    /** Just enough WC_Tax for the display rule: a flat 20% shipping tax, which is the Bulgarian rate. */
-    class WC_Tax {
-        public static function get_shipping_tax_rates() { return ['x' => ['rate' => 20.0]]; }
-        public static function calc_shipping_tax($price, $rates) { return ['x' => round($price * 0.2, 2)]; }
-    }
-}
+require_once dirname(__DIR__) . '/stubs/wc-tax.php';
 
 /**
  * The map and the checkout must answer with the same price for the same parcel. They cannot do that
