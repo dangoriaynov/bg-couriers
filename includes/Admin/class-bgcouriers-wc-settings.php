@@ -323,7 +323,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     private static function courier_color(string $id): string {
-        $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034', 'expressone' => '#E0189B', 'evropat' => '#9B26B6'];
+        $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034', 'expressone' => '#E0189B', 'evropat' => '#FFCC00'];
         return $map[$id] ?? '#6b7280';
     }
 

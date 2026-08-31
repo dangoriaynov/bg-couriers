@@ -337,9 +337,19 @@ class BGCouriers_Ajax {
         foreach (BGCouriers_Settings::enabled_methods($cid) as $t) {
             try {
                 $q = BGCouriers_Pricing::checkout_quote($obj, $t, (int) $city['city_id'], 0, $packed, get_woocommerce_currency(), $country);
-                // Printed the way the shipping row beside it is printed: with the tax when the shop
-                // shows prices with tax. Shown net, the map read cheaper than the checkout it feeds.
-                $v = $q ? BGCouriers_Pricing::display_price((float) $q->price) : 0.0;
+                // Printed exactly the way the shipping row beside it is printed, because the map is
+                // what feeds that row - and the two numbers being different is the fault this line
+                // exists to prevent. Which sum that is depends on WHO gets paid: a delivery charged
+                // with the order is the shop's own price and follows the shop's display setting, while
+                // one paid at the door is the courier's cash and carries its tax whatever the shop
+                // chooses to show. Both branches are the same call the shipping method makes.
+                if (!$q) {
+                    $v = 0.0;
+                } elseif (BGCouriers_Settings::ship_in_total($cid)) {
+                    $v = BGCouriers_Pricing::display_price((float) $q->price);
+                } else {
+                    $v = BGCouriers_Pricing::door_price($q);
+                }
             } catch (\Throwable $e) { $v = 0.0; }   // one unreachable courier must not empty the map
             if ($v > 0) {
                 $raw[$t]    = $v;

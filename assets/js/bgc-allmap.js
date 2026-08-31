@@ -215,14 +215,21 @@
     // and navy #293B81 (hue 228). BOTH are taken, and taken by near-identical neighbours - Speedy's
     // crimson is hue 345 and Econt's navy is hue 222, which is 13 and 6 degrees away. At pin size that
     // is the same colour twice, the thing the Express One attempt proved cannot be fixed by adjusting
-    // lightness.
+    // lightness. So, like Sameday and Express One before it, this courier gets a colour that is not in
+    // its logo at all.
     //
-    // So this follows Sameday and Express One before it: a courier whose brand colours are taken gets
-    // one that is not in its logo. The six hues here sit at 29 (Pigeon), 185 (Sameday), 222 (Econt),
-    // 257 (BOX NOW), 322 (Express One) and 345 (Speedy); the one wide gap, 29 to 185, is the
-    // green/yellow band this palette rules out as what OpenStreetMap paints parks and motorways with.
-    // That leaves 257-322 as the widest usable arc, and this sits in the middle of it.
-    evropat: '#9B26B6'
+    // The first attempt took the widest arc left between the existing hues, 257-322, and landed on a
+    // violet-magenta. The owner's eye threw it out on sight - in the LEGEND it sat next to Express
+    // One's magenta and read as the same swatch. That is the second time a computed colour has lost to
+    // looking at it, and the second time the eye was right.
+    //
+    // Yellow, then - his suggestion, and the one hue nothing else here is near: 48 degrees, against
+    // Pigeon's orange at 29 and Sameday's teal at 185. The note above about greens and yellows was
+    // written against OpenStreetMap's parks and motorway casings, and it holds for a PALE yellow; this
+    // one is fully saturated and every pin carries a 2px white ring and a drop shadow, so it reads as
+    // deliberately not-map. It has to be this saturated for the legend, where the swatch is 8px with no
+    // ring at all and a pale yellow would simply vanish against white.
+    evropat: '#FFCC00'
   };
   var PIN_FALLBACK = ['#6A1B9A', '#00838F', '#4E342E', '#1B5E20', '#37474F'];
   var pinColour = {};
