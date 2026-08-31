@@ -616,6 +616,14 @@ class BGCouriers_Labels {
         $courier = $this->courier_for($order);
         if (!$courier) { wp_die(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
         $url  = $courier->tracking_url($waybill);
+        // A courier may publish no public tracking page at all (Европът does not). wp_safe_redirect('')
+        // sends the merchant to a blank screen with no clue why, so say it instead.
+        if ($url === '') {
+            wp_die(esc_html(sprintf(
+                /* translators: 1: courier name, 2: the waybill number */
+                __('%1$s has no public tracking page. The waybill number is %2$s.', 'bg-couriers'),
+                $courier->label(), $waybill)));
+        }
         $host = wp_parse_url($url, PHP_URL_HOST);
         add_filter('allowed_redirect_hosts', function ($h) use ($host) { if ($host) { $h[] = $host; } return $h; });
         wp_safe_redirect($url);

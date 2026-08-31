@@ -1,0 +1,30 @@
+{
+  "error": null,
+  "errorMessage": null,
+  "response": [
+    {
+      "destinationID": "273",
+      "addressID": "139458",
+      "address": "архитект никола лазаров 197 ж.к. симеоново витоша парк бл. ирис ет. 4 ап. 15",
+      "addressFull": "жк. архитект никола лазаров 197 ж.к. симеоново витоша парк бл. ирис ет. 4 ап. 15",
+      "typeName": "жк",
+      "typeNameFull": "жилищен комплекс"
+    },
+    {
+      "destinationID": "273",
+      "addressID": "138216",
+      "address": "архитект никола лазаров витоша парк мимоза а-10",
+      "addressFull": "ул. архитект никола лазаров витоша парк мимоза а-10",
+      "typeName": "ул",
+      "typeNameFull": "улица"
+    },
+    {
+      "destinationID": "273",
+      "addressID": "164832",
+      "address": "бу витоша",
+      "addressFull": "ул. бу витоша",
+      "typeName": "ул",
+      "typeNameFull": "улица"
+    }
+  ]
+}

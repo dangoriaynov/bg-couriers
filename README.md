@@ -55,7 +55,7 @@ Working on the code: [`CONTRIBUTING.md`](CONTRIBUTING.md) - architecture, tests,
 | **Pigeon Express** | ✅ Live on `main` | checkout (office/address), live quotes, labels; tracking live-verified against real shipments |
 | **BOX NOW** | ✅ Live on `main` | locker-only, flat-rate, OAuth2, **map-widget** locker picker; full create → label → track → cancel cycle verified. Needs a prepaid gateway to be offered at checkout: it cannot do наложен платеж |
 | **Sameday** | ✅ Live on `main` | checkout (address/APS), live quotes, labels, tracking; create → PDF → track → cancel verified against a live account (easyBox-only on it) |
-| **Европът (Evropat-2000)** | 📋 Planned | API key is **self-service** from online.evropat.com; owner wrote to them 2026-08-17. No public API docs - they ship with the key. Their **online-module manual is read** and the domain is mapped (`docs/courier-api-notes.md`): **no lockers** (ОФ-ОФ/ОФ-ВР/ВР-ОФ/ВР-ВР only), НП + ППП both present, tariff weight is volumetric `w*l*h/6000` |
+| **Европът (Evropat-2000)** | ✅ Built on `main` (unreleased) | checkout (office/address), live per-destination quotes, labels, tracking, cancel, courier request. Measured against a live account 2026-08-31; one waybill created and cancelled. **Printing is the one path not yet proven end to end** - the endpoint their docs name (`/print`) does not exist, and `/printshipment` was found after the test waybill had been cancelled. No lockers in BG (`countryBoxDeliveryAvailable: 0`), no public tracking page, one API key and no username |
 | **Български пощи** | ❌ Not planned | no public API - integration only under contract, and *no* Bulgarian integrator carries them (Izprati, CloudCart, SELITON, PRIM.IO all omit them). Dropped 2026-08-17 |
 
 ## Features in detail

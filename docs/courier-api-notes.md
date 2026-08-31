@@ -195,77 +195,102 @@ whatever the shop-wide setting says, and existing installs are pinned to what th
 `BGCouriers_Plugin::pin_autolabel()`. Questions still out with Sameday: a cutoff hour, whether the
 portal has a pickup schedule, whether a refused AWB can be reused and whether it is charged.
 
-## 4. Европът / Evropat-2000 - *domain model known from their own manual; API still unseen*
+## 4. Европът / Evropat-2000 - *MEASURED against a live account, 2026-08-31*
 
-Read from **"Указание за работа с модула ЕВРОПЪТ ОНЛАЙН"** (18 pages, LibreOffice, 2023-09-14), the
-owner's copy of the manual for their web module at https://online.evropat.com. It is a **user manual, not
-an API document** - there is no mention of an API, JSON, XML or an integration anywhere in it. What it
-does give is the complete shape of a Европът товарителница, which is what an adapter has to fill in, and
-it settles two questions that were open.
+The API key arrived and the whole surface was mapped against the shop's own production account. What
+follows replaces the guesses that stood here before; where the courier's own documentation disagrees
+with the live service, the live service is what is written down.
 
-**SETTLED: no lockers.** Delivery is one of exactly four combinations, and every one of them is an office
-or a door: **ОФ-ОФ** (office to office, до поискване), **ОФ-ВР** (office to the recipient's door),
-**ВР-ОФ** (from the sender's door to an office), **ВР-ВР** (door to door). So Европът gets **two**
-delivery options in our checkout - `office` and `address` - and no `automat`.
+**Their documentation is served by the API itself and it is behind the service.** `https://api.evropat.com/`
+is an apiDoc page whose full spec sits inside `assets/main.bundle.js` - 29 endpoints, every one POST,
+every one authenticated by a `clientKey` in the BODY (no header, no token, no session). It is worth
+reading and it must not be trusted on its own: four required fields were found only by being refused.
 
-**SETTLED: cash on delivery exists, in both forms.** The waybill carries **НП (наложен платеж)** and
-**ППП (пощенски паричен превод)** with the amount, and the direction is **mandatory**: `СЪБЕРИ` (collect
-from the recipient) or `ИЗПЛАТИ` (pay out to them). That maps onto what this shop already fiscalises
-through (`cod_fiscalization = ppp`).
+**Every answer is HTTP 200.** Success is `{"error":null,"errorMessage":null,"response":…}`, failure is
+`{"error":"CODE","errorMessage":"…на български…","request":{…},"response":null}`. The HTTP status
+decides nothing.
 
-**The four ends, and what they mean for us.** ОФ-ОФ/ОФ-ВР/ВР-ОФ/ВР-ВР encode BOTH ends of the journey, so
-the adapter needs a merchant setting for the SENDER end (drop at an office vs courier collects from the
-premises) as well as the customer's choice for the recipient end. This is the same gap the audit found in
-our Pigeon adapter, which hardcodes `pickup_type: office` - worth solving once, for both.
+**Their refusals name the field they actually read.** The `request` object in an error echoes the
+parameter the service looked for, with `null` when it was not sent. That is how every undocumented
+field below was found without guessing, and it is the technique to reach for first next time.
 
-**Waybill fields, from the manual:**
+### Where the documentation is wrong
 
-- **Recipient:** населено място, chosen as `postcode - name - region`; the **serving office is derived
-  automatically from the town**; фирма; адрес with №/блок/вход/етаж/апартамент plus a free-text
-  `адрес пояснение`; получател (three names); телефон.
-- **Shipment kind:** `ДОКУМЕНТ` (a document up to **0.500 kg**) or `КОЛЕТ` (anything else), плюс `БРОЙ`
-  (how many packages) and an `ОПИСАНИЕ` that is required for every parcel, cargo or pallet shipment.
-- **Weight is TARIFF weight**, not the real one: the greater of the actual weight and the volumetric,
-  where **volumetric = width x length x height / 6000** (cm). Dimensions are only filled in when the
-  volumetric figure is the one that applies. Our packer would have to compute this, or send the box and
-  let them.
-- **Services:** SMS/Viber notice, верификация, чупливо, недостатъчна опаковка (which FORBIDS обявена
-  стойност), карго експрес (>= 100 kg), евро палет / нестандартен палет, expres tiers **Е2/Е3/ЕК/ЕМ**,
-  приоритет hour (10:00-18:00, zone 1 only), ОР (обратна разписка), ПД (signed documents back).
-- **Cash on delivery extras:** `ДА СЕ ОТВОРИ ПРЕДИ ПЛАЩАНЕ` - the recipient may open the parcel before
-  paying, which is our open-before-payment service under another name - and `ПРИ ОТКАЗ ДА СЕ ВЪРНЕ ЗА МОЯ
-  СМЕТКА` (a refusal returns at the sender's expense).
-- **Обявена стойност** requires the value AND the document proving it: type (фактура / стокова разписка /
-  друго), number and date. Not optional the way Speedy's declared value is.
-- **Payer:** `ПОДАТЕЛ` / `ПОЛУЧАТЕЛ` / `ТРЕТА СТРАНА`, paid `В БРОЙ` or against a **клиентски номер** in
-  the form `E<three digits><office index>`. Three payers is one more than our sender/recipient model.
-- **Price** comes back computed: a `ТАРИФЕН КОД` derived from sender + recipient + services, plus the
-  month's `ТАКСА ГОРИВО` (fuel surcharge) on top. So their quote already includes the fuel surcharge -
-  do not add one.
-- **Sender-side:** `Изплати НП на мен` covers third-party logistics (shipping from an address that is not
-  the registered one, with the collection still paid to the account holder).
+| documented | actually | how it failed |
+|---|---|---|
+| `/calculateprice` takes no destination | needs `fromDestID` **and** `toDestID` | `INVALID_FROM_DESTINATION_ID` |
+| `/calculateprice` `method:1` needs nothing more | needs `clientNumber` | `INVALID_CLIENT_NUMBER` |
+| `/getshipmentprice` same spelling | wants `fromDestinationID` | different endpoint, different spelling for one idea |
+| `/createshipment` lists no weight field at all | requires `shipmentWeight` | `INVALID_SHIPMENT_WEIGHT` |
+| `POST /print` with a `barcodes` array of up to 200 | **`/printshipment`**, ONE `shipmentBarCode` | `SERVICE_NOT_FOUND`, then the error echoed `shipmentBarCode` |
+| `senderFileID` "Related Link: /library/list/addresses" | `/getclientaddresses` | the doc carries old paths throughout (`/destinations` for `/getdestinations`) |
+| `/getshipmenthistory` returns name only | also returns `statusID` | the live answer is richer than its own example |
 
-**Operational shape** (useful for what an adapter must expose, and what it need not):
+### The shape
 
-- A waybill can be **saved** (prepared, no print) or **saved and printed**; printing yields **three copies
-  landscape on one A4**, and parcel labels print separately as **A4 or sticker**.
-- Cancelling is `Отказване` in the Пратки menu - and a saved-but-unprinted waybill is a real, cancellable
-  record, not a draft.
-- **Pickup requests are a separate menu** (`Заяви куриер`) with a date and an earliest/latest hour, and a
-  hard cut-off: after **17:30** on a full working day, or **12:00** on a short one, the request rolls to
-  the next working day. If we ever automate pickup requests, that cut-off is the rule to encode.
-- `Разпореждания` is their re-delivery instruction flow for undelivered parcels - no equivalent in this
-  plugin, and none needed for a first adapter.
-- `Фактури и описи` and `НП/ППП информация` are **activated on request** per account, so an adapter must
-  not assume the account can read its own collections.
+- **Nomenclature.** `/getdestinations` (`limit: -1` for all) gives `destinationID`, name, English name,
+  zone, postcode, province, `destinationServicingDays` ("1111110" from Monday) and
+  `destinationServicingOfficeID` - the office that serves a town with no counter of its own.
+  `/getoffices` gives id, name, address, phone, working hours and lat/lng. `/getaddresses` is a full
+  per-town STREET list with an `addressID` each, which is why `street_list_only()` is true here.
+- **No lockers in Bulgaria - but the reason changed.** The 2023 manual said Европът has none at all.
+  The API *does*: `/get-box`, `/get-boxes`, and `deliveryType` 5 and 6 deliver to one. What settles it
+  is `/getcountries`, which answers `countryBoxDeliveryAvailable: "0"` for BG. So two delivery options
+  here, and the day that flag flips, `automat` becomes real without an API change.
+- **`deliveryType` encodes BOTH ends** - 1 ОФ-ОФ, 2 ОФ-ВР, 3 ВР-ОФ, 4 ВР-ВР - which no other courier
+  in this plugin does. Measured, Sofia -> Sofia, 1 kg, sender pays by account, EUR net:
+  **office->office 4.5885, office->door 5.4389, door->door 6.5150.** A 40% spread, so the sender's end
+  is a merchant setting (`bgcouriers_evropat_sender_end`) and not an assumption.
+- **Price is by ZONE, not by distance.** Sofia -> Varna quoted identically to Sofia -> Sofia; both are
+  zone 1.
+- **The price is NET.** Nothing in the entire API mentions VAT - no request field, no response field,
+  no example, no error. `price` is the exact sum of the parts it lists (3.313 service + 1.27551 fuel =
+  4.5885) and `fuelTaxPrice` is exactly `fuelTaxValue` percent of `mainServicePrice`. The fuel
+  surcharge is therefore already inside the quote: **do not add one.**
+- **Two currencies in every answer,** and which is which belongs to the ACCOUNT: this one answers
+  `mainCurrency: EURO` / `secondCurrency: BGN` while their own documented example answers the other way
+  round. Reading `price` blindly is a 1.95583x error waiting for the first shop set up the other way.
+- **Collecting money is priced and must reach the quote.** `cashOnDelivery: 50` cost 0.6136 and lifted
+  the fuel surcharge with it, because the surcharge applies to the whole service and not to the base
+  rate. Leaving it out is the 0.3.6 fault again.
+- **ППП is an ACCOUNT permission, and its absence is silent.** `/getclientaddresses` carries
+  `allowedPostalMoneyOrder`. On an account where it is "0", `postalMoneyOrder: 50` is accepted, priced
+  at **0.00**, and the shipment is booked with no money to collect - no error, no flag. So the flag is
+  read from the account and a ППП that cannot be done becomes a наложен платеж with a note on the
+  order. Европът activates ППП per account on request.
+- **`senderFileID` fills the sender half** - their own note: "actually fills the following parameters
+  when they not passed: senderDestID, senderAddress, senderName, senderPhone, senderFirm, clientNumber,
+  paymentWay". So the merchant picks a line from their own cabinet instead of retyping seven fields.
+- **An office delivery overwrites the recipient address with the office's own,** exactly as documented:
+  a waybill sent with `recipientAddress: "СОФИЯ Ул. Градинарска 7"` came back as
+  `recipientAddress: "УЛ. ГРАДИНАРСКА"` + `recipientAddressNumber: "7"`.
+- **Cancelling.** `/cancelshipment` answers a bare `true`. A SECOND cancel of the same waybill is
+  refused with `INVALID_SHIPMENT_STATE` rather than answering "already done", so `is_cancelled()` has
+  to read the history - an API cancel lands on status **18** ("Анулирана от експорт" /
+  "Анулирана от онлайн акаунт").
+- **Tracking.** `/getshipmenthistory` returns `{statusID, stateName, dateAndTime, additionalInformation}`.
+  `/shipment-statuses-nomenclature` publishes all 41 statuses; note that the history's `stateName` is
+  the nomenclature's DESCRIPTION ("Създадена") and not its NAME ("Създаване"), so a name-based map has
+  to index both. 19 = Разнесена (delivered), 10 = Върната на подател, 18 = Анулирана.
+- **No public tracking page.** evropat.com serves its application shell for every path - `/favicon.png`
+  included - and nothing there shows one waybill to somebody who is not signed in. So `tracking_url()`
+  is empty and the admin's Track button is not rendered at all for this courier.
 
-**Still unknown, and only the API key answers it:** everything about the transport - endpoints, auth
-header, field names, whether a price can be quoted before a waybill is created (the manual only ever
-prices a filled-in waybill), and whether nomenclature (towns/offices) can be pulled at all. Nothing above
-should be turned into code until the real documentation is in hand; it is the domain, not the wire format.
+### The live proof, and the one gap
 
-The PDF itself is NOT in this repository - it is Европът's material and 2.4 MB of it; the owner holds the
-copy.
+One waybill (Sofia -> Sofia, office to office, 1 kg, no cash on delivery) was created and cancelled in
+the same run on 2026-08-31: created -> status 1, `priceTotal` 4.59 matching `/calculateprice`,
+cancelled -> status 18, second cancel refused. **Printing is the one thing still unproven end to end:**
+the first attempt used the documented `/print`, which does not exist, and by the time `/printshipment`
+was found the waybill was cancelled and no longer printable. The endpoint and its parameter name are
+confirmed from the API's own error echo; the bytes coming back as a PDF are not.
+
+### Not built
+
+`/create-international-shipment`, `/createshipmentbetweenrange`, `/changeparcelsandweight`,
+`/getbulkshipmenthistory`, `/printtwowayshipment` and the box endpoints. `twoWayShipment` (their return
+voucher, the same idea as Speedy's) and `shipmentValue` (declared value, which needs a document type
+and number - not optional the way Speedy's is) are both real and both unmeasured.
 
 ## Courier pickup requests - NOT built, and it is part of the flow, not an extra
 

@@ -52,6 +52,24 @@ class BGCouriers_Tracking {
         'expressone_7'  => 'cancelled',    // Анулирана
         'expressone_8'  => 'transit',      // Неуспешен разнос - an attempt that failed; the parcel is still out
         'expressone_12' => 'returned',     // Върната към подател
+        // Европът's are numbers too, and its history endpoint does not even send them - it sends the
+        // status NAME, which the adapter resolves back to an id against /shipment-statuses-nomenclature
+        // (41 statuses, read 2026-08-31). Only the ones our text rules would get WRONG are listed;
+        // everything else falls to 'transit', which never ends tracking and never completes an order.
+        'evropat_1'  => 'registered',   // Създадена - the waybill exists, the parcel has not moved
+        'evropat_2'  => 'registered',   // Разпечатана - printed, and still on the merchant's desk
+        'evropat_64' => 'ready',        // Уточнена за офис
+        'evropat_82' => 'ready',        // Непотърсена - at the office, nobody has come for it
+        'evropat_86' => 'ready',        // Пристигнала в офис/склад - "пристигнала" reads as arrival, not delivery
+        'evropat_19' => 'delivered',    // Разнесена
+        'evropat_83' => 'returning',    // Връща се към подател
+        'evropat_10' => 'returned',     // Върната на подател
+        'evropat_18' => 'cancelled',    // Анулирана
+        // A refusal is not a cancellation: the parcel is still out and on its way back, and letting the
+        // text rules read "Отказана" as cancelled would close the order on a shipment still in the van.
+        'evropat_6'  => 'transit',      // Отказана
+        'evropat_68' => 'transit',      // Отказана без плащане
+        'evropat_9'  => 'transit',      // Не може да плати КУ/НП/ППП
         // 10 "Финализирана" is deliberately absent. It is the accounting close and says nothing about
         // where the parcel is - it was observed both after a delivery and before a cancellation - so it
         // falls through to 'transit', which never ends a shipment and never completes an order.

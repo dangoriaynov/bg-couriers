@@ -485,7 +485,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
             $s['street_id'] = $hit['id'];
             if ($hit['ambiguous']) {
                 $problems[] = sprintf(
-                    /* translators: %s: the street as Express One spells it. */
+                    /* translators: %s: the street as the courier spells it. */
                     __('More than one street in this town is called that; the parcel goes to "%s".', 'bg-couriers'), $hit['label']);
             }
         }

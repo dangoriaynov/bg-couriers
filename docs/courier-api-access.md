@@ -47,7 +47,7 @@ offer fully self-service API signup - each requires contacting the courier.
   asks of a courier.
 - **Still needed from them:** production credentials, and the production sender object id.
 
-## 4. Европът / Evropat-2000 (Bulgaria) - courier (evropat.bg)  *(owner wrote to them 2026-08-17)*
+## 4. Европът / Evropat-2000 (Bulgaria) - courier (evropat.bg)  *(KEY IN HAND, adapter built 2026-08-31)*
 
 - **The API key is self-service, and that is what makes this one cheap.** It is generated from the
   merchant's own account at **https://online.evropat.com** - or by asking sales - and generating it also
@@ -61,7 +61,11 @@ offer fully self-service API signup - each requires contacting the courier.
   2. Take the documentation and their own WooCommerce plugin that the key unlocks - the plugin is the
      same kind of readable prior art that made Express One's shapes knowable in advance.
   3. Drop the key server-side; the adapter goes on the existing multi-courier framework like the rest.
-- **Both open questions are now SETTLED**, from their own manual for the online module ("Указание за
+- **The API is now MEASURED, not guessed.** Everything below was written before the key existed; the shapes, the
+  endpoints and the four required fields their documentation omits are in `courier-api-notes.md` §4. The one thing
+  worth repeating here: there is **no API username** - the key is the whole credential, which is why this courier
+  overrides `credential_fields()`.
+- **Both open questions were SETTLED even before that**, from their own manual for the online module ("Указание за
   работа с модула ЕВРОПЪТ ОНЛАЙН", 2023-09-14; see `courier-api-notes.md` for the full domain model):
   - **No lockers.** Delivery is one of ОФ-ОФ / ОФ-ВР / ВР-ОФ / ВР-ВР - office and door only. Европът gets
     **two** delivery options here, not three.

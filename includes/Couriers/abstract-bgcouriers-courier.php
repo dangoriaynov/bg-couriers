@@ -51,6 +51,19 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
     public function street_list_only(): bool { return false; }
 
     /**
+     * Which halves of the credential pair this courier actually issues.
+     *
+     * Every courier here but one hands out two things - a username and a password, a client id and a
+     * secret, a key and a secret - so the default is both. Европът issues ONE API key from the
+     * merchant's own cabinet and no username at all, and a shop cannot be made to invent the other half
+     * to satisfy a check: creds_present() would otherwise refuse to enable a courier that is perfectly
+     * configured, and the settings tab would ask for a field that does not exist.
+     *
+     * @return string[] subset of ['username','password']
+     */
+    public function credential_fields(): array { return ['username', 'password']; }
+
+    /**
      * Delivery kinds this courier CANNOT collect cash on.
      *
      * Cash on delivery is a service of the courier, not of the shop, and a courier may offer it to a
