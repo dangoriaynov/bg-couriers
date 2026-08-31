@@ -10,6 +10,9 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-cour
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-evropat.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
+require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
+require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.php';
+require_once dirname(__DIR__) . '/stubs/wc-tax.php';
 
 /**
  * A Европът whose calls are answered from the fixtures instead of from the courier.
@@ -31,9 +34,13 @@ final class Evropat_Fixture_Client extends BGCouriers_Evropat {
         }
         return $this->answers[$path];
     }
-    protected function post_raw(string $path, array $body): string {
-        $this->sent[] = ['path' => $path, 'body' => $body];
-        return '%PDF-1.4 pretend';
+    /** @var string what the (secret) label link is pretended to return */
+    public $pdf_bytes = '%PDF-1.4 pretend';
+    /** @var string[] every URL fetched */
+    public $fetched = [];
+    protected function http_get(string $url) {
+        $this->fetched[] = $url;
+        return ['body' => $this->pdf_bytes];
     }
     /** The seam under post_json(), so cancel_label()'s own envelope handling is the code under test. */
     protected function http_post(string $url, array $body) {
@@ -60,6 +67,9 @@ final class EvropatParsersTest extends TestCase {
         Functions\when('esc_html')->returnArg(1);   // exception messages are esc_html()'d (Plugin Check)
         Functions\when('get_transient')->justReturn(false);
         Functions\when('set_transient')->justReturn(true);
+        Functions\when('is_wp_error')->justReturn(false);
+        Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
+        Functions\when('wp_remote_retrieve_body')->alias(function ($r) { return is_array($r) ? ($r['body'] ?? '') : ''; });
         Functions\when('__')->returnArg(1);
         if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }
     }
@@ -119,13 +129,32 @@ final class EvropatParsersTest extends TestCase {
 
     // ── Price ────────────────────────────────────────────────────────────────
 
-    public function test_the_price_is_net_and_carries_no_tax_of_its_own(): void {
-        // Nothing in the whole API mentions VAT: no field, no example, no error. `price` is the exact
-        // sum of the parts it lists, so WooCommerce adds the tax once, as it does for every courier here.
-        $q = BGCouriers_Evropat::parse_price($this->body('calculateprice-office.json'), 'EUR');
-        $this->assertSame(0.0, $q->tax);
+    public function test_their_price_includes_vat_and_is_handed_over_net(): void {
+        // Nothing in the API says the price is gross - the printed товарителница does, its price block
+        // headed "ЦЕНА С ДДС" over the same 4.59. Every quote in this plugin is net because WooCommerce
+        // adds the shipping tax on top, so passing their figure through would tax it twice (the 0.3.5
+        // fault). The split must give the courier's own total back when the tax is re-applied.
+        $d = $this->body('calculateprice-office.json');
+        $gross = (float) $d['price'];
+        $q = BGCouriers_Evropat::parse_price($d, 'EUR');
         $this->assertSame('live', $q->source);
-        $this->assertSame($q->price, $q->total());
+        $this->assertGreaterThan(0, $q->tax, 'their price carries VAT and it has to come back out');
+        $this->assertLessThan($gross, $q->price);
+        $this->assertEqualsWithDelta($gross, $q->total(), 0.01, 'net + tax must be what the courier quoted');
+        // 20% Bulgarian shipping tax: 4.5885 gross -> 3.82 net.
+        $this->assertEqualsWithDelta(round($gross / 1.2, 2), $q->price, 0.01);
+    }
+
+    public function test_taking_the_tax_out_and_putting_it_back_gives_the_couriers_own_figure(): void {
+        // The invariant that matters: the split uses the SAME rates WooCommerce re-adds, so whatever it
+        // takes out comes back. If these two ever disagree the customer is charged a price the courier
+        // never quoted - in one direction or the other.
+        foreach ([4.5885, 6.515, 12.34, 0.99] as $gross) {
+            list($net, $tax) = BGCouriers_Pricing::split_gross($gross);
+            $back = $net + array_sum(WC_Tax::calc_shipping_tax($net, WC_Tax::get_shipping_tax_rates()));
+            $this->assertEqualsWithDelta($gross, $back, 0.02, "round trip broke at $gross");
+            $this->assertEqualsWithDelta($gross, $net + $tax, 0.01);
+        }
     }
 
     public function test_the_price_is_the_sum_of_the_parts_the_answer_lists(): void {
@@ -144,8 +173,8 @@ final class EvropatParsersTest extends TestCase {
         $d = $this->body('calculateprice-office.json');
         $eur = BGCouriers_Evropat::parse_price($d, 'EUR');
         $bgn = BGCouriers_Evropat::parse_price($d, 'BGN');
-        $this->assertEqualsWithDelta((float) $d['price'], $eur->price, 0.01);
-        $this->assertEqualsWithDelta((float) $d['priceSecondCurrency'], $bgn->price, 0.01);
+        $this->assertEqualsWithDelta((float) $d['price'], $eur->total(), 0.01);
+        $this->assertEqualsWithDelta((float) $d['priceSecondCurrency'], $bgn->total(), 0.01);
         $this->assertGreaterThan($eur->price, $bgn->price);
     }
 
@@ -322,17 +351,42 @@ final class EvropatParsersTest extends TestCase {
         $this->assertSame(2.0, $body['shipmentWeight']);
     }
 
-    public function test_the_label_is_asked_for_by_the_name_their_error_echoes(): void {
-        // Their documented POST /print does not exist (SERVICE_NOT_FOUND) and the endpoint that does
-        // reads ONE `shipmentBarCode`, not an array of `barcodes`.
+    public function test_the_label_arrives_as_a_link_that_is_then_fetched(): void {
+        // /printshipment returns the ADDRESS of the document, not the document - their own description
+        // says so even though their success example shows bytes.
         $c = $this->client();
+        $c->envelopes['/printshipment'] = ['error' => null, 'response' => 'https://api.evropat.com/printshipment?clientKey=SECRET&barcode=9100000000&format=A4'];
         Functions\when('get_option')->alias(function ($k, $d = '') { return $d; });
-        $c->get_label_pdf('9100000000', 'A6');
-        $call = end($c->sent);
-        $this->assertSame('/printshipment', $call['path']);
-        $this->assertSame('9100000000', $call['body']['shipmentBarCode']);
-        $this->assertArrayNotHasKey('barcodes', $call['body']);
-        $this->assertSame('A6', $call['body']['format']);
+        $pdf = $c->get_label_pdf('9100000000', 'A6');
+        $this->assertStringStartsWith('%PDF', $pdf);
+        $this->assertCount(1, $c->fetched);
+        $post = $c->sent[0];
+        $this->assertStringEndsWith('/printshipment', $post['path']);
+        $this->assertSame('9100000000', $post['body']['shipmentBarCode']);
+        // The paper size is read and ignored by them, so it is not sent at all.
+        $this->assertArrayNotHasKey('format', $post['body']);
+        $this->assertArrayNotHasKey('barcodes', $post['body']);
+    }
+
+    public function test_the_label_link_never_reaches_an_error_message(): void {
+        // That URL carries the account's API key in its query string. A failure must not quote it.
+        $c = $this->client();
+        $c->envelopes['/printshipment'] = ['error' => null, 'response' => 'https://api.evropat.com/printshipment?clientKey=SUPERSECRET&barcode=1'];
+        $c->pdf_bytes = '<html>not a pdf</html>';
+        Functions\when('get_option')->alias(function ($k, $d = '') { return $d; });
+        try {
+            $c->get_label_pdf('9100000000');
+            $this->fail('expected a refusal');
+        } catch (BGCouriers_Api_Exception $e) {
+            $this->assertStringNotContainsString('SUPERSECRET', $e->getMessage());
+            $this->assertStringNotContainsString('clientKey', $e->getMessage());
+        }
+    }
+
+    public function test_there_is_no_paper_size_to_choose(): void {
+        // A6, A4 and sticker all answered with the same A4 document, byte for byte. Offering a select
+        // would be a control that changes nothing.
+        $this->assertSame([], (new BGCouriers_Evropat(['password' => 'k']))->label_formats());
     }
 
     public function test_one_waybill_per_printout_means_no_native_batch(): void {

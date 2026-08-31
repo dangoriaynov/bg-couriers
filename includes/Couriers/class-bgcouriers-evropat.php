@@ -24,7 +24,8 @@ defined('ABSPATH') || exit;
  *    allowedPostalMoneyOrder "0". A waybill built on that answer would travel with no money to
  *    collect, so it is refused here instead (see ppp_allowed()).
  *
- * Measured prices, Sofia -> Sofia, 1 kg parcel, sender pays by account (EUR, net):
+ * Measured prices, Sofia -> Sofia, 1 kg parcel, sender pays by account (EUR, GROSS - their price
+ * includes VAT; see parse_price()):
  *   office -> office 4.5885 | office -> door 5.4389 | door -> door 6.5150
  * So `deliveryType` - which encodes BOTH ends of the journey - moves the price by 40%, which is why
  * the sender's end is a setting and not an assumption. Sofia -> Varna quoted identically to
@@ -32,6 +33,9 @@ defined('ABSPATH') || exit;
  */
 class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interface {
     const BASE = 'https://api.evropat.com';
+
+    /** Their public tracking page. Takes no waybill - see tracking_url(). */
+    const TRACK_URL = 'https://evropat.bg/track/';
 
     /** Their `deliveryType`, keyed [sender end][recipient end]. 1..4 = ОФ-ОФ, ОФ-ВР, ВР-ОФ, ВР-ВР. */
     const DELIVERY_TYPE = [
@@ -125,25 +129,29 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * The same, for /print - which answers with the PDF itself and not with the envelope.
+     * Fetch a document the API has handed us the address of.
      *
-     * It still refuses in JSON, at HTTP 200, so the two are told apart by what came back rather than by
-     * the status line: bytes beginning %PDF are the document, anything else is an error to be unwrapped
-     * (which throws) - and if it somehow parses as a success, that is an answer we do not understand and
-     * must not hand to a printer.
+     * Kept apart from call() because what comes back is bytes rather than an envelope, and because the
+     * address itself is a secret - see get_label_pdf().
      *
      * @throws BGCouriers_Api_Exception
      */
-    protected function post_raw(string $path, array $body): string {
-        $res = $this->http_post(self::BASE . $path, array_merge(['clientKey' => $this->key], $body));
+    protected function fetch_pdf(string $url): string {
+        $res = $this->http_get($url);
         if (is_wp_error($res)) {
             throw new BGCouriers_Api_Exception(esc_html('Европът: ' . $res->get_error_message()));
         }
         $raw = (string) wp_remote_retrieve_body($res);
-        if (strpos($raw, '%PDF') === 0) { return $raw; }
-        $data = json_decode($raw, true);
-        if (is_array($data)) { self::unwrap($data); }  // throws with the courier's own words
-        throw new BGCouriers_Api_Exception(esc_html('Европът: ' . $path . ' did not return a PDF'));
+        if (strpos($raw, '%PDF') !== 0) {
+            // Deliberately does NOT quote the URL or the body: the URL carries the account's API key.
+            throw new BGCouriers_Api_Exception(esc_html('Европът: the label link did not return a PDF'));
+        }
+        return $raw;
+    }
+
+    /** Seam: overridden in tests; the real one just GETs. */
+    protected function http_get(string $url) {
+        return wp_remote_get($url, ['timeout' => 30]);
     }
 
     /**
@@ -513,31 +521,40 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * Their total, in the currency the shop actually sells in.
+     * Their total, in the currency the shop sells in, with the VAT taken back out of it.
      *
-     * The answer carries the same figure twice - `price` in `mainCurrency` and `priceSecondCurrency` in
-     * `secondCurrency` - and which of the two is EUR depends on the account, not on us: this account
-     * answers EURO/BGN while their own documented example answers BGN/EURO. Reading `price` blindly is
-     * therefore a 1.95583x error waiting for the first shop whose account is set the other way round.
+     * Two separate traps live in this one answer.
      *
-     * It is a NET price. Nothing in the whole API - no request field, no response field, no example, no
-     * error - mentions VAT at all, and `price` is the exact sum of the parts it lists (3.313 service +
-     * 1.27551 fuel = 4.5885), with the fuel surcharge itself exactly `fuelTaxValue` percent of the
-     * service. There is no tax in it to take out, so WooCommerce adds it once, as it does for every
-     * other courier here.
+     * **The currency.** The same figure comes back twice - `price` in `mainCurrency` and
+     * `priceSecondCurrency` in `secondCurrency` - and which of the two is EUR belongs to the ACCOUNT,
+     * not to us: this account answers EURO/BGN while their own documented example answers BGN/EURO.
+     * Reading `price` blindly is a 1.95583x error waiting for the first shop set up the other way.
+     *
+     * **The tax.** Their price is GROSS, and nothing in the API says so - there is not one mention of
+     * VAT in any request, response, example or error, and `price` is the exact sum of the parts listed
+     * beside it (3.313 service + 1.27551 fuel = 4.5885), which reads exactly like a net total. The
+     * printed товарителница is what settles it: its price block is headed **"ЦЕНА С ДДС"** and its
+     * total is that same 4.59 EUR - the amount the payer actually hands over at the door (waybill
+     * 9107785603, 2026-08-31). Every quote in this plugin is net, because the rate is added with
+     * `taxes => ''` and WooCommerce puts the shipping tax on top; passing this figure through would tax
+     * it twice, which is the fault 0.3.5 shipped and had to fix for the whole plugin.
+     *
+     * The split uses the shop's own shipping tax rates - the very ones WooCommerce is about to re-add -
+     * so the round trip is exact whatever the shop's tax setup, including no shipping tax at all.
      */
     public static function parse_price(array $data, string $currency): BGCouriers_Quote {
         $want   = strtoupper(trim($currency));
         $main   = self::iso_currency((string) ($data['mainCurrency'] ?? ''));
         $second = self::iso_currency((string) ($data['secondCurrency'] ?? ''));
-        $price  = (float) ($data['price'] ?? 0);
+        $gross  = (float) ($data['price'] ?? 0);
         if ($want !== '' && $want === $second && $second !== $main) {
-            $price = (float) ($data['priceSecondCurrency'] ?? 0);
+            $gross = (float) ($data['priceSecondCurrency'] ?? 0);
         }
-        if ($price <= 0) {
+        if ($gross <= 0) {
             throw new BGCouriers_Api_Exception(esc_html('Европът: no price in the answer'));
         }
-        return new BGCouriers_Quote(round($price, 2), 0.0, $currency, 'live');
+        list($net, $tax) = BGCouriers_Pricing::split_gross($gross);
+        return new BGCouriers_Quote($net, $tax, $currency, 'live');
     }
 
     /** Their word for the currency to an ISO code - they write EURO where the world writes EUR. */
@@ -710,8 +727,15 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return new BGCouriers_Label($waybill, '', $problems);
     }
 
-    /** Their printout comes as A4, A6 or a sticker roll, so the paper setting has something real to choose. */
-    public function label_formats(): array { return ['A6', 'A4']; }
+    /**
+     * No choice of paper, whatever their documentation says.
+     *
+     * `format` is documented as A4 / A6 / sticker. Measured on one waybill 2026-08-31: all three
+     * returned a link ending `format=A4`, and all three documents were the same 93819 bytes. The
+     * parameter is read and ignored, so a paper-size select on the settings tab would be a control that
+     * changes nothing - the kind of decoration the Express One audit went looking for. It is not sent.
+     */
+    public function label_formats(): array { return []; }
 
     /**
      * The label, from an endpoint their documentation does not name correctly.
@@ -725,19 +749,29 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      *
      * Because it is one waybill per call, there is no native batch here - see has_native_batch().
      */
+    /**
+     * The label, in two steps, and with a link that must not leave this method.
+     *
+     * /printshipment does NOT return the document: it returns its address, in the ordinary envelope -
+     * `{"error":null,"response":"https://api.evropat.com/printshipment?clientKey=…&barcode=…"}` - and
+     * that address is fetched here. Their success example says "Binary of PDF printout"; their own
+     * description one line above it says "get the URL of the PDF file", and the description is right.
+     *
+     * **That URL carries the account's API key in its query string.** It is fetched and dropped: never
+     * returned, never stored on the order, never logged, and never put in an exception message. A link
+     * that prints a waybill is a nuisance; a link that hands over the key to the whole account is not.
+     *
+     * @param string $format Ignored - see label_formats().
+     */
     public function get_label_pdf(string $waybill, string $format = ''): string {
-        return $this->post_raw('/printshipment', [
-            'shipmentBarCode'   => $waybill,
-            'format'            => self::paper($format),
-            'disableForcePrint' => true,
-        ]);
-    }
-
-    /** The paper they name it by; anything we do not recognise falls to the shop's own setting. */
-    private static function paper(string $format): string {
-        $f = strtoupper(trim($format));
-        if ($f === 'A4' || $f === 'A6') { return $f; }
-        return BGCouriers_Settings::label_paper_size('evropat');
+        $url = self::payload($this->post_json(self::BASE . '/printshipment', [
+            'clientKey'       => $this->key,
+            'shipmentBarCode' => $waybill,
+        ]));
+        if (!is_string($url) || strpos($url, 'http') !== 0) {
+            throw new BGCouriers_Api_Exception(esc_html('Европът: no label link in the answer'));
+        }
+        return $this->fetch_pdf($url);
     }
 
     // ── Cancelling ───────────────────────────────────────────────────────────
@@ -868,14 +902,18 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * No public tracking page to send a customer to.
+     * Their public tracking page - which cannot be deep-linked, so it takes no waybill.
      *
-     * evropat.com is their web application - the only routes it exposes are the cabinet's own, and there
-     * is no address that shows one waybill to somebody who is not signed in. So there is no link to
-     * give, and an invented one would be a dead end printed in an order e-mail. The waybill number is
-     * shown on its own instead, which is what the customer quotes on the phone anyway.
+     * evropat.bg/track/ has the lookup on it; evropat.com, which the API lives under, is the signed-in
+     * cabinet and shows nothing to anybody else. The form there is driven entirely by its own
+     * `ajaxCall()`: ?bCode=<waybill> changes nothing about what the page returns, so the number cannot
+     * ride in the URL the way it does for every other courier here.
+     *
+     * The link is still worth giving. Everywhere this appears - the order e-mail, the customer's order
+     * page - the waybill number is printed directly above it, so the number to paste is already in
+     * front of the person following the link.
      */
-    public function tracking_url(string $waybill): string { return ''; }
+    public function tracking_url(string $waybill): string { return self::TRACK_URL; }
 
     // ── Collection ───────────────────────────────────────────────────────────
 

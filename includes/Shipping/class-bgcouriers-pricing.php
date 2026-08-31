@@ -69,6 +69,33 @@ class BGCouriers_Pricing {
     }
 
     /**
+     * A courier price that ALREADY contains VAT, split into the net cost and the tax inside it.
+     *
+     * The inverse of display_price(), and it exists for one courier: Европът quotes gross. Its API says
+     * nothing about tax - no field, no example, not the word - so the whole plugin was built on the
+     * assumption that its `price` was net like everybody else's. The printed товарителница settled it:
+     * the price block on the waybill is headed **"ЦЕНА С ДДС"** and its total is exactly the figure
+     * /calculateprice returns (3.31 service + 1.28 fuel = 4.59 EUR, waybill 9107785603, 2026-08-31).
+     *
+     * Handing that figure to WooCommerce as a net cost would tax it a second time - the 0.3.5 fault,
+     * the one this class was written to make impossible. So it is split with the SAME rates WooCommerce
+     * will re-add, which makes the round trip exact in every configuration: a shop with no shipping tax
+     * gets the gross figure back unchanged and nothing is added to it either.
+     *
+     * @param float $gross The courier's own figure, tax included.
+     * @return array{0:float,1:float} [net, tax]
+     */
+    public static function split_gross(float $gross): array {
+        if ($gross <= 0 || !class_exists('WC_Tax')) { return [round($gross, 2), 0.0]; }
+        $tax = (float) array_sum(WC_Tax::calc_inclusive_tax($gross, WC_Tax::get_shipping_tax_rates()));
+        // The tax is derived from the ROUNDED net rather than rounded on its own: rounding both halves
+        // independently can make them add up to a stotinka more than the courier charged (0.99 gross
+        // splits into 0.83 + 0.17), and the two halves of one price have to add up to that price.
+        $net = round($gross - $tax, 2);
+        return [$net, round($gross - $net, 2)];
+    }
+
+    /**
      * What the courier would be collecting at the door for the basket in front of us, or 0.
      *
      * Cash on delivery is not free: the courier charges for collecting the money, and that charge is in
