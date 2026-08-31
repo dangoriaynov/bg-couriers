@@ -381,6 +381,22 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return ['width' => $d['width'], 'length' => $d['length'], 'height' => $d['height']];
     }
 
+    /**
+     * Net or gross? Neither the API nor the waybill will say, and the owner has chosen NET.
+     *
+     * Three of the seven couriers here turned out to quote gross while looking exactly like net - an
+     * amount that is the sum of its own parts with no tax field anywhere - so the question was put to
+     * Sameday the same way it was settled for Европът and Pigeon: a real waybill, created and cancelled
+     * in the same run, and its printed label read. **Sameday's AWB prints no service price at all**,
+     * only the cash-on-delivery and declared-value boxes, and /api/awb/estimate-cost answers
+     * `{"amount":1.3,"currency":"EUR","time":48}` and nothing else.
+     *
+     * So it stays net - `amount` is handed over as a rate cost and WooCommerce adds the shipping tax,
+     * as it does for every courier that does not break its own price down. That is the owner's decision
+     * of 2026-08-31, taken knowing the alternative, and not an assumption nobody has looked at. One line
+     * on a Sameday invoice would settle it: if the invoice says 1.30 for a shipment quoted at 1.30, the
+     * amount is gross and belongs in BGCouriers_Pricing::split_gross() like Pigeon's.
+     */
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
         $amount = (float) ($resp['amount'] ?? $resp['cost'] ?? 0);
         $cur    = strtoupper((string) ($resp['currency'] ?? $currency));
