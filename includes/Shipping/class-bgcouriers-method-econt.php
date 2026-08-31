@@ -71,9 +71,11 @@ class BGCouriers_Method_Econt extends WC_Shipping_Method {
             $cost = 0.0;
         } elseif (!$included) {
             // "Delivery in the order total" is off: nothing is charged with the order - the customer pays
-            // Econt's own fee on delivery (the label carries paymentReceiverMethod). Keep the estimate
-            // (display-gross, like charged rates render) so the method label can still show it.
-            $info = BGCouriers_Pricing::display_price((float) $cost);
+            // Econt's own fee on delivery (the label carries paymentReceiverMethod). What the row shows
+            // is therefore what Econt COLLECTS, tax and all, and not how this shop happens to display
+            // its own prices - see BGCouriers_Pricing::door_price(). Econt's API breaks the VAT out
+            // itself, so that figure is the courier's own rather than a rate we applied.
+            $info = BGCouriers_Pricing::door_price($quote);
             $cost = 0.0;
         }
 

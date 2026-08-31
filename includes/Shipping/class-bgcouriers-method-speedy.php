@@ -71,9 +71,10 @@ class BGCouriers_Method_Speedy extends WC_Shipping_Method {
             $cost = 0.0;
         } elseif (!$included) {
             // "Delivery in the order total" is off: nothing is charged with the order - the customer
-            // pays the courier's own fee on delivery. Keep the estimate (display-gross, like charged
-            // rates render) so the method label can still show it for information.
-            $info = BGCouriers_Pricing::display_price((float) $cost);
+            // pays the courier's own fee on delivery. What the row shows is therefore what the courier
+            // COLLECTS, tax and all, and not how this shop happens to display its own prices - see
+            // BGCouriers_Pricing::door_price().
+            $info = BGCouriers_Pricing::door_price($quote);
             $cost = 0.0;
         }
 

@@ -69,6 +69,52 @@ class BGCouriers_Pricing {
     }
 
     /**
+     * The money the customer will hand the COURIER at the door.
+     *
+     * Not the same question as display_price(), and conflating the two is what made the checkout show a
+     * number nobody would ever pay. A delivery that is charged with the order is the shop's arithmetic:
+     * WooCommerce is handed a net cost, adds the shipping tax and renders it according to
+     * `woocommerce_tax_display_cart`. A delivery paid on the doorstep is not in the order at all - the
+     * rate costs 0 and the row shows what the courier collects in cash. **The courier charges its VAT
+     * whether or not the shop has chosen to show its own prices with tax**, so a setting about the
+     * shop-window cannot be what decides that number. It was: on the default 'excl' the customer was
+     * told 2,20 and handed the courier 2,64 (measured on the live shop 2026-08-31 - Speedy short by
+     * 0.44, Express One by 0.68, Европът by 0.46, each exactly its own VAT).
+     *
+     * Where the courier itself reports the tax - Speedy and Econt break it out, Express One and Европът
+     * have it taken back out of a gross total - that is the authority and the sum is simply put back
+     * together. Where it does not (Pigeon, Sameday, a fixed or reference price), the plugin's standing
+     * rule is that a quote is net, so the shop's own shipping rate stands in: on this market it is the
+     * same 20% the couriers that do report it charge.
+     */
+    public static function door_price(BGCouriers_Quote $q): float {
+        if ($q->price <= 0) { return 0.0; }
+        if ($q->tax > 0) { return round($q->total(), 2); }
+        if (!class_exists('WC_Tax')) { return round($q->price, 2); }
+        return round($q->price + array_sum(WC_Tax::calc_shipping_tax($q->price, WC_Tax::get_shipping_tax_rates())), 2);
+    }
+
+    /**
+     * A quote on its way into the cache, and back out again.
+     *
+     * The cache used to keep the price and drop the tax, and quotes live in it for three hours - so
+     * `$quote->tax` was 0 on almost every checkout render even for the couriers whose API reports it,
+     * and the door price above would have quietly fallen back to the shop's rate. Worse than being
+     * wrong, it would have been wrong INTERMITTENTLY: one number on a cold cache and another on a warm
+     * one, for the same parcel.
+     *
+     * @return array{p:float,t:float,c:string}
+     */
+    public static function quote_to_cache(BGCouriers_Quote $q): array {
+        return ['p' => $q->price, 't' => $q->tax, 'c' => $q->currency];
+    }
+
+    /** @param array $c A cache entry; one written before the tax was kept simply has none. */
+    public static function quote_from_cache(array $c, string $currency): BGCouriers_Quote {
+        return new BGCouriers_Quote((float) $c['p'], (float) ($c['t'] ?? 0), (string) ($c['c'] ?? $currency), 'cached');
+    }
+
+    /**
      * A courier price that ALREADY contains VAT, split into the net cost and the tax inside it.
      *
      * The inverse of display_price(), and it exists for one courier: Европът quotes gross. Its API says
@@ -264,7 +310,7 @@ class BGCouriers_Pricing {
               . ($abroad ? '_' . strtolower($country) : '');
         $cached = get_transient($tkey);
         if (is_array($cached) && isset($cached['p'])) {
-            return new BGCouriers_Quote((float) $cached['p'], 0.0, (string) ($cached['c'] ?? $currency), 'cached');
+            return self::quote_from_cache($cached, $currency);
         }
         $res = self::resolve_office($courier->id(), $method, $site_id, $office, $country);
         $shipment = array_merge($packed, [
@@ -272,7 +318,7 @@ class BGCouriers_Pricing {
             'cod_amount' => $cod, 'currency' => $currency, 'country' => $country,
         ]);
         $q = self::quote($courier, $shipment);
-        if ($q->source === 'live') { set_transient($tkey, ['p' => $q->price, 'c' => $q->currency], 3 * HOUR_IN_SECONDS); }
+        if ($q->source === 'live') { set_transient($tkey, self::quote_to_cache($q), 3 * HOUR_IN_SECONDS); }
         return $q;
     }
 
