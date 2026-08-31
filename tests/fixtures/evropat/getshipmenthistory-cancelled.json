@@ -1,0 +1,18 @@
+{
+  "error": null,
+  "errorMessage": null,
+  "response": [
+    {
+      "statusID": "1",
+      "stateName": "Създадена",
+      "dateAndTime": "2026-08-31 13:22:16",
+      "additionalInformation": "през интеграция"
+    },
+    {
+      "statusID": "18",
+      "stateName": "Анулирана от експорт",
+      "dateAndTime": "2026-08-31 13:22:16",
+      "additionalInformation": "Анулирана от онлайн акаунт"
+    }
+  ]
+}

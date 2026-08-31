@@ -75,6 +75,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             'boxnow' => __('BOX NOW', 'bg-couriers'),
             'sameday' => __('Sameday', 'bg-couriers'),
             'expressone' => __('Express One', 'bg-couriers'),
+            'evropat' => __('Европът', 'bg-couriers'),
             'about'  => __('About', 'bg-couriers'),
         ];
     }
@@ -169,6 +170,13 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             }
             return $f;
         }
+        if ($section === 'evropat') {
+            $f = $this->evropat_courier_fields();
+            foreach (self::$method_labels as $m => $label) {
+                $f = array_merge($f, $this->method_fields('evropat', $m, $label));
+            }
+            return $f;
+        }
         return $this->general_fields();
     }
 
@@ -197,6 +205,8 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             $this->output_courier('sameday');
         } elseif ($current_section === 'expressone') {
             $this->output_courier('expressone');
+        } elseif ($current_section === 'evropat') {
+            $this->output_courier('evropat');
         } else {
             WC_Admin_Settings::output_fields($this->general_fields());
         }
@@ -313,7 +323,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     private static function courier_color(string $id): string {
-        $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034', 'expressone' => '#E0189B'];
+        $map = ['speedy' => '#E30613', 'econt' => '#0072BC', 'pigeon' => '#F58220', 'boxnow' => '#00B4A0', 'sameday' => '#A50034', 'expressone' => '#E0189B', 'evropat' => '#9B26B6'];
         return $map[$id] ?? '#6b7280';
     }
 
@@ -953,6 +963,87 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             foreach ($co->sender_objects() as $id => $line) { $out[(string) $id] = $line; }
         } catch (\Exception $e) {
             $out[''] = __('- enter your credentials and save, then this list fills in -', 'bg-couriers');
+        }
+        return $out;
+    }
+
+    /**
+     * Европът - office/address + live quote, one API key, and a courier it can call.
+     *
+     * Two fields here are its own, and neither is decoration:
+     *
+     *  - **Send parcels from.** Their `senderFileID` fills the sender's town, address, name, phone,
+     *    firm, client number and payment way from the merchant's own cabinet in one field - their words
+     *    for it - so this is a list read from the account rather than seven boxes to retype.
+     *  - **Parcels leave from.** Европът's `deliveryType` encodes BOTH ends of the journey (ОФ-ОФ,
+     *    ОФ-ВР, ВР-ОФ, ВР-ВР), which no other courier here does, so the sender's end has to be a
+     *    setting. It is not cosmetic: the same 1 kg parcel to Sofia was quoted 4.59 office-to-office
+     *    and 6.52 door-to-door on 2026-08-31. A shop that hands parcels over at a counter and is
+     *    quoted for a collection overcharges every customer it has.
+     *
+     * There is no API username field, because Европът does not issue one - see credential_fields().
+     */
+    private function evropat_courier_fields(): array {
+        $cur = get_woocommerce_currency();
+        return [
+            ['type' => 'title', 'id' => 'bgcouriers_evropat', 'title' => ''],
+            ['type' => 'bgcouriers_ppp_notice', 'id' => 'bgcouriers_ppp_notice_evropat', 'courier' => 'evropat'],
+            ['type' => 'bgcouriers_cred_hint', 'id' => 'bgcouriers_evropat_credhint', 'courier' => 'evropat'],
+            ['type' => 'checkbox', 'id' => 'bgcouriers_evropat_enabled', 'title' => __('Enable Европът', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'password', 'id' => 'bgcouriers_evropat_password', 'title' => __('API key', 'bg-couriers'),
+                'desc' => __('The key you generate yourself in Settings at online.evropat.com. Европът issues no API username - this key is the whole credential.', 'bg-couriers'),
+                'value' => '', 'custom_attributes' => ['placeholder' => __('leave blank to keep', 'bg-couriers')], 'autoload' => false],
+            ['type' => 'bgcouriers_actions', 'id' => 'bgcouriers_evropat_actions'],
+            ['type' => 'sectionend', 'id' => 'bgcouriers_evropat'],
+
+            ['type' => 'title', 'id' => 'bgcouriers_evropat_delivery', 'title' => __('Delivery & label', 'bg-couriers')],
+            ['type' => 'select', 'id' => 'bgcouriers_evropat_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
+                'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
+                'default' => 'A6'],
+            ['type' => 'select', 'id' => 'bgcouriers_evropat_sender_file', 'title' => __('Send parcels from', 'bg-couriers'),
+                'desc' => __('Which of your Европът addresses the parcels are sent from. The list comes from your account - enter the key above and save, and it fills in. It also decides the town every price is quoted from.', 'bg-couriers'),
+                'options' => self::evropat_sender_options(), 'default' => ''],
+            ['type' => 'select', 'id' => 'bgcouriers_evropat_sender_end', 'title' => __('Parcels leave from', 'bg-couriers'),
+                'desc' => __('Whether you hand the parcels over at a Европът office or a courier collects them from you. Европът prices both ends of the journey together, so this changes every price the checkout shows.', 'bg-couriers'),
+                'options' => [
+                    'office' => __('I hand them over at a Европът office', 'bg-couriers'),
+                    'door'   => __('A courier collects them from me', 'bg-couriers'),
+                ],
+                'default' => 'office'],
+            self::autolabel_row('evropat'),
+            ['type' => 'sectionend', 'id' => 'bgcouriers_evropat_delivery'],
+
+            ['type' => 'title', 'id' => 'bgcouriers_evropat_pricing', 'title' => __('Pricing', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgcouriers_evropat_ship_in_total', 'title' => __('Delivery in the order total', 'bg-couriers'),
+                'desc' => __('On: the customer pays delivery together with the order. Off: delivery is not charged at checkout - the estimated price is shown for information and the customer pays the courier on delivery; cash on delivery then collects only the goods total.', 'bg-couriers'),
+                'default' => 'no'],
+            ['type' => 'text', 'id' => 'bgcouriers_evropat_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . $cur . ')',
+                'desc' => __('Ship Европът free above this goods total (excluding shipping). Set here it applies to ALL delivery options (their own thresholds become inactive); leave empty to set thresholds per delivery option. Store currency.', 'bg-couriers'), 'default' => ''],
+            ['type' => 'sectionend', 'id' => 'bgcouriers_evropat_pricing'],
+
+            ['type' => 'title', 'id' => 'bgcouriers_evropat_cod', 'title' => __('Cash on delivery', 'bg-couriers')],
+            ['type' => 'checkbox', 'id' => 'bgcouriers_evropat_ppp_payout', 'title' => __('COD payout via ППП', 'bg-couriers'),
+                'desc' => __('Enable if your Европът contract pays COD out via ППП (пощенски паричен превод). Off = COD needs your own cash register. Европът activates ППП per account on request: if yours has not got it, the plugin collects the money as наложен платеж instead and says so on the order - their API accepts a ППП it cannot do and silently drops it.', 'bg-couriers'), 'default' => 'no'],
+            ['type' => 'sectionend', 'id' => 'bgcouriers_evropat_cod'],
+        ];
+    }
+
+    /**
+     * The account's own sending addresses, as a picker. Empty until the key works - and it says so
+     * rather than showing a blank list, because a merchant looking at an empty dropdown cannot tell
+     * "not fetched yet" from "you have none".
+     *
+     * @return array<string,string>
+     */
+    private static function evropat_sender_options(): array {
+        $out = ['' => __('- not chosen -', 'bg-couriers')];
+        if (!class_exists('BGCouriers_Couriers')) { return $out; }
+        $co = BGCouriers_Couriers::get('evropat');
+        if (!$co || !method_exists($co, 'sender_files')) { return $out; }
+        try {
+            foreach ($co->sender_files() as $id => $line) { $out[(string) $id] = $line; }
+        } catch (\Exception $e) {
+            $out[''] = __('- enter your API key and save, then this list fills in -', 'bg-couriers');
         }
         return $out;
     }

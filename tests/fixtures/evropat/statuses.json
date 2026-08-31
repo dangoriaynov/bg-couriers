@@ -1,0 +1,216 @@
+{
+  "error": null,
+  "errorMessage": null,
+  "response": [
+    {
+      "statusID": "1",
+      "statusName": "Създаване",
+      "statusDescription": "Създадена"
+    },
+    {
+      "statusID": "2",
+      "statusName": "Разпечатване",
+      "statusDescription": "Разпечатана"
+    },
+    {
+      "statusID": "3",
+      "statusName": "Приeмане в склад",
+      "statusDescription": "Приета в офис"
+    },
+    {
+      "statusID": "5",
+      "statusName": "Отсъствие или не вдига телефона",
+      "statusDescription": "Отсъствие или не вдига телефона"
+    },
+    {
+      "statusID": "6",
+      "statusName": "Отказана",
+      "statusDescription": "Отказана"
+    },
+    {
+      "statusID": "7",
+      "statusName": "Върната в офис след опция отвори",
+      "statusDescription": "Върната в офис след опция отвори"
+    },
+    {
+      "statusID": "8",
+      "statusName": "Грешен адрес или телефон",
+      "statusDescription": "Грешен адрес или телефон"
+    },
+    {
+      "statusID": "9",
+      "statusName": "Не може да плати КУ/НП/ППП",
+      "statusDescription": "Не може да плати КУ/НП/ППП"
+    },
+    {
+      "statusID": "10",
+      "statusName": "Върната на подател",
+      "statusDescription": "Върната на подател"
+    },
+    {
+      "statusID": "11",
+      "statusName": "Препратена пратка",
+      "statusDescription": "Препратена пратка"
+    },
+    {
+      "statusID": "12",
+      "statusName": "Проблемна пратка",
+      "statusDescription": "Проблемна пратка"
+    },
+    {
+      "statusID": "13",
+      "statusName": "Разнос по график",
+      "statusDescription": "Разнос по график"
+    },
+    {
+      "statusID": "15",
+      "statusName": "Чака ПД по разнесена пратка",
+      "statusDescription": "Чака ПД по разнесена пратка"
+    },
+    {
+      "statusID": "17",
+      "statusName": "Предстояща доставка",
+      "statusDescription": "Предстояща доставка"
+    },
+    {
+      "statusID": "18",
+      "statusName": "Анулирана",
+      "statusDescription": "Анулирана от експорт"
+    },
+    {
+      "statusID": "19",
+      "statusName": "Разнесена",
+      "statusDescription": "Разнесена"
+    },
+    {
+      "statusID": "20",
+      "statusName": "Върната в Импорт",
+      "statusDescription": "Анулиране на разнос (поради грешка)"
+    },
+    {
+      "statusID": "21",
+      "statusName": "Товарене",
+      "statusDescription": "Натоварена от офис"
+    },
+    {
+      "statusID": "22",
+      "statusName": "Разтоварване",
+      "statusDescription": "Разтоварена в офис"
+    },
+    {
+      "statusID": "25",
+      "statusName": "Групиране",
+      "statusDescription": "Групирана"
+    },
+    {
+      "statusID": "26",
+      "statusName": "Разгрупиране",
+      "statusDescription": "Разгрупирана"
+    },
+    {
+      "statusID": "27",
+      "statusName": "Палетизиране",
+      "statusDescription": "Палетизирана"
+    },
+    {
+      "statusID": "28",
+      "statusName": "Разпалетизиране",
+      "statusDescription": "Разпалетизирана"
+    },
+    {
+      "statusID": "37",
+      "statusName": "Куриерска задача",
+      "statusDescription": "В куриер за разнос"
+    },
+    {
+      "statusID": "38",
+      "statusName": "Премахване от куриерска задача",
+      "statusDescription": "Премахване от куриерска задача"
+    },
+    {
+      "statusID": "41",
+      "statusName": "Приета от куриер",
+      "statusDescription": "Приета от куриер"
+    },
+    {
+      "statusID": "64",
+      "statusName": "Уточнена за офис",
+      "statusDescription": "Уточнена за офис"
+    },
+    {
+      "statusID": "65",
+      "statusName": "Уговорена за втори опит за разнос",
+      "statusDescription": "Уговорена за втори опит за разнос"
+    },
+    {
+      "statusID": "66",
+      "statusName": "Отказване на прием от куриер",
+      "statusDescription": "Отказване на прием от куриер"
+    },
+    {
+      "statusID": "68",
+      "statusName": "Отказана без плащане",
+      "statusDescription": "Отказана без плащане"
+    },
+    {
+      "statusID": "76",
+      "statusName": "Натоварена от склад на клиента",
+      "statusDescription": "Натоварена от склад на клиента"
+    },
+    {
+      "statusID": "77",
+      "statusName": "Повредена опаковка/повреден продукт",
+      "statusDescription": "Повредена опаковка/повреден продукт"
+    },
+    {
+      "statusID": "78",
+      "statusName": "Нарушена опаковка",
+      "statusDescription": "Нарушена опаковка"
+    },
+    {
+      "statusID": "79",
+      "statusName": "Грешно адресирана до Еконт/Спиди",
+      "statusDescription": "Грешно адресирана до Еконт/Спиди"
+    },
+    {
+      "statusID": "81",
+      "statusName": "Пренасочена до адрес в същото населено място",
+      "statusDescription": "Пренасочена до адрес в същото населено място"
+    },
+    {
+      "statusID": "82",
+      "statusName": "Непотърсена",
+      "statusDescription": "Пратката не е потърсена"
+    },
+    {
+      "statusID": "83",
+      "statusName": "Връща се към подател",
+      "statusDescription": "Връща се към подател"
+    },
+    {
+      "statusID": "84",
+      "statusName": "Пренасочена",
+      "statusDescription": "Пренасочена"
+    },
+    {
+      "statusID": "86",
+      "statusName": "Пристигнала в офис/склад",
+      "statusDescription": "Пристигнала в офис/склад"
+    },
+    {
+      "statusID": "88",
+      "statusName": "Препратена в кутия",
+      "statusDescription": "Препращане в кутия"
+    },
+    {
+      "statusID": "89",
+      "statusName": "Действие извън България",
+      "statusDescription": "Действие извън България"
+    },
+    {
+      "statusID": "90",
+      "statusName": "Подадена за уточнение",
+      "statusDescription": "Подадена към подателя за уточнение"
+    }
+  ]
+}

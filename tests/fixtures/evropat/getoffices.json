@@ -1,0 +1,39 @@
+{
+  "error": null,
+  "errorMessage": null,
+  "response": [
+    {
+      "officeID": "268",
+      "officeName": "СОФИЯ",
+      "officeAddress": "Ул. Градинарска 7",
+      "officePhone": "+359882666026 ",
+      "officeWorkTimeFrom": "09:00:00",
+      "officeWorkTimeTo": "18:00:00",
+      "officeDestinationID": "273",
+      "lat": "42.708540",
+      "lng": "23.341170"
+    },
+    {
+      "officeID": "654",
+      "officeName": "СОФИЯ ИЛИЯНЦИ",
+      "officeAddress": "Ул. Петър Панайотов 3",
+      "officePhone": "+359882666036 ",
+      "officeWorkTimeFrom": "09:00:00",
+      "officeWorkTimeTo": "18:00:00",
+      "officeDestinationID": "273",
+      "lat": "42.739570",
+      "lng": "23.314780"
+    },
+    {
+      "officeID": "817",
+      "officeName": "СОФИЯ ЛЮЛИН",
+      "officeAddress": "Кв. Люлин 9 982",
+      "officePhone": "+359882666061 ",
+      "officeWorkTimeFrom": "09:00:00",
+      "officeWorkTimeTo": "18:00:00",
+      "officeDestinationID": "273",
+      "lat": "",
+      "lng": ""
+    }
+  ]
+}

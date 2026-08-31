@@ -14,6 +14,7 @@ class BGCouriers_Order_Columns {
         'boxnow'  => '#8c4bd6', // violet
         'sameday' => '#e08a00', // amber
         'expressone' => '#E0189B', // magenta: its own orange is Pigeon's, so it takes the free arc of the wheel (see the map's PIN_COLOURS)
+        'evropat' => '#9B26B6', // violet-magenta; see the map's PIN_COLOURS for why the seventh courier has no hue of its own left
     ];
     /** How much of the chosen colour actually reaches the row: resting, and under the cursor. */
     const TINT_ALPHA       = 0.13;

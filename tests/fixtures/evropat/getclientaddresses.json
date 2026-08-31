@@ -1,0 +1,30 @@
+{
+  "error": null,
+  "errorMessage": null,
+  "response": [
+    {
+      "fileID": "-1",
+      "destinationID": "273",
+      "firmName": "ФИРМА ООД",
+      "personName": "ПОДАТЕЛ ИМЕ",
+      "address": "БУЛ. ПРИМЕР №1 ЕТ.1 АП.1",
+      "phone": "+359888888888",
+      "paymentWay": "1",
+      "clientNumber": "Е9999СФ",
+      "clientFileID": "-1",
+      "allowedPostalMoneyOrder": "0"
+    },
+    {
+      "fileID": "293117",
+      "destinationID": "273",
+      "firmName": "ФИРМА ООД",
+      "personName": "ПОДАТЕЛ ИМЕ",
+      "address": "БУЛ. ПРИМЕР №1 ЕТ.1 АП.1",
+      "phone": "+359888888888",
+      "paymentWay": "1",
+      "clientNumber": "Е9999СФ",
+      "clientFileID": "293117",
+      "allowedPostalMoneyOrder": "0"
+    }
+  ]
+}

@@ -111,6 +111,9 @@ class BGCouriers_Plugin {
         BGCouriers_Couriers::register('expressone', __('Express One', 'bg-couriers'), static function () {
             return new BGCouriers_Expressone(BGCouriers_Settings::courier_credentials('expressone') ?: []);
         });
+        BGCouriers_Couriers::register('evropat', __('Европът', 'bg-couriers'), static function () {
+            return new BGCouriers_Evropat(BGCouriers_Settings::courier_credentials('evropat') ?: []);
+        });
         BGCouriers_Couriers::boot();
         // AFTER the registry is populated: this walks every courier, and called any earlier it walks an
         // empty list and writes down that it is done. Which is exactly what it did the first time.
@@ -147,6 +150,7 @@ class BGCouriers_Plugin {
             $methods['bgcouriers_boxnow'] = 'BGCouriers_Method_Boxnow';
             $methods['bgcouriers_sameday'] = 'BGCouriers_Method_Sameday';
             $methods['bgcouriers_expressone'] = 'BGCouriers_Method_Expressone';
+            $methods['bgcouriers_evropat'] = 'BGCouriers_Method_Evropat';
             return $methods;
         });
         $checkout = new BGCouriers_Checkout();

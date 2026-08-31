@@ -210,7 +210,16 @@
     // (which the rule below rules out, it is what OSM paints parks with) and the magenta between BOX
     // NOW's violet and Speedy's crimson. Magenta it is: ΔE 24 from the nearest pin against 15.8 for the
     // closest pair already here, and nothing on an OpenStreetMap tile is this colour.
-    expressone: '#E0189B'
+    expressone: '#E0189B',
+    // The seventh courier arrives at a full wheel. The six hues above sit at roughly 29 (Pigeon), 185
+    // (Sameday), 222 (Econt), 257 (BOX NOW), 322 (Express One) and 345 (Speedy) degrees, and the one
+    // wide gap left - 29 to 185 - is the green/yellow band this palette rules out, because it is what
+    // OpenStreetMap paints parks and motorways with. So the widest USABLE gap is 257 to 322, and this
+    // sits in the middle of it. Европът's own mark could not be sampled: evropat.com serves its
+    // application shell for every path, /favicon.png included, so there is no logo file to read a brand
+    // colour out of. PROVISIONAL - Express One's pin was computed the same way and the owner's eye
+    // overruled the first attempt; this one has not been through that yet.
+    evropat: '#9B26B6'
   };
   var PIN_FALLBACK = ['#6A1B9A', '#00838F', '#4E342E', '#1B5E20', '#37474F'];
   var pinColour = {};

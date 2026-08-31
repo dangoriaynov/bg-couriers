@@ -536,7 +536,9 @@ class BGCouriers_Settings {
         // against ee.econt.com: the whole fee moves from senderDueAmount to receiverDueAmount.
         // Express One does too: PAYER 1 was booked on its test account 2026-08-25 and the shipment came
         // back reading "Получател", with and without a cash-on-delivery amount on it.
-        if (!in_array($courier, ['speedy', 'pigeon', 'sameday', 'econt', 'expressone'], true)) { return true; }
+        // Европът does too: its paymentWay enumerates a recipient payer twice over (2 in cash, 4 against
+        // an account), and /calculateprice quoted `payer` 2 without complaint on 2026-08-31.
+        if (!in_array($courier, ['speedy', 'pigeon', 'sameday', 'econt', 'expressone', 'evropat'], true)) { return true; }
         $v = (string) get_option('bgcouriers_' . $courier . '_ship_in_total', '');
         if ($v === '') {
             // Unset means a shop that has never opened the setting, and it now means OFF: the customer
@@ -1061,6 +1063,19 @@ jQuery(function($){
                     'url_label' => __('Express One API documentation:', 'bg-couriers'),
                     'url'       => 'https://system.expressone.bg/api/web/site/documentation',
                 ];
+            case 'evropat':
+                return [
+                    'intro' => __('Европът issues the API key to you - you generate it yourself in your own online cabinet, without waiting on anybody.', 'bg-couriers'),
+                    'steps' => [
+                        __('Sign in to your Европът account at online.evropat.com.', 'bg-couriers'),
+                        __('If there is no Settings menu, write to sales@evropat.com and ask them to activate it for your account. That is what unlocks the key.', 'bg-couriers'),
+                        __('Generate the API key in Settings and paste it below - there is no username for this courier, only the key.', 'bg-couriers'),
+                        __('Click Validate, then Sync. Then pick the address your parcels are sent from: it fills the sender half of every waybill and it is one half of every price.', 'bg-couriers'),
+                    ],
+                    'receive'   => __('One API key (+ the address parcels are sent from)', 'bg-couriers'),
+                    'url_label' => __('Европът API documentation:', 'bg-couriers'),
+                    'url'       => 'https://api.evropat.com/',
+                ];
         }
         return [];
     }
@@ -1078,8 +1093,24 @@ jQuery(function($){
      * behind the ✕ now whether or not the courier is enabled.
      */
     public static function creds_present(string $courier = 'speedy'): bool {
-        return get_option('bgcouriers_' . $courier . '_username', '') !== ''
-            && get_option('bgcouriers_' . $courier . '_password', '') !== '';
+        foreach (self::credential_fields($courier) as $f) {
+            if (get_option('bgcouriers_' . $courier . '_' . $f, '') === '') { return false; }
+        }
+        return true;
+    }
+
+    /**
+     * The credential fields THIS courier issues - both halves for all but Европът, which issues one key.
+     *
+     * Asked of the courier rather than assumed, so a shop is never refused for leaving blank a field its
+     * courier never gave it. Falls back to the pair when the courier is not registered (the settings
+     * screen can be reached before the registry is built).
+     *
+     * @return string[]
+     */
+    public static function credential_fields(string $courier): array {
+        $c = BGCouriers_Couriers::get($courier);
+        return ($c && method_exists($c, 'credential_fields')) ? $c->credential_fields() : ['username', 'password'];
     }
 
     /** Keep a stored key/username (plaintext) when the field is submitted blank; store a new value plainly. */

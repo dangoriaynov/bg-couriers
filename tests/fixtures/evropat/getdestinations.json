@@ -1,0 +1,17 @@
+{
+  "error": null,
+  "errorMessage": null,
+  "response": [
+    {
+      "destinationID": "273",
+      "destinationName": "СОФИЯ",
+      "destinationNameInEnglish": "SOFIA",
+      "destinationZone": "1",
+      "destinationPostCode": "1000",
+      "destinationProvince": "СОФИЯ",
+      "destinationServicingDays": "1111110",
+      "destinationCanSendPallets": "1",
+      "destinationServicingOfficeID": "268"
+    }
+  ]
+}

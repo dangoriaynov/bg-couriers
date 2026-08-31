@@ -1,0 +1,8 @@
+{
+  "error": "INVALID_FROM_DESTINATION_ID",
+  "errorMessage": "Невалидно населено място.",
+  "request": {
+    "fromDestID": null
+  },
+  "response": null
+}
