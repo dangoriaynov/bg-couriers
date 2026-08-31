@@ -8,6 +8,9 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-econt.php';
+require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
+require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.php';
+require_once dirname(__DIR__) . '/stubs/wc-tax.php';
 
 /** @group econt */
 final class EcontQuoteTest extends TestCase {
@@ -23,15 +26,32 @@ final class EcontQuoteTest extends TestCase {
         return json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/econt/' . $f), true);
     }
 
-    // (a) parse_price returns BGCouriers_Quote with price=4.68, source='live', currency='EUR'
-    public function test_parse_price_returns_quote(): void {
+    /**
+     * `totalPrice` is what Econt collects, so the quote carries it split.
+     *
+     * This asserted the raw 4.68 as the quote's PRICE, and a quote's price is a NET rate cost that
+     * WooCommerce then taxes - so the checkout was adding 20% to a figure Econt does not add 20% to.
+     * The waybill settled it: a shipment quoted at 5.06 printed "Куриерска услуга: 5.06 EUR" and
+     * "Общо: събери 5.17 EUR". Two percent above the quote, not twenty; a net 5.06 would have been
+     * collected as 6.07.
+     */
+    public function test_the_quoted_total_is_the_money_and_is_carried_split(): void {
         $resp = $this->fx('calculate.json');
         $q = BGCouriers_Econt::parse_price($resp, 'EUR');
         $this->assertInstanceOf(BGCouriers_Quote::class, $q);
-        $this->assertGreaterThan(0, $q->price);
-        $this->assertEqualsWithDelta(4.68, $q->price, 0.001);
+        $this->assertEqualsWithDelta(4.68, $q->total(), 0.01, 'what Econt collects is unchanged');
+        $this->assertLessThan(4.68, $q->price, 'the rate cost is the net half of it');
+        $this->assertGreaterThan(0, $q->tax);
         $this->assertSame('EUR', $q->currency);
         $this->assertSame('live', $q->source);
+    }
+
+    /** An account that DOES break the VAT out is the courier speaking about itself, and it wins. */
+    public function test_an_account_that_reports_its_own_vat_is_believed(): void {
+        $resp = ['label' => ['totalPrice' => 10.0, 'totalPriceWithVAT' => 12.0, 'currency' => 'EUR']];
+        $q = BGCouriers_Econt::parse_price($resp, 'EUR');
+        $this->assertSame(10.0, $q->price);
+        $this->assertSame(2.0, $q->tax);
     }
 
     // (b) build_calculate_body for office delivery

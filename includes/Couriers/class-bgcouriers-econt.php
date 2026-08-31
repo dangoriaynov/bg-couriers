@@ -298,21 +298,35 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     /**
      * Parse the createLabel calculate response into a BGCouriers_Quote.
      *
-     * VAT split, settled against the live account on 2026-08-18: calculate mode returns no VAT figure
-     * at all. The whole price side of the response is totalPrice, senderDueAmount, receiverDueAmount,
-     * otherDueAmount, discountAmount and the two cd* fields - there is no totalPriceWithVAT, so the
-     * fallback below makes the tax 0 and totalPrice stands as the price.
+     * **`totalPrice` is the MONEY, not a net rate** - and this line said the opposite for months.
      *
-     * That is the right reading: Econt documents totalPrice as the price WITHOUT VAT, and the quote's
-     * price is used as a shipping rate's net cost, which WooCommerce then taxes itself. Speedy, which
-     * does return the split, is parsed the same way - its net `amount`, never its `total`.
+     * Calculate mode returns no VAT figure at all: the price side is totalPrice, senderDueAmount,
+     * receiverDueAmount, otherDueAmount, discountAmount and the two cd* fields, and there is no
+     * totalPriceWithVAT anywhere in the fifty-odd keys (re-checked live 2026-08-31). The old reading
+     * leaned on Econt's documentation calling totalPrice "without VAT" and made the tax 0, which meant
+     * WooCommerce added 20% on top of it.
+     *
+     * The waybill says otherwise. A shipment quoted at 5.06 printed
+     *
+     *     Куриерска услуга: 5.06 EUR      ПЛАЩАНЕ - Общо: събери 5.17 EUR
+     *
+     * so what Econt actually collects for that shipment is 5.17 - two percent above the quote, not
+     * twenty. A net 5.06 would have been collected as 6.07. (The 0.11 is some further service on the
+     * waybill and is not modelled here; it is not VAT, which is the question this answers.)
+     *
+     * So the quote is split like Express One's and Европът's. If an account ever DOES return
+     * totalPriceWithVAT, that is the courier speaking about itself and it wins.
      */
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
         $total    = (float) ($resp['label']['totalPrice'] ?? 0);
-        $withVat  = (float) ($resp['label']['totalPriceWithVAT'] ?? $total);
+        $withVat  = (float) ($resp['label']['totalPriceWithVAT'] ?? 0);
+        $cur      = (string) ($resp['label']['currency'] ?? $currency);
         if ($total <= 0) { throw new BGCouriers_Api_Exception('No price in Econt response'); }
-        return new BGCouriers_Quote($total, max(0.0, $withVat - $total),
-            (string) ($resp['label']['currency'] ?? $currency), 'live');
+        if ($withVat > $total) {
+            return new BGCouriers_Quote($total, round($withVat - $total, 2), $cur, 'live');
+        }
+        list($net, $tax) = BGCouriers_Pricing::split_gross($total);
+        return new BGCouriers_Quote($net, $tax, $cur, 'live');
     }
 
     /**
