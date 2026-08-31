@@ -8,6 +8,9 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-pigeon.php';
+require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
+require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.php';
+require_once dirname(__DIR__) . '/stubs/wc-tax.php';
 
 /** @group pigeon */
 final class PigeonQuoteTest extends TestCase {
@@ -15,13 +18,27 @@ final class PigeonQuoteTest extends TestCase {
         return json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/pigeon/' . $f), true);
     }
 
-    // (a) parse_price returns BGCouriers_Quote with price=13.26, source='live', currency='EUR'
-    public function test_parse_price_returns_quote(): void {
+    /**
+     * `total_price` is the money, tax included - so the quote carries it split.
+     *
+     * This test used to assert the raw 13.26 as the quote's PRICE, which is where the assumption lived:
+     * a quote's price is a net rate cost, and WooCommerce adds the shipping tax to it. So a shop
+     * charging Pigeon with the order billed 20% more than Pigeon collects.
+     *
+     * Settled on the live account 2026-08-31 the only way it could be - a waybill. The parcel quoted at
+     * 2.59 printed "За плащане - КУ: 2.59 EUR, Общо: 2.59 EUR", and "За плащане" is what the person
+     * hands over. Nothing in the API says this; its answer is the exact sum of its own parts with no tax
+     * field at all, which is precisely what a net total looks like.
+     */
+    public function test_the_quoted_total_is_the_money_and_is_carried_split(): void {
         $resp = $this->fx('calculate.json');
         $q    = BGCouriers_Pigeon::parse_price($resp, 'EUR');
         $this->assertInstanceOf(BGCouriers_Quote::class, $q);
         $this->assertGreaterThan(0, $q->price);
-        $this->assertEqualsWithDelta(13.26, $q->price, 0.001);
+        // What the courier collects is unchanged; what is CHARGED is now the net half of it.
+        $this->assertEqualsWithDelta(13.26, $q->total(), 0.01, 'the customer still pays what Pigeon quoted');
+        $this->assertEqualsWithDelta(11.05, $q->price, 0.01, 'the rate cost is net, WooCommerce taxes it');
+        $this->assertGreaterThan(0, $q->tax);
         $this->assertSame('EUR', $q->currency);
         $this->assertSame('live', $q->source);
     }

@@ -1080,7 +1080,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
 
             ['type' => 'title', 'id' => 'bgcouriers_boxnow_pricing', 'title' => __('Pricing', 'bg-couriers')],
             ['type' => 'text', 'id' => 'bgcouriers_boxnow_flat_price', 'title' => __('Delivery price', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Flat BOX NOW locker price (no live rate API). Store currency.', 'bg-couriers'), 'default' => ''],
+                'desc' => __('Flat BOX NOW locker price (no live rate API). In the store currency and WITHOUT VAT: WooCommerce adds the shipping tax on top.', 'bg-couriers'), 'default' => ''],
             ['type' => 'text', 'id' => 'bgcouriers_boxnow_free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Ship BOX NOW free above this goods total (excluding shipping). Empty or 0 disables. Store currency.', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgcouriers_boxnow_pricing'],
@@ -1113,7 +1113,11 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'select', 'id' => $p . 'price_mode', 'title' => __('Delivery price', 'bg-couriers'),
                 'options' => $modes, 'default' => $live ? 'fallback' : 'fixed'],
             ['type' => 'text', 'id' => $p . 'price', 'title' => __('Fixed / default price', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                'desc' => __('Used by the “fixed” and “fallback” delivery-price modes above. In the store currency.', 'bg-couriers'), 'default' => ''],
+                // The one place a merchant can get the net/gross question wrong in silence: this number is
+                // used as the rate's COST, which WooCommerce then taxes, so a figure typed as "what the
+                // customer pays" is charged 20% over. Every courier's own quote is handled the same way -
+                // see BGCouriers_Pricing::door_price() for how much trouble this distinction has caused.
+                'desc' => __('Used by the “fixed” and “fallback” delivery-price modes above. In the store currency and WITHOUT VAT: WooCommerce adds the shipping tax on top of it, exactly as it does to a live quote.', 'bg-couriers'), 'default' => ''],
             ['type' => 'text', 'id' => $p . 'free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Free delivery for THIS option above this goods total (excluding shipping). Applies only while the courier-level threshold is empty; empty or 0 disables.', 'bg-couriers'),
                 'default' => '', 'autoload' => false, 'class' => 'bgc-method-free'],

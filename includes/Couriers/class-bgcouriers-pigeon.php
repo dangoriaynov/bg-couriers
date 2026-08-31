@@ -390,7 +390,17 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
     /**
      * Parse a /v1/shipments/calculate response into a BGCouriers_Quote.
      *
-     * Pigeon's total_price already includes all service fees; tax split TBD at live-verify.
+     * **`total_price` is GROSS**, and nothing in the answer says so. It arrives as
+     * `{"shipping_price":2.21,"total_service_fees":0.38,"total_price":2.59}` - the exact sum of its own
+     * parts, with no tax field anywhere, which reads precisely like a net total. It is not one.
+     *
+     * The waybill settled it, the way it settled Европът: a shipment created on the live account
+     * 2026-08-31 for the parcel quoted at 2.59 printed **"За плащане - КУ: 2.59 EUR, Общо: 2.59 EUR"**.
+     * "За плащане" is what the person actually hands over, so 2.59 is the money, tax and all.
+     *
+     * The line this replaces said "tax split TBD at live-verify" and stood for months, and the TBD was
+     * read as a net price by everything downstream: the rate cost is handed to WooCommerce, which added
+     * 20% on top, so a shop charging Pigeon with the order billed 3.11 for a 2.59 delivery.
      *
      * @param array  $resp     Decoded JSON response (expects $resp['data']).
      * @param string $currency Fallback currency if not present in response.
@@ -399,11 +409,12 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      */
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
         $d     = $resp['data'] ?? [];
-        $total = (float) ($d['total_price'] ?? 0);
-        if ($total <= 0) {
+        $gross = (float) ($d['total_price'] ?? 0);
+        if ($gross <= 0) {
             throw new BGCouriers_Api_Exception('No price in Pigeon response');
         }
-        return new BGCouriers_Quote($total, 0.0, (string) ($d['currency'] ?? $currency), 'live');
+        list($net, $tax) = BGCouriers_Pricing::split_gross($gross);
+        return new BGCouriers_Quote($net, $tax, (string) ($d['currency'] ?? $currency), 'live');
     }
 
     /**
