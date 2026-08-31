@@ -10,7 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 . bin/deploy.conf
-: "${BGC_SSH_HOST:?set BGC_SSH_HOST in bin/deploy.conf}"
+if [ -z "${BGC_LXC_HOST:-}" ]; then : "${BGC_SSH_HOST:?set BGC_SSH_HOST (or BGC_LXC_HOST) in bin/deploy.conf}"; fi
 # What must never reach the package is the operator's, so the list of it is too: an alternation of the
 # host names, phone numbers and anything else private, in bin/deploy.conf (gitignored). Unset means STOP,
 # not "nothing to check" - this grep is the last thing between a private string and a public zip.
@@ -23,7 +23,14 @@ SVN_WC="${BGC_SVN_WC:-$HOME/svn/bg-couriers}"
 # command would read as a clean one.
 run() {
   local err rc; err="$(mktemp)"
-  ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST" "$@" 2>"$err"; rc=$?
+  # Prod moved into an LXC container that does not take our SSH key, so the way in is the host that
+  # holds it. Transport only - what is run, and the gates around it, are unchanged. A release that
+  # reached the wrong machine would report success about a shop nobody is looking at.
+  if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_PROD:-}" ]; then
+    ssh -o ConnectTimeout=25 "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_PROD} -- bash -lc $(printf '%q' "$*")" 2>"$err"; rc=$?
+  else
+    ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST" "$@" 2>"$err"; rc=$?
+  fi
   grep -v 'manpath: ' "$err" >&2 || true
   rm -f "$err"; return $rc
 }

@@ -15,11 +15,14 @@ cd "$(dirname "$0")/.."
 
 [ -f bin/deploy.conf ] || { echo "bin/deploy.conf is missing" >&2; exit 1; }
 . bin/deploy.conf
-: "${BGC_SSH_HOST:?set BGC_SSH_HOST in bin/deploy.conf}"
+if [ -z "${BGC_LXC_HOST:-}" ]; then : "${BGC_SSH_HOST:?set BGC_SSH_HOST (or BGC_LXC_HOST) in bin/deploy.conf}"; fi
 : "${BGC_DEV_PATH:?set BGC_DEV_PATH in bin/deploy.conf}"
 
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
-WP="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root --path=${DEVROOT}"
+# The PHP binary is the host's business, not this script's: the old CWP box hid its CLI php under
+# /opt/alt and would not run the plain one, while an ordinary container has php on the PATH. Set
+# BGC_WP_BIN in deploy.conf where it differs; the default is what a normal machine has.
+WP="${BGC_WP_BIN:-wp} --allow-root --path=${DEVROOT}"
 # The host's login shell prints a manpath locale warning on every connection; it would otherwise end up
 # in the value this script returns.
 #
@@ -28,7 +31,22 @@ WP="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root --path=${DEVRO
 # the teardown that sweeps for waybills. A laptop that slept mid-command left one of these hanging for
 # thirteen hours with a freshly booked waybill on a live courier account on the other side of it. Now the
 # connection dies within a minute and the spec fails, which is a thing that can be seen and acted on.
+#
+# Two ways in, because dev is not always a machine you can SSH into. It now lives in an LXC container
+# behind a host: BGC_LXC_HOST is the machine that holds the containers and BGC_LXC_DEV names the one to
+# run in. Set neither and this behaves exactly as it always did, so nothing changes for a plain host.
+#
+# Getting this wrong is not a cosmetic failure. This script is what turns auto-labelling OFF before the
+# suite runs, and dev shares a LIVE courier account: pointing it at the wrong machine means the safety
+# switch is thrown somewhere harmless while the real shop books six real waybills. That is what happened
+# the day dev moved and the config did not - the run reported "[autolabel] already no on dev" about a
+# server nobody was testing.
 run() {
+  if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_DEV:-}" ]; then
+    ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+      "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_DEV} -- bash -lc $(printf '%q' "$*")" 2>/dev/null
+    return
+  fi
   ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
     -p "${BGC_SSH_PORT:-22}" "$BGC_SSH_HOST" "$@" 2>/dev/null
 }
