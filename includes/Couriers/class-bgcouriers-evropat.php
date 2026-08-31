@@ -805,9 +805,17 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
                 'code' => $code,
                 'name' => $more !== '' ? $name . ' - ' . $more : $name,
                 'date' => (string) ($e['dateAndTime'] ?? ''),
+                'seq'  => count($out),   // the order they arrived in, kept for the tie-break below
             ];
         }
-        usort($out, static function ($a, $b) { return strcmp($a['date'], $b['date']); });
+        // Their timestamps collide: the test waybill's "Създадена" and "Анулирана от експорт" both read
+        // 2026-08-31 13:22:16, to the second. PHP's usort is not stable, so sorting on the date alone
+        // leaves two same-second events in an order that can differ between runs - and the last event is
+        // what decides the parcel's status wherever a terminal code is not involved. So equal timestamps
+        // fall back to the order the courier listed them in, which is the only other thing it tells us.
+        usort($out, static function ($a, $b) {
+            return strcmp($a['date'], $b['date']) ?: ($a['seq'] <=> $b['seq']);
+        });
         return $out;
     }
 

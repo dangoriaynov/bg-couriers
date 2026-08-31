@@ -377,4 +377,21 @@ final class EvropatParsersTest extends TestCase {
         ]);
         $this->assertTrue($c->is_cancelled('9100000000'));
     }
+
+    public function test_two_events_in_the_same_second_keep_the_order_the_courier_listed_them_in(): void {
+        // Measured: the test waybill's "Създадена" and "Анулирана от експорт" share a timestamp to the
+        // second. usort is not stable, so without a tie-break the last event - which decides the status
+        // wherever no terminal code is involved - could differ between two runs on identical data.
+        $c = $this->client([
+            '/getshipmenthistory' => $this->body('getshipmenthistory-cancelled.json'),
+            '/shipment-statuses-nomenclature' => $this->body('statuses.json'),
+        ]);
+        $seen = [];
+        for ($i = 0; $i < 8; $i++) {
+            $t = $c->track('9100000000');
+            $seen[] = implode(',', array_column($t->events, 'code'));
+        }
+        $this->assertCount(1, array_unique($seen), 'the same history must sort the same way every time');
+        $this->assertSame('1,18', $seen[0]);
+    }
 }
