@@ -20,8 +20,8 @@ fi
 : "${BGC_SSH_PORT:=22}"
 
 case "$TARGET" in
-  dev)  DEST="${BGC_DEV_PATH:?set BGC_DEV_PATH in bin/deploy.conf}"; LXC="${BGC_LXC_DEV:-}";;
-  prod) DEST="${BGC_PROD_PATH:?set BGC_PROD_PATH in bin/deploy.conf}"; LXC="${BGC_LXC_PROD:-}";
+  dev)  DEST="${BGC_DEV_PATH:?set BGC_DEV_PATH in bin/deploy.conf}"; LXC="${BGC_LXC_DEV:-}"; OWNER="${BGC_DEV_OWNER:-}";;
+  prod) DEST="${BGC_PROD_PATH:?set BGC_PROD_PATH in bin/deploy.conf}"; LXC="${BGC_LXC_PROD:-}"; OWNER="${BGC_PROD_OWNER:-}";
         read -p "Deploy to PROD (${LXC:-$BGC_SSH_HOST})? type yes: " c; [ "$c" = yes ] || exit 1;;
   *) echo "usage: deploy.sh dev|prod"; exit 1;;
 esac
@@ -64,17 +64,29 @@ if [ -n "${BGC_LXC_HOST:-}" ]; then
   # them. rsync cannot speak `lxc exec`, so the tree goes over as a tar and is unpacked into a sibling
   # directory first - then one rsync INSIDE the container swaps it in with --delete. The plugin is never
   # half-written while that happens, which a straight `tar -x` over the live directory could not promise.
+  #
+  # OWNERSHIP IS CONFIGURED, NEVER GUESSED. A tar from a laptop carries the laptop's numeric uid, so the
+  # files land owned by a user the container has never heard of unless something sets them right. It was
+  # guessed once, as www-data, on sites whose files and php-fpm are both `dobavki`; that only kept
+  # working because the files are world-readable, and on production it would have handed the plugin to a
+  # user that cannot write to it. Unset means leave ownership exactly as it was found.
+  #
+  # The remote script is kept free of apostrophes and comments on purpose: it travels inside a
+  # single-quoted `bash -c`, and one apostrophe in a comment silently ended the string mid-deploy -
+  # which left a live site owned by a laptop uid.
+  REMOTE="set -e
+T=${DEST%/}.deploy.\$\$
+rm -rf \"\$T\"; mkdir -p \"\$T\"
+tar xzf - -C \"\$T\"
+mkdir -p \"${DEST}\"
+rsync -a --delete \"\$T/\" \"${DEST%/}/\"
+rm -rf \"\$T\""
+  if [ -n "${OWNER:-}" ]; then
+    REMOTE="${REMOTE}
+chown -R ${OWNER} \"${DEST}\""
+  fi
   tar czf - "${EXCLUDES[@]}" . \
-    | ssh -o ConnectTimeout=25 "$BGC_LXC_HOST" "lxc exec ${LXC} -- bash -c '
-        set -e
-        T=${DEST%/}.deploy.\$\$
-        rm -rf \"\$T\"; mkdir -p \"\$T\"
-        tar xzf - -C \"\$T\"
-        mkdir -p \"${DEST}\"
-        rsync -a --delete \"\$T/\" \"${DEST%/}/\"
-        rm -rf \"\$T\"
-        chown -R www-data:www-data \"${DEST}\" 2>/dev/null || true
-      '"
+    | ssh -o ConnectTimeout=25 "$BGC_LXC_HOST" "lxc exec ${LXC} -- bash -c $(printf '%q' "$REMOTE")"
   echo "Synced to ${TARGET} (${LXC}). Activate via wp-admin."
 else
   rsync -az --delete "${EXCLUDES[@]}" -e "ssh -p ${BGC_SSH_PORT}" ./ "${BGC_SSH_HOST}:${DEST}"

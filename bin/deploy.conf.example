@@ -21,4 +21,5 @@ BGC_DB_PREFIX="wp_"                               # WordPress table prefix on th
 #BGC_LXC_HOST="user@10.0.0.1"     # the host that holds the containers
 #BGC_LXC_DEV="mysite-dev"          # container serving the dev site
 #BGC_LXC_PROD="mysite-web"         # container serving production
+#BGC_DEV_OWNER="www-data:www-data" # who the files must belong to; unset = leave ownership alone
 #BGC_WP_BIN="wp"                   # the wp-cli invocation on that machine (a CWP box hides php under /opt/alt)
