@@ -134,4 +134,38 @@ final class DoorPriceTest extends TestCase {
         $this->shopShowsNetPrices();
         $this->assertSame(2.64, BGCouriers_Pricing::door_price($old));
     }
+
+    // ── The invariant that actually protects the customer ────────────────────
+
+    public function test_the_same_delivery_costs_the_same_whichever_route_it_takes(): void {
+        // The check that would have caught this bug on day one, and the one worth keeping: a delivery
+        // paid at the door and the same delivery charged with the order must cost the customer the same
+        // money. Verified end to end on the live shop 2026-08-31 - at the door the row showed 2.75 and
+        // the customer handed the courier 2.75; charged, the rate cost 2.29 net and WooCommerce added
+        // 0.46, so the shop charged 2.75. Before the fix the door route said 2.29.
+        //
+        // The two agree while the shop's shipping tax rate is the rate the courier charges - 20% here,
+        // and the same 20% the couriers that report their own VAT return. A shop that configures some
+        // other shipping rate makes its OWN charged price differ from the courier's; the door figure
+        // stays right either way, because it is the courier's own total and not our arithmetic.
+        $this->shopShowsNetPrices();
+        foreach ([[2.29, 0.46], [3.38, 0.68], [2.20, 0.44], [2.59, 0.0], [5.06, 0.0]] as [$net, $tax]) {
+            $q = new BGCouriers_Quote($net, $tax, 'EUR', 'live');
+            // what the shop would charge for the same delivery: the net rate, plus the tax WooCommerce
+            // adds to it - which is exactly what `taxes => ''` on the rate means.
+            $charged = round($net + array_sum(WC_Tax::calc_shipping_tax($net, WC_Tax::get_shipping_tax_rates())), 2);
+            $this->assertEqualsWithDelta($charged, BGCouriers_Pricing::door_price($q), 0.01,
+                "a delivery of $net costs the customer a different amount depending on who collects it");
+        }
+    }
+
+    public function test_the_door_price_is_never_the_bare_net_figure(): void {
+        // The shape of the regression, stated directly: whatever else changes, the number on the row
+        // must not be the untaxed one while a tax exists. That is what the customer was being shown.
+        $this->shopShowsNetPrices();
+        foreach ([[2.29, 0.46], [2.59, 0.0]] as [$net, $tax]) {
+            $q = new BGCouriers_Quote($net, $tax, 'EUR', 'live');
+            $this->assertGreaterThan($net, BGCouriers_Pricing::door_price($q));
+        }
+    }
 }
