@@ -346,7 +346,7 @@ class BGCouriers_Ajax {
                 if (!$q) {
                     $v = 0.0;
                 } elseif (BGCouriers_Settings::ship_in_total($cid)) {
-                    $v = BGCouriers_Pricing::display_price((float) $q->price);
+                    $v = BGCouriers_Pricing::display_price(BGCouriers_Pricing::rate_cost($q));
                 } else {
                     $v = BGCouriers_Pricing::door_price($q);
                 }

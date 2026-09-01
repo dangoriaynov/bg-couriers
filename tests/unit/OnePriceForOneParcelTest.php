@@ -23,6 +23,8 @@ final class OnePriceForOneParcelTest extends TestCase {
     /** A gram-priced shop, and a cart whose shipping packages hold $weights (in grams). */
     private function shop(array $package_weights, string $tax_display = 'excl'): void {
         Functions\when('wc_get_weight')->alias(static function ($w, $to, $from = '') { return ((float) $w) / 1000; });
+        // A shop that calculates tax: there is a shipping tax for the display setting to be about.
+        Functions\when('wc_tax_enabled')->justReturn(true);
         Functions\when('get_option')->alias(static function ($n, $d = false) use ($tax_display) {
             return $n === 'woocommerce_tax_display_cart' ? $tax_display : $d;
         });

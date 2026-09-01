@@ -41,12 +41,14 @@ final class DoorPriceTest extends TestCase {
 
     /** The shop displays prices WITHOUT tax - the default, and what the live shop is set to. */
     private function shopShowsNetPrices(): void {
+        Functions\when('wc_tax_enabled')->justReturn(true);
         Functions\when('get_option')->alias(function ($k, $d = false) {
             return $k === 'woocommerce_tax_display_cart' ? 'excl' : $d;
         });
     }
 
     private function shopShowsGrossPrices(): void {
+        Functions\when('wc_tax_enabled')->justReturn(true);
         Functions\when('get_option')->alias(function ($k, $d = false) {
             return $k === 'woocommerce_tax_display_cart' ? 'incl' : $d;
         });

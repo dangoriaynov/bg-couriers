@@ -382,20 +382,20 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * Net or gross? Neither the API nor the waybill will say, and the owner has chosen NET.
+     * Net or gross? **Net - and an invoice says so.**
      *
-     * Three of the seven couriers here turned out to quote gross while looking exactly like net - an
-     * amount that is the sum of its own parts with no tax field anywhere - so the question was put to
-     * Sameday the same way it was settled for Европът and Pigeon: a real waybill, created and cancelled
-     * in the same run, and its printed label read. **Sameday's AWB prints no service price at all**,
+     * Neither the API nor the waybill would answer it: Sameday's AWB prints no service price at all,
      * only the cash-on-delivery and declared-value boxes, and /api/awb/estimate-cost answers
-     * `{"amount":1.3,"currency":"EUR","time":48}` and nothing else.
+     * `{"amount":1.3,"currency":"EUR","time":48}` and nothing else. Three of the seven couriers here
+     * turned out to quote gross while looking exactly like net, so the question was left open on
+     * 2026-08-31 with the one thing that would settle it written down: a line on a Sameday invoice.
      *
-     * So it stays net - `amount` is handed over as a rate cost and WooCommerce adds the shipping tax,
-     * as it does for every courier that does not break its own price down. That is the owner's decision
-     * of 2026-08-31, taken knowing the alternative, and not an assumption nobody has looked at. One line
-     * on a Sameday invoice would settle it: if the invoice says 1.30 for a shipment quoted at 1.30, the
-     * amount is gross and belongs in BGCouriers_Pricing::split_gross() like Pigeon's.
+     * That line arrived on 2026-09-01. Order 11260 was quoted **1.37** at the checkout and Sameday
+     * invoiced **1.66** for waybill 1CJALN20743532 - `amount` plus 20%, and not `amount`. So the tax is
+     * put on the quote here rather than left for WooCommerce, which is what the shop it was written for
+     * had never been doing: dobavki.club calculates no tax at all, so nothing was ever added and the
+     * shop paid the VAT out of its own pocket on every Sameday order. See
+     * BGCouriers_Pricing::rate_cost() for the half of that fault which was not Sameday's alone.
      */
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
         $amount = (float) ($resp['amount'] ?? $resp['cost'] ?? 0);
@@ -404,7 +404,8 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         if ($cur !== $store) {
             throw new BGCouriers_Api_Exception('Sameday quote currency does not match the store currency');
         }
-        return new BGCouriers_Quote(round($amount, 2), 0.0, $store, 'live');
+        $net = round($amount, 2);
+        return new BGCouriers_Quote($net, BGCouriers_Pricing::courier_tax($net), $store, 'live');
     }
 
     // ── Label ────────────────────────────────────────────────────────────────
