@@ -111,6 +111,12 @@ class BGCouriers_Pricing {
      * 20% the couriers that do report it charge. What that assumed is a shop with a rate to stand in.
      * dobavki.club has none: tax calculation is off and the rate table is empty, so WC_Tax answers 0
      * and the sum came out net however it was written.
+     *
+     * **Only call this where a DOCUMENT has settled that the courier's figure is net** - Sameday's
+     * invoice did, on 2026-09-01. Four of the seven couriers here return a total that looks exactly
+     * like a net one and is gross, so a price with no tax reported is presumed to be the money until an
+     * invoice or a printed waybill says otherwise. rate_cost() cannot make this mistake by accident: it
+     * never adds tax to a quote, it only hands over the tax the quote already carries.
      */
     public static function courier_tax(float $net): float {
         if ($net <= 0) { return 0.0; }
