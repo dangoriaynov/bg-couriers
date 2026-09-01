@@ -53,7 +53,9 @@ class BGCouriers_Method_Pigeon extends WC_Shipping_Method {
             BGCouriers_Logger::debug('no rate offered', ['courier' => 'pigeon', 'country' => $country]);
             return;
         }
-        $cost  = $quote->price;
+        // Net where WooCommerce will add the shipping tax on top, and what the courier will actually
+        // charge where it will not - see BGCouriers_Pricing::rate_cost().
+        $cost  = BGCouriers_Pricing::rate_cost($quote);
 
         // Abroad the courier bills the shop whatever the "delivery in the order total" toggle says: the
         // international service refuses a recipient payer outright, so there is no fee at the door to

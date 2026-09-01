@@ -8,7 +8,10 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
+require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.php';
+require_once dirname(__DIR__) . '/stubs/wc-tax.php';
 
 /**
  * Sameday estimate: the request body must route by delivery type (locker vs ooh vs address) and
@@ -30,6 +33,8 @@ final class SamedayQuoteTest extends TestCase {
         $q = BGCouriers_Sameday::parse_price(['amount' => 4.5, 'currency' => 'EUR', 'time' => 96], 'EUR');
         $this->assertInstanceOf(BGCouriers_Quote::class, $q);
         $this->assertEqualsWithDelta(4.5, $q->price, 0.001);
+        // And its VAT, which Sameday reports nowhere and invoices anyway - see parse_price().
+        $this->assertEqualsWithDelta(0.9, $q->tax, 0.001);
         $this->assertSame('EUR', $q->currency);
         $this->assertSame('live', $q->source);
     }

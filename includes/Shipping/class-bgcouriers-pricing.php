@@ -64,7 +64,10 @@ class BGCouriers_Pricing {
      * it shows a smaller number than the row beside it on a shop that displays prices with tax.
      */
     public static function display_price(float $net): float {
-        if ($net <= 0 || !class_exists('WC_Tax') || get_option('woocommerce_tax_display_cart') !== 'incl') { return $net; }
+        // A shop that adds no shipping tax has none to show a price inclusive of, whatever its display
+        // setting still says: the number handed here is already everything the row will charge, and
+        // adding twenty percent to it would print a price the checkout never asks for.
+        if ($net <= 0 || !self::wc_adds_shipping_tax() || get_option('woocommerce_tax_display_cart') !== 'incl') { return $net; }
         return round($net + array_sum(WC_Tax::calc_shipping_tax($net, WC_Tax::get_shipping_tax_rates())), 2);
     }
 
@@ -92,6 +95,54 @@ class BGCouriers_Pricing {
         if ($q->tax > 0) { return round($q->total(), 2); }
         if (!class_exists('WC_Tax')) { return round($q->price, 2); }
         return round($q->price + array_sum(WC_Tax::calc_shipping_tax($q->price, WC_Tax::get_shipping_tax_rates())), 2);
+    }
+
+    /** Whether WooCommerce itself will put the shipping tax on top of a rate cost this shop registers. */
+    private static function wc_adds_shipping_tax(): bool {
+        if (!function_exists('wc_tax_enabled') || !wc_tax_enabled()) { return false; }
+        return class_exists('WC_Tax') && !empty(WC_Tax::get_shipping_tax_rates());
+    }
+
+    /**
+     * The VAT a courier adds to a NET price of its own, for a shop WooCommerce works none out for.
+     *
+     * The rule is door_price()'s, stated there since 2026-08-31: where the courier does not break its
+     * own tax out, a quote is net and the shop's own shipping rate stands in - on this market the same
+     * 20% the couriers that do report it charge. What that assumed is a shop with a rate to stand in.
+     * dobavki.club has none: tax calculation is off and the rate table is empty, so WC_Tax answers 0
+     * and the sum came out net however it was written.
+     */
+    public static function courier_tax(float $net): float {
+        if ($net <= 0) { return 0.0; }
+        if (class_exists('WC_Tax')) {
+            $rates = WC_Tax::get_shipping_tax_rates();
+            if (!empty($rates)) { return round((float) array_sum(WC_Tax::calc_shipping_tax($net, $rates)), 2); }
+        }
+        return round($net * (float) apply_filters('bgcouriers_courier_vat_rate', 20.0) / 100, 2);
+    }
+
+    /**
+     * What to hand WooCommerce as the shipping rate's cost.
+     *
+     * Every rate here is registered with `'taxes' => ''`, which asks WooCommerce to work the shipping
+     * tax out and add it on top of a net cost. **A shop with tax calculation turned off adds nothing** -
+     * and the courier invoices its VAT to the shop regardless. So the customer was charged the net price
+     * while the shop was billed the gross one, and the difference came out of the shop on every order
+     * whose delivery is charged in the order total. Nothing in the checkout was ever going to cover it.
+     *
+     * Measured: order 11260 on the live shop was quoted **1.37** for a Sameday easyBox and Sameday
+     * invoiced **1.66** for waybill 1CJALN20743532 - the same figure plus 20%, on the invoice of
+     * 2026-09-01 that also settled Sameday's own net-or-gross question.
+     *
+     * So the net price where WooCommerce will add the tax, and the price the courier will actually
+     * charge where it will not. A quote carrying no tax of its own is handed over unchanged, and both
+     * kinds that do are meant to be: a figure that already includes VAT (Pigeon, Европът, Econt on a
+     * shop with no rates to split it with) is already what the courier charges, and a flat price the
+     * merchant typed into the settings is a decision about what to charge, not a courier's quote.
+     */
+    public static function rate_cost(BGCouriers_Quote $q): float {
+        if ($q->price <= 0) { return 0.0; }
+        return round(self::wc_adds_shipping_tax() ? $q->price : $q->total(), 2);
     }
 
     /**
