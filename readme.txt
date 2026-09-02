@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.2
+Stable tag: 0.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.3 =
+* Fixed: **switching a courier on saved it off.** The toggle on a courier's tab disabled its own checkbox while it saved, and a disabled field is not part of the form that gets sent - so the setting arrived empty and was stored as "off". This affected every courier and had been there since the toggle was added: one you had just enabled came back disabled, and one you were setting up for the first time could never be switched on at all.
+* Fixed: **a settings save that failed said nothing.** It looked exactly like one that worked - the switch turned green and nothing was written. A failure is now shown, with the error the server gave, and a courier is no longer enabled on the strength of a save that did not happen.
 
 = 0.4.2 =
 * New: **Европът, a seventh courier** - to its offices and to an address, with live prices for every destination, labels, tracking and cancellation. Which end the parcel leaves from is a setting rather than an assumption: Европът prices the whole journey, and the same parcel costs 4.59 counter-to-counter against 6.52 door-to-door, so a shop that hands its parcels over at an office would otherwise be quoted for a collection it never asks for.
