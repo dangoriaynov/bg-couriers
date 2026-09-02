@@ -393,7 +393,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
      * That line arrived on 2026-09-01. Order 11260 was quoted **1.37** at the checkout and Sameday
      * invoiced **1.66** for waybill 1CJALN20743532 - `amount` plus 20%, and not `amount`. So the tax is
      * put on the quote here rather than left for WooCommerce, which is what the shop it was written for
-     * had never been doing: dobavki.club calculates no tax at all, so nothing was ever added and the
+     * had never been doing: the live shop calculates no tax at all, so nothing was ever added and the
      * shop paid the VAT out of its own pocket on every Sameday order. See
      * BGCouriers_Pricing::rate_cost() for the half of that fault which was not Sameday's alone.
      */
