@@ -9,7 +9,7 @@
 if (!class_exists('WC_Tax')) {
     class WC_Tax {
         /**
-         * A shop with a shipping tax rate - unless a test says otherwise. dobavki.club has NO rate at
+         * A shop with a shipping tax rate - unless a test says otherwise. The live shop has NO rate at
          * all (tax calculation off, an empty rate table), and that shop is where the VAT on a delivery
          * went missing, so it has to be expressible here.
          */

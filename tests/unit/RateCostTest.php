@@ -41,7 +41,7 @@ final class RateCostTest extends TestCase {
         Functions\when('wc_tax_enabled')->justReturn(true);
     }
 
-    /** dobavki.club: `woocommerce_calc_taxes` off AND an empty rate table. */
+    /** The live shop: `woocommerce_calc_taxes` off AND an empty rate table. */
     private function shopCalculatesNoTax(): void {
         Functions\when('wc_tax_enabled')->justReturn(false);
         $GLOBALS['bgcouriers_test_shop_has_no_tax_rates'] = true;

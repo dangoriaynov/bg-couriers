@@ -109,8 +109,8 @@ class BGCouriers_Pricing {
      * The rule is door_price()'s, stated there since 2026-08-31: where the courier does not break its
      * own tax out, a quote is net and the shop's own shipping rate stands in - on this market the same
      * 20% the couriers that do report it charge. What that assumed is a shop with a rate to stand in.
-     * dobavki.club has none: tax calculation is off and the rate table is empty, so WC_Tax answers 0
-     * and the sum came out net however it was written.
+     * A shop can have no rate to stand in: tax calculation off and an empty rate table, which is the
+     * live shop this was written for, so WC_Tax answers 0 and the sum came out net however it was written.
      *
      * **Only call this where a DOCUMENT has settled that the courier's figure is net** - Sameday's
      * invoice did, on 2026-09-01. Four of the seven couriers here return a total that looks exactly
