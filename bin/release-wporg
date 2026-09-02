@@ -37,7 +37,7 @@ run() {
 VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
 P="${BGC_PROD_PATH%/}"
 WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"
-WP="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root"
+WP="${BGC_WP_BIN:-/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp} --allow-root"
 
 bash bin/preflight
 
@@ -65,7 +65,7 @@ echo "==> Plugin Check, on the code that is about to ship"
 # packaged has caught nothing twice before. It also reads the plugin NAME in the site's language, which
 # is how the trademark rule was broken invisibly on an English install.
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
-DEV_V="$(run "$WP --path=${DEVROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
+DEV_V="$(run "$WP --path=${DEVROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r' || true)"
 if [ "$DEV_V" != "$VERSION" ]; then
   echo "REFUSING: dev is on ${DEV_V}; deploy this build to dev first (bin/deploy.sh dev)" >&2
   exit 1

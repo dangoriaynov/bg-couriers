@@ -19,10 +19,16 @@ cd "$(dirname "$0")/.."
 
 P="${BGC_PROD_PATH%/}"
 WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"   # .../wp-content/plugins/bg-couriers -> the WP root
-WP="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root --path=${WPROOT}"
+# The PHP binary is the host's business, not this script's - bin/deploy.sh and e2e/dev-option.sh have
+# read it from BGC_WP_BIN since the sites moved into containers, and this one did not. The old CWP box
+# hid its CLI php under /opt/alt and would not run the plain one; a container has wp on the PATH and no
+# /opt/alt at all, so the hardcoded pair exited 127 and `set -e` took the script down BEFORE it printed
+# anything. A release that stops without a word looks exactly like one that was never asked for.
+WPCLI="${BGC_WP_BIN:-/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp}"
+WP="$WPCLI --allow-root --path=${WPROOT}"
 # The same wp-cli without a site bound to it: the pre-flight Plugin Check below runs against DEV, not
 # against the shop this script deploys to.
-WP_ANY="/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp --allow-root"
+WP_ANY="$WPCLI --allow-root"
 # The host's login shell prints a manpath locale warning on every single connection. It is noise, and it
 # buries the lines that matter - but stderr and the exit code still have to survive, or a failing remote
 # command would read as a clean one.
@@ -69,7 +75,7 @@ fi
 # Against DEV, which must therefore be on this build: checking a working copy that is not what gets
 # packaged has caught nothing twice before.
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
-DEV_V="$(run "$WP_ANY --path=${DEVROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
+DEV_V="$(run "$WP_ANY --path=${DEVROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r' || true)"
 if [ "$DEV_V" != "$VERSION" ]; then
   echo "REFUSING: dev is on ${DEV_V}; deploy this build to dev first (bin/deploy.sh dev)" >&2
   exit 1
@@ -130,7 +136,7 @@ done
 # shop's deliveries with it.
 echo "==> couriers"
 run "$WP eval '
-foreach ([\"speedy\",\"econt\",\"pigeon\",\"boxnow\",\"sameday\"] as \$c) {
+foreach (array_keys(BGCouriers_Couriers::all()) as \$c) {
   printf(\"  %-8s enabled=%-4s creds=%s\n\", \$c, get_option(\"bgcouriers_{\$c}_enabled\",\"no\"),
     BGCouriers_Settings::creds_present(\$c) ? \"yes\" : \"no\");
 }'"
