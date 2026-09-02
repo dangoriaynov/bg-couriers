@@ -45,6 +45,17 @@ run() {
   grep -v 'manpath: ' "$err" >&2 || true
   rm -f "$err"; return $rc
 }
+# The DEV site, which since the move is a different MACHINE and not just a different --path: run() goes
+# to the prod container, so the Plugin Check below - which must run against dev, on the exact build
+# about to ship - was asking the prod container about a directory it does not have. It answered nothing,
+# which read as "dev is on " and refused the release with the one thing that was not wrong.
+run_dev() {
+  if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_DEV:-}" ]; then
+    ssh -o ConnectTimeout=25 "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_DEV} -- bash -lc $(printf '%q' "$*")" 2>/dev/null
+    return
+  fi
+  ssh -p "${BGC_SSH_PORT:-22}" "$BGC_SSH_HOST" "$@" 2>/dev/null
+}
 VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
 
 bash bin/preflight
@@ -75,12 +86,12 @@ fi
 # Against DEV, which must therefore be on this build: checking a working copy that is not what gets
 # packaged has caught nothing twice before.
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
-DEV_V="$(run "$WP_ANY --path=${DEVROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r' || true)"
+DEV_V="$(run_dev "$WP_ANY --path=${DEVROOT} plugin get bg-couriers --field=version" | tr -d '\r' || true)"
 if [ "$DEV_V" != "$VERSION" ]; then
   echo "REFUSING: dev is on ${DEV_V}; deploy this build to dev first (bin/deploy.sh dev)" >&2
   exit 1
 fi
-CHECK="$(run "$WP_ANY --path=${DEVROOT} plugin check bg-couriers 2>&1 | tail -3" || true)"
+CHECK="$(run_dev "$WP_ANY --path=${DEVROOT} plugin check bg-couriers 2>&1 | tail -3" || true)"
 echo "$CHECK" | sed 's/^/  /'
 echo "$CHECK" | grep -q "No errors found" || { echo "REFUSING: Plugin Check reported errors - prod NOT touched" >&2; exit 1; }
 
