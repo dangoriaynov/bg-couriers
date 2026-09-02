@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.1
+Stable tag: 0.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,13 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.2 =
+* New: **Европът, a seventh courier** - to its offices and to an address, with live prices for every destination, labels, tracking and cancellation. Which end the parcel leaves from is a setting rather than an assumption: Европът prices the whole journey, and the same parcel costs 4.59 counter-to-counter against 6.52 door-to-door, so a shop that hands its parcels over at an office would otherwise be quoted for a collection it never asks for.
+* Fixed: **the price shown for a delivery paid at the door was short by the courier's VAT.** That row followed the shop's own "show prices with tax" setting - but the courier charges its VAT whatever a shop displays, so the customer was told 2.20 and handed the courier 2.64. Measured on a live shop for every courier; each was short by exactly its own VAT.
+* Fixed: **four couriers quote a price that already includes VAT, and the shop was adding it a second time.** Pigeon, Econt, Express One and Европът all return a total that looks exactly like a net one, and only their printed waybills say otherwise. A shop charging the delivery with the order billed 3.11 for a delivery Pigeon collects 2.59 for.
+* Fixed: **a shop that does not calculate tax was charging its customers less for delivery than the courier invoices it.** The delivery price is handed to WooCommerce for the shipping tax to be added on top, and a shop with tax calculation switched off adds none - while the courier invoices its VAT all the same. Sameday quoted 1.37 for a locker parcel and invoiced 1.66 for it.
+* Changed: the fixed and fallback delivery prices you type in, and BOX NOW's flat rate, now say that they are without VAT - they are used as the shipping rate's cost, which is what that means.
 
 = 0.4.1 =
 * Fixed: **a courier you had switched off was still offered at the checkout.** Everything else respected the switch - the cart estimate, the map, the office lookups - but the shipping method itself never asked, so a courier left in a shipping zone kept pricing and kept being shown while its own settings tab said it was off.
