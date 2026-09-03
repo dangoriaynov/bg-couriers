@@ -31,7 +31,11 @@ class BGCouriers_Method_Boxnow extends WC_Shipping_Method {
         // "Enable BOX NOW" was a switch that changed everything except the checkout. A zone entry is
         // ordinary WooCommerce furniture and a merchant may well leave one in place while a courier is
         // being set up, or after switching it off; it must not quote in the meantime.
-        if (BGCouriers_Settings::courier_config('boxnow') === null) { return; }
+        // Switched on, credentials saved and validated, and at least one delivery option left on.
+        // A zone entry is ordinary WooCommerce furniture and a merchant may well leave one in place
+        // while a courier is being set up, or after switching it off; it must not quote in the
+        // meantime. See BGCouriers_Settings::courier_offerable().
+        if (!BGCouriers_Settings::courier_offerable('boxnow')) { return; }
         // BoxNow parcel limit - hide the method for carts it cannot carry. The cart weight arrives in
         // the shop's own unit, so it is converted first: compared raw, a gram-priced shop hid BOX NOW
         // from every basket over 20 grams.

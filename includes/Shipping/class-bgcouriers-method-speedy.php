@@ -27,7 +27,11 @@ class BGCouriers_Method_Speedy extends WC_Shipping_Method {
         // "Enable Speedy" was a switch that changed everything except the checkout. A zone entry is
         // ordinary WooCommerce furniture and a merchant may well leave one in place while a courier is
         // being set up, or after switching it off; it must not quote in the meantime.
-        if (BGCouriers_Settings::courier_config('speedy') === null) { return; }
+        // Switched on, credentials saved and validated, and at least one delivery option left on.
+        // A zone entry is ordinary WooCommerce furniture and a merchant may well leave one in place
+        // while a courier is being set up, or after switching it off; it must not quote in the
+        // meantime. See BGCouriers_Settings::courier_offerable().
+        if (!BGCouriers_Settings::courier_offerable('speedy')) { return; }
         // Price against THIS courier's own selection (the session's single selection is tagged with the
         // courier it was made for; city/office ids are per-courier and must not leak across couriers).
         $sel     = BGCouriers_Pricing::selection_for('speedy');

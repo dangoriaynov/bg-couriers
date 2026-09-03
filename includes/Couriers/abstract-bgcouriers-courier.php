@@ -106,10 +106,17 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
     }
 
     /**
-     * Crucial-settings check run before this courier may be enabled. Returns a list of problems, each
-     * ['msg' => what is wrong, 'fix' => how to resolve it]; an empty list means it is ready to enable.
-     * Reads SAVED options - the merchant should Save (and Validate credentials) before enabling.
-     * Couriers override this to add their own required fields on top of the base credential check.
+     * What is still between this courier and a customer seeing it. An empty list means it is ready.
+     *
+     * It used to REFUSE the enable toggle, and that made the first step impossible: credentials come
+     * from the courier, and two of these fields (Express One's collection address, Европът's sender
+     * file) can only be picked off a list the API returns - so a courier could not be switched on until
+     * it was configured, and could not be configured meaningfully until it was on. Switching one on is a
+     * decision the merchant is allowed to make first; this list is what the tab shows them afterwards,
+     * and BGCouriers_Settings::courier_offerable() is what actually withholds the courier from the
+     * checkout until the list is empty.
+     *
+     * Reads SAVED options. Couriers override it to add their own required fields on top of these.
      *
      * @return array<int,array{msg:string,fix:string}>
      */
@@ -136,6 +143,24 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
                 'code' => 'creds_unvalidated',
                 'msg' => __('The API credentials have not been validated.', 'bg-couriers'),
                 'fix' => __('Click “Validate credentials” and make sure the check succeeds.', 'bg-couriers'),
+            ];
+        }
+        // Not credentials, and not this courier's own fields: the last two things between a courier that
+        // is fully set up and a customer seeing it. Both were silent - a courier with every delivery
+        // option switched off still quoted (selection_for() falls back to 'office'), and one that had
+        // never been added to a shipping zone simply never appeared, with nothing anywhere saying why.
+        if (!BGCouriers_Settings::enabled_methods($id)) {
+            $problems[] = [
+                'code' => 'no_methods',
+                'msg' => __('Every delivery option is switched off.', 'bg-couriers'),
+                'fix' => __('Switch at least one of them on - the tabs below the courier settings.', 'bg-couriers'),
+            ];
+        }
+        if (!BGCouriers_Settings::in_a_shipping_zone($id)) {
+            $problems[] = [
+                'code' => 'no_zone',
+                'msg' => __('This courier is not in any shipping zone.', 'bg-couriers'),
+                'fix' => __('Add it in WooCommerce → Settings → Shipping, to the zone your customers are in.', 'bg-couriers'),
             ];
         }
         return $problems;
