@@ -447,12 +447,22 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $i_intro = esc_js(__('Please fix the following, then enable it again:', 'bg-couriers'));
         $i_fix   = esc_js(__('How to fix:', 'bg-couriers'));
         $i_close = esc_js(__('Close', 'bg-couriers'));
+        // Same wording as the Save button's own failure, so a shop sees one message for one thing.
+        $i_nosave = esc_js(__('Could not save - please try again.', 'bg-couriers'));
         BGCouriers_Settings::inline_js("\n"
             . "(function(\$){\n"
             . "    var courier='" . $c_id . "', ajaxurl='" . $c_ajax . "', saveNonce='" . $c_save . "', adminNonce='" . $c_admin . "', section='" . $c_id . "';\n"
             . "    function esc(s){ return \$('<i>').text(s==null?'':s).html(); }\n"
-            . "    function saveForm(cb){ var f=\$('#mainform'); if(!f.length){ if(cb){cb();} return; }\n"
-            . "        \$.post(ajaxurl, f.serialize()+'&action=bgcouriers_save_settings&bgcouriers_nonce='+saveNonce+'&bgcouriers_section='+encodeURIComponent(section)).always(function(){ if(cb){cb();} }); }\n"
+            // The callback is told whether the save actually LANDED. It used to be handed nothing at all,
+            // from .always(), so a save that failed - a 500, a session that had quietly expired, an answer
+            // of success:false - looked exactly like one that worked: the toggle went green, the option was
+            // never written, and there was no message on the screen for the merchant to act on or send on.
+            . "    function saveForm(cb){ var f=\$('#mainform'); if(!f.length){ if(cb){cb(false);} return; }\n"
+            . "        var ok=false;\n"
+            . "        \$.post(ajaxurl, f.serialize()+'&action=bgcouriers_save_settings&bgcouriers_nonce='+saveNonce+'&bgcouriers_section='+encodeURIComponent(section))\n"
+            . "            .done(function(r){ ok=!!(r&&r.success); if(!ok&&window.bgcToast){ window.bgcToast((r&&r.data&&r.data.msg)||'" . $i_nosave . "','err',7000); } })\n"
+            . "            .fail(function(x){ if(window.bgcToast){ window.bgcToast('" . $i_nosave . "'+(x&&x.status?' ('+x.status+')':''),'err',7000); } })\n"
+            . "            .always(function(){ if(cb){cb(ok);} }); }\n"
             . "    function setVis(box,on){ box.toggleClass('bgc-enable-on',on).toggleClass('bgc-enable-off',!on);\n"
             . "        box.find('.bgc-enable-state').text(on?box.data('on'):box.data('off'));\n"
             . "        \$('.bgc-settings .nav-tab-active').toggleClass('bgc-tab-on',on).toggleClass('bgc-tab-off',!on); }\n"
@@ -463,15 +473,32 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . "        var m=\$(h).appendTo('body');\n"
             . "        m.on('click',function(e){ if(e.target===this||\$(e.target).hasClass('bgc-enable-close')){ m.remove(); } });\n"
             . "    }\n"
+            // Switching a courier ON saved it OFF, and had done since the toggle was written.
+            //
+            // The guard against a second click was `cb.prop('disabled',true)`, set BEFORE the form was
+            // sent - and jQuery leaves a disabled control out of .serialize() (serializeArray filters on
+            // `!is(":disabled")`). So the POST carried no `bgcouriers_<courier>_enabled` field at all, and
+            // WooCommerce reads a checkbox missing from the payload as "no": the shop asked for the
+            // courier to be on and the plugin wrote off, every time, for every courier. Measured on the
+            // live shop 2026-09-03 - Express One had no `_enabled` row at all and its enable_problems()
+            // was empty, so nothing was refusing it; nothing was ever being asked.
+            //
+            // The guard is a class on the row now. It keeps the double click out (the CSS takes the
+            // pointer events with it) without touching the one property that decides whether the field is
+            // part of the form.
             . "    \$(document).on('change','.bgc-enable-toggle input[type=checkbox]',function(){\n"
             . "        var cb=\$(this), on=this.checked, box=cb.closest('.bgc-enable-toggle');\n"
+            . "        if(box.hasClass('bgc-busy')){ cb.prop('checked',!on); return; }\n"
             . "        setVis(box,on);\n"
             . "        if(!on){ saveForm(); return; }\n"
-            . "        cb.prop('disabled',true);\n"
-            . "        saveForm(function(){\n"
+            . "        box.addClass('bgc-busy');\n"
+            . "        saveForm(function(saved){\n"
+            // A courier cannot be enabled on the strength of a save that did not happen: the toggle goes
+            // back where it was and the failure has already said so.
+            . "            if(!saved){ cb.prop('checked',false); setVis(box,false); box.removeClass('bgc-busy'); return; }\n"
             . "            \$.post(ajaxurl,{action:'bgcouriers_enable_check',nonce:adminNonce,courier:courier}).done(function(r){\n"
             . "                if(!(r&&r.success)){ cb.prop('checked',false); setVis(box,false); saveForm(); showProblems(r&&r.data&&r.data.problems); }\n"
-            . "            }).always(function(){ cb.prop('disabled',false); });\n"
+            . "            }).always(function(){ box.removeClass('bgc-busy'); });\n"
             . "        });\n"
             . "    });\n"
             . "})(jQuery);\n"
