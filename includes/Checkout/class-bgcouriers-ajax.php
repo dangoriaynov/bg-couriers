@@ -324,7 +324,7 @@ class BGCouriers_Ajax {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only price lookup, no state change
         $code = isset($_GET['post_code']) ? sanitize_text_field(wp_unslash($_GET['post_code'])) : '';
         $obj  = $cid !== '' ? BGCouriers_Couriers::get($cid) : null;
-        if (!$obj || !BGCouriers_Settings::courier_config($cid)) { wp_send_json_success(['prices' => [], 'saves' => []]); }
+        if (!$obj || !BGCouriers_Settings::courier_offerable($cid)) { wp_send_json_success(['prices' => [], 'saves' => []]); }
         // A town name and post code are only unique inside a country: "1000" is Sofia and Bucharest.
         $country = BGCouriers_Pricing::destination_country();
         $city = BGCouriers_Nomenclature::match_city($cid, $name, $code, $country);

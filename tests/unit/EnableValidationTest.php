@@ -27,8 +27,23 @@ final class EnableValidationTest extends TestCase {
         parent::setUp(); Monkey\setUp();
         Functions\when('__')->returnArg(1);
         Functions\when('esc_html')->returnArg(1);
+        // The readiness list now asks whether any delivery option is left on, which reaches the synced
+        // office counts behind a transient. Nothing here has a database; "not cached" is the answer that
+        // makes available_methods() fall back to the courier's declared capabilities.
+        Functions\when('get_transient')->alias(static function ($k) {
+            // "Nothing synced", answered from the cache so nothing reaches for a database that is not
+            // there. total = 0 is what makes available_methods() fall back to declared capabilities.
+            return strpos((string) $k, 'bgcouriers_typecnt_') === 0
+                ? ['office' => 0, 'automat' => 0, 'total' => 0] : false;
+        });
+        Functions\when('set_transient')->justReturn(true);
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void {
+        // A registration that outlives its test poisons the next FILE, not just the next test: the
+        // registry is static, and enabled_methods() only prunes when it finds a courier in it.
+        BGCouriers_Couriers::reset();
+        Monkey\tearDown(); parent::tearDown();
+    }
 
     private function opts(array $map): void {
         Functions\when('get_option')->alias(function ($k, $d = false) use ($map) {

@@ -90,7 +90,57 @@ class BGCouriers_Settings {
      */
     public static function courier_config(string $courier): ?array {
         if (get_option('bgcouriers_' . $courier . '_enabled', 'no') !== 'yes') { return null; }
+        // Switched on is an INTENTION; credentials are what make it possible. Enabling a courier no
+        // longer waits for them (see enable_problems() - a merchant may switch a courier on and set it
+        // up afterwards), so the question moved here, where it belongs: without credentials there is no
+        // live price to quote and no waybill to print, and a courier offered on a fallback price it can
+        // never turn into a label is worse than one that is simply not offered yet.
+        //
+        // This also closes a hole that was already open: the ✕ beside a credential field marks it as
+        // needing re-validation and does NOT clear the stored value, so `creds_present()` stayed true and
+        // the courier went on quoting with credentials the shop had just called into question.
+        if (!self::creds_present($courier)) { return null; }
+        if (get_option('bgcouriers_' . $courier . '_validated', 'yes') !== 'yes') { return null; }
         return self::courier_credentials($courier);
+    }
+
+    /**
+     * Everything that has to be true before the CHECKOUT may offer this courier at all.
+     *
+     * The gates, in the order a merchant meets them: switched on, credentials saved and validated
+     * (courier_config()), and at least one delivery option left on. The zone is WooCommerce's own gate -
+     * it never calls a shipping method that is not in a matching zone - and the courier's own
+     * configuration (a ППП it cannot do, a country it does not serve) is decided per package, later.
+     *
+     * The last one used to be missing: selection_for() falls back to 'office' when nothing is enabled,
+     * so a courier with every delivery option switched off quoted an office delivery anyway. Measured on
+     * dev 2026-09-03 - Express One had all three toggles off and was still being offered.
+     */
+    public static function courier_offerable(string $courier): bool {
+        return self::courier_config($courier) !== null && self::enabled_methods($courier) !== [];
+    }
+
+    /**
+     * Is this courier's shipping method in a shipping zone, switched on?
+     *
+     * Not a gate this plugin enforces - WooCommerce simply never calls a method outside a matching zone,
+     * which is the right behaviour and needs no help. It is a DIAGNOSIS: a courier that is on, validated
+     * and fully configured and still does not appear has usually never been added to a zone, and nothing
+     * anywhere said so. Answers true when it cannot tell, so it never cries wolf.
+     */
+    public static function in_a_shipping_zone(string $courier): bool {
+        if (!class_exists('WC_Shipping_Zones')) { return true; }
+        $id = 'bgcouriers_' . $courier;
+        $zones = WC_Shipping_Zones::get_zones();
+        $zones[] = ['id' => 0]; // "Locations not covered by your other zones" is a zone like any other
+        foreach ($zones as $z) {
+            $zone = WC_Shipping_Zones::get_zone((int) ($z['id'] ?? 0));
+            if (!$zone) { continue; }
+            foreach ($zone->get_shipping_methods(true) as $m) {
+                if (isset($m->id) && $m->id === $id) { return true; }
+            }
+        }
+        return false;
     }
 
     /** @return array<string,string> id => label of registered couriers. */
@@ -961,6 +1011,35 @@ jQuery(function($){
         echo '</div>';
     }
 
+    /**
+     * What is still between this courier and a customer seeing it - rendered on its own tab.
+     *
+     * Only for a courier that is switched ON: for one that is off, "it is off" is the whole answer and
+     * a list of everything else would be noise. This is the other half of letting a courier be enabled
+     * before it is configured. Without it the merchant trades "I cannot switch it on" for "I switched it
+     * on, where is it?", which is the worse of the two.
+     */
+    public static function readiness_block(string $courier): void {
+        if (get_option('bgcouriers_' . $courier . '_enabled', 'no') !== 'yes') { return; }
+        $co = BGCouriers_Couriers::get($courier);
+        if (!$co || !method_exists($co, 'enable_problems')) { return; }
+        try { $problems = $co->enable_problems(); } catch (\Throwable $e) { return; }
+        if (empty($problems)) { return; }
+        echo '<div class="bgc-readiness" style="border:1px solid #e6cf7a;background:#fef8e7;color:#7a5b00;'
+            . 'border-radius:8px;padding:10px 14px;margin:0 0 14px;line-height:1.5;">';
+        echo '<strong>' . esc_html__('Switched on, but the checkout will not offer it until:', 'bg-couriers') . '</strong>';
+        echo '<ul style="margin:.5em 0 0 1.3em;list-style:disc;">';
+        foreach ($problems as $p) {
+            echo '<li style="margin:.25em 0;">' . esc_html((string) ($p['msg'] ?? ''));
+            if (!empty($p['fix'])) {
+                echo '<br><span style="opacity:.85;">' . esc_html__('How to fix:', 'bg-couriers') . ' '
+                    . esc_html((string) $p['fix']) . '</span>';
+            }
+            echo '</li>';
+        }
+        echo '</ul></div>';
+    }
+
     /** Full-width "How do I get API credentials?" hint rendered OUTSIDE the form-table (spans the column). */
     public static function cred_hint_block(string $courier): void {
         $data = self::cred_hint_data($courier);
@@ -1192,8 +1271,13 @@ jQuery(function($){
                 $problems[$k]['fix'] = __('Check the username/key and password/secret with the courier, press ✕ beside each field to enter them again, then save.', 'bg-couriers');
             }
         }
-        if (!empty($problems)) { wp_send_json_error(['problems' => array_values($problems)]); }
-        wp_send_json_success(['ok' => true]);
+        // Informs; it does not refuse. Switching a courier on is a decision the merchant is allowed to
+        // make before anything else is in place - the credentials come from the courier, and two of them
+        // (Express One's collection address, Европът's sender file) can only be CHOSEN from a list the
+        // API returns, so demanding them first made the first step impossible. What is still missing is
+        // shown instead, here and on the tab itself, and the checkout is what withholds the courier until
+        // it is all there - see courier_offerable().
+        wp_send_json_success(['ok' => empty($problems), 'problems' => array_values($problems)]);
     }
 
     /** Save the courier order dragged on the settings tabs (drives checkout + cart ordering via sort_rates). */

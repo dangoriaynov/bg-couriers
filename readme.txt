@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.3
+Stable tag: 0.4.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.4 =
+* Changed: **a courier can be switched on before it is set up.** Enabling one used to be refused until its credentials were saved and validated - which was impossible for two of them, whose "send parcels from" address can only be picked off a list their own API returns once the credentials work. The switch is yours now; underneath it the tab lists what is still missing, and the checkout is what withholds the courier until the list is empty.
+* Fixed: **a courier with missing credentials, or credentials marked as needing re-validation, is no longer offered at the checkout.** The ✕ beside a credential field marks it for re-entry and deliberately keeps the stored value, so the courier went on quoting and pricing with credentials the shop had just called into question - and could not print a label for any of it.
+* Fixed: **a courier with every delivery option switched off was still offered**, priced as a delivery to an office nobody had left enabled.
+* New: **the tab says when a courier is not in any shipping zone.** It is the usual reason a courier that is on, validated and fully configured never appears at the checkout, and nothing anywhere used to mention it.
 
 = 0.4.3 =
 * Fixed: **switching a courier on saved it off.** The toggle on a courier's tab disabled its own checkbox while it saved, and a disabled field is not part of the form that gets sent - so the setting arrived empty and was stored as "off". This affected every courier and had been there since the toggle was added: one you had just enabled came back disabled, and one you were setting up for the first time could never be switched on at all.

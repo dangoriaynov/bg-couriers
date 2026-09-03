@@ -436,6 +436,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> - <span class="bgc-enable-state">' . esc_html($on ? $on_t : $off_t) . '</span></span>'
             . '</div>';
         BGCouriers_Settings::ppp_notice_block($courier_id); // full-width, escaped internally
+        BGCouriers_Settings::readiness_block($courier_id);  // what is still missing, once it is switched ON
         BGCouriers_Settings::cred_hint_block($courier_id);  // full-width, escaped internally
         WC_Admin_Settings::output_fields($fields);
         $c_id    = esc_js($courier_id);
@@ -443,8 +444,8 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $c_save  = esc_js(wp_create_nonce('bgcouriers_save'));
         $c_admin = esc_js(wp_create_nonce('bgcouriers_admin'));
         /* translators: %s: courier name */
-        $i_title = esc_js(sprintf(__('“%s” can’t be enabled yet', 'bg-couriers'), $label));
-        $i_intro = esc_js(__('Please fix the following, then enable it again:', 'bg-couriers'));
+        $i_title = esc_js(sprintf(__('“%s” is on, but not ready yet', 'bg-couriers'), $label));
+        $i_intro = esc_js(__('Customers will not see it at the checkout until:', 'bg-couriers'));
         $i_fix   = esc_js(__('How to fix:', 'bg-couriers'));
         $i_close = esc_js(__('Close', 'bg-couriers'));
         // Same wording as the Save button's own failure, so a shop sees one message for one thing.
@@ -496,8 +497,11 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             // A courier cannot be enabled on the strength of a save that did not happen: the toggle goes
             // back where it was and the failure has already said so.
             . "            if(!saved){ cb.prop('checked',false); setVis(box,false); box.removeClass('bgc-busy'); return; }\n"
+            // The courier stays ON whatever comes back. The check validates credentials that have been
+            // saved but never tried, and then says what is still missing - it does not veto the decision.
             . "            \$.post(ajaxurl,{action:'bgcouriers_enable_check',nonce:adminNonce,courier:courier}).done(function(r){\n"
-            . "                if(!(r&&r.success)){ cb.prop('checked',false); setVis(box,false); saveForm(); showProblems(r&&r.data&&r.data.problems); }\n"
+            . "                var pr=(r&&r.data&&r.data.problems)||[];\n"
+            . "                if(pr.length){ showProblems(pr); }\n"
             . "            }).always(function(){ box.removeClass('bgc-busy'); });\n"
             . "        });\n"
             . "    });\n"

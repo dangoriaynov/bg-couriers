@@ -561,7 +561,7 @@ class BGCouriers_Checkout {
         $names  = BGCouriers_Couriers::all();
         $rows   = [];
         foreach (BGCouriers_Settings::courier_order() as $cid) {
-            if (BGCouriers_Settings::courier_config($cid) === null) { continue; } // enabled + configured only
+            if (!BGCouriers_Settings::courier_offerable($cid)) { continue; } // exactly what the checkout will offer
             $parts = [];
             foreach (BGCouriers_Settings::enabled_methods($cid) as $m) {
                 $est = BGCouriers_Pricing::estimate($cid, $m);
