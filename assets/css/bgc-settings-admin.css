@@ -139,3 +139,9 @@
    purpose - it is a footnote on the merchant's own screen, not something to be got past. */
 .bgc-settings-foot { margin: 14px 2px 0; color: #646970; font-size: 12px; line-height: 1.6; }
 .bgc-settings-foot a { color: #2271b1; }
+
+/* While a courier's enable toggle is saving. It used to be `disabled` on the checkbox itself, which
+   kept it out of the form - see output_courier(): a disabled control is not serialised, so switching a
+   courier on posted no value and saved it off. The guard is cosmetic now; the field stays part of the
+   form. */
+#wpbody .bgc-settings .bgc-enable-toggle.bgc-busy { pointer-events:none; opacity:.75; }
