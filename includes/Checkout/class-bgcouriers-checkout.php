@@ -1041,6 +1041,15 @@ class BGCouriers_Checkout {
                 'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),'street_ph'=>__('Type a street…','bg-couriers'),
                 'na_city' => __('Not available in this city','bg-couriers'),
                 'office_need_city' => __('Select a city first','bg-couriers'),
+                // select2's own messages. It ships English ones and WooCommerce loads no other, so
+                // without these the street box answered "Please enter 2 or more characters" on a
+                // Bulgarian checkout - see s2lang() in bgc-checkout.js.
+                /* translators: %d is how many characters the search needs before it will look. */
+                's2_short' => __('Type at least %d characters', 'bg-couriers'),
+                's2_none' => __('Nothing found', 'bg-couriers'),
+                's2_searching' => __('Searching…', 'bg-couriers'),
+                's2_more' => __('Loading more…', 'bg-couriers'),
+                's2_error' => __('The results could not be loaded', 'bg-couriers'),
                 'boxnow_pick' => __('Choose a BOX NOW locker','bg-couriers'),
                 'boxnow_change' => __('Change locker','bg-couriers'),
                 'map_open' => __('View on map','bg-couriers'),
