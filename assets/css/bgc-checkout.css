@@ -47,6 +47,11 @@
 
 /* select2 (city + office) sizing to match inputs */
 .bgc-fields .select2-container { width: 100% !important; }
+/* A shop where selectWoo never loaded keeps plain <select>s, and a plain <select> is as wide as its
+   longest option - "Офис Дружба, бул. Христофор Колумб 64" is 280px of it. That is the same fault the
+   rendered box below had, from the other direction, so it gets the same answer: no minimum offered to
+   the table, full width in the field. */
+.bgc-fields select:not(.select2-hidden-accessible) { width: 0; min-width: 100%; }
 .bgc-fields .select2-selection { min-height: 38px !important; border: 1px solid #d8dde3 !important; border-radius: 8px !important; display: flex; align-items: center; }
 /* `width: 0` + `min-width: 100%` is not decoration - it is what keeps this checkout on a phone.
    These fields sit inside a cell of WooCommerce's review-order table, and a table cell is never
@@ -114,8 +119,15 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 /* Office / APS map picker (Leaflet) */
 .bgc-office-pick { display: flex; gap: 6px; align-items: stretch; max-width: 100%; }
 /* min-width:0 + width:auto let the select shrink so the Map button stays inside the row (overrides the
-   global .select2-container width:100% !important, hence the more specific selector). */
-.bgc-office-pick .bgc-office, .bgc-office-pick .select2-container { flex: 1 1 auto; min-width: 0; width: auto !important; }
+   global .select2-container width:100% !important, hence the more specific selector).
+   The `:not(.select2-hidden-accessible)` is what stops this from breaking the page. select2 hides the
+   original <select> with `position:absolute; width:1px !important` - and this rule's `width:auto`, being
+   more specific, won that fight and blew the hidden select back up to the width of its longest option.
+   It is out of flow, so nothing moved; it simply stuck out past the right edge and gave the whole
+   checkout a horizontal scrollbar (measured: a 320px viewport scrolled to 419px). The <select> half of
+   this selector is only here for a shop where selectWoo never ran, and there is nothing to override. */
+.bgc-office-pick .bgc-office:not(.select2-hidden-accessible) { flex: 1 1 auto; min-width: 0; }
+.bgc-office-pick .select2-container { flex: 1 1 auto; min-width: 0; width: auto !important; }
 /* Neutral, theme-agnostic button: transparent with a currentColor border + icon, so it looks right on
    both light and dark sites (no theme accent colour, no emoji). */
 .bgc-map-btn { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;
@@ -192,16 +204,58 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 /* ...and the text stops before it, rather than running underneath. */
 .bgc-fields .select2-container--default .select2-selection--single .select2-selection__rendered { padding-right: 48px; }
 
-/* Phone-sized. Nothing below changes the layout - only how the room is spent, since what is
-   comfortable beside a 1200px order summary is a squeeze in a 360px one. */
-@media (max-width: 768px) {
-  /* Three delivery tabs on a narrow card: let them size to their own words rather than hold a 92px
-     floor each, which forced one tab per line. */
-  .bgc-tab { min-width: 0; padding: 9px 8px; }
-  /* The Map button drops under the office list instead of taking a third of the row from it. */
-  .bgc-office-pick { flex-wrap: wrap; }
-  /* A house number is three characters wide; the street name is the field that needs the room. */
-  .bgc-grid { grid-template-columns: minmax(0, 1fr) 78px; }
-  .bgc-grid-map { grid-template-columns: minmax(0, 1fr) 62px 44px; }
-  .bgc-grid-4 { gap: 6px; }
+/* ── Narrow screens, and narrow columns ────────────────────────────────────────────────────────────
+   Two different questions, so two different tools.
+
+   HOW MUCH ROOM the fields have is not a property of the phone. This widget is dropped into a cell of
+   somebody else's totals table, and how wide that cell ends up depends on the theme: the same 390px
+   screen leaves it 171px on one shop and 280px on another, and in the cart or a wide sidebar it has
+   plenty. A viewport media query cannot see any of that; a container query is asking the right thing.
+
+   HOW BIG A TARGET has to be IS a property of the input device, and that is the media query at the end.
+
+   Containment is safe here: all three of this plugin's overlays are appended to <body>, so nothing
+   position:fixed lives inside .bgc-fields to be caught by it. */
+@supports (container-type: inline-size) {
+  .bgc-fields { container-type: inline-size; container-name: bgcfields; }
+}
+
+@container bgcfields (max-width: 360px) {
+  .bgc-tabs { gap: 6px; }
+  /* Let a tab be as wide as its own words. The 92px floor is what forced one tab per line in a column
+     this narrow, and three full-width bars for three short phrases reads as three separate decisions. */
+  .bgc-tab { min-width: 0; padding: 10px 8px; }
+  /* The office row stays one line, and the office NAME is what has to be readable on it - so the Map
+     button drops its word and becomes the same pin square the address row already uses. The word only
+     moves: it stays in the title and the aria-label. */
+  .bgc-office-pick .bgc-map-btn { width: 38px; padding: 0; justify-content: center; }
+  .bgc-office-pick .bgc-map-btn span { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  /* Street name above the house number instead of beside it. Sharing one line here left the street
+     eight characters wide, and a street cut to eight characters is not a street. */
+  .bgc-grid { grid-template-columns: minmax(0, 1fr); }
+  .bgc-grid-map { grid-template-columns: minmax(0, 1fr) 44px; }
+  .bgc-grid > .bgc-street-field { grid-column: 1 / -1; }
+  .bgc-grid > .bgc-streetno-field { max-width: 120px; }
+  /* Block / entrance / floor / apartment, two and two: four across gives each of them less width than
+     the word standing above it. */
+  .bgc-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Touch. Sizes here are about the finger, not the column. */
+@media (pointer: coarse) {
+  /* 16px is the size below which iOS zooms the page the instant a field is focused - and a checkout
+     that jumps and has to be pinched back is the twin of the bug this file already fixes once. */
+  .bgc-fields input,
+  .bgc-fields .select2-selection__rendered,
+  .select2-container--open .bgc-drop .select2-search--dropdown .select2-search__field { font-size: 16px; }
+  /* 44px is the smallest target a thumb hits reliably. !important because the sizes it is raising are
+     themselves !important - they exist to beat the theme, and this exists to beat them. */
+  .bgc-fields input { min-height: 44px; }
+  .bgc-fields .select2-selection { min-height: 44px !important; }
+  .bgc-fields .select2-selection__rendered { line-height: 42px !important; }
+  .bgc-fields .select2-selection__arrow { height: 42px !important; }
+  .select2-container--open .bgc-drop .select2-search--dropdown .select2-search__field { height: 44px; min-height: 44px; line-height: 42px; }
+  .select2-container--open .bgc-drop .select2-results__option { padding: 12px 10px; }
+  .bgc-tab, .bgc-map-btn, .bgc-addr-map-icon { min-height: 44px; }
 }

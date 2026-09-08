@@ -667,7 +667,44 @@
     window.requestAnimationFrame(function () { $wrap.addClass('bgc-ready'); });
   }
 
+  /**
+   * Give the courier box the whole row on a phone.
+   *
+   * It lives in a cell of the theme's totals table, and that table keeps a label column beside it - on a
+   * 320px screen roughly 130 of them, for a heading this row does not even have. BGCouriers_Checkout
+   * prints the package name empty on purpose, so the cell next to the couriers is blank, and the
+   * couriers are squeezed into what is left. No stylesheet can tell a cell to span its row, which is
+   * why this is done here and not in bgc-checkout.css.
+   *
+   * Deliberately timid, because it is somebody else's table:
+   *  - only a row shaped exactly as WooCommerce writes it, one <th> and one <td>;
+   *  - only while that <th> is EMPTY - a theme that puts "Delivery" there means it, and keeps it;
+   *  - the span is however many columns the widest row of that table actually has, not an assumed two;
+   *  - undone above the breakpoint, so a window dragged wider gets its layout back.
+   */
+  function spanShippingRow() {
+    var wide = window.matchMedia('(min-width: 783px)').matches;
+    $('tr.woocommerce-shipping-totals, tr.shipping').each(function () {
+      var $tr = $(this), $th = $tr.children('th'), $td = $tr.children('td');
+      if ($th.length !== 1 || $td.length !== 1 || $.trim($th.text()) !== '') { return; }
+      var cols = 0;
+      $tr.closest('table').find('tr').each(function () {
+        var n = 0;
+        $(this).children('th,td').each(function () { n += (parseInt(this.getAttribute('colspan'), 10) || 1); });
+        if (n > cols) { cols = n; }
+      });
+      if (cols < 2) { return; }
+      if (wide) { $th.css('display', ''); $td.removeAttr('colspan'); }
+      else { $th.css('display', 'none'); $td.attr('colspan', cols); }
+    });
+  }
+  var spanTimer = null;
+  $(window).on('resize orientationchange', function () {
+    clearTimeout(spanTimer); spanTimer = setTimeout(spanShippingRow, 150);
+  });
+
   $(document.body).on('updated_checkout', function () {
+    spanShippingRow();
     dimRates();
     if (!$('.bgc-fields').length) return;
     var chosen = chosenCourier();

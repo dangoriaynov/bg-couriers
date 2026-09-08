@@ -93,3 +93,19 @@ ul#shipping_method > li > .bgc-fields { display: block; width: 100%; cursor: def
   -webkit-mask-position:center; mask-position:center; -webkit-mask-size:11px 11px; mask-size:11px 11px; }
 .bgc-info-tip.bgc-pay-courier::before { -webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%222%22%20y%3D%226%22%20width%3D%2220%22%20height%3D%2212%22%20rx%3D%222%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%222.5%22%2F%3E%3C%2Fsvg%3E"); mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%222%22%20y%3D%226%22%20width%3D%2220%22%20height%3D%2212%22%20rx%3D%222%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%222.5%22%2F%3E%3C%2Fsvg%3E"); }
 .bgc-info-tip.bgc-pay-total::before   { -webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%207h12l-1%2013H7z%22%2F%3E%3Cpath%20d%3D%22M9%207V5a3%203%200%200%201%206%200v2%22%2F%3E%3C%2Fsvg%3E");   mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%207h12l-1%2013H7z%22%2F%3E%3Cpath%20d%3D%22M9%207V5a3%203%200%200%201%206%200v2%22%2F%3E%3C%2Fsvg%3E"); }
+
+/* Touch: the courier rows and the (i) beside them. */
+@media (pointer: coarse) {
+  /* A row is the target for choosing that courier, so it is worth a thumb's height. */
+  ul#shipping_method > li { padding-top: 11px; padding-bottom: 11px; }
+  ul#shipping_method > li:has(> input.shipping_method:checked) { padding-top: 10px; padding-bottom: 10px; }
+  /* The (i) is the only way to the sentence saying whether this delivery is paid to the courier at the
+     door or is already in the total - and a touch screen has no hover, so a tap on it is that sentence's
+     only door. A 15px dot is not a target; 21px is one a thumb can find. */
+  .bgc-info-tip { width: 21px; height: 21px; font-size: 13px; line-height: 21px; }
+  .bgc-info-tip.bgc-pay-courier::before,
+  .bgc-info-tip.bgc-pay-total::before { -webkit-mask-size: 15px 15px; mask-size: 15px 15px; }
+  /* Anchored to the tip's right edge, the bubble ran off a narrow screen. Pinned to the row instead,
+     with the row's own padding as the margin, it cannot: the row is never wider than the column. */
+  .bgc-info-tip:hover::after, .bgc-info-tip:focus::after { max-width: min(240px, 78vw); }
+}
