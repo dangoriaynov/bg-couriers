@@ -23,3 +23,12 @@ BGC_DB_PREFIX="wp_"                               # WordPress table prefix on th
 #BGC_LXC_PROD="mysite-web"         # container serving production
 #BGC_DEV_OWNER="www-data:www-data" # who the files must belong to; unset = leave ownership alone
 #BGC_WP_BIN="wp"                   # the wp-cli invocation on that machine (a CWP box hides php under /opt/alt)
+
+# The SSH port of the machine that HOLDS the containers. Unset means 22.
+#
+# It is a separate setting from BGC_SSH_PORT because the two are not always the same machine. Two boxes
+# can run containers with the SAME NAMES on the SAME 10.48.230.x addresses - `lxc exec dobavki-web`
+# then succeeds on both and hands back a perfectly good WordPress either way, so a deploy aimed at the
+# wrong one reports success and changes nothing anybody can see. Name the port, and the target is a
+# decision rather than a default.
+#BGC_LXC_PORT=22

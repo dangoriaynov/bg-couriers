@@ -44,7 +44,7 @@ WP="${BGC_WP_BIN:-wp} --allow-root --path=${DEVROOT}"
 run() {
   if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_DEV:-}" ]; then
     ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
-      "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_DEV} -- bash -lc $(printf '%q' "$*")" 2>/dev/null
+      -p "${BGC_LXC_PORT:-22}" "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_DEV} -- bash -lc $(printf '%q' "$*")" 2>/dev/null
     return
   fi
   ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
