@@ -20,8 +20,27 @@
   // reach it by nesting. Tag every dropdown we open with a class of our own and style that - otherwise
   // the search box inside keeps select2's default height and looks squashed next to our 38px fields.
   function sel2($el, opts) {
-    opts = $.extend({ dropdownCssClass: 'bgc-drop' }, opts || {});
+    opts = $.extend({ dropdownCssClass: 'bgc-drop', language: s2lang() }, opts || {});
     return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts));
+  }
+  /**
+   * select2 writes its own sentences into the dropdown, and the copy WooCommerce loads here is the
+   * English one - so a Bulgarian checkout answered "Please enter 2 or more characters" under the street
+   * box, which is where a customer is already unsure what to type. There is no point shipping select2's
+   * language packs for five lines: they come from the plugin's own catalogue like every other string on
+   * this page, and follow whatever language the shop is in.
+   */
+  function s2lang() {
+    var t = (BGCOURIERS && BGCOURIERS.i18n) || {};
+    return {
+      // Said while the box holds fewer characters than the search needs. select2 passes the minimum and
+      // what has been typed so far; the customer only needs to know how many it takes.
+      inputTooShort: function (a) { return (t.s2_short || 'Type at least %d characters').replace('%d', a.minimum); },
+      noResults:     function () { return t.s2_none || 'Nothing found'; },
+      searching:     function () { return t.s2_searching || 'Searching\u2026'; },
+      loadingMore:   function () { return t.s2_more || 'Loading more\u2026'; },
+      errorLoading:  function () { return t.s2_error || 'The results could not be loaded'; }
+    };
   }
   // Suppress select2's "results could not be loaded" flash when it aborts an in-flight search on fast typing.
   function noAbortTransport(params, success, failure) {
