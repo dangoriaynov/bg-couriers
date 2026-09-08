@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.4
+Stable tag: 0.4.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,6 +125,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.5 =
+* Fixed: **on a phone the courier menu was cut off at the edge of the screen, and the street field was a few characters wide.** Both had one cause. The delivery fields sit in a cell of WooCommerce's order table, and such a cell is never narrower than the widest thing in it that cannot shrink - the town and office boxes draw the chosen value on a single unbroken line, so the cell insisted on 350px, more than a 360px phone has to give once the theme keeps a label column beside it. The table then grew wider than the screen. With "to address" open the office row is hidden, the table fits again, and the same arithmetic spent what was left on the house-number field and left the street around 70px. The cell now asks for 143px, and on a narrow screen the room goes to the street name rather than the number.
+* Fixed: **the street box answered in English.** "Please enter 2 or more characters" and the rest of the search box's own messages were never translated, because they come from the dropdown library rather than from the plugin. They go through the plugin's own translations now.
 
 = 0.4.4 =
 * Changed: **a courier can be switched on before it is set up.** Enabling one used to be refused until its credentials were saved and validated - which was impossible for two of them, whose "send parcels from" address can only be picked off a list their own API returns once the credentials work. The switch is yours now; underneath it the tab lists what is still missing, and the checkout is what withholds the courier until the list is empty.
