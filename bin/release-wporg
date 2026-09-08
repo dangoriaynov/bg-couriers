@@ -27,7 +27,7 @@ run() {
   # holds it. Transport only - what is run, and the gates around it, are unchanged. A release that
   # reached the wrong machine would report success about a shop nobody is looking at.
   if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_PROD:-}" ]; then
-    ssh -o ConnectTimeout=25 "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_PROD} -- bash -lc $(printf '%q' "$*")" 2>"$err"; rc=$?
+    ssh -o ConnectTimeout=25 -p "${BGC_LXC_PORT:-22}" "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_PROD} -- bash -lc $(printf '%q' "$*")" 2>"$err"; rc=$?
   else
     ssh -p "$BGC_SSH_PORT" "$BGC_SSH_HOST" "$@" 2>"$err"; rc=$?
   fi
@@ -40,7 +40,7 @@ run() {
 # which read as "dev is on " and refused the release with the one thing that was not wrong.
 run_dev() {
   if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_DEV:-}" ]; then
-    ssh -o ConnectTimeout=25 "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_DEV} -- bash -lc $(printf '%q' "$*")" 2>/dev/null
+    ssh -o ConnectTimeout=25 -p "${BGC_LXC_PORT:-22}" "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_DEV} -- bash -lc $(printf '%q' "$*")" 2>/dev/null
     return
   fi
   ssh -p "${BGC_SSH_PORT:-22}" "$BGC_SSH_HOST" "$@" 2>/dev/null

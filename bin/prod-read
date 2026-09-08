@@ -36,7 +36,7 @@ run_sql() {
   # wrongly - which it did on 2026-08-31, when the payment gateways of a decommissioned box were read
   # as production's.
   if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_PROD:-}" ]; then
-    ssh -o BatchMode=yes -o ConnectTimeout=25 "$BGC_LXC_HOST" \
+    ssh -o BatchMode=yes -o ConnectTimeout=25 -p "${BGC_LXC_PORT:-22}" "$BGC_LXC_HOST" \
         "lxc exec ${BGC_LXC_PROD} -- mysql --batch --default-character-set=utf8mb4 ${2:---table} $BGC_PROD_DB" <<< "$1"
     return
   fi

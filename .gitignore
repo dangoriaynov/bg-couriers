@@ -30,6 +30,7 @@ composer.phar
 e2e/node_modules/
 docs/superpowers/
 bin/deploy.conf
+bin/deploy.conf.bak-*
 test-results/
 # Screenshots a throwaway probe drops beside the specs. One reached a commit; the same class of
 # leftover once reached the WordPress.org package (test-results/.last-run.json).

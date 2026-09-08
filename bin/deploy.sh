@@ -86,7 +86,7 @@ rm -rf \"\$T\""
 chown -R ${OWNER} \"${DEST}\""
   fi
   tar czf - "${EXCLUDES[@]}" . \
-    | ssh -o ConnectTimeout=25 "$BGC_LXC_HOST" "lxc exec ${LXC} -- bash -c $(printf '%q' "$REMOTE")"
+    | ssh -o ConnectTimeout=25 -p "${BGC_LXC_PORT:-22}" "$BGC_LXC_HOST" "lxc exec ${LXC} -- bash -c $(printf '%q' "$REMOTE")"
   echo "Synced to ${TARGET} (${LXC}). Activate via wp-admin."
 else
   rsync -az --delete "${EXCLUDES[@]}" -e "ssh -p ${BGC_SSH_PORT}" ./ "${BGC_SSH_HOST}:${DEST}"
