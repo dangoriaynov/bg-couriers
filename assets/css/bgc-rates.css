@@ -29,8 +29,20 @@ tr.woocommerce-shipping-totals > th:empty,
 tr.shipping > th:empty { padding: 0; margin: 0; border: 0; height: 0; line-height: 0; font-size: 0; }
 
 ul#shipping_method { margin: 0; padding: 0; list-style: none; }
+/* The row is a COLUMN: the courier's name on one line, its delivery fields on the next, whatever the
+   theme had in mind for this <li>. Themes commonly lay it out as a flex ROW so the radio and the label
+   share a line - and then the chosen courier's fields become the label's neighbour and the two split
+   the width between them: the name floating in the left half, the town and office squeezed into the
+   right, "5,12 €Град" run together (reported with a screenshot, 2026-09-11, and reproduced on dev
+   with exactly that one rule). A column flex stacks every child full-width, and the hidden radio is
+   out of flow, so nothing else moves. !important because the theme's rule is written as
+   `.checkout-wrapper #shipping_method > li` and outranks this selector on specificity, not on order. */
 ul#shipping_method > li {
+  display: flex !important; flex-direction: column !important; align-items: stretch;
   list-style: none; margin: 0; padding: 8px 12px; box-sizing: border-box;
+  /* Botiga keeps 100px on the right of every row for the price it pins in the corner; with the price
+     back in flow (below) that strip is empty, and the prices of the unchosen rows stop 100px short. */
+  padding-right: 12px !important;
   border: 1px solid transparent; border-radius: 10px; line-height: 1.4;
   cursor: pointer; transition: background-color .12s; -webkit-tap-highlight-color: transparent;
 }
@@ -56,9 +68,13 @@ ul#shipping_method .bgc-ship-logo {
   display: block; flex: 0 0 auto; width: 16px; height: 16px; object-fit: contain; margin: 0;
 }
 /* order:9 moves the price to the end of the row whatever its position in the markup, so the (i)
-   stays next to the courier name instead of trailing the price. */
+   stays next to the courier name instead of trailing the price.
+   position:static, and forced: Botiga pins the price with `position:absolute; right:0; top:0` on a
+   `.checkout-wrapper #shipping_method .woocommerce-Price-amount` selector, which outranks this one -
+   and a pinned price lands in the card's top corner, above the name it belongs to. In flow it sits on
+   the name's own line, right-aligned, on every theme. */
 ul#shipping_method > li > label > .woocommerce-Price-amount {
-  order: 9; float: none; margin-left: auto; white-space: nowrap;
+  order: 9; float: none; position: static !important; margin-left: auto; white-space: nowrap;
 }
 ul#shipping_method > li > label > .bgc-info-tip { flex: 0 0 auto; }
 
@@ -73,8 +89,9 @@ ul#shipping_method > li:has(> input.shipping_method:checked):hover { background:
 ul#shipping_method > li:has(> input.shipping_method:checked) > label { font-weight: 600; cursor: default; }
 /* With the radio hidden there is nothing left to show keyboard focus - put it on the row itself. */
 ul#shipping_method > li:has(> input.shipping_method:focus-visible) { outline: 2px solid #2271b1; outline-offset: 1px; }
-/* The chosen courier's fields always take the full width under the label, never beside it. */
-ul#shipping_method > li > .bgc-fields { display: block; width: 100%; cursor: default; }
+/* The chosen courier's fields take the full width under the label - the column above is what keeps
+   them there; this only says what the fields themselves are. */
+ul#shipping_method > li > .bgc-fields { display: block; width: 100%; flex: 0 0 auto; cursor: default; }
 
 /* Round (i) hint carrying whatever needs saying about this rate - what the price covers, or that it is
    paid to the courier. It lives in a hover/focus bubble so the courier row stays one short line. */

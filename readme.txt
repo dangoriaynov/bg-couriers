@@ -126,6 +126,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.4.6 =
+* Fixed: **on some themes the chosen courier's delivery fields sat BESIDE its name instead of under it** - the name and price floating in the left half of the card, the delivery tabs and the town and office boxes squeezed into the right half, the price and the "Town" label run together. Themes commonly lay each courier row out as a flex row so the radio and the label share a line, and the plugin's fields only asked for the full width and hoped the row was a block. The row is now the plugin's own column, on every theme. The price also stays on the courier's line where a theme (Botiga) pins it in the card's top corner.
+
 = 0.4.5 =
 * Fixed: **on a phone the courier menu was cut off at the edge of the screen, and the street field was a few characters wide.** Both had one cause. The delivery fields sit in a cell of WooCommerce's order table, and such a cell is never narrower than the widest thing in it that cannot shrink - the town and office boxes draw the chosen value on a single unbroken line, so the cell insisted on 350px, more than a 360px phone has to give once the theme keeps a label column beside it. The table then grew wider than the screen. With "to address" open the office row is hidden, the table fits again, and the same arithmetic spent what was left on the house-number field and left the street around 70px. The cell now asks for 143px, and on a narrow screen the room goes to the street name rather than the number.
 * Fixed: **the checkout could be scrolled sideways on a phone.** The office list's hidden `<select>` - the one the search box replaces - was being stretched back to the width of its longest office name by one of the plugin's own rules. It is out of flow, so nothing looked out of place; it simply reached past the right edge and gave the whole page a horizontal scrollbar (a 320px screen scrolled to 419px).
