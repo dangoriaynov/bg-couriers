@@ -561,6 +561,21 @@
 
   // Save the selection ------------------------------------------------------
   function selectionData($wrap) {
+    // BOX NOW's block has no town and no office list: the locker the widget chose sits in a hidden
+    // field, its name and address on the line under the button. Read through the office select
+    // below, this block answered office_id 0 - and the submit-time flush, which sends the chosen
+    // courier's block on every order, wiped the locker the customer had just picked. Every BOX NOW
+    // order was then refused with "choose a locker" over a locker that was on the screen (reported
+    // 2026-09-11 by a shop testing the webhook on the stage account; there had been no BOX NOW order
+    // on the live shop since the flush arrived in 0.2.21, 2026-08-15).
+    if ($wrap.hasClass('bgc-boxnow')) {
+      return {
+        action: 'bgcouriers_set_selection', nonce: BGCOURIERS.nonce, courier: 'boxnow', method: 'automat',
+        office_id: $wrap.find('.bgc-boxnow-id').val() || 0,
+        boxnow_name: $.trim($wrap.find('.bgc-boxnow-name').text()),
+        boxnow_addr: $.trim($wrap.find('.bgc-boxnow-addr').text())
+      };
+    }
     return {
       action: 'bgcouriers_set_selection', nonce: BGCOURIERS.nonce, courier: courier($wrap), country: country($wrap), method: method($wrap),
       site_id: $wrap.find('.bgc-city').val() || 0,
@@ -643,9 +658,8 @@
     $wrap.find('.bgc-boxnow-name').text(name);
     $wrap.find('.bgc-boxnow-addr').text(addr ? ' ' + addr : '');
     $wrap.find('.bgc-boxnow-selected').show();
-    closeBoxnow(); showLoader($wrap);
-    $.post(BGCOURIERS.ajax, { action: 'bgcouriers_set_selection', nonce: BGCOURIERS.nonce, courier: 'boxnow', method: 'automat', office_id: d.boxnowLockerId, boxnow_name: name, boxnow_addr: addr },
-      function () { $(document.body).trigger('update_checkout'); });
+    closeBoxnow();
+    pushSelection($wrap); // the same payload the submit-time flush sends, read off the same fields
   }
   window.addEventListener('message', function (event) {
     var d = event.data;
