@@ -63,6 +63,7 @@ ul#shipping_method > li > label::before { display: none; } /* theme's 7px marker
 ul#shipping_method > li > label {
   display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px;
   width: 100%; margin: 0; padding: 0; line-height: inherit; cursor: pointer;
+  grid-column: 1 / -1; /* a theme that wins the row back as a GRID still gets one child per line */
 }
 ul#shipping_method .bgc-ship-logo {
   display: block; flex: 0 0 auto; width: 16px; height: 16px; object-fit: contain; margin: 0;
@@ -91,7 +92,7 @@ ul#shipping_method > li:has(> input.shipping_method:checked) > label { font-weig
 ul#shipping_method > li:has(> input.shipping_method:focus-visible) { outline: 2px solid #2271b1; outline-offset: 1px; }
 /* The chosen courier's fields take the full width under the label - the column above is what keeps
    them there; this only says what the fields themselves are. */
-ul#shipping_method > li > .bgc-fields { display: block; width: 100%; flex: 0 0 auto; cursor: default; }
+ul#shipping_method > li > .bgc-fields { display: block; width: 100%; flex: 0 0 auto; grid-column: 1 / -1; cursor: default; }
 
 /* Round (i) hint carrying whatever needs saying about this rate - what the price covers, or that it is
    paid to the courier. The sentence itself is drawn by bgc-tip.js, the same bubble the admin screens
