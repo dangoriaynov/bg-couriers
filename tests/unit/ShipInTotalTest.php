@@ -58,14 +58,25 @@ final class ShipInTotalTest extends TestCase {
         $this->assertSame('sender', self::payer('speedy'));
     }
 
-    /** And the tabs offer it unticked, or the screen would disagree with the code behind it. */
+    /**
+     * And the tabs offer it unticked, or the screen would disagree with the code behind it.
+     *
+     * One row, built for every courier by BGCouriers_WC_Settings::courier_section() - so this reads
+     * that one default, plus the list of couriers that opt out of the standard pricing pair. BOX NOW
+     * is the only one, and it opts out because it is ALWAYS in the order total: its delivery-request
+     * payload has no recipient-pays field at all. A second courier appearing here would mean a tab
+     * that silently offers no such toggle.
+     */
     public function test_every_tab_offers_it_off(): void {
         $settings = (string) file_get_contents(dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-wc-settings.php');
-        preg_match_all("/'id' => 'bgcouriers_([a-z]+)_ship_in_total'.*?'default' => '(yes|no)'/s", $settings, $m);
-        $this->assertNotEmpty($m[1], 'the toggle must be on the tabs at all');
-        foreach ($m[1] as $i => $courier) {
-            $this->assertSame('no', $m[2][$i], $courier . ' offers the toggle ticked');
-        }
+        $this->assertSame(1, substr_count($settings, "'id' => \$p . 'ship_in_total'"),
+            'the toggle is built in one place for every courier');
+        preg_match("/'id' => \\\$p \\. 'ship_in_total'.*?'default' => '(yes|no)'/s", $settings, $m);
+        $this->assertSame('no', $m[1] ?? '', 'the shared toggle is offered ticked');
+        $this->assertSame(1, substr_count($settings, "'pricing_head' => false"),
+            'exactly one courier (BOX NOW) skips the standard pricing rows');
+        $boxnow = substr($settings, (int) strpos($settings, 'function boxnow_courier_fields'));
+        $this->assertStringContainsString("'pricing_head' => false", $boxnow, 'and that courier is BOX NOW');
     }
 
     public function test_toggle_off_means_recipient_pays(): void {

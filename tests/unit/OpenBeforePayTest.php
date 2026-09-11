@@ -93,8 +93,13 @@ final class OpenBeforePayTest extends TestCase {
      */
     public function test_both_courier_pages_edit_the_same_single_setting(): void {
         $file = file_get_contents(dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-wc-settings.php');
-        $this->assertSame(2, substr_count($file, "'id' => 'bgcouriers_open_before_pay'"),
-            'shown once on Speedy and once on Econt');
+        // The row is built in one place now (open_before_pay_row) and put on the two pages that offer
+        // it, so what this counts is the two calls rather than two copies of the field. The guarantee
+        // is the same one: ONE option id, on both pages.
+        $this->assertSame(1, substr_count($file, "'id' => 'bgcouriers_open_before_pay'"),
+            'the row is declared once');
+        $this->assertSame(2, substr_count($file, 'self::open_before_pay_row()'),
+            'and shown on exactly two pages - Speedy and Econt');
         $this->assertSame(0, substr_count($file, 'bgcouriers_speedy_open_before_pay'),
             'the old per-courier field must be gone, or it becomes a second source of truth');
         $this->assertSame(0, substr_count($file, 'bgcouriers_econt_pay_after_accept'));
