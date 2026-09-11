@@ -129,32 +129,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * Fetch a document the API has handed us the address of.
-     *
-     * Kept apart from call() because what comes back is bytes rather than an envelope, and because the
-     * address itself is a secret - see get_label_pdf().
-     *
-     * @throws BGCouriers_Api_Exception
-     */
-    protected function fetch_pdf(string $url): string {
-        $res = $this->http_get($url);
-        if (is_wp_error($res)) {
-            throw new BGCouriers_Api_Exception(esc_html('Европът: ' . $res->get_error_message()));
-        }
-        $raw = (string) wp_remote_retrieve_body($res);
-        if (strpos($raw, '%PDF') !== 0) {
-            // Deliberately does NOT quote the URL or the body: the URL carries the account's API key.
-            throw new BGCouriers_Api_Exception(esc_html('Европът: the label link did not return a PDF'));
-        }
-        return $raw;
-    }
-
-    /** Seam: overridden in tests; the real one just GETs. */
-    protected function http_get(string $url) {
-        return wp_remote_get($url, ['timeout' => 30]);
-    }
-
-    /**
      * Does this key work? Their answer is a boolean, and only a boolean true is a yes.
      *
      * Deliberately not routed through call(): that returns an array, and this endpoint's whole answer
@@ -771,7 +745,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         if (!is_string($url) || strpos($url, 'http') !== 0) {
             throw new BGCouriers_Api_Exception(esc_html('Европът: no label link in the answer'));
         }
-        return $this->fetch_pdf($url);
+        return $this->fetch_pdf($url, [], 'Европът');
     }
 
     // ── Cancelling ───────────────────────────────────────────────────────────

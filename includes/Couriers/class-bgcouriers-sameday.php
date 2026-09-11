@@ -169,11 +169,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     // ── HTTP helpers ─────────────────────────────────────────────────────────
 
     protected function get_json(string $path): array {
-        $r = wp_remote_get($this->base . $path, [
-            'timeout' => 30,
-            'headers' => ['X-AUTH-TOKEN' => $this->auth_token()],
-        ]);
-        return $this->decode($r);
+        return $this->decode($this->http_get($this->base . $path, ['X-AUTH-TOKEN' => $this->auth_token()], 30));
     }
 
     protected function post_json(string $path, array $body): array {
@@ -506,13 +502,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         // php-sdk; not live-verified here - no Sameday account yet.)
         $url = $this->base . '/api/awb/download/' . rawurlencode($waybill);
         if (in_array($format, ['A6', 'A4'], true)) { $url = add_query_arg('type', $format, $url); }
-        $r = wp_remote_get($url, [
-            'timeout' => 40, 'headers' => ['X-AUTH-TOKEN' => $this->auth_token()],
-        ]);
-        if (is_wp_error($r)) { throw new BGCouriers_Api_Exception(esc_html($r->get_error_message())); }
-        $pdf = (string) wp_remote_retrieve_body($r);
-        if (strpos($pdf, '%PDF') !== 0) { throw new BGCouriers_Api_Exception('Sameday label is not a PDF'); }
-        return $pdf;
+        return $this->fetch_pdf($url, ['X-AUTH-TOKEN' => $this->auth_token()], 'Sameday');
     }
 
     public function cancel_label(string $waybill): bool {

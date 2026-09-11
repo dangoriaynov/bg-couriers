@@ -38,7 +38,7 @@ final class Evropat_Fixture_Client extends BGCouriers_Evropat {
     public $pdf_bytes = '%PDF-1.4 pretend';
     /** @var string[] every URL fetched */
     public $fetched = [];
-    protected function http_get(string $url) {
+    protected function http_get(string $url, array $headers = [], int $timeout = 40) {
         $this->fetched[] = $url;
         return ['body' => $this->pdf_bytes];
     }

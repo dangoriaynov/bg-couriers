@@ -105,6 +105,48 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
         ]);
     }
 
+    /** GET, with whatever headers the courier's auth needs. Also the seam the parser tests replace. */
+    protected function http_get(string $url, array $headers = [], int $timeout = 40) {
+        return wp_remote_get($url, ['timeout' => $timeout, 'headers' => $headers]);
+    }
+
+    /**
+     * Fetch a label and prove it IS a label.
+     *
+     * Four couriers had written this out: GET, check for a transport error, check the body starts with
+     * %PDF, throw otherwise - each with its own wording, its own timeout, and one of them without the
+     * transport check at all, so a network blip reached the merchant as "the label is not a PDF".
+     *
+     * What every one of them must do, and what only Европът did, is keep the URL out of the message:
+     * its label link carries the account's API key in the query string, and an exception text travels
+     * into order notes and logs. So no caller may quote it, and this one never does.
+     *
+     * @throws BGCouriers_Api_Exception
+     */
+    protected function fetch_pdf(string $url, array $headers = [], string $who = ''): string {
+        $who = $who !== '' ? $who : $this->id();
+        $res = $this->http_get($url, $headers);
+        if (is_wp_error($res)) {
+            throw new BGCouriers_Api_Exception(esc_html($who . ': ' . $res->get_error_message()));
+        }
+        return self::assert_pdf((string) wp_remote_retrieve_body($res), $who);
+    }
+
+    /**
+     * The same proof, for a label that arrives by some other route - Express One hands it back
+     * base64-encoded inside a JSON envelope, Speedy answers its print endpoint with the bytes directly.
+     * Deliberately quotes nothing but the courier's name: the body is either a PDF or an error page,
+     * and an error page can carry a key, a token or a customer's address.
+     *
+     * @throws BGCouriers_Api_Exception
+     */
+    protected static function assert_pdf(string $raw, string $who): string {
+        if (strncmp($raw, '%PDF', 4) !== 0) {
+            throw new BGCouriers_Api_Exception(esc_html($who . ': the label did not come back as a PDF'));
+        }
+        return $raw;
+    }
+
     /**
      * What is still between this courier and a customer seeing it. An empty list means it is ready.
      *

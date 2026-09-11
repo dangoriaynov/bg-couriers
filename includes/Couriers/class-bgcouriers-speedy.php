@@ -501,7 +501,9 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             throw new BGCouriers_Api_Exception('Speedy print failed');
         }
         $body = (string) wp_remote_retrieve_body($res);
-        // A 200 whose body is not a PDF is Speedy's JSON error payload (same 200+error contract as /shipment).
+        // A 200 whose body is not a PDF is Speedy's JSON error payload (same 200+error contract as
+        // /shipment), and that payload says WHY - which is worth more than the shared message, so this
+        // one answers for itself rather than calling assert_pdf().
         if (strncmp($body, '%PDF', 4) !== 0) {
             $j = json_decode($body, true);
             throw new BGCouriers_Api_Exception(esc_html('Speedy print failed: ' . (string) ($j['error']['message'] ?? 'response is not a PDF')));
