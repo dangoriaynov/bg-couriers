@@ -3,8 +3,9 @@ use PHPUnit\Framework\TestCase;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 
-// BGCouriers_Method_Speedy extends WC_Shipping_Method; stub it so the file loads without WooCommerce.
+// The method classes extend WC_Shipping_Method; stub it so the files load without WooCommerce.
 if (!class_exists('WC_Shipping_Method')) { class WC_Shipping_Method {} }
+require_once dirname(__DIR__, 2) . '/includes/Shipping/abstract-bgcouriers-method.php';
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-method-speedy.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 

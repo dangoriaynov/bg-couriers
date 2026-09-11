@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Dump every field the plugin's WooCommerce settings screens build, from the DEV site.
+#
+# The safety net for any refactor of BGCouriers_WC_Settings. A merchant's saved value lives under an
+# option id; a refactor that renames one silently loses that setting, and nothing on screen says so.
+# So the ids, types, defaults and autoload flags are captured BEFORE the change and compared after -
+# against real WordPress and real WooCommerce, not a mock of them.
+#
+#   bin/settings-snapshot > /tmp/before.json      # before the change
+#   ./bin/deploy.sh dev && bin/settings-snapshot > /tmp/after.json
+#   diff /tmp/before.json /tmp/after.json         # must be empty
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+[ -f bin/deploy.conf ] || { echo "bin/deploy.conf is missing" >&2; exit 1; }
+. bin/deploy.conf
+: "${BGC_DEV_PATH:?set BGC_DEV_PATH in bin/deploy.conf}"
+DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
+WP="${BGC_WP_BIN:-wp} --allow-root --path=${DEVROOT}"
+
+# The sections are asked for by name rather than read off the tab list, so a section that DISAPPEARS in
+# a refactor shows up as an empty list instead of quietly vanishing from the comparison.
+PHP='
+$sections = ["", "speedy", "econt", "pigeon", "boxnow", "sameday", "expressone", "evropat", "about"];
+$page = new BGCouriers_WC_Settings();
+$out = [];
+foreach ($sections as $s) {
+    $rows = [];
+    foreach ((array) $page->get_settings($s) as $f) {
+        // Only what a saved value depends on. Titles and descriptions are prose and change freely;
+        // an id, a type, a default or an autoload flag changing is what costs a merchant their setting.
+        $rows[] = [
+            "id"       => isset($f["id"]) ? (string) $f["id"] : "",
+            "type"     => isset($f["type"]) ? (string) $f["type"] : "",
+            "default"  => array_key_exists("default", $f) ? (is_scalar($f["default"]) ? (string) $f["default"] : wp_json_encode($f["default"])) : null,
+            "autoload" => array_key_exists("autoload", $f) ? (bool) $f["autoload"] : null,
+            "options"  => isset($f["options"]) && is_array($f["options"]) ? implode("|", array_keys($f["options"])) : null,
+        ];
+    }
+    $out[$s === "" ? "general" : $s] = $rows;
+}
+echo wp_json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), "\n";
+'
+
+run() {
+  if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_DEV:-}" ]; then
+    ssh -o BatchMode=yes -o ConnectTimeout=25 -p "${BGC_LXC_PORT:-22}" "$BGC_LXC_HOST" \
+        "lxc exec ${BGC_LXC_DEV} -- bash -lc $(printf '%q' "$1")" 2>/dev/null
+    return
+  fi
+  ssh -o BatchMode=yes -p "${BGC_SSH_PORT:-22}" "${BGC_SSH_HOST:?}" "$1" 2>/dev/null
+}
+
+run "cd ${DEVROOT} && ${WP} eval $(printf '%q' "$PHP")" | grep -v 'manpath: '

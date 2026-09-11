@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-11 13:24+0300\n"
+"POT-Creation-Date: 2026-09-12 00:06+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -19,50 +19,43 @@ msgstr ""
 #: includes/class-bgcouriers-plugin.php:89
 #: includes/Admin/class-bgcouriers-wc-settings.php:72
 #: includes/Admin/class-bgcouriers-wc-settings.php:709
-#: includes/Shipping/class-bgcouriers-method-speedy.php:8
-#: includes/Shipping/class-bgcouriers-method-speedy.php:12
+#: includes/Shipping/class-bgcouriers-method-speedy.php:13
 msgid "Speedy"
 msgstr "Speedy"
 
 #: includes/class-bgcouriers-plugin.php:92
 #: includes/Admin/class-bgcouriers-wc-settings.php:73
-#: includes/Shipping/class-bgcouriers-method-econt.php:8
-#: includes/Shipping/class-bgcouriers-method-econt.php:12
+#: includes/Shipping/class-bgcouriers-method-econt.php:13
 msgid "Econt"
 msgstr "Econt"
 
 #: includes/class-bgcouriers-plugin.php:95
 #: includes/Admin/class-bgcouriers-wc-settings.php:74
-#: includes/Shipping/class-bgcouriers-method-pigeon.php:8
-#: includes/Shipping/class-bgcouriers-method-pigeon.php:12
+#: includes/Shipping/class-bgcouriers-method-pigeon.php:13
 msgid "Pigeon Express"
 msgstr "Pigeon Express"
 
 #: includes/class-bgcouriers-plugin.php:101
 #: includes/Admin/class-bgcouriers-wc-settings.php:75
-#: includes/Shipping/class-bgcouriers-method-boxnow.php:12
-#: includes/Shipping/class-bgcouriers-method-boxnow.php:16
+#: includes/Shipping/class-bgcouriers-method-boxnow.php:10
 msgid "BOX NOW"
 msgstr "BOX NOW"
 
 #: includes/class-bgcouriers-plugin.php:108
 #: includes/Admin/class-bgcouriers-wc-settings.php:76
-#: includes/Shipping/class-bgcouriers-method-sameday.php:8
-#: includes/Shipping/class-bgcouriers-method-sameday.php:12
+#: includes/Shipping/class-bgcouriers-method-sameday.php:13
 msgid "Sameday"
 msgstr "Sameday"
 
 #: includes/class-bgcouriers-plugin.php:111
 #: includes/Admin/class-bgcouriers-wc-settings.php:77
-#: includes/Shipping/class-bgcouriers-method-expressone.php:8
-#: includes/Shipping/class-bgcouriers-method-expressone.php:12
+#: includes/Shipping/class-bgcouriers-method-expressone.php:13
 msgid "Express One"
 msgstr "Express One"
 
 #: includes/class-bgcouriers-plugin.php:114
 #: includes/Admin/class-bgcouriers-wc-settings.php:78
-#: includes/Shipping/class-bgcouriers-method-evropat.php:8
-#: includes/Shipping/class-bgcouriers-method-evropat.php:12
+#: includes/Shipping/class-bgcouriers-method-evropat.php:13
 msgid "Европът"
 msgstr "Европът"
 
@@ -3304,33 +3297,15 @@ msgstr "Няма етикети за отпечатване."
 msgid "Print failed: %s"
 msgstr "Отпечатването е неуспешно: %s"
 
-#: includes/Shipping/class-bgcouriers-method-speedy.php:9
-msgid "Speedy shipping (BG Couriers)"
-msgstr "Доставка със Speedy (BG Couriers)"
-
-#: includes/Shipping/class-bgcouriers-method-pigeon.php:9
-msgid "Pigeon Express shipping (BG Couriers)"
-msgstr "Доставка с Pigeon Express (BG Couriers)"
+#. translators: %s: courier name, e.g. "Speedy"
+#: includes/Shipping/abstract-bgcouriers-method.php:36
+#, php-format
+msgid "%s shipping (BG Couriers)"
+msgstr "%s доставка (BG Couriers)"
 
 #: includes/Shipping/class-bgcouriers-method-boxnow.php:13
 msgid "BOX NOW locker (APM) delivery (BG Couriers)"
 msgstr "Доставка до автомат на BOX NOW (BG Couriers)"
-
-#: includes/Shipping/class-bgcouriers-method-sameday.php:9
-msgid "Sameday shipping (BG Couriers)"
-msgstr "Доставка със Sameday (BG Couriers)"
-
-#: includes/Shipping/class-bgcouriers-method-evropat.php:9
-msgid "Европът shipping (BG Couriers)"
-msgstr "Доставка с Европът (BG Couriers)"
-
-#: includes/Shipping/class-bgcouriers-method-econt.php:9
-msgid "Econt shipping (BG Couriers)"
-msgstr "Доставка с Econt (BG Couriers)"
-
-#: includes/Shipping/class-bgcouriers-method-expressone.php:9
-msgid "Express One shipping (BG Couriers)"
-msgstr "Доставка с Express One (BG Couriers)"
 
 #. translators: %s: country name
 #: includes/Checkout/class-bgcouriers-checkout.php:103
@@ -3755,6 +3730,24 @@ msgstr "Анулирана"
 #: includes/Support/class-bgcouriers-tracking.php:267
 msgid "On its way"
 msgstr "В движение"
+
+#~ msgid "Speedy shipping (BG Couriers)"
+#~ msgstr "Доставка със Speedy (BG Couriers)"
+
+#~ msgid "Pigeon Express shipping (BG Couriers)"
+#~ msgstr "Доставка с Pigeon Express (BG Couriers)"
+
+#~ msgid "Sameday shipping (BG Couriers)"
+#~ msgstr "Доставка със Sameday (BG Couriers)"
+
+#~ msgid "Европът shipping (BG Couriers)"
+#~ msgstr "Доставка с Европът (BG Couriers)"
+
+#~ msgid "Econt shipping (BG Couriers)"
+#~ msgstr "Доставка с Econt (BG Couriers)"
+
+#~ msgid "Express One shipping (BG Couriers)"
+#~ msgstr "Доставка с Express One (BG Couriers)"
 
 #~ msgid "https://github.com/dangoriaynov/bg-couriers"
 #~ msgstr "https://github.com/dangoriaynov/bg-couriers"
