@@ -15,3 +15,5 @@
 .bgc-tipbox.bgc-tip-below .bgc-tipbox-arr { top:auto; bottom:100%;
   border-top-color:transparent; border-bottom-color:#1d2327; }
 @media (max-width: 782px) { .bgc-tipbox { max-width:calc(100vw - 24px); } }
+/* Read at arm's length on a phone, where 12px is the size of the small print nobody reads. */
+@media (pointer: coarse) { .bgc-tipbox { font-size:13px; padding:9px 12px; } }

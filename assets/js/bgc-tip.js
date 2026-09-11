@@ -1,4 +1,4 @@
-/* One hover hint for every [data-tip] this plugin prints in wp-admin.
+/* One hover hint for every [data-tip] this plugin prints - in wp-admin, and beside the courier rates.
  *
  * It used to be a CSS ::after on the hovered control, and a bubble that lives INSIDE the control it
  * describes cannot be made to behave: it is clipped by whatever the panel sits in, it inherits the
@@ -18,11 +18,20 @@
 
 	// OURS ONLY. WooCommerce puts data-tip on its own elements (order status, item meta) and shows them
 	// with tipTip - an unscoped listener here would draw a second bubble on top of theirs.
-	var SCOPE = '.bgc-order-panel, .bgc-cell';
+	// The rate list is the shop's side of it: the (i) beside each courier that says who the delivery is
+	// paid to. Its bubble was a CSS ::after on the dot, and on a phone the dot sits near the LEFT edge
+	// of the screen while the bubble grew to the left - so its first words were cut off. This bubble is
+	// clamped to the window, whatever the screen.
+	var SCOPE = '.bgc-order-panel, .bgc-cell, ul#shipping_method';
 	var GAP = 9;    // between the control and the bubble
 	var EDGE = 8;   // smallest gap the bubble keeps from the window edge
 
 	var box = null, body = null, arrow = null, host = null;
+	// Opened by a tap rather than a hover: the pointer wandering off no longer closes it, the next tap
+	// anywhere else does. Only where there is no hover to speak of - with a mouse, moving away still
+	// closes a hint the way it always has.
+	var pinned = false;
+	var NO_HOVER = !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
 
 	function build() {
 		if (box) { return; }
@@ -77,6 +86,7 @@
 
 	function hide() {
 		host = null;
+		pinned = false;
 		if (box) { box.classList.remove('bgc-tip-on'); }
 	}
 
@@ -91,15 +101,30 @@
 
 	function over(e) {
 		var el = target(e);
-		if (!el) { return hide(); }
-		if (el !== host) { show(el); }
+		if (!el) { if (!pinned) { hide(); } return; }
+		if (el !== host) { pinned = false; show(el); }
+	}
+
+	// A control acts on its click, so the click is where its explanation stops. A hint that is nothing
+	// BUT an explanation - the (i) beside a courier rate, an image role with no action of its own - is
+	// the opposite case: on a touch screen the tap is the only way to it. So a click on one of those
+	// shows it, and the next tap anywhere else hides it through the same listener.
+	// preventDefault is what keeps it shown: the (i) sits inside the rate's <label>, and a label answers
+	// a click by activating its radio - which took the focus off the (i), and the focusout hid the
+	// bubble in the same instant the tap had opened it. Measured on an emulated iPhone: the tap fired
+	// focusin on the (i), then focusout, then focusin on the radio. The (i) explains the rate; it is not
+	// a second way of choosing it.
+	function click(e) {
+		var el = target(e);
+		if (el && el.getAttribute('role') === 'img' && !el.closest('a, button')) { e.preventDefault(); show(el); pinned = NO_HOVER; return; }
+		hide();
 	}
 
 	document.addEventListener('mouseover', over);
 	document.addEventListener('focusin', over);
 	document.addEventListener('mouseleave', hide);   // pointer left the document entirely
 	document.addEventListener('focusout', hide);
-	document.addEventListener('click', hide);        // the control is acting on the click; stop explaining it
+	document.addEventListener('click', click);
 	document.addEventListener('scroll', hide, true); // fixed bubble, moving control
 	window.addEventListener('resize', hide);
 	document.addEventListener('keydown', function (e) {

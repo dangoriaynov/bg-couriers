@@ -949,6 +949,10 @@ class BGCouriers_Checkout {
         // price on separate lines.
         $rates_css = BGCOURIERS_PATH . 'assets/css/bgc-rates.css';
         wp_enqueue_style('bgc-rates', BGCOURIERS_URL . 'assets/css/bgc-rates.css', [], is_file($rates_css) ? (string) filemtime($rates_css) : BGCOURIERS_VERSION);
+        // The (i) beside each rate explains itself through the same bubble the admin screens use - one
+        // element on <body>, kept inside the window - because the CSS bubble it had ran off the left
+        // edge of a phone. Both pages print the (i), so both load it.
+        BGCouriers_Tips::enqueue();
         // Cart page: plus the small static stylesheet (the estimate box).
         if ($on_cart) {
             $cart_css = BGCOURIERS_PATH . 'assets/css/bgc-cart.css';
