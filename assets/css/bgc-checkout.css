@@ -33,6 +33,9 @@
 
 /* Panel + compact fields */
 .bgc-panel { display: flex; flex-direction: column; gap: 10px; }
+/* The address rows are a plain block inside the panel, so the panel's gap never reached them and
+   each label sat straight on the box above it. Same rhythm as the panel. */
+.bgc-address-rows { display: flex; flex-direction: column; gap: 10px; }
 .bgc-field { display: flex; flex-direction: column; min-width: 0; }
 .bgc-field > label { font-size: 12px; font-weight: 600; color: #555; margin: 0 0 3px; }
 .bgc-field input { width: 100%; height: 38px; padding: 6px 10px; border: 1px solid #d8dde3; border-radius: 8px; }
@@ -187,6 +190,19 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
   .bgc-map-body { flex-direction: column; height: auto; }
   .bgc-map-side { width: auto; max-width: none; max-height: 28vh; border-right: 0; border-bottom: 1px solid #e5e7eb; }
   .bgc-map-body .bgc-map-canvas { height: 46vh; }
+  /* The address picker's footer is three things in a row - locate button, the hint (or the address
+     the pin is on), use button - and a phone has room for one of them. Measured on a 390px screen:
+     the hint wrapped a word to a line and "Use this address" was cut off past the right edge. The
+     hint takes a line of its own on top, the two buttons share the one below. */
+  .bgc-map-actions { flex-wrap: wrap; flex-shrink: 0; }
+  .bgc-map-actions .bgc-map-hint { flex: 1 1 100%; order: -1; }
+  .bgc-map-actions .bgc-map-locate, .bgc-map-actions .bgc-addr-use { flex: 1 1 auto; }
+  .bgc-map-box { width: min(860px, 100vw - 24px); }
+  /* A short screen (an iPhone SE is 568px tall) has no room for a 300px map under that footer: the
+     "Use this address" button fell below the dialog's edge, and the dialog clips. The map gives way
+     first, and if the screen is shorter still the dialog scrolls rather than hides its own button. */
+  .bgc-map-canvas { height: 42vh; min-height: 180px; }
+  .bgc-map-box { overflow-y: auto; }
 }
 
 /* The courier rate rows themselves (list, hidden radio, logo, price, chosen-row card) and the (i) hint
@@ -228,15 +244,28 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
   /* The office row stays one line, and the office NAME is what has to be readable on it - so the Map
      button drops its word and becomes the same pin square the address row already uses. The word only
      moves: it stays in the title and the aria-label. */
-  .bgc-office-pick .bgc-map-btn { width: 38px; padding: 0; justify-content: center; }
+  .bgc-office-pick .bgc-map-btn { width: 44px; padding: 0; justify-content: center; }
+  /* The chosen office is the one thing on this row worth reading, and a box this narrow cut it to
+     "СОФИЯ - СОМАТ - гр. СОФ..." - the name of the office gone, the town it is in twice. Two lines
+     hold the whole of it; the box grows to fit them and the arrow stays centred on it. */
+  .bgc-fields .bgc-office-row .select2-selection__rendered { white-space: normal; line-height: 1.3 !important;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  /* The breathing room goes on the box, not on the text: line-clamp cuts at the text's content edge
+     while overflow:hidden cuts at its padding edge, so a padded text showed the top of its third line
+     peeking through the bottom padding (measured on a 320px screen with a three-line office). */
+  .bgc-fields .bgc-office-row .select2-selection--single { padding-top: 6px; padding-bottom: 6px; }
+  .bgc-fields .bgc-office-row .select2-selection__arrow { top: 0; bottom: 0; height: auto !important; }
   .bgc-office-pick .bgc-map-btn span { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
     overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
   /* Street name above the house number instead of beside it. Sharing one line here left the street
-     eight characters wide, and a street cut to eight characters is not a street. */
+     eight characters wide, and a street cut to eight characters is not a street.
+     The map pin goes beside the STREET, not the number: it is the other way of naming the street, and
+     next to a 120px number box it left a hand's width of nothing between the two. */
   .bgc-grid { grid-template-columns: minmax(0, 1fr); }
   .bgc-grid-map { grid-template-columns: minmax(0, 1fr) 44px; }
-  .bgc-grid > .bgc-street-field { grid-column: 1 / -1; }
-  .bgc-grid > .bgc-streetno-field { max-width: 120px; }
+  .bgc-grid-map > .bgc-street-field { grid-column: 1; grid-row: 1; }
+  .bgc-grid-map > .bgc-addr-map-cell { grid-column: 2; grid-row: 1; }
+  .bgc-grid-map > .bgc-streetno-field { grid-column: 1 / -1; grid-row: 2; max-width: 120px; }
   /* Block / entrance / floor / apartment, two and two: four across gives each of them less width than
      the word standing above it. */
   .bgc-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -258,4 +287,9 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
   .select2-container--open .bgc-drop .select2-search--dropdown .select2-search__field { height: 44px; min-height: 44px; line-height: 42px; }
   .select2-container--open .bgc-drop .select2-results__option { padding: 12px 10px; }
   .bgc-tab, .bgc-map-btn, .bgc-addr-map-icon { min-height: 44px; }
+  /* The theme draws BOX NOW's "choose a locker" button, and draws it 40px on the shop this was
+     measured on. The rule above did not reach it because it is a theme button, not one of ours. */
+  .bgc-fields .bgc-boxnow-pick { min-height: 44px; }
+  /* The address picker's footer buttons, for the same reason. */
+  .bgc-map-actions .button { min-height: 44px; }
 }

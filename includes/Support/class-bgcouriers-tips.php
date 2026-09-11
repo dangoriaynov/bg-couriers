@@ -2,10 +2,11 @@
 defined('ABSPATH') || exit;
 
 /**
- * The hover hints (data-tip) shown on the admin order screen and in the orders list.
+ * The hover hints (data-tip): on the admin order screen, in the orders list, and beside the courier
+ * rates on the cart and the checkout.
  *
  * One bubble on <body>, positioned in JS - see assets/js/bgc-tip.js for why it is not CSS any more.
- * Both screens enqueue through here so the two never drift apart again.
+ * Every screen enqueues through here so they never drift apart again.
  */
 class BGCouriers_Tips {
     public static function enqueue(): void {

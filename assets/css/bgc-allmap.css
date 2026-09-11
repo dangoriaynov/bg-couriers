@@ -7,6 +7,9 @@
   justify-content: center; gap: 7px; padding: 6px 12px; border: 1px solid #c9ced6; border-radius: 7px;
   background: #fff; color: #2b3440; font-size: 13px; line-height: 1.2; cursor: pointer; }
 .bgc-allmap-btn:hover { border-color: #2271b1; color: #2271b1; }
+/* Shallow is for a mouse. Under a thumb the row keeps the height every other target here has; what it
+   costs in scrolling it repays in not opening a courier row instead of the map. */
+@media (pointer: coarse) { .bgc-allmap-btn { min-height: 44px; } }
 /* The couriers' marks sit inside the button, ahead of its text and matched to its cap height, so the
    row reads as one line rather than a button with a picture stuck on it. */
 .bgc-allmap-marks { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; }

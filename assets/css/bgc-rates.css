@@ -94,12 +94,13 @@ ul#shipping_method > li:has(> input.shipping_method:focus-visible) { outline: 2p
 ul#shipping_method > li > .bgc-fields { display: block; width: 100%; flex: 0 0 auto; cursor: default; }
 
 /* Round (i) hint carrying whatever needs saying about this rate - what the price covers, or that it is
-   paid to the courier. It lives in a hover/focus bubble so the courier row stays one short line. */
+   paid to the courier. The sentence itself is drawn by bgc-tip.js, the same bubble the admin screens
+   use: one element on <body>, measured and kept inside the window. It used to be a ::after on this
+   dot, anchored to the dot's right edge - and on a phone the dot sits a hand's width from the LEFT
+   edge, so the bubble grew leftwards and its first words were cut off by the screen. */
 .bgc-info-tip{display:inline-block;box-sizing:border-box;width:15px;height:15px;border-radius:50%;background:#c3c8ce;color:#fff;font:italic 700 10px/15px Georgia,serif;text-align:center;vertical-align:middle;cursor:help;position:relative;}
 .bgc-info-tip::before{content:"i";}
 .bgc-info-tip:hover,.bgc-info-tip:focus{background:#2271b1;outline:none;}
-.bgc-info-tip:hover::after,.bgc-info-tip:focus::after{content:attr(data-tip);position:absolute;right:-6px;bottom:calc(100% + 7px);width:max-content;max-width:240px;white-space:normal;background:#1d2327;color:#fff;font:400 12px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif;font-style:normal;text-align:left;padding:8px 11px;border-radius:7px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:1000;pointer-events:none;}
-.bgc-info-tip:hover::before{content:"i";}
 
 /* Which way the delivery is paid, said by the icon instead of a generic "i" nobody hovers.
    Drawn as a CSS mask so it inherits the pill's colour and follows it on hover/focus, and so no <svg>
@@ -122,7 +123,4 @@ ul#shipping_method > li > .bgc-fields { display: block; width: 100%; flex: 0 0 a
   .bgc-info-tip { width: 21px; height: 21px; font-size: 13px; line-height: 21px; }
   .bgc-info-tip.bgc-pay-courier::before,
   .bgc-info-tip.bgc-pay-total::before { -webkit-mask-size: 15px 15px; mask-size: 15px 15px; }
-  /* Anchored to the tip's right edge, the bubble ran off a narrow screen. Pinned to the row instead,
-     with the row's own padding as the margin, it cannot: the row is never wider than the column. */
-  .bgc-info-tip:hover::after, .bgc-info-tip:focus::after { max-width: min(240px, 78vw); }
 }
