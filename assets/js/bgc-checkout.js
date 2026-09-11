@@ -515,6 +515,19 @@
     function locate() { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(function (pos) { var here = L.latLng(pos.coords.latitude, pos.coords.longitude); bgcMap.setView(here, 15); place(here); }); } }
     $ov.find('.bgc-map-locate').on('click', locate);
     locate(); // auto-locate + drop a pin on open
+    // ...and, while that permission is being asked for (or after it was refused, which is what a
+    // headless browser and a customer who tapped "Block" have in common), the town the customer has
+    // ALREADY named is where the map goes. It used to open on the whole country until a fix arrived,
+    // and without one it stayed there, the customer left to find their street from 400 km up. The
+    // middle of the couriers' pickup points there stands in for the town's centre - the combined map
+    // knows it, and shares it. A geolocation fix that lands first wins: it has placed a pin by then.
+    var town = $wrap.find('.bgc-city option:selected').text().match(/^(.*?)\s*(?:\((\d+)\))?\s*$/);
+    if (town && town[1] && window.BGCouriersAllMap && BGCouriersAllMap.centreOf) {
+      BGCouriersAllMap.centreOf(town[1], town[2] || '', function (c) {
+        if (!c || pin || !bgcMap || !document.getElementById('bgc-map')) { return; }
+        bgcMap.setView([c.lat, c.lng], 13);
+      });
+    }
     $ov.find('.bgc-addr-use').on('click', function () { fillAddress($wrap, current); closeMap(); });
     setTimeout(function () { if (bgcMap) { bgcMap.invalidateSize(); } }, 60);
   }
@@ -626,7 +639,7 @@
     var $wrap = (boxnowWrap && boxnowWrap.length) ? boxnowWrap : $('.bgc-fields.bgc-boxnow:visible').first();
     if (!$wrap.length || !d.boxnowLockerId) { return; }
     var name = d.boxnowLockerName || '', addr = d.boxnowLockerAddressLine1 || '';
-    $wrap.find('.bgc-boxnow-id').val(d.boxnowLockerId);
+    $wrap.find('.bgc-boxnow-id').val(d.boxnowLockerId).trigger('change');
     $wrap.find('.bgc-boxnow-name').text(name);
     $wrap.find('.bgc-boxnow-addr').text(addr ? ' ' + addr : '');
     $wrap.find('.bgc-boxnow-selected').show();
@@ -703,9 +716,44 @@
     clearTimeout(spanTimer); spanTimer = setTimeout(spanShippingRow, 150);
   });
 
+  // ── The field a refusal is about, painted red where it stands ─────────────────────────────────
+  //
+  // WooCommerce prints "Please choose an office/APS for Speedy" at the top of the page and scrolls
+  // there; the field it means is a screen further down, and on a phone the customer arrived at it
+  // with nothing marked. Each of the plugin's refusals now carries the id of its field (see
+  // BGCouriers_Checkout::validate), which WooCommerce passes on as data-id on the notice - so the
+  // sentence is already a link to the field, and this paints the field to match.
+  //
+  // Kept as a list of ids rather than as a class on the element, because the element does not
+  // survive: the delivery fields live inside the order-review table, which update_checkout replaces
+  // wholesale - and WooCommerce asks for exactly that refresh right after some refusals. The marks
+  // are put back on every updated_checkout and taken off when the field is filled in.
+  var invalidIds = [];
+  function markInvalid() {
+    $('.bgc-fields .bgc-invalid').removeClass('bgc-invalid');
+    invalidIds.forEach(function (id) { $('#' + id).filter('.bgc-field').addClass('bgc-invalid'); });
+  }
+  function clearInvalid(el) {
+    var $f = $(el).closest('.bgc-field.bgc-invalid');
+    if (!$f.length) { return; }
+    $f.removeClass('bgc-invalid').removeAttr('aria-invalid aria-describedby'); // WooCommerce set those from the same notice
+    invalidIds = invalidIds.filter(function (id) { return id !== $f.attr('id'); });
+  }
+  $(document.body).on('checkout_error', function (e, html) {
+    invalidIds = [];
+    $('<div>').html(String(html || '')).find('li[data-id]').each(function () {
+      var id = String($(this).attr('data-id') || '');
+      if (id.indexOf('bgcouriers-') === 0) { invalidIds.push(id); }
+    });
+    markInvalid();
+  });
+  $(document.body).on('change', '.bgc-fields .bgc-city, .bgc-fields .bgc-office, .bgc-fields .bgc-street, .bgc-fields .bgc-boxnow-id', function () { clearInvalid(this); });
+  $(document.body).on('input', '.bgc-fields .bgc-street-no', function () { clearInvalid(this); });
+
   $(document.body).on('updated_checkout', function () {
     spanShippingRow();
     dimRates();
+    markInvalid();
     if (!$('.bgc-fields').length) return;
     var chosen = chosenCourier();
     $('.bgc-fields').each(function () {

@@ -24,6 +24,13 @@
   // array - clicking Choose on it would resolve against the NEW array at the same index and could book a
   // different courier, city or office than the pin the customer actually clicked.
   var $dlg = null, map = null, layer = null, markers = [], points = [], cache = {};
+  // Pins that stand too close together at the current zoom are folded into one bubble carrying their
+  // count - three hundred dots over a city say "many" and nothing else. `clusters` holds the bubbles,
+  // `clustered[i]` says whether point i is inside one right now. Membership is DATA, not a DOM write:
+  // exactly one place (paintPins) decides whether a pin is painted, from the filter and this together.
+  var clusters = null, clustered = [];
+  var CLUSTER_CELL = 56;      // px at the current zoom: pins closer than this share a bubble
+  var CLUSTER_OFF_ZOOM = 16;  // street level: from here in every pin stands alone, two in one mall included
   // Couriers the customer has switched OFF in the legend. Empty by default - a map that opens
   // showing only some of what it has would be lying about the choice available.
   var hidden = {};
@@ -300,6 +307,7 @@
     if (map) { map.remove(); map = null; }
     meMarker = null;
     layer = null; // the layer group is destroyed along with the map; just drop our reference to it
+    clusters = null; clustered = [];
     markers = []; points = []; rowEls = []; dists = [];
     mode = 'map';
     $(window).off('.bgcallmap');
@@ -743,7 +751,9 @@
     // so the pan is computed against an in-flight view and lands somewhere else, leaving the bubble at
     // the edge of a map showing a different part of town. It depends on how fast the device draws,
     // which is why it showed on a phone and never once under a headless desktop browser.
-    map.setView(mk.getLatLng(), Math.max(map.getZoom(), 15), { animate: false });
+    // ...and no closer than the zoom where every pin stands alone: a step further out, the one being
+    // pointed at could be folded into a bubble, unpainted, with nothing to flash.
+    map.setView(mk.getLatLng(), Math.max(map.getZoom(), CLUSTER_OFF_ZOOM), { animate: false });
     mk.openPopup();
     if (mk._icon) {
       var icon = mk._icon;
@@ -823,22 +833,104 @@
       // selector, per point, per keystroke, is most of what a few hundred offices used to cost.
       var el = rowEls[i];
       if (el) { el.style.display = on ? '' : 'none'; }
+    });
+    $dlg.find('.bgc-allmap-n').text('(' + n + ')');
+    // The pins: which of them the filter leaves changes which of them stand close together.
+    recluster(term);
+    // "Nearest" has to follow the filter: a courier the customer just switched off must stop being
+    // recommended, and the one behind it becomes the answer. Cheap - it re-reads cached distances.
+    pickNear();
+  }
+
+  /**
+   * Fold the pins that sit on top of each other at this zoom into count bubbles, then paint.
+   *
+   * Bucketed in PROJECTED space - map.project() at the current zoom, not the container - so what
+   * shares a bubble depends on the zoom alone: panning changes nothing, and only zoomend has to ask
+   * again. A town's few hundred points bucket in well under a frame, which is why frame() may call
+   * setView three times per render without this needing a throttle.
+   *
+   * The bubble's colour is the courier's where it holds one courier, and a pie of their shares where
+   * it holds several - the legend stays the one truth about colour. Tapping it frames its members,
+   * or steps two zooms in where they all stand on one spot (three lockers in one mall).
+   */
+  function recluster(term) {
+    if (!map || !layer) { return; }
+    if (term == null) { term = searchTerm(); }
+    if (!clusters) { clusters = L.layerGroup().addTo(map); }
+    clusters.clearLayers();
+    clustered = [];
+    var zoom = map.getZoom(), cells = {};
+    if (zoom < CLUSTER_OFF_ZOOM) {
+      points.forEach(function (p, i) {
+        var mk = markers[i];
+        if (!mk || !shown(p, term)) { return; }
+        var px = map.project(mk.getLatLng(), zoom);
+        var key = Math.floor(px.x / CLUSTER_CELL) + ':' + Math.floor(px.y / CLUSTER_CELL);
+        (cells[key] = cells[key] || []).push(i);
+      });
+    }
+    Object.keys(cells).forEach(function (key) {
+      var idx = cells[key];
+      if (idx.length < 2) { return; }
+      var lat = 0, lng = 0, share = {}, order = [], lls = [], offered = false;
+      idx.forEach(function (i) {
+        clustered[i] = true;
+        var ll = markers[i].getLatLng(); lat += ll.lat; lng += ll.lng; lls.push(ll);
+        var c = points[i].courier;
+        if (!share[c]) { share[c] = 0; order.push(c); }
+        share[c]++;
+        if (points[i].available) { offered = true; }
+      });
+      var n = idx.length, bg;
+      if (order.length === 1) { bg = colourFor(order[0]); }
+      else {
+        var stops = [], at = 0;
+        order.forEach(function (c) {
+          var to = at + share[c] / n * 100;
+          stops.push(colourFor(c) + ' ' + at.toFixed(1) + '% ' + to.toFixed(1) + '%');
+          at = to;
+        });
+        bg = 'conic-gradient(' + stops.join(',') + ')';
+      }
+      var size = n < 10 ? 30 : (n < 100 ? 36 : 42);
+      var bubble = L.marker([lat / n, lng / n], {
+        icon: L.divIcon({
+          className: 'bgc-allmap-cluster' + (offered ? '' : ' bgc-na'),
+          html: '<span style="background:' + bg + '"><b>' + n + '</b></span>',
+          iconSize: [size, size], iconAnchor: [size / 2, size / 2]
+        }),
+        title: String(I.allmap_cluster || '%d').replace('%d', n),
+        zIndexOffset: 500, keyboard: false
+      }).addTo(clusters);
+      bubble.on('click', function () {
+        var box = L.latLngBounds(lls);
+        var z = Math.min(map.getBoundsZoom(box, false, L.point(40, 40)), 17);
+        if (z <= map.getZoom()) { z = Math.min(map.getZoom() + 2, 18); }
+        map.setView(box.getCenter(), z);
+      });
+    });
+    paintPins(term);
+  }
+
+  /**
+   * The one place a pin's visibility is written: painted when the filter keeps it AND no bubble has
+   * swallowed it. Hidden by style rather than taken out of the layer - removing a Leaflet marker tears
+   * its icon and its handlers down and re-adding builds them again, which is the expensive half of a
+   * legend click. The pin stays exactly where it is and simply stops being painted.
+   */
+  function paintPins(term) {
+    points.forEach(function (p, i) {
       var mk = markers[i];
       if (!mk) { return; }
+      var on = shown(p, term) && !clustered[i];
       if (mk._icon) {
-        // Hidden by style rather than taken out of the layer: removing a Leaflet marker tears its icon
-        // and its handlers down and re-adding builds them again, which is the expensive half of a
-        // legend click. The pin stays exactly where it is and simply stops being painted.
         mk._icon.style.display = on ? '' : 'none';
         if (!on && mk.isPopupOpen && mk.isPopupOpen()) { mk.closePopup(); }
       } else if (layer && on && !layer.hasLayer(mk)) {
         layer.addLayer(mk);   // never plotted yet (or previously removed): it needs a real icon first
       }
     });
-    $dlg.find('.bgc-allmap-n').text('(' + n + ')');
-    // "Nearest" has to follow the filter: a courier the customer just switched off must stop being
-    // recommended, and the one behind it becomes the answer. Cheap - it re-reads cached distances.
-    pickNear();
   }
 
   /**
@@ -1041,6 +1133,7 @@
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
       layer = L.layerGroup().addTo(map); // holds this and every later render's pins, so they can be cleared as one
+      map.on('zoomend', function () { recluster(); });
     }
     var bounds = [], chosenAt = null, rowHtml = [];
     points.forEach(function (p, i) {
@@ -1304,16 +1397,19 @@
   }
 
   /**
-   * Is this point's pin painted right now?
+   * Is this point on offer to the customer right now - plotted, and not switched off in the legend
+   * or filtered out by the search?
    *
-   * Not "is it in the layer" any more: a pin switched off in the legend STAYS in the layer and is
-   * hidden by style, because taking a few hundred markers out and putting them back is what made a
-   * legend click feel stuck. Anything asking "what can the customer see" has to ask this instead.
+   * Not "is its icon painted": a pin folded into a count bubble at this zoom is unpainted and still
+   * very much an office the customer can reach, and the nearest-six framing that asks this must not
+   * skip it. (Nor "is it in the layer": a pin switched off in the legend STAYS in the layer, hidden by
+   * style, because taking a few hundred markers out and putting them back is what made a legend
+   * click feel stuck.)
    */
   function pinShown(i) {
     var mk = markers[i];
     if (!mk || !layer || !layer.hasLayer(mk)) { return false; }
-    return !(mk._icon && mk._icon.style.display === 'none');
+    return shown(points[i]);
   }
 
   function showMe() {
@@ -1375,6 +1471,39 @@
     else { setTimeout(prefetch, 3000); }
   });
 
+  /**
+   * Where a place is, for anything else on the page that wants to open a map on it: the middle of
+   * the couriers' pickup points there. The address picker asks, so that it opens on the town the
+   * customer already named instead of on the whole country.
+   *
+   * Reads the same per-place cache the dialog and its prefetch fill, and fills it in turn, so the
+   * points are fetched once however many things ask - the offices endpoint charges the shared per-IP
+   * budget one unit per call. The MEDIAN of the coordinates rather than their bounds or mean: a
+   * town whose courier list carries an outlying village would otherwise be framed from the sky.
+   *
+   * cb(null) when the place has no located points at all.
+   */
+  function centreOf(name, code, cb) {
+    if (!name || !window.BGCOURIERS || !BGCOURIERS.ajax) { cb(null); return; }
+    var key = name + '|' + code + '|both';
+    function answer(data) {
+      var lats = [], lngs = [];
+      Object.keys(data || {}).forEach(function (cid) {
+        ((data[cid] && data[cid].offices) || []).forEach(function (o) {
+          var lat = Number(o.lat), lng = Number(o.lng);
+          if (lat && lng) { lats.push(lat); lngs.push(lng); }
+        });
+      });
+      if (!lats.length) { cb(null); return; }
+      var mid = function (a) { a.sort(function (x, y) { return x - y; }); return a[Math.floor(a.length / 2)]; };
+      cb({ lat: mid(lats), lng: mid(lngs), n: lats.length });
+    }
+    if (cache[key]) { answer(cache[key]); return; }
+    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_allmap_offices', name: name, post_code: code, type: 'both' })
+      .done(function (data) { cache[key] = data || {}; answer(cache[key]); })
+      .fail(function () { cb(null); });
+  }
+
   $(document).on('click', '.bgc-allmap-btn', function (e) { e.preventDefault(); open(); });
-  window.BGCouriersAllMap = { open: open, close: close, points: function () { return points; } };
+  window.BGCouriersAllMap = { open: open, close: close, points: function () { return points; }, centreOf: centreOf };
 })(jQuery);

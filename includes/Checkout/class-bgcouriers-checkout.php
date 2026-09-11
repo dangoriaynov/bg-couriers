@@ -814,16 +814,25 @@ class BGCouriers_Checkout {
                 $label, self::kind_label($kind)));
         }
         $s = WC()->session;
+        // Each refusal below names the field it is about - the id of that field's box in this
+        // courier's block (see self::field_id) - and carries its OWN error code, because WooCommerce
+        // hands a WP_Error's data to wc_add_notice() per code. With the data on the notice, WooCommerce's
+        // checkout script turns the sentence at the top of the page into a link to the field, and
+        // bgc-checkout.js paints the field red, so the customer scrolling down finds what is missing.
+        // The id is safe to point at: every courier's block is in the DOM, hidden, but this runs for
+        // the CHOSEN courier only, and its block is the one showing.
+        $at = function (string $field) use ($courier): array { return ['id' => self::field_id($courier, $field)]; };
         // The saved selection must belong to the courier actually chosen - switching couriers voids the old pick.
         if ((string) $s->get('bgcouriers_selection_courier', '') !== $courier) {
             /* translators: %s: courier name */
-            $errors->add('bgc', sprintf(__('Please choose your %s delivery point before placing the order.', 'bg-couriers'), $label));
+            $errors->add('bgc_point', sprintf(__('Please choose your %s delivery point before placing the order.', 'bg-couriers'), $label),
+                $at($courier === 'boxnow' ? 'boxnow' : 'city'));
             return;
         }
         // BoxNow - a locker picked on the map widget (no city).
         if ($courier === 'boxnow') {
             if ((int) $s->get('bgcouriers_office_id', 0) <= 0) {
-                $errors->add('bgc', __('Please choose a BOX NOW locker before placing the order.', 'bg-couriers'));
+                $errors->add('bgc_locker', __('Please choose a BOX NOW locker before placing the order.', 'bg-couriers'), $at('boxnow'));
             }
             return;
         }
@@ -831,19 +840,30 @@ class BGCouriers_Checkout {
         $method = (string) $s->get('bgcouriers_method', '');
         if ((int) $s->get('bgcouriers_site_id', 0) <= 0) {
             /* translators: %s: courier name */
-            $errors->add('bgc', sprintf(__('Please choose a city for %s delivery.', 'bg-couriers'), $label));
+            $errors->add('bgc_city', sprintf(__('Please choose a city for %s delivery.', 'bg-couriers'), $label), $at('city'));
         }
         if ($method === 'address') {
             $street = (string) $s->get('bgcouriers_addr_street_name', '');
             $no     = (string) $s->get('bgcouriers_addr_street_no', '');
             if ($street === '' || $no === '') {
                 /* translators: %s: courier name */
-                $errors->add('bgc', sprintf(__('Please enter a street and number for %s address delivery.', 'bg-couriers'), $label));
+                $errors->add('bgc_street', sprintf(__('Please enter a street and number for %s address delivery.', 'bg-couriers'), $label),
+                    $at($street === '' ? 'street' : 'streetno'));
             }
         } elseif ((int) $s->get('bgcouriers_office_id', 0) <= 0) {
             /* translators: %s: courier name */
-            $errors->add('bgc', sprintf(__('Please choose an office/APS for %s.', 'bg-couriers'), $label));
+            $errors->add('bgc_office', sprintf(__('Please choose an office/APS for %s.', 'bg-couriers'), $label), $at('office'));
         }
+    }
+
+    /**
+     * The id of one field's box in a courier's block: `bgcouriers-office-speedy`. One per courier,
+     * because every courier's block is rendered at once (hidden until chosen), and an id has to be
+     * unique on the page. Shared by the markup (render_fields) and the refusals (validate) so that a
+     * notice's data-id and the box it points at cannot drift apart.
+     */
+    public static function field_id(string $courier, string $field): string {
+        return 'bgcouriers-' . sanitize_html_class($field) . '-' . sanitize_html_class($courier);
     }
 
     public function persist(\WC_Order $order): void {
@@ -1068,6 +1088,8 @@ class BGCouriers_Checkout {
                 'allmap_title' => __('Interactive map', 'bg-couriers'),
                 'allmap_show' => __('Show the offices', 'bg-couriers'),
                 'allmap_na' => __('Not available for this order', 'bg-couriers'),
+                /* translators: %d: how many pickup points one bubble on the map stands for */
+                'allmap_cluster' => __('%d pickup points here - zoom in to tell them apart', 'bg-couriers'),
                 'allmap_choose' => __('Choose', 'bg-couriers'),
                 'allmap_city_ph' => __('Choose a city', 'bg-couriers'),
                 // The two halves of the phone-sized dialog, which shows one of them at a time.
@@ -1238,18 +1260,18 @@ class BGCouriers_Checkout {
            // The postcode rides along in the city label as "Name (1234)" (search + disambiguation); its value
            // is kept in a hidden field - it's never sent to a courier, only used to carry the city across a
            // courier switch and to set the order's postcode record.
-           . '<div class="bgc-field bgc-city-field"><label>' . esc_html__('City', 'bg-couriers') . '</label>'
+           . '<div class="bgc-field bgc-city-field" id="' . esc_attr(self::field_id($courier, 'city')) . '"><label>' . esc_html__('City', 'bg-couriers') . '</label>'
            . '<select class="bgc-city"><option value=""></option>' . $city_option . '</select>'
            . '<input type="hidden" class="bgc-postcode" value="' . esc_attr($post_code) . '"></div>'
-           . '<div class="bgc-field bgc-office-row"' . $office_style . '><label class="bgc-office-label">' . $office_label . '</label>'
+           . '<div class="bgc-field bgc-office-row" id="' . esc_attr(self::field_id($courier, 'office')) . '"' . $office_style . '><label class="bgc-office-label">' . $office_label . '</label>'
            . '<div class="bgc-office-pick"><select class="bgc-office"' . ($auto_office ? ' data-auto="1"' : '') . '>' . $office_option . '</select>'
            . '<button type="button" class="bgc-map-btn" title="' . esc_attr__('View on map', 'bg-couriers') . '">'
            . '<svg class="bgc-map-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
            . '<span>' . esc_html__('Map', 'bg-couriers') . '</span></button></div></div>'
            . '<div class="bgc-address-rows"' . $addr_style . '>'
            . '<div class="bgc-grid' . (get_option('bgcouriers_address_map', 'no') === 'yes' ? ' bgc-grid-map' : '') . '">'
-           . '<div class="bgc-field bgc-street-field"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select></div>'
-           . '<div class="bgc-field bgc-streetno-field"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></div>'
+           . '<div class="bgc-field bgc-street-field" id="' . esc_attr(self::field_id($courier, 'street')) . '"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select></div>'
+           . '<div class="bgc-field bgc-streetno-field" id="' . esc_attr(self::field_id($courier, 'streetno')) . '"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></div>'
            . (get_option('bgcouriers_address_map', 'no') === 'yes'
                // Small map-pin icon next to No. (same generic style as the order editor), not a full-width button.
                ? '<div class="bgc-field bgc-addr-map-cell"><label aria-hidden="true">&nbsp;</label>'
@@ -1284,13 +1306,14 @@ class BGCouriers_Checkout {
         $hide   = self::chosen_courier() !== 'boxnow' ? ' style="display:none;"' : ''; // hidden unless BoxNow is the chosen courier
         $html = '<div class="bgc-fields bgc-boxnow" data-courier="boxnow" data-method="automat" data-methods="automat" data-order="automat"' . $hide . '>'
            . '<div class="bgc-panel">'
+           . '<div class="bgc-field bgc-boxnow-field" id="' . esc_attr(self::field_id('boxnow', 'boxnow')) . '">'
            . '<button type="button" class="button bgc-boxnow-pick">' . esc_html__('Choose a BOX NOW locker', 'bg-couriers') . '</button>'
            . '<div class="bgc-boxnow-selected"' . ($has ? '' : ' style="display:none;"') . '>'
            . '<strong class="bgc-boxnow-name">' . esc_html($name) . '</strong>'
            . '<span class="bgc-boxnow-addr"> ' . esc_html($addr) . '</span>'
            . '</div>'
            . '<input type="hidden" class="bgc-boxnow-id" value="' . esc_attr($has ? (string) $locker : '') . '">'
-           . '</div></div>';
+           . '</div></div></div>';
         echo wp_kses($html, BGCouriers_Kses::checkout_fields());
     }
 }
