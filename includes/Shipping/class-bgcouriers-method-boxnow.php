@@ -5,25 +5,19 @@ defined('ABSPATH') || exit;
  * BOX NOW WC shipping method - locker-only, flat rate (BoxNow has no live price endpoint).
  * Hidden when the cart exceeds the BoxNow parcel limit (20 kg / 36×45×60 cm).
  */
-class BGCouriers_Method_Boxnow extends WC_Shipping_Method {
+class BGCouriers_Method_Boxnow extends BGCouriers_Abstract_Method {
     public function __construct($instance_id = 0) {
-        $this->id                 = 'bgcouriers_boxnow';
-        $this->instance_id        = absint($instance_id);
-        $this->method_title       = __('BOX NOW', 'bg-couriers');
+        parent::__construct($instance_id, 'boxnow', __('BOX NOW', 'bg-couriers'));
+        // BOX NOW says what it is rather than "BOX NOW shipping": it is the only courier here that is a
+        // locker network and nothing else, and the zone screen is where a merchant decides that.
         $this->method_description = __('BOX NOW locker (APM) delivery (BG Couriers)', 'bg-couriers');
-        $this->supports           = ['shipping-zones', 'instance-settings'];
-        $this->enabled            = 'yes';
-        $this->title              = __('BOX NOW', 'bg-couriers');
-        $this->init_instance_settings();
     }
 
-    /** Free shipping when enabled and the goods total (w/o shipping) reaches the threshold. */
-    public static function is_free(float $goods_total, array $cfg): bool {
-        return !empty($cfg['enabled'])
-            && (float) ($cfg['threshold'] ?? 0) > 0
-            && $goods_total >= (float) $cfg['threshold'];
-    }
-
+    /**
+     * The one courier that does NOT take the shared quote: BOX NOW publishes no price endpoint at all,
+     * so the rate is the merchant's own flat figure and there is nothing to ask an API for. Everything
+     * else - the constructor, the free-shipping rule - comes from the parent.
+     */
     public function calculate_shipping($package = []) {
         // Switched off on its settings tab = not offered, whatever the shipping zone still holds. Every
         // other place already asked this (the cart estimate, the map, the office lookups, the sync); the
