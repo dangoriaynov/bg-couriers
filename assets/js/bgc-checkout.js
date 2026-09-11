@@ -729,9 +729,22 @@
   // wholesale - and WooCommerce asks for exactly that refresh right after some refusals. The marks
   // are put back on every updated_checkout and taken off when the field is filled in.
   var invalidIds = [];
+  /** Does this field's box hold an answer now - a chosen town, office or street, a typed number, a
+   *  locker id? Asked on every re-apply, because not every way of filling a field fires a change on
+   *  it: the map's Choose writes the office straight into the select and lets the server re-render. */
+  function filled($f) {
+    var yes = false;
+    $f.find('select, input').each(function () { if (String($(this).val() || '').trim() !== '') { yes = true; } });
+    return yes;
+  }
   function markInvalid() {
     $('.bgc-fields .bgc-invalid').removeClass('bgc-invalid');
-    invalidIds.forEach(function (id) { $('#' + id).filter('.bgc-field').addClass('bgc-invalid'); });
+    invalidIds = invalidIds.filter(function (id) {
+      var $f = $('#' + id).filter('.bgc-field');
+      if ($f.length && filled($f)) { return false; }   // answered since - by whichever route
+      $f.addClass('bgc-invalid');
+      return true;
+    });
   }
   function clearInvalid(el) {
     var $f = $(el).closest('.bgc-field.bgc-invalid');

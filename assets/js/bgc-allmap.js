@@ -865,6 +865,9 @@
       points.forEach(function (p, i) {
         var mk = markers[i];
         if (!mk || !shown(p, term)) { return; }
+        // The customer's own pick is never folded away: its pulse is how they find it again among
+        // the identical dots, and a bubble saying "12" would take that back the moment they zoom out.
+        if (isCurrent(p)) { return; }
         var px = map.project(mk.getLatLng(), zoom);
         var key = Math.floor(px.x / CLUSTER_CELL) + ':' + Math.floor(px.y / CLUSTER_CELL);
         (cells[key] = cells[key] || []).push(i);

@@ -115,13 +115,57 @@ test.describe('checkout guidance @guidance', () => {
     await page.waitForTimeout(2500);
     await expect(page.locator('#bgcouriers-office-speedy')).toHaveClass(/bgc-invalid/);
 
-    // Filling the field takes the mark off.
-    await page.locator('#bgcouriers-office-speedy .select2-selection').click();
+    // Filling the field takes the mark off - through the MAP, which writes the office into the select
+    // without a change event and lets the server re-render the block: the route most likely to leave
+    // a stale mark behind.
+    await page.locator('#bgcouriers-office-speedy .bgc-map-btn').click();
+    await expect(page.locator('.bgc-allmap-box')).toBeVisible();
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 30000 });
+    const item = page.locator('.bgc-allmap-item:not(.bgc-na)').first(); // the list is beside the map at this width
+    await item.click();
+    await page.locator('.bgc-allmap-pick').first().click();
+    await expect(page.locator('.bgc-allmap-box')).toBeHidden({ timeout: 15000 });
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(4000); // the pick's own round of recalculations
+    const officeVal = await page.locator('#bgcouriers-office-speedy .bgc-office').inputValue();
+    expect(officeVal).not.toBe('');
+    await expect(page.locator('#bgcouriers-office-speedy')).not.toHaveClass(/bgc-invalid/);
+    // ...and it stays off through the next re-render.
+    await page.evaluate(() => jQuery(document.body).trigger('update_checkout'));
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(2500);
+    await expect(page.locator('#bgcouriers-office-speedy')).not.toHaveClass(/bgc-invalid/);
+  });
+
+  test('the office already chosen is never folded into a bubble', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await dismissStoreBanner(page);
+    await selectShippingMethod(page, 'speedy');
+    const fields = page.locator('.bgc-fields[data-courier="speedy"]');
+    await expect(fields).toBeVisible({ timeout: 15000 });
+    await selectSpeedyTab(page, fields, 'office');
+    await selectCity(page, fields, 'София');
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(1500);
+    await fields.locator('.bgc-office-row .select2-selection').click();
     const opt = page.locator('.select2-results__option[role="option"]').first();
     await expect(opt).toBeVisible({ timeout: 20000 });
     await page.waitForTimeout(600);
     await opt.click();
-    await expect(page.locator('#bgcouriers-office-speedy')).not.toHaveClass(/bgc-invalid/);
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(2500);
+    // Opened from this courier's own button, the map lands on the pick at street level; zoom out
+    // three steps into bubble territory and the pulsing pin must still be painted.
+    await fields.locator('.bgc-office-pick .bgc-map-btn').click();
+    await expect(page.locator('.bgc-allmap-pin.bgc-chosen')).toBeAttached({ timeout: 30000 });
+    await page.waitForTimeout(1500);
+    for (let i = 0; i < 3; i++) { await page.locator('.leaflet-control-zoom-out').click(); await page.waitForTimeout(400); }
+    expect(await page.locator('.bgc-allmap-cluster').count()).toBeGreaterThan(0);
+    const chosen = await page.locator('.bgc-allmap-pin.bgc-chosen').evaluate((el) => el.style.display !== 'none');
+    expect(chosen, 'the chosen pin is painted, not swallowed').toBe(true);
+    await page.locator('.bgc-allmap-close').click();
   });
 
   test('the address picker opens on the named town when the browser gives no position', async ({ page, context }) => {
