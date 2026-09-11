@@ -49,7 +49,9 @@ class BGCouriers_Kses {
     /** The checkout delivery form: the courier wrapper plus its inputs, dropdowns and loader. */
     public static function checkout_fields(): array {
         return self::glyphs() + [
-            'div'    => ['class' => true, 'style' => true, 'aria-hidden' => true, 'data-courier' => true,
+            // id: each field's box carries one (BGCouriers_Checkout::field_id), so a refusal at the top
+            // of the page can point at the field it is about.
+            'div'    => ['class' => true, 'style' => true, 'id' => true, 'aria-hidden' => true, 'data-courier' => true,
                          'data-method' => true, 'data-methods' => true, 'data-order' => true, 'data-locker' => true,
                          'data-country' => true, 'data-nocod' => true],
             'span'   => ['class' => true, 'aria-hidden' => true, 'data-tip' => true, 'aria-label' => true],

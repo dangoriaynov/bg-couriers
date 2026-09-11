@@ -38,6 +38,15 @@ final class CheckoutValidationTest extends WP_UnitTestCase {
     public function test_office_delivery_needs_city_and_office(): void {
         $e = $this->errors('speedy', ['bgcouriers_selection_courier' => 'speedy', 'bgcouriers_method' => 'office', 'bgcouriers_site_id' => 0, 'bgcouriers_office_id' => 0]);
         $this->assertNotEmpty($e->get_error_messages());
+        // Each refusal names the field it is about, under its own code: WooCommerce hands a WP_Error's
+        // data to the notice per code, and the checkout script turns that id into a link and a red box.
+        $this->assertSame(['id' => 'bgcouriers-city-speedy'], $e->get_error_data('bgc_city'));
+        $this->assertSame(['id' => 'bgcouriers-office-speedy'], $e->get_error_data('bgc_office'));
+    }
+
+    public function test_a_missing_number_points_at_the_number_not_the_street(): void {
+        $e = $this->errors('econt', ['bgcouriers_selection_courier' => 'econt', 'bgcouriers_method' => 'address', 'bgcouriers_site_id' => 41, 'bgcouriers_addr_street_name' => 'Витоша', 'bgcouriers_addr_street_no' => '']);
+        $this->assertSame(['id' => 'bgcouriers-streetno-econt'], $e->get_error_data('bgc_street'));
     }
 
     public function test_office_delivery_valid_passes(): void {

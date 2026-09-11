@@ -31,6 +31,13 @@
 .bgc-nocod { margin: -4px 0 10px; padding: 8px 11px; border: 1px solid #f0d9a8; border-radius: 8px;
   background: #fdf6e6; color: #6b5314; font-size: 13px; line-height: 1.45; }
 
+/* The field a refusal at the top of the page is about (bgc-checkout.js paints it from the notice's
+   data-id): the same red WooCommerce uses on its own required fields, so the two read as one form. */
+.bgc-field.bgc-invalid > label { color: #b32d2e; }
+.bgc-field.bgc-invalid input,
+.bgc-field.bgc-invalid .select2-selection,
+.bgc-field.bgc-invalid .bgc-boxnow-pick { border-color: #b32d2e !important; box-shadow: 0 0 0 3px rgba(179,45,46,.14); }
+
 /* Panel + compact fields */
 .bgc-panel { display: flex; flex-direction: column; gap: 10px; }
 /* The address rows are a plain block inside the panel, so the panel's gap never reached them and
