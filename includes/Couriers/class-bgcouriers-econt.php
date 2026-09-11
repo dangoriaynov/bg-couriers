@@ -642,9 +642,9 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         );
         $url = (string) ($resp['shipmentStatuses'][0]['status']['pdfURL'] ?? '');
         if ($url === '') { throw new BGCouriers_Api_Exception('No pdfURL in Econt getShipmentStatuses response'); }
-        $r = wp_remote_get($url, ['timeout' => 30]);
-        if (is_wp_error($r)) { throw new BGCouriers_Api_Exception(esc_html('Econt PDF download failed: ' . $r->get_error_message())); }
-        return (string) wp_remote_retrieve_body($r);
+        // Through the shared fetch: this one used to return whatever came back, unchecked, so an error
+        // page from the link would have been saved and printed as a label.
+        return $this->fetch_pdf($url, [], 'Econt');
     }
 
     // ── Tracking ────────────────────────────────────────────────────────────

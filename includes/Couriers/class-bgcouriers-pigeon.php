@@ -78,14 +78,11 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         // pages, so a single network blip shouldn't hard-fail the whole sync.
         $last = '';
         for ($attempt = 0; $attempt < 2; $attempt++) {
-            $res = wp_remote_get($url, [
-                'timeout' => 20,
-                'headers' => [
-                    'Accept'       => 'application/json',
-                    'X-API-Key'    => $this->key,
-                    'X-API-Secret' => $this->secret,
-                ],
-            ]);
+            $res = $this->http_get($url, [
+                'Accept'       => 'application/json',
+                'X-API-Key'    => $this->key,
+                'X-API-Secret' => $this->secret,
+            ], 20);
             if (is_wp_error($res)) { $last = 'transport error: ' . $res->get_error_message(); continue; }
             $code = (int) wp_remote_retrieve_response_code($res);
             $raw  = (string) wp_remote_retrieve_body($res);

@@ -622,9 +622,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
             'by_reference' => 0,
             'pdfformat'    => 0,   // the account's own layout; this courier offers no size to choose
         ]));
-        $pdf = (string) base64_decode((string) ($data['LABEL'] ?? ''), true);
-        if (strpos($pdf, '%PDF') !== 0) { throw new BGCouriers_Api_Exception('Express One: the label is not a PDF'); }
-        return $pdf;
+        return self::assert_pdf((string) base64_decode((string) ($data['LABEL'] ?? ''), true), 'Express One');
     }
 
     // ── Cancelling ───────────────────────────────────────────────────────────
