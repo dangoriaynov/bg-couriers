@@ -72,13 +72,18 @@ test('the courier box, its dialogs and the (i) fit an iPhone @phone', async ({ p
   await noSidewaysScroll(page);
   await nothingPastTheEdge(page, '#order_review *');
   await tapTargets(page, '.bgc-fields[data-courier="speedy"] .bgc-tab, .bgc-fields[data-courier="speedy"] .select2-selection, .bgc-fields[data-courier="speedy"] .bgc-map-btn, .bgc-allmap-btn');
-  // The office's whole name is on screen - wrapped onto a second line, not cut to an ellipsis.
-  const clipped = await fields.locator('.bgc-office-row .select2-selection__rendered').evaluate((el) => ({
-    sideways: el.scrollWidth > el.clientWidth + 1, down: el.scrollHeight > el.clientHeight + 1, text: el.textContent.trim(),
-  }));
-  expect(clipped.text.length).toBeGreaterThan(20); // a Sofia office name is long enough to need the second line
-  expect(clipped.sideways, 'cut to an ellipsis: ' + clipped.text).toBe(false);
-  expect(clipped.down, 'cut short: ' + clipped.text).toBe(false);
+  // The office's name wraps onto a second line instead of being cut to an ellipsis. Whichever office
+  // Speedy lists first, and however long its name is today: the text is allowed to wrap, nothing runs
+  // off sideways, and the box is one or two lines tall - two being where a long name is clamped.
+  const office = await fields.locator('.bgc-office-row .select2-selection__rendered').evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { wrap: cs.whiteSpace, sideways: el.scrollWidth > el.clientWidth + 1,
+      lines: Math.round(el.clientHeight / parseFloat(cs.lineHeight)), text: el.textContent.trim() };
+  });
+  expect(office.wrap).toBe('normal');
+  expect(office.sideways, 'cut to an ellipsis: ' + office.text).toBe(false);
+  expect(office.lines, office.text).toBeGreaterThanOrEqual(1);
+  expect(office.lines, office.text).toBeLessThanOrEqual(2);
 
   // The (i): a tap shows the whole sentence, inside the screen, and it stays shown.
   const tip = page.locator('ul#shipping_method > li:has(input:checked) .bgc-info-tip').first();

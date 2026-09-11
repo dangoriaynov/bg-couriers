@@ -15,10 +15,15 @@ const { addAnyProductToCart, gotoCheckout, selectShippingMethod } = require('../
  * the plugin's own `ul#shipping_method > li` on specificity, not merely on load order. Measured by
  * geometry, not by eye: the fields start below the label's bottom edge and span the card.
  */
-const HOSTILE = [
-  '.woocommerce-checkout #shipping_method > li { display: flex; align-items: center; }',
-  '.woocommerce-checkout #shipping_method > li > label { flex: 1 1 auto; }',
-].join('\n');
+const HOSTILE = {
+  flex: [
+    '.woocommerce-checkout #shipping_method > li { display: flex; align-items: center; }',
+    '.woocommerce-checkout #shipping_method > li > label { flex: 1 1 auto; }',
+  ].join('\n'),
+  // A theme that wins the display back outright: the column direction is inert on a grid, so the
+  // children have to say for themselves that each takes the whole row.
+  grid: '.woocommerce-checkout #shipping_method > li { display: grid !important; grid-template-columns: 1fr auto; align-items: center; }',
+};
 
 async function boxes(page) {
   const li = page.locator('ul#shipping_method > li:has(input[value^="bgcouriers_econt"])').first();
@@ -37,12 +42,12 @@ function expectFieldsUnderLabel({ li, label, fields }) {
 }
 
 test.describe('courier fields under the courier name @layout', () => {
-  for (const [name, width] of [['phone', 390], ['tablet', 768], ['desktop', 1280]]) {
-    test(`${name} ${width}px, with a theme that flexes the row`, async ({ page }) => {
+  for (const [name, width, kind] of [['phone', 390, 'flex'], ['tablet', 768, 'flex'], ['desktop', 1280, 'flex'], ['phone', 390, 'grid']]) {
+    test(`${name} ${width}px, with a theme that makes the row a ${kind}`, async ({ page }) => {
       await page.setViewportSize({ width, height: 1000 });
       await addAnyProductToCart(page);
       await gotoCheckout(page);
-      await page.addStyleTag({ content: HOSTILE });
+      await page.addStyleTag({ content: HOSTILE[kind] });
       await selectShippingMethod(page, 'econt');
       const fields = page.locator('.bgc-fields[data-courier="econt"]');
       await expect(fields).toBeVisible({ timeout: 15000 });
