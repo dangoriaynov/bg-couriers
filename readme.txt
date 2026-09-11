@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.5
+Stable tag: 0.4.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -202,6 +202,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 Older entries: https://github.com/dangoriaynov/bg-couriers/blob/main/docs/CHANGELOG.md
 
 == Upgrade Notice ==
+
+= 0.4.6 =
+Fixes a BOX NOW checkout that could not be completed: the order was refused with "choose a locker" over a locker already picked. Also a delivery box that sat beside the courier's name on some themes, and a set of phone fixes.
 
 = 0.4.1 =
 A courier you had switched off was still being offered at the checkout. Automatic labels can now be set per courier, and start off for couriers that come for the parcel as soon as a waybill exists (Sameday).
