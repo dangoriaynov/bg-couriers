@@ -72,10 +72,16 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
                 'client_secret' => $this->client_secret,
             ]),
         ]);
-        if (is_wp_error($res)) { throw new BGCouriers_Api_Exception(esc_html('BoxNow auth transport: ' . $res->get_error_message())); }
+        if (is_wp_error($res)) {
+            /* translators: 1: courier name, 2: the error the connection reported. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not be reached: %2$s', 'bg-couriers'), 'BOX NOW', $res->get_error_message())));
+        }
         $body = json_decode((string) wp_remote_retrieve_body($res), true);
         $tok  = is_array($body) ? (string) ($body['access_token'] ?? '') : '';
-        if ($tok === '') { throw new BGCouriers_Api_Exception('BoxNow authentication failed'); }
+        if ($tok === '') {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'BOX NOW')));
+        }
         set_transient('bgcouriers_boxnow_token', $tok, 55 * MINUTE_IN_SECONDS);
         return $tok;
     }
@@ -89,26 +95,41 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     protected function get_json(string $path, array $query = []): array {
         $url = $this->base . $path . (!empty($query) ? '?' . http_build_query($query) : '');
         $res = $this->http_get($url, $this->headers(false), 30);
-        if (is_wp_error($res)) { throw new BGCouriers_Api_Exception(esc_html('BoxNow GET transport: ' . $res->get_error_message())); }
+        if (is_wp_error($res)) {
+            /* translators: 1: courier name, 2: the error the connection reported. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not be reached: %2$s', 'bg-couriers'), 'BOX NOW', $res->get_error_message())));
+        }
         $data = json_decode((string) wp_remote_retrieve_body($res), true);
-        if (!is_array($data)) { throw new BGCouriers_Api_Exception(esc_html('BoxNow invalid JSON from ' . $url)); }
+        if (!is_array($data)) {
+            /* translators: %s: the API address that answered. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The answer from %s is not valid JSON.', 'bg-couriers'), $url)));
+        }
         return $data;
     }
 
     /** POST a path (not a full URL) with the BoxNow auth headers. */
     private function bn_post(string $path, array $body): array {
         $res = wp_remote_post($this->base . $path, ['timeout' => 40, 'headers' => $this->headers(true), 'body' => wp_json_encode($body)]);
-        if (is_wp_error($res)) { throw new BGCouriers_Api_Exception(esc_html('BoxNow POST transport: ' . $res->get_error_message())); }
+        if (is_wp_error($res)) {
+            /* translators: 1: courier name, 2: the error the connection reported. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not be reached: %2$s', 'bg-couriers'), 'BOX NOW', $res->get_error_message())));
+        }
         $raw  = (string) wp_remote_retrieve_body($res);
         $code = (int) wp_remote_retrieve_response_code($res);
         $data = json_decode($raw, true);
-        if ($code >= 400) { throw new BGCouriers_Api_Exception(esc_html('BoxNow HTTP ' . $code . ': ' . substr($raw, 0, 300))); }
+        if ($code >= 400) {
+            /* translators: 1: courier name, 2: HTTP status code, 3: the courier's own error text. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s answered HTTP %2$d: %3$s', 'bg-couriers'), 'BOX NOW', $code, substr($raw, 0, 300))));
+        }
         // A 2xx with no body is a success with nothing to say - which is exactly how :cancel answers.
         // Demanding JSON of it made every BOX NOW cancellation report failure while the parcel HAD been
         // cancelled: the waybill stayed on the order, and re-issue (cancel then generate) silently did
         // nothing, because generate() hands back the waybill that was never cleared.
         if (trim($raw) === '') { return []; }
-        if (!is_array($data)) { throw new BGCouriers_Api_Exception(esc_html('BoxNow invalid JSON (HTTP ' . $code . ')')); }
+        if (!is_array($data)) {
+            /* translators: 1: courier name, 2: HTTP status code. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The answer from %1$s is not valid JSON (HTTP %2$d).', 'bg-couriers'), 'BOX NOW', $code)));
+        }
         return $data;
     }
 
@@ -146,7 +167,8 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
 
     /** No live price endpoint → throw so BGCouriers_Pricing uses the configured flat rate. */
     public function quote(array $shipment): BGCouriers_Quote {
-        throw new BGCouriers_Api_Exception('BoxNow has no live price endpoint (flat rate)');
+        /* translators: %s: courier name. */
+        throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s has no live price service, so the fixed price is used.', 'bg-couriers'), 'BOX NOW')));
     }
 
     public function create_label(\WC_Order $order): BGCouriers_Label {

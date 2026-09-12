@@ -98,7 +98,7 @@ class BGCouriers_Bulk_Labels {
      * output, so we can emit the PDF and exit instead of redirecting.
      */
     private function handle_print(string $paper, $ids): void {
-        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         $ok = [];
         foreach (array_map('intval', (array) $ids) as $oid) {
             $order = wc_get_order($oid);

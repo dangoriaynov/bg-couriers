@@ -1228,7 +1228,7 @@ jQuery(function($){
     // ---- AJAX: validate credentials + sync nomenclature ----
 
     public function ajax_validate(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do that.', 'bg-couriers')]); }
         check_ajax_referer('bgcouriers_admin', 'nonce');
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? 'speedy'));
         // Credentials, not the enable toggle: checking them is exactly what a merchant does BEFORE
@@ -1326,7 +1326,7 @@ jQuery(function($){
 
     /** The red × by the password: marks the credentials as needing re-validation (so the tint goes red). */
     public function ajax_reset_creds(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do that.', 'bg-couriers')]); }
         check_ajax_referer('bgcouriers_admin', 'nonce');
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? 'speedy'));
         update_option('bgcouriers_' . $courier . '_validated', 'no');
@@ -1363,7 +1363,7 @@ jQuery(function($){
     }
 
     public function ajax_sync(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do that.', 'bg-couriers')]); }
         check_ajax_referer('bgcouriers_admin', 'nonce');
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? 'speedy'));
         $c = BGCouriers_Couriers::get($courier);

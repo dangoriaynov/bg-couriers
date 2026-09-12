@@ -25,6 +25,7 @@ final class ExpressoneParsersTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
         Functions\when('esc_html')->returnArg(1);   // exception messages are esc_html()'d (Plugin Check)
         // The street list is cached for a day against the rate limit; a unit test always asks cold.
         Functions\when('get_transient')->justReturn(false);

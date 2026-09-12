@@ -13,6 +13,7 @@ use Brain\Monkey\Functions;
 final class LabelPdfFetchTest extends TestCase {
     protected function setUp(): void {
         parent::setUp(); Monkey\setUp();
+        Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
         Functions\when('esc_html')->returnArg(1);   // exception messages are esc_html()'d (Plugin Check)
         Functions\when('wp_parse_url')->alias(function ($u, $c = -1) { return parse_url($u); });
     }

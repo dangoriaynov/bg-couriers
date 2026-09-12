@@ -88,13 +88,17 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
             $raw  = (string) wp_remote_retrieve_body($res);
             if ($code === 200) {
                 $data = json_decode($raw, true);
-                if (!is_array($data)) { throw new BGCouriers_Api_Exception(esc_html('Pigeon invalid JSON from ' . $url)); }
+                if (!is_array($data)) {
+                    /* translators: %s: the API address that answered. */
+                    throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The answer from %s is not valid JSON.', 'bg-couriers'), $url)));
+                }
                 return $data;
             }
             $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 200);
             if ($code >= 400 && $code < 500) { break; } // client error (auth/bad request) - retry won't help
         }
-        throw new BGCouriers_Api_Exception(esc_html('Pigeon GET failed: ' . $last));
+        /* translators: 1: courier name, 2: the courier's own error text, or the HTTP status. */
+        throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not be reached: %2$s', 'bg-couriers'), 'Pigeon', $last)));
     }
 
     // ── Credential check ─────────────────────────────────────────────────────
@@ -408,7 +412,8 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         $d     = $resp['data'] ?? [];
         $gross = (float) ($d['total_price'] ?? 0);
         if ($gross <= 0) {
-            throw new BGCouriers_Api_Exception('No price in Pigeon response');
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no price in its answer.', 'bg-couriers'), 'Pigeon')));
         }
         list($net, $tax) = BGCouriers_Pricing::split_gross($gross);
         return new BGCouriers_Quote($net, $tax, (string) ($d['currency'] ?? $currency), 'live');

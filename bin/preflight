@@ -54,6 +54,19 @@ fi
 # --- 4. Translations done in the same change --------------------------------------------------------
 # The standing rule: a user-facing string added without its Bulgarian lands on a Bulgarian shop in
 # English. The owner keeps catching these, which is why it is a gate and not a reminder.
+# The completeness check below only ever looked at what was already IN the .po, so a string added to the
+# code without a template entry was invisible to it: that is how the "Shipped (%s)" order-status count
+# reached a Bulgarian shop in English and stayed there. This one asks the code instead.
+if command -v msgcomm >/dev/null 2>&1 && command -v xgettext >/dev/null 2>&1; then
+  if MISSING="$(bin/make-pot --check 2>&1)"; then
+    ok "the Bulgarian catalogue covers every translatable string in the code"
+  else
+    bad "the code has translatable strings the catalogue has never seen"
+    printf '%s\n' "$MISSING" | sed 's/^/     /'
+  fi
+else
+  note "xgettext/msgcomm not installed - skipping the catalogue coverage check"
+fi
 if command -v msgattrib >/dev/null 2>&1; then
   # The plugin NAME is deliberately untranslated - translating it broke WordPress.org's trademark rule.
   UNTRANSLATED="$(msgattrib --untranslated languages/bg-couriers-bg_BG.po \

@@ -22,7 +22,11 @@ require_once dirname(__DIR__) . '/stubs/wc-tax.php';
  * @group sameday
  */
 final class SamedayQuoteTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
+    protected function setUp(): void {
+        parent::setUp(); Monkey\setUp();
+        Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
+        Functions\when('esc_html')->returnArg(1); // and esc_html()'d on the way into the exception
+    }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function fx(string $f): array {

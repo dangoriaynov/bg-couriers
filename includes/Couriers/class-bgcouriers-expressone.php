@@ -67,7 +67,8 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     public static function unwrap(array $resp): array {
         if (empty($resp['status'])) {
             $msg = trim((string) ($resp['message'] ?? ''));
-            throw new BGCouriers_Api_Exception(esc_html('Express One: ' . ($msg !== '' ? $msg : 'request refused')));
+            throw new BGCouriers_Api_Exception(esc_html('Express One: '
+                . ($msg !== '' ? $msg : __('the request was refused', 'bg-couriers'))));
         }
         $d = $resp['data'] ?? [];
         return is_array($d) ? $d : [];
@@ -99,7 +100,8 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         $k = $this->key('rate_' . gmdate('YmdHi'));
         $n = (int) get_transient($k);
         if ($n >= self::CALLS_PER_MIN) {
-            throw new BGCouriers_Api_Exception('Express One: too many requests this minute - refusing to risk the 30-minute block');
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s has had too many requests this minute. Stopping here rather than risking their 30-minute block.', 'bg-couriers'), 'Express One')));
         }
         set_transient($k, $n + 1, 120);
     }
@@ -112,14 +114,21 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
             if (is_string($t) && $t !== '') { return $t; }
         }
         if ($this->user === '' || $this->pass === '') {
-            throw new BGCouriers_Api_Exception('Express One: no credentials configured');
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('No credentials are saved for %s.', 'bg-couriers'), 'Express One')));
         }
         $auth = self::unwrap($this->http('/1/authorize', ['username' => $this->user, 'password' => $this->pass], ''));
         $code = (string) ($auth['authorization_code'] ?? '');
-        if ($code === '') { throw new BGCouriers_Api_Exception('Express One: no authorization code in the answer'); }
+        if ($code === '') {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an authorization code, so the credentials were refused.', 'bg-couriers'), 'Express One')));
+        }
         $tok = self::unwrap($this->http('/1/accesstoken', ['authorization_code' => $code], ''));
         $val = (string) ($tok['access_token'] ?? '');
-        if ($val === '') { throw new BGCouriers_Api_Exception('Express One: no access token in the answer'); }
+        if ($val === '') {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'Express One')));
+        }
         // Their expires_at is a unix timestamp about a day out; keep ours comfortably inside it.
         $ttl = max(300, min((int) ($tok['expires_at'] ?? 0) - time() - 600, DAY_IN_SECONDS));
         set_transient($k, $val, $ttl);
@@ -153,11 +162,13 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
             'body'    => wp_json_encode($body),
         ]);
         if (is_wp_error($res)) {
-            throw new BGCouriers_Api_Exception(esc_html('Express One: ' . $res->get_error_message()));
+            /* translators: 1: courier name, 2: the error the connection reported. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not be reached: %2$s', 'bg-couriers'), 'Express One', $res->get_error_message())));
         }
         $data = json_decode((string) wp_remote_retrieve_body($res), true);
         if (!is_array($data)) {
-            throw new BGCouriers_Api_Exception(esc_html('Express One: invalid JSON from ' . $path));
+            /* translators: %s: the API address that answered. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The answer from %s is not valid JSON.', 'bg-couriers'), $path)));
         }
         return $data;
     }
@@ -392,7 +403,8 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     private static function country_id(string $iso): int {
         $c = strtoupper(trim($iso));
         if ($c === '' || $c === 'BG') { return self::BG_COUNTRY_ID; }
-        throw new BGCouriers_Api_Exception(esc_html('Express One does not deliver to ' . $c));
+        /* translators: 1: courier name, 2: country code. */
+        throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s does not deliver to %2$s.', 'bg-couriers'), 'Express One', $c)));
     }
 
     // ── Price ────────────────────────────────────────────────────────────────
@@ -463,7 +475,9 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         $total = (float) ($data['TOTAL'] ?? 0);
         $vat   = (float) ($data['TAX_VAT'] ?? 0);
         if ($total <= 0) {
-            throw new BGCouriers_Api_Exception(esc_html('Express One: no price in the answer'
+            throw new BGCouriers_Api_Exception(esc_html(
+                /* translators: %s: courier name. */
+                sprintf(__('%s sent no price in its answer.', 'bg-couriers'), 'Express One')
                 . (($data['ERROR_MESSAGE'] ?? null) ? ' (' . $data['ERROR_MESSAGE'] . ')' : '')));
         }
         return new BGCouriers_Quote(round($total - $vat, 2), round($vat, 2), $currency, 'live');
@@ -594,7 +608,9 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     public static function parse_created(array $data): BGCouriers_Label {
         $waybill = trim((string) ($data['BILLOFLADING'] ?? ''));
         if ($waybill === '') {
-            throw new BGCouriers_Api_Exception(esc_html('Express One: no bill of lading in the answer'
+            throw new BGCouriers_Api_Exception(esc_html(
+                /* translators: %s: courier name. */
+                sprintf(__('%s sent no waybill number in its answer.', 'bg-couriers'), 'Express One')
                 . (($data['ERROR_MESSAGE'] ?? null) ? ' (' . $data['ERROR_MESSAGE'] . ')' : '')));
         }
         $pdf = (string) ($data['LABEL'] ?? '');
@@ -737,8 +753,10 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
             'take_office_id' => (int) get_option('bgcouriers_expressone_sender_object', 0),
         ]));
         if ((int) ($d['ERROR'] ?? 0) !== 0) {
-            throw new BGCouriers_Api_Exception(esc_html('Express One refused the pickup: '
-                . (string) ($d['ERROR_MESSAGE'] ?: 'no reason given')));
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(
+                /* translators: 1: courier name, 2: the courier's own refusal text. */
+                __('%1$s refused the pickup request: %2$s', 'bg-couriers'), 'Express One',
+                (string) ($d['ERROR_MESSAGE'] ?: __('no reason given', 'bg-couriers')))));
         }
         return trim((string) ($d['REQUEST'] ?? ''));
     }

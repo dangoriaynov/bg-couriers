@@ -154,12 +154,14 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         ]);
 
         if (is_wp_error($r)) {
-            throw new BGCouriers_Api_Exception(esc_html('Sameday auth transport error: ' . $r->get_error_message()));
+            /* translators: 1: courier name, 2: the error the connection reported. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not be reached: %2$s', 'bg-couriers'), 'Sameday', $r->get_error_message())));
         }
         $body = json_decode(wp_remote_retrieve_body($r), true);
         $tok  = (string) ($body['token'] ?? '');
         if ($tok === '') {
-            throw new BGCouriers_Api_Exception('Sameday authentication failed: no token in response');
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'Sameday')));
         }
         // expire_at is "YYYY-MM-DD HH:MM"; token TTL ~1h, refresh 10 min early.
         set_transient($key, $tok, 50 * MINUTE_IN_SECONDS);
@@ -224,7 +226,8 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             // only that something was wrong, and there is no way to tell WHICH field the courier rejected.
             $fields = is_array($data) ? self::field_errors((array) ($data['errors'] ?? [])) : [];
             $msg = substr((string) $msg, 0, 300) . ($fields ? ' (' . implode('; ', array_slice($fields, 0, 6)) . ')' : '');
-            throw new BGCouriers_Api_Exception(esc_html('Sameday HTTP ' . $code . ': ' . $msg));
+            /* translators: 1: courier name, 2: HTTP status code, 3: the courier's own error text. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s answered HTTP %2$d: %3$s', 'bg-couriers'), 'Sameday', $code, $msg)));
         }
         return is_array($data) ? $data : [];
     }
@@ -398,7 +401,8 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $cur    = strtoupper((string) ($resp['currency'] ?? $currency));
         $store  = strtoupper($currency);
         if ($cur !== $store) {
-            throw new BGCouriers_Api_Exception('Sameday quote currency does not match the store currency');
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s quoted a price in a different currency from the shop.', 'bg-couriers'), 'Sameday')));
         }
         $net = round($amount, 2);
         return new BGCouriers_Quote($net, BGCouriers_Pricing::courier_tax($net), $store, 'live');

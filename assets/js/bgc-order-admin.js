@@ -404,7 +404,7 @@
     };
     if (courier() === 'boxnow') { data.office_id = $panel.find('.bgc-ed-boxnow-id').val() || 0; }
     $.post(C.ajax, data).done(function (r) {
-      if (r && r.success) { $msg.css('color', '#1a7f37').text((r.data && r.data.msg) || 'Saved'); setTimeout(function () { location.reload(); }, 800); }
+      if (r && r.success) { $msg.css('color', '#1a7f37').text((r.data && r.data.msg) || I.saved); setTimeout(function () { location.reload(); }, 800); }
       else { $msg.css('color', '#b32d2e').text((r && r.data && r.data.msg) || I.err); $b.prop('disabled', false); }
     }).fail(function () { $msg.css('color', '#b32d2e').text(I.err); $b.prop('disabled', false); });
   });

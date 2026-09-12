@@ -12,6 +12,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-couri
 final class AbstractCourierTest extends TestCase {
     protected function setUp(): void {
         parent::setUp(); Monkey\setUp();
+        Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
         Functions\when('esc_html')->returnArg(1); // exception messages are esc_html()'d (Plugin Check)
     }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }

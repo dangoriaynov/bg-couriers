@@ -125,7 +125,10 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      * @throws BGCouriers_Api_Exception
      */
     protected function call(string $path, array $body = []): array {
-        if ($this->key === '') { throw new BGCouriers_Api_Exception('Европът: no API key configured'); }
+        if ($this->key === '') {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('No credentials are saved for %s.', 'bg-couriers'), 'Европът')));
+        }
         return self::unwrap($this->post_json(self::BASE . $path, array_merge(['clientKey' => $this->key], $body)));
     }
 
@@ -323,7 +326,8 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     private static function assert_home(string $iso): void {
         $c = strtoupper(trim($iso));
         if ($c !== '' && $c !== 'BG') {
-            throw new BGCouriers_Api_Exception(esc_html('Европът does not deliver to ' . $c));
+            /* translators: 1: courier name, 2: country code. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s does not deliver to %2$s.', 'bg-couriers'), 'Европът', $c)));
         }
     }
 
@@ -527,7 +531,8 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
             $gross = (float) ($data['priceSecondCurrency'] ?? 0);
         }
         if ($gross <= 0) {
-            throw new BGCouriers_Api_Exception(esc_html('Европът: no price in the answer'));
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no price in its answer.', 'bg-couriers'), 'Европът')));
         }
         list($net, $tax) = BGCouriers_Pricing::split_gross($gross);
         return new BGCouriers_Quote($net, $tax, $currency, 'live');
@@ -697,7 +702,8 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         $waybill = trim((string) ($data['barcode'] ?? ''));
         if ($waybill === '' && isset($data[0]) && is_scalar($data[0])) { $waybill = trim((string) $data[0]); }
         if ($waybill === '') {
-            throw new BGCouriers_Api_Exception(esc_html('Европът: no waybill number in the answer'));
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no waybill number in its answer.', 'bg-couriers'), 'Европът')));
         }
         // The label is a separate call here - /createshipment returns the record, not the document.
         return new BGCouriers_Label($waybill, '', $problems);
@@ -745,7 +751,8 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
             'shipmentBarCode' => $waybill,
         ]));
         if (!is_string($url) || strpos($url, 'http') !== 0) {
-            throw new BGCouriers_Api_Exception(esc_html('Европът: no label link in the answer'));
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no label link in its answer.', 'bg-couriers'), 'Европът')));
         }
         return $this->fetch_pdf($url, [], 'Европът');
     }

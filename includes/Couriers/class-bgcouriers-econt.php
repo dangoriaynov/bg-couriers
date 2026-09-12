@@ -166,7 +166,8 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             foreach ($addrs as $a) { if ((string) ($a['id'] ?? '') === $chosen) { $address = $a; break; } }
         }
         if (empty($client['name']) || empty($address['city']['id'])) {
-            throw new BGCouriers_Api_Exception('Econt sender profile missing client/address - check getClientProfiles');
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The %s sender profile has no client or address on it. Check the profile in your courier account.', 'bg-couriers'), 'Econt')));
         }
         $sender   = ['client' => $client, 'address' => $address];
         set_transient($key, $sender, DAY_IN_SECONDS);
@@ -322,7 +323,10 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         $total    = (float) ($resp['label']['totalPrice'] ?? 0);
         $withVat  = (float) ($resp['label']['totalPriceWithVAT'] ?? 0);
         $cur      = (string) ($resp['label']['currency'] ?? $currency);
-        if ($total <= 0) { throw new BGCouriers_Api_Exception('No price in Econt response'); }
+        if ($total <= 0) {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no price in its answer.', 'bg-couriers'), 'Econt')));
+        }
         if ($withVat > $total) {
             return new BGCouriers_Quote($total, round($withVat - $total, 2), $cur, 'live');
         }
@@ -642,7 +646,10 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             ['shipmentNumbers' => [$waybill]]
         );
         $url = (string) ($resp['shipmentStatuses'][0]['status']['pdfURL'] ?? '');
-        if ($url === '') { throw new BGCouriers_Api_Exception('No pdfURL in Econt getShipmentStatuses response'); }
+        if ($url === '') {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no label link in its answer.', 'bg-couriers'), 'Econt')));
+        }
         // Through the shared fetch: this one used to return whatever came back, unchecked, so an error
         // page from the link would have been saved and printed as a label.
         return $this->fetch_pdf($url, [], 'Econt');
@@ -751,13 +758,16 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     public function request_pickup(array $waybills, array $opts): string {
-        if (empty($waybills)) { throw new BGCouriers_Api_Exception('No shipments to collect'); }
+        if (empty($waybills)) { throw new BGCouriers_Api_Exception(esc_html__('There are no shipments to collect.', 'bg-couriers')); }
         $resp = $this->post_json(
             $this->base . '/Shipments/ShipmentService.requestCourier.json',
             self::build_pickup_body($waybills, $opts, $this->sender_profile())
         );
         $id = self::parse_pickup_id($resp);
-        if ($id === '') { throw new BGCouriers_Api_Exception('Econt: no courier request id in the response'); }
+        if ($id === '') {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no pickup request number in its answer.', 'bg-couriers'), 'Econt')));
+        }
         return $id;
     }
 
