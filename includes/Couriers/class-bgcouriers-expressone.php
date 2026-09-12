@@ -66,12 +66,31 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
      */
     public static function unwrap(array $resp): array {
         if (empty($resp['status'])) {
-            $msg = trim((string) ($resp['message'] ?? ''));
+            $msg = self::message_text($resp['message'] ?? '');
             throw new BGCouriers_Api_Exception(esc_html('Express One: '
                 . ($msg !== '' ? $msg : __('the request was refused', 'bg-couriers'))));
         }
         $d = $resp['data'] ?? [];
         return is_array($d) ? $d : [];
+    }
+
+    /**
+     * The `message` of a refusal, as words. It is a string for most refusals and an object of
+     * field => messages for a form the API did not like - a wrong login is
+     * {"message":{"password":["Incorrect username or password."]}} - and cast to a string that read
+     * "Array" on the settings screen. Every leaf is read out, in order, whatever the nesting.
+     *
+     * @param mixed $m
+     */
+    public static function message_text($m): string {
+        if (is_string($m) || is_numeric($m)) { return trim((string) $m); }
+        if (!is_array($m)) { return ''; }
+        $out = [];
+        foreach ($m as $v) {
+            $t = self::message_text($v);
+            if ($t !== '') { $out[] = $t; }
+        }
+        return implode('; ', $out);
     }
 
     /**

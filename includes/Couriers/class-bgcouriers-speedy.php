@@ -140,7 +140,17 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public function fetch_cities(string $country = ''): array {
         // The CSV export returns ALL sites; plain /location/site returns only a small default set.
         $res = $this->http_post($this->base . '/location/site/csv/' . self::dest_country_id($country), $this->auth(['language' => 'BG']));
-        if (is_wp_error($res) || (int) wp_remote_retrieve_response_code($res) !== 200) { return []; }
+        // A fetch that did not happen is not "a country with no towns": read as one, it left the
+        // settings screen saying "0 cities" in green over a refused login (measured 2026-09-12).
+        if (is_wp_error($res)) {
+            /* translators: %s: the transport error. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The request failed: %s', 'bg-couriers'), $res->get_error_message())));
+        }
+        $code = (int) wp_remote_retrieve_response_code($res);
+        if ($code !== 200) {
+            /* translators: %s: the courier's own error text, or the HTTP status. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The request failed: %s', 'bg-couriers'), 'HTTP ' . $code . ': ' . self::error_text((string) wp_remote_retrieve_body($res)))));
+        }
         return self::parse_sites_csv((string) wp_remote_retrieve_body($res));
     }
 
@@ -151,6 +161,12 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
      * Empty is both the standards-correct reading and what PHP will default to in future.
      */
     public static function parse_sites_csv(string $csv): array {
+        // Speedy refuses with HTTP 200 and a JSON error where the CSV should be - the one thing this
+        // endpoint ever answers in JSON. That is a refusal, in its words, not an empty country.
+        if (strncmp(ltrim($csv), '{', 1) === 0) {
+            $j = json_decode($csv, true);
+            if (is_array($j) && !empty($j['error'])) { self::refuse($j); }
+        }
         $lines = preg_split('/\r\n|\r|\n/', trim($csv));
         if (!$lines || count($lines) < 2) { return []; }
         $header = str_getcsv((string) array_shift($lines), ',', '"', '');
@@ -215,6 +231,9 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     public static function parse_offices(array $resp): array {
+        // The same refusal, on the office list: HTTP 200, an `error` node, no offices. Read as "none",
+        // it made a wrong password look like a courier with no network.
+        if (!empty($resp['error'])) { self::refuse($resp); }
         $out = [];
         foreach (($resp['offices'] ?? []) as $o) {
             $type = strtoupper((string) ($o['type'] ?? '')) === 'APT' ? 'automat' : 'office';
@@ -639,6 +658,15 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             'phoneNumber'            => ['number' => (string) ($opts['phone'] ?? '')],
             'autoAdjustPickupDate'   => false,
         ];
+    }
+
+    /**
+     * Speedy answers HTTP 200 with an `error` node when it refuses; this turns one into an exception
+     * carrying Speedy's own words. @throws BGCouriers_Api_Exception always
+     */
+    private static function refuse(array $resp): void {
+        throw new BGCouriers_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message']
+            ?? __('the request was refused', 'bg-couriers'))));
     }
 
     /** PickupResponse -> the order id, as a string. Speedy answers 200 with an `error` node on refusal. */

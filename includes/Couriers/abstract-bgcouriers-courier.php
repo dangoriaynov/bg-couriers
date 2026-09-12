@@ -21,13 +21,41 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
                 }
                 return $data;
             }
-            $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 1000); // keep enough of the body for field-level API errors
+            $last = 'HTTP ' . $code . ': ' . self::error_text($raw);
             // Don't retry client errors (4xx): the request won't succeed on retry, and retrying a POST that
             // already had a side effect risks a duplicate. Only transport blips and 5xx are worth a second try.
             if ($code >= 400 && $code < 500) { break; }
         }
         /* translators: %s: the courier's own error text, or the HTTP status. */
         throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The request failed: %s', 'bg-couriers'), $last)));
+    }
+
+    /**
+     * What a refused request said, as words. A courier's refusal is a JSON body more often than not -
+     * Econt answers HTTP 517 {"type":"ExInvalidParam","message":"Невалидно потребителско име и/или
+     * парола."}, Pigeon HTTP 401 {"success":false,"message":"..."} with the Cyrillic escaped - and the
+     * merchant was shown that body raw. The message in it is read out where there is one: `message`
+     * (a string, or a list of field messages), else `error.message`, else `error`. A body that is not
+     * JSON, or JSON with no message in it, is shown as it was - enough of it for a field-level error.
+     */
+    protected static function error_text(string $raw): string {
+        $j = json_decode($raw, true);
+        if (is_array($j)) {
+            foreach ([$j['message'] ?? null, $j['error']['message'] ?? null, $j['error'] ?? null] as $m) {
+                $t = self::leaf_text($m);
+                if ($t !== '') { return $t; }
+            }
+        }
+        return substr($raw, 0, 1000);
+    }
+
+    /** A string as it is; a list or object of strings joined; anything else nothing. @param mixed $m */
+    private static function leaf_text($m): string {
+        if (is_string($m) || is_numeric($m)) { return trim((string) $m); }
+        if (!is_array($m)) { return ''; }
+        $out = [];
+        foreach ($m as $v) { $t = self::leaf_text($v); if ($t !== '') { $out[] = $t; } }
+        return implode('; ', $out);
     }
 
     /**
