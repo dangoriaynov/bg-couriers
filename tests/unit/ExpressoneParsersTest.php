@@ -46,6 +46,26 @@ final class ExpressoneParsersTest extends TestCase {
         BGCouriers_Expressone::unwrap($this->fx('error-envelope.json'));
     }
 
+    /**
+     * A refused login arrives as {"status":0,"message":{"password":["Incorrect username or password."]}}
+     * - the message is an object of field => messages, and cast to a string that reads "Array", which
+     * is what the settings screen showed for "Sync now" with a wrong password (measured 2026-09-12).
+     */
+    public function test_a_refusal_whose_message_is_a_list_of_field_messages_is_read_out(): void {
+        $this->expectException(BGCouriers_Api_Exception::class);
+        $this->expectExceptionMessage('Express One: Incorrect username or password.');
+        BGCouriers_Expressone::unwrap(['status' => 0, 'error_code' => 200, 'message' => ['password' => ['Incorrect username or password.']]]);
+    }
+
+    public function test_two_fields_objections_are_both_read_out(): void {
+        try {
+            BGCouriers_Expressone::unwrap(['status' => 0, 'message' => ['a' => ['first'], 'b' => 'second']]);
+            $this->fail('should have thrown');
+        } catch (BGCouriers_Api_Exception $e) {
+            $this->assertSame('Express One: first; second', $e->getMessage());
+        }
+    }
+
     public function test_a_success_hands_back_its_data_and_nothing_else(): void {
         $this->assertSame(['A' => 1], BGCouriers_Expressone::unwrap(['status' => true, 'data' => ['A' => 1]]));
     }

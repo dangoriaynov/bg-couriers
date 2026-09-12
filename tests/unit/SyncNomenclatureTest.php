@@ -158,7 +158,9 @@ final class SyncNomenclatureTest extends TestCase {
 
         $this->assertFalse($this->pruned('cities'), 'never prune when the fetch produced nothing');
         $this->assertFalse($this->pruned('offices'));
-        $this->assertSame(['cities' => 0, 'offices' => 0, 'pruned' => 0, 'rates' => 0], $out);
+        // And the run says it failed, in the endpoint's words - a run that fetched nothing used to report
+        // the same zeros as a courier with nothing to fetch, and the screen painted them green.
+        $this->assertSame(['cities' => 0, 'offices' => 0, 'pruned' => 0, 'rates' => 0, 'error' => 'city endpoint down'], $out);
     }
 
     /**

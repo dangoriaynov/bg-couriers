@@ -52,7 +52,7 @@ class BGCouriers_Sync {
      * courier's first alphabetical city. Stored in BGCouriers_Rates and shown at checkout BEFORE the
      * customer picks a destination; if a method can't be quoted the configured default price applies.
      */
-    public static function seed_rates(BGCouriers_Courier_Interface $courier): int {
+    public static function seed_rates(BGCouriers_Courier_Interface $courier, ?string &$failure = null): int {
         $id   = $courier->id();
         $caps    = $courier->capabilities();
         $methods = array_values(array_filter(['address', 'office', 'automat'],
@@ -81,7 +81,11 @@ class BGCouriers_Sync {
                 BGCouriers_Rates::set($id, $method, $q->price, $q->currency);
                 $n++;
             } catch (\Throwable $e) {
-                BGCouriers_Logger::debug('seed_rates: quote failed', ['courier' => $id, 'method' => $method]);
+                // The first refusal, for the caller that wants to say why there are no rates: a
+                // nomenclature that synced beside quotes a courier refused is "0 rates" in green
+                // otherwise, which is what a wrong password looked like on the settings screen.
+                if ($failure === null) { $failure = $e->getMessage(); }
+                BGCouriers_Logger::debug('seed_rates: quote failed', ['courier' => $id, 'method' => $method, 'err' => $e->getMessage()]);
             }
         }
         return $n;
@@ -119,10 +123,14 @@ class BGCouriers_Sync {
         $cities = $offices = [];
         // Which countries actually answered, per table. Only these may be pruned - see prune_table().
         $got_cities = $got_offices = [];
+        // What a fetch that threw said. A courier that answers with nothing (BOX NOW has no towns) is
+        // not in here; a courier that refuses is - and that is what the screen has to be told, or it
+        // paints "0 cities, 0 offices" green over a login the courier has just turned down.
+        $failed = [];
         try { $cities = self::tag($home, $courier->fetch_cities()); $got_cities[] = $home; }
-        catch (\Throwable $e) { BGCouriers_Logger::debug('sync: city fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
+        catch (\Throwable $e) { $failed[] = $e->getMessage(); BGCouriers_Logger::debug('sync: city fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
         try { $offices = self::tag($home, $courier->fetch_offices(0)); $got_offices[] = $home; } // 0 = all offices in one call (country-wide)
-        catch (\Throwable $e) { BGCouriers_Logger::debug('sync: office fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
+        catch (\Throwable $e) { $failed[] = $e->getMessage(); BGCouriers_Logger::debug('sync: office fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
 
         // Then every country the merchant has switched this courier on for. Each is fetched and tagged
         // separately - a country whose fetch fails leaves the others alone, and a country switched off
@@ -142,8 +150,11 @@ class BGCouriers_Sync {
         // GUARD: nothing at all came back = a failed fetch, not an empty country. Never prune on that.
         if (!$cities && !$offices) {
             BGCouriers_Logger::debug('sync: empty fetch, skipping prune', ['courier' => $id]);
+            if ($failed) { $out['error'] = $failed[0]; }
             return $out;
         }
+        // One table came back and the other threw: a run that did its half, and says which half it did not.
+        if ($failed) { $out['warning'] = $failed[0]; }
         if ($cities)  { $out['cities']  = BGCouriers_Nomenclature::upsert_cities($id, $cities, $run); }
         if ($offices) { $out['offices'] = BGCouriers_Nomenclature::upsert_offices($id, $offices, $run); }
         // Rows are written a few hundred at a time, so a statement the database refuses takes a whole
@@ -175,7 +186,8 @@ class BGCouriers_Sync {
             delete_transient('bgcouriers_cityidx_' . $id . '_' . strtolower($iso));
         }
 
-        $out['rates'] = self::seed_rates($courier); // reference price per method, first city
+        $out['rates'] = self::seed_rates($courier, $rate_failure); // reference price per method, first city
+        if ($out['rates'] === 0 && $rate_failure !== null && !isset($out['warning'])) { $out['warning'] = $rate_failure; }
         return $out;
     }
 

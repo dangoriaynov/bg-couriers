@@ -1371,7 +1371,13 @@ jQuery(function($){
         // them in place before the courier goes live on the shop.
         if (!$c || !self::creds_present($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
         @set_time_limit(180); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- needed for long nomenclature sync
-        wp_send_json_success(BGCouriers_Sync::run($c));
+        $r = BGCouriers_Sync::run($c);
+        // A run that fetched nothing is a failure, and is shown as one - with the courier's own words.
+        // The screen writes these as HTML, as it does every message here; a PHP error's text is not
+        // escaped at birth the way the adapters' own are (esc_html is a no-op on those).
+        if (isset($r['error'])) { wp_send_json_error(['msg' => esc_html((string) $r['error'])]); }
+        if (isset($r['warning'])) { $r['warning'] = esc_html((string) $r['warning']); }
+        wp_send_json_success($r);
     }
 
     /** Custom WC settings field: Validate / Sync buttons + the green/red credentials state (locked password + red ×). */
@@ -1447,7 +1453,7 @@ jQuery(function($){
             . '        }).fail(function(){ err(\'' . $t['fail'] . '\'); }).always(function(){ sbtn.prop(\'disabled\',false); syncV(); }); });' . "\n"
             . '    sbtn.on(\'click\',function(){ busy(\'' . $t['syncing'] . '\');' . "\n"
             . '        $.post(ajaxurl,{action:\'bgcouriers_sync_now\',nonce:nonce,courier:courier}).done(function(r){' . "\n"
-            . '            if(r&&r.success){ var d=r.data||{}; good((d.cities||0)+\' ' . $t['cities'] . ', \'+(d.offices||0)+\' ' . $t['offices'] . ', \'+(d.rates||0)+\' ' . $t['rates'] . '\'); }' . "\n"
+            . '            if(r&&r.success){ var d=r.data||{}; good((d.cities||0)+\' ' . $t['cities'] . ', \'+(d.offices||0)+\' ' . $t['offices'] . ', \'+(d.rates||0)+\' ' . $t['rates'] . '\'+(d.warning?\' (\'+d.warning+\')\':\'\')); }' . "\n"
             . '            else { err((r&&r.data&&r.data.msg)||\'' . $t['fail'] . '\'); }' . "\n"
             . '        }).fail(function(){ err(\'' . $t['fail'] . '\'); }).always(function(){ sbtn.prop(\'disabled\',false); syncV(); }); });' . "\n"
             . '})(jQuery);' . "\n"

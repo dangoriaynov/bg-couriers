@@ -94,7 +94,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
                 }
                 return $data;
             }
-            $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 200);
+            $last = 'HTTP ' . $code . ': ' . self::error_text($raw); // Pigeon refuses in JSON, Cyrillic escaped
             if ($code >= 400 && $code < 500) { break; } // client error (auth/bad request) - retry won't help
         }
         /* translators: 1: courier name, 2: the courier's own error text, or the HTTP status. */
