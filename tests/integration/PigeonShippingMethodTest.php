@@ -3,7 +3,7 @@
  * @group pigeon
  */
 final class PigeonShippingMethodTest extends WP_UnitTestCase {
-    public function set_up() { parent::set_up(); BGCouriers_Schema::create(); BGCouriers_Rates::set('pigeon','office',4.99,'BGN');  bgcouriers_test_set_up_courier('pigeon');
+    public function set_up() { parent::set_up(); BGCouriers_Schema::create(); BGCouriers_Rates::set('pigeon','office',4.99, get_woocommerce_currency());  bgcouriers_test_set_up_courier('pigeon');
         // The cached price is asserted as the RATE's cost, so delivery has to be charged with the
         // order. Since 2026-08-25 a new install does not charge it - the customer pays the courier at
         // the door and the rate costs 0, which is what this assertion had been reading.
