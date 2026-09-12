@@ -3,6 +3,13 @@
   var C = window.BGCOURIERS_ED || {};
   var I = C.i18n || {};
 
+  /* A lookup answers with a list, and everything here treats it as one - .map, .filter, .forEach.
+     `rows || []` keeps null out and lets everything else through, and what comes through is real:
+     admin-ajax answers a bare 0 when the action is gone from under an open page, which a plugin
+     update does. Truthy, so the field dies with "rows.map is not a function" - the whole dropdown,
+     on the merchant's own order screen. See the fuller note in bgc-checkout.js. */
+  function bgcList(rows) { return Array.isArray(rows) ? rows : []; }
+
   // Delivery is edited through our panel's "Edit delivery details", so hide WooCommerce's native SHIPPING
   // address editor (its pencil + inline form live in the same column as our panel) - it conflicts with our
   // panel and edits fields the courier doesn't use. Billing keeps its native editor.
@@ -163,7 +170,7 @@
   sel2($city, { width: '100%', allowClear: true, placeholder: I.city, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
       data: function (params) { return { action: 'bgcouriers_search_cities', courier: courier(), country: country(), term: params.term || '' }; },
-      processResults: function (rows) { return { results: (rows || []).map(function (r) {
+      processResults: function (rows) { return { results: bgcList(rows).map(function (r) {
         return { id: r.city_id, text: r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), post_code: r.post_code }; }) }; }
     }
   });
@@ -193,7 +200,7 @@
     if (LOCKED) { return; }
     if (!city || m === 'address' || c === 'boxnow') { officeRows = []; updateAvail(); return; }
     $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, country: country(), city_id: city, type: m, all: 1 }, function (rows) {
-      officeRows = rows || [];
+      officeRows = bgcList(rows);
       var cur = $office.val();
       $office.empty().append('<option></option>');
       officeRows.forEach(function (o) {
@@ -208,7 +215,7 @@
   sel2($street, { width: '100%', allowClear: true, tags: true, placeholder: I.street, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
       data: function (params) { return { action: 'bgcouriers_streets', courier: courier(), city_id: $city.val() || 0, term: params.term || '' }; },
-      processResults: function (rows) { return { results: (rows || []).map(function (s) { return { id: s.name, text: s.name }; }) }; }
+      processResults: function (rows) { return { results: bgcList(rows).map(function (s) { return { id: s.name, text: s.name }; }) }; }
     }
   });
 
@@ -223,7 +230,7 @@
     var name = cityName();
     if (!name) { loadOffices(); return; }
     $.get(C.ajax, { action: 'bgcouriers_search_cities', courier: courier(), country: country(), term: name }, function (rows) {
-      rows = rows || [];
+      rows = bgcList(rows);
       var lc = name.toLowerCase();
       var m = null, i;
       for (i = 0; i < rows.length; i++) { if ((rows[i].name || '').toLowerCase() === lc) { m = rows[i]; break; } }
@@ -263,7 +270,7 @@
   function officesFor(cb) {
     var c = courier(), city = $city.val() || 0, m = $method.val();
     if (!city || m === 'address' || c === 'boxnow') { cb([]); return; }
-    $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, country: country(), city_id: city, type: m, all: 1 }, function (rows) { cb(rows || []); }, 'json');
+    $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, country: country(), city_id: city, type: m, all: 1 }, function (rows) { cb(bgcList(rows)); }, 'json');
   }
   function openMap() {
     if (!window.L) { return; }
@@ -271,7 +278,7 @@
     if (officeRows && officeRows.length) { renderOfficeMap(officeRows); } else { officesFor(renderOfficeMap); }
   }
   function renderOfficeMap(rows) {
-      var pts = (rows || []).filter(function (o) { return Number(o.lat) !== 0 || Number(o.lng) !== 0; });
+      var pts = bgcList(rows).filter(function (o) { return Number(o.lat) !== 0 || Number(o.lng) !== 0; });
       var $ov = $('<div id="bgc-map-overlay" class="bgc-map-overlay"><div class="bgc-map-box bgc-map-box-wide">'
         + '<div class="bgc-map-head"><strong>' + escM(I.map_title || 'Map') + '</strong>'
         + '<button type="button" class="bgc-map-close" aria-label="' + escM(I.close || 'Close') + '">×</button></div>'

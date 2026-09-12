@@ -10,6 +10,13 @@
  * from __() calls. A literal typed here would never reach the .pot.
  */
 (function ($) {
+  /* A lookup answers with a list, and everything here treats it as one - .map, .filter, .forEach.
+     `rows || []` keeps null out and lets everything else through, and what comes through is real:
+     admin-ajax answers a bare 0 when the action is gone from under an open page, which a plugin
+     update does. Truthy, so the field dies with "rows.map is not a function" - the whole dropdown.
+     See the fuller note in bgc-checkout.js. */
+  function bgcList(rows) { return Array.isArray(rows) ? rows : []; }
+
   var I = (window.BGCOURIERS && BGCOURIERS.i18n) || {};
   var STORE = 'bgcouriers_map_pick';
   // A PLACE, not an id: city ids belong to the courier that issued them, so the dialog remembers what
@@ -481,9 +488,9 @@
       // confirm a decision they had just made.
       showOffices();
     }
-    function fill(rows) {
+    function fill(raw) {
       $res.empty();
-      (rows || []).forEach(function (r, i) {
+      bgcList(raw).forEach(function (r, i) {
         var label = r.name + (r.post_code ? ' (' + r.post_code + ')' : '');
         // Every row needs an id of its own for aria-activedescendant to be able to name one.
         $('<li class="bgc-allmap-cityopt" role="option"></li>').text(label)
@@ -1058,11 +1065,13 @@
       action: 'bgcouriers_allmap_offices',
       name: state.cityName, post_code: state.cityCode, type: 'both'
     }, function (data) {
-      // Too busy to look the town up. Caching that would be caching "this town has no points", and a
-      // town with no points is now a town the map DROPS - so a refused request would throw away the
-      // place the customer chose. Show what is already there and let the next open ask again.
-      if (data && data.bgc_busy) { return; }
-      cache[key] = data || {}; render(cache[key]);
+      // Only a real answer is remembered. Anything else cached here would be cached as "this town has
+      // no points", and a town with no points is now a town the map DROPS - so one answer that never
+      // came from the lookup would throw away the place the customer chose. A refusal is a 429 and
+      // never arrives here at all; what can is admin-ajax's bare 0, when the action is gone from under
+      // an open page. Show what is already there and let the next open ask again.
+      if (!data || typeof data !== 'object') { return; }
+      cache[key] = data; render(cache[key]);
     })
      .always(function () { busy(false); });
   }
@@ -1520,7 +1529,7 @@
     $.get(BGCOURIERS.ajax, {
       action: 'bgcouriers_allmap_offices',
       name: state.cityName, post_code: state.cityCode, type: 'both'
-    }, function (data) { if (data && data.bgc_busy) { return; } cache[key] = data || {}; });
+    }, function (data) { if (!data || typeof data !== 'object') { return; } cache[key] = data; });
   }
   $(function () {
     if (window.requestIdleCallback) { window.requestIdleCallback(prefetch, { timeout: 5000 }); }
@@ -1556,7 +1565,7 @@
     }
     if (cache[key]) { answer(cache[key]); return; }
     $.get(BGCOURIERS.ajax, { action: 'bgcouriers_allmap_offices', name: name, post_code: code, type: 'both' })
-      .done(function (data) { if (data && data.bgc_busy) { cb(null); return; } cache[key] = data || {}; answer(cache[key]); })
+      .done(function (data) { if (!data || typeof data !== 'object') { cb(null); return; } cache[key] = data; answer(cache[key]); })
       .fail(function () { cb(null); });
   }
 
