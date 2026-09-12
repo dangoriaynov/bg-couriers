@@ -15,15 +15,39 @@ class BGCouriers_Pickup {
     const PAGE   = 'bgcouriers-pickup';
     const ACTION = 'bgcouriers_pickup';
     const META   = '_bgcouriers_pickup_id';
+    /**
+     * The confirm form's nonce field. NOT the default "_wpnonce": the page's own nonce travels in the
+     * URL under that name, the form posts back to that same URL, and PHP builds $_REQUEST with the POST
+     * over the GET - so a confirm nonce posted as "_wpnonce" replaced the page nonce, the page check read
+     * the wrong one, and every click on "Request the courier" answered "The link you followed has
+     * expired". Two nonces on one request need two names.
+     */
+    const CONFIRM_NONCE = 'bgcouriers_confirm_nonce';
+    /** How long a rendered confirm form stays confirmable. */
+    const TICKET_TTL = HOUR_IN_SECONDS;
 
     public function __construct() {
         add_action('admin_menu', [$this, 'register_page']);
     }
 
-    /** Hidden: it is reached from the orders list, never from the menu. */
+    /**
+     * Hidden: it is reached from the orders list, never from the menu. The confirmation is handled on
+     * the page's load hook, before any output, so the browser can be sent on to a result page - a
+     * result rendered in place of a POST is re-sent by a refresh, and that is a second courier.
+     */
     public function register_page(): void {
-        add_submenu_page(null, __('Request a courier', 'bg-couriers'), __('Request a courier', 'bg-couriers'),
+        $hook = add_submenu_page(null, __('Request a courier', 'bg-couriers'), __('Request a courier', 'bg-couriers'),
             'manage_woocommerce', self::PAGE, [$this, 'render']);
+        if ($hook) { add_action('load-' . $hook, [$this, 'load']); }
+    }
+
+    /** Before the admin header: the page names itself, then a confirmation, if that is what arrived. */
+    public function load(): void {
+        // A page with no menu parent has no title for WordPress to find, and the header then strips
+        // tags from null - a deprecation on every render of this screen, and a tab that reads
+        // "WordPress" alone. get_admin_page_title() takes the global first.
+        $GLOBALS['title'] = __('Request a courier', 'bg-couriers');
+        $this->confirm();
     }
 
     public static function url(array $order_ids): string {
@@ -107,22 +131,53 @@ class BGCouriers_Pickup {
         return gmdate('Y-m-d', $now + $offset + DAY_IN_SECONDS);
     }
 
-    public function render(): void {
+    /**
+     * The confirmation, on the page's load hook. One courier per rendered form: the form carries a
+     * ticket that is spent here, atomically, so the same POST arriving twice - a refresh of the result,
+     * the back button, a second click while the courier's API takes its seconds - finds it spent and
+     * sends nothing. Then a redirect to the result, so what the browser holds is a GET.
+     */
+    public function confirm(): void {
+        if (!isset($_POST['bgcouriers_confirm'])) { return; }
         if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do this.', 'bg-couriers')); }
         check_admin_referer(self::ACTION);
-        $ids = array_filter(array_map('intval', explode(',', sanitize_text_field(wp_unslash($_REQUEST['orders'] ?? '')))));
-        $g   = self::group($ids);
+        check_admin_referer(self::ACTION . '_confirm', self::CONFIRM_NONCE);
 
-        if (isset($_POST['bgcouriers_confirm'])) {
-            check_admin_referer(self::ACTION . '_confirm');
-            $this->book($g['groups'], [
+        $ticket  = sanitize_key(wp_unslash($_POST['bgcouriers_ticket'] ?? ''));
+        $notices = [];
+        // delete_transient() says whether there was one to delete: in the database that is the affected
+        // row count of one DELETE, under an object cache the store's own atomic delete - so of two
+        // requests spending the same ticket exactly one is told yes.
+        if ($ticket === '' || !delete_transient('bgcouriers_pickup_ticket_' . $ticket)) {
+            $notices[] = ['warning', __('This confirmation was already used, or is more than an hour old - nothing was sent. If the courier has not been requested, select the orders again.', 'bg-couriers')];
+        } else {
+            $ids = array_filter(array_map('intval', explode(',', sanitize_text_field(wp_unslash($_REQUEST['orders'] ?? '')))));
+            $notices = $this->book(self::group($ids)['groups'], [
                 'date' => sanitize_text_field(wp_unslash($_POST['bgcouriers_date'] ?? '')),
                 'from' => sanitize_text_field(wp_unslash($_POST['bgcouriers_from'] ?? '')),
                 'to'   => sanitize_text_field(wp_unslash($_POST['bgcouriers_to'] ?? '')),
             ]);
+        }
+        // Kept, not consumed: the result page is a GET, and reading it twice is harmless.
+        $result = $ticket !== '' ? $ticket : sanitize_key(wp_generate_password(12, false));
+        set_transient('bgcouriers_pickup_result_' . $result, $notices, 5 * MINUTE_IN_SECONDS);
+        $to = add_query_arg(['page' => self::PAGE, 'done' => $result, '_wpnonce' => wp_create_nonce(self::ACTION)], admin_url('admin.php'));
+        if (wp_safe_redirect($to)) { exit; }
+    }
+
+    public function render(): void {
+        if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do this.', 'bg-couriers')); }
+        check_admin_referer(self::ACTION);
+
+        $done = sanitize_key(wp_unslash($_GET['done'] ?? ''));
+        if ($done !== '') {
+            $notices = get_transient('bgcouriers_pickup_result_' . $done);
+            $this->render_result(is_array($notices) ? $notices : []);
             return;
         }
 
+        $ids = array_filter(array_map('intval', explode(',', sanitize_text_field(wp_unslash($_REQUEST['orders'] ?? '')))));
+        $g   = self::group($ids);
         $cutoffs = [];
         foreach (array_keys($g['groups']) as $cid) {
             $c = BGCouriers_Couriers::get($cid);
@@ -153,8 +208,11 @@ class BGCouriers_Pickup {
                 __('The courier accepts requests up to %s.', 'bg-couriers'), (string) $cutoffs[0])) . '</p>';
         }
 
+        $ticket = sanitize_key(wp_generate_password(12, false));
+        set_transient('bgcouriers_pickup_ticket_' . $ticket, get_current_user_id(), self::TICKET_TTL);
         echo '<form method="post">';
-        wp_nonce_field(self::ACTION . '_confirm');
+        wp_nonce_field(self::ACTION . '_confirm', self::CONFIRM_NONCE);
+        echo '<input type="hidden" name="bgcouriers_ticket" value="' . esc_attr($ticket) . '" />';
         echo '<input type="hidden" name="orders" value="' . esc_attr(implode(',', $ids)) . '" />';
 
         foreach ($g['groups'] as $cid => $rows) {
@@ -208,9 +266,13 @@ class BGCouriers_Pickup {
         }
     }
 
-    /** One request per courier: the APIs take a list, so ten orders with one courier are one call. */
-    private function book(array $groups, array $opts): void {
-        echo '<div class="wrap"><h1>' . esc_html__('Request a courier', 'bg-couriers') . '</h1>';
+    /**
+     * One request per courier: the APIs take a list, so ten orders with one courier are one call.
+     *
+     * @return array<int,array{0:string,1:string}> what to tell the merchant: [kind, text] per courier
+     */
+    private function book(array $groups, array $opts): array {
+        $notices = [];
         foreach ($groups as $cid => $rows) {
             $c = BGCouriers_Couriers::get($cid);
             if (!$c) { continue; }
@@ -240,19 +302,32 @@ class BGCouriers_Pickup {
                         $c->label(), $opts['date'], $opts['from'], $opts['to']));
                     $order->save();
                 }
-                echo '<div class="notice notice-success"><p>' . esc_html($id !== '' ? sprintf(
+                $notices[] = ['success', $id !== '' ? sprintf(
                     /* translators: 1: courier name, 2: how many parcels, 3: request id */
                     __('%1$s will collect %2$d parcel(s). Request %3$s.', 'bg-couriers'),
                     $c->label(), count($waybills), $id
                 ) : sprintf(
                     /* translators: 1: courier name, 2: how many parcels */
                     __('%1$s will collect %2$d parcel(s). This courier issues no separate request number.', 'bg-couriers'),
-                    $c->label(), count($waybills))) . '</p></div>';
+                    $c->label(), count($waybills))];
             } catch (\Exception $e) {
-                echo '<div class="notice notice-error"><p>' . esc_html(sprintf(
+                $notices[] = ['error', sprintf(
                     /* translators: 1: courier name, 2: the courier's own error */
-                    __('%1$s refused the request: %2$s', 'bg-couriers'), $c->label(), $e->getMessage())) . '</p></div>';
+                    __('%1$s refused the request: %2$s', 'bg-couriers'), $c->label(), $e->getMessage())];
             }
+        }
+        return $notices;
+    }
+
+    /** The result page: what each courier answered, and the way back. */
+    private function render_result(array $notices): void {
+        echo '<div class="wrap"><h1>' . esc_html__('Request a courier', 'bg-couriers') . '</h1>';
+        if (!$notices) {
+            echo '<p>' . esc_html__('There is no result to show for this confirmation any more.', 'bg-couriers') . '</p>';
+        }
+        foreach ($notices as $n) {
+            $kind = in_array($n[0] ?? '', ['success', 'warning', 'error'], true) ? $n[0] : 'info';
+            echo '<div class="notice notice-' . esc_attr($kind) . '"><p>' . esc_html((string) ($n[1] ?? '')) . '</p></div>';
         }
         echo '<p><a href="' . esc_url(admin_url('admin.php?page=wc-orders')) . '">'
            . esc_html__('Back to orders', 'bg-couriers') . '</a></p></div>';
