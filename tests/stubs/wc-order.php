@@ -25,9 +25,12 @@ if (!class_exists('WC_Order')) {
         public function update_meta_data($k, $v) { $this->meta[$k] = $v; }
         public function delete_meta_data($k) { unset($this->meta[$k]); }
         public function get_status() { return $this->status; }
-        public function update_status($s, $note = '') { $this->status = $s; $this->transition = [$s, $note]; }
+        /** How many times this order has been written. A real save() is a database write, a cache flush
+         *  and a woocommerce_update_order that every other plugin on the shop is listening to. */
+        public int $saves = 0;
+        public function update_status($s, $note = '') { $this->status = $s; $this->transition = [$s, $note]; $this->save(); }
         public function add_order_note($n) { $this->notes[] = $n; }
-        public function save() {}
+        public function save() { $this->saves++; }
         public function get_items() { return $this->items; }
         public function get_total() { return $this->total; }
         public function get_subtotal() { return $this->subtotal; }
