@@ -5,8 +5,7 @@
  */
 final class CourierConfigTest extends WP_UnitTestCase {
     public function test_config_for_registered_enabled_courier(): void {
-        update_option('bgcouriers_speedy_enabled', 'yes');
-        update_option('bgcouriers_speedy_username', 'u@example.bg');
+        bgcouriers_test_set_up_courier('speedy', ['username' => 'u@example.bg']);
         $cfg = BGCouriers_Settings::courier_config('speedy');
         $this->assertIsArray($cfg);
         $this->assertSame('u@example.bg', $cfg['username']);

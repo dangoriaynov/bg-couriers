@@ -52,3 +52,25 @@ if ($bgcouriers_is_integration) {
     });
     require $wp_tests . '/includes/bootstrap.php';
 }
+
+/**
+ * Set a courier up the way a merchant has to, so the checkout will actually offer it.
+ *
+ * Since 0.4.3 a courier passes four gates before a single rate is quoted - switched on, credentials
+ * saved, credentials validated, and at least one delivery option left on (BGCouriers_Settings::
+ * courier_offerable()). The integration tests were written before the last three existed and set only
+ * the first, so seven of them had been failing against every build since: not one of them was testing
+ * what it says it tests, because the courier they set up was never offerable in the first place.
+ *
+ * One helper rather than four copies of the same four lines, so the next gate is added in one place.
+ */
+function bgcouriers_test_set_up_courier(string $courier, array $creds = []): void {
+    update_option('bgcouriers_' . $courier . '_enabled', 'yes');
+    $fields = class_exists('BGCouriers_Settings')
+        ? BGCouriers_Settings::credential_fields($courier)
+        : ['username', 'password'];
+    foreach ($fields as $f) {
+        update_option('bgcouriers_' . $courier . '_' . $f, $creds[$f] ?? ('test-' . $f));
+    }
+    update_option('bgcouriers_' . $courier . '_validated', 'yes');
+}
