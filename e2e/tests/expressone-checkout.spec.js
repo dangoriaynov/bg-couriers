@@ -64,12 +64,27 @@ async function start(page, method) {
   return fields;
 }
 
-async function place(page, who) {
+/**
+ * @param pay 'cod', or another gateway's id for a delivery Express One collects no cash at.
+ *
+ * Express One's EXOBOX is exactly that: the courier takes nothing at a locker of its own, so the
+ * checkout hides cash on delivery while one is chosen (no_cod_methods() -> ['automat']). This helper
+ * used to assert that cash on delivery was on the page whatever the delivery was, which had been
+ * false for the locker since that rule was written - the spec was checking the old behaviour and
+ * blaming the ППП setting for the difference.
+ */
+async function place(page, who, pay = 'cod') {
   await fillGuestBilling(page, { first: 'Тест', last: who, email: 'e2e-expressone@example.com', phone: '0888123456' });
-  await expect(page.locator('#payment_method_cod'),
-    'cash on delivery is missing - is "COD payout via ППП" still ticked on the Express One tab?')
-    .toHaveCount(1);
-  await choosePayment(page, 'cod');
+  if (pay === 'cod') {
+    await expect(page.locator('#payment_method_cod'),
+      'cash on delivery is missing - is "COD payout via ППП" still ticked on the Express One tab?')
+      .toHaveCount(1);
+  } else {
+    await expect(page.locator('#payment_method_cod'),
+      'Express One collects nothing at an EXOBOX, so cash on delivery must not be on offer')
+      .toHaveCount(0);
+  }
+  await choosePayment(page, pay);
   await page.locator('#place_order').click();
   await expect(page).toHaveURL(/order-received/i, { timeout: 30000 });
   const order = page.locator('.woocommerce-order').first();
@@ -89,16 +104,18 @@ test('expressone guest checkout to an office, COD @expressone', async ({ page })
 
 /**
  * The locker. Express One calls its own EXOBOX, and it is a different price from the counter - the
- * cheapest of the three - which is only true because the quote names the point it is going to.
+ * cheapest of the three - which is only true because the quote names the point it is going to. It is
+ * also the one delivery of the three that cannot be paid for on delivery: the courier collects nothing
+ * at its own locker, so the order is paid in advance and the checkout must not offer cash at all.
  */
-test('expressone guest checkout to an EXOBOX locker, COD @expressone', async ({ page }) => {
+test('expressone guest checkout to an EXOBOX locker, paid in advance @expressone', async ({ page }) => {
   const fields = await start(page, 'automat');
   await expect(fields.locator('.bgc-office-row')).toBeVisible({ timeout: 15000 });
   await pickFirstOffice(page, fields);
   await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(2500);
   await totals(page, 'locker');
-  await place(page, 'Локер');
+  await place(page, 'Локер', 'bacs');
 });
 
 /**
