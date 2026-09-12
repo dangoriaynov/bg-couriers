@@ -23,15 +23,16 @@ class BGCouriers_Tracking {
         // BOX NOW's parcelState, from its webhook and its /parcels endpoint. Machine values, all of
         // them, and until they were here the webhook wrote them to a key of their own that nothing read
         // - so a BOX NOW order showed a blank where its tracking belonged and was never advanced on
-        // delivery. "lost" and "missing" are deliberately absent: neither is a stage this plugin has,
-        // and a word in the note is more honest than pretending either is "in transit".
-        'new'                  => 'registered',
-        'in-transit'           => 'transit',
-        'in-final-destination' => 'ready',
-        'delivered'            => 'delivered',
-        'returned'             => 'returned',
-        'expired-return'       => 'returned',
-        'canceled'             => 'cancelled',
+        // delivery. Prefixed like Express One's and Evropat's, so a plain word another courier might
+        // one day send as its phase cannot land on these. "lost" and "missing" are deliberately absent:
+        // neither is a stage this plugin has, and the word in the note is more honest than "in transit".
+        'boxnow_new'                  => 'registered',
+        'boxnow_in-transit'           => 'transit',
+        'boxnow_in-final-destination' => 'ready',
+        'boxnow_delivered'            => 'delivered',
+        'boxnow_returned'             => 'returned',
+        'boxnow_expired-return'       => 'returned',
+        'boxnow_canceled'             => 'cancelled',
         // Pigeon. Still on the merchant's desk - the label exists, the parcel has not been collected.
         // Pigeon words the second of these "awaiting loading by the courier", which the text rules read
         // as movement (the Bulgarian for "awaiting" is in the in-flight list below), so the code is the
