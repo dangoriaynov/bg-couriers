@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-12 23:52+0300\n"
+"POT-Creation-Date: 2026-09-13 01:04+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -3448,13 +3448,63 @@ msgstr "%1$s отговори с HTTP %2$d: %3$s"
 msgid "The answer from %1$s is not valid JSON (HTTP %2$d)."
 msgstr "Отговорът от %1$s не е валиден JSON (HTTP %2$d)."
 
+#: includes/Couriers/class-bgcouriers-boxnow.php:159
+msgid "The request was not accepted as valid."
+msgstr "Заявката не беше приета като валидна."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:160
+msgid "The warehouse id in the BOX NOW settings is not a location it knows."
+msgstr "Идентификаторът на склада в настройките на BOX NOW не е познато за него местоположение."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:161
+msgid "The chosen locker is not a location it knows."
+msgstr "Избраният автомат не е познато за него местоположение."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:162
+msgid "A phone number is not in full international form."
+msgstr "Телефонен номер не е в пълен международен формат."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:163
+msgid "The compartment size has to be 1, 2 or 3."
+msgstr "Размерът на клетката трябва да е 1, 2 или 3."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:164
+msgid ""
+"Cash on delivery is collected only between 0 and 5000, and this order is "
+"outside that."
+msgstr "Наложен платеж се събира само между 0 и 5000, а тази поръчка е извън този диапазон."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:165
+msgid "This order number has already been used."
+msgstr "Този номер на поръчка вече е използван."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:166
+msgid ""
+"This account is not allowed to collect cash on delivery. Have the order paid "
+"in advance, or ask BOX NOW support to switch it on."
+msgstr "Този акаунт няма право да събира наложен платеж. Нека поръчката бъде платена предварително или поискайте от поддръжката на BOX NOW да го включи."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:167
+msgid "This parcel belongs to another account."
+msgstr "Тази пратка принадлежи на друг акаунт."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:168
+msgid ""
+"This parcel can no longer be cancelled: only a new, undelivered parcel can "
+"be."
+msgstr "Тази пратка вече не може да бъде отказана: само нова, недоставена пратка може да бъде."
+
+#: includes/Couriers/class-bgcouriers-boxnow.php:169
+msgid "The parcel weight was not accepted."
+msgstr "Теглото на пратката не беше прието."
+
 #. translators: %s: courier name.
-#: includes/Couriers/class-bgcouriers-boxnow.php:238
+#: includes/Couriers/class-bgcouriers-boxnow.php:293
 #, php-format
 msgid "%s has no live price service, so the fixed price is used."
 msgstr "%s няма услуга за актуални цени, затова се използва фиксираната цена."
 
-#: includes/Couriers/class-bgcouriers-boxnow.php:269
+#: includes/Couriers/class-bgcouriers-boxnow.php:324
 msgid ""
 "This order has no usable phone number for the recipient, and BOX NOW rejects "
 "a shipment without one."
@@ -3462,7 +3512,7 @@ msgstr ""
 "Тази поръчка няма валиден телефон на получателя, а BOX NOW отказва пратка "
 "без него."
 
-#: includes/Couriers/class-bgcouriers-boxnow.php:272
+#: includes/Couriers/class-bgcouriers-boxnow.php:327
 msgid ""
 "No sender phone is set for BOX NOW. Enter it in the BOX NOW settings - BOX "
 "NOW rejects a shipment without one."
@@ -3472,13 +3522,13 @@ msgstr ""
 
 #. translators: %s: order number
 #. translators: %s: order number, printed on the waybill as the sender's reference
-#: includes/Couriers/class-bgcouriers-boxnow.php:338
+#: includes/Couriers/class-bgcouriers-boxnow.php:393
 #: includes/Couriers/class-bgcouriers-speedy.php:413
 #, php-format
 msgid "Order %s"
 msgstr "Поръчка %s"
 
-#: includes/Couriers/class-bgcouriers-boxnow.php:422
+#: includes/Couriers/class-bgcouriers-boxnow.php:477
 msgid "unknown"
 msgstr "неизвестно"
 

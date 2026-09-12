@@ -110,6 +110,27 @@ final class BoxnowParsersTest extends TestCase {
     }
 
     /** A parcel BOX NOW knows nothing about must still answer, rather than fatal on a missing key. */
+    /**
+     * The live account answered a cash-on-delivery request with {"code":"P411","status":400} on 2026-09-13
+     * - no message, no field - and the order screen showed exactly that JSON. The manual names the codes.
+     */
+    public function test_a_documented_refusal_is_said_in_words(): void {
+        $t = BGCouriers_Boxnow::refusal_text('{"code":"P411","status":400}');
+        $this->assertStringContainsString('not allowed to collect cash on delivery', $t);
+        $this->assertStringEndsWith('(P411)', $t, 'the code stays on the end, for BOX NOW support');
+        $this->assertStringNotContainsString('{', $t, 'no JSON on the screen');
+        $this->assertStringContainsString('already been used', BGCouriers_Boxnow::refusal_text('{"code":"p410","status":400}'), 'case does not matter');
+    }
+
+    public function test_an_undocumented_refusal_is_shown_as_it_came(): void {
+        $this->assertSame('{"code":"P999","status":400}', BGCouriers_Boxnow::refusal_text('{"code":"P999","status":400}'));
+        $this->assertSame('not json at all', BGCouriers_Boxnow::refusal_text('not json at all'));
+    }
+
+    public function test_a_refusal_with_words_keeps_its_own_words(): void {
+        $this->assertSame('token expired', BGCouriers_Boxnow::refusal_text('{"code":"P411","message":"token expired"}'), 'what BOX NOW says beats what the manual says');
+    }
+
     public function test_parse_tracking_survives_an_empty_parcel(): void {
         $t = BGCouriers_Boxnow::parse_tracking([], '415-02914-308');
         $this->assertSame('unknown', $t->status);
