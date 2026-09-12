@@ -87,11 +87,18 @@ class BGCouriers_Tracking_Poller {
         if (!$courier) { return; }
         try { $t = $courier->track($wb); } catch (\Exception $e) { return; } // transient error - retry next run
 
+        // One answer from the courier is ONE write of the order. Each block below used to flush as it
+        // went, so a single poll could save the same order five times - five database writes, five
+        // woocommerce_update_order hooks for every other plugin on the shop to run, for one reading.
+        // Nothing about WHAT is written changes; the flag just decides whether there is anything to
+        // flush at the one point that flushes it.
+        $dirty = false;
+
         // Recorded before the change check: once the courier holds the parcel it stays held, and the
         // waybill lock depends on knowing that even on a poll where nothing else moved.
         if ($t->handover === true && (string) $order->get_meta('_bgcouriers_handover') !== 'yes') {
             $order->update_meta_data('_bgcouriers_handover', 'yes');
-            $order->save();
+            $dirty = true;
         }
 
         // Pigeon carries a return home under a BRAND NEW waybill and freezes the booked one on
@@ -104,7 +111,7 @@ class BGCouriers_Tracking_Poller {
             /* translators: 1: courier name, 2: the waybill number the return travels under */
             $order->add_order_note(sprintf(__('%1$s: the parcel is coming back under a new waybill - %2$s.', 'bg-couriers'),
                 $courier->label(), $t->waybill));
-            $order->save();
+            $dirty = true;
         }
 
         $stage = $t->stage();
@@ -116,7 +123,7 @@ class BGCouriers_Tracking_Poller {
         if (in_array($stage, ['delivered', 'cancelled', 'returned'], true)
             && (string) $order->get_meta('_bgcouriers_track_done') !== 'yes') {
             $order->update_meta_data('_bgcouriers_track_done', 'yes');
-            $order->save();
+            $dirty = true;
         }
 
         // What the admin displays is refreshed on EVERY poll, even when the courier says the same thing
@@ -128,7 +135,7 @@ class BGCouriers_Tracking_Poller {
             $order->update_meta_data('_bgcouriers_track_text', $human);
             $order->update_meta_data('_bgcouriers_track_stage', $stage);
             $order->update_meta_data('_bgcouriers_track_updated', time());
-            $order->save();
+            $dirty = true;
         }
 
         $key = $t->status;
@@ -138,7 +145,13 @@ class BGCouriers_Tracking_Poller {
         // already seen, and a text-only check would swallow the one poll where 'returned' fires - the
         // order marked finished and never moved.
         if (($key === '' || $key === (string) $order->get_meta('_bgcouriers_track_status'))
-            && $stage === $stored_stage) { return; }
+            && $stage === $stored_stage) {
+            // Whatever the blocks above decided still has to reach the database - and on the commonest
+            // poll of all, where the courier says exactly what it said last time, there is nothing to
+            // write and the order is not touched.
+            if ($dirty) { $order->save(); }
+            return;
+        }
         // _track_status is the courier's own key (Speedy's is an operation code like "-14") and exists to
         // detect change - it is never what we show.
         $order->update_meta_data('_bgcouriers_track_status', $key);
