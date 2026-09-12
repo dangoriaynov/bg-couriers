@@ -30,30 +30,77 @@ class BGCouriers_Tracking_Poller {
         if (!$next) { wp_schedule_event(time() + 300, $freq, self::HOOK); }
     }
 
-    /** The cron callback: poll a batch of active shipments and record any status changes. */
+    /** Shipments asked about per query. A page size, not a cap - see run(). */
+    const BATCH = 40;
+    /**
+     * Seconds a run may spend asking couriers. It used to be one batch of BATCH, oldest first, and that
+     * was the whole run: on a shop with more parcels out than that, the newer ones were never asked about
+     * until the older ones finished, and sat frozen on whatever the courier had last said. The run goes
+     * on in batches until nothing is left or this is spent; the budget is what keeps a cron run bounded.
+     * Filterable through bgcouriers_poll_budget.
+     */
+    const BUDGET = 20;
+
+    /** The cron callback: poll every active shipment, in batches, within the run's time budget. */
     public static function run(): void {
         if (self::freq() === 'off' || !function_exists('wc_get_orders')) { return; }
-        $orders = wc_get_orders([
+        $advance  = (string) get_option('bgcouriers_autostatus_on_delivered', '');
+        $deadline = microtime(true) + max(0, (int) apply_filters('bgcouriers_poll_budget', self::BUDGET));
+        $seen     = [];
+        do {
+            $orders = self::in_flight($seen);
+            foreach ($orders as $order) {
+                if (!$order instanceof \WC_Order) { continue; }
+                $seen[] = $order->get_id();
+                self::poll_one($order, $advance);
+                if (microtime(true) >= $deadline) { return; } // the rest waits for the next run
+            }
+        } while (count($orders) === self::BATCH);
+    }
+
+    /**
+     * The next batch of shipments still in flight, oldest first, skipping the ones already asked this run.
+     *
+     * Two conditions on order meta - a waybill, and no "finished" mark - and the two order stores take
+     * them differently. The orders table (HPOS) takes a meta_query; the classic posts store does not, and
+     * WooCommerce 9.2+ says so with a doing_it_wrong on every run, while WP_Query underneath takes the
+     * same meta_query through the store's own filter. Each store gets the form it supports.
+     *
+     * @param int[] $seen order ids already asked this run
+     * @return \WC_Order[]
+     */
+    private static function in_flight(array $seen): array {
+        $args = [
             'type'         => 'shop_order',
             // WITHOUT this the query falls back to WooCommerce's own status list, which does not include
             // the plugin's own shipped status - so the moment an order reached that status it stopped being
             // polled and froze on whatever the courier had last said. A parcel that was refused and sent
             // back sat in the admin as "on its way" for days because of it.
             'status'       => 'any',
-            'limit'        => 40,
+            'limit'        => self::BATCH,
             'orderby'      => 'date',
             'order'        => 'ASC',
+            // Already asked this run. A shipment the poll has just marked finished drops out of the
+            // query on its own; one it has not is asked once, whatever page it would have been on.
+            'exclude'      => $seen,
             'date_created' => '>' . (time() - 45 * DAY_IN_SECONDS), // don't poll ancient orders forever
-            'meta_query'   => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- cron, batched + age-bounded
-                'relation' => 'AND',
-                ['key' => '_bgcouriers_waybill', 'value' => '', 'compare' => '!='],
-                ['key' => '_bgcouriers_track_done', 'compare' => 'NOT EXISTS'],
-            ],
-        ]);
-        $advance = (string) get_option('bgcouriers_autostatus_on_delivered', '');
-        foreach ($orders as $order) {
-            if ($order instanceof \WC_Order) { self::poll_one($order, $advance); }
+        ];
+        $meta = [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- cron, batched + age-bounded
+            'relation' => 'AND',
+            ['key' => '_bgcouriers_waybill', 'value' => '', 'compare' => '!='],
+            ['key' => '_bgcouriers_track_done', 'compare' => 'NOT EXISTS'],
+        ];
+        $hpos = class_exists('\Automattic\WooCommerce\Utilities\OrderUtil')
+            && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+        if ($hpos) {
+            $args['meta_query'] = $meta; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- cron, batched + age-bounded
+            return array_values(array_filter(wc_get_orders($args), static function ($o) { return $o instanceof \WC_Order; }));
         }
+        $inject = static function ($query) use ($meta) { $query['meta_query'] = $meta; return $query; };
+        add_filter('woocommerce_order_data_store_cpt_get_orders_query', $inject);
+        try { $orders = wc_get_orders($args); }
+        finally { remove_filter('woocommerce_order_data_store_cpt_get_orders_query', $inject); }
+        return array_values(array_filter($orders, static function ($o) { return $o instanceof \WC_Order; }));
     }
 
     /**
