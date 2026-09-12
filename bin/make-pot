@@ -57,6 +57,18 @@ if [ "$CHECK" = 1 ]; then
     echo "  Run bin/make-pot, fill the Bulgarian, then msgfmt." >&2
     exit 1
   fi
+  # And nothing may be FUZZY. A plain msgmerge guesses a translation for a new string from a similar
+  # old one and marks it fuzzy; msgfmt leaves fuzzy entries out of the .mo, so the string ships in
+  # English - while the check above, which only looks for EMPTY translations, says all is well. Two
+  # "%s" strings were guessed from their placeholder-less neighbours that way on 2026-09-12.
+  msgattrib --only-fuzzy --no-obsolete -o "$TMP/fuzzy.po" "$TMP/merged.po" 2>/dev/null || : > "$TMP/fuzzy.po"
+  F="$(grep -c '^msgid "' "$TMP/fuzzy.po" 2>/dev/null || true)"
+  if [ "${F:-0}" -gt 1 ]; then
+    echo "$((F - 1)) fuzzy string(s) in $PO - guessed, not translated, and left out of the .mo:" >&2
+    grep '^msgid "' "$TMP/fuzzy.po" | grep -v '^msgid ""$' | sed 's/^/  /' >&2
+    echo "  Check each guess (the placeholders in particular), then remove its '#, fuzzy' line and msgfmt." >&2
+    exit 1
+  fi
   echo "the catalogue covers every translatable string in the code"
   exit 0
 fi
@@ -64,4 +76,10 @@ fi
 msgmerge --quiet --backup=none --update "$PO" "$POT"
 printf 'template: %s strings\n' "$(grep -c '^msgid ' "$POT")"
 printf 'untranslated: %s\n' "$(msgattrib --untranslated "$PO" | grep -c '^msgid "' || true)"
+# Guessed from a similar string and marked fuzzy: each is a translation to check, not one that is done.
+FZ="$(msgattrib --only-fuzzy --no-obsolete "$PO" | grep -c '^msgid "' || true)"
+if [ "${FZ:-0}" -gt 1 ]; then
+  printf 'fuzzy (guessed - check them, then drop the "#, fuzzy" line): %s\n' "$((FZ - 1))"
+  msgattrib --only-fuzzy --no-obsolete "$PO" | grep '^msgid "' | grep -v '^msgid ""$' | sed 's/^/  /'
+fi
 echo "Now fill any empty msgstr in $PO, then: msgfmt -o languages/bg-couriers-bg_BG.mo $PO"
