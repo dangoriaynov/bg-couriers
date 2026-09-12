@@ -395,7 +395,17 @@ class BGCouriers_Pricing {
      */
     const SLOW_QUOTE_SECONDS = 5.0;
 
-    /** How long a slow courier is left alone. Long enough to matter, short enough that a recovery is noticed. */
+    /**
+     * How long a slow courier is left alone. Long enough to matter, short enough that a recovery is
+     * noticed - and the first live quote that does come back cancels the rest early, so this is a
+     * ceiling rather than a wait.
+     *
+     * The rest is per courier and shop-wide, not per customer, because a courier's API being ill is a
+     * fact about the courier and not about whoever happened to ask first. That is the trade a merchant
+     * is making: one slow failure prices EVERYONE off this courier's fallback until it answers again.
+     * Priced the other way - per customer - the shop would learn the same thing once per visitor and
+     * make each of them wait to learn it.
+     */
     const SLOW_QUOTE_REST = 300;
 
     /** Is this courier being left alone after a slow failure? */
@@ -421,9 +431,19 @@ class BGCouriers_Pricing {
      */
     private static function maybe_rest(string $courier, float $took): void {
         if ($took < self::slow_seconds()) { return; }
-        set_transient('bgcouriers_slow_' . $courier, 1, self::SLOW_QUOTE_REST);
+        $rest = self::slow_rest();
+        set_transient('bgcouriers_slow_' . $courier, 1, $rest);
         BGCouriers_Logger::debug('a slow quote - this courier is left alone for a while', [
-            'courier' => $courier, 'seconds' => round($took, 1), 'rest' => self::SLOW_QUOTE_REST]);
+            'courier' => $courier, 'seconds' => round($took, 1), 'rest' => $rest]);
+    }
+
+    /**
+     * And the rest itself, filterable beside the threshold. A shop that would rather retry sooner had
+     * only half the dial: it could say what counts as slow but was then stuck with five minutes of
+     * fallback pricing, which is the half that costs it money.
+     */
+    private static function slow_rest(): int {
+        return max(1, (int) apply_filters('bgcouriers_slow_quote_rest', self::SLOW_QUOTE_REST));
     }
 
     /** It answered. Ask it again next time, whatever it did last. */

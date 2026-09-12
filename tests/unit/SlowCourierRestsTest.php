@@ -55,16 +55,22 @@ if (!class_exists('SlowQuoteCourier')) {
 final class SlowCourierRestsTest extends TestCase {
     /** @var array<string,mixed> the transient store this test runs against */
     private array $store = [];
+    /** @var array<string,int> how long each transient was asked to live */
+    private array $ttl = [];
 
     protected function setUp(): void {
         parent::setUp(); Monkey\setUp();
         $this->store = [];
+        $this->ttl   = [];
         Functions\when('__')->returnArg(1);
         Functions\when('esc_html')->returnArg(1);
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
         $store = &$this->store;
         Functions\when('get_transient')->alias(static function ($k) use (&$store) { return $store[$k] ?? false; });
-        Functions\when('set_transient')->alias(static function ($k, $v, $ttl = 0) use (&$store) { $store[$k] = $v; return true; });
+        $ttls = &$this->ttl;
+        Functions\when('set_transient')->alias(static function ($k, $v, $ttl = 0) use (&$store, &$ttls) {
+            $store[$k] = $v; $ttls[$k] = (int) $ttl; return true;
+        });
         Functions\when('delete_transient')->alias(static function ($k) use (&$store) { unset($store[$k]); return true; });
         // 'fallback' mode: ask the API first, and when it will not answer use the merchant's own price.
         // That is the number the customer gets instead of a wait, and it is what makes resting safe.
@@ -137,6 +143,33 @@ final class SlowCourierRestsTest extends TestCase {
         BGCouriers_Pricing::quote($well, $this->shipment());
         $this->assertArrayNotHasKey('bgcouriers_slow_slowfake', $this->store,
             'an answer clears the rest, so nothing is skipped for the remaining minutes');
+    }
+
+    /**
+     * The rest is five minutes by default, and a shop that would rather retry sooner can say so.
+     *
+     * It had only half the dial before: the threshold was filterable, so a merchant could say what
+     * counts as slow, and was then stuck with a fixed five minutes of fallback pricing - which is the
+     * half that costs them money, since a fallback price is by definition not the one the courier would
+     * have quoted.
+     */
+    public function test_how_long_a_courier_rests_is_the_merchants_to_set(): void {
+        Functions\when('apply_filters')->alias(static function ($hook, $value = null) {
+            if ($hook === 'bgcouriers_slow_quote_seconds') { return self::SLOW; }
+            if ($hook === 'bgcouriers_slow_quote_rest') { return 30; }
+            return $value;
+        });
+        BGCouriers_Pricing::quote(new SlowQuoteCourier(true, self::SLOW + 0.02), $this->shipment());
+
+        $this->assertSame(30, $this->ttl['bgcouriers_slow_slowfake'] ?? -1,
+            'the rest lasts what the shop asked for, not the built-in five minutes');
+    }
+
+    /** Left alone, it is the five minutes the plugin ships with - the filter adds a dial, it is not one. */
+    public function test_the_default_rest_is_the_one_the_plugin_ships_with(): void {
+        BGCouriers_Pricing::quote(new SlowQuoteCourier(true, self::SLOW + 0.02), $this->shipment());
+
+        $this->assertSame(BGCouriers_Pricing::SLOW_QUOTE_REST, $this->ttl['bgcouriers_slow_slowfake'] ?? -1);
     }
 
     /**
