@@ -13,6 +13,30 @@ const { addAnyProductToCart, gotoCheckout } = require('../helpers/shop');
  */
 
 /**
+ * What the MAP is showing, in points rather than in elements.
+ *
+ * Since the pins started folding into count bubbles, "how many markers are on the map" stopped being
+ * the same question as "how many points is the map showing": a bubble is one marker standing for many
+ * points, and switching a courier off can leave MORE markers than before because a bubble splits. So
+ * the map's side of every comparison here is `painted + inBubbles`, and the list's side counts only
+ * the rows that have coordinates - a point with none stays in the list and was never on the map.
+ */
+async function mapTally(page) {
+  return page.evaluate(() => {
+    const painted = [...document.querySelectorAll('.bgc-allmap-pin')].filter((el) => el.style.display !== 'none').length;
+    const inBubbles = [...document.querySelectorAll('.bgc-allmap-cluster b')]
+      .reduce((a, b) => a + parseInt(b.textContent, 10), 0);
+    const pts = window.BGCouriersAllMap.points();
+    const rows = [...document.querySelectorAll('.bgc-allmap-item')].filter((el) => el.style.display !== 'none');
+    const located = rows.filter((r) => {
+      const p = pts[+r.getAttribute('data-i')];
+      return p && Number(p.office.lat) && Number(p.office.lng);
+    }).length;
+    return { onMap: painted + inBubbles, painted, inBubbles, rows: rows.length, located };
+  });
+}
+
+/**
  * Pick a city the way a customer does: type, then click a suggestion.
  *
  * Every test here does it this way. An earlier version set the select's value in JavaScript because
@@ -220,11 +244,13 @@ test('combined map: it carries several couriers at once, each with its own price
   // few hundred markers out of Leaflet and putting them back is what made a legend click block for a
   // second and a half - so counting the elements no longer counts what is on the map.
   const rowsBefore = await page.locator('.bgc-allmap-item:visible').count();
-  const pinsBefore = await page.locator('.leaflet-marker-icon:visible').count();
+  const before = await mapTally(page);
   await chips.first().click();
   await page.waitForTimeout(600);
+  const after = await mapTally(page);
   expect(await page.locator('.bgc-allmap-item:visible').count()).toBeLessThan(rowsBefore);
-  expect(await page.locator('.leaflet-marker-icon:visible').count()).toBeLessThan(pinsBefore);
+  expect(after.onMap, 'the map drops the switched-off courier\'s points').toBeLessThan(before.onMap);
+  expect(after.onMap, 'and still agrees with the list beside it').toBe(after.located);
 
   // Each chip carries its courier's own logo as well as its colour: the colour identifies a pin,
   // the logo is what the customer actually recognises.
@@ -243,12 +269,13 @@ test('combined map: searching narrows the list and the map together @allmap', as
   await page.locator('.bgc-allmap-search').fill('тракия');
   await page.waitForTimeout(700);
   const rows1 = await page.locator('.bgc-allmap-item:visible').count();
-  const pins1 = await page.locator('.leaflet-marker-icon:visible').count();
+  const t = await mapTally(page);
   expect(rows1).toBeGreaterThan(0);
   expect(rows1).toBeLessThan(rows0);
-  // The two halves must agree: a row the map does not show, or a pin the list does not have, tells
-  // the customer two different things about what is on offer.
-  expect(pins1).toBe(rows1);
+  // The two halves must agree: a row the map does not show, or a point the list does not have, tells
+  // the customer two different things about what is on offer. Counted in POINTS - a bubble stands for
+  // the several it holds - because that is what the customer is comparing, not marker elements.
+  expect(t.onMap).toBe(t.located);
 });
 
 test('combined map: choosing a point sets the courier, the delivery type and the office @allmap', async ({ page }) => {
