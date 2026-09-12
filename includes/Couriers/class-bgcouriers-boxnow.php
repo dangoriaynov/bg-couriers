@@ -353,7 +353,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         // status, marked human so the list shows "in the locker - ready for pickup" and not the code.
         $labels = BGCouriers_Boxnow_Webhook::state_labels();
         $human  = $labels[$state] ?? ($state !== '' ? $state : __('unknown', 'bg-couriers'));
-        return new BGCouriers_Tracking($waybill, $human, $events, $state, null, true);
+        return new BGCouriers_Tracking($waybill, $human, $events, $state !== '' ? 'boxnow_' . $state : '', null, true);
     }
 
     public function tracking_url(string $waybill): string {

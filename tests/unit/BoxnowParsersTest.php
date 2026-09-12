@@ -62,7 +62,7 @@ final class BoxnowParsersTest extends TestCase {
         // The state travels as the PHASE - a machine value the stage is read from outright - and the
         // status is the merchant's wording of it. It used to be the bare state in the status, which the
         // orders list then printed as "in-final-destination".
-        $this->assertSame('new', $t->phase);
+        $this->assertSame('boxnow_new', $t->phase, 'prefixed, like the other couriers own codes');
         $this->assertSame('registered', $t->stage());
         $this->assertSame('registered', $t->human(), 'the wording, not the code');
         $this->assertCount(1, $t->events);
