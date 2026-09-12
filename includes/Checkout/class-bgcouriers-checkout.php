@@ -916,8 +916,12 @@ class BGCouriers_Checkout {
             'site_id'      => (int) $s->get('bgcouriers_site_id', 0),
             'office_id'    => (int) $s->get('bgcouriers_office_id', 0),
             'post_code'    => (string) $s->get('bgcouriers_post_code', ''),
-            'quote_price'  => (float) $s->get('bgcouriers_quote_price', 0),
-            'quote_source' => (string) $s->get('bgcouriers_quote_source', ''),
+            // THIS courier's own quote, not whichever one WooCommerce happened to price last. There is
+            // deliberately no fallback to the old shared key: reading it is the very fault being fixed,
+            // and the worst it can cost is one order placed from a basket that was already open when the
+            // shop updated, losing a diagnostic number nothing reads back.
+            'quote_price'  => (float) $s->get('bgcouriers_quote_price_' . $courier, 0),
+            'quote_source' => (string) $s->get('bgcouriers_quote_source_' . $courier, ''),
             'street_name'  => (string) $s->get('bgcouriers_addr_street_name', ''),
             'street_no'    => (string) $s->get('bgcouriers_addr_street_no', ''),
             'complex'      => (string) $s->get('bgcouriers_addr_complex', ''),
