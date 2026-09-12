@@ -35,6 +35,7 @@ final class CredentialAutofillTest extends TestCase {
         Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
         Functions\when('esc_html')->returnArg(1);
+        Functions\when('esc_html__')->returnArg(1);
         Functions\when('esc_attr')->returnArg(1);
         Functions\when('esc_url')->returnArg(1);
         Functions\when('admin_url')->returnArg(1);
@@ -82,12 +83,20 @@ final class CredentialAutofillTest extends TestCase {
         }
     }
 
-    /** The guard must not have eaten the placeholder and other attributes already on those fields. */
+    /**
+     * The guard must not have eaten what was already on those fields.
+     *
+     * The placeholder is a TOP-LEVEL key, not one inside custom_attributes: WooCommerce prints its own
+     * placeholder="" before the custom attributes and a browser keeps the first of two identical
+     * attribute names, so a placeholder declared in custom_attributes never reached the screen at all.
+     */
     public function test_existing_attributes_survive(): void {
         $page = new BGCouriers_WC_Settings();
         foreach ($page->get_settings('speedy') as $f) {
             if (($f['id'] ?? '') === 'bgcouriers_speedy_password') {
-                $this->assertArrayHasKey('placeholder', $f['custom_attributes']);
+                $this->assertArrayHasKey('placeholder', $f, 'the placeholder has to be where WooCommerce prints it');
+                $this->assertSame('', $f['value'], 'and the field is drawn empty');
+                $this->assertSame('new-password', $f['custom_attributes']['autocomplete'] ?? null);
                 return;
             }
         }

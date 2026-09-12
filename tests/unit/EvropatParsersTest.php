@@ -65,6 +65,7 @@ final class EvropatParsersTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
         Functions\when('esc_html')->returnArg(1);   // exception messages are esc_html()'d (Plugin Check)
+        Functions\when('wp_parse_url')->alias(function ($u, $c = -1) { return parse_url($u); });
         Functions\when('get_transient')->justReturn(false);
         Functions\when('set_transient')->justReturn(true);
         Functions\when('is_wp_error')->justReturn(false);
