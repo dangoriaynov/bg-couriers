@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.6
+Stable tag: 0.4.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -127,9 +127,14 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.7 =
+* Fixed: **the map could open on a town the customer had never chosen**, with no pickup points in it and the whole region on screen. The map remembers the last town this browser looked at, and that memory had no expiry: it outlived a town the couriers stopped listing, and every town of a country a shop had stopped delivering to. A remembered town that comes back with nothing in it is now dropped and the map asks its one question again. A town the customer has just named, or the one their courier box is already set to, is untouched.
 * Fixed: **the About tab showed the General tab's settings.** Everything that was not a courier fell through to one branch that printed the General fields whatever the tab was, so About printed 38 settings rows instead of what it is there for. Every tab prints the fields built for it now.
 * Fixed: **the Econt tab wrote the shop's API username into the page source.** Every courier's credential boxes are declared empty - the values are stored encrypted, and a box left blank means "keep what is saved" - and Econt's username was the one that was not declared that way, so WooCommerce printed the stored username into the HTML of the page on every load. The box on the screen looked like the others (the lock empties it), the source did not. It is declared empty now like the rest, and nothing was lost: the stored username is untouched.
 * Fixed: **the guard that keeps the browser's password manager out of the credential boxes was not on the boxes.** It was put on the fields the settings are SAVED from, not on the fields that are drawn, and the courier tabs draw their own - so not one credential box on a courier tab ever carried it. A password manager filling a blank "API username" with the merchant's own e-mail, and a Save then writing that over the real credentials, is how a live courier account was lost once. Everything the plugin draws carries the guard now.
+* Fixed: **the checkout accepted a city or an office the courier does not list.** Both arrive from the page as plain numbers, and the order was refused only if they were missing altogether - so a tab left open while the courier's towns were resynced could place an order whose shipping address came out empty, and whose waybill the courier refused hours later. They are now checked against the courier's own synced list, and the refusal points at the box to fix, like every other one. A shop whose list has not been synced yet is never refused on the strength of it.
+* Fixed: **the BOX NOW webhook secret was printed into the settings page.** It is the key the incoming tracking messages are checked with, and it was the one credential on these screens drawn with its value in it. It is empty now like the rest, and saving the page with the box left blank keeps what is stored - nothing to re-enter.
+* Changed: **a label is only fetched from a public address.** Two couriers answer with a link that this server then downloads. A link pointing back inside the shop's own network is refused before the request is made.
+* Changed: **nothing that is a credential can reach the debug log.** It used to strip four field names, which were the spellings two of the seven couriers use, and only at the top level of an entry. Every courier's own names are covered now, at any depth. Nothing was writing one there today; this closes the door before something does.
 
 = 0.4.6 =
 * Fixed: **a BOX NOW order was refused with "Please choose a BOX NOW locker" over a locker that was on the screen.** Since 0.2.21 the checkout saves the chosen courier's delivery details once more the moment the order is sent, so a street typed a second earlier is not lost - and for BOX NOW that save read the locker through the town and office boxes BOX NOW's block does not have, and saved "no locker" over the one just picked. Every BOX NOW order placed since then had been refused this way. The locker is now saved from where the widget put it.
