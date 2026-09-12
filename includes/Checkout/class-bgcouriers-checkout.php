@@ -1229,6 +1229,12 @@ class BGCouriers_Checkout {
         }
         $office_option = '';
         $auto_office = false;
+        // An office with no town is not a selection, it is half of one: a save that reached the session
+        // after the town was cleared in the browser held exactly that (the clear never reached the
+        // session, so the next save sent the office alone). Rendered, it was one office in a field
+        // the browser then disabled for want of a town, with no list to open. The town is what makes
+        // an office mean anything, so without it the office is not shown either.
+        if (!$site_id) { $office_id = 0; }
         if ($office_id) {
             $office = BGCouriers_Nomenclature::office_by_id($courier, $office_id);
             if ($office) {

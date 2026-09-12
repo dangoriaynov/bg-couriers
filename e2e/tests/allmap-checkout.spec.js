@@ -317,6 +317,17 @@ test('combined map: choosing a point sets the courier, the delivery type and the
   // The CITY is asserted because leaving it out is how a real defect reached the owner: the office
   // landed, the city came back empty, and an order cannot be placed from an office with no town.
   expect(String(await fields.locator('.bgc-city').inputValue())).toBe(String(pick.cityId));
+  // And the office FIELD is one the customer can still use. The hand-over runs several recalculations
+  // at once; one that rendered the block before the session held the town built the field disabled,
+  // and the town and office were then written into it from the browser - one office, greyed out, no
+  // list to open (owner, 2026-09-12). The field's state follows the town now, whichever render won.
+  await expect(fields.locator('.bgc-office')).toBeEnabled();
+  expect(await fields.locator('.bgc-office-pick .select2-container').getAttribute('class')).not.toContain('select2-container--disabled');
+  await fields.locator('.bgc-office-row .select2-selection').click();
+  const options = page.locator('.select2-results__option[role="option"]');
+  await expect(options.first()).toBeVisible({ timeout: 20000 });
+  expect(await options.count(), 'the whole list opens, not the one office').toBeGreaterThan(1);
+  await page.keyboard.press('Escape');
 });
 
 /** The dialog is meant to be easier the second time: it remembers the place you were looking at. */

@@ -129,6 +129,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.8 =
+* Fixed: **the X on the town now clears the office too, and the checkout knows about it.** WooCommerce's select box fires no "clear" event, so clearing a town left the office in its field, the price quoted for the old town, and the next save carried an office with no town - which then rendered as a single greyed-out office with no list. The clear is bound to the event the box does fire, an office without a town is never rendered, and a point chosen on the map saves the town and the delivery type together.
 * Added: **the automatic waybill can wait for the day the order ships.** Orders carrying a dispatch day (Order Delivery Date's "ship on" date) had their waybill issued the moment they were paid - measured on a live shop: four shipments registered at Speedy three to four weeks before their parcels existed. A new General setting holds the waybill for the morning of that day; the order says so, a moved day moves it, and an order cancelled or completed in the meantime ships nothing. On for new installs; existing shops keep issuing at once until they tick it.
 * Fixed: tracking is checked for every parcel in flight, not the oldest forty.
 * Fixed: a refused cancel, and a refused credential check, now say what the courier said.

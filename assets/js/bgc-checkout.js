@@ -276,7 +276,18 @@
       idle(function () { prefetchOtherCouriers($wrap.find('.bgc-city').val() || 0, method($wrap), country($wrap)); });
     });
     // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
-    $city.on('select2:clear', function () {
+    //
+    // Bound to select2:unselect, NOT select2:clear. WooCommerce's selectWoo is a fork of Select2 4.0.3,
+    // and that build relays exactly eight events - open, opening, close, closing, select, selecting,
+    // unselect, unselecting - so a select2:clear handler on this page never ran once. Its clear
+    // button fires unselect (still holding the old value) and then a plain change. Measured on dev
+    // and prod, 2026-09-12: the X emptied the town on screen and nothing else happened - the office
+    // stayed, the session kept the town and the office, the price row kept quoting for it, and the
+    // next save sent the office WITHOUT its town. That is the state the owner saw: one office, greyed
+    // out, no town, no list. A newer Select2 fires unselect too, after clearing - so the value is put
+    // to null here first and the handler reads the same either way.
+    $city.on('select2:unselect', function () {
+      $city.val(null);
       $wrap.find('.bgc-postcode').val('');
       $wrap.find('.bgc-map-btn').prop('disabled', true).attr('title', (BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || '');
       resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
@@ -410,14 +421,29 @@
     $wrap.find('.bgc-map-btn:not(.bgc-addr-map-btn)').prop('disabled', !hasCity)
       .attr('title', hasCity ? '' : ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || ''));
   }
-  $(document).on('change', '.bgc-fields .bgc-city', function () { syncMapBtn($(this).closest('.bgc-fields')); });
+  /**
+   * And the office field follows the city the same way, for the same reason. Its enabled state was
+   * decided ONCE, while the block was built: a recalculation that rendered the block before the
+   * session held the town left the select disabled, and the map hand-over (applyPick) then wrote the
+   * town and the office into it from the browser - a single office, greyed out, with a town plainly
+   * sitting above it, and no list to open, until the next courier switch re-rendered the block from
+   * the session (owner, 2026-09-12). The hand-over runs several recalculations at once and its own
+   * save can land after one of them, so a render without the town is a matter of timing, not a bug
+   * in the render; what must not depend on timing is the field disagreeing with the one above it.
+   */
+  function syncOffice($wrap) {
+    $wrap.find('.bgc-office').prop('disabled', !$wrap.find('.bgc-city').val());
+  }
+  $(document).on('change', '.bgc-fields .bgc-city', function () {
+    var $wrap = $(this).closest('.bgc-fields');
+    syncMapBtn($wrap); syncOffice($wrap);
+  });
 
   function initOffice($wrap) {
     var $office = $wrap.find('.bgc-office');
     var hasCity = !!$wrap.find('.bgc-city').val();
-    syncMapBtn($wrap);
+    syncMapBtn($wrap); syncOffice($wrap); // no office search until a city is chosen
     if ($office.hasClass('select2-hidden-accessible')) { return; }
-    $office.prop('disabled', !hasCity); // no office search until a city is chosen
     sel2($office, {
       width: '100%', allowClear: true, minimumInputLength: 0, placeholder: hasCity ? ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_ph) || '') : ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || ''),
       ajax: {
@@ -449,7 +475,9 @@
     // Picking/clearing a specific office in the same city doesn't change the price (it's per city+weight),
     // so save it without a recalc/loader - no more blinking on this "elementary" action.
     $office.on('select2:select', function () { saveSelection($wrap); });
-    $office.on('select2:clear', function () { saveSelection($wrap); });
+    // unselect, not clear - see the city above. This select2 build has no clear event, so the X on the
+    // office never reached the session: the order still carried the office the customer had removed.
+    $office.on('select2:unselect', function () { $office.val(null); saveSelection($wrap); });
   }
 
   // Shared with the ADDRESS map picker below, which is a different feature and stays: it drops a pin
@@ -894,7 +922,7 @@
   // entire contract between them: hand over a chosen point and let the ordinary flow do the rest -
   // pick the courier's rate, switch its tab, set city and office, save, recalculate. Nothing about
   // what the order records lives in the other file.
-  // Left over from an in-flight applyPick's step 5 below, if one hasn't finished yet - kept here (not a
+  // Left over from an in-flight applyPick's step 4 below, if one hasn't finished yet - kept here (not a
   // closure-local) so a NEW applyPick can find and retire it instead of leaving it listening forever.
   var pendingOfficeApply = null;
 
@@ -917,9 +945,12 @@
         return v === want || v.indexOf(want + ':') === 0;
       });
       if ($radio.length) { $radio.prop('checked', true).trigger('change'); }
-      // 2. its delivery-type tab
-      setMethod($wrap, pick.method);
-      // 3. the city. Its change starts an async office reload, and pushSelection below triggers
+      // 2. the city - BEFORE the delivery-type tab, because setMethod() saves the whole block as it
+      //    stands. Written the other way round, it posted the block with the town still empty and a
+      //    second post with the town followed two milliseconds later (measured 2026-09-12); the
+      //    session kept whichever the server finished last, and when that was the first one the next
+      //    render had no town and a disabled office field. One save now, with everything in it.
+      //    The city's change starts an async office reload, and the save below triggers
       //    update_checkout, which re-renders this whole block - so the office cannot be written here
       //    and survive. It is set once the block is final, below.
       var $city = $wrap.find('.bgc-city');
@@ -929,12 +960,12 @@
       // silently vanished the moment the customer tried another courier.
       $wrap.find('.bgc-postcode').val(pick.postCode || '');
       $city.append(new Option(pick.cityLabel, pick.cityId, true, true)).val(String(pick.cityId)).trigger('change');
+      // 3. its delivery-type tab - which saves courier, town and type together and recalculates, the
+      //    same save a manual pick performs.
+      setMethod($wrap, pick.method);
 
-      // 4. the same save + recalculate a manual pick performs
-      pushSelection($wrap);
-
-      // 5. the office, on the re-rendered block. The radio's own `change`, setMethod(), the city's
-      //    `change` and the pushSelection above each start their OWN checkout recalculation, so several
+      // 4. the office, on the re-rendered block. The radio's own `change` and setMethod() each start
+      //    their OWN checkout recalculation, so several
       //    independent 'updated_checkout' events can land before the block is actually final. A `.one()`
       //    subscription is spent by whichever fires FIRST - often one of the earlier, not-yet-settled
       //    rounds - so the office write never happens; it only looked reliable on dev because WooCommerce
@@ -991,6 +1022,10 @@
         // Re-asserted with the city, for the same reason: this block was re-rendered by the server and
         // the hidden field came back with whatever the session had, which may be nothing yet.
         $w.find('.bgc-postcode').val(pick.postCode || '');
+        // A block rendered without the town was built with its office field disabled; the town is in
+        // it now, so the field follows (syncOffice) - or the office written next is one the customer
+        // can see and never open.
+        syncOffice($w); syncMapBtn($w);
         $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
         saveSelection($w);
       };
