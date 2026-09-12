@@ -127,6 +127,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.8 =
+* Fixed: **one courier with a sick API no longer makes every customer wait.** Prices are asked for one courier after another while the checkout loads, and a courier that stops answering was costing each shopper up to forty seconds of staring at a spinner - for a price the shop had already configured a fallback for. A courier that takes its time failing is now left alone for five minutes and the fallback price is shown at once. A courier that refuses instantly, or that answers, is unaffected.
 * Faster: **the weekly courier sync is seconds instead of minutes.** Every town and every office was saved to the database one at a time - 6,627 separate writes for Speedy alone, which took 18 seconds before any of the other couriers had started. They go in batches now: 36 writes, under a second, the same towns and the same offices.
 * Fixed: **an order is written once when its tracking is checked, not up to five times.** Each thing the courier told us was saved separately, and every save wakes every other plugin on the shop that watches orders. One answer from the courier is one save now.
 * Fixed: **a pickup point could stand alone on the map next to a bubble counting hundreds of others.** The pins are folded together on a grid, and a grid has edges: a point a few pixels from a thousand others could fall the other side of one and never join them. It joins the crowd it is standing in now.

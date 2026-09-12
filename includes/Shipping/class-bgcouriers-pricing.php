@@ -379,6 +379,58 @@ class BGCouriers_Pricing {
         return $q;
     }
 
+    /**
+     * How long a failed quote may take before the courier is left alone for a while.
+     *
+     * A quote POST waits 20 seconds and then RETRIES, so a courier whose API is hanging costs the
+     * customer forty seconds - each, one courier at a time, for as long as it hangs. The rates are
+     * calculated one after another in the request that renders the checkout, so with several couriers
+     * enabled a single sick API makes the whole shop look broken.
+     *
+     * The trigger is the TIME, not the kind of error, and that is deliberate. A courier that refuses in
+     * a hundred milliseconds - a destination it does not serve, a parcel it will not take - has cost
+     * nobody anything and must keep being asked; the real answer may be different for the next basket.
+     * A courier that takes twenty seconds to fail is the one worth not asking again, whatever its reason
+     * was, and matching on the reason would mean matching on a message that is now translated.
+     */
+    const SLOW_QUOTE_SECONDS = 5.0;
+
+    /** How long a slow courier is left alone. Long enough to matter, short enough that a recovery is noticed. */
+    const SLOW_QUOTE_REST = 300;
+
+    /** Is this courier being left alone after a slow failure? */
+    private static function resting(string $courier): bool {
+        return (bool) get_transient('bgcouriers_slow_' . $courier);
+    }
+
+    /**
+     * The threshold, filterable. A shop on a slow line to a courier may want to allow more; a shop that
+     * would rather never keep a customer waiting may want less. Also what lets the tests measure this
+     * without sleeping five seconds a case.
+     */
+    private static function slow_seconds(): float {
+        return (float) apply_filters('bgcouriers_slow_quote_seconds', self::SLOW_QUOTE_SECONDS);
+    }
+
+    /**
+     * A failure that took its time means the next customer is served the fallback price straight away.
+     *
+     * Only ever a fallback, never a missing rate: everything below the live call in quote() is a price
+     * this shop configured or measured, so the customer still sees a number and can still check out.
+     * That is the whole trade - a price that may be a few cents off, against a checkout that hangs.
+     */
+    private static function maybe_rest(string $courier, float $took): void {
+        if ($took < self::slow_seconds()) { return; }
+        set_transient('bgcouriers_slow_' . $courier, 1, self::SLOW_QUOTE_REST);
+        BGCouriers_Logger::debug('a slow quote - this courier is left alone for a while', [
+            'courier' => $courier, 'seconds' => round($took, 1), 'rest' => self::SLOW_QUOTE_REST]);
+    }
+
+    /** It answered. Ask it again next time, whatever it did last. */
+    private static function wake(string $courier): void {
+        if (self::resting($courier)) { delete_transient('bgcouriers_slow_' . $courier); }
+    }
+
     public static function quote(BGCouriers_Courier_Interface $courier, array $shipment): BGCouriers_Quote {
         $method  = (string) ($shipment['method'] ?? 'address');
         $mode    = BGCouriers_Settings::price_mode($courier->id(), $method);
@@ -386,9 +438,16 @@ class BGCouriers_Pricing {
         $default = (float) BGCouriers_Settings::method_config($courier->id(), $method)['price'];
         $abroad  = BGCouriers_Settings::is_intl((string) ($shipment['country'] ?? ''));
         // Live API for 'live' and 'fallback' (not 'fixed').
-        if ($mode !== 'fixed' && in_array('live_quote', $courier->capabilities(), true)) {
-            try { return $courier->quote($shipment); }
+        if ($mode !== 'fixed' && in_array('live_quote', $courier->capabilities(), true)
+            && ($abroad || !self::resting($courier->id()))) {
+            $started = microtime(true);
+            try {
+                $q = $courier->quote($shipment);
+                self::wake($courier->id());   // it answered; if it was resting, it is not any more
+                return $q;
+            }
             catch (\Exception $e) {
+                self::maybe_rest($courier->id(), microtime(true) - $started);
                 BGCouriers_Logger::debug('live quote failed -> fallback', ['courier' => $courier->id()]);
                 // Abroad there is nothing below this line to fall back TO: every one of those prices was
                 // set or measured for a domestic parcel. The failure is passed on and the caller offers
