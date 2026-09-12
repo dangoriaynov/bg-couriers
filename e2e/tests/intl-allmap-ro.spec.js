@@ -21,10 +21,11 @@ const { addAnyProductToCart, gotoCheckout, selectShippingMethod } = require('../
  * prepaid method every rate abroad is correctly refused - and the map button renders above the rates,
  * which means there would be no dialog to open at all. Put back the way it was FOUND afterwards.
  *
- * SKIPPED while international delivery is unfinished and switched off in the plugin: no shop is
- * offered a foreign rate at all, so there is nothing here to open. Turn it back on with
- * add_filter('bgcouriers_intl_enabled', '__return_true') on the site under test and drop the .skip -
- * the spec is kept as it is because it is the only watch on the foreign path.
+ * Delivery abroad is switched off for the whole plugin while the feature is unfinished, so this spec
+ * used to be test.skip'd - which left the entire foreign path unwatched. e2e/global-setup.js borrows
+ * the switch for the length of a run and puts it back, the same way this spec already borrows a
+ * payment gateway, so the path is watched again without the feature shipping on.
+ * See docs/international-shipping.md.
  * See docs/international-shipping.md.
  */
 
@@ -42,7 +43,7 @@ test.beforeAll(() => {
 });
 test.afterAll(() => { console.log(`[intl-map] bank transfer back to ${dev('gateway', 'bacs', prepaidWas)}`); });
 
-test.skip('combined map: abroad the towns are the DESTINATION\'s, not the shop\'s @allmap @speedy', async ({ page }) => {
+test('combined map: abroad the towns are the DESTINATION\'s, not the shop\'s @allmap @speedy', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
   await selectShippingMethod(page, 'speedy');

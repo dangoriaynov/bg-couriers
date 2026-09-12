@@ -33,10 +33,12 @@ const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMetho
  * spec asserts that too. Bank transfer is switched on for the run and off again after, because a
  * payment method left enabled changes what every other spec sees.
  *
- * SKIPPED while international delivery is unfinished and switched off in the plugin: no shop is
- * offered a foreign rate at all, so the country picker this spec drives is never rendered. Turn it
- * back on with add_filter('bgcouriers_intl_enabled', '__return_true') on the site under test and
- * drop the .skip. See docs/international-shipping.md.
+ * Delivery abroad is switched off for the whole plugin while the feature is unfinished, and
+ * e2e/global-setup.js borrows the switch for the length of a run and puts it back. So the only thing
+ * keeping this spec out of an ordinary run is the waybill it books: grepInvert on @books-real-waybill
+ * in playwright.config.js. A test.skip() on top of that gate meant BGC_REAL_WAYBILL=1 ran nothing at
+ * all, which is the one way this spec must never fail - silently.
+ * See docs/international-shipping.md.
  */
 
 const SH = path.join(__dirname, '..', 'dev-option.sh');
@@ -79,7 +81,7 @@ test.afterEach(async () => {
     .toMatch(/^(CANCELLED|NOTHING)/);
 });
 
-test.skip('speedy guest checkout to ROMANIA books a real waybill @speedy @books-real-waybill', async ({ page }) => {
+test('speedy guest checkout to ROMANIA books a real waybill @speedy @books-real-waybill', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
   await selectShippingMethod(page, 'speedy');

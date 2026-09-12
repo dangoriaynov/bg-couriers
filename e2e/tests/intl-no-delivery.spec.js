@@ -17,10 +17,11 @@ const { addAnyProductToCart, gotoCheckout, selectShippingMethod } = require('../
  * exists while the shop has no prepaid method - with one enabled the Romanian rate is offered and there
  * is nothing here to test.
  *
- * SKIPPED while international delivery is unfinished and switched off in the plugin: no shop is
- * offered a foreign rate at all, so the country picker this spec drives is never rendered. Turn it
- * back on with add_filter('bgcouriers_intl_enabled', '__return_true') on the site under test and
- * drop the .skip. See docs/international-shipping.md.
+ * Delivery abroad is switched off for the whole plugin while the feature is unfinished, so this spec
+ * used to be test.skip'd - which left the entire foreign path unwatched. e2e/global-setup.js borrows
+ * the switch for the length of a run and puts it back, the same way this spec already borrows a
+ * payment gateway, so the path is watched again without the feature shipping on.
+ * See docs/international-shipping.md.
  */
 
 const SH = path.join(__dirname, '..', 'dev-option.sh');
@@ -38,7 +39,7 @@ test.beforeAll(() => {
 });
 test.afterAll(() => { console.log(`[deadend] bank transfer back to ${dev('gateway', 'bacs', prepaidWas)}`); });
 
-test.skip('an undeliverable country says why, and takes the customer back @speedy', async ({ page }) => {
+test('an undeliverable country says why, and takes the customer back @speedy', async ({ page }) => {
   await addAnyProductToCart(page);
   await gotoCheckout(page);
   await selectShippingMethod(page, 'speedy');
