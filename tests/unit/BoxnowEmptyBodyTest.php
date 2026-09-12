@@ -43,13 +43,17 @@ final class BoxnowEmptyBodyTest extends TestCase {
         $this->assertTrue($this->courier(200, "\n")->cancel_label('6935113835'));
     }
 
-    /** A real refusal must still be reported as one. */
+    /** A real refusal must still be reported as one - and with BOX NOW's words now, not a bare false. */
     public function test_an_error_status_is_still_a_failure(): void {
-        $this->assertFalse($this->courier(400, '{"code":"P404","status":400}')->cancel_label('6935113835'));
+        $this->expectException(BGCouriers_Api_Exception::class);
+        $this->expectExceptionMessage('BOX NOW answered HTTP 400');
+        $this->courier(400, '{"code":"P404","status":400}')->cancel_label('6935113835');
     }
 
     /** And a 200 carrying something that is not JSON is still a broken response, not a success. */
     public function test_a_non_json_body_is_still_an_error(): void {
-        $this->assertFalse($this->courier(200, '<html>gateway</html>')->cancel_label('6935113835'));
+        $this->expectException(BGCouriers_Api_Exception::class);
+        $this->expectExceptionMessage('not valid JSON');
+        $this->courier(200, '<html>gateway</html>')->cancel_label('6935113835');
     }
 }

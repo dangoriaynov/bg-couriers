@@ -79,8 +79,17 @@ final class CancelIsIdempotentTest extends TestCase {
     }
 
     /** Anything else is still a failure - an active shipment must never be dropped silently. */
-    public function test_a_real_refusal_is_still_a_failure(): void {
-        $this->assertFalse($this->sameday_answering(500)->cancel_label('1ABC'));
-        $this->assertFalse($this->sameday_answering(400)->cancel_label('1ABC'));
+    /**
+     * A real refusal is a failure - and one that says why. The adapters answered false and the merchant
+     * read "The courier did not cancel the waybill" whatever the courier had said; the reason travels
+     * as an exception now, and the false answer is kept for a courier that gives no reason at all.
+     */
+    public function test_a_real_refusal_is_still_a_failure_and_says_why(): void {
+        Functions\when('__')->returnArg(1);
+        Functions\when('wp_remote_retrieve_body')->justReturn('{"error":{"code":400,"message":"AWB already picked up"}}');
+        foreach ([500, 400] as $code) {
+            try { $this->sameday_answering($code)->cancel_label('1ABC'); $this->fail('a refusal must throw'); }
+            catch (BGCouriers_Api_Exception $e) { $this->assertStringContainsString('HTTP ' . $code . ': AWB already picked up', $e->getMessage()); }
+        }
     }
 }

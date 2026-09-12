@@ -1235,9 +1235,22 @@ jQuery(function($){
         // switching a courier on, and this used to refuse to run until it was already on.
         if (!self::creds_present($courier)) { wp_send_json_error(['msg' => __('No credentials saved', 'bg-couriers')]); }
         $c = BGCouriers_Couriers::get($courier);
-        $ok = (bool) ($c && $c->check_credentials());
+        [$ok, $why] = self::credentials_answer($c);
         update_option('bgcouriers_' . $courier . '_validated', $ok ? 'yes' : 'no'); // drives the green/red credentials tint
-        wp_send_json_success(['ok' => $ok]);
+        wp_send_json_success(['ok' => $ok, 'msg' => $why]);
+    }
+
+    /**
+     * The courier's answer to its credentials: [accepted, why not]. A courier that refuses with a reason
+     * - a wrong password, or one that cannot be reached at all - throws it, and "Invalid credentials"
+     * was all the screen said for either; the reason is what the merchant reads now.
+     *
+     * @return array{0:bool,1:string}
+     */
+    private static function credentials_answer(?BGCouriers_Courier_Interface $c): array {
+        if (!$c) { return [false, '']; }
+        try { return [(bool) $c->check_credentials(), '']; }
+        catch (BGCouriers_Api_Exception $e) { return [false, esc_html($e->getMessage())]; }
     }
 
     /** Pre-enable check: return the courier's crucial-settings problems; a non-empty list blocks enabling. */
@@ -1260,9 +1273,9 @@ jQuery(function($){
          * what gets checked is exactly what is on screen. Entering the credentials and switching the
          * courier on is now the whole job.
          */
-        $checked = null;
+        $checked = null; $why = '';
         if (self::creds_present($courier) && get_option('bgcouriers_' . $courier . '_validated', 'yes') !== 'yes') {
-            $checked = (bool) $c->check_credentials();
+            [$checked, $why] = self::credentials_answer($c);
             update_option('bgcouriers_' . $courier . '_validated', $checked ? 'yes' : 'no');
         }
         $problems = $c->enable_problems();
@@ -1271,7 +1284,10 @@ jQuery(function($){
             // which would send the merchant to a button that fails in exactly the same way.
             foreach ($problems as $k => $pr) {
                 if (($pr['code'] ?? '') !== 'creds_unvalidated') { continue; }
-                $problems[$k]['msg'] = __('The courier refused these API credentials.', 'bg-couriers');
+                $problems[$k]['msg'] = $why !== ''
+                    /* translators: %s: what the courier answered */
+                    ? sprintf(__('The courier refused these API credentials: %s', 'bg-couriers'), $why)
+                    : __('The courier refused these API credentials.', 'bg-couriers');
                 $problems[$k]['fix'] = __('Check the username/key and password/secret with the courier, press ✕ beside each field to enter them again, then save.', 'bg-couriers');
             }
         }

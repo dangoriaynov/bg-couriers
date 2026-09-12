@@ -127,10 +127,11 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     public function check_credentials(): bool {
-        try {
-            $r = $this->post_json($this->base . '/location/site', $this->auth(['countryId' => self::BG_COUNTRY_ID, 'name' => 'Sofia']));
-            return !empty($r['sites']);
-        } catch (BGCouriers_Api_Exception $e) { return false; }
+        // Not caught here: "Invalid username or password" and "HTTP 503" are different things to tell a
+        // merchant, and both used to read "Invalid credentials".
+        $r = $this->post_json($this->base . '/location/site', $this->auth(['countryId' => self::BG_COUNTRY_ID, 'name' => 'Sofia']));
+        if (!empty($r['error'])) { self::refuse($r); }
+        return !empty($r['sites']);
     }
 
     /**
@@ -601,7 +602,8 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public function cancel_label(string $waybill): bool {
         // Speedy: POST /shipment/cancel {shipmentId, comment}; a 200 with no `error` means cancelled.
         $resp = $this->post_json($this->base . '/shipment/cancel', $this->auth(['shipmentId' => $waybill, 'comment' => 'Cancelled from WooCommerce']));
-        return empty($resp['error']);
+        if (!empty($resp['error'])) { self::refuse($resp); } // in Speedy's words - "already picked up" is worth reading
+        return true;
     }
 
     /**

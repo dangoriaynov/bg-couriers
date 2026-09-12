@@ -107,12 +107,8 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         // Match the official plugin's probe: GET a single known city (759 = Sofia). A 200 means the
         // key/secret are valid; get_json throws on any non-200 (auth failures are 401/403). The list
         // endpoints don't return a `success` flag, so we rely on the HTTP status, not a body field.
-        try {
-            $this->get_json('/v1/cities/759');
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
+        $this->get_json('/v1/cities/759'); // a 401 is thrown with Pigeon's words, for the screen
+        return true;
     }
 
     // ── Nomenclature ─────────────────────────────────────────────────────────
@@ -750,17 +746,16 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      * @return bool           True if the API reported success.
      */
     public function cancel_label(string $waybill): bool {
-        try {
-            $resp = $this->post_json(
-                $this->base . '/v1/shipments/' . rawurlencode($waybill) . '/cancel',
-                []
-            );
-            // post_json throws on non-2xx, so reaching here means the request succeeded. Treat any
-            // non-error response as success (matches the official plugin); only an explicit
-            // success:false marks a failure.
-            return !(isset($resp['success']) && $resp['success'] === false);
-        } catch (BGCouriers_Api_Exception $e) {
-            return false;
+        $resp = $this->post_json(
+            $this->base . '/v1/shipments/' . rawurlencode($waybill) . '/cancel',
+            []
+        );
+        // post_json throws on non-2xx (with Pigeon's words), so reaching here means the request
+        // succeeded. Treat any non-error response as success (matches the official plugin); only an
+        // explicit success:false marks a failure - and that carries Pigeon's message too.
+        if (isset($resp['success']) && $resp['success'] === false) {
+            throw new BGCouriers_Api_Exception(esc_html('Pigeon: ' . (trim((string) ($resp['message'] ?? '')) ?: __('the request was refused', 'bg-couriers'))));
         }
+        return true;
     }
 }

@@ -140,12 +140,12 @@ class BGCouriers_Order_Metabox {
                 . esc_html(sprintf(__('Check this shipment before handing it over: %s', 'bg-couriers'), $warn)) . '</div>';
         }
 
-        // Surface the last generation error (handle_generate stores it in a transient, then redirects here).
+        // Surface the last action's error (the admin-post handlers store the whole sentence - what
+        // failed, and the courier's words - in a transient, then redirect here).
         $err = get_transient('bgcouriers_admin_error_' . $id);
         if ($err) {
             delete_transient('bgcouriers_admin_error_' . $id);
-            /* translators: %s: error message from the courier */
-            $err_msg = esc_html(sprintf(__('Label generation failed: %s', 'bg-couriers'), $err));
+            $err_msg = esc_html((string) $err);
             $body .= '<div class="bgc-err" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;">'
                 . $err_msg . '</div>';
         }
