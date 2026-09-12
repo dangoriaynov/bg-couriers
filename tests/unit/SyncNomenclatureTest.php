@@ -13,8 +13,14 @@ if (!class_exists('BGCouriers_Fake_Wpdb')) {
         public $prefix = 'wp_';
         /** @var array<int,string> */
         public $queries = [];
+        /** Statements to refuse, by their position in queries[] - how a real $wpdb answers a bad write. */
+        public $refuse = [];
+        public $last_error = 'refused by the test';
         public function prepare($sql, ...$args) { return $sql . ' /* ' . implode('|', array_map('strval', $args)) . ' */'; }
-        public function query($sql) { $this->queries[] = $sql; return 0; }
+        public function query($sql) {
+            $this->queries[] = $sql;
+            return in_array(count($this->queries) - 1, $this->refuse, true) ? false : 0;
+        }
         public function get_results($sql, $mode = null) { return []; }
         public function get_row($sql, $mode = null) { return null; }
         public function get_var($sql) { return 0; }
@@ -247,8 +253,38 @@ final class SyncNomenclatureTest extends TestCase {
         $this->assertSame(2, $out['cities'], 'both countries land in the same table');
         $ins = array_values(array_filter($this->db->queries,
             static fn($q) => strpos($q, 'INSERT INTO wp_bgcouriers_cities') !== false));
+        // ONE statement, both rows: the rows are written a few hundred at a time now, so two countries
+        // in one sync share a statement rather than getting one each.
+        $this->assertCount(1, $ins, 'the rows go to the database in one statement, not one each');
         $this->assertStringContainsString('fake|BG|1|', $ins[0]);
-        $this->assertStringContainsString('fake|RO|6420001|', $ins[1]);
+        $this->assertStringContainsString('fake|RO|6420001|', $ins[0]);
+    }
+
+    /**
+     * A refused write must not be followed by a delete.
+     *
+     * Rows go in batches now, so one statement the database will not take loses every row in it - and
+     * the prune deletes exactly what this run did not write. Together those would empty a courier's
+     * town list on a single bad packet, and the checkout has nothing to offer until the next weekly
+     * run. So a table that did not take everything offered is simply left as it was.
+     */
+    public function test_a_refused_write_leaves_the_table_unpruned(): void {
+        $c = new SyncFakeCourier();
+        $c->cities  = [['city_id' => 1, 'name' => 'София']];
+        $c->offices = [['office_id' => 7, 'city_id' => 1, 'type' => 'office', 'name' => 'Офис']];
+        $this->db->refuse = [0];   // the cities INSERT is the first statement a sync makes
+
+        $out = BGCouriers_Sync::run($c);
+
+        $this->assertSame(0, $out['cities'], 'a refused batch wrote nothing');
+        $this->assertSame(1, $out['offices'], 'the other table was written normally');
+        $dels = array_values(array_filter($this->db->queries,
+            static fn($q) => strpos($q, 'DELETE FROM wp_bgcouriers_cities') !== false));
+        $this->assertSame([], $dels, 'nothing may be deleted from a table whose write was short');
+        // The table that DID take its rows is still pruned - one bad write must not freeze the other.
+        $this->assertNotEmpty(array_values(array_filter($this->db->queries,
+            static fn($q) => strpos($q, 'DELETE FROM wp_bgcouriers_offices') !== false)),
+            'the office table wrote everything offered, so it is pruned as usual');
     }
 
     /**

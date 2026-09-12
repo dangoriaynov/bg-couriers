@@ -68,4 +68,50 @@ final class NomenclatureRepoTest extends WP_UnitTestCase {
         $this->assertNotNull(BGCouriers_Nomenclature::city_by_id('speedy', 6420001), 'Romania was never refreshed');
         $this->assertSame(2, BGCouriers_Nomenclature::count('speedy'));
     }
+
+    /**
+     * More rows than fit in one statement.
+     *
+     * Rows are written a few hundred at a time since 2026-09-12 - Speedy's 6,625 towns and offices cost
+     * 6,627 round trips and 18.00 seconds before, and 36 and 0.90 after. The thing a batch can get
+     * wrong that a row-at-a-time loop could not is the seam: a chunk boundary that drops a row, or an
+     * argument list that slips by one and files every town under its neighbour's name. So this writes
+     * more than two chunks' worth and checks the rows either side of each boundary by name, not just
+     * the count.
+     */
+    public function test_more_rows_than_one_batch_all_arrive_intact(): void {
+        $n = 450;   // two full chunks and a short one
+        $rows = [];
+        for ($i = 1; $i <= $n; $i++) {
+            $rows[] = ['city_id' => 7000 + $i, 'name' => 'Град ' . $i, 'name_lat' => 'Grad ' . $i,
+                       'post_code' => str_pad((string) $i, 4, '0', STR_PAD_LEFT), 'region' => 'R' . $i];
+        }
+        $written = BGCouriers_Nomenclature::upsert_cities('pigeon', $rows, 'batch1');
+        $this->assertSame($n, $written, 'every row offered was written');
+        $this->assertSame($n, BGCouriers_Nomenclature::count('pigeon'));
+        // The seams: last of chunk 1, first of chunk 2, last of chunk 2, first of chunk 3, and the end.
+        foreach ([1, 200, 201, 400, 401, $n] as $i) {
+            $row = BGCouriers_Nomenclature::city_by_id('pigeon', 7000 + $i);
+            $this->assertNotNull($row, "city {$i} is missing");
+            $this->assertSame('Град ' . $i, $row['name'], "city {$i} carries another row's name");
+            $this->assertSame(str_pad((string) $i, 4, '0', STR_PAD_LEFT), $row['post_code'],
+                "city {$i} carries another row's post code");
+        }
+    }
+
+    /** A second pass over the same keys updates in place - the duplicate-key branch, inside a batch. */
+    public function test_a_second_pass_updates_rather_than_duplicates(): void {
+        $rows = [];
+        for ($i = 1; $i <= 250; $i++) { $rows[] = ['city_id' => 8000 + $i, 'name' => 'Old ' . $i, 'post_code' => '1000']; }
+        BGCouriers_Nomenclature::upsert_cities('sameday', $rows, 'pass1');
+        foreach ($rows as $k => $r) { $rows[$k]['name'] = 'New ' . ($k + 1); }
+        BGCouriers_Nomenclature::upsert_cities('sameday', $rows, 'pass2');
+
+        $this->assertSame(250, BGCouriers_Nomenclature::count('sameday'), 'the same keys, not 500 rows');
+        $this->assertSame('New 1',   BGCouriers_Nomenclature::city_by_id('sameday', 8001)['name']);
+        $this->assertSame('New 201', BGCouriers_Nomenclature::city_by_id('sameday', 8201)['name'], 'past the chunk boundary too');
+        // And the run stamp moved with them, which is what keeps the prune from deleting them.
+        $this->assertSame(0, BGCouriers_Nomenclature::prune('sameday', 'pass2'), 'nothing is stale after a full second pass');
+        $this->assertSame(250, BGCouriers_Nomenclature::count('sameday'));
+    }
 }
