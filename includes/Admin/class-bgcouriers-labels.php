@@ -96,10 +96,13 @@ class BGCouriers_Labels {
         $ts    = 0;
         $orddd = (int) $order->get_meta('_orddd_timestamp');
         if ($orddd > 0) {
-            $tz   = wp_timezone();
-            $day  = (new \DateTimeImmutable('@' . $orddd))->setTimezone($tz)->format('Y-m-d');
+            // The stamp is a midnight - a UTC one on the shop this was measured on (1790899200 for
+            // "2 October", 00:00:00 UTC, which is 03:00 in Sofia), and whichever midnight it is, the
+            // day it names is the UTC day it is nearest to: read in the site's zone it would name the
+            // day before anywhere west of Greenwich. Then the hour is set in the site's zone.
+            $day  = gmdate('Y-m-d', (int) round($orddd / DAY_IN_SECONDS) * DAY_IN_SECONDS);
             $hour = max(0, min(23, (int) apply_filters('bgcouriers_dispatch_hour', self::DISPATCH_HOUR)));
-            $at   = date_create_immutable($day . ' ' . sprintf('%02d:00:00', $hour), $tz);
+            $at   = date_create_immutable($day . ' ' . sprintf('%02d:00:00', $hour), wp_timezone());
             if ($at) { $ts = $at->getTimestamp(); }
         }
         return max(0, (int) apply_filters('bgcouriers_dispatch_time', $ts, $order));
