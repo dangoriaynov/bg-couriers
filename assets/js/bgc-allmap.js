@@ -14,7 +14,11 @@
   var STORE = 'bgcouriers_map_pick';
   // A PLACE, not an id: city ids belong to the courier that issued them, so the dialog remembers what
   // the place is called and lets the server resolve it per courier.
-  var state = { cityName: '', cityCode: '', cityLabel: '' };
+  // `citySeed` is how the town got here: 'picked' (the customer named it in this dialog),
+  // 'checkout' (it is the town their courier block is already set to) or 'stored' (remembered
+  // from an earlier visit to this shop, in this browser). Only the last of those is a guess, and
+  // render() is allowed to take a guess back - see there.
+  var state = { cityName: '', cityCode: '', cityLabel: '', citySeed: '' };
   // Where distances are measured FROM. Set by the locate button or by dragging the pin, remembered
   // with the place. Never sent anywhere: every distance below is worked out in the browser, over
   // points it already has, so the customer's position does not leave the page.
@@ -278,6 +282,7 @@
       if (v && v.cityName) {
         state.cityName = v.cityName; state.cityCode = v.cityCode || '';
         state.cityLabel = v.cityLabel || v.cityName;
+        state.citySeed = 'stored';
       }
       // The POSITION is deliberately not restored - see save(). A version that did paint the pin and
       // every distance on a freshly loaded page, before the browser had asked anything, which is
@@ -448,7 +453,7 @@
     }
     /** Back to the one question this dialog starts with: no place, so nothing to plot. */
     function clearCity() {
-      state.cityName = state.cityCode = state.cityLabel = '';
+      state.cityName = state.cityCode = state.cityLabel = state.citySeed = '';
       save();
       $input.val('').focus();
       hideRes(); syncClear(); busyCity(false);
@@ -468,6 +473,7 @@
     $dlg.on('click', '.bgc-allmap-cityclear', function (e) { e.preventDefault(); clearCity(); });
     function pickCity(name, code, label) {
       state.cityName = name; state.cityCode = code; state.cityLabel = label;
+      state.citySeed = 'picked';
       $input.val(label);
       hideRes(); save(); syncClear();
       // Choosing a place IS the instruction to show it. A button afterwards asked the customer to
@@ -512,6 +518,7 @@
       if (el && el.scrollIntoView) { el.scrollIntoView({ block: 'nearest' }); }
     }
     pickCityFn = pickCity;
+    clearCityFn = clearCity;
     /**
      * The places on offer for `term`, which may be empty - an empty term is the OPENED DROPDOWN, and
      * both paths answer it with the first towns on the list rather than with nothing.
@@ -965,6 +972,7 @@
     state.cityName  = m ? m[1] : label;
     state.cityCode  = m ? m[2] : String($w.find('.bgc-postcode').val() || '');
     state.cityLabel = label;
+    state.citySeed  = 'checkout';
   }
 
   /**
@@ -1083,7 +1091,24 @@
       + '</div>';
   }
 
+  /** How many pickup points a server answer actually holds, across every courier in it. */
+  function countPoints(data) {
+    var n = 0;
+    Object.keys(data || {}).forEach(function (cid) { n += (((data[cid] || {}).offices) || []).length; });
+    return n;
+  }
+
   function render(data) {
+    // A REMEMBERED town with no pickup point left in it is not a courtesy, it is a dead end: the
+    // dialog opens on an empty list and a map of the whole region, under the name of a place the
+    // customer does not remember naming. The memory has no expiry and survives everything - a town the
+    // couriers stop listing, a shop that stops synchronising one, and every town of a country the shop
+    // used to deliver to and no longer does (reported from a checkout that opened on ANINA (325100),
+    // in Romania, on a browser that had looked at it once while international delivery was still on).
+    // So it is dropped and the dialog asks its one question again. Only a remembered town: one the
+    // customer has just named, or the one their courier block is already set to, is theirs and stays
+    // on screen with whatever it has - including nothing.
+    if (state.citySeed === 'stored' && !countPoints(data) && clearCityFn) { clearCityFn(); return; }
     // Back to the map before anything is plotted. fitBounds() on a container that is display:none
     // measures zero and leaves the map centred on a rectangle that does not exist - and unlike the
     // container's SIZE, which invalidateSize() repairs on the way in, that bad centre survives the
@@ -1327,7 +1352,7 @@
    * Where the customer is, and the few points nearest them - not the whole city again. Same behaviour
    * as the per-courier picker so the two dialogs answer this the same way.
    */
-  var meMarker = null, pickCityFn = null;
+  var meMarker = null, pickCityFn = null, clearCityFn = null;
 
   /**
    * No town chosen yet, and the customer pressed "find me": answer the question they actually asked.

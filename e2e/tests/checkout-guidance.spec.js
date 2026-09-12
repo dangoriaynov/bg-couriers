@@ -12,6 +12,9 @@ const { addAnyProductToCart, gotoCheckout, dismissStoreBanner, fillGuestBilling,
  *    the field is painted red - and stays red across the re-render WooCommerce does right after.
  * 3. The address picker opens on the town the customer named, not on the whole country, when the
  *    browser gives no position (a headless one never does - exactly the path this covers).
+ * 4. The map remembers the last town this browser looked at. A remembered town with no pickup point
+ *    left in it is dropped instead of shown - the memory has no expiry, so it outlives a town the
+ *    couriers stop listing and every town of a country the shop has stopped delivering to.
  *
  * Places no order: the one submit is made without a pickup point, which is what is being tested.
  */
@@ -206,5 +209,44 @@ test.describe('checkout guidance @guidance', () => {
     expect(Math.abs(centre.lat - 42.15)).toBeLessThan(0.08);
     expect(Math.abs(centre.lng - 24.75)).toBeLessThan(0.12);
     await page.locator('.bgc-map-close').click();
+  });
+  test('a remembered town with nothing left in it is dropped, not shown', async ({ context, page }) => {
+    // A browser that looked at a Romanian town while international delivery was still switched on.
+    // Nothing on this checkout is chosen, and the customer never named this place in this session.
+    await context.addInitScript(() => {
+      try {
+        window.localStorage.setItem('bgcouriers_map_pick',
+          JSON.stringify({ cityName: 'ANINA', cityCode: '325100', cityLabel: 'ANINA (325100)' }));
+      } catch (e) { /* private mode - the test below then passes trivially */ }
+    });
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await dismissStoreBanner(page);
+    await page.locator('.bgc-allmap-btn').click();
+    const city = page.locator('.bgc-allmap-cityinput');
+    await expect(city).toBeVisible({ timeout: 15000 });
+    // The answer arrives over admin-ajax; give it the same room the dialog does.
+    await expect(city).toHaveValue('', { timeout: 30000 });
+    await expect(page.locator('.bgc-allmap-item')).toHaveCount(0);
+    const stored = await page.evaluate(() => {
+      try { return JSON.parse(window.localStorage.getItem('bgcouriers_map_pick') || '{}').cityName || ''; }
+      catch (e) { return ''; }
+    });
+    expect(stored).toBe('');
+  });
+
+  test('a remembered town that is still served opens on it', async ({ context, page }) => {
+    await context.addInitScript(() => {
+      try {
+        window.localStorage.setItem('bgcouriers_map_pick',
+          JSON.stringify({ cityName: 'СОФИЯ', cityCode: '1000', cityLabel: 'СОФИЯ (1000)' }));
+      } catch (e) {}
+    });
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await dismissStoreBanner(page);
+    await page.locator('.bgc-allmap-btn').click();
+    await expect(page.locator('.bgc-allmap-cityinput')).toHaveValue('СОФИЯ (1000)', { timeout: 15000 });
+    await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 30000 });
   });
 });
