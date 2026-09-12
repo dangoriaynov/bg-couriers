@@ -62,6 +62,22 @@ final class BoxnowParsersTest extends TestCase {
         $this->assertNotSame($by['Варна']['city_id'], $by['София']['city_id']);
     }
 
+    /** Asked for one town, only that town's lockers come back; asked for none, every locker does. */
+    public function test_a_town_gets_its_own_lockers_only(): void {
+        $fx = $this->fx('destinations.json');
+        $co = new class($fx) extends BGCouriers_Boxnow {
+            private $fx;
+            public function __construct(array $fx) { parent::__construct([]); $this->fx = $fx; }
+            protected function get_json(string $path, array $query = []): array { return $this->fx; }
+        };
+        $this->assertCount(4, $co->fetch_offices(0), 'the sync takes every locker');
+        $sofia = $co->fetch_offices(BGCouriers_Boxnow::town_id('София'));
+        $this->assertCount(3, $sofia, 'Sofia has three');
+        foreach ($sofia as $o) { $this->assertSame('София', $o['town']); }
+        $this->assertCount(1, $co->fetch_offices(BGCouriers_Boxnow::town_id('Варна')));
+        $this->assertSame([], $co->fetch_offices(BGCouriers_Boxnow::town_id('Ямбол')), 'a town with no locker: none, not all');
+    }
+
     /** A numeric id survives the int cast the offices table needs. Regression guard for that cast. */
     public function test_every_locker_keeps_a_usable_office_id(): void {
         foreach (BGCouriers_Boxnow::parse_destinations($this->fx('destinations.json')) as $row) {

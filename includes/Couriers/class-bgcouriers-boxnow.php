@@ -163,9 +163,16 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return self::towns_of(self::parse_destinations($this->destinations()));
     }
 
-    /** All BoxNow APM lockers, each with the id of its town (see fetch_cities). */
+    /**
+     * BoxNow APM lockers, each with the id of its town (see fetch_cities): every locker for the sync
+     * (city_id 0), or one town's when the checkout asks for a town - BOX NOW has no per-town query, so
+     * the whole list is read and the town's lockers picked out of it. Without the pick, a customer who
+     * chose Бургас was offered all 930 lockers in the country, Sofia first (measured 2026-09-13).
+     */
     public function fetch_offices(int $city_id = 0): array {
-        return self::parse_destinations($this->destinations());
+        $rows = self::parse_destinations($this->destinations());
+        if ($city_id <= 0) { return $rows; }
+        return array_values(array_filter($rows, static function ($o) use ($city_id) { return (int) ($o['city_id'] ?? 0) === $city_id; }));
     }
 
     /**
