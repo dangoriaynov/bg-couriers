@@ -67,14 +67,24 @@ class BGCouriers_Ajax {
      *  - the map's own lookup answered {}, and a town with no points in it is now a town the map drops -
      *    so a refused request could throw away the place the customer had chosen.
      *
-     * So the answer carries `bgc_busy`, the caller leaves its cache alone, and the next attempt asks
-     * again. The shape around it is kept so nothing that reads the normal fields breaks on it.
+     * So a refusal is an HTTP 429 and not a 200 with something in it. That matters more than the body:
+     * these five endpoints do not share a shape - offices and streets answer with a LIST, city_avail,
+     * the map lookup and the geocoder with an OBJECT - so there is no one "empty answer" that every
+     * caller could be handed safely. A flag inside a 200 was worse than the empty hand it replaced: the
+     * office dropdown caches what it is given and then calls .filter on it, and the street dropdown
+     * calls .map, so an object arriving where a list was expected takes the whole field out with a
+     * TypeError rather than merely leaving it empty.
      *
-     * @param array $shape What this endpoint normally answers with, so a reader that ignores the flag
-     *                     still gets a well-formed empty answer.
+     * Every caller here is jQuery, and jQuery routes a non-2xx away from the success handler - so
+     * `$.get(..., fn)`, `.done(fn)` and select2's transport all simply do not run, which is precisely
+     * "do not cache this, ask again next time". 429 is also the honest code: the request was fine, the
+     * shop was not willing to serve it this second.
+     *
+     * The body keeps `bgc_busy` so a refusal is recognisable in the network tab and in a log, and so a
+     * caller that wants to tell "too many requests" apart from a real error has something to read.
      */
-    private static function busy(array $shape = []): void {
-        wp_send_json(array_merge($shape, ['bgc_busy' => true]));
+    private static function busy(): void {
+        wp_send_json_error(['bgc_busy' => true], 429);
     }
 
     /**
@@ -179,7 +189,7 @@ class BGCouriers_Ajax {
 
     /** Which office types a city has (so the checkout can grey out a delivery option the city lacks). */
     public function city_avail(): void {
-        if (!self::rate_ok()) { self::busy(['office' => false, 'automat' => false]); }
+        if (!self::rate_ok()) { self::busy(); }
         $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
         if ($city <= 0) { wp_send_json(['office' => false, 'automat' => false]); }
@@ -353,7 +363,7 @@ class BGCouriers_Ajax {
      * office in a town costs the same and quoting each would be hundreds of calls for one answer.
      */
     public function allmap_prices(): void {
-        if (!self::rate_ok()) { wp_send_json_error(['bgc_busy' => true]); }
+        if (!self::rate_ok()) { self::busy(); }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only price lookup, no state change
         $cid  = isset($_GET['courier']) ? sanitize_key(wp_unslash($_GET['courier'])) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only price lookup, no state change

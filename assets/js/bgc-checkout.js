@@ -10,6 +10,18 @@
     for (var i = 0; i < l.length; i++) { out += (BGCOURIERS_TR[l[i]] !== undefined ? BGCOURIERS_TR[l[i]] : l[i]); }
     return out;
   }
+  /* A lookup answers with a list, and everything here treats what comes back as one - .map, .filter,
+     .forEach. So one place decides whether it IS one, rather than every caller writing `rows || []`,
+     which keeps null out and lets everything else through.
+
+     What comes through otherwise is not hypothetical: admin-ajax answers a bare 0 when the action is
+     gone from under an open page, which a plugin update does, and a login wall answers HTML. Either is
+     truthy, so `|| []` hands it straight on and the field dies with "rows.map is not a function" - the
+     whole dropdown, not just this one answer. Nothing to show is the right outcome; a dead field is not.
+     (A refused request never reaches here at all: the limiter answers 429 and jQuery skips the success
+     handler. This is for the answers no status code warns about.) */
+  function bgcList(rows) { return Array.isArray(rows) ? rows : []; }
+
   // True if `text` matches an already-lowercased `term` directly (Cyrillic) or via its Latin transliteration.
   function bgcTextMatch(text, term) {
     if (!term) { return true; }
@@ -172,11 +184,12 @@
       if (local) { availCache[key] = local; }
       else {
         $.get(BGCOURIERS.ajax, { action: 'bgcouriers_city_avail', courier: courier($wrap), country: country($wrap), city_id: city }, function (res) {
-          // The shop was too busy to ask the courier. That is NOT "this town has neither" - and it was
-          // being cached as exactly that, which greyed out both delivery options for the rest of the
-          // page and told the customer their town is not served when it is. Leave the tabs alone and
-          // ask again next time something moves.
-          if (res && res.bgc_busy) { return; }
+          // Only a real answer is worth remembering. A refusal is an HTTP 429 and never reaches
+          // here at all; what does reach here is admin-ajax's bare "0" when the action is not
+          // registered - a plugin update on an open page - and reading .office off that gives false,
+          // which is NOT "this town has neither". Cached, it greys out both delivery options for the
+          // rest of the page and tells the customer their town is not served when it is.
+          if (!res || typeof res !== 'object') { return; }
           availCache[key] = { office: !!(res && res.office), automat: !!(res && res.automat) };
           applyAvail($wrap);
         });
@@ -244,8 +257,8 @@
           return noAbortTransport(params, success, failure); // original AJAX path, untouched
         },
         data: function (params) { return { action: 'bgcouriers_search_cities', courier: courier($wrap), country: country($wrap), term: params.term || '' }; },
-        processResults: function (rows) {
-          var counts = {};
+        processResults: function (raw) {
+          var rows = bgcList(raw), counts = {};
           rows.forEach(function (r) { counts[r.name] = (counts[r.name] || 0) + 1; });
           return { results: rows.map(function (r) {
             // Postcode in the label: lets people search/pick by it and tells apart same-named villages.
@@ -307,10 +320,21 @@
     } catch (e) { /* private mode / bad JSON - fall through to a fetch */ }
     return undefined;
   }
+  /* Only a real list is remembered, and everything that caches an office list comes through here - which
+     is why the check lives here and not at the four call sites, one of which never had one.
+
+     What is being kept out is an answer that is not the list it stands in for: the shop refusing a burst
+     (HTTP 429, so nothing should reach here at all), admin-ajax's bare "0" when the action is gone from
+     under an open page, a login wall answering HTML. Stored, any of those is worse than a failed lookup:
+     it goes into sessionStorage, so it outlives the page, and cacheGet then answers from it forever -
+     the town stays broken after the shop is perfectly willing to answer for it. Returns what is now
+     cached, or nothing at all, so a caller can tell the difference. */
   function cacheSet(key, rows) {
-    officeCache[key] = rows || [];
-    try { window.sessionStorage && sessionStorage.setItem(OFFICE_STORE + key, JSON.stringify(officeCache[key])); }
+    if (!Array.isArray(rows)) { return undefined; }
+    officeCache[key] = rows;
+    try { window.sessionStorage && sessionStorage.setItem(OFFICE_STORE + key, JSON.stringify(rows)); }
     catch (e) { /* quota or private mode - the in-memory cache still does its job */ }
+    return rows;
   }
   function idle(fn) {
     if (window.requestIdleCallback) { requestIdleCallback(fn, { timeout: 2000 }); } else { setTimeout(fn, 400); }
@@ -327,7 +351,7 @@
     var key = officeKey($wrap, city, m);
     if (cacheGet(key) !== undefined) { return; }
     $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: courier($wrap), country: country($wrap), city_id: city, type: m, all: 1 },
-      function (rows) { if (rows && rows.bgc_busy) { return; } cacheSet(key, rows); });
+      function (rows) { cacheSet(key, rows); });
   }
 
   /**
@@ -367,7 +391,7 @@
       if (!queue.length) { return; }
       var c = queue.shift();
       $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: c, country: ctry, city_id: city, type: m, all: 1 })
-        .done(function (rows) { if (rows && rows.bgc_busy) { return; } cacheSet(c + ':' + ctry + ':' + city + ':' + m, rows); })
+        .done(function (rows) { cacheSet(c + ':' + ctry + ':' + city + ':' + m, rows); })
         .always(function () { idle(next); });
     })();
   }
@@ -410,7 +434,7 @@
           var hit = cacheGet(key);
           if (hit !== undefined) { done(hit); return { abort: function () {} }; } // cached: no request at all
           var req = $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: d.courier, country: d.country, city_id: d.city_id, type: d.type, all: 1 });
-          req.done(function (rows) { cacheSet(key, rows); done(officeCache[key]); });
+          req.done(function (rows) { done(cacheSet(key, rows) || []); });
           req.fail(function (x, status) { if (status !== 'abort') { failure(); } });
           return req;
         },
@@ -418,7 +442,7 @@
           return { courier: courier($wrap), country: country($wrap), city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
         },
         processResults: function (rows) {
-          return { results: rows.map(function (o) { return { id: o.office_id, text: o.name + ' - ' + o.address }; }) };
+          return { results: bgcList(rows).map(function (o) { return { id: o.office_id, text: o.name + ' - ' + o.address }; }) };
         }
       }
     });
@@ -553,7 +577,7 @@
       ajax: {
         url: BGCOURIERS.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
         data: function (params) { return { action: 'bgcouriers_streets', courier: courier($wrap), country: country($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
-        processResults: function (rows) { return { results: rows.map(function (s) { return { id: s.name, text: s.label || s.name }; }) }; }
+        processResults: function (rows) { return { results: bgcList(rows).map(function (s) { return { id: s.name, text: s.label || s.name }; }) }; }
       },
       createTag: function (params) {
         if (listOnly) { return null; }   // this courier delivers only to streets it lists
