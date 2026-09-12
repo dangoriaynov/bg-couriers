@@ -185,6 +185,9 @@ class BGCouriers_Sync {
         foreach (array_merge([BGCouriers_Settings::home_country()], $intl) as $iso) {
             delete_transient('bgcouriers_cityidx_' . $id . '_' . strtolower($iso));
         }
+        // And the per-town office lists the checkout caches for six hours: they are keyed by this stamp
+        // (BGCouriers_Ajax::city_offices), so a new one retires all of them at once.
+        update_option('bgcouriers_nomgen_' . $id, $run);
 
         $out['rates'] = self::seed_rates($courier, $rate_failure); // reference price per method, first city
         if ($out['rates'] === 0 && $rate_failure !== null && !isset($out['warning'])) { $out['warning'] = $rate_failure; }

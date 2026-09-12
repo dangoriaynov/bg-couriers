@@ -107,6 +107,7 @@ final class SyncNomenclatureTest extends TestCase {
         Functions\when('__')->returnArg(1);
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
         Functions\when('delete_transient')->justReturn(true);
+        Functions\when('update_option')->justReturn(true); // the sync writes its nomenclature generation
         // A shop that has switched no second country on - which is every shop until someone does.
         Functions\when('get_option')->alias(static function ($name, $default = '') { return $default; });
         $GLOBALS['wpdb'] = $this->db = new BGCouriers_Fake_Wpdb();

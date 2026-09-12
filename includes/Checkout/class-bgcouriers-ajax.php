@@ -233,12 +233,22 @@ class BGCouriers_Ajax {
      * empty list rather than an error, which reads exactly like a town with no offices in it. Empty of
      * offices is a legitimate answer for a small place, so nothing downstream could tell the two apart.
      */
+    /** The stamp of the courier's last nomenclature sync - '' before the first; see city_offices(). */
+    public static function nomenclature_generation(string $courier_id): string {
+        return (string) get_option('bgcouriers_nomgen_' . $courier_id, '');
+    }
+
     public static function city_offices(string $courier_id, int $city, string $type, string $term = '', int $limit = 5, string $country = ''): array {
         $rows = [];
         if ($city > 0) {
             // Cache the (live) office list per courier+city - offices change rarely, so this turns the first
             // fetch into an instant response for everyone after, killing the checkout's biggest round-trip.
-            $tkey   = 'bgcouriers_off_' . $courier_id . '_' . $country . '_' . $city;
+            // The key carries the courier's nomenclature generation (BGCouriers_Sync writes a new one on
+            // every run), so a sync retires every town's cached list at once. Transients cannot be
+            // deleted by prefix, and on a shop with an object cache they are not even in the database;
+            // measured on dev on 2026-09-13, a town kept answering with the list a previous build had
+            // cached for it for the rest of the six hours, sync or no sync.
+            $tkey   = 'bgcouriers_off_' . $courier_id . '_' . $country . '_' . $city . '_' . self::nomenclature_generation($courier_id);
             $cached = get_transient($tkey);
             if (is_array($cached)) {
                 $rows = $cached;
