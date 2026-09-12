@@ -706,10 +706,25 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
      *   cod          => rows in "Cash on delivery", above the ППП row
      *   ppp          => ['default' => 'yes'|'no', 'desc' => '...'] for the ППП row itself
      */
+    /**
+     * The placeholder for a box that is drawn empty because its value is a secret.
+     *
+     * Dots when something IS stored - the same dots bgc-settings-admin.js puts there once it locks the
+     * field - and nothing when the field has never been filled, where "leave blank to keep" would be a
+     * lie about a box with nothing behind it.
+     *
+     * It is a TOP-LEVEL key, not one inside custom_attributes: WooCommerce prints its own
+     * placeholder="" before the custom attributes, and a browser keeps the first of two identical
+     * attribute names - so the declaration's placeholder had never once reached the screen. Nobody saw
+     * it, because on the credential pair the lock script overwrote it a moment later anyway.
+     */
+    private static function secret_placeholder(string $option): string {
+        return ((string) get_option($option, '')) !== '' ? '••••••••' : '';
+    }
+
     private function courier_section(string $id, string $label, array $parts): array {
         $p    = 'bgcouriers_' . $id . '_';
         $cur  = get_woocommerce_currency();
-        $keep = ['placeholder' => __('leave blank to keep', 'bg-couriers')];
 
         $account = [
             ['type' => 'title', 'id' => 'bgcouriers_' . $id, 'title' => ''],
@@ -724,7 +739,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         // one field printed the shop's API username into the page.
         foreach ((array) ($parts['creds'] ?? []) as $c) {
             $row = ['type' => $c[1], 'id' => $p . $c[0], 'title' => $c[2],
-                    'value' => '', 'custom_attributes' => $keep, 'autoload' => false];
+                    'value' => '', 'placeholder' => self::secret_placeholder($p . $c[0]), 'autoload' => false];
             if (isset($c[3])) { $row['desc'] = $c[3]; }
             $account[] = $row;
         }
@@ -1054,9 +1069,15 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     'desc' => __('On = the live BOX NOW production account. Off = the stage/test API (api-stage.boxnow.bg) with test credentials.', 'bg-couriers'),
                     'default' => 'yes', 'autoload' => false],
                 ['type' => 'text', 'id' => 'bgcouriers_boxnow_partner_id', 'title' => __('Partner ID', 'bg-couriers'), 'autoload' => false],
+                // Drawn empty like every other credential, and kept when saved blank (sanitize_keep, wired
+                // in BGCouriers_Settings). It is the key the webhook's signature is checked with, and it
+                // was the one secret on these screens that printed its stored value into the page.
                 ['type' => 'text', 'id' => 'bgcouriers_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
+                    'value' => '', 'placeholder' => self::secret_placeholder('bgcouriers_boxnow_webhook_secret'),
                     'desc' => __('You receive it after you register this webhook URL in your BOX NOW account:', 'bg-couriers')
-                        . '<br><code>' . esc_html(BGCouriers_Boxnow_Webhook::url()) . '</code>', 'autoload' => false],
+                        . '<br><code>' . esc_html(BGCouriers_Boxnow_Webhook::url()) . '</code><br>'
+                        . esc_html__('Stored but never shown again. Leave it empty to keep the one you have.', 'bg-couriers'),
+                    'autoload' => false],
             ],
             'delivery' => [
                 ['type' => 'text', 'id' => 'bgcouriers_boxnow_warehouse_id', 'title' => __('Pickup location ID', 'bg-couriers'),

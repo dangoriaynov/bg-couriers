@@ -838,9 +838,18 @@ class BGCouriers_Checkout {
         }
         // City/office couriers (Speedy, Econt, Pigeon).
         $method = (string) $s->get('bgcouriers_method', '');
-        if ((int) $s->get('bgcouriers_site_id', 0) <= 0) {
+        $site   = (int) $s->get('bgcouriers_site_id', 0);
+        $office = (int) $s->get('bgcouriers_office_id', 0);
+        if ($site <= 0) {
             /* translators: %s: courier name */
             $errors->add('bgc_city', sprintf(__('Please choose a city for %s delivery.', 'bg-couriers'), $label), $at('city'));
+        } elseif (!self::city_is_listed($courier, $site)) {
+            // The id reaches the session straight off the request (set_selection), and until now
+            // nothing asked whether it named a real place. It does not have to be malice: a tab left
+            // open while the nomenclature resynced is enough. The order used to be accepted with an
+            // empty shipping address and refused by the courier hours later.
+            /* translators: %s: courier name */
+            $errors->add('bgc_city', sprintf(__('That city is not on %s list any more. Please choose it again.', 'bg-couriers'), $label), $at('city'));
         }
         if ($method === 'address') {
             $street = (string) $s->get('bgcouriers_addr_street_name', '');
@@ -850,7 +859,10 @@ class BGCouriers_Checkout {
                 $errors->add('bgc_street', sprintf(__('Please enter a street and number for %s address delivery.', 'bg-couriers'), $label),
                     $at($street === '' ? 'street' : 'streetno'));
             }
-        } elseif ((int) $s->get('bgcouriers_office_id', 0) <= 0) {
+        } elseif ($office > 0 && !self::office_is_listed($courier, $site, $office)) {
+            /* translators: %s: courier name */
+            $errors->add('bgc_office', sprintf(__('That office is not on %s list any more. Please choose it again.', 'bg-couriers'), $label), $at('office'));
+        } elseif ($office <= 0) {
             /* translators: %s: courier name */
             $errors->add('bgc_office', sprintf(__('Please choose an office/APS for %s.', 'bg-couriers'), $label), $at('office'));
         }
@@ -864,6 +876,34 @@ class BGCouriers_Checkout {
      */
     public static function field_id(string $courier, string $field): string {
         return 'bgcouriers-' . sanitize_html_class($field) . '-' . sanitize_html_class($courier);
+    }
+
+    /**
+     * Does this courier actually list this city, and this office in it?
+     *
+     * Both ids arrive as bare integers on a request (BGCouriers_Ajax::set_selection) and were checked
+     * only for being above zero, while the plugin has had the courier's whole nomenclature in its own
+     * tables all along. An id naming nothing produced an order with an empty shipping address that
+     * looked complete and could not be turned into a waybill.
+     *
+     * Answered only where there IS an answer: a courier whose cities, or whose offices for this city,
+     * have not been synced yet gets a yes. Refusing an order on the strength of a table the shop has
+     * not filled would turn our own missing data into the customer's dead end, at the last step of the
+     * checkout, which is worse than the fault this closes.
+     */
+    private static function city_is_listed(string $courier, int $city_id): bool {
+        if (!class_exists('BGCouriers_Nomenclature') || BGCouriers_Nomenclature::count($courier) <= 0) { return true; }
+        return BGCouriers_Nomenclature::city_by_id($courier, $city_id) !== null;
+    }
+
+    private static function office_is_listed(string $courier, int $city_id, int $office_id): bool {
+        if (!class_exists('BGCouriers_Nomenclature')) { return true; }
+        $known = BGCouriers_Nomenclature::offices($courier, $city_id);
+        if (!$known) { return true; }
+        foreach ($known as $o) {
+            if ((int) ($o['office_id'] ?? 0) === $office_id) { return true; }
+        }
+        return false;
     }
 
     public function persist(\WC_Order $order): void {

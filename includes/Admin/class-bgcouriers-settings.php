@@ -37,6 +37,9 @@ class BGCouriers_Settings {
             add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_' . $cid . '_password', [$this, 'sanitize_password'], 10, 3);
             // Keys/usernames are rendered blank (never exposed); keep the stored value when the field is blank.
             add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_' . $cid . '_username', [$this, 'sanitize_keep'], 10, 3);
+            // The webhook secret is a credential too - it is what the incoming signature is checked
+            // against - so it is drawn blank like the rest and kept when the blank field is posted back.
+            add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_' . $cid . '_webhook_secret', [$this, 'sanitize_keep'], 10, 3);
         }
         add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_dropdown_limit', [$this, 'sanitize_dropdown_limit'], 10, 3);
         add_action('wp_ajax_bgcouriers_validate_creds', [$this, 'ajax_validate']);

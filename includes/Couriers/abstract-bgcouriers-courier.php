@@ -140,6 +140,15 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      */
     protected function fetch_pdf(string $url, array $headers = [], string $who = ''): string {
         $who = $who !== '' ? $who : $this->id();
+        // Two of these links are not ours: Econt answers getShipmentStatuses with a pdfURL and Европът's
+        // /printshipment answers with a link, and both are then fetched by this server. The rest build
+        // their URL from a constant base. So the one thing worth refusing is a link that points back
+        // inside the shop's own network - it would be a blind request (the answer only ever leaves here
+        // as a PDF), but a blind request to 169.254.169.254 is still how a cloud instance's credentials
+        // are read. Public host over https, or nothing.
+        if (!self::is_public_https($url)) {
+            throw new BGCouriers_Api_Exception(esc_html($who . ': the label link does not point anywhere public'));
+        }
         $res = $this->http_get($url, $headers);
         if (is_wp_error($res)) {
             throw new BGCouriers_Api_Exception(esc_html($who . ': ' . $res->get_error_message()));
@@ -155,6 +164,30 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      *
      * @throws BGCouriers_Api_Exception
      */
+    /**
+     * An https URL naming a host on the public internet.
+     *
+     * Deliberately not an allowlist of the couriers' own domains: their label links are served from
+     * hosts this plugin has never been told about, and a list of them would break a label the day a
+     * courier moved one. What is refused instead is everything a courier has no business naming -
+     * another scheme, a bare IP, a name with no dot in it (localhost, a container name, an intranet
+     * short name), and every private, loopback, link-local or otherwise reserved address.
+     */
+    protected static function is_public_https(string $url): bool {
+        $parts = wp_parse_url($url);
+        if (!is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https') { return false; }
+        $host = strtolower(trim((string) ($parts['host'] ?? ''), '[]'));
+        if ($host === '' || $host === 'localhost') { return false; }
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            // An IP literal is allowed only if it is a public one. A courier naming a bare address at
+            // all is already odd; naming a private one is the case this exists for.
+            return (bool) filter_var($host, FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        }
+        // A registrable name has a dot in it. Anything without one is a machine on the local network.
+        return strpos($host, '.') !== false && substr($host, -6) !== '.local';
+    }
+
     protected static function assert_pdf(string $raw, string $who): string {
         if (strncmp($raw, '%PDF', 4) !== 0) {
             throw new BGCouriers_Api_Exception(esc_html($who . ': the label did not come back as a PDF'));
