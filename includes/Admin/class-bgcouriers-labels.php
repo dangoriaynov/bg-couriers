@@ -67,6 +67,13 @@ class BGCouriers_Labels {
             $order->delete_meta_data('_bgcouriers_autolabel_try');
             $order->save();
             return;
+        } catch (BGCouriers_Claimed_Exception $e) {
+            // Another request is issuing it this very moment and will have it saved by the time it is
+            // done. Not an attempt that failed: no retry counter, no "failed, retrying" note on the
+            // order for what is a success elsewhere. The status hook will not fire again for it, and
+            // if the other request dies half-way the merchant sees the order without a waybill, which
+            // is exactly what they saw before auto-label existed.
+            return;
         } catch (\Exception $e) {
             $try  = (int) $order->get_meta('_bgcouriers_autolabel_try');
             $wait = self::AUTOLABEL_RETRIES[$try] ?? null;
@@ -104,7 +111,7 @@ class BGCouriers_Labels {
         if ($existing !== '') { return new BGCouriers_Label($existing, (string) $order->get_meta('_bgcouriers_label_url')); }
 
         if (!self::claim($order_id)) {
-            throw new BGCouriers_Api_Exception(esc_html__('A waybill for this order is being issued right now. Give it a moment.', 'bg-couriers'));
+            throw new BGCouriers_Claimed_Exception(esc_html__('A waybill for this order is being issued right now. Give it a moment.', 'bg-couriers'));
         }
         try {
             $order    = wc_get_order($order_id);   // fresh: the previous holder may have written one
@@ -124,6 +131,11 @@ class BGCouriers_Labels {
      * write may not even reach the database another process reads. Inside one request it is held in
      * memory too, because MySQL hands the same connection its own lock again, and a hook that fires
      * twice in one request is the same connection twice.
+     *
+     * Belt and braces, not the guarantee. The lock is lost if $wpdb silently reconnects, which it
+     * will do on a dropped connection - and a twenty-second courier call is exactly when one drops.
+     * What actually keeps an order at one waybill is issue() saving it the moment the courier
+     * answers, so that even a request that slips past the lock re-reads the order and finds it.
      *
      * @var array<int,true>
      */
