@@ -21,23 +21,60 @@ class BGCouriers_Ajax {
 
     /**
      * Lightweight per-IP rate limit for the public endpoints that hit a LIVE courier API. Returns false once
-     * the caller exceeds $max requests within $window seconds; the handler then returns an empty result
-     * instead of making an outbound call, so anonymous enumeration can't amplify into many courier API calls.
+     * the caller exceeds $max requests within $window seconds; the handler then answers BUSY instead of
+     * making an outbound call, so anonymous enumeration cannot amplify into many courier API calls.
      *
      * The budget is per IP, and "a real checkout makes only a handful of these calls" turned out to be
      * wrong: one checkout load asks availability and offices for every enabled courier, and a customer
      * who picks a city, switches courier and opens the map spends tens of calls on their own. At 90 a
      * minute the plugin's own end-to-end suite exhausted it, and so would two customers sharing an
-     * address - an office, or a mobile carrier behind CGNAT, which is most phone traffic here. An
-     * emptied map with no error is the worst possible way to find that out. 300 leaves room for several
-     * real customers at once while still being far below what scraping a nomenclature would need.
+     * address - an office, or a mobile carrier behind CGNAT, which is most phone traffic here. 300
+     * leaves room for several real customers at once while still being far below what scraping a
+     * nomenclature would need.
+     *
+     * The window is a FIXED sixty seconds, counted from the first request in it. It used to be written
+     * back with a fresh expiry on every single call, which made it a window of silence rather than a
+     * window of time: a shared address with steady traffic never reached a quiet moment, so its budget
+     * never reset until it had been refused long enough to stop asking. Two customers at one office
+     * were enough to put the second one in a queue behind the first.
      */
     private static function rate_ok(int $max = 300, int $window = 60): bool {
-        $key = 'bgcouriers_rl_' . md5(self::client_ip());
-        $n   = (int) get_transient($key);
-        if ($n >= $max) { return false; }
-        set_transient($key, $n + 1, $window);
+        $key  = 'bgcouriers_rl_' . md5(self::client_ip());
+        $now  = time();
+        $slot = get_transient($key);
+        // Anything that is not our own shape - including the bare counter this used to store - starts a
+        // fresh window rather than being reinterpreted.
+        if (!is_array($slot) || (int) ($slot['until'] ?? 0) <= $now) {
+            $slot = ['n' => 0, 'until' => $now + $window];
+        }
+        if ((int) $slot['n'] >= $max) { return false; }
+        $slot['n'] = (int) $slot['n'] + 1;
+        set_transient($key, $slot, max(1, (int) $slot['until'] - $now));
         return true;
+    }
+
+    /**
+     * "Not now" - and say so, rather than answering with an empty hand.
+     *
+     * Every one of these endpoints used to answer a refused request with an empty result, which is the
+     * same thing it says when a town genuinely has no offices. The browser cannot tell those apart, so
+     * it believed the empty one and cached it:
+     *
+     *  - city_avail answered {office:false, automat:false}, and the checkout greyed out BOTH delivery
+     *    options and remembered that for the rest of the page. The customer was shown a courier that
+     *    delivers nowhere in their town, and the town was fine.
+     *  - offices answered [], and the office dropdown stayed empty.
+     *  - the map's own lookup answered {}, and a town with no points in it is now a town the map drops -
+     *    so a refused request could throw away the place the customer had chosen.
+     *
+     * So the answer carries `bgc_busy`, the caller leaves its cache alone, and the next attempt asks
+     * again. The shape around it is kept so nothing that reads the normal fields breaks on it.
+     *
+     * @param array $shape What this endpoint normally answers with, so a reader that ignores the flag
+     *                     still gets a well-formed empty answer.
+     */
+    private static function busy(array $shape = []): void {
+        wp_send_json(array_merge($shape, ['bgc_busy' => true]));
     }
 
     /**
@@ -46,7 +83,7 @@ class BGCouriers_Ajax {
      * Result cached per rounded coordinate. Returns { city, postcode, street, number }.
      */
     public function geocode(): void {
-        if (!self::rate_ok()) { wp_send_json([]); }
+        if (!self::rate_ok()) { self::busy(); }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $lat = round((float) wp_unslash($_GET['lat'] ?? 0), 5); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- float-cast, no state change
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
@@ -130,7 +167,7 @@ class BGCouriers_Ajax {
     }
     public function search_cities(): void { wp_send_json(self::search_cities_data()); }
     public function offices(): void {
-        if (!self::rate_ok()) { wp_send_json([]); }
+        if (!self::rate_ok()) { self::busy(); }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $courier = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
@@ -142,7 +179,7 @@ class BGCouriers_Ajax {
 
     /** Which office types a city has (so the checkout can grey out a delivery option the city lacks). */
     public function city_avail(): void {
-        if (!self::rate_ok()) { wp_send_json(['office' => false, 'automat' => false]); }
+        if (!self::rate_ok()) { self::busy(['office' => false, 'automat' => false]); }
         $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
         if ($city <= 0) { wp_send_json(['office' => false, 'automat' => false]); }
@@ -264,7 +301,7 @@ class BGCouriers_Ajax {
         // opening cost six units of a ninety-per-minute budget shared by everyone behind one IP, and a
         // shop's customers on the same office or mobile network then got an empty map. The client also
         // caches per place, so looking at a city twice costs nothing.
-        if (!self::rate_ok()) { wp_send_json([]); }
+        if (!self::rate_ok()) { self::busy(); }
         $name = sanitize_text_field(wp_unslash($_GET['name'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
         $code = sanitize_text_field(wp_unslash($_GET['post_code'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         $type = sanitize_key(wp_unslash($_GET['type'] ?? 'both')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -316,7 +353,7 @@ class BGCouriers_Ajax {
      * office in a town costs the same and quoting each would be hundreds of calls for one answer.
      */
     public function allmap_prices(): void {
-        if (!self::rate_ok()) { wp_send_json_error([]); }
+        if (!self::rate_ok()) { wp_send_json_error(['bgc_busy' => true]); }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only price lookup, no state change
         $cid  = isset($_GET['courier']) ? sanitize_key(wp_unslash($_GET['courier'])) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only price lookup, no state change
@@ -433,7 +470,7 @@ class BGCouriers_Ajax {
         return $out;
     }
     public function streets(): void {
-        if (!self::rate_ok()) { wp_send_json([]); }
+        if (!self::rate_ok()) { self::busy(); }
         $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
         $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
