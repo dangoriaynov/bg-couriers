@@ -6,7 +6,14 @@
  * @group core
  */
 final class CheckoutValidationTest extends WP_UnitTestCase {
-    private function errors(string $chosen, array $session): WP_Error {
+    /**
+     * @param array $post What the checkout posted. A phone by default: it has been required of every
+     *                    order since 2026-08-26 (Express One will not carry a parcel to a locker
+     *                    without one), and these tests posted nothing at all - so the three that assert
+     *                    a valid destination PASSES had been failing on the missing phone ever since,
+     *                    never reaching the destination rules they exist to check.
+     */
+    private function errors(string $chosen, array $session, array $post = ['billing_phone' => '0888123456']): WP_Error {
         WC()->session = WC()->session ?: new WC_Session_Handler();
         WC()->session->set('chosen_shipping_methods', ['bgcouriers_' . $chosen]);
         $defaults = [
@@ -15,7 +22,7 @@ final class CheckoutValidationTest extends WP_UnitTestCase {
         ];
         foreach (array_merge($defaults, $session) as $k => $v) { WC()->session->set($k, $v); }
         $e = new WP_Error();
-        (new BGCouriers_Checkout())->validate([], $e);
+        (new BGCouriers_Checkout())->validate($post, $e);
         return $e;
     }
 
