@@ -2,7 +2,7 @@
 defined('ABSPATH') || exit;
 
 /**
- * Европът / Evropat-2000 (Bulgaria) courier adapter.
+ * Evropat (Evropat-2000, Bulgaria) courier adapter.
  *
  * Measured against the shop's own live account on 2026-08-31. The shapes below are what the API
  * answered, not what its documentation says - and the two disagree in the places that matter most:
@@ -17,9 +17,9 @@ defined('ABSPATH') || exit;
  *
  * Two rules run through the whole class:
  *  - EVERY answer is HTTP 200. Success is {"error":null,"response":…}, failure {"error":"CODE",
- *    "errorMessage":"…в Bulgarian…","response":null}, so the HTTP code decides nothing and unwrap()
+ *    "errorMessage":"…in Bulgarian…","response":null}, so the HTTP code decides nothing and unwrap()
  *    decides everything.
- *  - The account decides what the courier will accept. ППП (postalMoneyOrder) is silently DROPPED -
+ *  - The account decides what the courier will accept. PPP (postalMoneyOrder) is silently DROPPED -
  *    priced at 0.00, no error, no flag - on an account whose /getclientaddresses says
  *    allowedPostalMoneyOrder "0". A waybill built on that answer would travel with no money to
  *    collect, so it is refused here instead (see ppp_allowed()).
@@ -37,7 +37,8 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     /** Their public tracking page. Takes no waybill - see tracking_url(). */
     const TRACK_URL = 'https://evropat.bg/track/';
 
-    /** Their `deliveryType`, keyed [sender end][recipient end]. 1..4 = ОФ-ОФ, ОФ-ВР, ВР-ОФ, ВР-ВР. */
+    /** Their `deliveryType`, keyed [sender end][recipient end]. 1..4 = office-office, office-door,
+     *  door-office, door-door. */
     const DELIVERY_TYPE = [
         'office' => ['office' => 1, 'address' => 2],
         'door'   => ['office' => 3, 'address' => 4],
@@ -53,7 +54,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     private $key;
 
     public function __construct(array $config) {
-        // The plugin's credential pair is username+password; Европът issues ONE key and no username,
+        // The plugin's credential pair is username+password; Evropat issues ONE key and no username,
         // so it lives in the password slot (encrypted at rest) and credential_fields() tells the rest
         // of the plugin not to ask for the other half.
         $this->key = (string) ($config['password'] ?? '');
@@ -81,7 +82,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      * The `response` of a successful answer, or an exception carrying what the courier objected to.
      *
      * A refusal arrives as HTTP 200 with an `error` code, so a caller that trusted the HTTP code would
-     * read "Невалидно населено място" as an empty success and quote a price of nothing.
+     * read their "invalid locality" error as an empty success and quote a price of nothing.
      *
      * @throws BGCouriers_Api_Exception
      */
@@ -249,7 +250,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     /**
      * Streets -> the shape the checkout's street box reads.
      *
-     * `address` is the street on its own and `addressFull` carries their type prefix ("ул.", "жк."),
+     * `address` is the street on its own and `addressFull` carries their type prefix ("ul.", "zh.k."),
      * which is what a customer recognises - so the prefix is what is shown and the bare name is what is
      * matched on.
      *
@@ -377,12 +378,12 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * Is this account allowed to collect money as ППП?
+     * Is this account allowed to collect money as PPP, the Bulgarian postal money order?
      *
-     * Their API does not refuse a ППП it cannot do - it prices it at 0.00 and books the shipment without
+     * Their API does not refuse a PPP it cannot do - it prices it at 0.00 and books the shipment without
      * one (measured: postalMoneyOrder 50 came back with pppPrice 0.00000 and the same total as a
      * shipment collecting nothing). So the account's own answer is the only thing that knows, and it is
-     * read here rather than hardcoded: another shop's Европът account may well have ППП switched on,
+     * read here rather than hardcoded: another shop's Evropat account may well have PPP switched on,
      * since they activate it per account on request.
      */
     public function ppp_allowed(): bool {
@@ -453,18 +454,19 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         if ($pay_by_account) { $body['clientNumber'] = $client; }
         $cod = round((float) ($s['cod_amount'] ?? 0), 2);
         if ($cod > 0) {
-            // ППП and НП are mutually exclusive here ("When this is passed COD is not allowed!"), and
+            // A PPP and a plain COD are mutually exclusive here ("When this is passed COD is not allowed!"),
+            // and
             // which one this is depends on how the SHOP fiscalises its cash - and on whether the account
-            // may do ППП at all.
+            // may do a PPP at all.
             $body[$this->cod_field()] = $cod;
         }
         return $body;
     }
 
     /**
-     * Whether the money is collected as ППП (a postal money order) or as plain наложен платеж.
+     * Whether the money is collected as a PPP (a postal money order) or as plain cash on delivery.
      *
-     * ППП only when the shop asked for it AND the account can actually do one. Without the second half
+     * PPP only when the shop asked for it AND the account can actually do one. Without the second half
      * the amount is accepted, priced at nothing and quietly dropped, and the parcel goes out with no
      * money to collect.
      */
@@ -507,7 +509,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      * **The tax.** Their price is GROSS, and nothing in the API says so - there is not one mention of
      * VAT in any request, response, example or error, and `price` is the exact sum of the parts listed
      * beside it (3.313 service + 1.27551 fuel = 4.5885), which reads exactly like a net total. The
-     * printed товарителница is what settles it: its price block is headed **"ЦЕНА С ДДС"** and its
+     * printed waybill is what settles it: its price block is headed **"price with VAT"** and its
      * total is that same 4.59 EUR - the amount the payer actually hands over at the door (waybill
      * 9107785603, 2026-08-31). Every quote in this plugin is net, because the rate is added with
      * `taxes => ''` and WooCommerce puts the shipping tax on top; passing this figure through would tax
@@ -557,7 +559,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
                     __('More than one street in this town is called that; the parcel goes to "%s".', 'bg-couriers'), $hit['label']);
             }
         }
-        // Said out loud rather than discovered on the invoice: the shop asked for a ППП, the account
+        // Said out loud rather than discovered on the invoice: the shop asked for a PPP, the account
         // cannot do one, and the API would take the amount and drop it.
         if ($s['cod_amount'] > 0 && $this->cod_field() === 'cashOnDelivery'
             && class_exists('BGCouriers_Settings') && BGCouriers_Settings::cod_fiscalization() === 'ppp'
@@ -592,7 +594,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * The shipment as Европът wants it.
+     * The shipment as Evropat wants it.
      *
      * `senderFileID` does the work of six fields: their own note on it is that it "actually fills the
      * following parameters when they are not passed: senderDestID, senderAddress, senderName,
@@ -669,7 +671,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      *
      * `recipientAddress` is required whatever the delivery type, and with an office type their own note
      * says the office's own data replaces it. Sending the synced office's name and address rather than
-     * the literal word "офис" costs nothing and means the field says something true if it is ever kept.
+     * the bare Bulgarian word for "office" costs nothing and means the field says something true if kept.
      */
     private static function office_line(int $office_id): string {
         if ($office_id <= 0 || !class_exists('BGCouriers_Nomenclature')) { return 'офис'; }
@@ -766,7 +768,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     /**
      * Their own word for it, for the check that runs after a cancel the plugin is not sure about.
      *
-     * 18 is "Анулирана" in their status nomenclature. A second cancel of an already-cancelled waybill
+     * 18 is the cancelled status in their nomenclature. A second cancel of an already-cancelled waybill
      * refuses, and reading that refusal as "the courier did not cancel it" is how a merchant is told the
      * wrong thing about a shipment that is gone - the fault fixed for Sameday in 0.3.6 and Speedy in 0.3.7.
      */
@@ -790,8 +792,8 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      *
      * /getshipmenthistory answers `{dateAndTime, stateName, additionalInformation}` and NO status id, so
      * the only machine-readable handle on an event is the nomenclature: /shipment-statuses-nomenclature
-     * publishes id, name and description, and the history's `stateName` is the DESCRIPTION ("Създадена")
-     * rather than the name ("Създаване"). Both are indexed, so either spelling resolves.
+     * publishes id, name and description, and the history's `stateName` is the DESCRIPTION (the participle,
+     * "created") rather than the name (the verbal noun, "creation"). Both are indexed, so either resolves.
      *
      * @return array<int,array{code:int,name:string,date:string}>
      */
@@ -806,7 +808,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
             // The live answer carries `statusID` even though their documented example does not, so the
             // machine value is read straight off the event. The nomenclature is the fallback for an
             // answer that omits it - the history's `stateName` is the nomenclature's DESCRIPTION
-            // ("Създадена") rather than its NAME ("Създаване"), so both spellings are indexed.
+            // (the participle) rather than its NAME (the verbal noun), so both spellings are indexed.
             $code = (int) ($e['statusID'] ?? 0);
             if ($code <= 0) { $code = (int) ($map[self::fold($name)] ?? 0); }
             $out[] = [
@@ -816,7 +818,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
                 'seq'  => count($out),   // the order they arrived in, kept for the tie-break below
             ];
         }
-        // Their timestamps collide: the test waybill's "Създадена" and "Анулирана от експорт" both read
+        // Their timestamps collide: the test waybill's "created" and "cancelled from export" both read
         // 2026-08-31 13:22:16, to the second. PHP's usort is not stable, so sorting on the date alone
         // leaves two same-second events in an order that can differ between runs - and the last event is
         // what decides the parcel's status wherever a terminal code is not involved. So equal timestamps
@@ -856,8 +858,8 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      *
      * WHAT HAPPENED TO THE PARCEL OUTRANKS WHAT HAPPENED TO THE PAPERWORK, the rule Express One taught
      * us: a delivered shipment can pick up later document events, and reading the newest one would file
-     * a parcel the customer is holding as something else. 19 (Разнесена - delivered) and 10 (Върната на
-     * подател - returned to the sender) are facts about the parcel, so either of them anywhere in the
+     * a parcel the customer is holding as something else. 19 (delivered on the round) and 10 (returned to
+     * the sender) are facts about the parcel, so either of them anywhere in the
      * history is the verdict.
      *
      * @param array<int,array{code:int,name:string,date:string}> $events
@@ -897,11 +899,11 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      * Their request is built around ONE waybill used as a template - `shipmentBarcode`, and their note
      * that "when this parameter is passed, others optional parameters will not be used" - with the day
      * and the window beside it. So the first waybill names the collection and the rest ride with it,
-     * which is how their own Заяви куриер screen works.
+     * which is how their own "request a courier" screen works.
      *
      * The cut-off is theirs and it is hard: after 17:30 on a full working day (12:00 on a short one) the
      * request rolls to the next working day. The plugin does not try to be clever about that - it sends
-     * the date the merchant asked for and lets Европът answer.
+     * the date the merchant asked for and lets Evropat answer.
      */
     public function request_pickup(array $waybills, array $opts): string {
         $codes = array_values(array_filter(array_map('strval', $waybills), static function ($w) { return $w !== ''; }));

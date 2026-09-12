@@ -86,7 +86,7 @@ final class ExpressoneParsersTest extends TestCase {
 
     /**
      * The picker stores `name` and shows `label` - that is how every courier's street list is rendered
-     * here - and the type is what tells "ЖК Младост" from "УЛ. Младост".
+     * here - and the type is what tells "zh.k. Mladost" from "ul. Mladost".
      */
     public function test_a_street_row_is_shaped_the_way_the_checkout_renders_one(): void {
         $rows = BGCouriers_Expressone::parse_streets($this->fx('list-street.json'));
@@ -250,8 +250,8 @@ final class ExpressoneParsersTest extends TestCase {
 
     /**
      * The checkout's street box must stop offering a typed street for this courier, because a typed one
-     * cannot become a waybill. Driven on dev before it was fixed: the picker offered "БУЛ. ПРОФ. ЦВЕТАН
-     * ЛАЗАРОВ", select2's tag took the typed "Цветан Лазаров" instead, the order was placed happily, and
+     * cannot become a waybill. Driven on dev before it was fixed: the picker offered "BUL. PROF. TSVETAN
+     * LAZAROV", select2's tag took the typed "Tsvetan Lazarov" instead, the order was placed happily, and
      * the label refused hours later with nobody left to ask.
      */
     /**

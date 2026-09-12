@@ -10,7 +10,7 @@ Every rule below has a "why it was written" line, because a rule whose reason is
 
 ## Settings screens
 
-**1. Every field must live INSIDE a section — between a `title` and its `sectionend`.**
+**1. Every field must live INSIDE a section - between a `title` and its `sectionend`.**
 A field placed after a `sectionend` and before the next `title` renders **outside the `form-table`**, and
 that single mistake breaks four things at once: no (i) bubble, the description prints as a wall of text,
 the label loses its column, and a checkbox stays a raw checkbox instead of becoming a toggle. All of it
@@ -18,7 +18,7 @@ is keyed off `.form-table td`.
 *Why:* exactly this happened to `bgcouriers_speedy_declared_value` and `_return_voucher`, and the owner
 reported all four symptoms as separate faults. They were one placement error.
 
-**2. Descriptions become (i) bubbles automatically — so write them to fit one.**
+**2. Descriptions become (i) bubbles automatically - so write them to fit one.**
 `assets/js/bgc-settings-admin.js` lifts `<span class="description">` out of the value cell into a small
 `(i)` next to the label. Two or three sentences at most. If it needs a paragraph, the setting is doing
 too much or is named badly.

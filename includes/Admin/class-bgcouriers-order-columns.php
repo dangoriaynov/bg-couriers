@@ -99,7 +99,7 @@ class BGCouriers_Order_Columns {
      * Where this shipment is, as ONE icon that sits in the button row.
      *
      * It used to be the courier's own sentence printed under the buttons. Courier wordings run long
-     * ("Изпратено известие за пратка в офис/автомат"), the waybill column is narrow, so the line wrapped
+     * ("notice sent: parcel at the office/locker"), the waybill column is narrow, so the line wrapped
      * to two and every row in the list stood taller than its own buttons. A list is scanned, not read:
      * the stage is now a glyph you recognise at a glance and the full sentence is one hover away - the
      * same trade the courier logo beside it already makes.

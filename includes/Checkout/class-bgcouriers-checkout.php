@@ -61,7 +61,7 @@ class BGCouriers_Checkout {
         add_action('woocommerce_before_checkout_form', [$this, 'render_free_notice'], 5);
         add_filter('woocommerce_update_order_review_fragments', [$this, 'free_notice_fragment']);
         add_filter('woocommerce_shipping_chosen_method', [$this, 'default_courier'], 10, 3);
-        // COD fiscalisation (ППП) rules: gate the COD payment gateway / courier rates at runtime.
+        // COD fiscalisation (PPP) rules: gate the COD payment gateway / courier rates at runtime.
         add_filter('woocommerce_available_payment_gateways', [$this, 'cod_filter_gateways']);
         add_filter('woocommerce_package_rates', [$this, 'ppp_filter_rates'], 25, 2);
         // A foreign address with nothing to choose from is a dead end unless it says why and offers the
@@ -97,7 +97,7 @@ class BGCouriers_Checkout {
         $names = WC()->countries ? (array) WC()->countries->get_countries() : [];
         $there = (string) ($names[$country] ?? $country);
         // The one cause the plugin can name with certainty: it removed the rates itself, because a shop
-        // whose cash on delivery is legal only through the courier's ППП has no way to be paid abroad.
+        // whose cash on delivery is legal only through the courier's PPP has no way to be paid abroad.
         if (BGCouriers_Settings::cod_fiscalization() === 'ppp' && !BGCouriers_Settings::has_prepaid_gateway()) {
             /* translators: %s: country name */
             $msg = sprintf(__('Delivery to %s can only be paid in advance, and this shop has no prepaid payment method at the moment.', 'bg-couriers'), $there);
@@ -131,15 +131,15 @@ class BGCouriers_Checkout {
     /**
      * Say why the payment box is empty, when this plugin is the reason it is.
      *
-     * Abroad, a shop whose cash on delivery is receipted through the courier's ППП has no way at all to be
-     * paid: no courier performs a ППП across the border, so the plugin removes cash on delivery - and on a
+     * Abroad, a shop whose cash on delivery is receipted through the courier's PPP has no way at all to be
+     * paid: no courier performs a PPP across the border, so the plugin removes cash on delivery - and on a
      * shop with no prepaid method that leaves nothing. WooCommerce then prints "Sorry, it seems that there
      * are no available payment methods", which says neither what happened nor how to get out of it, and on
      * a Bulgarian shop it is in English besides. The customer already read the reason above the payment
      * box; this replaces the stock sentence with the same way back, so the screen ends in an exit rather
      * than in a dead stop.
      *
-     * Only ever for a foreign destination and only under ППП. Any other empty payment box belongs to the
+     * Only ever for a foreign destination and only under PPP. Any other empty payment box belongs to the
      * shop, not to this plugin, and keeps WooCommerce's own wording.
      *
      * @param string $msg
@@ -217,16 +217,16 @@ class BGCouriers_Checkout {
      *
      * Two reasons, and both are about THIS order rather than about the shop's preferences.
      *
-     * The merchant's: when the merchant relies on the courier's ППП (has no cash register), a courier that
-     * does NOT offer ППП cannot legally take cash-on-delivery. So while such a courier is the chosen
-     * shipping method, the COD gateway goes - the order must be prepaid. Couriers that do ППП (or the
+     * The merchant's: when the merchant relies on the courier's PPP (has no cash register), a courier that
+     * does NOT offer PPP cannot legally take cash-on-delivery. So while such a courier is the chosen
+     * shipping method, the COD gateway goes - the order must be prepaid. Couriers that do PPP (or the
      * cash-register mode) are unaffected. The same is true of every courier the moment the parcel leaves
-     * the country: ППП is a Bulgarian postal money transfer and the courier refuses it for a foreign
-     * address, so a shop whose cash-on-delivery is legal only BECAUSE the courier does the ППП has no
+     * the country: PPP is a Bulgarian postal money transfer and the courier refuses it for a foreign
+     * address, so a shop whose cash-on-delivery is legal only BECAUSE the courier does the PPP has no
      * such arrangement abroad. Its international orders are prepaid ones.
      *
      * The courier's: a courier may collect money from a person and not from a machine - Express One
-     * carries no наложен платеж to an EXOBOX locker (theirs, 2026-08-26), while BOX NOW's lockers and
+     * carries no cash on delivery to an EXOBOX locker (theirs, 2026-08-26), while BOX NOW's lockers and
      * Econt's automats do. So the DELIVERY KIND is asked about too, per courier: the kind is read from
      * BGCouriers_Pricing::selection_for(), the same per-courier memory the price row is quoted from,
      * because the bare session key is one value shared by every courier the customer has opened.
@@ -240,7 +240,7 @@ class BGCouriers_Checkout {
         if (!is_array($gateways)) { return $gateways; }
         $country = BGCouriers_Pricing::destination_country();
         $courier = self::chosen_bgc_courier();
-        // Abroad the destination alone decides, with no courier asked. The ППП is a Bulgarian postal money
+        // Abroad the destination alone decides, with no courier asked. The PPP is a Bulgarian postal money
         // transfer and none of them performs one across the border, so there is nothing that could be
         // chosen to bring it back. Waiting for a chosen courier is what left cash on delivery on screen
         // beside a message saying the order could only be prepaid: every rate for the foreign address had
@@ -256,11 +256,11 @@ class BGCouriers_Checkout {
     }
 
     /**
-     * If the merchant relies on ППП AND the shop offers NO prepaid gateway at all, a courier that can't do ППП
+     * If the merchant relies on PPP AND the shop offers NO prepaid gateway at all, a courier that can't do PPP
      * is unusable (COD only, no way to fiscalise) - so drop its shipping rates. When a prepaid gateway exists
      * the courier stays (usable for prepaid; COD is just hidden for it by cod_filter_gateways above).
      *
-     * A parcel leaving the country is the same case: no courier's ППП follows it, so such a shop cannot sell
+     * A parcel leaving the country is the same case: no courier's PPP follows it, so such a shop cannot sell
      * abroad at all until it offers a prepaid way to pay. Which is why the settings screen says so beside the
      * countries themselves, rather than letting the merchant find out from an empty checkout.
      *
@@ -452,7 +452,7 @@ class BGCouriers_Checkout {
      *
      * Not from the enabled-courier settings, which is a different question. A courier can be switched on
      * and configured and still be absent from the checkout - BOX NOW is exactly that on a shop whose only
-     * gateway is cash on delivery, because it cannot do ППП and ppp_filter_rates drops it. Built from
+     * gateway is cash on delivery, because it cannot do PPP and ppp_filter_rates drops it. Built from
      * settings, the map button showed its mark above a list the customer could not find it in.
      *
      * @return array<string,true> courier id => true, for the couriers with a rate in this checkout.
@@ -674,7 +674,7 @@ class BGCouriers_Checkout {
     /**
      * First pass over the package heading, before every other listener: note what WooCommerce produced.
      *
-     * @param string $name    The heading WooCommerce built ("Shipment", "Пратка", "Shipment 2", ...).
+     * @param string $name    The heading WooCommerce built ("Shipment", "Shipment", "Shipment 2", ...).
      * @param int    $index   Package index.
      * @param array  $package The package.
      * @return string $name, untouched.
@@ -1240,7 +1240,7 @@ class BGCouriers_Checkout {
             // next round, which is the same race that has bitten this file before. Rendered as the chosen
             // option it simply IS the state, and cannot be lost.
             $only = BGCouriers_Nomenclature::offices($courier, $site_id, $sel_method);
-            // ...and only where it is the town's ONLY pickup point, of any kind. Айтос has one Speedy
+            // ...and only where it is the town's ONLY pickup point, of any kind. Aytos has one Speedy
             // counter and two Speedy lockers: choosing the counter because it is the only counter
             // answered a question the customer had not been asked, in a town where there was plainly
             // something to ask. Counted across the delivery options this courier actually offers - a

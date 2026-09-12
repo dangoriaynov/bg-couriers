@@ -2,7 +2,7 @@
 /**
  * A town with ONE pickup point needs no dropdown; a town with several must not answer for the customer.
  *
- * Reported from Айтос: Speedy has one counter and two lockers there, and choosing the town from the
+ * Reported from Aytos: Speedy has one counter and two lockers there, and choosing the town from the
  * list ticked the counter. It was the only counter, which is what the check asked - and the wrong
  * question, because the customer could have had either locker and was never shown that they had a
  * choice. Counted across the delivery options the courier actually offers now, so a locker the merchant
@@ -62,7 +62,7 @@ final class AutoPickOfficeTest extends WP_UnitTestCase {
     }
 
     public function test_a_town_with_a_counter_and_two_lockers_is_left_to_the_customer(): void {
-        // Айтос itself.
+        // Aytos itself.
         $this->town(5002, [[900, 'office'], [901, 'automat'], [902, 'automat']]);
         $html = $this->block(5002);
         $this->assertStringNotContainsString('data-auto="1"', $html,

@@ -36,7 +36,7 @@ class BGCouriers_Tracking_Poller {
         $orders = wc_get_orders([
             'type'         => 'shop_order',
             // WITHOUT this the query falls back to WooCommerce's own status list, which does not include
-            // the plugin's "Изпратена" - so the moment an order reached that status it stopped being
+            // the plugin's own shipped status - so the moment an order reached that status it stopped being
             // polled and froze on whatever the courier had last said. A parcel that was refused and sent
             // back sat in the admin as "on its way" for days because of it.
             'status'       => 'any',
@@ -95,7 +95,7 @@ class BGCouriers_Tracking_Poller {
         }
 
         // Pigeon carries a return home under a BRAND NEW waybill and freezes the booked one on
-        // "Непотърсена" for good, so the number the shop must quote at the counter to get its goods back
+        // "unclaimed" for good, so the number the shop must quote at the counter to get its goods back
         // is one it has never been told. The order's own waybill is deliberately left alone: the label,
         // the cancel call and the waybill lock are all keyed on it.
         if ($t->waybill !== '' && $t->waybill !== $wb
@@ -176,8 +176,8 @@ class BGCouriers_Tracking_Poller {
      * decision is the whole feature and is worth testing directly.
      *
      * "Taken" means the shipment moved BEYOND being registered: creating a waybill only hands the courier
-     * the data, and every courier reports that as its own first tracking event (Speedy's 148 "Получена
-     * информация за пратка" is exactly this). So a second event - or a status different from the very
+     * the data, and every courier reports that as its own first tracking event (Speedy's 148, "shipment
+     * information received", is exactly this). So a second event - or a status different from the very
      * first one we recorded, for couriers with a thin event list - is the signal that it is on its way.
      */
     public static function mark_shipped(\WC_Order $order, BGCouriers_Tracking $t): bool {
@@ -189,9 +189,9 @@ class BGCouriers_Tracking_Poller {
         if (in_array($order->get_status(), [$target, 'completed', 'cancelled', 'refunded', 'failed'], true)) { return false; }
 
         // Where the courier says outright whether it holds the parcel, believe it - Econt stamps sendTime
-        // on handover, Speedy logs "Приемане от подател"/"Приемане от куриер". Both APIs also emit events
-        // BEFORE anything is collected ("Awaiting delivery to Econt", Speedy's 148 "Получена информация за
-        // пратка" = the label was registered), so counting events would announce the parcel as shipped
+        // on handover, Speedy logs "collected from the sender"/"accepted by the courier". Both APIs also emit events
+        // BEFORE anything is collected ("Awaiting delivery to Econt", Speedy's 148 "shipment information
+        // received" = the label was registered), so counting events would announce the parcel as shipped
         // while it is still on our own desk.
         if ($t->handover !== null) {
             if ($t->handover === false) { return false; }

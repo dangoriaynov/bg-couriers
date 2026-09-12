@@ -14,7 +14,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
      */
     const COUNTRY_IDS = ['BG' => 100, 'RO' => 642];
     const BASE = 'https://api.speedy.bg/v1'; // Speedy has no separate demo/sandbox host
-    /** Operation code of "Доставка на клиент" - the operation logged when the customer receives it. */
+    /** Operation code of "delivery to the customer" - the operation logged when the customer receives it. */
     const OP_DELIVERED = '-14';
     /** Operations that mean the parcel is physically with Speedy: accepted from sender / by a courier. */
     const OPS_PICKED_UP = ['39', '11'];
@@ -549,12 +549,12 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         $status = $events ? end($events)['code'] : 'UNKNOWN';
         // trackPhase is an unambiguous lifecycle enum, but Speedy omits it on every parcel we have seen -
         // pass it through when it IS there, and otherwise fall back to the operation code, which is still
-        // a machine value rather than prose: -14 is "Доставка на клиент" and is the last operation on
+        // a machine value rather than prose: -14 is "delivery to the customer" and is the last operation on
         // every delivered parcel on this account. Only then does BGCouriers_Tracking read the text.
         $codes = array_map(static fn($e) => (string) $e['code'], $events);
         $phase = (string) ($parcel['trackPhase'] ?? '');
         // Search the WHOLE history, not just the last event: on parcel 63682912875 Speedy appended
-        // operation 195 ("Отказ от преглед/тестване") one second AFTER -14, so the delivery was no
+        // operation 195 ("inspection/testing refused") one second AFTER -14, so the delivery was no
         // longer the final entry and testing only the last event would have missed it.
         if ($phase === '' && in_array(self::OP_DELIVERED, $codes, true)) { $phase = 'DELIVERED'; }
         // Handed to the courier: accepted from the sender (39) or collected by a courier/clerk (11).
@@ -646,11 +646,11 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         try {
             $resp = $this->post_json($this->base . '/pickup/terms', $this->auth([
                 // MILLISECONDS. The schema says "integer" and says no more, and seconds are rejected with
-                // "Началната дата да вземане не трябва да е преди днешната дата" - the value is read as
+                // "the collection start date must not be earlier than today" - the value is read as
                 // 1970 and refused for being in the past. Verified live 2026-08-18: seconds fail,
                 // milliseconds answer with the real cut-offs.
                 'startingDate' => $ts * 1000,
-                // Required: without it the answer is "Изисква се идентификатор на услуга". 505 is the
+                // Required: without it the answer is "a service id is required". 505 is the
                 // domestic service - this asks when a courier can come to the SHOP, which is in Bulgaria
                 // whatever the parcels' destinations are.
                 'serviceId'    => 505,

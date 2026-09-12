@@ -31,12 +31,13 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     /**
      * Does the CHOSEN pay-out agreement actually match what the shop believes it is getting?
      *
-     * Econt marks each agreement with `moneyTransfer`: true is a ППП (пощенски паричен превод), false is a
-     * plain transfer. The shop separately declares, per courier, whether that courier pays out by ППП -
+     * Econt marks each agreement with `moneyTransfer`: true is a PPP (the Bulgarian postal money order a
+     * shop with no cash register may receipt cash through), false is a plain transfer. The shop separately
+     * declares, per courier, whether that courier pays out by PPP -
      * and the whole cash-on-delivery fiscalisation rests on that declaration: with "I rely on the
-     * courier's ППП", a courier said not to do ППП is dropped from checkout entirely. Nothing compared
+     * courier's PPP", a courier said not to do PPP is dropped from checkout entirely. Nothing compared
      * the two, so this account was collecting cash on delivery under a bank-transfer agreement while the
-     * setting claimed ППП, and the money came back as an ordinary pay-out.
+     * setting claimed PPP, and the money came back as an ordinary pay-out.
      *
      * @return array<int,array{msg:string,fix:string}>
      */
@@ -69,8 +70,8 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         }
         // Deliberately NOT judged here: which agreement is "the right one" is the merchant's call with
         // Econt, and Econt's moneyTransfer flag does not map onto it the way it looks. CD139925 is marked
-        // moneyTransfer=false yet is exactly what this shop selects in Econt's own UI as "начин на
-        // изплащане". Reading that flag as "not a ППП" put a red error on a correctly configured shop.
+        // moneyTransfer=false yet is exactly what this shop selects in Econt's own UI as its pay-out
+        // method. Reading that flag as "not a PPP" put a red error on a correctly configured shop.
         return [];
     }
 
@@ -143,7 +144,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
 
     /**
      * Fetch the sender profile from Econt's ProfileService and cache it for one day.
-     * A sender is REQUIRED by Econt's createLabel API ("подател" error otherwise).
+     * A sender is REQUIRED by Econt's createLabel API (it answers with a "sender" error otherwise).
      *
      * @return array{client:array,address:array}
      */
@@ -200,7 +201,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return $out;
     }
 
-    /** CD (наложен платеж) pay-out agreements from the client profile - `num` => human label. Cached. */
+    /** CD (cash on delivery) pay-out agreements from the client profile - `num` => human label. Cached. */
     public function cd_pay_options(): array {
         $cached = get_transient('bgcouriers_econt_cd_options');
         if (is_array($cached)) { return $cached; }
@@ -263,7 +264,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             'shipmentDescription' => BGCouriers_Settings::shipment_contents(),
         ];
 
-        // Наложен платеж, on the QUOTE as well as the label. Econt's fee for collecting the money is
+        // Cash on delivery, on the QUOTE as well as the label. Econt's fee for collecting the money is
         // part of the price it answers with (measured 2026-08-18: 5.06 -> 6.60 for a 50 EUR collection,
         // with shipmentNumber null, so nothing was created). Quoting without it told the customer a
         // price the shipment could never cost. Field names per Econt's own OpenAPI, ShippingLabelServices.
@@ -308,13 +309,13 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
      *
      * The waybill says otherwise. A shipment quoted at 5.06 printed
      *
-     *     Куриерска услуга: 5.06 EUR      ПЛАЩАНЕ - Общо: събери 5.17 EUR
+     *     Courier service: 5.06 EUR     PAYMENT - Total: collect 5.17 EUR    (translated off the print)
      *
      * so what Econt actually collects for that shipment is 5.17 - two percent above the quote, not
      * twenty. A net 5.06 would have been collected as 6.07. (The 0.11 is some further service on the
      * waybill and is not modelled here; it is not VAT, which is the question this answers.)
      *
-     * So the quote is split like Express One's and Европът's. If an account ever DOES return
+     * So the quote is split like Express One's and Evropat's. If an account ever DOES return
      * totalPriceWithVAT, that is the courier speaking about itself and it wins.
      */
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
@@ -436,7 +437,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             ];
         }
 
-        // Optional services (SMS, e-mail, pay-after-accept) — applied regardless of COD.
+        // Optional services (SMS, e-mail, pay-after-accept) - applied regardless of COD.
         $services = [];
         if (get_option('bgcouriers_econt_sms_notification', 'no') === 'yes') {
             $services['smsNotification'] = true;
@@ -445,7 +446,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         if ($notify_email !== '') {
             $services['emailOnDelivery'] = $notify_email;
         }
-        // "Виж преди да платиш" needs a courier at handover - never sent for Econtomat (automat)
+        // "inspect before you pay" needs a courier at handover - never sent for Econtomat (automat)
         // deliveries; the API default applies there.
         $inspect = BGCouriers_Settings::open_before_pay();
         if ($method !== 'automat' && $inspect !== 'no') {
@@ -455,13 +456,13 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             if ($inspect === 'test') { $services['payAfterTest'] = true; }
         }
 
-        // Наложен платеж (COD) + packing list - only when enabled in the Econt settings AND the order is
+        // Cash on delivery + packing list - only when enabled in the Econt settings AND the order is
         // actually paid cash-on-delivery (so a prepaid order is never charged again on delivery).
         // Who pays the courier fee. Econt CAN charge the recipient - paymentReceiverMethod with the amount
         // as a percentage - which was verified live against ee.econt.com: the whole fee moves from
         // senderDueAmount to receiverDueAmount. paymentSenderMethod is still never set: 'credit' makes
-        // Econt demand a payer client number the profile does not carry ("грешен клиентски номер за платец
-        // подател"), and leaving it unset already means "bill the API client", which is what we want when
+        // Econt demand a payer client number the profile does not carry (they answer "wrong payer client
+        // number for the sender"), and leaving it unset already means "bill the API client", which is what we want when
         // the merchant pays.
         $payer = self::service_payer('econt', $order);
         if ($payer === 'recipient') {
@@ -470,7 +471,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $label['paymentReceiverAmount']          = 100;
         }
 
-        // Наложен платеж (COD) + packing list - only when enabled in the Econt settings AND the order is
+        // Cash on delivery + packing list - only when enabled in the Econt settings AND the order is
         // actually paid cash-on-delivery (so a prepaid order is never charged again on delivery).
         if (get_option('bgcouriers_econt_cod_enabled', 'no') === 'yes' && $order->get_payment_method() === 'cod') {
             // Goods-only when the recipient pays the courier at the door (they must not be charged the
@@ -481,11 +482,11 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $services['cdType']               = 'get'; // collect from the receiver
             $services['cdCurrency']           = $order->get_currency();
             $services['cdPayOptionsTemplate'] = (string) get_option('bgcouriers_econt_cd_num', '');
-            // Econt totals the опис as sum(price x count) and REJECTS the label unless it equals cdAmount,
+            // Econt totals the contents list as sum(price x count) and REJECTS the label unless it equals cdAmount,
             // so the list has to balance to whatever we are collecting, not to the order total.
         }
 
-        // Частична доставка: the recipient may open the parcel at the counter and keep only part of it.
+        // Partial delivery: the recipient may open the parcel at the counter and keep only part of it.
         // Econt reconciles what is kept against the packing list above, which is why this is only offered
         // alongside cash on delivery - without a collection there is nothing to settle at the door. The
         // merchant decides (Drusoft's plugin turns it on for every COD order; here it is a setting,
@@ -494,7 +495,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $label['partialDelivery'] = true;
         }
 
-        // The опис lists what is IN the parcel, which has nothing to do with how it is paid for - it used
+        // The contents list says what is IN the parcel, which has nothing to do with how it is paid for - it used
         // to be built inside the cash-on-delivery block, so a prepaid shipment left with no itemised list
         // at all. With COD it must total exactly the collected amount (Econt rejects the label otherwise);
         // without one there is nothing to balance against, so the items stand on their own.
@@ -525,8 +526,8 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
 
     /**
      * Order line items as Econt PackingListElement[] - seq #, name, weight (kg), qty, price.
-     * Econt totals the опис as sum(price × count), so price + weight are PER UNIT (tax-inclusive).
-     * Econt requires that опис total to equal the наложен платеж (cdAmount = order total), so any
+     * Econt totals the contents list as sum(price x count), so price + weight are PER UNIT (tax-inclusive).
+     * Econt requires that contents-list total to equal the cash on delivery (cdAmount = order total), so any
      * remainder (shipping, fees, rounding) is folded into one balancing line.
      */
     private static function packing_list(\WC_Order $order, ?float $cod_total): array {
@@ -599,7 +600,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
      *
      * Econt echoes the applied services back on create - each one a {type, description, count, price,
      * paymentSide} row - so the cash-on-delivery can be confirmed without a second call: it is the row
-     * with type 'CD', whose `count` is the amount to collect. A waybill that prints "НП: 0.00" has no
+     * with type 'CD', whose `count` is the amount to collect. A waybill printing a COD line of 0.00 has no
      * such row, and that is exactly the failure nobody notices until the parcel is already gone.
      *
      * @param array $body The request we sent.
@@ -767,7 +768,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
                 ['shipmentNumbers' => [$waybill]]
             );
             if (!empty($resp['error'])) { return false; }
-            // deleteLabels reports per-shipment results. "Пратка ... не е открита" is not a failure: the
+            // deleteLabels reports per-shipment results. "shipment ... not found" is not a failure: the
             // shipment is not there any more, which is exactly what cancelling was for - a second attempt
             // (or a cancel of something Econt already dropped) must not report failure and leave the
             // merchant unable to re-issue. Anything else IS a failure.
@@ -783,7 +784,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         }
     }
 
-    /** Already cancelled if getShipmentStatuses reports an "Анулирана"/canceled status or the shipment is gone. */
+    /** Already cancelled if getShipmentStatuses reports a cancelled status or the shipment is gone. */
     public function is_cancelled(string $waybill): bool {
         try {
             $resp = $this->post_json($this->base . '/Shipments/ShipmentService.getShipmentStatuses.json', ['shipmentNumbers' => [$waybill]]);

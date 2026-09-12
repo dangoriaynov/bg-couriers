@@ -1,7 +1,7 @@
 (function ($) {
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
   // Bulgarian Cyrillic -> Latin transliteration, so a customer can type the city/office/APS in Latin letters
-  // and still match the Cyrillic-named entries (official Наредба scheme).
+  // and still match the Cyrillic-named entries (the official Bulgarian transliteration ordinance).
   var BGCOURIERS_TR = { 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
     'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
     'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sht', 'ъ': 'a', 'ь': 'y', 'ю': 'yu', 'я': 'ya' };
@@ -82,7 +82,7 @@
   }
 
   // Delivery kinds this courier collects no cash at (server-rendered; empty on a shop with no cash on
-  // delivery to lose). Express One carries no наложен платеж to an EXOBOX locker.
+  // delivery to lose). Express One carries no cash on delivery to an EXOBOX locker.
   function noCod($wrap) {
     return ($wrap.attr('data-nocod') || '').split(',').filter(function (t) { return t !== ''; });
   }
@@ -229,7 +229,7 @@
             for (var i = 0; i < rows.length && out.length < 200; i++) {
               var a = rows[i]; // [city_id, name, post_code, name_lat]
               // Match the Cyrillic name (and its Latin transliteration), the official Latin name, or postcode -
-              // so typing "sofia"/"София"/"1000" all find гр. София.
+              // so a Latin spelling, the Cyrillic one and the post code all find the same town.
               if (!term || bgcTextMatch(a[1], term) || (a[3] && String(a[3]).toLowerCase().indexOf(term) !== -1) || String(a[2]).indexOf(term) !== -1) {
                 out.push({ city_id: a[0], name: a[1], post_code: a[2] });
               }
@@ -871,7 +871,8 @@
 
   window.BGCouriersCheckout = {
     // Shared with bgc-allmap.js so its city box can filter the preloaded index the same way this one
-    // does - "sofia", "София" and "1000" all finding гр. София. Exposed rather than copied: a second
+    // does - a Latin spelling, the Cyrillic one and the post code all finding the same town. Exposed
+    // rather than copied: a second
     // transliteration table would drift from this one the first time either was corrected.
     textMatch: bgcTextMatch,
     applyPick: function (pick) {

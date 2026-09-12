@@ -71,7 +71,7 @@ final class BlockerPriorityTest extends TestCase {
     }
 
     /**
-     * ППП mode, the courier does not do ППП, and the shop has no prepaid gateway: it will not appear at
+     * PPP mode, the courier does not do PPP, and the shop has no prepaid gateway: it will not appear at
      * checkout. That is what the merchant needs told, even though it is ALSO missing a sender phone.
      */
     public function test_cannot_appear_at_checkout_wins_over_a_missing_setting(): void {
@@ -93,7 +93,7 @@ final class BlockerPriorityTest extends TestCase {
     }
 
     /**
-     * With a prepaid gateway present the ППП problem is only a warning - the courier still appears, for
+     * With a prepaid gateway present the PPP problem is only a warning - the courier still appears, for
      * prepaid orders. Now the missing setting IS the thing that would break those orders, so it wins.
      */
     public function test_a_missing_setting_wins_when_the_courier_can_still_be_used(): void {

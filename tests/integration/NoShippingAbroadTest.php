@@ -3,7 +3,7 @@
  * A checkout with nothing to choose from has to say why - and, abroad, offer the way back.
  *
  * The state under test is a real one and not a rare one: a shop whose cash on delivery is legal only
- * through the courier's ППП cannot be paid for a parcel that leaves the country, so every rate for a
+ * through the courier's PPP cannot be paid for a parcel that leaves the country, so every rate for a
  * foreign address is refused on purpose. What the customer then saw was WooCommerce's "please ensure
  * that your address has been entered correctly", about an address with nothing wrong with it, on a page
  * whose country picker is drawn against a shipping rate and therefore was not there either.
@@ -82,7 +82,7 @@ final class NoShippingAbroadTest extends WP_UnitTestCase {
     /**
      * The payment box under it is WooCommerce's, and it goes empty for the same reason.
      *
-     * Abroad, under ППП, the plugin takes cash on delivery away itself - and on a shop with no prepaid
+     * Abroad, under PPP, the plugin takes cash on delivery away itself - and on a shop with no prepaid
      * method that leaves nothing at all, so WooCommerce prints "Sorry, it seems that there are no
      * available payment methods". On a Bulgarian shop that is a stock English sentence which names
      * neither the cause nor a way out, directly underneath our own message that names both.

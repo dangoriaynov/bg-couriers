@@ -9,7 +9,7 @@ require_once dirname(__DIR__) . '/stubs/wc-order.php';
  * recipient pays the delivery at the door, the cash on delivery has to drop to the goods alone - otherwise
  * the customer is charged the delivery twice, once in the collected amount and again by the courier.
  *
- * Econt also REJECTS the label unless the опис (packing list) totals exactly the collected amount, so the
+ * Econt also REJECTS the label unless the contents list (packing list) totals exactly the collected amount, so the
  * balancing line has to follow the same number rather than the order total.
  *
  * @group core
@@ -82,7 +82,7 @@ final class EcontPayerCodTest extends TestCase {
     }
 
     /**
-     * A prepaid order is never charged again on delivery - but it still gets an опис. The list describes
+     * A prepaid order is never charged again on delivery - but it still gets an contents list. The list describes
      * what is IN the parcel, which has nothing to do with how it was paid for; it used to be built inside
      * the cash-on-delivery block, so prepaid shipments went out with no itemised contents at all.
      */
@@ -101,7 +101,7 @@ final class EcontPayerCodTest extends TestCase {
         }
     }
 
-    /** Econt sums the опис as price x count - that is the number it compares against cdAmount. */
+    /** Econt sums the contents list as price x count - that is the number it compares against cdAmount. */
     private function packing_total(array $label): float {
         $sum = 0.0;
         foreach ($label['packingList'] ?? [] as $line) { $sum += $line['price'] * $line['count']; }

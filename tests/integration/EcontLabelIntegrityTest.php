@@ -110,8 +110,8 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
     }
 
     /**
-     * COD enabled: the label must carry наложен платеж via the postal-money-transfer agreement (ППП),
-     * the delivery-fee payer (за чий рахунок = sender, on account), and the itemised packing list
+     * COD enabled: the label must carry cash on delivery via the postal-money-transfer agreement (PPP),
+     * the delivery-fee payer (at whose expense = sender, on account), and the itemised packing list
      * (seq / name / weight kg / qty / price). This is the money-critical path.
      */
     public function test_cod_enabled_payload_has_ppp_who_pays_and_packing_list(): void {
@@ -120,7 +120,7 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         }
         update_option('woocommerce_weight_unit', 'kg');
         update_option('bgcouriers_econt_cod_enabled', 'yes');
-        update_option('bgcouriers_econt_cd_num', 'CD139879'); // the moneyTransfer agreement (пощенски паричен превод)
+        update_option('bgcouriers_econt_cd_num', 'CD139879'); // the moneyTransfer agreement (postal money order)
 
         $product = new WC_Product_Simple();
         $product->set_name('Тест продукт');
@@ -149,12 +149,12 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
 
         $label = $this->build($order, $sender, '1009')['label'];
 
-        // наложен платеж via the ППП agreement
+        // cash on delivery via the PPP agreement
         $this->assertSame('CD139879', $label['services']['cdPayOptionsTemplate']);
         $this->assertSame('get', $label['services']['cdType']);
         $this->assertSame('EUR', $label['services']['cdCurrency']);
         $this->assertEqualsWithDelta((float) $order->get_total(), (float) $label['services']['cdAmount'], 0.001);
-        // за чий рахунок - left to Econt's default (the API client / sender is billed); NOT set
+        // at whose expense - left to Econt's default (the API client / sender is billed); NOT set
         // explicitly, because paymentSenderMethod='credit' makes Econt demand a payer client number
         // the profile doesn't carry (live-confirmed rejection 2026-07-06).
         $this->assertArrayNotHasKey('paymentSenderMethod', $label);
@@ -167,7 +167,7 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         $this->assertSame(2, $item['count']);
         $this->assertEqualsWithDelta(0.5, (float) $item['weight'], 0.001);   // per unit
         $this->assertEqualsWithDelta(10.0, (float) $item['price'], 0.01);    // per unit (tax-inclusive; no tax in test env)
-        // Econt invariant: sum(price × count) must equal the наложен платеж (cdAmount), else it rejects.
+        // Econt invariant: sum(price × count) must equal the cash on delivery (cdAmount), else it rejects.
         $sum = 0.0; foreach ($label['packingList'] as $pl) { $sum += (float) $pl['price'] * (int) $pl['count']; }
         $this->assertEqualsWithDelta((float) $label['services']['cdAmount'], $sum, 0.01);
 
@@ -175,7 +175,7 @@ final class EcontLabelIntegrityTest extends WP_UnitTestCase {
         update_option('bgcouriers_econt_cd_num', '');
     }
 
-    /** COD disabled: no наложен платеж / packing list / payment-sender leaks onto the label. */
+    /** COD disabled: no cash on delivery / packing list / payment-sender leaks onto the label. */
     public function test_cod_disabled_payload_has_no_cod_fields(): void {
         if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
         update_option('bgcouriers_econt_cod_enabled', 'no');

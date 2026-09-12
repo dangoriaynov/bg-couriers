@@ -23,7 +23,7 @@ require_once dirname(__DIR__) . '/stubs/wc-tax.php';
  *
  * It was decided by exactly that, through display_price(), which is gated on the display setting. On
  * the default ('excl') the customer was told 2,20 and handed the courier 2,64. Measured on the live dev
- * shop 2026-08-31, one 1 kg parcel: Speedy short by 0.44, Express One by 0.68, Европът by 0.46 - each
+ * shop 2026-08-31, one 1 kg parcel: Speedy short by 0.44, Express One by 0.68, Evropat by 0.46 - each
  * exactly its own VAT.
  *
  * And a second layer underneath, which is why reading the courier's own VAT was not enough: the quote

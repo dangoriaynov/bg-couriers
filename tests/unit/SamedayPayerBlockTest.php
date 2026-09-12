@@ -6,7 +6,7 @@ use Brain\Monkey\Functions;
 /**
  * Sameday refuses recipient-paid delivery unless the contract covers it, and when it refuses NO waybill
  * is produced - every order with that courier fails. There is no way to ask the API up front, so the
- * refusal itself is remembered and turned into the same red-tab blocker the ППП rules already use.
+ * refusal itself is remembered and turned into the same red-tab blocker the PPP rules already use.
  *
  * @group core
  */
@@ -57,13 +57,13 @@ final class SamedayPayerBlockTest extends TestCase {
         $this->assertNull(BGCouriers_Settings::courier_blocker('speedy'));
     }
 
-    /** The ППП blockers still come through the same channel - this replaced their call sites. */
+    /** The PPP blockers still come through the same channel - this replaced their call sites. */
     public function test_ppp_blocker_still_reported(): void {
         $this->opts([
             'bgcouriers_cod_fiscalization'    => 'ppp',
             'bgcouriers_boxnow_ppp_payout'    => 'no',
         ]);
-        // The ППП branch asks whether the shop has a prepaid gateway, which walks
+        // The PPP branch asks whether the shop has a prepaid gateway, which walks
         // WC()->payment_gateways()->payment_gateways(). None enabled = the fatal branch.
         $gateways = new class { public function payment_gateways(): array { return []; } };
         Functions\when('WC')->justReturn(new class($gateways) {

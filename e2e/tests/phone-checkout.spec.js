@@ -9,7 +9,7 @@ const { addAnyProductToCart, gotoCheckout, dismissStoreBanner, selectShippingMet
  *
  * Found on 2026-09-11 by walking exactly this path with screenshots: the (i) bubble cut off at the
  * left edge, the address picker's "Use this address" button off the right edge, a 30px map opener and a
- * 40px BOX NOW button under a thumb, and a chosen office cut to "СОФИЯ - СОМАТ - гр. СОФ...".
+ * 40px BOX NOW button under a thumb, and a chosen office name cut off mid-word after three words.
  */
 // The descriptor asks for WebKit; only Chromium is installed here, and its touch emulation is what the
 // touch sizes key on, so the device's screen and pointer are taken and its browser is not.

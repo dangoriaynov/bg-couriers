@@ -291,7 +291,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      * API field → internal key:
      *   id    → id   (int)
      *   name  → name
-     *   type  → type  (e.g. "булевард", "улица")
+     *   type  → type  (e.g. "boulevard", "street")
      *   label = trim(type . ' ' . name)
      *
      * @param array $resp  Decoded API response (expects $resp['data']).
@@ -391,9 +391,9 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      * `{"shipping_price":2.21,"total_service_fees":0.38,"total_price":2.59}` - the exact sum of its own
      * parts, with no tax field anywhere, which reads precisely like a net total. It is not one.
      *
-     * The waybill settled it, the way it settled Европът: a shipment created on the live account
-     * 2026-08-31 for the parcel quoted at 2.59 printed **"За плащане - КУ: 2.59 EUR, Общо: 2.59 EUR"**.
-     * "За плащане" is what the person actually hands over, so 2.59 is the money, tax and all.
+     * The waybill settled it, the way it settled Evropat: a shipment created on the live account
+     * 2026-08-31 for the parcel quoted at 2.59 printed **"To pay - courier service: 2.59 EUR, Total: 2.59 EUR"**.
+     * "To pay" is what the person actually hands over, so 2.59 is the money, tax and all.
      *
      * The line this replaces said "tax split TBD at live-verify" and stood for months, and the TBD was
      * read as a net price by everything downstream: the rate cost is handed to WooCommerce, which added
@@ -566,7 +566,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      * GET /v1/shipment-statuses. Event mapping: status_code → code, status → name, created_at → date.
      *
      * The code is what we hand on as the phase, so no verdict about a Pigeon parcel is ever reached by
-     * reading Bulgarian prose - which is how "Доставена в офис/локър" (the parcel REACHED the office) was
+     * reading Bulgarian prose - which is how "delivered to an office/locker" (the parcel REACHED the office) was
      * being read as delivered to the customer.
      *
      * @param array $resp Decoded JSON response (expects $resp['data']).
@@ -610,7 +610,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
     /**
      * The status codes that, ON A RETURN LEG, mean the goods are back within the shop's reach. Pigeon
      * words the end of a return with the very same codes it uses to end a delivery - the "office" in
-     * "Готова за взимане в офис/АПС" is simply the SHOP's office this time - so these only ever carry
+     * "ready for collection at an office/locker" is simply the SHOP's office this time - so these only ever carry
      * this meaning after follow_chain() has established that the leg is a journey home.
      *
      * @var string[]
@@ -625,7 +625,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      * The reference number of the shipment that carries on from this one, or '' when there is none.
      *
      * Pigeon never walks the booked waybill through 'returning_to_sender' / 'returned'. A parcel nobody
-     * collected FREEZES on "Непотърсена" for good, and the journey home travels under a brand new number
+     * collected FREEZES on "unclaimed" for good, and the journey home travels under a brand new number
      * linked from `chain_after` - so a return read off the booked number alone is simply invisible.
      * A redirection chains the same way, which is why the caller still has to check what the new leg is.
      *
@@ -712,7 +712,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
     }
 
     /**
-     * Whether a waybill is already cancelled at Pigeon (status "Отказана"). Used by BGCouriers_Labels::cancel()
+     * Whether a waybill is already cancelled at Pigeon (status "refused"). Used by BGCouriers_Labels::cancel()
      * to reach the desired end-state gracefully when a cancel call reports failure because the shipment
      * was already voided. Live - do NOT call in tests.
      */

@@ -81,7 +81,7 @@ final class LabelPdfFetchTest extends TestCase {
     }
 
     /**
-     * Two of the label links are not ours - Econt and Европът both answer with a URL that this server
+     * Two of the label links are not ours - Econt and Evropat both answer with a URL that this server
      * then fetches - so a link pointing back inside the shop's own network is refused before the
      * request is made. It would be a blind request, and a blind request to a metadata address is still
      * how a cloud instance's credentials get read.

@@ -69,7 +69,7 @@ final class InternationalServiceTest extends TestCase {
     /**
      * Cash on delivery abroad is collected as CASH, never as a postal money transfer.
      *
-     * ППП is a Bulgarian instrument and Speedy refuses it for a foreign address - the whole calculation
+     * PPP is a Bulgarian instrument and Speedy refuses it for a foreign address - the whole calculation
      * comes back with no price at all (sla.cod.moneyTransfer.cod_sub_service_validator.money-transfer-
      * not-allowed-for-foreign-countries, measured 2026-08-19 on a 1 kg parcel to office 901, Sibiu).
      * With CASH the same parcel prices fine, so this is one field between "Romania works" and "Speedy

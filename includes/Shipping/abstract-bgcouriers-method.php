@@ -6,7 +6,7 @@ defined('ABSPATH') || exit;
  *
  * There were six of these files and they were the same file. Measured before this class existed:
  * normalising the courier's id and name out of them left ZERO differing lines of code between Speedy,
- * Econt, Pigeon, Sameday and Европът, and one line - the class name - between Speedy and Express One.
+ * Econt, Pigeon, Sameday and Evropat, and one line - the class name - between Speedy and Express One.
  * Six copies is six places to fix a pricing bug in, five of which get forgotten; the free-shipping
  * rule, the "who pays the delivery" rule and the international rule below have each been changed more
  * than once since the plugin shipped.

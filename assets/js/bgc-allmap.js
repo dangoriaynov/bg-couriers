@@ -165,7 +165,8 @@
     if (dest && dest !== homeIndexCountry()) { return null; }
     if (cityList === null) { cityList = buildCityList() || false; }
     if (!cityList || !cityList.length) { return null; }
-    // The checkout's own matcher, so "sofia", "София" and "1000" all find гр. София here too.
+    // The checkout's own matcher, so a Latin spelling, the Cyrillic one and the post code all find the
+    // same town here too.
     var match = (window.BGCouriersCheckout && window.BGCouriersCheckout.textMatch)
       || function (text, t) { return String(text).toLowerCase().indexOf(t) !== -1; };
     var t = term.toLowerCase(), out = [];
@@ -222,7 +223,7 @@
     // NOW's violet and Speedy's crimson. Magenta it is: ΔE 24 from the nearest pin against 15.8 for the
     // closest pair already here, and nothing on an OpenStreetMap tile is this colour.
     expressone: '#E0189B',
-    // Европът's mark carries exactly two colours, sampled off their own logo: red #DB1F26 (hue 358)
+    // Evropat's mark carries exactly two colours, sampled off their own logo: red #DB1F26 (hue 358)
     // and navy #293B81 (hue 228). BOTH are taken, and taken by near-identical neighbours - Speedy's
     // crimson is hue 345 and Econt's navy is hue 222, which is 13 and 6 degrees away. At pin size that
     // is the same colour twice, the thing the Express One attempt proved cannot be fixed by adjusting
@@ -548,7 +549,7 @@
     }
     /**
      * Open it as a dropdown - everything on offer, whatever is in the box. The chosen name is selected
-     * with it, so typing replaces the town instead of appending to "СОФИЯ (1000)" and finding nothing.
+     * with it, so typing replaces the town instead of appending to a "TOWN (1000)" label and finding nothing.
      */
     function openList() {
       // A close left over from the press that opened this. Clearing the town takes the focus to the ×
@@ -600,7 +601,7 @@
 
     // The city the CHECKOUT is on right now wins over the one remembered from last time. It used to be
     // the other way round - remembered first, checkout only as a fallback - so a customer who set their
-    // courier to Ахелой and then opened the map was shown София, because that is where they had been
+    // courier to one town and then opened the map was shown a different one, because that is where they had been
     // looking on some earlier visit. The remembered place is a courtesy for when the checkout has no
     // city yet; it is not news, and it must never overrule what the customer has just chosen.
     // seedFromCheckout() leaves the loaded values alone when it finds no city, so this is safe to call

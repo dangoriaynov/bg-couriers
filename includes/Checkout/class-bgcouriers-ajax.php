@@ -220,7 +220,7 @@ class BGCouriers_Ajax {
      * because that pair is what identifies a place to the other couriers.
      *
      * The dedup key is lower-cased: couriers spell the same place with different casing (Speedy's
-     * nomenclature is upper-case, e.g. "СОФИЯ" vs another courier's "София"), and comparing the raw
+     * nomenclature is upper-case, e.g. "SOFIA" vs another courier's "Sofia"), and comparing the raw
      * name would show the customer the same city twice. The label keeps whichever spelling was seen
      * FIRST, so the list still reads as one real courier's own wording, not a synthetic normalisation.
      *
@@ -289,11 +289,11 @@ class BGCouriers_Ajax {
      * BGCouriers_Ajax::city_offices() does, and it is right for a single courier's own picker - but this
      * endpoint fans out across every enabled courier and both delivery types, which is up to eight live
      * API calls inside one request. That reliably killed the request whenever the 6-hour per-city
-     * transient was cold: measured on dev, clearing the transients for Пловдив turned this endpoint from
+     * transient was cold: measured on dev, clearing the transients for Plovdiv turned this endpoint from
      * 200 in ~2s into a 500 with an empty body in ~6s, and the customer got a blank map with no error.
      * One slow courier should not be able to take down a map of five.
      *
-     * The tables carry the same thing: the same run gave 37+50 / 36+3 / 16+0 / 0+90 points for Пловдив
+     * The tables carry the same thing: the same run gave 37+50 / 36+3 / 16+0 / 0+90 points for Plovdiv
      * against the live 37+50 / 36+3 / 16+0 / 0+91 - a single locker added since the last sync, which the
      * next sync picks up. A day-old office list is the right trade for a map that always answers.
      *

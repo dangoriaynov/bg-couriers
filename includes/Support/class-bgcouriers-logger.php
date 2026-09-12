@@ -31,7 +31,7 @@ class BGCouriers_Logger {
      * This used to be one unset() of four literal key names - userName, password, api_key, api_secret -
      * which covered the fields of two couriers out of seven, only at the top level, and only in the
      * exact spelling those two use. BOX NOW's client_id/client_secret, Sameday's X-AUTH-TOKEN,
-     * Европът's clientKey and the webhook secret are all spelled differently and would have gone
+     * Evropat's clientKey and the webhook secret are all spelled differently and would have gone
      * straight into the shop's PHP error log. Nothing hands a request body to this logger today -
      * which is exactly why the hole was invisible, and why it is worth closing before something does.
      *

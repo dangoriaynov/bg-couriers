@@ -6,7 +6,7 @@ const { addAnyProductToCart, gotoCheckout, selectShippingMethod } = require('../
 /**
  * A foreign address this shop CANNOT deliver to has to say so, and offer the way back.
  *
- * The state is not hypothetical: a shop whose cash on delivery is receipted through the courier's ППП
+ * The state is not hypothetical: a shop whose cash on delivery is receipted through the courier's PPP
  * has no way at all to be paid abroad, so every rate for a foreign address is correctly refused - and
  * the country picker, which renders underneath a rate, goes with them. What the customer was left with
  * was WooCommerce's stock "no shipping methods, check your address" on an address with nothing wrong
@@ -30,7 +30,7 @@ const dev = (...args) => execFileSync('bash', [SH, ...args], { encoding: 'utf8' 
 let prepaidWas = 'no';
 test.beforeAll(() => {
   // Stated, not assumed: the dead end only exists while cash on delivery is receipted through the
-  // courier's ППП. On a shop with its own cash register every rate abroad is offered and nothing below
+  // courier's PPP. On a shop with its own cash register every rate abroad is offered and nothing below
   // holds - which would otherwise fail further down with a message pointing at the wrong cause.
   const mode = dev('get', 'bgcouriers_cod_fiscalization');
   expect(mode, 'dev is not in ППП mode, so there is no dead end to test').toBe('ppp');
@@ -57,7 +57,7 @@ test('an undeliverable country says why, and takes the customer back @speedy', a
   await expect(page.locator('input[name^="shipping_method"]'),
     'a rate survived - is a prepaid gateway enabled on dev after all?').toHaveCount(0);
 
-  // Cash on delivery has to be gone WITH them. It is legal on this shop only through the courier's ППП,
+  // Cash on delivery has to be gone WITH them. It is legal on this shop only through the courier's PPP,
   // which stops at the border - and the message about to be asserted says the order can only be prepaid,
   // so COD sitting underneath it is the shop offering to take money it cannot receipt. It did: the
   // gateway filter waited for a chosen courier, and with every rate refused there was none to ask.

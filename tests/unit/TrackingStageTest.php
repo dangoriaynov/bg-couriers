@@ -22,7 +22,8 @@ final class TrackingStageTest extends TestCase {
     }
 
     /**
-     * Regression: 'достав'/'deliver' are substrings of phrasings that mean the parcel is still moving.
+     * Regression: the Bulgarian stem for "deliver", like 'deliver' itself, is a substring of phrasings
+     * that mean the parcel is still moving.
      * Reading those as delivered would end tracking on a mere delivery attempt.
      */
     public function test_in_flight_delivery_phrasings_are_not_delivered(): void {
@@ -61,8 +62,8 @@ final class TrackingStageTest extends TestCase {
 
     /**
      * The full operation list of two real Speedy parcels, in order. Only the last one is terminal - and
-     * "Отказ от преглед/тестване" (declining to INSPECT the parcel) fires one second before delivery, so
-     * reading its "отказ" as a cancellation would end tracking right at the finish line.
+     * "inspection/testing refused" (declining to INSPECT the parcel) fires one second before delivery, so
+     * reading the word "refusal" in it as a cancellation would end tracking right at the finish line.
      */
     public function test_a_whole_speedy_journey_reads_correctly(): void {
         $journey = [
@@ -134,8 +135,9 @@ final class TrackingStageTest extends TestCase {
     }
 
     /**
-     * The handover flag is what decides "Изпратена", and it must be false while the label merely exists.
-     * Speedy's first operation (148 "Получена информация за пратка") and Econt's first event ("Awaiting
+     * The handover flag is what decides the shipped status, and it must be false while the label merely
+     * exists.
+     * Speedy's first operation (148 "shipment information received") and Econt's first event ("Awaiting
      * delivery to Econt") both fire before anything is collected.
      */
     public function test_handover_is_unknown_by_default(): void {
@@ -178,8 +180,8 @@ final class TrackingStageTest extends TestCase {
 
     /**
      * Regression, live: order 11182 came back - the customer refused it - and the admin still said the
-     * parcel was on its way, because Speedy words a return two ways and we knew only one. "Връщане към
-     * подателя" (111) matched; "Предаване обратно на подател" (124), which is what the last event said,
+     * parcel was on its way, because Speedy words a return two ways and we knew only one. "Returning to
+     * the sender" (111) matched; "handed back to the sender" (124), which is what the last event said,
      * did not.
      */
     public function test_both_speedy_wordings_for_a_return(): void {

@@ -50,7 +50,7 @@ final class PigeonNomenclatureTest extends TestCase {
         $rows = BGCouriers_Pigeon::parse_streets($this->fx('streets.json'));
         $this->assertNotEmpty($rows);
         $this->assertSame(['id', 'name', 'type', 'label'], array_keys($rows[0]));
-        // Find the boulevard row (type='булевард', name='ВИТОША')
+        // Find the boulevard row (type='boulevard', name='VITOSHA')
         $bd = null;
         foreach ($rows as $row) {
             if ($row['name'] === 'ВИТОША') {

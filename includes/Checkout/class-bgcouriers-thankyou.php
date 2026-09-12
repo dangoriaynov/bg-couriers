@@ -103,7 +103,7 @@ class BGCouriers_Thankyou {
             . '<div class="bgc-ty-courier">'
             . ($logo !== '' ? '<img class="bgc-ty-logo" src="' . esc_url($logo) . '" alt="" width="20" height="20"> ' : '')
             . '<strong>' . esc_html((string) ($labels[$courier] ?? ucfirst($courier))) . '</strong>'
-            . ($method !== '' && isset($mlabels[$method]) ? ' — ' . esc_html($mlabels[$method]) : '')
+            . ($method !== '' && isset($mlabels[$method]) ? ' - ' . esc_html($mlabels[$method]) : '')
             . '</div>';
         foreach ($lines as $line) {
             $html .= '<div class="bgc-ty-line">' . esc_html($line) . '</div>';

@@ -27,7 +27,7 @@ const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMetho
  * purpose, and a silent skip would answer "does it work?" with "nothing happened".
  *
  * The order is PREPAID, and that is the feature rather than a convenience. Dev's cash-on-delivery is
- * legal only because Speedy does the ППП, and no courier's ППП crosses the border - Speedy refuses the
+ * legal only because Speedy does the PPP, and no courier's PPP crosses the border - Speedy refuses the
  * postal money transfer for a foreign address outright and returns no price at all for the shipment. So
  * the plugin takes cash on delivery off the checkout the moment the destination is abroad, and this
  * spec asserts that too. Bank transfer is switched on for the run and off again after, because a
@@ -49,7 +49,7 @@ let booked = '';
 
 // The one prepaid way to pay this shop has. Enabled for this spec only, and afterwards put back the way
 // it was FOUND rather than switched off: a shop whose cash on delivery is legal only through the
-// courier's ППП has no way to be paid abroad, so with no prepaid gateway every rate for a foreign
+// courier's PPP has no way to be paid abroad, so with no prepaid gateway every rate for a foreign
 // address is correctly refused - and dev, left that way by an earlier run of this spec, then showed the
 // next person who picked a foreign country an empty delivery box.
 let prepaidWas = 'no';
@@ -128,7 +128,7 @@ test('speedy guest checkout to ROMANIA books a real waybill @speedy @books-real-
   const total = await page.locator('.order-total .woocommerce-Price-amount').first().innerText();
   console.log(`[intl] order total with Romanian delivery: ${total}`);
 
-  // Cash on delivery must be gone: it is legal on this shop only through Speedy's ППП, and that stops at
+  // Cash on delivery must be gone: it is legal on this shop only through Speedy's PPP, and that stops at
   // the border. Its still being on offer would mean the shop was about to collect money it cannot receipt.
   await expect(page.locator('#payment_method_cod'),
     'cash on delivery is still offered for Romania - the ППП does not travel and this must be hidden')

@@ -16,7 +16,7 @@ const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMetho
  * test environment is what answers, so the prices are the courier's own and no real parcel is created.
  *
  * The orders are cash on delivery, which on this shop is a statement about the contract and not a
- * convenience: dev receipts наложен платеж through the courier's ППП, so the plugin offers it only for a
+ * convenience: dev receipts cash on delivery through the courier's PPP, so the plugin offers it only for a
  * courier whose contract pays out that way. Express One's does (owner, 2026-08-25), and the tick on its
  * tab is what says so - untick it and cash on delivery disappears from this checkout, the way it is
  * absent for BOX NOW. Each spec asserts the collection is priced too: the courier charges for taking the
@@ -71,7 +71,7 @@ async function start(page, method) {
  * checkout hides cash on delivery while one is chosen (no_cod_methods() -> ['automat']). This helper
  * used to assert that cash on delivery was on the page whatever the delivery was, which had been
  * false for the locker since that rule was written - the spec was checking the old behaviour and
- * blaming the ППП setting for the difference.
+ * blaming the PPP setting for the difference.
  */
 async function place(page, who, pay = 'cod') {
   await fillGuestBilling(page, { first: 'Тест', last: who, email: 'e2e-expressone@example.com', phone: '0888123456' });
