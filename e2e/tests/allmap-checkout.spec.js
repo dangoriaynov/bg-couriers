@@ -557,10 +557,29 @@ test.describe('the combined map on a phone', () => {
     await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
     await page.waitForTimeout(1500);
 
-    // The bottom-most pin currently on screen - the one whose popup has to be panned clear of the pill.
+    // Down to where the points stand alone, then click the bottom-most - the one whose popup has to be
+    // panned clear of the pill.
+    //
+    // Pins, not markers: a count bubble is a marker too, and clicking one zooms in instead of opening a
+    // popup. This used to ask for any .leaflet-marker-icon and got the answer it wanted only because
+    // stray pins were being left unbucketed at the bottom of the map. Over a city every point is now in
+    // a bubble, which is the whole point of them, so the way to a pin is to open a bubble.
+    const visiblePins = () => page.evaluate(() =>
+      Array.from(document.querySelectorAll('.bgc-allmap-pin')).filter((el) => el.style.display !== 'none').length);
+    for (let i = 0; i < 8 && (await visiblePins()) === 0; i++) {
+      await page.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('.bgc-allmap-cluster'))
+          .map((el) => ({ el, y: el.getBoundingClientRect().bottom }))
+          .sort((a, b2) => b2.y - a.y)[0];
+        if (b) { b.el.click(); }
+      });
+      await page.waitForTimeout(900);
+    }
+    expect(await visiblePins(), 'no pin ever came out of the bubbles').toBeGreaterThan(0);
     await page.evaluate(() => {
-      const pins = Array.from(document.querySelectorAll('.leaflet-marker-icon'))
-        .map(el => ({ el, y: el.getBoundingClientRect().bottom }))
+      const pins = Array.from(document.querySelectorAll('.bgc-allmap-pin'))
+        .filter((el) => el.style.display !== 'none')
+        .map((el) => ({ el, y: el.getBoundingClientRect().bottom }))
         .sort((a, b) => b.y - a.y);
       pins[0].el.click();
     });

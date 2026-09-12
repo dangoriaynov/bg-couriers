@@ -1240,7 +1240,16 @@ class BGCouriers_Checkout {
             // next round, which is the same race that has bitten this file before. Rendered as the chosen
             // option it simply IS the state, and cannot be lost.
             $only = BGCouriers_Nomenclature::offices($courier, $site_id, $sel_method);
-            if (count($only) === 1) {
+            // ...and only where it is the town's ONLY pickup point, of any kind. Айтос has one Speedy
+            // counter and two Speedy lockers: choosing the counter because it is the only counter
+            // answered a question the customer had not been asked, in a town where there was plainly
+            // something to ask. Counted across the delivery options this courier actually offers - a
+            // locker the merchant has switched off is not an alternative the customer could have taken.
+            $total = 0;
+            foreach (array_intersect(BGCouriers_Settings::enabled_methods($courier), ['office', 'automat']) as $m) {
+                $total += count(BGCouriers_Nomenclature::offices($courier, $site_id, $m));
+            }
+            if (count($only) === 1 && $total === 1) {
                 $one = $only[0];
                 $office_option = '<option value="' . esc_attr((string) $one['office_id']) . '" selected>'
                     . esc_html($one['name'] . ' - ' . $one['address']) . '</option>';
