@@ -435,6 +435,13 @@ class BGCouriers_Labels {
         }
         $order->delete_meta_data('_bgcouriers_waybill');
         $order->delete_meta_data('_bgcouriers_label_url');
+        // And everything that described the shipment that no longer exists. The stage in particular:
+        // it is written the moment a waybill is issued, and it stayed behind when the waybill went, so
+        // the orders list kept showing "registered" for an order with nothing registered. Nothing about
+        // a voided shipment is worth keeping on the order; the note below is its record.
+        self::reset_shipment_state($order);
+        $order->delete_meta_data('_bgcouriers_track_stage');
+        $order->delete_meta_data('_bgcouriers_track_updated');
         $order->add_order_note($already
             /* translators: %s: waybill number */
             ? sprintf(__('Shipment label %s was already cancelled at the courier; removed from the order.', 'bg-couriers'), $waybill)

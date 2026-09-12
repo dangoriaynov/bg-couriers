@@ -106,6 +106,23 @@ final class OneWaybillPerOrderTest extends WP_UnitTestCase {
         $other->query($other->prepare('SELECT RELEASE_LOCK(%s)', $name));
     }
 
+    /**
+     * A voided shipment leaves nothing behind. The stage is written the moment a waybill is issued and
+     * it stayed when the waybill was cancelled, so the orders list showed "registered" for an order with
+     * nothing registered - seen on dev after voiding a real booking.
+     */
+    public function test_a_cancelled_waybill_takes_its_stage_with_it(): void {
+        $o = $this->order();
+        BGCouriers_Labels::generate($o->get_id());
+        $this->assertSame('registered', (string) wc_get_order($o->get_id())->get_meta('_bgcouriers_track_stage'));
+
+        BGCouriers_Labels::cancel($o->get_id());
+        $fresh = wc_get_order($o->get_id());
+        $this->assertSame('', (string) $fresh->get_meta('_bgcouriers_waybill'));
+        $this->assertSame('', (string) $fresh->get_meta('_bgcouriers_track_stage'), 'no shipment, no stage');
+        $this->assertSame('', (string) $fresh->get_meta('_bgcouriers_track_updated'));
+    }
+
     /** And the ordinary case is untouched: the second call for an already-labelled order just answers. */
     public function test_an_order_that_has_a_waybill_is_answered_without_the_courier(): void {
         $o = $this->order();

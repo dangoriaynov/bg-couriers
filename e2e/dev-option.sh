@@ -14,6 +14,8 @@
 #   e2e/dev-option.sh intl on           # switch it on for one spec, and off again afterwards
 #   e2e/dev-option.sh sync speedy       # run one courier's nomenclature sync (needed after intl on)
 #   e2e/dev-option.sh rows speedy RO    # how many towns that courier lists in that country
+#   e2e/dev-option.sh latest [n]        # the newest n orders this suite placed, with courier and waybill
+#   e2e/dev-option.sh order 1234        # one order's courier meta and last notes
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -94,6 +96,22 @@ case "${1:-}" in
   # Only ever the suite's OWN orders, matched on the e2e-*@example.com addresses the specs check out
   # with. Everything else is left strictly alone and printed instead: dev carries real test orders the
   # owner made, and voiding one of those to tidy up would be a far worse bug than the one this prevents.
+  # The newest orders this suite placed, with their courier and waybill - to pick one to book by hand.
+  latest)
+    run "$WP eval '
+      foreach (wc_get_orders([\"limit\"=>${2:-8},\"orderby\"=>\"ID\",\"order\"=>\"DESC\",\"return\"=>\"objects\"]) as \$o) {
+        if (!preg_match(\"/^e2e-.*@example\\.com\$/\", (string) \$o->get_billing_email())) { continue; }
+        printf(\"%d %s %s %s waybill=%s\n\", \$o->get_id(), \$o->get_status(), \$o->get_meta(\"_bgcouriers_courier\"),
+               \$o->get_meta(\"_bgcouriers_method\"), \$o->get_meta(\"_bgcouriers_waybill\") ?: \"-\");
+      }'" | tr -d '\r' ;;
+  # One order's courier meta and its last notes - to check what a booking actually wrote.
+  order)
+    run "$WP eval '
+      \$o = wc_get_order((int) $2); if (!\$o) { print(\"NO SUCH ORDER\n\"); return; }
+      foreach ([\"courier\",\"method\",\"waybill\",\"track_stage\",\"label_url\",\"label_paper_size\",\"label_warning\",\"autolabel_try\"] as \$k) {
+        \$v = (string) \$o->get_meta(\"_bgcouriers_\" . \$k); printf(\"%-17s %s\n\", \$k, \$k === \"label_url\" ? (\$v ? \"set\" : \"-\") : (\$v ?: \"-\"));
+      }
+      foreach (wc_get_order_notes([\"order_id\"=>(int) $2,\"limit\"=>4]) as \$n) { printf(\"note: %s\n\", mb_substr(\$n->content, 0, 110)); }'" | tr -d '\r' ;;
   sweep)
     run "$WP eval '
       foreach (wc_get_orders([\"limit\"=>40,\"orderby\"=>\"ID\",\"order\"=>\"DESC\",\"return\"=>\"objects\"]) as \$o) {
