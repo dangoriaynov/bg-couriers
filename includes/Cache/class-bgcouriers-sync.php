@@ -213,6 +213,18 @@ class BGCouriers_Sync {
         }
     }
 
+    /**
+     * One full sync, soon - what a plugin update asks for. A new version can read a courier's
+     * nomenclature differently (0.4.8 gives BOX NOW towns, read off its lockers, where the tables
+     * held none), and until the next weekly run that courier would be offered with no town to pick.
+     * A single event on the weekly hook, a minute out; one already waiting is left alone.
+     */
+    public static function schedule_once(int $in = MINUTE_IN_SECONDS): void {
+        $next = wp_next_scheduled(self::HOOK);
+        if ($next !== false && $next <= time() + $in) { return; }
+        wp_schedule_single_event(time() + $in, self::HOOK);
+    }
+
     /** Weekly: full nomenclature sync (cities + offices + reference rates) for every enabled courier. */
     public static function cron(): void {
         foreach (self::enabled_couriers() as $courier) { self::run($courier); }

@@ -53,6 +53,10 @@ add_action('plugins_loaded', function () {
     if (get_option('bgcouriers_db_version') !== BGCOURIERS_VERSION) {
         BGCouriers_Schema::create();
         update_option('bgcouriers_db_version', BGCOURIERS_VERSION);
+        // And the nomenclature is refreshed once, soon: a version can read a courier's lists differently
+        // (0.4.8 gives BOX NOW towns), and the weekly run may be days away. Not on a fresh install - it
+        // has no couriers set up yet, and the first "Sync now" is part of setting one up.
+        if (!BGCOURIERS_NEW_INSTALL) { BGCouriers_Sync::schedule_once(); }
     }
     BGCouriers_Plugin::instance();
 });

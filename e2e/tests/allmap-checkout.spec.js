@@ -324,9 +324,8 @@ test('combined map: choosing a point sets the courier, the delivery type and the
   await expect(fields.locator('.bgc-office')).toBeEnabled();
   expect(await fields.locator('.bgc-office-pick .select2-container').getAttribute('class')).not.toContain('select2-container--disabled');
   await fields.locator('.bgc-office-row .select2-selection').click();
-  const options = page.locator('.select2-results__option[role="option"]');
-  await expect(options.first()).toBeVisible({ timeout: 20000 });
-  expect(await options.count(), 'the whole list opens, not the one office').toBeGreaterThan(1);
+  const options = page.locator('.select2-results__option[role="option"]:not(.loading-results)');
+  await expect.poll(async () => options.count(), { message: 'the whole list opens, not the one office', timeout: 30000 }).toBeGreaterThan(1);
   await page.keyboard.press('Escape');
 });
 
