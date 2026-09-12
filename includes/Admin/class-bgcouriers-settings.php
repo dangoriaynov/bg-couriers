@@ -392,6 +392,21 @@ class BGCouriers_Settings {
     }
 
     /**
+     * Does the automatic waybill wait for the day the order says it ships?
+     *
+     * A shop that shows the customer a dispatch day (a delivery-date plugin stamps it on the order) and
+     * issues the waybill the moment the order is paid has a live shipment at the courier for as long
+     * as the gap is: Sameday sent its courier the same day for a parcel going out the next (2026-08-26),
+     * and four Speedy waybills sat "information received" for a month of closure (2026-09-12). Waiting
+     * is the default for a shop being set up today. An install that already existed keeps what it had -
+     * BGCouriers_Plugin::pin_autolabel_wait() writes that down once - because the same shop shipped
+     * one order straight through its closure, and when the day is honoured is the merchant's to say.
+     */
+    public static function autolabel_wait(): bool {
+        return get_option('bgcouriers_autolabel_wait', 'yes') === 'yes';
+    }
+
+    /**
      * Should an order with THIS courier get its waybill by itself?
      *
      * Not one answer for the whole shop, because creating a waybill does not mean the same thing to

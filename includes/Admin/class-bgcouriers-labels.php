@@ -33,6 +33,22 @@ class BGCouriers_Labels {
         // the AJAX line-item editor are separate paths.
         add_action('woocommerce_process_shop_order_meta', [$this, 'maybe_regenerate_on_change'], 90, 1);
         add_action('woocommerce_saved_order_items', [$this, 'maybe_regenerate_on_change'], 90, 1);
+        // An order waiting for its dispatch day whose day was just edited: the appointment follows it.
+        add_action('woocommerce_process_shop_order_meta', [__CLASS__, 'maybe_move_dispatch'], 91, 1);
+    }
+
+    /**
+     * The automatic waybill is put down for the day the order says it ships (attempt_auto_label). That
+     * day can be edited on the order afterwards, and an appointment left where it was would be right
+     * for a day moved later (it fires, finds a future day, and waits again) and late for a day moved
+     * earlier (it fires on the old day, finds the new one gone by, and issues the waybill then). So a
+     * save of an order that holds an appointment is a reason to look at the day again.
+     */
+    public static function maybe_move_dispatch($order_id): void {
+        $order = wc_get_order((int) $order_id);
+        if (!$order || (string) $order->get_meta('_bgcouriers_waybill') !== '') { return; }
+        if ((string) $order->get_meta('_bgcouriers_autolabel_at') === '') { return; }
+        self::attempt_auto_label((int) $order_id);
     }
 
     /** Auto-generate a label when an order reaches the configured status - if THIS courier is set to. */
@@ -58,13 +74,85 @@ class BGCouriers_Labels {
      * waybill until somebody noticed. Retrying is safe because generate() refuses to act when a waybill
      * already exists, so a late retry can never produce a second shipment.
      */
+    /** The hour of the dispatch day, in the site's zone, at which the automatic waybill is issued. */
+    const DISPATCH_HOUR = 7;
+
+    /**
+     * The moment this order's parcel is meant to go out - or 0 when the order does not say.
+     *
+     * A waybill issued the moment an order is paid is a live shipment at the courier from that moment:
+     * Sameday sends its courier for it the same day, Speedy's clock on an unhanded label starts, and the
+     * customer's page says "track this parcel" about a parcel that does not exist yet. Measured on prod
+     * on 2026-09-12: four waybills registered on 4, 6, 9 and 11 September, all "information received"
+     * a week later, for orders that all said they ship on 2 October - a closure the shop had set.
+     *
+     * The day is read from the order. The Order Delivery Date plugin - "Изпращане в" on the shop that
+     * this was measured on - stamps the chosen day as the unix time of its midnight, and that stamp is
+     * understood here; any other source answers through the bgcouriers_dispatch_time filter, which sees
+     * what was read and the order. The hour is the morning of that day, before any courier's round.
+     * Whether the automatic waybill WAITS for it is the shop's setting, BGCouriers_Settings::autolabel_wait().
+     */
+    public static function dispatch_time(\WC_Order $order): int {
+        $ts    = 0;
+        $orddd = (int) $order->get_meta('_orddd_timestamp');
+        if ($orddd > 0) {
+            $tz   = wp_timezone();
+            $day  = (new \DateTimeImmutable('@' . $orddd))->setTimezone($tz)->format('Y-m-d');
+            $hour = max(0, min(23, (int) apply_filters('bgcouriers_dispatch_hour', self::DISPATCH_HOUR)));
+            $at   = date_create_immutable($day . ' ' . sprintf('%02d:00:00', $hour), $tz);
+            if ($at) { $ts = $at->getTimestamp(); }
+        }
+        return max(0, (int) apply_filters('bgcouriers_dispatch_time', $ts, $order));
+    }
+
+    /**
+     * Put the automatic waybill down for the dispatch day, once. The same appointment on a later run is
+     * left alone; a moved day moves it; the order is told the first time and whenever the day changes.
+     */
+    private static function wait_for_dispatch(\WC_Order $order, int $at): void {
+        $id   = $order->get_id();
+        $next = wp_next_scheduled(self::RETRY_HOOK, [$id]);
+        if ($next !== false && (int) $next !== $at) { wp_unschedule_event($next, self::RETRY_HOOK, [$id]); $next = false; }
+        if ($next === false) { wp_schedule_single_event($at, self::RETRY_HOOK, [$id]); }
+        if ((int) $order->get_meta('_bgcouriers_autolabel_at') !== $at) {
+            $order->update_meta_data('_bgcouriers_autolabel_at', $at);
+            /* translators: %s: the day and hour the waybill will be issued */
+            $order->add_order_note(sprintf(__('The waybill will be issued on %s, the day this order ships.', 'bg-couriers'),
+                wp_date(get_option('date_format') . ' ' . get_option('time_format'), $at)));
+            $order->save();
+        }
+    }
+
+    /**
+     * Statuses in which nothing is going to ship, or has already shipped without us: the appointment
+     * for the dispatch day can fire weeks after the status change that made it, and an order that was
+     * cancelled, paid back, never paid, or completed by hand in between must not get a shipment booked
+     * for it. The trigger status itself is never in the way, whatever it is - a shop that labels its
+     * on-hold orders chose that.
+     */
+    const NO_SHIP_STATUSES = ['cancelled', 'refunded', 'failed', 'trash', 'completed', 'pending', 'on-hold', 'checkout-draft'];
+
     public static function attempt_auto_label(int $order_id): void {
         $order = wc_get_order($order_id);
         if (!$order || (string) $order->get_meta('_bgcouriers_waybill') !== '') { return; }
+        $trigger = preg_replace('/^wc-/', '', (string) BGCouriers_Settings::autolabel()['status']);
+        if (!$order->has_status($trigger) && $order->has_status(self::NO_SHIP_STATUSES)) {
+            // The panel promised a day; that promise is withdrawn with the shipment.
+            if ((string) $order->get_meta('_bgcouriers_autolabel_at') !== '') {
+                $order->delete_meta_data('_bgcouriers_autolabel_at');
+                $order->save();
+            }
+            return;
+        }
+        if (BGCouriers_Settings::autolabel_wait()) {
+            $at = self::dispatch_time($order);
+            if ($at > time()) { self::wait_for_dispatch($order, $at); return; }
+        }
         try {
             self::generate($order_id);
             $order = wc_get_order($order_id);
             $order->delete_meta_data('_bgcouriers_autolabel_try');
+            $order->delete_meta_data('_bgcouriers_autolabel_at');
             $order->save();
             return;
         } catch (BGCouriers_Claimed_Exception $e) {

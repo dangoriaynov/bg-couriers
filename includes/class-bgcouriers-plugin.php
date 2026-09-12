@@ -64,6 +64,22 @@ class BGCouriers_Plugin {
         }
     }
 
+    /**
+     * The automatic waybill now waits for the day the order says it ships (see
+     * BGCouriers_Settings::autolabel_wait). For a shop being set up today that is the right default;
+     * for one already running it is a change in WHEN its waybills appear, on a day it did not choose.
+     * The shop that this was measured on shipped one order straight through the closure its orders
+     * named, so the old answer - issue at once - is written down for every existing install, and the
+     * merchant ticks the box when they mean the day.
+     */
+    private static function pin_autolabel_wait(?bool $new_install = null): void {
+        if (get_option('bgcouriers_autolabel_wait_pinned', '') === 'yes') { return; }
+        update_option('bgcouriers_autolabel_wait_pinned', 'yes');
+        // The flag is a constant, so a test - which runs as one fresh install - names the case instead.
+        if ($new_install ?? (defined('BGCOURIERS_NEW_INSTALL') && BGCOURIERS_NEW_INSTALL)) { return; }
+        if (get_option('bgcouriers_autolabel_wait', '') === '') { update_option('bgcouriers_autolabel_wait', 'no'); }
+    }
+
     private static function migrate_env_flags(): void {
         foreach (['pigeon', 'sameday', 'boxnow'] as $c) {
             if (get_option("bgcouriers_{$c}_live", null) === null && get_option("bgcouriers_{$c}_sandbox", null) !== null) {
@@ -119,6 +135,7 @@ class BGCouriers_Plugin {
         // empty list and writes down that it is done. Which is exactly what it did the first time.
         self::pin_who_pays_delivery();
         self::pin_autolabel();
+        self::pin_autolabel_wait();
         add_filter('cron_schedules', function ($s) {
             // These names are what WordPress shows wherever schedules are listed (Site Health, WP Crontrol).
             $s['weekly']    = ['interval' => WEEK_IN_SECONDS, 'display' => __('Once weekly', 'bg-couriers')];
