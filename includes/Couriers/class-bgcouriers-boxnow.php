@@ -160,7 +160,19 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
      * The town then behaves like everyone else's - carried across couriers, preloaded, on the map.
      */
     public function fetch_cities(): array {
-        return self::towns_of(self::parse_destinations($this->destinations()));
+        $towns = self::towns_of(self::parse_destinations($this->destinations()));
+        // The code a town is listed under is the one the shop's other couriers use for it, when they
+        // list it: a locker's own code is a district code as often as not (Sofia's lockers start at
+        // 1111; everyone else says 1000), and the combined map and the carry between couriers key a
+        // town by name and code. The lowest locker code stays for a town only BOX NOW serves.
+        if (class_exists('BGCouriers_Nomenclature')) {
+            foreach ($towns as &$t) {
+                $pc = BGCouriers_Nomenclature::post_code_by_name($t['name'], (string) $t['country'], ['boxnow']);
+                if ($pc !== '') { $t['post_code'] = $pc; }
+            }
+            unset($t);
+        }
+        return $towns;
     }
 
     /**

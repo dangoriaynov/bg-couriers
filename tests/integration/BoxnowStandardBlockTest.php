@@ -54,6 +54,35 @@ final class BoxnowStandardBlockTest extends WP_UnitTestCase {
         $this->assertNotEmpty($idx['automat'], 'the preloaded town list the checkout searches has BOX NOW towns');
     }
 
+    /**
+     * The code BOX NOW's town is listed under is the one the other couriers use for it: its own lockers
+     * say 1407 and 1000 for Sofia here, but on the live account they start at 1111 where Speedy, Econt
+     * and the rest all say 1000 - and a "София (1111)" beside "СОФИЯ (1000)" on the combined map is
+     * one town shown twice (the e2e map specs caught it on dev, 2026-09-13).
+     */
+    public function test_a_town_takes_the_code_the_other_couriers_give_it(): void {
+        $fixture = json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/boxnow/destinations.json'), true);
+        // The lockers' lowest real Sofia code in the fixture is 1000, so the other couriers are given a
+        // code the lockers do not carry - only then does the outcome say whose code won. Two of them
+        // agree and one differs: the most common one is taken.
+        BGCouriers_Nomenclature::upsert_cities('speedy', [['city_id' => 68134, 'name' => 'СОФИЯ', 'post_code' => '1234', 'country' => 'BG']], 'test-run');
+        BGCouriers_Nomenclature::upsert_cities('econt', [['city_id' => 41, 'name' => 'София', 'post_code' => '1234', 'country' => 'BG']], 'test-run');
+        BGCouriers_Nomenclature::upsert_cities('pigeon', [['city_id' => 7, 'name' => 'София', 'post_code' => '1999', 'country' => 'BG']], 'test-run');
+        $co = new class($fixture) extends BGCouriers_Boxnow {
+            private $fx;
+            public function __construct(array $fx) { parent::__construct([]); $this->fx = $fx; }
+            protected function get_json(string $path, array $query = []): array { return $this->fx; }
+        };
+        $by = array_column($co->fetch_cities(), null, 'name');
+        $this->assertSame('1234', $by['София']['post_code'], 'the code the other couriers agree on, not the lockers own 1000');
+        $this->assertSame('9000', $by['Варна']['post_code'], 'a town no other courier lists keeps its lowest locker code');
+        $this->assertSame('1234', BGCouriers_Nomenclature::post_code_by_name('София', 'BG', ['boxnow']));
+        $this->assertSame('', BGCouriers_Nomenclature::post_code_by_name('Никъде', 'BG', ['boxnow']));
+        // Control: BOX NOW's own rows never vote on BOX NOW's code.
+        BGCouriers_Nomenclature::upsert_cities('boxnow', [['city_id' => BGCouriers_Boxnow::town_id('София'), 'name' => 'София', 'post_code' => '1111', 'country' => 'BG']], 'test-run');
+        $this->assertSame('1234', BGCouriers_Nomenclature::post_code_by_name('София', 'BG', ['boxnow']));
+    }
+
     public function test_boxnow_renders_the_standard_block_not_a_widget(): void {
         $s = WC()->session;
         $s->set('chosen_shipping_methods', ['bgcouriers_boxnow']);

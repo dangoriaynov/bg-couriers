@@ -259,6 +259,28 @@ class BGCouriers_Nomenclature {
         }
         return null;
     }
+    /**
+     * The post code the OTHER couriers list a town under - the most common one among their rows of
+     * that name, or '' when none of them lists it. A courier that publishes no town list (BOX NOW) has
+     * its towns read off its lockers, and a locker's own code is a district code as often as not:
+     * Sofia's lockers start at 1111 where every other courier says 1000. The combined map keys a place
+     * by name and code, and the carry between couriers goes by code first, so a town that agrees with
+     * its neighbours on the code is one town everywhere, not one town and a twin.
+     */
+    public static function post_code_by_name(string $name, string $country = '', array $except = []): string {
+        global $wpdb;
+        $t = $wpdb->prefix . 'bgcouriers_cities';
+        $args = [$name];
+        $sql  = "SELECT post_code, COUNT(*) n FROM {$t} WHERE name=%s AND post_code<>''";
+        if ($except) {
+            $sql .= ' AND courier NOT IN (' . implode(',', array_fill(0, count($except), '%s')) . ')';
+            $args = array_merge($args, array_values($except));
+        }
+        $sql .= self::country_sql($country, $args);
+        $row = $wpdb->get_row($wpdb->prepare($sql . ' GROUP BY post_code ORDER BY n DESC, post_code ASC LIMIT 1', ...$args), ARRAY_A);
+        return (string) ($row['post_code'] ?? '');
+    }
+
     public static function city_by_id(string $courier, int $city_id): ?array {
         global $wpdb;
         $row = $wpdb->get_row($wpdb->prepare(

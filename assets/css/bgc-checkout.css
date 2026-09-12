@@ -35,7 +35,7 @@
    data-id): the same red WooCommerce uses on its own required fields, so the two read as one form. */
 .bgc-field.bgc-invalid > label { color: #b32d2e; }
 .bgc-field.bgc-invalid input,
-.bgc-field.bgc-invalid .select2-selection,
+.bgc-field.bgc-invalid .select2-selection { border-color: #b32d2e !important; box-shadow: 0 0 0 3px rgba(179,45,46,.14); }
 
 /* Panel + compact fields */
 .bgc-panel { display: flex; flex-direction: column; gap: 10px; }
@@ -108,8 +108,6 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 .bgc-emerg-msg { font-size: 16px; line-height: 1.5; margin: 4px 0 18px; color: #222; }
 .bgc-emerg-tel { display: inline-block; font-size: 22px; font-weight: 700; text-decoration: none; padding: 12px 22px; border-radius: 10px; background: #2271b1; color: #fff !important; }
 .bgc-emerg-tel:hover { background: #135e96; }
-
-/* BOX NOW locker picker (map widget) */
 
 /* Courier brand logo outside a rate row (free-shipping notices and the like); inside the rate list
    bgc-rates.css takes over. */
@@ -287,8 +285,6 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
   .select2-container--open .bgc-drop .select2-search--dropdown .select2-search__field { height: 44px; min-height: 44px; line-height: 42px; }
   .select2-container--open .bgc-drop .select2-results__option { padding: 12px 10px; }
   .bgc-tab, .bgc-map-btn, .bgc-addr-map-icon { min-height: 44px; }
-  /* The theme draws BOX NOW's "choose a locker" button, and draws it 40px on the shop this was
-     measured on. The rule above did not reach it because it is a theme button, not one of ours. */
-  /* The address picker's footer buttons, for the same reason. */
+  /* The address picker's footer buttons are theme buttons, not ours, so the rule above misses them. */
   .bgc-map-actions .button { min-height: 44px; }
 }
