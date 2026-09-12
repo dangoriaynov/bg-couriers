@@ -43,9 +43,10 @@ class BGCouriers_Method_Boxnow extends BGCouriers_Abstract_Method {
         if (WC()->cart && self::is_free((float) WC()->cart->get_subtotal(), BGCouriers_Settings::free_shipping('boxnow'))) {
             $cost = 0.0;
         }
+        // Per courier - see BGCouriers_Abstract_Method::calculate_shipping().
         if (WC()->session) {
-            WC()->session->set('bgcouriers_quote_price', $cost);
-            WC()->session->set('bgcouriers_quote_source', 'flat');
+            WC()->session->set('bgcouriers_quote_price_boxnow', $cost);
+            WC()->session->set('bgcouriers_quote_source_boxnow', 'flat');
         }
 
         $label = $this->title;

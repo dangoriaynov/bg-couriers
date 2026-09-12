@@ -9,8 +9,10 @@ final class OrderPersistenceTest extends WP_UnitTestCase {
         WC()->session->set('bgcouriers_method', 'office');
         WC()->session->set('bgcouriers_site_id', 68134);
         WC()->session->set('bgcouriers_office_id', 307);
-        WC()->session->set('bgcouriers_quote_price', 6.24);
-        WC()->session->set('bgcouriers_quote_source', 'live');
+        // Per courier since 0.4.8 - every shipping method in the zone writes one of these on every
+        // recalculation, so a shared key held whichever one ran last.
+        WC()->session->set('bgcouriers_quote_price_speedy', 6.24);
+        WC()->session->set('bgcouriers_quote_source_speedy', 'live');
         $order = new WC_Order();
         (new BGCouriers_Checkout())->persist($order);
         $order->save();

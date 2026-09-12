@@ -110,9 +110,13 @@ abstract class BGCouriers_Abstract_Method extends WC_Shipping_Method {
             $cost = 0.0;
         }
 
+        // Tagged with the courier it belongs to. WooCommerce prices EVERY method in the zone on every
+        // recalculation, so one shared key held whichever courier happened to run last - and the order
+        // then carried that number and that source whoever the customer had actually picked. Same shape
+        // of fault as the shared selection key, which was tagged for the same reason.
         if (WC()->session) {
-            WC()->session->set('bgcouriers_quote_price', $cost);
-            WC()->session->set('bgcouriers_quote_source', $quote->source);
+            WC()->session->set('bgcouriers_quote_price_' . $id, $cost);
+            WC()->session->set('bgcouriers_quote_source_' . $id, $quote->source);
         }
 
         $label = $this->title;
