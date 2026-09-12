@@ -82,7 +82,8 @@ class BGCouriers_Tracking_Poller {
             'order'        => 'ASC',
             // Already asked this run. A shipment the poll has just marked finished drops out of the
             // query on its own; one it has not is asked once, whatever page it would have been on.
-            'exclude'      => $seen,
+            // (A NOT IN list, bounded by what one run can ask within its budget - a few hundred at most.)
+            'exclude'      => $seen, // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude
             'date_created' => '>' . (time() - 45 * DAY_IN_SECONDS), // don't poll ancient orders forever
         ];
         $meta = [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- cron, batched + age-bounded
@@ -96,7 +97,7 @@ class BGCouriers_Tracking_Poller {
             $args['meta_query'] = $meta; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- cron, batched + age-bounded
             return array_values(array_filter(wc_get_orders($args), static function ($o) { return $o instanceof \WC_Order; }));
         }
-        $inject = static function ($query) use ($meta) { $query['meta_query'] = $meta; return $query; };
+        $inject = static function ($query) use ($meta) { $query['meta_query'] = $meta; return $query; }; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- cron, batched + age-bounded
         add_filter('woocommerce_order_data_store_cpt_get_orders_query', $inject);
         try { $orders = wc_get_orders($args); }
         finally { remove_filter('woocommerce_order_data_store_cpt_get_orders_query', $inject); }
