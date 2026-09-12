@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-12 20:22+0300\n"
+"POT-Creation-Date: 2026-09-12 20:59+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -40,8 +40,8 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-bulk-labels.php:31
 #: includes/Admin/class-bgcouriers-pickup.php:25
-#: includes/Admin/class-bgcouriers-pickup.php:106
-#: includes/Admin/class-bgcouriers-pickup.php:181
+#: includes/Admin/class-bgcouriers-pickup.php:138
+#: includes/Admin/class-bgcouriers-pickup.php:213
 msgid "Request a courier"
 msgstr ""
 
@@ -716,39 +716,39 @@ msgctxt "Order bulk action"
 msgid "Change status to shipped"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-pickup.php:80
+#: includes/Admin/class-bgcouriers-pickup.php:111
 #: includes/Admin/class-bgcouriers-settings.php:1246
 #: includes/Admin/class-bgcouriers-settings.php:1309
 #: includes/Admin/class-bgcouriers-settings.php:1338
 msgid "You are not allowed to do this."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-pickup.php:112
+#: includes/Admin/class-bgcouriers-pickup.php:144
 msgid ""
 "None of the selected orders can be collected: a courier is called for "
 "waybills that already exist, and for couriers that offer the service."
 msgstr ""
 
 #. translators: %s: the courier's own cut-off moment, e.g. 2026-08-19T17:00:00+0300
-#: includes/Admin/class-bgcouriers-pickup.php:121
+#: includes/Admin/class-bgcouriers-pickup.php:153
 #, php-format
 msgid "The courier accepts requests up to %s."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-pickup.php:141
+#: includes/Admin/class-bgcouriers-pickup.php:173
 msgid "Day"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-pickup.php:143
+#: includes/Admin/class-bgcouriers-pickup.php:175
 msgid "Between"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-pickup.php:147
+#: includes/Admin/class-bgcouriers-pickup.php:179
 msgid "Request the courier"
 msgstr ""
 
 #. translators: 1: courier name, 2: how many orders
-#: includes/Admin/class-bgcouriers-pickup.php:162
+#: includes/Admin/class-bgcouriers-pickup.php:194
 #, php-format
 msgid ""
 "%1$s does not offer a pickup request - %2$d order(s) left out. Its parcels "
@@ -756,14 +756,14 @@ msgid ""
 msgstr ""
 
 #. translators: %d: how many orders
-#: includes/Admin/class-bgcouriers-pickup.php:168
+#: includes/Admin/class-bgcouriers-pickup.php:200
 #, php-format
 msgid ""
 "%d order(s) have no waybill yet - generate one first, then call the courier."
 msgstr ""
 
 #. translators: %d: how many orders
-#: includes/Admin/class-bgcouriers-pickup.php:174
+#: includes/Admin/class-bgcouriers-pickup.php:206
 #, php-format
 msgid ""
 "%d order(s) could not be read - no courier is recorded on them, or the order "
@@ -771,13 +771,13 @@ msgid ""
 msgstr ""
 
 #. translators: 1: courier name, 2: the courier's request id, 3: day, 4: from time, 5: to time
-#: includes/Admin/class-bgcouriers-pickup.php:203
+#: includes/Admin/class-bgcouriers-pickup.php:235
 #, php-format
 msgid "%1$s courier requested (request %2$s) for %3$s, %4$s-%5$s."
 msgstr ""
 
 #. translators: 1: courier name, 2: day, 3: from time, 4: to time
-#: includes/Admin/class-bgcouriers-pickup.php:207
+#: includes/Admin/class-bgcouriers-pickup.php:239
 #, php-format
 msgid ""
 "%1$s courier requested for %2$s, %3$s-%4$s. This courier issues no separate "
@@ -785,13 +785,13 @@ msgid ""
 msgstr ""
 
 #. translators: 1: courier name, 2: how many parcels, 3: request id
-#: includes/Admin/class-bgcouriers-pickup.php:213
+#: includes/Admin/class-bgcouriers-pickup.php:245
 #, php-format
 msgid "%1$s will collect %2$d parcel(s). Request %3$s."
 msgstr ""
 
 #. translators: 1: courier name, 2: how many parcels
-#: includes/Admin/class-bgcouriers-pickup.php:217
+#: includes/Admin/class-bgcouriers-pickup.php:249
 #, php-format
 msgid ""
 "%1$s will collect %2$d parcel(s). This courier issues no separate request "
@@ -799,12 +799,12 @@ msgid ""
 msgstr ""
 
 #. translators: 1: courier name, 2: the courier's own error
-#: includes/Admin/class-bgcouriers-pickup.php:222
+#: includes/Admin/class-bgcouriers-pickup.php:254
 #, php-format
 msgid "%1$s refused the request: %2$s"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-pickup.php:226
+#: includes/Admin/class-bgcouriers-pickup.php:258
 msgid "Back to orders"
 msgstr ""
 
@@ -1331,49 +1331,42 @@ msgstr ""
 #: includes/Admin/class-bgcouriers-wc-settings.php:817
 #: includes/Admin/class-bgcouriers-wc-settings.php:820
 #: includes/Shipping/class-bgcouriers-method-speedy.php:13
-#: includes/class-bgcouriers-plugin.php:89
 msgid "Speedy"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:84
 #: includes/Admin/class-bgcouriers-wc-settings.php:865
 #: includes/Shipping/class-bgcouriers-method-econt.php:13
-#: includes/class-bgcouriers-plugin.php:92
 msgid "Econt"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:85
 #: includes/Admin/class-bgcouriers-wc-settings.php:901
 #: includes/Shipping/class-bgcouriers-method-pigeon.php:13
-#: includes/class-bgcouriers-plugin.php:95
 msgid "Pigeon Express"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:86
 #: includes/Admin/class-bgcouriers-wc-settings.php:1063
 #: includes/Shipping/class-bgcouriers-method-boxnow.php:10
-#: includes/class-bgcouriers-plugin.php:101
 msgid "BOX NOW"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:87
 #: includes/Admin/class-bgcouriers-wc-settings.php:933
 #: includes/Shipping/class-bgcouriers-method-sameday.php:13
-#: includes/class-bgcouriers-plugin.php:108
 msgid "Sameday"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:88
 #: includes/Admin/class-bgcouriers-wc-settings.php:964
 #: includes/Shipping/class-bgcouriers-method-expressone.php:13
-#: includes/class-bgcouriers-plugin.php:111
 msgid "Express One"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:89
 #: includes/Admin/class-bgcouriers-wc-settings.php:1018
 #: includes/Shipping/class-bgcouriers-method-evropat.php:13
-#: includes/class-bgcouriers-plugin.php:114
 msgid "Европът"
 msgstr ""
 
@@ -3122,13 +3115,13 @@ msgid "%s sent no label link in its answer."
 msgstr ""
 
 #: includes/Couriers/class-bgcouriers-econt.php:761
-#: includes/Couriers/class-bgcouriers-speedy.php:647
+#: includes/Couriers/class-bgcouriers-speedy.php:654
 msgid "There are no shipments to collect."
 msgstr ""
 
 #. translators: %s: courier name.
 #: includes/Couriers/class-bgcouriers-econt.php:769
-#: includes/Couriers/class-bgcouriers-speedy.php:652
+#: includes/Couriers/class-bgcouriers-speedy.php:659
 #, php-format
 msgid "%s sent no pickup request number in its answer."
 msgstr ""
@@ -3365,7 +3358,7 @@ msgstr ""
 msgid "the answer is not a PDF"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:641
+#: includes/Couriers/class-bgcouriers-speedy.php:648
 msgid "the pickup request was refused"
 msgstr ""
 
@@ -3385,31 +3378,31 @@ msgstr ""
 msgid "%1$s: no live price for %2$s."
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:276
+#: includes/Support/class-bgcouriers-tracking.php:277
 msgid "Label created"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:277
+#: includes/Support/class-bgcouriers-tracking.php:278
 msgid "On its way back"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:278
+#: includes/Support/class-bgcouriers-tracking.php:279
 msgid "Ready for collection"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:279
+#: includes/Support/class-bgcouriers-tracking.php:280
 msgid "Delivered"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:280
+#: includes/Support/class-bgcouriers-tracking.php:281
 msgid "Back with you"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:281
+#: includes/Support/class-bgcouriers-tracking.php:282
 msgid "Cancelled"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:282
+#: includes/Support/class-bgcouriers-tracking.php:283
 msgid "On its way"
 msgstr ""
 

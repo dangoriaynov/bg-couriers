@@ -86,32 +86,32 @@ class BGCouriers_Plugin {
         // Built the other way, a disabled courier got an adapter with no credentials at all, so
         // validating them was impossible until it was enabled, and it could not be enabled until they
         // were validated.
-        BGCouriers_Couriers::register('speedy', __('Speedy', 'bg-couriers'), static function () {
+        BGCouriers_Couriers::register('speedy', 'Speedy', static function () {
             return new BGCouriers_Speedy(BGCouriers_Settings::courier_credentials('speedy') ?: []);
         });
-        BGCouriers_Couriers::register('econt', __('Econt', 'bg-couriers'), static function () {
+        BGCouriers_Couriers::register('econt', 'Econt', static function () {
             return new BGCouriers_Econt(BGCouriers_Settings::courier_credentials('econt') ?: []);
         });
-        BGCouriers_Couriers::register('pigeon', __('Pigeon Express', 'bg-couriers'), static function () {
+        BGCouriers_Couriers::register('pigeon', 'Pigeon Express', static function () {
             // Pick the live vs sandbox host from the "Live mode" toggle (resolved here at runtime, not in the
             // constructor, so the constructor stays pure for unit tests). Default = live.
             $base = get_option('bgcouriers_pigeon_live', 'yes') === 'yes' ? BGCouriers_Pigeon::PROD : BGCouriers_Pigeon::DEMO;
             return new BGCouriers_Pigeon(array_merge(BGCouriers_Settings::courier_credentials('pigeon') ?: [], ['base' => $base]));
         });
-        BGCouriers_Couriers::register('boxnow', __('BOX NOW', 'bg-couriers'), static function () {
+        BGCouriers_Couriers::register('boxnow', 'BOX NOW', static function () {
             return new BGCouriers_Boxnow(array_merge(BGCouriers_Settings::courier_credentials('boxnow') ?: [], [
                 'api_url'      => get_option('bgcouriers_boxnow_live', 'yes') === 'yes' ? BGCouriers_Boxnow::PROD : BGCouriers_Boxnow::STAGE,
                 'partner_id'   => get_option('bgcouriers_boxnow_partner_id', ''),
                 'warehouse_id' => get_option('bgcouriers_boxnow_warehouse_id', ''),
             ]));
         });
-        BGCouriers_Couriers::register('sameday', __('Sameday', 'bg-couriers'), static function () {
+        BGCouriers_Couriers::register('sameday', 'Sameday', static function () {
             return new BGCouriers_Sameday(BGCouriers_Settings::courier_credentials('sameday') ?: []);
         });
-        BGCouriers_Couriers::register('expressone', __('Express One', 'bg-couriers'), static function () {
+        BGCouriers_Couriers::register('expressone', 'Express One', static function () {
             return new BGCouriers_Expressone(BGCouriers_Settings::courier_credentials('expressone') ?: []);
         });
-        BGCouriers_Couriers::register('evropat', __('Европът', 'bg-couriers'), static function () {
+        BGCouriers_Couriers::register('evropat', 'Европът', static function () {
             return new BGCouriers_Evropat(BGCouriers_Settings::courier_credentials('evropat') ?: []);
         });
         BGCouriers_Couriers::boot();
