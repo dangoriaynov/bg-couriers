@@ -46,9 +46,23 @@ final class CheckoutValidationTest extends WP_UnitTestCase {
         $this->assertNotEmpty($e->get_error_messages(), 'BoxNow with no locker must be blocked');
     }
 
-    public function test_boxnow_with_locker_passes(): void {
-        $e = $this->errors('boxnow', ['bgcouriers_selection_courier' => 'boxnow', 'bgcouriers_office_id' => 8009]);
-        $this->assertEmpty($e->get_error_messages(), 'BoxNow with a locker must pass');
+    /**
+     * BOX NOW is validated like every locker courier since 2026-09-12: a town it lists, and a locker in
+     * that town. It used to pass on a bare locker id, because its lockers were picked on BOX NOW's own
+     * widget with no town in sight; the widget is gone and its towns are read off its lockers.
+     */
+    public function test_boxnow_with_town_and_locker_passes(): void {
+        $town = BGCouriers_Boxnow::town_id('София');
+        BGCouriers_Nomenclature::upsert_cities('boxnow', [['city_id' => $town, 'name' => 'София', 'post_code' => '1000', 'country' => 'BG']], 'test-run');
+        BGCouriers_Nomenclature::upsert_offices('boxnow', [['office_id' => 8009, 'code' => '8009', 'city_id' => $town, 'type' => 'automat',
+            'name' => 'BOX NOW - Тест', 'address' => 'ул. Тестова 1 София', 'lat' => 42.7, 'lng' => 23.3, 'country' => 'BG']], 'test-run');
+        $e = $this->errors('boxnow', ['bgcouriers_selection_courier' => 'boxnow', 'bgcouriers_method' => 'automat',
+                                      'bgcouriers_site_id' => $town, 'bgcouriers_office_id' => 8009]);
+        $this->assertEmpty($e->get_error_messages(), 'BoxNow with a town and a locker must pass');
+        // And a locker with no town is what the widget used to leave behind - not a destination.
+        $e = $this->errors('boxnow', ['bgcouriers_selection_courier' => 'boxnow', 'bgcouriers_method' => 'automat',
+                                      'bgcouriers_site_id' => 0, 'bgcouriers_office_id' => 8009]);
+        $this->assertContains('bgc_city', $e->get_error_codes(), 'a locker without a town is refused at the town');
     }
 
     /** A selection made for a different courier must not satisfy the chosen one. */

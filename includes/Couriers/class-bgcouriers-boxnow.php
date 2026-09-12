@@ -3,7 +3,8 @@ defined('ABSPATH') || exit;
 
 /**
  * BOX NOW - locker (APM) courier. OAuth2 client-credentials + X-PartnerID header. No price API
- * (flat rate via BGCouriers_Pricing). Delivery is to an APM the customer picks with BoxNow's map widget.
+ * (flat rate via BGCouriers_Pricing). Delivery is to an APM the customer picks in the same town +
+ * locker block every other courier has; the towns are BOX NOW's own, read off its lockers (fetch_cities).
  * Shapes live-verified against the stage API (api-stage.boxnow.bg), Partner API 1.72, 2026-07-07.
  */
 class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interface {
@@ -140,29 +141,95 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return $this->token() !== ''; // a refusal is thrown with the reason, for the screen
     }
 
-    public function fetch_cities(): array { return []; } // geo/APM - no city nomenclature
-
-    /** All BoxNow APM lockers (geo-based; checkout uses the map widget, not a city→office dropdown). */
-    public function fetch_offices(int $city_id = 0): array {
-        return self::parse_destinations($this->get_json('/api/v1/destinations'));
+    /** The destinations answer, read once per instance: the towns and the lockers both come from it. */
+    private $destinations = null;
+    private function destinations(): array {
+        if ($this->destinations === null) {
+            $this->destinations = $this->get_json('/api/v1/destinations');
+        }
+        return is_array($this->destinations) ? $this->destinations : [];
     }
 
-    /** destinations[] -> office rows. Captures lat/lng for the future unified-map phase. */
+    /**
+     * BOX NOW publishes no town list, and for a year the checkout worked around that with BOX NOW's own
+     * map widget in an iframe - a different window from every other courier, centred on Athens, asking
+     * the browser for a location, and unable to take the town the customer had already named for the
+     * other couriers or on the combined map (owner, 2026-09-12). Every locker BOX NOW returns does carry
+     * its town (addressLine2: "София", "Харманли") and a postal code, so the towns are read off the
+     * lockers: one per town name, and the locker rows carry that town's id like any courier's offices.
+     * The town then behaves like everyone else's - carried across couriers, preloaded, on the map.
+     */
+    public function fetch_cities(): array {
+        return self::towns_of(self::parse_destinations($this->destinations()));
+    }
+
+    /** All BoxNow APM lockers, each with the id of its town (see fetch_cities). */
+    public function fetch_offices(int $city_id = 0): array {
+        return self::parse_destinations($this->destinations());
+    }
+
+    /**
+     * A stable id for a town BOX NOW never numbered: a hash of its name. The nomenclature keys a city by
+     * (courier, city_id), every order stores the id, and a resync must give the same town the same id -
+     * so it is derived from the name, not from the position in a list that changes with every locker
+     * BOX NOW opens. Case-folded, because "СОФИЯ" and "София" are one town.
+     */
+    public static function town_id(string $name): int {
+        $key = function_exists('mb_strtolower') ? mb_strtolower(trim($name), 'UTF-8') : strtolower(trim($name));
+        return (crc32($key) & 0x7fffffff) ?: 1;
+    }
+
+    /**
+     * The towns in a set of locker rows: one row per town name, with the LOWEST postal code seen among
+     * its lockers. Bulgarian codes give a town's centre the round number (София 1000, Пловдив 4000) and
+     * its districts the higher ones (1407, 1528), and the round number is the one the other couriers
+     * list the town under - which is what lets a town chosen for Speedy carry over to BOX NOW by its
+     * code, and the name is there for when it does not.
+     */
+    public static function towns_of(array $offices): array {
+        $towns = [];
+        foreach ($offices as $o) {
+            $name = (string) ($o['town'] ?? '');
+            if ($name === '') { continue; }
+            $id = (int) ($o['city_id'] ?? 0);
+            $pc = (string) ($o['post_code'] ?? '');
+            // Only a code that is one. Three Sofia lockers carry "-1000" (measured 2026-09-12), and
+            // "-1000" sorts below "1000" - the town's code would have been a minus sign.
+            if (!preg_match('/^\d{4}$/', $pc)) { $pc = ''; }
+            if (!isset($towns[$id])) {
+                $towns[$id] = ['city_id' => $id, 'name' => $name, 'post_code' => $pc, 'region' => '', 'country' => (string) ($o['country'] ?? 'BG')];
+            } elseif ($pc !== '' && ($towns[$id]['post_code'] === '' || strcmp($pc, $towns[$id]['post_code']) < 0)) {
+                $towns[$id]['post_code'] = $pc;
+            }
+        }
+        return array_values($towns);
+    }
+
+    /**
+     * destinations[] -> office rows, each with the id of its town. A destination with no town is not a
+     * place a customer can choose - the one BOX NOW returns without one is "Any-APM", the wildcard it
+     * uses as an ORIGIN - so it is left out rather than listed under no town at all.
+     */
     public static function parse_destinations(array $resp): array {
         $rows = $resp['data'] ?? (isset($resp[0]) ? $resp : []);
         $out  = [];
         foreach ($rows as $o) {
             if (empty($o['id'])) { continue; }
-            $addr = trim(((string) ($o['addressLine1'] ?? '')) . ' ' . ((string) ($o['addressLine2'] ?? '')));
+            $town = trim((string) ($o['addressLine2'] ?? ''));
+            if ($town === '') { continue; }
+            $addr = trim(((string) ($o['addressLine1'] ?? '')) . ' ' . $town);
             $out[] = [
                 'office_id' => (int) $o['id'],
                 'code'      => (string) $o['id'],
+                'city_id'   => self::town_id($town),
+                'town'      => $town,
                 'type'      => 'automat',
                 'name'      => (string) ($o['name'] ?? $o['title'] ?? ''),
                 'address'   => $addr,
                 'lat'       => (float) ($o['lat'] ?? 0),
                 'lng'       => (float) ($o['lng'] ?? 0),
                 'post_code' => (string) ($o['postalCode'] ?? ''),
+                'country'   => strtoupper((string) ($o['country'] ?? 'BG')) ?: 'BG',
             ];
         }
         return $out;

@@ -28,7 +28,7 @@ final class BoxnowParsersTest extends TestCase {
 
     public function test_parse_destinations_normalises_lockers(): void {
         $rows = BGCouriers_Boxnow::parse_destinations($this->fx('destinations.json'));
-        $this->assertCount(2, $rows, 'the row without an id is skipped');
+        $this->assertCount(4, $rows, 'the row without an id and the wildcard origin with no town are skipped');
         $this->assertSame(5365, $rows[0]['office_id']);
         $this->assertSame('5365', $rows[0]['code']);
         $this->assertSame('automat', $rows[0]['type'], 'every BOX NOW point is a locker');
@@ -37,6 +37,29 @@ final class BoxnowParsersTest extends TestCase {
         $this->assertSame('1000', $rows[0]['post_code']);
         $this->assertEqualsWithDelta(42.70295, $rows[0]['lat'], 0.00001);
         $this->assertEqualsWithDelta(23.31272, $rows[0]['lng'], 0.00001);
+        $this->assertSame('София', $rows[0]['town']);
+        $this->assertSame(BGCouriers_Boxnow::town_id('София'), $rows[0]['city_id'], 'the locker carries its town id');
+        $this->assertSame($rows[0]['city_id'], $rows[2]['city_id'], 'two Sofia lockers, one Sofia');
+        $this->assertNotSame($rows[0]['city_id'], $rows[1]['city_id'], 'Varna is another town');
+    }
+
+    /**
+     * BOX NOW has no town list; the checkout block, the carry-over between couriers and the combined
+     * map all need one, so it is read off the lockers. One town per name, its id a hash of the name
+     * (a resync gives the same town the same id, whatever lockers came or went), and the LOWEST postal
+     * code of its lockers - the round one the other couriers list the town under.
+     */
+    public function test_towns_are_read_off_the_lockers(): void {
+        $towns = BGCouriers_Boxnow::towns_of(BGCouriers_Boxnow::parse_destinations($this->fx('destinations.json')));
+        $this->assertCount(2, $towns, 'Sofia three times and Varna once make two towns; the wildcard origin makes none');
+        $by = array_column($towns, null, 'name');
+        $this->assertSame('1000', $by['София']['post_code'], 'the lowest REAL code of its lockers: not the district one, and not the "-1000" BOX NOW carries on three Sofia lockers');
+        $this->assertSame('9000', $by['Варна']['post_code']);
+        $this->assertSame('BG', $by['София']['country']);
+        $this->assertSame(BGCouriers_Boxnow::town_id('София'), $by['София']['city_id']);
+        $this->assertSame(BGCouriers_Boxnow::town_id('СОФИЯ'), BGCouriers_Boxnow::town_id('софия'), 'one town, whichever case');
+        $this->assertGreaterThan(0, $by['Варна']['city_id']);
+        $this->assertNotSame($by['Варна']['city_id'], $by['София']['city_id']);
     }
 
     /** A numeric id survives the int cast the offices table needs. Regression guard for that cast. */

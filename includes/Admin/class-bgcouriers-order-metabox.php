@@ -303,7 +303,6 @@ class BGCouriers_Order_Metabox {
                           'no_automat'  => __('This courier has no APS/locker in this city - pick another city or delivery option.', 'bg-couriers')],
         ]);
 
-        $boxnow_id = $cur_courier === 'boxnow' ? esc_attr((string) $office_id) : '';
         // A collected parcel cannot be re-addressed, so the form is shown READ-ONLY rather than hidden:
         // the merchant still needs to see where the box is going while they ring the courier about it.
         // Read-only means every control carries `disabled` (disable_controls, applied to the finished
@@ -340,11 +339,6 @@ class BGCouriers_Order_Metabox {
             . '<div class="bgc-ed-fld"><label>' . esc_html__('Apt.', 'bg-couriers') . '</label><input class="bgc-ed-apartment" value="' . $v('apartment') . '"></div>'
             . '</div>'
             . '<div class="bgc-ed-fld"><label>' . esc_html__('Note', 'bg-couriers') . '</label><input class="bgc-ed-note" value="' . $v('address_note') . '"></div>'
-            . '</div>'
-            . '<div class="bgc-ed-boxnow">'
-            . '<p><label>' . esc_html__('Locker id', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-id" value="' . $boxnow_id . '" style="width:110px;"> '
-            . '<label>' . esc_html__('Locker name', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-name" value="' . $v('boxnow_name') . '"></p>'
-            . '<p><label>' . esc_html__('Locker address', 'bg-couriers') . '</label> <input class="bgc-ed-boxnow-addr" value="' . $v('boxnow_addr') . '" style="width:100%;"></p>'
             . '</div>'
             // Not address fields - they are facts about the SHIPMENT, so they sit on their own row after
             // the address and before Save, where they read as "and how is it going" rather than "where".

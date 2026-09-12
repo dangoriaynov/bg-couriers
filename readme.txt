@@ -27,7 +27,7 @@ BG Couriers puts Bulgaria's couriers inside WooCommerce: your customer chooses w
 * **Econt** - office / address / Econtomat. Live rates, labels, tracking, and **cash on delivery (наложен платеж)** with an itemised packing list.
 * **Pigeon Express** - office / address / locker. Live rates, labels, tracking.
 * **Sameday** - office / address / easyBox. Live rates, labels, tracking.
-* **BOX NOW** - lockers (APM) only, picked on BOX NOW's own map. Flat rate.
+* **BOX NOW** - lockers (APM) only, picked by town and locker like every other courier (the towns are read off its lockers). Flat rate.
 * **Express One** - office / address / EXOBOX locker. Live rates, labels, tracking. The address is chosen from Express One's own street list, which is what its waybills require.
 
 **Setting it up**
@@ -67,7 +67,7 @@ The plugin uses the online API of each courier **you enable**, to price a delive
 * **Pigeon Express** - api.pigeonexpress.com (api-demo.pigeonexpress.com in test mode). Terms: https://pigeonexpress.com/terms · Privacy: https://pigeonexpress.com/privacy
 * **Sameday** - api.sameday.bg (sameday-api-bg.demo.zitec.com in test mode). Terms: https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/ · Privacy: https://sameday.bg/politika-za-poveritelnost/
 * **Express One** - system.expressone.bg. Terms: https://expressone.bg/bg/terms · Privacy: https://expressone.bg/bg/privacy-policy
-* **BOX NOW** - api-production.boxnow.bg (api-stage.boxnow.bg in test mode), plus its locker-picker widget map.boxnow.bg, loaded in an iframe when the customer opens that picker. Terms: https://boxnow.bg/terms-of-use-for-shipping-services · Privacy: https://boxnow.bg/personal-data-processing-notice
+* **BOX NOW** - api-production.boxnow.bg (api-stage.boxnow.bg in test mode). Terms: https://boxnow.bg/terms-of-use-for-shipping-services · Privacy: https://boxnow.bg/personal-data-processing-notice
 
 **Maps and address lookup**
 
@@ -129,6 +129,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.8 =
+* Changed: **BOX NOW has the same checkout block as every other courier.** Its own map widget (a separate window, centred on Greece, asking the browser for a location, unable to take the town already chosen) is gone: BOX NOW's towns are read off its lockers, so the customer picks a town and a locker, the town carries over from the other couriers and the combined map, BOX NOW's lockers appear on that map, and the order editor uses the same town and locker fields.
 * Fixed: **the X on the town now clears the office too, and the checkout knows about it.** WooCommerce's select box fires no "clear" event, so clearing a town left the office in its field, the price quoted for the old town, and the next save carried an office with no town - which then rendered as a single greyed-out office with no list. The clear is bound to the event the box does fire, an office without a town is never rendered, and a point chosen on the map saves the town and the delivery type together.
 * Added: **the automatic waybill can wait for the day the order ships.** Orders carrying a dispatch day (Order Delivery Date's "ship on" date) had their waybill issued the moment they were paid - measured on a live shop: four shipments registered at Speedy three to four weeks before their parcels existed. A new General setting holds the waybill for the morning of that day; the order says so, a moved day moves it, and an order cancelled or completed in the meantime ships nothing. On for new installs; existing shops keep issuing at once until they tick it.
 * Fixed: tracking is checked for every parcel in flight, not the oldest forty.
