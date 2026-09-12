@@ -11,6 +11,11 @@ defined('ABSPATH') || exit;
 // literal handed to prepare() has none of them. The sniff reads only the literal and calls that a
 // prepare with arguments and nothing to bind - it cannot see the query it is judging. The arguments are
 // appended in the same order the clauses are, by the one helper that adds either.
+//
+// upsert() is the same shape once more and for the same reason: its VALUES list is one placeholder
+// tuple repeated as many times as there are rows in the batch, so the count is only known at runtime.
+// The tuple and the column list are literals in this file - never anything a request can reach - and
+// every value is bound.
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 class BGCouriers_Nomenclature {
@@ -38,43 +43,99 @@ class BGCouriers_Nomenclature {
     }
 
     /**
-     * @param array  $rows Each row may carry 'country' (ISO alpha-2); rows without one are Bulgarian,
-     *                     which is what every row was before the plugin could ship anywhere else.
+     * How many rows go into one INSERT.
+     *
+     * A nomenclature sync is thousands of rows and they were sent one statement at a time: Speedy's
+     * 5,323 towns and 1,302 offices cost 6,627 round trips and 18.00 seconds on dev, measured
+     * 2026-09-12, and the weekly cron does that for every courier the shop has.
+     *
+     * 200 is chosen for the packet, not for the clock. An office row carries a name and an address, so
+     * a batch is a few tens of kilobytes even at their longest - comfortably inside a 1MB
+     * max_allowed_packet, which is the smallest a shared host is likely to give us. Sending more rows
+     * per statement buys very little beyond this and risks a packet nobody can debug from a cron log.
      */
-    public static function upsert_cities(string $courier, array $rows, string $run): int {
-        global $wpdb; $t = $wpdb->prefix . 'bgcouriers_cities'; $n = 0;
-        foreach ($rows as $r) {
-            $wpdb->query($wpdb->prepare(
-                "INSERT INTO {$t} (courier,country,city_id,name,name_lat,post_code,region,sync_run,updated_at)
-                 VALUES (%s,%s,%d,%s,%s,%s,%s,%s,NOW())
-                 ON DUPLICATE KEY UPDATE country=VALUES(country),name=VALUES(name),name_lat=VALUES(name_lat),
-                 post_code=VALUES(post_code),region=VALUES(region),sync_run=VALUES(sync_run),updated_at=NOW()",
-                // Not every courier supplies every column - Sameday's city rows carry no Latin name and
-                // no region, and reading them unguarded filled the sync log with PHP warnings.
-                $courier, self::iso($r['country'] ?? ''), $r['city_id'], $r['name'], $r['name_lat'] ?? '',
-                $r['post_code'] ?? '', $r['region'] ?? '', $run
-            ));
-            $n++;
+    private const UPSERT_CHUNK = 200;
+
+    /**
+     * INSERT ... ON DUPLICATE KEY UPDATE, several hundred rows per statement.
+     *
+     * Both nomenclature tables are written exactly this way and differed only in their columns, so the
+     * statement is built once here. Returns the number of rows the database ACCEPTED, which is the
+     * number the caller must check: a batch that fails takes 200 rows with it rather than one, and the
+     * sync prunes whatever this run did not write. Losing a batch and then deleting the rows it should
+     * have refreshed is the one way this could go badly wrong, so the count is the caller's guard.
+     *
+     * @param string   $table  Full table name.
+     * @param string[] $cols   Column names, in the order the value tuples supply them.
+     * @param string   $tuple  The placeholder tuple, ending in the literal NOW() for updated_at.
+     * @param string[] $update Columns to overwrite when the row is already there.
+     * @param array[]  $rows   One flat argument list per row, matching $tuple.
+     * @return int Rows written.
+     */
+    private static function upsert(string $table, array $cols, string $tuple, array $update, array $rows): int {
+        global $wpdb;
+        if (!$rows) { return 0; }
+        $set  = implode(',', array_map(static function ($c) { return "{$c}=VALUES({$c})"; }, $update));
+        $head = "INSERT INTO {$table} (" . implode(',', $cols) . ') VALUES ';
+        $tail = " ON DUPLICATE KEY UPDATE {$set},updated_at=NOW()";
+        $n = 0;
+        foreach (array_chunk($rows, self::UPSERT_CHUNK) as $chunk) {
+            $args = [];
+            foreach ($chunk as $r) { foreach ($r as $v) { $args[] = $v; } }
+            $sql = $head . implode(',', array_fill(0, count($chunk), $tuple)) . $tail;
+            if ($wpdb->query($wpdb->prepare($sql, ...$args)) === false) {
+                // Said out loud rather than counted quietly: the caller decides what to do about it, and
+                // what it decides is to leave the table unpruned.
+                BGCouriers_Logger::debug('nomenclature: a batch was refused', [
+                    'table' => $table, 'rows' => count($chunk), 'err' => $wpdb->last_error]);
+                continue;
+            }
+            $n += count($chunk);
         }
         return $n;
     }
-    public static function upsert_offices(string $courier, array $rows, string $run): int {
-        global $wpdb; $t = $wpdb->prefix . 'bgcouriers_offices'; $n = 0;
+
+    /**
+     * @param array  $rows Each row may carry 'country' (ISO alpha-2); rows without one are Bulgarian,
+     *                     which is what every row was before the plugin could ship anywhere else.
+     * @return int Rows written - fewer than were offered means a batch was refused.
+     */
+    public static function upsert_cities(string $courier, array $rows, string $run): int {
+        global $wpdb;
+        $args = [];
         foreach ($rows as $r) {
-            $wpdb->query($wpdb->prepare(
-                "INSERT INTO {$t} (courier,country,office_id,code,city_id,type,name,address,lat,lng,sync_run,updated_at)
-                 VALUES (%s,%s,%d,%s,%d,%s,%s,%s,%f,%f,%s,NOW())
-                 ON DUPLICATE KEY UPDATE country=VALUES(country),code=VALUES(code),city_id=VALUES(city_id),type=VALUES(type),name=VALUES(name),
-                 address=VALUES(address),lat=VALUES(lat),lng=VALUES(lng),sync_run=VALUES(sync_run),updated_at=NOW()",
-                // city_id defaults to 0: a geo-based courier (BOX NOW) has lockers but no city
-                // nomenclature to tie them to, and its rows carry no city_id at all.
-                $courier, self::iso($r['country'] ?? ''), $r['office_id'], (string) ($r['code'] ?? ''), (int) ($r['city_id'] ?? 0),
-                (string) ($r['type'] ?? ''), (string) ($r['name'] ?? ''), (string) ($r['address'] ?? ''),
-                (float) ($r['lat'] ?? 0), (float) ($r['lng'] ?? 0), $run
-            ));
-            $n++;
+            // Not every courier supplies every column - Sameday's city rows carry no Latin name and
+            // no region, and reading them unguarded filled the sync log with PHP warnings.
+            $args[] = [$courier, self::iso($r['country'] ?? ''), $r['city_id'], $r['name'], $r['name_lat'] ?? '',
+                       $r['post_code'] ?? '', $r['region'] ?? '', $run];
         }
-        return $n;
+        return self::upsert(
+            $wpdb->prefix . 'bgcouriers_cities',
+            ['courier', 'country', 'city_id', 'name', 'name_lat', 'post_code', 'region', 'sync_run', 'updated_at'],
+            '(%s,%s,%d,%s,%s,%s,%s,%s,NOW())',
+            ['country', 'name', 'name_lat', 'post_code', 'region', 'sync_run'],
+            $args
+        );
+    }
+
+    /** @return int Rows written - fewer than were offered means a batch was refused. */
+    public static function upsert_offices(string $courier, array $rows, string $run): int {
+        global $wpdb;
+        $args = [];
+        foreach ($rows as $r) {
+            // city_id defaults to 0: a geo-based courier (BOX NOW) has lockers but no city
+            // nomenclature to tie them to, and its rows carry no city_id at all.
+            $args[] = [$courier, self::iso($r['country'] ?? ''), $r['office_id'], (string) ($r['code'] ?? ''),
+                       (int) ($r['city_id'] ?? 0), (string) ($r['type'] ?? ''), (string) ($r['name'] ?? ''),
+                       (string) ($r['address'] ?? ''), (float) ($r['lat'] ?? 0), (float) ($r['lng'] ?? 0), $run];
+        }
+        return self::upsert(
+            $wpdb->prefix . 'bgcouriers_offices',
+            ['courier', 'country', 'office_id', 'code', 'city_id', 'type', 'name', 'address', 'lat', 'lng', 'sync_run', 'updated_at'],
+            '(%s,%s,%d,%s,%d,%s,%s,%s,%f,%f,%s,NOW())',
+            ['country', 'code', 'city_id', 'type', 'name', 'address', 'lat', 'lng', 'sync_run'],
+            $args
+        );
     }
     /**
      * Drop rows this sync run did not touch.

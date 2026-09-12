@@ -133,13 +133,26 @@ class BGCouriers_Sync {
         }
         if ($cities)  { $out['cities']  = BGCouriers_Nomenclature::upsert_cities($id, $cities, $run); }
         if ($offices) { $out['offices'] = BGCouriers_Nomenclature::upsert_offices($id, $offices, $run); }
+        // Rows are written a few hundred at a time, so a statement the database refuses takes a whole
+        // batch with it - and the prune below deletes exactly what this run did not write. A short write
+        // followed by a prune would delete towns the courier still has and the checkout still needs, so
+        // a table that did not take everything offered is left alone until the next run.
+        $wrote_cities  = $out['cities']  === count($cities);
+        $wrote_offices = $out['offices'] === count($offices);
+        if (!$wrote_cities || !$wrote_offices) {
+            BGCouriers_Logger::debug('sync: a write was short, so that table is not pruned', [
+                'courier' => $id,
+                'cities'  => $out['cities'] . '/' . count($cities),
+                'offices' => $out['offices'] . '/' . count($offices),
+            ]);
+        }
         // Prune ONLY what this run actually refreshed. Pruning both tables whenever either succeeded
         // would wipe a courier's offices the one time its office endpoint times out - and would delete
         // BOX NOW's lockers on every run, since it never has cities to refresh.
         // Restricted to the countries that answered: a shop syncing two countries must not lose one of
         // them because the other's fetch was the one that worked. A single-country shop is unchanged -
         // ['BG'] restricts a table that only holds BG rows to exactly nothing.
-        $out['pruned'] = BGCouriers_Nomenclature::prune($id, $run, (bool) $cities, (bool) $offices,
+        $out['pruned'] = BGCouriers_Nomenclature::prune($id, $run, $cities && $wrote_cities, $offices && $wrote_offices,
                                                         $intl ? $got_cities : [], $intl ? $got_offices : []);
         // Nomenclature changed - drop the per-courier caches derived from it (which delivery types exist, and
         // the preloaded city index) so the checkout/editor immediately reflect the fresh point counts.
