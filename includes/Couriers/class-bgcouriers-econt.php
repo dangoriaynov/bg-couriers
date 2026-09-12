@@ -86,8 +86,10 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     public function check_credentials(): bool {
-        try { $r = $this->post_json($this->base . '/Profile/ProfileService.getClientProfiles.json', []);
-            return isset($r['profiles']); } catch (\Exception $e) { return false; }
+        // A refusal arrives as HTTP 517 with Econt's message, which post_json() throws - and the
+        // settings screen now shows it instead of "Invalid credentials".
+        $r = $this->post_json($this->base . '/Profile/ProfileService.getClientProfiles.json', []);
+        return isset($r['profiles']);
     }
 
     public function fetch_cities(): array {
@@ -772,12 +774,13 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     public function cancel_label(string $waybill): bool {
-        try {
-            $resp = $this->post_json(
-                $this->base . '/Shipments/LabelService.deleteLabels.json',
-                ['shipmentNumbers' => [$waybill]]
-            );
-            if (!empty($resp['error'])) { return false; }
+        // A refusal is thrown with Econt's words, from here or from post_json() - the merchant reads
+        // "handed to the driver" rather than a bare "did not cancel".
+        $resp = $this->post_json(
+            $this->base . '/Shipments/LabelService.deleteLabels.json',
+            ['shipmentNumbers' => [$waybill]]
+        );
+        if (!empty($resp['error'])) { throw new BGCouriers_Api_Exception(esc_html('Econt: ' . self::words($resp['error']))); }
             // deleteLabels reports per-shipment results. "shipment ... not found" is not a failure: the
             // shipment is not there any more, which is exactly what cancelling was for - a second attempt
             // (or a cancel of something Econt already dropped) must not report failure and leave the
@@ -786,12 +789,17 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
                 if (empty($res['error'])) { continue; }
                 $m = mb_strtolower((string) ($res['error']['message'] ?? ''));
                 if (mb_strpos($m, 'не е откри') !== false || strpos($m, 'not found') !== false) { continue; }
-                return false;
+                throw new BGCouriers_Api_Exception(esc_html('Econt: ' . self::words($res['error'])));
             }
-            return true;
-        } catch (BGCouriers_Api_Exception $e) {
-            return false;
-        }
+        return true;
+    }
+
+    /** An Econt error node as words: its message, else its type, else nothing. @param mixed $err */
+    private static function words($err): string {
+        if (is_string($err)) { return trim($err); }
+        if (!is_array($err)) { return ''; }
+        $m = trim((string) ($err['message'] ?? ''));
+        return $m !== '' ? $m : trim((string) ($err['type'] ?? ''));
     }
 
     /** Already cancelled if getShipmentStatuses reports a cancelled status or the shipment is gone. */

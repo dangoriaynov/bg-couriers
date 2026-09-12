@@ -39,14 +39,19 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      * JSON, or JSON with no message in it, is shown as it was - enough of it for a field-level error.
      */
     protected static function error_text(string $raw): string {
+        $words = self::error_words($raw);
+        return $words !== '' ? $words : substr($raw, 0, 1000);
+    }
+
+    /** The message in a JSON error body, or '' when there is none - for a sentence that already says what happened. */
+    protected static function error_words(string $raw): string {
         $j = json_decode($raw, true);
-        if (is_array($j)) {
-            foreach ([$j['message'] ?? null, $j['error']['message'] ?? null, $j['error'] ?? null] as $m) {
-                $t = self::leaf_text($m);
-                if ($t !== '') { return $t; }
-            }
+        if (!is_array($j)) { return ''; }
+        foreach ([$j['message'] ?? null, $j['error']['message'] ?? null, $j['error_description'] ?? null, $j['error'] ?? null] as $m) {
+            $t = self::leaf_text($m);
+            if ($t !== '') { return $t; }
         }
-        return substr($raw, 0, 1000);
+        return '';
     }
 
     /** A string as it is; a list or object of strings joined; anything else nothing. @param mixed $m */

@@ -326,7 +326,10 @@ class BGCouriers_Labels {
         if (!wc_get_order($id)) { wp_die(esc_html__('Order not found.', 'bg-couriers')); }
         try { self::generate($id); }
         catch (\Exception $e) {
-            set_transient('bgcouriers_admin_error_' . $id, $e->getMessage(), 60);
+            // The whole sentence, so the panel says what failed: it used to prefix "Label generation
+            // failed" to whatever was stored here, a cancel's refusal included.
+            /* translators: %s: error message from the courier */
+            set_transient('bgcouriers_admin_error_' . $id, sprintf(__('Label generation failed: %s', 'bg-couriers'), $e->getMessage()), 60);
             if ($o = wc_get_order($id)) {
                 /* translators: %s: error message from the courier */
                 $o->add_order_note(sprintf(__('Label generation failed: %s', 'bg-couriers'), $e->getMessage()));
@@ -426,7 +429,13 @@ class BGCouriers_Labels {
         // in which case the desired end state is reached, so clear our record. Only surface a failure when
         // the shipment is still live (never silently drop an active shipment).
         $already = false;
-        if (!$courier->cancel_label($waybill)) {
+        // The courier's reason, where it gave one: "already picked up", "handed to the driver", a login it
+        // turned down. It used to be thrown away for a bare false, and the merchant read the same "did not
+        // cancel" whatever had happened.
+        $why = '';
+        try { $ok = $courier->cancel_label($waybill); }
+        catch (BGCouriers_Api_Exception $e) { $ok = false; $why = $e->getMessage(); }
+        if (!$ok) {
             // A refused cancel is only a failure while the shipment is still alive. One the courier has
             // already killed itself is precisely what the merchant is trying to clear, and refusing to
             // clear it leaves a shop unable to re-issue a label for a parcel nobody is coming for - which
@@ -435,7 +444,10 @@ class BGCouriers_Labels {
             // what the tracking poll has ALREADY recorded on this order counts as the answer.
             $stage = (string) $order->get_meta('_bgcouriers_track_stage');
             if (!$courier->is_cancelled($waybill) && $stage !== 'cancelled') {
-                throw new BGCouriers_Api_Exception(esc_html__('The courier did not cancel the waybill.', 'bg-couriers'));
+                throw new BGCouriers_Api_Exception($why !== ''
+                    /* translators: %s: what the courier answered */
+                    ? esc_html(sprintf(__('The courier did not cancel the waybill: %s', 'bg-couriers'), $why))
+                    : esc_html__('The courier did not cancel the waybill.', 'bg-couriers'));
             }
             $already = true;
         }
@@ -482,7 +494,7 @@ class BGCouriers_Labels {
     }
 
     private function fail_note(int $id, string $msg, string $context): void {
-        set_transient('bgcouriers_admin_error_' . $id, $msg, 60);
+        set_transient('bgcouriers_admin_error_' . $id, $context . ': ' . $msg, 60); // the panel prints this as it is
         if ($o = wc_get_order($id)) { $o->add_order_note($context . ': ' . $msg); }
     }
 

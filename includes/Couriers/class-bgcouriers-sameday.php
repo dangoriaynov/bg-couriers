@@ -88,7 +88,8 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
                 'fix' => __('Turn on “Delivery in the order total” for Sameday, or ask Sameday to allow recipient payment on your contract.', 'bg-couriers'),
             ];
         }
-        if (!$this->check_credentials()) { return $p; } // creds problems are already reported by the parent
+        try { if (!$this->check_credentials()) { return $p; } } // creds problems are already reported by the parent
+        catch (BGCouriers_Api_Exception $e) { return $p; }
         $labels = [
             'office'  => __('to office', 'bg-couriers'),
             'address' => __('to address', 'bg-couriers'),
@@ -157,11 +158,16 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             /* translators: 1: courier name, 2: the error the connection reported. */
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not be reached: %2$s', 'bg-couriers'), 'Sameday', $r->get_error_message())));
         }
-        $body = json_decode(wp_remote_retrieve_body($r), true);
+        $raw  = (string) wp_remote_retrieve_body($r);
+        $body = json_decode($raw, true);
         $tok  = (string) ($body['token'] ?? '');
         if ($tok === '') {
+            // With Sameday's own words where it gave any - {"error":{"code":401,"message":"Invalid
+            // credentials."}} - so the screen can tell a wrong password from a courier that is down.
+            $words = self::error_words($raw);
             /* translators: %s: courier name. */
-            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'Sameday')));
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'Sameday')
+                . ($words !== '' ? ' (' . $words . ')' : '')));
         }
         // expire_at is "YYYY-MM-DD HH:MM"; token TTL ~1h, refresh 10 min early.
         set_transient($key, $tok, 50 * MINUTE_IN_SECONDS);
@@ -235,11 +241,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     // ── BGCouriers_Courier_Interface stubs (to be filled in later tasks) ─────────────
 
     public function check_credentials(): bool {
-        try {
-            return $this->auth_token() !== '';
-        } catch (\Exception $e) {
-            return false;
-        }
+        return $this->auth_token() !== ''; // a refusal is thrown with the reason, for the screen
     }
 
     // ── Nomenclature ─────────────────────────────────────────────────────────
@@ -516,14 +518,20 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $r = wp_remote_request($this->base . '/api/awb/' . rawurlencode($waybill), [
             'method' => 'DELETE', 'timeout' => 30, 'headers' => ['X-AUTH-TOKEN' => $this->auth_token()],
         ]);
-        if (is_wp_error($r)) { return false; }
+        if (is_wp_error($r)) {
+            /* translators: %s: the transport error. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The request failed: %s', 'bg-couriers'), $r->get_error_message())));
+        }
         $code = (int) wp_remote_retrieve_response_code($r);
         if ($code < 300) { return true; }
         // A shipment Sameday does not have is a shipment nobody is coming for, which is the whole point
         // of cancelling - so 404 counts as done, the way Econt's "not found" already does. Without
         // this, cancelling an AWB that was cancelled earlier (or lives on the demo stack) reported
         // "the courier did not cancel it" and left a dead number stuck on the order.
-        return $code === 404;
+        if ($code === 404) { return true; }
+        // Anything else is a refusal, in Sameday's words where it gave any.
+        /* translators: %s: the courier's own error text, or the HTTP status. */
+        throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The request failed: %s', 'bg-couriers'), 'HTTP ' . $code . ': ' . self::error_text((string) wp_remote_retrieve_body($r)))));
     }
 
     /**

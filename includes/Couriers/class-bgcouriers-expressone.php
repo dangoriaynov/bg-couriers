@@ -193,8 +193,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     }
 
     public function check_credentials(): bool {
-        try { return $this->token(true) !== ''; }
-        catch (BGCouriers_Api_Exception $e) { return false; }
+        return $this->token(true) !== ''; // "Incorrect username or password." is thrown, for the screen
     }
 
     // ── Nomenclature ─────────────────────────────────────────────────────────

@@ -140,9 +140,9 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      */
     public function check_credentials(): bool {
         if ($this->key === '') { return false; }
-        try {
-            return self::payload($this->post_json(self::BASE . '/testclientkey', ['clientKey' => $this->key])) === true;
-        } catch (BGCouriers_Api_Exception $e) { return false; }
+        // A dead key answers {"error":null,"response":false} - no words, so false; a transport failure
+        // or an error node is thrown with its reason, for the screen.
+        return self::payload($this->post_json(self::BASE . '/testclientkey', ['clientKey' => $this->key])) === true;
     }
 
     // ── Nomenclature ─────────────────────────────────────────────────────────

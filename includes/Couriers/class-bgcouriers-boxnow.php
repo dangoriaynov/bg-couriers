@@ -76,11 +76,14 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             /* translators: 1: courier name, 2: the error the connection reported. */
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not be reached: %2$s', 'bg-couriers'), 'BOX NOW', $res->get_error_message())));
         }
-        $body = json_decode((string) wp_remote_retrieve_body($res), true);
+        $raw  = (string) wp_remote_retrieve_body($res);
+        $body = json_decode($raw, true);
         $tok  = is_array($body) ? (string) ($body['access_token'] ?? '') : '';
         if ($tok === '') {
             /* translators: %s: courier name. */
-            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'BOX NOW')));
+            $words = self::error_words($raw); // BOX NOW's own words, where it gave any
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'BOX NOW')
+                . ($words !== '' ? ' (' . $words . ')' : '')));
         }
         set_transient('bgcouriers_boxnow_token', $tok, 55 * MINUTE_IN_SECONDS);
         return $tok;
@@ -119,7 +122,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         $data = json_decode($raw, true);
         if ($code >= 400) {
             /* translators: 1: courier name, 2: HTTP status code, 3: the courier's own error text. */
-            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s answered HTTP %2$d: %3$s', 'bg-couriers'), 'BOX NOW', $code, substr($raw, 0, 300))));
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s answered HTTP %2$d: %3$s', 'bg-couriers'), 'BOX NOW', $code, self::error_text($raw))));
         }
         // A 2xx with no body is a success with nothing to say - which is exactly how :cancel answers.
         // Demanding JSON of it made every BOX NOW cancellation report failure while the parcel HAD been
@@ -134,7 +137,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     }
 
     public function check_credentials(): bool {
-        try { return $this->token() !== ''; } catch (\Exception $e) { return false; }
+        return $this->token() !== ''; // a refusal is thrown with the reason, for the screen
     }
 
     public function fetch_cities(): array { return []; } // geo/APM - no city nomenclature
@@ -361,7 +364,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     }
 
     public function cancel_label(string $waybill): bool {
-        try { $this->bn_post('/api/v1/parcels/' . rawurlencode($waybill) . ':cancel', []); return true; }
-        catch (\Exception $e) { return false; }
+        $this->bn_post('/api/v1/parcels/' . rawurlencode($waybill) . ':cancel', []); // a refusal is thrown with BOX NOW's words
+        return true;
     }
 }
