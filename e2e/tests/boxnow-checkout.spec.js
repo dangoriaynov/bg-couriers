@@ -73,10 +73,10 @@ test('boxnow gets the town named for another courier @boxnow', async ({ page }) 
   const fields = page.locator('.bgc-fields[data-courier="boxnow"]');
   await expect(fields).toBeVisible({ timeout: 15000 });
   await expect(fields.locator('.bgc-city option:checked')).toHaveText(/София/i, { timeout: 15000 });
-  // And the locker list for it opens with more than one locker in it.
+  // And the locker list for it opens with more than one locker in it. Sofia has two hundred, fetched
+  // live the first time, so the count is polled past the "Searching..." row rather than read at once.
   await fields.locator('.bgc-office-row .select2-selection').click();
-  const options = page.locator('.select2-results__option[role="option"]');
-  await expect(options.first()).toBeVisible({ timeout: 20000 });
-  expect(await options.count()).toBeGreaterThan(1);
+  const options = page.locator('.select2-results__option[role="option"]:not(.loading-results)');
+  await expect.poll(async () => options.count(), { timeout: 30000 }).toBeGreaterThan(1);
   await page.keyboard.press('Escape');
 });
