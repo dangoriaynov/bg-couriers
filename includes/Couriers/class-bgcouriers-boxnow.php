@@ -80,8 +80,8 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         $body = json_decode($raw, true);
         $tok  = is_array($body) ? (string) ($body['access_token'] ?? '') : '';
         if ($tok === '') {
-            /* translators: %s: courier name. */
             $words = self::error_words($raw); // BOX NOW's own words, where it gave any
+            /* translators: %s: courier name. */
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'BOX NOW')
                 . ($words !== '' ? ' (' . $words . ')' : '')));
         }
