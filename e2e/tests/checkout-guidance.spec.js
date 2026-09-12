@@ -12,7 +12,10 @@ const { addAnyProductToCart, gotoCheckout, dismissStoreBanner, fillGuestBilling,
  *    the field is painted red - and stays red across the re-render WooCommerce does right after.
  * 3. The address picker opens on the town the customer named, not on the whole country, when the
  *    browser gives no position (a headless one never does - exactly the path this covers).
- * 4. The map remembers the last town this browser looked at. A remembered town with no pickup point
+ * 4. Nothing stands alone beside a bubble. The pins are bucketed on a grid, and a grid has edges: a
+ *    point ten pixels from a thousand others can fall the other side of one and stay a lone pin against
+ *    the count. Measured before the fix: six of them at zoom 11, one at zoom 10.
+ * 5. The map remembers the last town this browser looked at. A remembered town with no pickup point
  *    left in it is dropped instead of shown - the memory has no expiry, so it outlives a town the
  *    couriers stop listing and every town of a country the shop has stopped delivering to.
  *
@@ -248,5 +251,44 @@ test.describe('checkout guidance @guidance', () => {
     await page.locator('.bgc-allmap-btn').click();
     await expect(page.locator('.bgc-allmap-cityinput')).toHaveValue('СОФИЯ (1000)', { timeout: 15000 });
     await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 30000 });
+  });
+  test('nothing stands alone next to a bubble', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await dismissStoreBanner(page);
+    await selectShippingMethod(page, 'speedy');
+    const fields = page.locator('.bgc-fields[data-courier="speedy"]');
+    await expect(fields).toBeVisible({ timeout: 15000 });
+    await selectCity(page, fields, 'София');
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(1500);
+
+    await page.locator('.bgc-allmap-btn').click();
+    await expect(page.locator('.bgc-allmap-pin').first()).toBeAttached({ timeout: 30000 });
+    await page.waitForTimeout(1500);
+
+    // The distance is the bucket size: a pin closer to a bubble than one cell is a pin that belongs in
+    // it. Walked down the zoom levels, because the stragglers appear at the top of the range - by the
+    // time a whole country fits, every point is in one cell anyway and there is nothing left to catch.
+    const lonely = () => page.evaluate(() => {
+      const vis = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && el.style.display !== 'none'; };
+      const mid = (el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; };
+      const bubbles = [...document.querySelectorAll('.bgc-allmap-cluster')].filter(vis).map(mid);
+      if (!bubbles.length) { return { checked: false, n: 0 }; }
+      const n = [...document.querySelectorAll('.bgc-allmap-pin')].filter(vis).map(mid)
+        .filter((p) => Math.min(...bubbles.map((b) => Math.hypot(p.x - b.x, p.y - b.y))) < 56).length;
+      return { checked: true, n };
+    });
+
+    let checkedAny = false;
+    for (let i = 0; i < 4; i++) {
+      const r = await lonely();
+      if (r.checked) { checkedAny = true; }
+      expect(r.n, `a pin is sitting inside a bubble's own cell (zoom step ${i})`).toBe(0);
+      await page.locator('.leaflet-control-zoom-out').click({ force: true });
+      await page.waitForTimeout(700);
+    }
+    expect(checkedAny, 'no bubbles at all - this test measured nothing').toBe(true);
   });
 });

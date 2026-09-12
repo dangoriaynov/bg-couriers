@@ -880,6 +880,27 @@
         (cells[key] = cells[key] || []).push(i);
       });
     }
+    // A grid has edges, and a point ten pixels from a thousand others can fall the other side of one.
+    // It then holds a cell of its own, never becomes a bubble, and stays a lone pin sitting against the
+    // count - which says the opposite of what is true about it. Reported from a map of the whole
+    // Balkans: one Sameday dot beside a bubble reading 905, at a zoom where nothing should stand alone.
+    //
+    // So a cell holding ONE point joins the fullest of its eight neighbours, when that neighbour is a
+    // bubble. Only into an existing bubble, and only one hop: two lone points either side of a line are
+    // two points, and chaining singletons together across the map is how a "cluster" comes to mean
+    // whatever the iteration order happened to build.
+    Object.keys(cells).forEach(function (key) {
+      if (cells[key].length !== 1) { return; }
+      var at = key.split(':'), cx = +at[0], cy = +at[1], best = '', most = 1;
+      for (var dx = -1; dx <= 1; dx++) {
+        for (var dy = -1; dy <= 1; dy++) {
+          if (!dx && !dy) { continue; }
+          var k = (cx + dx) + ':' + (cy + dy);
+          if (cells[k] && cells[k].length > most) { best = k; most = cells[k].length; }
+        }
+      }
+      if (best) { cells[best].push(cells[key][0]); cells[key] = []; }
+    });
     Object.keys(cells).forEach(function (key) {
       var idx = cells[key];
       if (idx.length < 2) { return; }
