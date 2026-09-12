@@ -1,5 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use Brain\Monkey;
+use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -15,6 +17,17 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-pigeon.p
  * @group pigeon
  */
 final class PigeonOfficePagingTest extends TestCase {
+    /**
+     * The paging code logs when a page comes back without its meta, and the logger asks WordPress
+     * whether debugging is on. This test had no stub for that, so whether it passed depended on what
+     * some other test file happened to have left defined in the process - it was passing on luck.
+     */
+    protected function setUp(): void {
+        parent::setUp(); Monkey\setUp();
+        Functions\when('get_option')->justReturn(false);
+    }
+    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+
     public function test_every_page_is_accumulated(): void {
         $c = new BGCouriers_Pigeon_Paging_Spy([
             // type=office: 2 pages, 100 + 80, mirroring the live BG account

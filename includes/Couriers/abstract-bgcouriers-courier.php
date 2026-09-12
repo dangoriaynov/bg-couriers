@@ -96,6 +96,21 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      */
     public function books_pickup_on_create(): bool { return false; }
 
+    /**
+     * Does this courier's API take a parcel count and a declared value, and APPLY them?
+     *
+     * False for most of them, and membership is earned by measurement rather than by the field
+     * existing in a document: Express One joined after a shipment booked with PACK_COUNT 3 and
+     * INSURANCE 60 came back listing three parcels, a declared 60.00, and a price that had risen for
+     * it (2026-08-25, its test account).
+     *
+     * Asked of the courier because that is where the measurement was made. It used to be a list of
+     * courier ids in BGCouriers_Order, a file away from every courier it named - one more hardcoded
+     * courier list to remember when the eighth courier arrives, and there is already a note in this
+     * project's history about the five settings Express One was given that no list had been told about.
+     */
+    public function multi_parcel(): bool { return false; }
+
     /** Seam: overridden in tests; real impl calls wp_remote_post. */
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [

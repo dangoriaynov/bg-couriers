@@ -614,6 +614,9 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
      * The label layout belongs to the merchant's own Express One account, which is why every request
      * asks for format 0 and lets that account answer. Set it where Express One set it.
      */
+
+    /** Measured: a parcel count and a declared value reach the shipment and change its price. */
+    public function multi_parcel(): bool { return true; }
     public function label_formats(): array { return []; }
 
     public function get_label_pdf(string $waybill, string $format = ''): string {
