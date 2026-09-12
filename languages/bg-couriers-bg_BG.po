@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-12 20:59+0300\n"
+"POT-Creation-Date: 2026-09-12 21:00+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -37,9 +37,10 @@ msgid "Cancel waybils"
 msgstr "Анулиране на товарителници"
 
 #: includes/Admin/class-bgcouriers-bulk-labels.php:31
-#: includes/Admin/class-bgcouriers-pickup.php:25
-#: includes/Admin/class-bgcouriers-pickup.php:138
-#: includes/Admin/class-bgcouriers-pickup.php:213
+#: includes/Admin/class-bgcouriers-pickup.php:39
+#: includes/Admin/class-bgcouriers-pickup.php:49
+#: includes/Admin/class-bgcouriers-pickup.php:193
+#: includes/Admin/class-bgcouriers-pickup.php:324
 msgid "Request a courier"
 msgstr "Заяви куриер"
 
@@ -757,14 +758,23 @@ msgctxt "Order bulk action"
 msgid "Change status to shipped"
 msgstr "Промяна на състоянието на изпратена"
 
-#: includes/Admin/class-bgcouriers-pickup.php:111
+#: includes/Admin/class-bgcouriers-pickup.php:142
+#: includes/Admin/class-bgcouriers-pickup.php:169
 #: includes/Admin/class-bgcouriers-settings.php:1246
 #: includes/Admin/class-bgcouriers-settings.php:1309
 #: includes/Admin/class-bgcouriers-settings.php:1338
 msgid "You are not allowed to do this."
 msgstr "Нямате право да извършите това действие."
 
-#: includes/Admin/class-bgcouriers-pickup.php:144
+#: includes/Admin/class-bgcouriers-pickup.php:152
+msgid ""
+"This confirmation was already used, or is more than an hour old - nothing "
+"was sent. If the courier has not been requested, select the orders again."
+msgstr ""
+"Това потвърждение вече е използвано или е отпреди повече от час - нищо не е "
+"изпратено. Ако куриерът не е заявен, изберете поръчките отново."
+
+#: includes/Admin/class-bgcouriers-pickup.php:199
 msgid ""
 "None of the selected orders can be collected: a courier is called for "
 "waybills that already exist, and for couriers that offer the service."
@@ -773,25 +783,25 @@ msgstr ""
 "вече издадени товарителници и за куриери, които предлагат тази услуга."
 
 #. translators: %s: the courier's own cut-off moment, e.g. 2026-08-19T17:00:00+0300
-#: includes/Admin/class-bgcouriers-pickup.php:153
+#: includes/Admin/class-bgcouriers-pickup.php:208
 #, php-format
 msgid "The courier accepts requests up to %s."
 msgstr "Куриерът приема заявки до %s."
 
-#: includes/Admin/class-bgcouriers-pickup.php:173
+#: includes/Admin/class-bgcouriers-pickup.php:231
 msgid "Day"
 msgstr "Ден"
 
-#: includes/Admin/class-bgcouriers-pickup.php:175
+#: includes/Admin/class-bgcouriers-pickup.php:233
 msgid "Between"
 msgstr "Между"
 
-#: includes/Admin/class-bgcouriers-pickup.php:179
+#: includes/Admin/class-bgcouriers-pickup.php:237
 msgid "Request the courier"
 msgstr "Заяви куриера"
 
 #. translators: 1: courier name, 2: how many orders
-#: includes/Admin/class-bgcouriers-pickup.php:194
+#: includes/Admin/class-bgcouriers-pickup.php:252
 #, php-format
 msgid ""
 "%1$s does not offer a pickup request - %2$d order(s) left out. Its parcels "
@@ -801,7 +811,7 @@ msgstr ""
 "пратки се вземат по договора ви с него."
 
 #. translators: %d: how many orders
-#: includes/Admin/class-bgcouriers-pickup.php:200
+#: includes/Admin/class-bgcouriers-pickup.php:258
 #, php-format
 msgid ""
 "%d order(s) have no waybill yet - generate one first, then call the courier."
@@ -810,7 +820,7 @@ msgstr ""
 "после заявете куриер."
 
 #. translators: %d: how many orders
-#: includes/Admin/class-bgcouriers-pickup.php:206
+#: includes/Admin/class-bgcouriers-pickup.php:264
 #, php-format
 msgid ""
 "%d order(s) could not be read - no courier is recorded on them, or the order "
@@ -820,13 +830,13 @@ msgstr ""
 "поръчката вече я няма. За тях не се заявява нищо."
 
 #. translators: 1: courier name, 2: the courier's request id, 3: day, 4: from time, 5: to time
-#: includes/Admin/class-bgcouriers-pickup.php:235
+#: includes/Admin/class-bgcouriers-pickup.php:297
 #, php-format
 msgid "%1$s courier requested (request %2$s) for %3$s, %4$s-%5$s."
 msgstr "Заявен куриер на %1$s (заявка %2$s) за %3$s, %4$s-%5$s."
 
 #. translators: 1: courier name, 2: day, 3: from time, 4: to time
-#: includes/Admin/class-bgcouriers-pickup.php:239
+#: includes/Admin/class-bgcouriers-pickup.php:301
 #, php-format
 msgid ""
 "%1$s courier requested for %2$s, %3$s-%4$s. This courier issues no separate "
@@ -836,13 +846,13 @@ msgstr ""
 "номер на заявка - самите товарителници са заявката."
 
 #. translators: 1: courier name, 2: how many parcels, 3: request id
-#: includes/Admin/class-bgcouriers-pickup.php:245
+#: includes/Admin/class-bgcouriers-pickup.php:307
 #, php-format
 msgid "%1$s will collect %2$d parcel(s). Request %3$s."
 msgstr "%1$s ще вземе %2$d пратка(и). Заявка %3$s."
 
 #. translators: 1: courier name, 2: how many parcels
-#: includes/Admin/class-bgcouriers-pickup.php:249
+#: includes/Admin/class-bgcouriers-pickup.php:311
 #, php-format
 msgid ""
 "%1$s will collect %2$d parcel(s). This courier issues no separate request "
@@ -851,12 +861,16 @@ msgstr ""
 "%1$s ще вземе %2$d пратка(и). Този куриер не издава отделен номер на заявка."
 
 #. translators: 1: courier name, 2: the courier's own error
-#: includes/Admin/class-bgcouriers-pickup.php:254
+#: includes/Admin/class-bgcouriers-pickup.php:316
 #, php-format
 msgid "%1$s refused the request: %2$s"
 msgstr "%1$s отказа заявката: %2$s"
 
-#: includes/Admin/class-bgcouriers-pickup.php:258
+#: includes/Admin/class-bgcouriers-pickup.php:326
+msgid "There is no result to show for this confirmation any more."
+msgstr "Вече няма резултат за показване за това потвърждение."
+
+#: includes/Admin/class-bgcouriers-pickup.php:333
 msgid "Back to orders"
 msgstr "Обратно към поръчките"
 
