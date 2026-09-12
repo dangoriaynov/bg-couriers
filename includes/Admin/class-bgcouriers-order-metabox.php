@@ -128,6 +128,18 @@ class BGCouriers_Order_Metabox {
                 . '</div>';
         }
 
+        // The waybill was created but the courier did not apply everything asked of it - Speedy's COD
+        // carries ignoreIfNotApplicable by design, so a shipment can print with nothing to collect.
+        // generate() records this on the order "and keeps a flag the admin screens can show", and no
+        // screen ever showed it: the note was there, the flag was written and deleted and never read.
+        // It stays until the waybill is re-issued, because the parcel it describes is the one on the desk.
+        $warn = trim((string) $order->get_meta('_bgcouriers_label_warning'));
+        if ($waybill !== '' && $warn !== '') {
+            $body .= '<div class="bgc-warn" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;background:#fff7e6;border:1px solid #e6c27a;color:#7a4b00;">'
+                /* translators: %s: what the courier did not apply, e.g. "cash on delivery was not applied" */
+                . esc_html(sprintf(__('Check this shipment before handing it over: %s', 'bg-couriers'), $warn)) . '</div>';
+        }
+
         // Surface the last generation error (handle_generate stores it in a transient, then redirects here).
         $err = get_transient('bgcouriers_admin_error_' . $id);
         if ($err) {
