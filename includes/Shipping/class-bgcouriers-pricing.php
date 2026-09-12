@@ -480,7 +480,11 @@ class BGCouriers_Pricing {
                 self::wake($courier->id());   // it answered; if it was resting, it is not any more
                 return $q;
             }
-            catch (\Exception $e) {
+            // \Throwable, not \Exception: an adapter that hits a TypeError on an answer it did not
+            // expect used to walk straight past the fallback price sitting below and fatal the
+            // checkout page. A broken adapter is a failed quote like any other - instant, so it does
+            // not rest the courier, and the next basket may be one it parses fine.
+            catch (\Throwable $e) {
                 self::maybe_rest($courier->id(), microtime(true) - $started);
                 BGCouriers_Logger::debug('live quote failed -> fallback', ['courier' => $courier->id()]);
                 // Abroad there is nothing below this line to fall back TO: every one of those prices was
@@ -574,7 +578,7 @@ class BGCouriers_Pricing {
         ]);
         try {
             $q = self::quote($courier, $shipment);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {   // abroad, quote() re-throws; whatever it is, no estimate is the answer
             return null;
         }
         if ($q->source !== 'live') { return null; }

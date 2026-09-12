@@ -80,7 +80,7 @@ class BGCouriers_Sync {
                 }
                 BGCouriers_Rates::set($id, $method, $q->price, $q->currency);
                 $n++;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 BGCouriers_Logger::debug('seed_rates: quote failed', ['courier' => $id, 'method' => $method]);
             }
         }
@@ -120,9 +120,9 @@ class BGCouriers_Sync {
         // Which countries actually answered, per table. Only these may be pruned - see prune_table().
         $got_cities = $got_offices = [];
         try { $cities = self::tag($home, $courier->fetch_cities()); $got_cities[] = $home; }
-        catch (\Exception $e) { BGCouriers_Logger::debug('sync: city fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
+        catch (\Throwable $e) { BGCouriers_Logger::debug('sync: city fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
         try { $offices = self::tag($home, $courier->fetch_offices(0)); $got_offices[] = $home; } // 0 = all offices in one call (country-wide)
-        catch (\Exception $e) { BGCouriers_Logger::debug('sync: office fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
+        catch (\Throwable $e) { BGCouriers_Logger::debug('sync: office fetch failed', ['courier' => $id, 'err' => $e->getMessage()]); }
 
         // Then every country the merchant has switched this courier on for. Each is fetched and tagged
         // separately - a country whose fetch fails leaves the others alone, and a country switched off
@@ -134,9 +134,9 @@ class BGCouriers_Sync {
         $intl = BGCouriers_Settings::intl_countries($id, $courier);
         foreach ($intl as $iso) {
             try { $cities = array_merge($cities, self::tag($iso, $courier->fetch_cities($iso))); $got_cities[] = $iso; }
-            catch (\Exception $e) { BGCouriers_Logger::debug('sync: city fetch failed', ['courier' => $id, 'country' => $iso, 'err' => $e->getMessage()]); }
+            catch (\Throwable $e) { BGCouriers_Logger::debug('sync: city fetch failed', ['courier' => $id, 'country' => $iso, 'err' => $e->getMessage()]); }
             try { $offices = array_merge($offices, self::tag($iso, $courier->fetch_offices(0, $iso))); $got_offices[] = $iso; }
-            catch (\Exception $e) { BGCouriers_Logger::debug('sync: office fetch failed', ['courier' => $id, 'country' => $iso, 'err' => $e->getMessage()]); }
+            catch (\Throwable $e) { BGCouriers_Logger::debug('sync: office fetch failed', ['courier' => $id, 'country' => $iso, 'err' => $e->getMessage()]); }
         }
 
         // GUARD: nothing at all came back = a failed fetch, not an empty country. Never prune on that.

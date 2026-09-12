@@ -85,7 +85,19 @@ class BGCouriers_Tracking_Poller {
         if ($cid === '' || $cid === 'boxnow' || $wb === '') { return; } // BoxNow updates via its webhook
         $courier = BGCouriers_Couriers::get($cid);
         if (!$courier) { return; }
-        try { $t = $courier->track($wb); } catch (\Exception $e) { return; } // transient error - retry next run
+        // \Throwable, not \Exception. An adapter that hits a TypeError on an answer it did not expect
+        // throws an Error, and an Error used to escape this loop: every order behind it in the batch
+        // went unpolled, every courier's, not only the broken one's - and since this order never gets
+        // marked finished it sat at the front of the batch on every run. Tracking for the whole shop
+        // stopped, silently, on one adapter's bad day. An API that refuses is retried next run as it
+        // always was; a broken adapter is now logged and skipped the same way.
+        try { $t = $courier->track($wb); }
+        catch (\Throwable $e) {
+            if (!($e instanceof \Exception)) {
+                BGCouriers_Logger::debug('tracking: a broken adapter, skipped', ['courier' => $cid, 'err' => $e->getMessage()]);
+            }
+            return;
+        }
 
         // One answer from the courier is ONE write of the order. Each block below used to flush as it
         // went, so a single poll could save the same order five times - five database writes, five

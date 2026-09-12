@@ -500,7 +500,7 @@ class BGCouriers_Ajax {
                 if (method_exists($courier, 'search_streets')) {
                     $out = array_slice($courier->search_streets($city, $term, self::request_country($courier_id)), 0, BGCouriers_Settings::dropdown_limit());
                 }
-            } catch (\Exception $e) { $out = []; }
+            } catch (\Throwable $e) { $out = []; }   // same guard as the office lookup, same reason
         }
         wp_send_json($out);
     }
