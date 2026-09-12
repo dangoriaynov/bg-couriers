@@ -126,6 +126,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.4.8 =
+* Fixed: **a pickup point could stand alone on the map next to a bubble counting hundreds of others.** The pins are folded together on a grid, and a grid has edges: a point a few pixels from a thousand others could fall the other side of one and never join them. It joins the crowd it is standing in now.
+* Fixed: **choosing a town could tick an office nobody picked.** A town with a single counter needs no list, and that is still true - but a town with one counter and two lockers was having the counter chosen for the customer, because it was the only counter. It is left to the customer whenever the town has more than one pickup point to choose from.
+
 = 0.4.7 =
 * Fixed: **the map could open on a town the customer had never chosen**, with no pickup points in it and the whole region on screen. The map remembers the last town this browser looked at, and that memory had no expiry: it outlived a town the couriers stopped listing, and every town of a country a shop had stopped delivering to. A remembered town that comes back with nothing in it is now dropped and the map asks its one question again. A town the customer has just named, or the one their courier box is already set to, is untouched.
 * Fixed: **the About tab showed the General tab's settings.** Everything that was not a courier fell through to one branch that printed the General fields whatever the tab was, so About printed 38 settings rows instead of what it is there for. Every tab prints the fields built for it now.
