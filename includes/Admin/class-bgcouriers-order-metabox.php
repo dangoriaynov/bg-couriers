@@ -293,7 +293,7 @@ class BGCouriers_Order_Metabox {
         // after a third had joined them.
         $all  = BGCouriers_Couriers::all();
         $able = array_map(static function ($id) use ($all) { return (string) ($all[$id] ?? $id); },
-            BGCouriers_Order::MULTI_PARCEL_COURIERS);
+            BGCouriers_Order::multi_parcel_couriers());
         /* translators: %s: a list of courier names. */
         $shipfacts_tip = sprintf(__('Supported for %s. The other couriers ignore it.', 'bg-couriers'),
             implode(', ', $able));
@@ -328,7 +328,7 @@ class BGCouriers_Order_Metabox {
             // Only the couriers whose field names are verified against a payload we actually send honour
             // these. The row hides for the rest rather than accepting a number and dropping it - a box
             // that takes "3" and ships one parcel is worse than no box at all.
-            . '<div class="bgc-ed-row bgc-ed-shipfacts" data-couriers="' . esc_attr(implode(',', BGCouriers_Order::MULTI_PARCEL_COURIERS)) . '">'
+            . '<div class="bgc-ed-row bgc-ed-shipfacts" data-couriers="' . esc_attr(implode(',', BGCouriers_Order::multi_parcel_couriers())) . '">'
             // The row already hides for couriers that ignore these, but the hover says WHICH they are -
             // a merchant who never sees the row on Econt should not have to guess whether that is a fault.
             . '<div class="bgc-ed-fld" title="' . esc_attr($shipfacts_tip) . '">'

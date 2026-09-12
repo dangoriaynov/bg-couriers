@@ -511,6 +511,9 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return $body;
     }
 
+
+    /** Measured: a parcel count and a declared value reach the shipment and change its price. */
+    public function multi_parcel(): bool { return true; }
     public function label_formats(): array { return ['A6', 'A4']; }
 
     public function get_label_pdf(string $waybill, string $format = ''): string {

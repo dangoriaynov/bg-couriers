@@ -12,11 +12,20 @@ class BGCouriers_Order {
     /**
      * The couriers whose API takes a parcel count and a declared value, and applies them.
      *
-     * Membership is earned by measurement, never by the field existing in a document: Express One was
-     * added after a shipment booked with PACK_COUNT 3 and INSURANCE 60 came back listing three parcels,
-     * a declared 60.00, and a price that had risen for it (2026-08-25, its test account).
+     * Each courier answers for itself (multi_parcel()), so this is the registry's answer rather than a
+     * list written out here: a list in this file is one more place to remember when a courier is added,
+     * and it sat a file away from every courier it named.
+     *
+     * @return string[] courier ids, in registration order
      */
-    const MULTI_PARCEL_COURIERS = ['speedy', 'sameday', 'expressone'];
+    public static function multi_parcel_couriers(): array {
+        $out = [];
+        foreach (array_keys(BGCouriers_Couriers::all()) as $id) {
+            $co = BGCouriers_Couriers::get($id);
+            if ($co && method_exists($co, 'multi_parcel') && $co->multi_parcel()) { $out[] = $id; }
+        }
+        return $out;
+    }
 
     public static function shipment_from_order(\WC_Order $order): array {
         return [

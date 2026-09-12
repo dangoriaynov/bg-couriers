@@ -4,6 +4,9 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-order.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
 
 /**
  * How many boxes an order is, and what it is insured for.
@@ -71,5 +74,53 @@ final class ParcelsAndInsuranceTest extends TestCase {
     /** A single parcel must be the whole weight, untouched by the splitting arithmetic. */
     public function test_one_parcel_carries_the_whole_weight(): void {
         $this->assertSame([7.25], BGCouriers_Order::parcel_weights(7.25, 1));
+    }
+
+    /**
+     * WHICH couriers carry several parcels is the courier's own answer now, not a list in this file.
+     *
+     * It was BGCouriers_Order::MULTI_PARCEL_COURIERS, a courier-id list sitting a file away from every
+     * courier it named - the exact shape this project has been caught by before, when Express One was
+     * given five settings that no hardcoded list had been told about.
+     */
+    public function test_the_couriers_that_carry_several_parcels_say_so_themselves(): void {
+        BGCouriers_Couriers::reset();
+        $make = function (bool $many) {
+            return new class($many) extends BGCouriers_Abstract_Courier {
+                private $many;
+                public function __construct(bool $many) { $this->many = $many; }
+                public function multi_parcel(): bool { return $this->many; }
+                public function id(): string { return 'x'; }
+                public function label(): string { return 'X'; }
+                public function capabilities(): array { return []; }
+                public function check_credentials(): bool { return true; }
+                public function fetch_cities(): array { return []; }
+                public function fetch_offices(int $city_id): array { return []; }
+                public function quote(array $shipment): BGCouriers_Quote { return new BGCouriers_Quote(0.0, 0.0, 'BGN', 'fallback'); }
+                public function create_label(\WC_Order $order): BGCouriers_Label { return new BGCouriers_Label(''); }
+                public function get_label_pdf(string $waybill, string $format = ''): string { return ''; }
+                public function cancel_label(string $waybill): bool { return true; }
+                public function track(string $waybill): BGCouriers_Tracking { return new BGCouriers_Tracking('', '', []); }
+                public function tracking_url(string $waybill): string { return ''; }
+            };
+        };
+        foreach (['speedy' => true, 'econt' => false, 'sameday' => true, 'expressone' => true, 'evropat' => false] as $id => $many) {
+            BGCouriers_Couriers::register($id, ucfirst($id), static function () use ($make, $many) { return $make($many); });
+        }
+        $this->assertSame(['speedy', 'sameday', 'expressone'], BGCouriers_Order::multi_parcel_couriers());
+        BGCouriers_Couriers::reset();
+    }
+
+    /** And the three real ones answer the way the measurements in their classes say they do. */
+    public function test_the_real_couriers_answer_as_measured(): void {
+        $src = static function (string $f): string {
+            return (string) file_get_contents(dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-' . $f . '.php');
+        };
+        foreach (['speedy', 'sameday', 'expressone'] as $id) {
+            $this->assertStringContainsString('public function multi_parcel(): bool { return true; }', $src($id), $id . ' has to say it carries several');
+        }
+        foreach (['econt', 'pigeon', 'boxnow', 'evropat'] as $id) {
+            $this->assertStringNotContainsString('multi_parcel', $src($id), $id . ' must not claim it does');
+        }
     }
 }
