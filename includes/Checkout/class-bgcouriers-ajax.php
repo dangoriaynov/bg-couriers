@@ -193,26 +193,34 @@ class BGCouriers_Ajax {
         $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
         if ($city <= 0) { wp_send_json(['office' => false, 'automat' => false]); }
-        $country = self::request_country($courier_id);
-        // Cache the availability per courier+city - it was uncached, so every call hit the live API.
-        // The country is part of the key as well as of the question: a courier that is asked about a
-        // foreign town without it answers for its home country and finds nothing there, and an answer
-        // of "this town has no offices" is indistinguishable from the truth once it is cached.
-        $tkey   = 'bgcouriers_avail_' . $courier_id . '_' . $country . '_' . $city;
-        $cached = get_transient($tkey);
-        if (is_array($cached)) { wp_send_json($cached); }
+        wp_send_json(self::city_avail_data($courier_id, $city, self::request_country($courier_id)));
+    }
+
+    /**
+     * Which delivery options a town has - read off the office dropdown's own list, not asked for again.
+     *
+     * This used to be its own path to the courier with its own six-hour cache of the same list, and
+     * only the dropdown's path had been looked after. The dropdown caches an answer only when there is
+     * something in it, so a courier that failed to answer is asked again next time; this one cached
+     * whatever it had, so an API that was down for one second greyed out both delivery options for
+     * every customer for six hours, in a town that was fine. The dropdown's path catches \Throwable,
+     * after an adapter's TypeError once turned a request into a 500; this one still caught
+     * \Exception. And a picked town cost the courier two live calls for one list, the second unable to
+     * use the first's cache because each kept its own.
+     *
+     * One list, one cache, one set of guards. Two booleans off a cached array cost nothing, which is
+     * why there is no second cache here any more: two caches of one fact are two chances to disagree.
+     *
+     * @return array{office:bool,automat:bool}
+     */
+    public static function city_avail_data(string $courier_id, int $city, string $country): array {
         $office = false; $automat = false;
-        $rows = [];
-        try { $c = BGCouriers_Couriers::get($courier_id); if ($c) { $rows = $c->fetch_offices($city, $country); } }
-        catch (\Exception $e) { $rows = []; }
-        if (empty($rows)) { $rows = BGCouriers_Nomenclature::offices($courier_id, $city); } // fallback to cache
-        foreach ($rows as $o) {
+        // Every type, every row: 100000 is what the dropdown itself asks for with all=1.
+        foreach (self::city_offices($courier_id, $city, '', '', 100000, $country) as $o) {
             $t = $o['type'] ?? '';
             if ($t === 'office') { $office = true; } elseif ($t === 'automat') { $automat = true; }
         }
-        $res = ['office' => $office, 'automat' => $automat];
-        set_transient($tkey, $res, 6 * HOUR_IN_SECONDS);
-        wp_send_json($res);
+        return ['office' => $office, 'automat' => $automat];
     }
 
     /**
