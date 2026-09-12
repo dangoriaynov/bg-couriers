@@ -140,6 +140,16 @@ class BGCouriers_Order_Metabox {
                 . esc_html(sprintf(__('Check this shipment before handing it over: %s', 'bg-couriers'), $warn)) . '</div>';
         }
 
+        // A waybill put down for the order's dispatch day: the merchant sees an unlabelled order with a
+        // Generate button, and this says why nothing has happened yet and when it will.
+        $auto_at = (int) $order->get_meta('_bgcouriers_autolabel_at');
+        if ($waybill === '' && $auto_at > time()) {
+            $body .= '<div class="bgc-auto-at" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;background:#f0f6fc;border:1px solid #a7c7e7;color:#1d4b7a;">'
+                /* translators: %s: the day and hour the waybill will be issued */
+                . esc_html(sprintf(__('The waybill will be issued on %s, the day this order ships.', 'bg-couriers'),
+                    wp_date(get_option('date_format') . ' ' . get_option('time_format'), $auto_at))) . '</div>';
+        }
+
         // Surface the last action's error (the admin-post handlers store the whole sentence - what
         // failed, and the courier's words - in a transient, then redirect here).
         $err = get_transient('bgcouriers_admin_error_' . $id);

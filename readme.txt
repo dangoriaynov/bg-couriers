@@ -102,6 +102,8 @@ The plugin is free, GPL, and stays that way - every courier, every feature, no p
 = When is the waybill created, and when should it be? =
 Either when you choose, or by itself. **Auto-generate labels** (BG Couriers -> General) issues the waybill the moment an order reaches the status you pick; each courier's own tab can overrule that for itself. With it off, an order shows a **Generate** button instead, and the bulk action **Print waybills A4/A6** creates any that are missing and hands you one PDF - so you print at the packing table and the waybill is made at that moment.
 
+If the order says when it ships - a dispatch day shown at the checkout, the way the Order Delivery Date plugin records one - **Wait for the dispatch day** (General, on by default for new installs) holds the automatic waybill for the morning of that day rather than the moment of payment; the order says so in a note and the shipment panel shows the day. Generating by hand is never held back, and an order that names no day is labelled at once. Shops that were already running keep issuing at once until they tick the box. Any other source of a dispatch day can answer through the `bgcouriers_dispatch_time` filter.
+
 It matters more than it sounds. For most couriers a waybill is only data, and the visit is a separate request you make with **Request a courier**. **Sameday has no such request**: creating the AWB is what puts the parcel in that day's collection list, and its courier comes for it - measured within two hours. A waybill issued the moment an order is paid therefore sends a van to a parcel nobody has packed yet, the courier finds an empty counter and voids the waybill. So for couriers that behave that way this plugin leaves automatic labels **off by default**, whatever the general setting says, and you turn them on only if your parcels really are ready that early. Shops that were already running keep whatever they had.
 
 = Do I need an account with the couriers? =
@@ -127,6 +129,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.8 =
+* Added: **the automatic waybill can wait for the day the order ships.** Orders carrying a dispatch day (Order Delivery Date's "ship on" date) had their waybill issued the moment they were paid - measured on a live shop: four shipments registered at Speedy three to four weeks before their parcels existed. A new General setting holds the waybill for the morning of that day; the order says so, a moved day moves it, and an order cancelled or completed in the meantime ships nothing. On for new installs; existing shops keep issuing at once until they tick it.
 * Fixed: tracking is checked for every parcel in flight, not the oldest forty.
 * Fixed: a refused cancel, and a refused credential check, now say what the courier said.
 * Fixed: "Sync now" reported a refused login as a success.
