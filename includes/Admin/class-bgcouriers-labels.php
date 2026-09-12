@@ -143,6 +143,8 @@ class BGCouriers_Labels {
     private static function claim(int $order_id): bool {
         if (isset(self::$issuing[$order_id])) { return false; }
         global $wpdb;
+        // A named MySQL lock is the query, not data: there is nothing to cache and no API for it.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         if ((string) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', 'bgcouriers_label_' . $order_id)) !== '1') { return false; }
         self::$issuing[$order_id] = true;
         return true;
@@ -150,6 +152,7 @@ class BGCouriers_Labels {
     private static function release(int $order_id): void {
         global $wpdb;
         unset(self::$issuing[$order_id]);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', 'bgcouriers_label_' . $order_id));
     }
 
