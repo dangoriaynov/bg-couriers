@@ -123,7 +123,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         $data = json_decode($raw, true);
         if ($code >= 400) {
             /* translators: 1: courier name, 2: HTTP status code, 3: the courier's own error text. */
-            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s answered HTTP %2$d: %3$s', 'bg-couriers'), 'BOX NOW', $code, self::error_text($raw))));
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s answered HTTP %2$d: %3$s', 'bg-couriers'), 'BOX NOW', $code, self::refusal_text($raw))));
         }
         // A 2xx with no body is a success with nothing to say - which is exactly how :cancel answers.
         // Demanding JSON of it made every BOX NOW cancellation report failure while the parcel HAD been
@@ -139,6 +139,39 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
 
     public function check_credentials(): bool {
         return $this->token() !== ''; // a refusal is thrown with the reason, for the screen
+    }
+
+    /**
+     * A BOX NOW refusal in words.
+     *
+     * BOX NOW answers a bad request with {"code":"P411","status":400} and nothing else - no message, no
+     * field - and the shared error_text() could only hand that JSON to the screen as it was. The codes
+     * ARE documented (API Integration Partner API manual, chapter 5 "Troubleshooting"), so the ones a
+     * shipment from this plugin can meet are said here in words the merchant can act on. The code is
+     * kept on the end for BOX NOW support. A code the manual does not list falls back to what it was.
+     */
+    public static function refusal_text(string $raw): string {
+        $words = self::error_words($raw);
+        if ($words !== '') { return $words; }
+        $j    = json_decode($raw, true);
+        $code = is_array($j) ? strtoupper(trim((string) ($j['code'] ?? ''))) : '';
+        $said = [
+            'P400' => __('The request was not accepted as valid.', 'bg-couriers'),
+            'P401' => __('The warehouse id in the BOX NOW settings is not a location it knows.', 'bg-couriers'),
+            'P402' => __('The chosen locker is not a location it knows.', 'bg-couriers'),
+            'P405' => __('A phone number is not in full international form.', 'bg-couriers'),
+            'P406' => __('The compartment size has to be 1, 2 or 3.', 'bg-couriers'),
+            'P408' => __('Cash on delivery is collected only between 0 and 5000, and this order is outside that.', 'bg-couriers'),
+            'P410' => __('This order number has already been used.', 'bg-couriers'),
+            'P411' => __('This account is not allowed to collect cash on delivery. Have the order paid in advance, or ask BOX NOW support to switch it on.', 'bg-couriers'),
+            'P414' => __('This parcel belongs to another account.', 'bg-couriers'),
+            'P420' => __('This parcel can no longer be cancelled: only a new, undelivered parcel can be.', 'bg-couriers'),
+            'P421' => __('The parcel weight was not accepted.', 'bg-couriers'),
+        ];
+        if ($code !== '' && isset($said[$code])) {
+            return $said[$code] . ' (' . $code . ')';
+        }
+        return self::error_text($raw);
     }
 
     /** The destinations answer, read once per instance: the towns and the lockers both come from it. */
