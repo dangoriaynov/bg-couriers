@@ -127,6 +127,8 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.8 =
+* Faster: **the weekly courier sync is seconds instead of minutes.** Every town and every office was saved to the database one at a time - 6,627 separate writes for Speedy alone, which took 18 seconds before any of the other couriers had started. They go in batches now: 36 writes, under a second, the same towns and the same offices.
+* Fixed: **an order is written once when its tracking is checked, not up to five times.** Each thing the courier told us was saved separately, and every save wakes every other plugin on the shop that watches orders. One answer from the courier is one save now.
 * Fixed: **a pickup point could stand alone on the map next to a bubble counting hundreds of others.** The pins are folded together on a grid, and a grid has edges: a point a few pixels from a thousand others could fall the other side of one and never join them. It joins the crowd it is standing in now.
 * Fixed: **choosing a town could tick an office nobody picked.** A town with a single counter needs no list, and that is still true - but a town with one counter and two lockers was having the counter chosen for the customer, because it was the only counter. It is left to the customer whenever the town has more than one pickup point to choose from.
 
