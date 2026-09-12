@@ -30,6 +30,7 @@ final class PickupRequestTest extends TestCase {
         Functions\when('esc_html')->returnArg(1);
         // Sameday's constructor reads its host from the options; the others do not care.
         Functions\when('get_option')->alias(static function ($n, $d = false) { return $d; });
+        Functions\when('wp_timezone')->justReturn(new DateTimeZone('Europe/Sofia')); // the shop's zone
     }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
@@ -45,11 +46,21 @@ final class PickupRequestTest extends TestCase {
         $this->assertSame(['63710932641', '63710932642'], $b['explicitShipmentIdList']);
     }
 
+    /**
+     * The moment carries the shop's zone. Speedy reads pickupDateTime as yyyy-MM-dd'T'HH:mm:ssZ and
+     * refuses one without the offset with an HTTP 400 before it has even looked at the credentials -
+     * measured 2026-09-12 against the live endpoint: "Cannot deserialize value of type java.util.Date
+     * from String "2026-09-13T14:00:00": expected format "yyyy-MM-dd'T'HH:mm:ssZ"". The courier comes
+     * to the shop, so the shop's zone is the one that is written.
+     */
     public function test_speedy_sends_the_day_and_the_window(): void {
         $b = BGCouriers_Speedy::build_pickup_body(['63710932641'], $this->opts());
-        $this->assertSame('2026-08-19T14:00:00', $b['pickupDateTime']);
+        $this->assertSame('2026-08-19T14:00:00+0300', $b['pickupDateTime'], 'August in Sofia is +0300');
         $this->assertSame('17:30', $b['visitEndTime']);
         $this->assertSame('0888123456', $b['phoneNumber']['number']);
+
+        $b = BGCouriers_Speedy::build_pickup_body(['63710932641'], ['date' => '2026-12-01', 'from' => '09:30'] + $this->opts());
+        $this->assertSame('2026-12-01T09:30:00+0200', $b['pickupDateTime'], 'December in Sofia is +0200');
     }
 
     /** Moving the date is Speedy's to offer and not ours to accept: the merchant packs for the day they chose. */

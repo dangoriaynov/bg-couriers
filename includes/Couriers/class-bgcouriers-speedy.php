@@ -617,14 +617,21 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
      * autoAdjustPickupDate stays FALSE deliberately. Letting Speedy move the date to the next it can
      * manage would answer "booked" for a day the merchant did not choose and will not be packing for.
      *
+     * pickupDateTime carries the shop's zone: Speedy reads it as yyyy-MM-dd'T'HH:mm:ssZ and refuses one
+     * without the offset with an HTTP 400 before it has looked at anything else - "Cannot deserialize
+     * value of type java.util.Date from String "2026-09-13T14:00:00"", measured 2026-09-12. The courier
+     * comes to the shop, so it is the shop's zone that is written, whatever the server's clock is set to.
+     *
      * @param string[] $waybills
      * @param array    $opts date (Y-m-d), from/to (H:i), contact, phone
      */
     public static function build_pickup_body(array $waybills, array $opts): array {
         $date = (string) ($opts['date'] ?? '');
         $from = (string) ($opts['from'] ?? '09:00');
+        $tz   = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
+        $at   = date_create_immutable($date . ' ' . $from . ':00', $tz);
         return [
-            'pickupDateTime'         => $date . 'T' . $from . ':00',
+            'pickupDateTime'         => $at ? $at->format('Y-m-d\TH:i:sO') : $date . 'T' . $from . ':00',
             'pickupScope'            => 'EXPLICIT_SHIPMENT_ID_LIST',
             'explicitShipmentIdList' => array_values(array_map('strval', $waybills)),
             'visitEndTime'           => (string) ($opts['to'] ?? '18:00'),
