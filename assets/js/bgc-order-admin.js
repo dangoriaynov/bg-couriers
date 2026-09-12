@@ -156,15 +156,17 @@
     updateMode();
   }
   function updateMode() {
-    var isBox = (courier() === 'boxnow'), m = $method.val();
+    var m = $method.val();
     // Parcels + insurance only for the couriers that honour them; the server puts the list in the
     // markup so there is one source of truth for it, not a second copy here.
     var $facts = $panel.find('.bgc-ed-shipfacts');
     $facts.toggle(($facts.attr('data-couriers') || '').split(',').indexOf(courier()) !== -1);
-    $panel.find('.bgc-ed-boxnow').toggle(isBox);
-    $panel.find('.bgc-ed-city-row').toggle(!isBox);
-    $panel.find('.bgc-ed-office-row').toggle(!isBox && m !== 'address');
-    $panel.find('.bgc-ed-address').toggle(!isBox && m === 'address');
+    // BOX NOW used to have its own three text boxes here (locker id, name, address), because it had
+    // no town list to pick from. Its towns are read off its lockers now, so it is edited like every
+    // other courier: a town, then a locker from the list or the map.
+    $panel.find('.bgc-ed-city-row').show();
+    $panel.find('.bgc-ed-office-row').toggle(m !== 'address');
+    $panel.find('.bgc-ed-address').toggle(m === 'address');
   }
 
   sel2($city, { width: '100%', allowClear: true, placeholder: I.city, minimumInputLength: 0,
@@ -187,8 +189,8 @@
     // for any ordinary city, and the line below would hand the button straight back - undoing the
     // disabled state PHP had just printed. The form then looked saveable while the server refused it.
     if (LOCKED) { return; }
-    var m = $method.val(), c = courier(), city = parseInt($city.val() || 0, 10);
-    var needs = c !== 'boxnow' && (m === 'office' || m === 'automat');
+    var m = $method.val(), city = parseInt($city.val() || 0, 10);
+    var needs = (m === 'office' || m === 'automat');
     var none = needs && city > 0 && officeRows.length === 0;
     $panel.find('.bgc-ed-avail').text(none ? (m === 'automat' ? I.no_automat : I.no_office) : '').toggle(none);
     $panel.find('.bgc-ed-save').prop('disabled', none);
@@ -198,7 +200,7 @@
     // A locked editor keeps the office PHP printed: there is nothing to choose between, and re-filling
     // the list would only be a chance to replace the one the parcel is actually travelling to.
     if (LOCKED) { return; }
-    if (!city || m === 'address' || c === 'boxnow') { officeRows = []; updateAvail(); return; }
+    if (!city || m === 'address') { officeRows = []; updateAvail(); return; }
     $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, country: country(), city_id: city, type: m, all: 1 }, function (rows) {
       officeRows = bgcList(rows);
       var cur = $office.val();
@@ -269,7 +271,7 @@
   }
   function officesFor(cb) {
     var c = courier(), city = $city.val() || 0, m = $method.val();
-    if (!city || m === 'address' || c === 'boxnow') { cb([]); return; }
+    if (!city || m === 'address') { cb([]); return; }
     $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, country: country(), city_id: city, type: m, all: 1 }, function (rows) { cb(bgcList(rows)); }, 'json');
   }
   function openMap() {
@@ -404,12 +406,10 @@
       complex: $panel.find('.bgc-ed-complex').val() || '', block: $panel.find('.bgc-ed-block').val() || '',
       entrance: $panel.find('.bgc-ed-entrance').val() || '', floor: $panel.find('.bgc-ed-floor').val() || '',
       apartment: $panel.find('.bgc-ed-apartment').val() || '', address_note: $panel.find('.bgc-ed-note').val() || '',
-      boxnow_name: $panel.find('.bgc-ed-boxnow-name').val() || '', boxnow_addr: $panel.find('.bgc-ed-boxnow-addr').val() || '',
       // How many boxes, and what to insure them for. Blank means the defaults - one parcel, uninsured.
       parcels: $panel.find('.bgc-ed-parcels').val() || 1,
       insurance: $panel.find('.bgc-ed-insurance').val() || 0
     };
-    if (courier() === 'boxnow') { data.office_id = $panel.find('.bgc-ed-boxnow-id').val() || 0; }
     $.post(C.ajax, data).done(function (r) {
       if (r && r.success) { $msg.css('color', '#1a7f37').text((r.data && r.data.msg) || I.saved); setTimeout(function () { location.reload(); }, 800); }
       else { $msg.css('color', '#b32d2e').text((r && r.data && r.data.msg) || I.err); $b.prop('disabled', false); }

@@ -22,17 +22,17 @@ with production credentials + real APMs (see the last section).
 - **Origin (where the parcel ships FROM)** - the plugin's BOX NOW origin setting:
   - `5726` → **warehouse** origin (*доставка с взимане от склад* - courier collects from your warehouse).
   - `2` → **any-apm** origin (*изпращане от всеки автомат* - you drop the parcel at any APM).
-- **Destination (the customer's locker)** - chosen via the BOX NOW **widget** (returns `boxnowLockerId`).
+- **Destination (the customer's locker)** - chosen in the checkout like every courier's office: a town (read off the lockers at sync, see `BGCouriers_Boxnow::fetch_cities`) and a locker; the locker's id lands in `_bgcouriers_office_id`.
 
 ## Testing limitations - IMPORTANT, follow exactly
 - ✅ Generate **test waybills only to APM `8009`**.
-- 🚫 **Do NOT use APMs from the real widget map** - those are **production-only** and must not receive stage shipments.
+- 🚫 **Do NOT use APMs from the production locker list** - those are **production-only** and must not receive stage shipments.
 - Stage labels are throwaway test data → keep a log of each one; the **owner cancels** them (Claude never cancels test waybills).
 
 ## How to test (end to end)
 1. **Auth** - `POST /api/v1/auth-sessions` → Bearer token. Send `X-PartnerID: 11239` + `Authorization: Bearer <token>` on every subsequent call.
 2. **Sanity (optional)** - `GET /api/v1/origins` → confirm `5726` + `2`; `GET /api/v1/destinations` → APM list/shape.
-3. **Pick a locker** - in a real checkout the **widget** returns `boxnowLockerId`. For API-only label tests, use destination APM **`8009`** directly.
+3. **Pick a locker** - in a real checkout the customer picks a town and a locker from the synced list. For API-only label tests, use destination APM **`8009`** directly.
 4. **Create the shipment** - `POST /api/v1/delivery-requests` with `origin.locationId` = `5726` (or `2`), `destination.locationId` = `8009`, plus `orderNumber`, `invoiceValue`, `paymentMode` (`prepaid` / `cod` + `amountToBeCollected`), `items[]` → returns `{referenceNumber, parcels:[{id}]}`.
 5. **Label** - fetch the PDF: `/api/v1/labels` (the official plugin uses this) or `/api/v1/parcels/{id}/label.pdf` (the manual) - try `/labels` first.
 6. **Track** - `GET /api/v1/parcels` → parcel `state` + `events` (also pushed via webhook).

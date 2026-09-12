@@ -618,21 +618,6 @@
 
   // Save the selection ------------------------------------------------------
   function selectionData($wrap) {
-    // BOX NOW's block has no town and no office list: the locker the widget chose sits in a hidden
-    // field, its name and address on the line under the button. Read through the office select
-    // below, this block answered office_id 0 - and the submit-time flush, which sends the chosen
-    // courier's block on every order, wiped the locker the customer had just picked. Every BOX NOW
-    // order was then refused with "choose a locker" over a locker that was on the screen (reported
-    // 2026-09-11 by a shop testing the webhook on the stage account; there had been no BOX NOW order
-    // on the live shop since the flush arrived in 0.2.21, 2026-08-15).
-    if ($wrap.hasClass('bgc-boxnow')) {
-      return {
-        action: 'bgcouriers_set_selection', nonce: BGCOURIERS.nonce, courier: 'boxnow', method: 'automat',
-        office_id: $wrap.find('.bgc-boxnow-id').val() || 0,
-        boxnow_name: $.trim($wrap.find('.bgc-boxnow-name').text()),
-        boxnow_addr: $.trim($wrap.find('.bgc-boxnow-addr').text())
-      };
-    }
     return {
       action: 'bgcouriers_set_selection', nonce: BGCOURIERS.nonce, courier: courier($wrap), country: country($wrap), method: method($wrap),
       site_id: $wrap.find('.bgc-city').val() || 0,
@@ -686,47 +671,6 @@
     saveSelection($wrap).always(go);
     setTimeout(go, 5000);
   }, true);   // CAPTURE: ahead of WooCommerce's own submit handler, and of the native submit
-
-  // BOX NOW locker picker - the official map widget (built-in GPS "nearest to me") ---------
-  function boxnowUrl() {
-    var c = BGCOURIERS.boxnow || {}, p = [];
-    if (c.partnerId) { p.push('partnerId=' + encodeURIComponent(c.partnerId)); }
-    p.push('countryCode=' + encodeURIComponent(c.country || 'bg'));
-    p.push('language=' + encodeURIComponent(c.country || 'bg'));
-    p.push('gps=' + (c.gps === 'no' ? 'no' : 'yes'));
-    return (c.widget || 'https://map.boxnow.bg/iframe.html') + '?' + p.join('&');
-  }
-  var boxnowWrap = null;
-  function openBoxnow($wrap) {
-    boxnowWrap = $wrap;
-    var $ov = $('<div class="bgc-boxnow-overlay"><div class="bgc-boxnow-modal">'
-      + '<button type="button" class="bgc-boxnow-close" aria-label="' + esc(BGCOURIERS.i18n && BGCOURIERS.i18n.close) + '">×</button>'
-      + '<iframe class="bgc-boxnow-frame" src="' + esc(boxnowUrl()) + '" allow="geolocation"></iframe>'
-      + '</div></div>');
-    $ov.on('click', function (e) { if (e.target === $ov[0] || $(e.target).hasClass('bgc-boxnow-close')) { $ov.remove(); } });
-    $('body').append($ov);
-  }
-  function closeBoxnow() { $('.bgc-boxnow-overlay').remove(); }
-  function pickBoxnow(d) {
-    var $wrap = (boxnowWrap && boxnowWrap.length) ? boxnowWrap : $('.bgc-fields.bgc-boxnow:visible').first();
-    if (!$wrap.length || !d.boxnowLockerId) { return; }
-    var name = d.boxnowLockerName || '', addr = d.boxnowLockerAddressLine1 || '';
-    $wrap.find('.bgc-boxnow-id').val(d.boxnowLockerId).trigger('change');
-    $wrap.find('.bgc-boxnow-name').text(name);
-    $wrap.find('.bgc-boxnow-addr').text(addr ? ' ' + addr : '');
-    $wrap.find('.bgc-boxnow-selected').show();
-    closeBoxnow();
-    pushSelection($wrap); // the same payload the submit-time flush sends, read off the same fields
-  }
-  window.addEventListener('message', function (event) {
-    var d = event.data;
-    if (d === 'closeIframe') { closeBoxnow(); return; }
-    if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) { return; } }
-    if (!d || typeof d !== 'object') { return; }
-    if (d.boxnowClose !== undefined) { closeBoxnow(); return; }
-    if (d.boxnowLockerId) { pickBoxnow(d); }
-  });
-  $(document.body).on('click', '.bgc-boxnow-pick', function (e) { e.preventDefault(); openBoxnow($(this).closest('.bgc-fields')); });
 
   // Wiring ------------------------------------------------------------------
   // The chosen bgcouriers_<id> shipping method's courier id (each courier renders its own .bgc-fields).
@@ -831,7 +775,7 @@
     });
     markInvalid();
   });
-  $(document.body).on('change', '.bgc-fields .bgc-city, .bgc-fields .bgc-office, .bgc-fields .bgc-street, .bgc-fields .bgc-boxnow-id', function () { clearInvalid(this); });
+  $(document.body).on('change', '.bgc-fields .bgc-city, .bgc-fields .bgc-office, .bgc-fields .bgc-street', function () { clearInvalid(this); });
   $(document.body).on('input', '.bgc-fields .bgc-street-no', function () { clearInvalid(this); });
 
   $(document.body).on('updated_checkout', function () {
@@ -845,7 +789,6 @@
       var mine = $wrap.attr('data-courier') === chosen;
       if (!mine) { $wrap.hide().removeClass('bgc-ready'); return; } // hide (and re-arm) the other couriers' fields
       $wrap.show(); // show only the chosen courier's fields (multiple couriers can share a zone)
-      if ($wrap.hasClass('bgc-boxnow')) { hideLoader($wrap); reveal($wrap); return; } // locker picked via the map widget - nothing to init
       renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); autoPickSingle($wrap); hideLoader($wrap);
       reveal($wrap);
     });

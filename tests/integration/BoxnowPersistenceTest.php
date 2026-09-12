@@ -1,16 +1,30 @@
 <?php
 /**
+ * A BOX NOW order carries its locker the way any locker order does: the id the delivery request sends,
+ * the method forced to the locker kind, and the locker's name and address - read off the nomenclature
+ * by that id, since 2026-09-12 when BOX NOW's own widget (which used to hand the checkout a name and an
+ * address of its own) was replaced by the standard town + locker block.
+ *
  * @group boxnow
  */
 final class BoxnowPersistenceTest extends WP_UnitTestCase {
+    public function set_up() { parent::set_up(); BGCouriers_Schema::create(); }
+
     public function test_boxnow_persists_locker_as_delivery_point(): void {
+        $town = BGCouriers_Boxnow::town_id('София');
+        BGCouriers_Nomenclature::upsert_cities('boxnow', [['city_id' => $town, 'name' => 'София', 'post_code' => '1000', 'country' => 'BG']], 'test-run');
+        BGCouriers_Nomenclature::upsert_offices('boxnow', [['office_id' => 8009, 'code' => '8009', 'city_id' => $town, 'type' => 'automat',
+            'name' => 'APM Sofia Center', 'address' => 'ul. Vitosha 1 София', 'lat' => 42.7, 'lng' => 23.3, 'country' => 'BG']], 'test-run');
         WC()->session = WC()->session ?: new WC_Session_Handler();
         WC()->session->set('chosen_shipping_methods', ['bgcouriers_boxnow']); // chosen courier = boxnow
         WC()->session->set('bgcouriers_selection_courier', 'boxnow');
         WC()->session->set('bgcouriers_method', 'office'); // stale/wrong: BoxNow is locker-only
+        WC()->session->set('bgcouriers_site_id', $town);
         WC()->session->set('bgcouriers_office_id', 8009);   // the chosen locker (APM) id
-        WC()->session->set('bgcouriers_boxnow_name', 'APM Sofia Center');
-        WC()->session->set('bgcouriers_boxnow_addr', 'ul. Vitosha 1, Sofia');
+        WC()->session->set('bgcouriers_post_code', '1000');
+        // What a session from the old widget would still hold - the row wins over it.
+        WC()->session->set('bgcouriers_boxnow_name', 'stale widget name');
+        WC()->session->set('bgcouriers_boxnow_addr', 'stale widget address');
         $order = new WC_Order();
         (new BGCouriers_Checkout())->persist($order);
         $order->save();
@@ -20,11 +34,14 @@ final class BoxnowPersistenceTest extends WP_UnitTestCase {
         $this->assertSame('automat', $reloaded->get_meta('_bgcouriers_method'));
         $this->assertSame('8009', (string) $reloaded->get_meta('_bgcouriers_office_id'));
         $this->assertSame('boxnow', $reloaded->get_meta('_bgcouriers_courier'));
-        // Locker label/address are saved for display on the order.
+        $this->assertSame((string) $town, (string) $reloaded->get_meta('_bgcouriers_site_id'), 'and the town, which the widget never gave the order');
+        // Locker label/address are saved for display on the order - from the nomenclature.
         $this->assertSame('APM Sofia Center', $reloaded->get_meta('_bgcouriers_boxnow_name'));
-        $this->assertSame('ul. Vitosha 1, Sofia', $reloaded->get_meta('_bgcouriers_boxnow_addr'));
+        $this->assertSame('ul. Vitosha 1 София', $reloaded->get_meta('_bgcouriers_boxnow_addr'));
         // And the shipping address block shows the locker (so the order is not blank).
         $this->assertSame('APM Sofia Center', $reloaded->get_shipping_address_1());
-        $this->assertSame('ul. Vitosha 1, Sofia', $reloaded->get_shipping_address_2());
+        $this->assertSame('ul. Vitosha 1 София', $reloaded->get_shipping_address_2());
+        $this->assertSame('София', $reloaded->get_shipping_city());
+        $this->assertSame('1000', $reloaded->get_shipping_postcode());
     }
 }

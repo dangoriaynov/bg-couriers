@@ -826,17 +826,9 @@ class BGCouriers_Checkout {
         if ((string) $s->get('bgcouriers_selection_courier', '') !== $courier) {
             /* translators: %s: courier name */
             $errors->add('bgc_point', sprintf(__('Please choose your %s delivery point before placing the order.', 'bg-couriers'), $label),
-                $at($courier === 'boxnow' ? 'boxnow' : 'city'));
+                $at('city'));
             return;
         }
-        // BoxNow - a locker picked on the map widget (no city).
-        if ($courier === 'boxnow') {
-            if ((int) $s->get('bgcouriers_office_id', 0) <= 0) {
-                $errors->add('bgc_locker', __('Please choose a BOX NOW locker before placing the order.', 'bg-couriers'), $at('boxnow'));
-            }
-            return;
-        }
-        // City/office couriers (Speedy, Econt, Pigeon).
         $method = (string) $s->get('bgcouriers_method', '');
         $site   = (int) $s->get('bgcouriers_site_id', 0);
         $office = (int) $s->get('bgcouriers_office_id', 0);
@@ -943,6 +935,14 @@ class BGCouriers_Checkout {
     public static function apply_delivery(\WC_Order $order, array $d): void {
         $courier = (string) ($d['courier'] ?? '');
         if ($courier === '') { return; }
+        // The locker's name and address are read off the nomenclature by its id, as every office is.
+        // They used to arrive from BOX NOW's map widget, which is gone; the two meta keys stay, filled
+        // from the same row, so orders made either way read alike on the order screen and the label.
+        // Before $g below: that closure holds its own copy of $d.
+        if ($courier === 'boxnow' && (int) ($d['office_id'] ?? 0) > 0) {
+            $row = BGCouriers_Nomenclature::office_by_id('boxnow', (int) $d['office_id']);
+            if ($row) { $d['boxnow_name'] = (string) $row['name']; $d['boxnow_addr'] = (string) $row['address']; }
+        }
         $g = static function ($k, $def = '') use ($d) { return $d[$k] ?? $def; };
         // BoxNow is locker-only; force 'automat' so a stale method can't leak on.
         $method = $courier === 'boxnow'
@@ -979,11 +979,7 @@ class BGCouriers_Checkout {
         $name   = (string) ($city['name'] ?? '');
         $post   = (string) $g('post_code') ?: (string) ($city['post_code'] ?? '');
         $region = (string) ($city['region'] ?? '');
-        if ($courier === 'boxnow') {
-            $name = ''; $post = '';
-            $line1 = (string) $g('boxnow_name');
-            $line2 = (string) $g('boxnow_addr');
-        } elseif ($method === 'address') {
+        if ($method === 'address') {
             $line1 = trim((string) $g('street_name') . ' ' . (string) $g('street_no'));
             $line2 = trim((string) $g('complex'));
         } else {
@@ -1095,12 +1091,6 @@ class BGCouriers_Checkout {
             'leaflet_images' => BGCOURIERS_URL . 'assets/lib/leaflet/images/', // bundled Leaflet marker icons
             'icons' => BGCouriers_Icons::map(), // same delivery-type glyphs as the admin, shown with text on the tabs
             'emergency' => BGCouriers_Settings::emergency(),
-            'boxnow' => [
-                'widget'    => 'https://map.boxnow.bg/iframe.html', // BoxNow map widget (has built-in GPS)
-                'partnerId' => (string) get_option('bgcouriers_boxnow_partner_id', ''),
-                'country'   => 'bg',
-                'gps'       => 'yes',
-            ],
             'i18n'  => [
                 'address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To APS','bg-couriers'),
                 'office_label'=>__('Office','bg-couriers'),'automat_label'=>__('APS (locker)','bg-couriers'),
@@ -1118,8 +1108,6 @@ class BGCouriers_Checkout {
                 's2_searching' => __('Searching…', 'bg-couriers'),
                 's2_more' => __('Loading more…', 'bg-couriers'),
                 's2_error' => __('The results could not be loaded', 'bg-couriers'),
-                'boxnow_pick' => __('Choose a BOX NOW locker','bg-couriers'),
-                'boxnow_change' => __('Change locker','bg-couriers'),
                 'map_open' => __('View on map','bg-couriers'),
                 'map_title' => __('Pick from the map','bg-couriers'),
                 'map_choose' => __('Choose this location','bg-couriers'),
@@ -1183,7 +1171,6 @@ class BGCouriers_Checkout {
         if (function_exists('is_cart') && is_cart()) { return; }
         $courier = substr((string) $method->get_method_id(), self::PREFIX_LEN); // 'bgcouriers_speedy' -> 'speedy'
         if (!BGCouriers_Couriers::get($courier)) { return; }
-        if ($courier === 'boxnow') { $this->render_boxnow_fields(WC()->session); return; } // locker chosen on the map widget
         // Stateful: re-render the session selection so update_checkout recalcs don't wipe the fields.
         // Only render a selection that was made for THIS courier - switching couriers must not show a
         // stale city/office from another courier (whose ids are invalid here).
@@ -1213,10 +1200,20 @@ class BGCouriers_Checkout {
         // courier). The office stays empty - office ids are courier-specific, so they pick that again.
         if (!$mine && $s) {
             $carry_pc = (string) $s->get('bgcouriers_post_code', '');
-            if ($carry_pc !== '') {
-                $carry_city = BGCouriers_Nomenclature::city_by_postcode($courier, $carry_pc, BGCouriers_Pricing::destination_country());
-                if ($carry_city) { $site_id = (int) $carry_city['city_id']; $post_code = $carry_pc; }
+            $country  = BGCouriers_Pricing::destination_country();
+            $carry_city = $carry_pc !== '' ? BGCouriers_Nomenclature::city_by_postcode($courier, $carry_pc, $country) : null;
+            // The code is the courier-agnostic handle on a town - until a courier codes the town
+            // differently: BOX NOW lists Sofia under its lowest locker's code, which need not be the
+            // 1000 the others use. Then the NAME, as the courier the customer was in spells it, is
+            // asked for - never first, because a name alone can be two villages and the code cannot.
+            if (!$carry_city) {
+                $from    = (string) $s->get('bgcouriers_selection_courier', '');
+                $from_id = (int) $s->get('bgcouriers_site_id', 0);
+                $from_c  = ($from !== '' && $from !== $courier && $from_id > 0) ? BGCouriers_Nomenclature::city_by_id($from, $from_id) : null;
+                $name    = (string) ($from_c['name'] ?? '');
+                if ($name !== '') { $carry_city = BGCouriers_Nomenclature::match_city($courier, $name, $carry_pc, $country); }
             }
+            if ($carry_city) { $site_id = (int) $carry_city['city_id']; $post_code = $carry_pc !== '' ? $carry_pc : (string) ($carry_city['post_code'] ?? ''); }
         }
 
         $city_option = '';
@@ -1354,25 +1351,4 @@ class BGCouriers_Checkout {
     }
 
     /** BOX NOW checkout: a locker chosen on the BoxNow map widget (no city/office dropdowns). */
-    private function render_boxnow_fields($s): void {
-        // Only treat the saved locker as ours if the selection was actually made for BoxNow - otherwise a
-        // stale office id from a previously-chosen courier would render an empty "selected locker" box.
-        $mine   = $s && (string) $s->get('bgcouriers_selection_courier', '') === 'boxnow';
-        $locker = $mine ? (int) $s->get('bgcouriers_office_id', 0) : 0;
-        $name   = $mine ? (string) $s->get('bgcouriers_boxnow_name', '') : '';
-        $addr   = $mine ? (string) $s->get('bgcouriers_boxnow_addr', '') : '';
-        $has    = $locker > 0;
-        $hide   = self::chosen_courier() !== 'boxnow' ? ' style="display:none;"' : ''; // hidden unless BoxNow is the chosen courier
-        $html = '<div class="bgc-fields bgc-boxnow" data-courier="boxnow" data-method="automat" data-methods="automat" data-order="automat"' . $hide . '>'
-           . '<div class="bgc-panel">'
-           . '<div class="bgc-field bgc-boxnow-field" id="' . esc_attr(self::field_id('boxnow', 'boxnow')) . '">'
-           . '<button type="button" class="button bgc-boxnow-pick">' . esc_html__('Choose a BOX NOW locker', 'bg-couriers') . '</button>'
-           . '<div class="bgc-boxnow-selected"' . ($has ? '' : ' style="display:none;"') . '>'
-           . '<strong class="bgc-boxnow-name">' . esc_html($name) . '</strong>'
-           . '<span class="bgc-boxnow-addr"> ' . esc_html($addr) . '</span>'
-           . '</div>'
-           . '<input type="hidden" class="bgc-boxnow-id" value="' . esc_attr($has ? (string) $locker : '') . '">'
-           . '</div></div></div>';
-        echo wp_kses($html, BGCouriers_Kses::checkout_fields());
-    }
 }
