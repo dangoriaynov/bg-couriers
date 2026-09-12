@@ -374,7 +374,13 @@ class BGCouriers_Pricing {
               . str_replace('.', '', (string) $w) . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '')
               . ($abroad ? '_' . strtolower($country) : '') . '_' . strtolower($currency);
         $cached = get_transient($tkey);
-        if (is_array($cached) && isset($cached['p'])) {
+        // The entry says which currency it is in, so the question is asked here rather than left to the
+        // shape of the key above. The key makes a disagreement impossible today; this makes it
+        // impossible for a caller that builds the key some other way tomorrow, which is how the
+        // currency came to be missing from it in the first place. An entry that disagrees is not a
+        // cheap price or a dear one, it is a price in another unit, and a miss is the right answer.
+        if (is_array($cached) && isset($cached['p'])
+            && (string) ($cached['c'] ?? $currency) === $currency) {
             return self::quote_from_cache($cached, $currency);
         }
         $res = self::resolve_office($courier->id(), $method, $site_id, $office, $country);
