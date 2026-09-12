@@ -88,7 +88,7 @@ class BGCouriers_Labels {
     }
     public static function generate(int $order_id): BGCouriers_Label {
         $order = wc_get_order($order_id);
-        if (!$order) { throw new BGCouriers_Api_Exception('Order not found'); }
+        if (!$order) { throw new BGCouriers_Api_Exception(esc_html__('Order not found.', 'bg-couriers')); }
         $existing = (string) $order->get_meta('_bgcouriers_waybill');
         if ($existing !== '') { return new BGCouriers_Label($existing, (string) $order->get_meta('_bgcouriers_label_url')); }
 
@@ -202,7 +202,10 @@ class BGCouriers_Labels {
     }
     private static function download_pdf(string $url): string {
         $r = wp_remote_get($url, ['timeout' => 30]);
-        if (is_wp_error($r)) { throw new BGCouriers_Api_Exception(esc_html('Label PDF download failed: ' . $r->get_error_message())); }
+        if (is_wp_error($r)) {
+            /* translators: %s: the error the download reported. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('Downloading the label PDF failed: %s', 'bg-couriers'), $r->get_error_message())));
+        }
         return (string) wp_remote_retrieve_body($r);
     }
 
@@ -233,7 +236,7 @@ class BGCouriers_Labels {
         return $ids;
     }
     public function handle_generate(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgcouriers_generate_label_' . $id);
         if (!wc_get_order($id)) { wp_die(esc_html__('Order not found.', 'bg-couriers')); }
@@ -330,7 +333,7 @@ class BGCouriers_Labels {
     /** Void the courier waybill and clear it from the order (throws on courier failure). */
     public static function cancel(int $order_id): void {
         $order = wc_get_order($order_id);
-        if (!$order) { throw new BGCouriers_Api_Exception('Order not found'); }
+        if (!$order) { throw new BGCouriers_Api_Exception(esc_html__('Order not found.', 'bg-couriers')); }
         $waybill = (string) $order->get_meta('_bgcouriers_waybill');
         if ($waybill === '') { return; } // nothing to cancel
         $courier = self::order_courier($order);
@@ -491,7 +494,7 @@ class BGCouriers_Labels {
     }
 
     public function handle_cancel_label(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgcouriers_cancel_label_' . $id);
         if (!self::unlocked_order($id)) {
@@ -506,7 +509,7 @@ class BGCouriers_Labels {
 
     /** Void the existing waybill and issue a fresh one from the order's current delivery details. */
     public function handle_regenerate(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgcouriers_regenerate_' . $id);
         if (!self::unlocked_order($id)) {
@@ -521,7 +524,7 @@ class BGCouriers_Labels {
 
     /** Cancel the order (and void its label first, best effort). */
     public function handle_cancel_order(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgcouriers_cancel_order_' . $id);
         $order = wc_get_order($id);
@@ -538,7 +541,7 @@ class BGCouriers_Labels {
 
     /** Save edited delivery details onto an order; void the old waybill and issue a fresh matching one. */
     public function handle_save_delivery(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do that.', 'bg-couriers')]); }
         check_ajax_referer('bgcouriers_order_delivery', 'nonce');
         $id = absint(wp_unslash($_POST['order_id'] ?? 0));
         $order = wc_get_order($id);
@@ -597,7 +600,7 @@ class BGCouriers_Labels {
 
     /** AJAX: void a waybill from the Orders list without reloading the page. */
     public function ajax_cancel_label(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => 'forbidden']); }
+        if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do that.', 'bg-couriers')]); }
         $id = absint(wp_unslash($_POST['order_id'] ?? 0));
         check_ajax_referer('bgcouriers_cancel_label_' . $id, 'nonce');
         if (!self::unlocked_order($id)) { wp_send_json_error(['msg' => self::locked_message()]); }
@@ -607,7 +610,7 @@ class BGCouriers_Labels {
     }
 
     public function handle_track(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgcouriers_track_' . $id);
         $order = wc_get_order($id);
@@ -630,7 +633,7 @@ class BGCouriers_Labels {
         exit;
     }
     public function handle_print_batch(): void {
-        if (!current_user_can('manage_woocommerce')) { wp_die('forbidden'); }
+        if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         check_admin_referer('bgcouriers_print_batch');
         $order_ids = isset($_GET['order_id'])
             ? [(int) wp_unslash($_GET['order_id'])] // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, nonce verified above

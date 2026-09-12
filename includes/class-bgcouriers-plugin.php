@@ -120,9 +120,10 @@ class BGCouriers_Plugin {
         self::pin_who_pays_delivery();
         self::pin_autolabel();
         add_filter('cron_schedules', function ($s) {
-            $s['weekly']    = ['interval' => WEEK_IN_SECONDS, 'display' => 'Once Weekly'];
-            $s['bgcouriers_30min'] = ['interval' => 30 * MINUTE_IN_SECONDS, 'display' => 'Every 30 minutes'];
-            $s['bgcouriers_6h']    = ['interval' => 6 * HOUR_IN_SECONDS, 'display' => '4 times a day'];
+            // These names are what WordPress shows wherever schedules are listed (Site Health, WP Crontrol).
+            $s['weekly']    = ['interval' => WEEK_IN_SECONDS, 'display' => __('Once weekly', 'bg-couriers')];
+            $s['bgcouriers_30min'] = ['interval' => 30 * MINUTE_IN_SECONDS, 'display' => __('Every 30 minutes', 'bg-couriers')];
+            $s['bgcouriers_6h']    = ['interval' => 6 * HOUR_IN_SECONDS, 'display' => __('Four times a day', 'bg-couriers')];
             return $s;
         });
         add_action('init', ['BGCouriers_Sync', 'schedule']);

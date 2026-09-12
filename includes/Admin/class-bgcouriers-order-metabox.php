@@ -255,6 +255,7 @@ class BGCouriers_Order_Metabox {
             'methodLabels' => ['office' => __('To office', 'bg-couriers'), 'address' => __('To address', 'bg-couriers'), 'automat' => __('To APS', 'bg-couriers')],
             'i18n'    => ['city' => __('City', 'bg-couriers'), 'office' => __('Office / APS', 'bg-couriers'), 'street' => __('Street', 'bg-couriers'),
                           'saving' => __('Saving…', 'bg-couriers'), 'err' => __('Could not save.', 'bg-couriers'),
+                          'saved' => __('Saved.', 'bg-couriers'),
                           'copied' => __('Copied to clipboard', 'bg-couriers'),
                           'trackRefreshing' => __('Asking the courier…', 'bg-couriers'),
                           'trackFailed'     => __('Could not reach the courier.', 'bg-couriers'),

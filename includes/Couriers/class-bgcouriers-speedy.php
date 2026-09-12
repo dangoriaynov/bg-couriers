@@ -81,7 +81,10 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         $c = strtoupper(trim($iso));
         if ($c === '' || $c === 'BG') { return self::BG_COUNTRY_ID; }
         $id = self::country_id($c);
-        if ($id <= 0) { throw new BGCouriers_Api_Exception(esc_html('Speedy does not deliver to ' . $c)); }
+        if ($id <= 0) {
+            /* translators: 1: courier name, 2: country code. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s does not deliver to %2$s.', 'bg-couriers'), 'Speedy', $c)));
+        }
         return $id;
     }
 
@@ -103,7 +106,10 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public static function service_id(string $iso = ''): int {
         $c = strtoupper(trim($iso));
         if ($c === '') { $c = 'BG'; }
-        if (!isset(self::SERVICE_IDS[$c])) { throw new BGCouriers_Api_Exception(esc_html('Speedy has no service for ' . $c)); }
+        if (!isset(self::SERVICE_IDS[$c])) {
+            /* translators: 1: courier name, 2: country code. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s has no delivery service for %2$s.', 'bg-couriers'), 'Speedy', $c)));
+        }
         return self::SERVICE_IDS[$c];
     }
 
@@ -269,7 +275,10 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
 
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
         $calc = $resp['calculations'][0] ?? null;
-        if (!$calc || empty($calc['price'])) { throw new BGCouriers_Api_Exception('No price in Speedy response'); }
+        if (!$calc || empty($calc['price'])) {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no price in its answer.', 'bg-couriers'), 'Speedy')));
+        }
         $p = $calc['price'];
         $total = (float) ($p['total'] ?? $p['amount'] ?? 0);
         $vat   = (float) ($p['vat'] ?? 0);
@@ -306,10 +315,14 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         // APS compartment) - surface it instead of letting an empty waybill through (same 200+error
         // contract cancel_label already handles).
         if (!empty($resp['error'])) {
-            throw new BGCouriers_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message'] ?? 'shipment rejected')));
+            throw new BGCouriers_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message']
+                ?? __('the shipment was rejected', 'bg-couriers'))));
         }
         $id = self::parse_shipment_id($resp);
-        if ($id === '') { throw new BGCouriers_Api_Exception('Speedy: no shipment id in the response'); }
+        if ($id === '') {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no shipment id in its answer.', 'bg-couriers'), 'Speedy')));
+        }
         return new BGCouriers_Label($id, '', self::check_applied($plain, $resp));
     }
 
@@ -498,7 +511,8 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public function print_labels(array $parcel_ids, string $paper_size): string {
         $res = $this->http_post($this->base . '/print', $this->auth(self::build_print_body($parcel_ids, $paper_size)));
         if (is_wp_error($res) || (int) wp_remote_retrieve_response_code($res) !== 200) {
-            throw new BGCouriers_Api_Exception('Speedy print failed');
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s could not print the label.', 'bg-couriers'), 'Speedy')));
         }
         $body = (string) wp_remote_retrieve_body($res);
         // A 200 whose body is not a PDF is Speedy's JSON error payload (same 200+error contract as
@@ -506,7 +520,9 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         // one answers for itself rather than calling assert_pdf().
         if (strncmp($body, '%PDF', 4) !== 0) {
             $j = json_decode($body, true);
-            throw new BGCouriers_Api_Exception(esc_html('Speedy print failed: ' . (string) ($j['error']['message'] ?? 'response is not a PDF')));
+            /* translators: 1: courier name, 2: the courier's own error text. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not print the label: %2$s', 'bg-couriers'), 'Speedy',
+                (string) ($j['error']['message'] ?? __('the answer is not a PDF', 'bg-couriers')))));
         }
         return $body;
     }
@@ -621,16 +637,20 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     /** PickupResponse -> the order id, as a string. Speedy answers 200 with an `error` node on refusal. */
     public static function parse_pickup_id(array $resp): string {
         if (!empty($resp['error'])) {
-            throw new BGCouriers_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message'] ?? 'pickup refused')));
+            throw new BGCouriers_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message']
+                ?? __('the pickup request was refused', 'bg-couriers'))));
         }
         return (string) ($resp['orders'][0]['id'] ?? '');
     }
 
     public function request_pickup(array $waybills, array $opts): string {
-        if (empty($waybills)) { throw new BGCouriers_Api_Exception('No shipments to collect'); }
+        if (empty($waybills)) { throw new BGCouriers_Api_Exception(esc_html__('There are no shipments to collect.', 'bg-couriers')); }
         $resp = $this->post_json($this->base . '/pickup', $this->auth(self::build_pickup_body($waybills, $opts)));
         $id   = self::parse_pickup_id($resp);
-        if ($id === '') { throw new BGCouriers_Api_Exception('Speedy: no pickup order in the response'); }
+        if ($id === '') {
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no pickup request number in its answer.', 'bg-couriers'), 'Speedy')));
+        }
         return $id;
     }
 

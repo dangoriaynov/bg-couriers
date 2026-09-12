@@ -15,7 +15,10 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
             // POST would create a DUPLICATE shipment (these endpoints are not idempotent).
             if ($code >= 200 && $code < 300) {
                 $data = json_decode($raw, true);
-                if (!is_array($data)) { throw new BGCouriers_Api_Exception(esc_html('Invalid JSON from ' . $url)); }
+                if (!is_array($data)) {
+                    /* translators: %s: the API address that answered. */
+                    throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The answer from %s is not valid JSON.', 'bg-couriers'), $url)));
+                }
                 return $data;
             }
             $last = 'HTTP ' . $code . ': ' . substr($raw, 0, 1000); // keep enough of the body for field-level API errors
@@ -23,7 +26,8 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
             // already had a side effect risks a duplicate. Only transport blips and 5xx are worth a second try.
             if ($code >= 400 && $code < 500) { break; }
         }
-        throw new BGCouriers_Api_Exception(esc_html('Request failed: ' . $last));
+        /* translators: %s: the courier's own error text, or the HTTP status. */
+        throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The request failed: %s', 'bg-couriers'), $last)));
     }
 
     /**
@@ -147,10 +151,12 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
         // as a PDF), but a blind request to 169.254.169.254 is still how a cloud instance's credentials
         // are read. Public host over https, or nothing.
         if (!self::is_public_https($url)) {
-            throw new BGCouriers_Api_Exception(esc_html($who . ': the label link does not point anywhere public'));
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s: the label link does not point anywhere public.', 'bg-couriers'), $who)));
         }
         $res = $this->http_get($url, $headers);
         if (is_wp_error($res)) {
+            // Courier name plus the courier's own words: nothing here is English, so nothing needs translating.
             throw new BGCouriers_Api_Exception(esc_html($who . ': ' . $res->get_error_message()));
         }
         return self::assert_pdf((string) wp_remote_retrieve_body($res), $who);
@@ -190,7 +196,8 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
 
     protected static function assert_pdf(string $raw, string $who): string {
         if (strncmp($raw, '%PDF', 4) !== 0) {
-            throw new BGCouriers_Api_Exception(esc_html($who . ': the label did not come back as a PDF'));
+            /* translators: %s: courier name. */
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s: the label did not come back as a PDF.', 'bg-couriers'), $who)));
         }
         return $raw;
     }
