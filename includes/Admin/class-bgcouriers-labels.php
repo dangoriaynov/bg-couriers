@@ -86,12 +86,63 @@ class BGCouriers_Labels {
                 $e->getMessage(), $wait));
         }
     }
+    /**
+     * The one place a waybill is made, and it makes at most one per order.
+     *
+     * A waybill is a shipment on a live courier account: it costs money, it can book a pickup, and it
+     * carries the customer's address. The only thing standing between an order and a second one used
+     * to be a read of the order's meta BEFORE a multi-second call to the courier. Two requests inside
+     * that window - the payment webhook's auto-label and the merchant clicking "generate" on the order
+     * they have just watched appear - both passed the read and both booked. So the order is claimed
+     * first, in the database where a second PHP process can see it, and read again once it is ours:
+     * whoever held the claim before us has saved their waybill by the time they let go of it.
+     */
     public static function generate(int $order_id): BGCouriers_Label {
         $order = wc_get_order($order_id);
         if (!$order) { throw new BGCouriers_Api_Exception(esc_html__('Order not found.', 'bg-couriers')); }
         $existing = (string) $order->get_meta('_bgcouriers_waybill');
         if ($existing !== '') { return new BGCouriers_Label($existing, (string) $order->get_meta('_bgcouriers_label_url')); }
 
+        if (!self::claim($order_id)) {
+            throw new BGCouriers_Api_Exception(esc_html__('A waybill for this order is being issued right now. Give it a moment.', 'bg-couriers'));
+        }
+        try {
+            $order    = wc_get_order($order_id);   // fresh: the previous holder may have written one
+            $existing = (string) $order->get_meta('_bgcouriers_waybill');
+            if ($existing !== '') { return new BGCouriers_Label($existing, (string) $order->get_meta('_bgcouriers_label_url')); }
+            return self::issue($order);
+        } finally {
+            self::release($order_id);
+        }
+    }
+
+    /**
+     * The claim: a MySQL named lock, because it is the one primitive here that is atomic across
+     * requests without a row to clean up. It belongs to the connection, so a request that dies
+     * half-way - a fatal, a timeout - drops it on its way out and nothing is left wedged. A transient
+     * would not do: get-then-set is the race it is meant to prevent, and with an object cache the
+     * write may not even reach the database another process reads. Inside one request it is held in
+     * memory too, because MySQL hands the same connection its own lock again, and a hook that fires
+     * twice in one request is the same connection twice.
+     *
+     * @var array<int,true>
+     */
+    private static array $issuing = [];
+    private static function claim(int $order_id): bool {
+        if (isset(self::$issuing[$order_id])) { return false; }
+        global $wpdb;
+        if ((string) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', 'bgcouriers_label_' . $order_id)) !== '1') { return false; }
+        self::$issuing[$order_id] = true;
+        return true;
+    }
+    private static function release(int $order_id): void {
+        global $wpdb;
+        unset(self::$issuing[$order_id]);
+        $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', 'bgcouriers_label_' . $order_id));
+    }
+
+    /** Create the shipment at the courier and record it - called with the order claimed and known to have none. */
+    private static function issue(\WC_Order $order): BGCouriers_Label {
         $courier_id = (string) $order->get_meta('_bgcouriers_courier');
         $courier = $courier_id ? BGCouriers_Couriers::get($courier_id) : null;
         if (!$courier) { throw new BGCouriers_Api_Exception(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
@@ -124,6 +175,13 @@ class BGCouriers_Labels {
         // newest orders, which are exactly the ones being looked at.
         $order->update_meta_data('_bgcouriers_track_stage', 'registered');
         $order->update_meta_data('_bgcouriers_track_updated', time());
+        // Saved NOW, before the courier is asked for anything else. The shipment exists from this
+        // moment whatever happens next, and the two calls below for the label PDF are calls to the
+        // same API that can fail seconds after this one succeeded. When they did, the exception left
+        // here with the shipment created and NOT on the order; the automatic retry found no waybill
+        // and created another, and the first was never heard of again. The PDF is a convenience -
+        // printing fetches it on demand - and it is treated as one below.
+        $order->save();
 
         // A courier can accept a shipment and quietly drop part of it (Speedy's COD carries
         // ignoreIfNotApplicable by design). The waybill then prints with nothing to collect, and since
@@ -149,12 +207,23 @@ class BGCouriers_Labels {
         //  - the create response returned the PDF inline (Pigeon has no separate label endpoint) -> use as-is;
         //  - otherwise fetch the label by waybill IN THE CONFIGURED SIZE (Speedy/Sameday request it, so the
         //    courier returns a correctly-sized native PDF and we never scale it).
-        if ($label->pdf !== '' && strpos($label->pdf, 'http') === 0) {
-            $pdf = self::download_pdf($label->pdf);
-        } elseif ($label->pdf !== '') {
-            $pdf = $label->pdf;
-        } else {
-            $pdf = $courier->get_label_pdf($label->waybill, $primary);
+        $pdf = '';
+        try {
+            if ($label->pdf !== '' && strpos($label->pdf, 'http') === 0) {
+                $pdf = self::download_pdf($label->pdf);
+            } elseif ($label->pdf !== '') {
+                $pdf = $label->pdf;
+            } else {
+                $pdf = $courier->get_label_pdf($label->waybill, $primary);
+            }
+        } catch (\Exception $e) {
+            // Not a failed label: the shipment is booked and saved above. A note so the merchant knows
+            // why there is nothing to print yet; printing fetches the PDF again when they ask for it.
+            BGCouriers_Logger::debug('label: the PDF could not be fetched after the shipment was created', [
+                'courier' => $courier_id, 'waybill' => $label->waybill, 'err' => $e->getMessage()]);
+            /* translators: 1: courier name, 2: waybill number, 3: error message */
+            $order->add_order_note(sprintf(__('%1$s issued waybill %2$s, but the label PDF could not be fetched yet: %3$s. Print will fetch it again.', 'bg-couriers'),
+                $courier->label(), $label->waybill, $e->getMessage()));
         }
         // Only store real PDF bytes. The shipment already exists at the courier, so on a bad/empty body
         // we keep the waybill and leave the URL empty - printing re-fetches the label on demand.
