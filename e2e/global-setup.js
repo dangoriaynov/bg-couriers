@@ -2,6 +2,25 @@ const { execFileSync } = require('child_process');
 const path = require('path');
 
 /**
+ * Two things dev has to be set to before this suite means anything, both put back afterwards.
+ *
+ * 1. Auto-labelling OFF, or a run books real shipments - see below.
+ * 2. Delivery abroad ON, or three specs have nothing to drive.
+ *
+ * The second one had been answered with test.skip() for a month. Delivery outside Bulgaria is switched
+ * off for the whole plugin behind a filter while the feature is unfinished (the owner's decision, and
+ * the right one - docs/international-shipping.md), so no shop is offered a foreign rate and the specs
+ * that watch the foreign path had nothing to open. Skipping them meant every foreign code path went
+ * unwatched on every run, which is the opposite of what those specs are for. They borrow the switch
+ * for the length of the run instead, exactly as they already borrow a payment gateway, and it goes
+ * back when the run ends.
+ *
+ * Turning it on is not enough on its own: a courier's foreign towns are only FETCHED while it is on,
+ * so Romania has to be synced too - and the same sync with the switch back off prunes those rows out
+ * again, which is why the teardown runs one.
+ */
+
+/**
  * Turn dev's auto-labelling off for the length of a run, and put it back afterwards.
  *
  * Six of these specs place a COD order. WooCommerce puts a COD order straight into `processing`, which
@@ -62,6 +81,27 @@ module.exports = async (config) => {
     console.log('[autolabel] off for this run (was yes).');
   }
 
+  // --- delivery abroad, for the length of the run ---------------------------------------------------
+  // Never fatal: a run that cannot reach this switch is still a useful run of 55 domestic specs, and
+  // the three foreign ones will say what is wrong themselves. Losing the whole suite over it would be
+  // the worse trade.
+  let intlWas = 'off';
+  try {
+    intlWas = sh('intl', 'status');
+    if (intlWas !== 'on') {
+      sh('intl', 'on');
+      console.log('[intl] delivery abroad on for this run (was off).');
+    }
+    // Romania's towns only exist in the nomenclature while the switch is on. Synced once, then left -
+    // the check is what keeps every run after the first from paying two minutes for rows already there.
+    if (Number(sh('rows', 'speedy', 'RO')) < 100) {
+      console.log(`[intl] syncing Speedy for Romania: ${sh('sync', 'speedy')}`);
+    }
+  } catch (e) {
+    console.warn(`[intl] could not set delivery abroad up on dev: ${e.message}\n` +
+      '      The three @intl specs will fail rather than pass quietly.');
+  }
+
   return async () => {
     // Proof rather than assumption, and it runs whether or not anything was changed: if a waybill did
     // get made, the NUMBER belongs on screen now, not in a sweep somebody runs later.
@@ -74,6 +114,19 @@ module.exports = async (config) => {
       // cancellation by about five minutes, so the only honest verification is a LATE one.
       console.error('\n!! waybills existed on dev after this run:\n' + swept +
         '\n   Re-check each number at the courier in a few minutes - a successful cancel call is not proof.\n');
+    }
+    // Put the switch back, and prune Romania out with it: the same sync with delivery abroad off drops
+    // every row for a country the plugin is no longer offering, so dev ends the run exactly as it
+    // started. Only if this run is what turned it on - a dev deliberately left international would
+    // otherwise be switched off behind its owner's back.
+    if (intlWas !== 'on') {
+      try {
+        sh('intl', 'off');
+        console.log(`[intl] delivery abroad off again; Romania pruned: ${sh('sync', 'speedy')}`);
+      } catch (e) {
+        console.error(`!! [intl] COULD NOT switch delivery abroad back off on dev: ${e.message}\n` +
+          '   Remove wp-content/mu-plugins/bgc-e2e-intl.php by hand.');
+      }
     }
     if (previous === 'yes') {
       try {

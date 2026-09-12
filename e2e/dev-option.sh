@@ -10,6 +10,10 @@
 #   e2e/dev-option.sh label 1234        # book the waybill for order 1234 (the international spec)
 #   e2e/dev-option.sh cancel 1234       # and void it again
 #   e2e/dev-option.sh gateway bacs yes  # switch a payment gateway on for one spec (no value = read it)
+#   e2e/dev-option.sh intl status       # is delivery abroad switched on? on|off
+#   e2e/dev-option.sh intl on           # switch it on for one spec, and off again afterwards
+#   e2e/dev-option.sh sync speedy       # run one courier's nomenclature sync (needed after intl on)
+#   e2e/dev-option.sh rows speedy RO    # how many towns that courier lists in that country
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -54,6 +58,31 @@ run() {
 case "${1:-}" in
   get) run "$WP option get $2" | tr -d '\r' ;;
   set) run "$WP option update $2 $3" >/dev/null ;;
+  # Delivery abroad is off for the whole plugin behind a filter, not a setting - the owner's decision
+  # while the feature is unfinished (see docs/international-shipping.md). The three specs that watch the
+  # foreign path were simply .skip'd for a month because of it, which left every foreign code path
+  # unwatched on every run. They turn it on for their own length instead, the same way they already
+  # borrow a payment gateway, and put it back afterwards.
+  #
+  # A one-line mu-plugin rather than an option, because the switch IS a filter: giving it an option on
+  # the side would be inventing a second answer to the same question, on the live plugin, to suit a test.
+  intl)
+    MU="${DEVROOT}/wp-content/mu-plugins/bgc-e2e-intl.php"
+    case "${2:-status}" in
+      on)     run "mkdir -p '$(dirname "$MU")' && printf '%s\n' '<?php // e2e only - delivery abroad, for the length of one spec' \"add_filter('bgcouriers_intl_enabled', '__return_true');\" > '$MU' && echo on" | tr -d '\r' ;;
+      off)    run "rm -f '$MU' && echo off" | tr -d '\r' ;;
+      status) run "test -f '$MU' && echo on || echo off" | tr -d '\r' ;;
+      *) echo "usage: dev-option.sh intl on|off|status" >&2; exit 2 ;;
+    esac ;;
+  # Fetch one courier's towns and offices again. Needed after `intl on`: the countries a courier is
+  # switched on for are only fetched while delivery abroad is enabled, and the same sync with it OFF
+  # prunes them out again - so this is both the setup and the cleanup.
+  # How much of a country a courier has in the nomenclature. Lets the setup skip a two-minute sync when
+  # the rows are already there, which is every run after the first.
+  rows)
+    run "$WP eval 'global \$wpdb; echo (int) \$wpdb->get_var(\$wpdb->prepare(\"SELECT COUNT(*) FROM {\$wpdb->prefix}bgcouriers_cities WHERE courier=%s AND country=%s\", \"${2:?courier id}\", \"${3:?country iso}\")), PHP_EOL;'" | tr -d '\r' ;;
+  sync)
+    run "$WP eval 'BGCouriers_Couriers::boot(); \$c = BGCouriers_Couriers::get(\"${2:?courier id}\"); if (!\$c) { echo \"no such courier\"; exit; } \$r = BGCouriers_Sync::run(\$c); echo \$r[\"cities\"], \" cities, \", \$r[\"offices\"], \" offices, \", \$r[\"pruned\"], \" pruned\";'" | tr -d '\r' ;;
   # The teardown's proof that the run booked nothing - and its cleanup if it did.
   #
   # Turning auto-labelling off should mean there is never anything here. "Should" is not a guarantee: the
