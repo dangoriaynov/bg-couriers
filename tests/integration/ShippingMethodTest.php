@@ -3,7 +3,7 @@
  * @group speedy
  */
 final class ShippingMethodTest extends WP_UnitTestCase {
-    public function set_up() { parent::set_up(); BGCouriers_Schema::create(); BGCouriers_Rates::set('speedy','office',5.55,'BGN');  bgcouriers_test_set_up_courier('speedy');
+    public function set_up() { parent::set_up(); BGCouriers_Schema::create(); BGCouriers_Rates::set('speedy','office',5.55, get_woocommerce_currency());  bgcouriers_test_set_up_courier('speedy');
         // The cached price is asserted as the RATE's cost, so delivery has to be charged with the
         // order. Since 2026-08-25 a new install does not charge it - the customer pays the courier at
         // the door and the rate costs 0, which is what this assertion had been reading.

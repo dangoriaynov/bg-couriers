@@ -60,11 +60,24 @@ class BGCouriers_Sync {
         $n = 0;
         foreach ($methods as $method) {
             $shipment = self::reference_shipment($id, $method);
+            $store    = (string) ($shipment['currency'] ?? '');   // what this shop asked to be quoted in
             if (!$shipment) { continue; }
             try {
                 $q = $courier->quote($shipment);
                 // NET. This is read back as a shipping rate's cost, and a rate's cost is taxed by
                 // WooCommerce on top - storing the gross total charged the VAT twice.
+                //
+                // Stored with the currency the courier ANSWERED in, not the one it was asked for. They
+                // are normally the same - the shipment above names the shop's currency and every
+                // adapter passes it on - and where they are not, the row says what the number really
+                // is. Writing the shop's currency over a figure quoted in another one is precisely the
+                // fault this column exists to prevent. A row like that is unreadable to the shop by
+                // design, so it is worth a line saying why rather than a reference that silently never
+                // appears.
+                if ($q->currency !== '' && $store !== '' && $q->currency !== $store) {
+                    BGCouriers_Logger::debug('seed_rates: quoted in another currency, so this shop has no reference for it', [
+                        'courier' => $id, 'method' => $method, 'asked' => $store, 'answered' => $q->currency]);
+                }
                 BGCouriers_Rates::set($id, $method, $q->price, $q->currency);
                 $n++;
             } catch (\Exception $e) {

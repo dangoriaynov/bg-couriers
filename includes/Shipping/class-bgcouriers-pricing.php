@@ -362,9 +362,17 @@ class BGCouriers_Pricing {
         $w    = round((float) ($packed['weight_kg'] ?? 0), 2);
         // The country joins the key only when it is not home, so every domestic key stays exactly what
         // it was - a shop that never ships abroad does not re-quote everything the day it updates.
+        //
+        // The CURRENCY joins it always, because it is the one thing on this list the price cannot be
+        // read without. Everything else here changes what the number is; the currency changes what the
+        // number MEANS, and the entry recorded it all along without anyone comparing it. A shop that
+        // changed from lev to euro went on quoting lev figures as euros for three hours - 1.95583 times
+        // what the delivery costs - and a shop offering two currencies at once let whoever asked first
+        // decide what everyone was charged. Unlike the country there is no bare case to preserve: the
+        // price of the change is one warm-up, once.
         $tkey = 'bgcouriers_q_' . $courier->id() . '_' . $method . '_' . $site_id . '_'
               . str_replace('.', '', (string) $w) . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '')
-              . ($abroad ? '_' . strtolower($country) : '');
+              . ($abroad ? '_' . strtolower($country) : '') . '_' . strtolower($currency);
         $cached = get_transient($tkey);
         if (is_array($cached) && isset($cached['p'])) {
             return self::quote_from_cache($cached, $currency);
@@ -486,7 +494,7 @@ class BGCouriers_Pricing {
         if (($mode === 'fixed' || $mode === 'fallback') && $default > 0) {
             return new BGCouriers_Quote(round($default, 2), 0.0, $store, 'fixed');
         }
-        $cached = BGCouriers_Rates::get($courier->id(), $method);
+        $cached = BGCouriers_Rates::get($courier->id(), $method, $store);
         if ($cached !== null) { return new BGCouriers_Quote($cached, 0.0, $store, 'standard'); }
         $amount = $default > 0 ? $default : 6.99;
         return new BGCouriers_Quote(round($amount, 2), 0.0, $store, 'flat');
@@ -513,12 +521,15 @@ class BGCouriers_Pricing {
     }
 
     /** Transient key for a reference price. Carries the weight, or a heavy cart reads a light one's price. */
-    public static function reference_key(string $courier, string $method, float $weight_kg, float $cod = 0.0, string $country = ''): string {
+    public static function reference_key(string $courier, string $method, float $weight_kg, float $cod = 0.0, string $country = '', string $currency = ''): string {
         return 'bgcouriers_ref_' . $courier . '_' . $method . '_' . str_replace('.', '', (string) self::reference_weight($weight_kg))
              . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '')
              // Home keeps the bare key it always had; another country gets its own, or the two would
              // read each other's price out of the cache.
-             . (BGCouriers_Settings::is_intl($country) ? '_' . strtolower($country) : '');
+             . (BGCouriers_Settings::is_intl($country) ? '_' . strtolower($country) : '')
+             // And the currency, for the reason set out over the checkout quote's own key: this entry
+             // is a bare number with nothing in it to say what it is measured in, so the key has to.
+             . ($currency !== '' ? '_' . strtolower($currency) : '');
     }
 
     /**
@@ -535,7 +546,7 @@ class BGCouriers_Pricing {
     private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency, string $country = ''): ?float {
         $w    = self::reference_weight((float) ($packed['weight_kg'] ?? 0));
         $cod  = self::cart_cod_amount($courier->id(), $method);
-        $tkey = self::reference_key($courier->id(), $method, $w, $cod, $country);
+        $tkey = self::reference_key($courier->id(), $method, $w, $cod, $country, $currency);
         $hit  = get_transient($tkey);
         if (is_array($hit) && isset($hit['p'])) { return (float) $hit['p']; }
         if (!class_exists('BGCouriers_Sync')) { return null; }
@@ -574,7 +585,10 @@ class BGCouriers_Pricing {
         if (BGCouriers_Settings::price_mode($courier, $method) === 'fixed') {
             return $mc['price'] > 0 ? (float) $mc['price'] : null;
         }
-        $cached = BGCouriers_Rates::get($courier, $method);
+        // In today's currency, or not at all - see BGCouriers_Rates::get. A row from before a shop
+        // changed currency is not a price to show beside a courier's name.
+        $store  = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : '';
+        $cached = BGCouriers_Rates::get($courier, $method, $store);
         if ($cached !== null) { return (float) $cached; }
         return $mc['price'] > 0 ? (float) $mc['price'] : null;
     }

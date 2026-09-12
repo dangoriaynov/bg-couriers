@@ -14,10 +14,24 @@ class BGCouriers_Rates {
              ON DUPLICATE KEY UPDATE price=VALUES(price),currency=VALUES(currency),updated_at=NOW()",
             $courier, $method, $price, $currency));
     }
-    public static function get(string $courier, string $method): ?float {
+    /**
+     * The daily reference price, or null when there is not one IN THIS CURRENCY.
+     *
+     * The currency has been a column here since the table was created and set() has always written it;
+     * nothing ever read it back. A price is a number and the unit it is in, and this table holds one row
+     * per courier and method - the unique key says so - so it cannot carry both. A row left over from
+     * before a shop changed its currency is therefore not a cheap price or a dear one, it is no
+     * reference at all, and saying so lets the caller fall back to a figure the merchant chose instead
+     * of showing a lev number with a euro sign on it.
+     *
+     * The currency is required and not defaulted on purpose: a caller that does not know which currency
+     * it is asking about has no business being handed a price.
+     */
+    public static function get(string $courier, string $method, string $currency): ?float {
         global $wpdb;
         $v = $wpdb->get_var($wpdb->prepare(
-            "SELECT price FROM {$wpdb->prefix}bgcouriers_standard_rates WHERE courier=%s AND method=%s", $courier, $method));
+            "SELECT price FROM {$wpdb->prefix}bgcouriers_standard_rates WHERE courier=%s AND method=%s AND currency=%s",
+            $courier, $method, $currency));
         return $v === null ? null : (float) $v;
     }
 }

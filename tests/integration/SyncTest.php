@@ -24,7 +24,10 @@ final class SyncTest extends WP_UnitTestCase {
                     ['office_id'=>12,'city_id'=>1,'code'=>'AP1','type'=>'automat','name'=>'AP1','address'=>'AA1'],
                 ];
             }
-            public function quote(array $s): BGCouriers_Quote { return new BGCouriers_Quote(5.0, 1.0, 'BGN', 'live'); }
+            // In the currency it was asked to quote in, which is what every real adapter does: each
+            // one passes $shipment['currency'] to its API and echoes it back. Hardcoding one here hid
+            // the fact that a rate is stored with a currency and used to be read back without it.
+            public function quote(array $s): BGCouriers_Quote { return new BGCouriers_Quote(5.0, 1.0, (string) ($s['currency'] ?? ''), 'live'); }
             public function create_label(\WC_Order $o): BGCouriers_Label { return new BGCouriers_Label(''); }
             public function label_formats(): array { return []; }
             public function get_label_pdf(string $w, string $format = ''): string { return ''; }
@@ -39,8 +42,8 @@ final class SyncTest extends WP_UnitTestCase {
         // NET, not the 6.00 gross this once expected: a reference rate is read back as a shipping
         // cost, and WooCommerce taxes a shipping cost on top - storing the gross charged the VAT twice
         // (fixed in 0.3.5; this expectation was left behind).
-        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','office'), 0.001);
-        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','automat'), 0.001);
+        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','office',get_woocommerce_currency()), 0.001);
+        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','automat',get_woocommerce_currency()), 0.001);
 
         // Second run: Varna gone -> pruned.
         $courier->cities = [['city_id'=>1,'name'=>'Sofia','name_lat'=>'Sofia','post_code'=>'1000','region'=>'Sofia']];
