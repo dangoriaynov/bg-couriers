@@ -41,14 +41,17 @@ xgettext --from-code=UTF-8 --language=PHP \
 
 if [ "$CHECK" = 1 ]; then
   # Every string the code offers for translation must already have an entry in the Bulgarian catalogue.
-  # msgcomm prints what is in the template and NOT in the .po; anything here is a string a Bulgarian
-  # shop would read in English.
-  # --omit-header is deliberately NOT passed: without a header msgcomm has no charset to read the
-  # Cyrillic .po with and drowns the run in "invalid multibyte sequence". So the header entry comes
-  # through as one msgid of its own, and one is the empty result.
-  msgcomm --unique -o "$TMP/missing.po" "$OUT" "$PO"
-  N="$(grep -c '^msgid "' "$TMP/missing.po" || true)"
-  if [ "$N" -gt 1 ]; then
+  # What is in the template and NOT in the .po: merge the catalogue onto the fresh template without
+  # fuzzy guessing, and whatever comes out untranslated is a string the catalogue has never seen - a
+  # string a Bulgarian shop would read in English. A string the CODE has dropped becomes obsolete in
+  # the merge and is left out, which is the point: the first version of this used msgcomm --unique,
+  # which lists what is unique to EITHER file, so the day a string was removed from the code the gate
+  # refused a release over a translation nobody needed any more.
+  msgmerge -q --no-fuzzy-matching -o "$TMP/merged.po" "$PO" "$OUT" 2>/dev/null
+  msgattrib --untranslated --no-obsolete -o "$TMP/missing.po" "$TMP/merged.po" 2>/dev/null || : > "$TMP/missing.po"
+  N="$(grep -c '^msgid "' "$TMP/missing.po" 2>/dev/null || true)"
+  # The header counts as one msgid when anything at all is listed; nothing listed is an empty file.
+  if [ "${N:-0}" -gt 1 ]; then
     echo "$((N - 1)) string(s) in the code have no entry in $PO:" >&2
     grep '^msgid "' "$TMP/missing.po" | grep -v '^msgid ""$' | sed 's/^/  /' >&2
     echo "  Run bin/make-pot, fill the Bulgarian, then msgfmt." >&2

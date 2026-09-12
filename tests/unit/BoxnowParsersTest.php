@@ -7,6 +7,7 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-excep
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow-webhook.php';   // the state wordings
 
 /**
  * BOX NOW was the one courier whose parsers had no fixture test, while its fixtures sat in the tree
@@ -18,6 +19,9 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow.p
  * @group boxnow
  */
 final class BoxnowParsersTest extends TestCase {
+    protected function setUp(): void { parent::setUp(); \Brain\Monkey\setUp(); \Brain\Monkey\Functions\when('__')->returnArg(1); }
+    protected function tearDown(): void { \Brain\Monkey\tearDown(); parent::tearDown(); }
+
     private function fx(string $f): array {
         return json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/boxnow/' . $f), true);
     }
@@ -55,7 +59,12 @@ final class BoxnowParsersTest extends TestCase {
         $parcel = $this->fx('parcel.json')['data'][0];
         $t = BGCouriers_Boxnow::parse_tracking($parcel, '415-02914-308');
         $this->assertSame('415-02914-308', $t->waybill);
-        $this->assertSame('new', $t->status);
+        // The state travels as the PHASE - a machine value the stage is read from outright - and the
+        // status is the merchant's wording of it. It used to be the bare state in the status, which the
+        // orders list then printed as "in-final-destination".
+        $this->assertSame('new', $t->phase);
+        $this->assertSame('registered', $t->stage());
+        $this->assertSame('registered', $t->human(), 'the wording, not the code');
         $this->assertCount(1, $t->events);
         $this->assertSame('new', $t->events[0]['name']);
         $this->assertSame('2026-06-07T12:33:18Z', $t->events[0]['time']);
@@ -65,6 +74,7 @@ final class BoxnowParsersTest extends TestCase {
     public function test_parse_tracking_survives_an_empty_parcel(): void {
         $t = BGCouriers_Boxnow::parse_tracking([], '415-02914-308');
         $this->assertSame('unknown', $t->status);
+        $this->assertSame('', $t->phase, 'no state, no phase - the stage falls back to reading the text');
         $this->assertSame([], $t->events);
     }
 }

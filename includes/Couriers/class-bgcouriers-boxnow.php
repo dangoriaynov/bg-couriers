@@ -343,12 +343,17 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     }
 
     public static function parse_tracking(array $parcel, string $waybill): BGCouriers_Tracking {
-        $status = (string) ($parcel['state'] ?? 'unknown');
+        $state  = (string) ($parcel['state'] ?? '');
         $events = [];
         foreach (($parcel['events'] ?? []) as $e) {
             $events[] = ['name' => (string) ($e['type'] ?? ''), 'time' => (string) ($e['createTime'] ?? '')];
         }
-        return new BGCouriers_Tracking($waybill, $status, $events);
+        // The state is a machine value ("in-final-destination"), so it travels as the PHASE, which is
+        // what BGCouriers_Tracking reads a stage from outright; the merchant's wording of it is the
+        // status, marked human so the list shows "in the locker - ready for pickup" and not the code.
+        $labels = BGCouriers_Boxnow_Webhook::state_labels();
+        $human  = $labels[$state] ?? ($state !== '' ? $state : __('unknown', 'bg-couriers'));
+        return new BGCouriers_Tracking($waybill, $human, $events, $state, null, true);
     }
 
     public function tracking_url(string $waybill): string {
