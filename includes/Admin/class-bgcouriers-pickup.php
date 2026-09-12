@@ -66,14 +66,45 @@ class BGCouriers_Pickup {
                 'unsupported' => $unsupported, 'unresolved' => $unresolved];
     }
 
-    /** The day to offer: today while the courier will still come, otherwise the next working day. */
-    public static function default_date(array $cutoffs): string {
-        $now = current_time('timestamp');
+    /**
+     * The cut-offs still ahead, earliest first.
+     *
+     * A cut-off is a moment the courier names in its own zone ("2026-09-14T17:00:00+0300"), so whether
+     * it has passed is a comparison of two REAL moments. current_time('timestamp') is not one - WordPress
+     * hands back the epoch shifted by the site's offset, and against a real cut-off that runs the offset
+     * fast: three hours in a Bulgarian summer, so from 14:00 the screen offered tomorrow while the
+     * courier still came today until 17:00. Ordered as moments too, not as text: two couriers writing
+     * their zones differently ("+0300" and "Z") would otherwise sort by spelling.
+     *
+     * @param string[] $cutoffs as the couriers gave them
+     * @param int|null $now     the moment to judge by, as a real epoch; null = now
+     * @return string[] the same strings, only those still to come, soonest first
+     */
+    public static function upcoming(array $cutoffs, ?int $now = null): array {
+        $now = $now ?? time();
+        $at  = [];
         foreach ($cutoffs as $cutoff) {
             $ts = strtotime((string) $cutoff);
-            if ($ts && $ts > $now) { return gmdate('Y-m-d', $ts + (int) (get_option('gmt_offset') * HOUR_IN_SECONDS)); }
+            if ($ts && $ts > $now) { $at[(string) $cutoff] = $ts; }
         }
-        return gmdate('Y-m-d', $now + DAY_IN_SECONDS);
+        asort($at);
+        return array_keys($at);
+    }
+
+    /**
+     * The day to offer: the site's calendar day of the next cut-off, so today while the courier will
+     * still come. With no cut-off ahead - a courier that names none - it is simply tomorrow, which on a
+     * Saturday is a Sunday; the couriers that do name their cut-offs name working days, and that is where
+     * the knowledge of which days they work belongs.
+     *
+     * @param int|null $now the moment to judge by, as a real epoch; null = now
+     */
+    public static function default_date(array $cutoffs, ?int $now = null): string {
+        $now    = $now ?? time();
+        $offset = (int) (get_option('gmt_offset') * HOUR_IN_SECONDS);
+        $next   = self::upcoming($cutoffs, $now);
+        if ($next) { return gmdate('Y-m-d', strtotime($next[0]) + $offset); }
+        return gmdate('Y-m-d', $now + $offset + DAY_IN_SECONDS);
     }
 
     public function render(): void {
@@ -97,8 +128,9 @@ class BGCouriers_Pickup {
             $c = BGCouriers_Couriers::get($cid);
             if ($c) { $cutoffs = array_merge($cutoffs, $c->pickup_terms(gmdate('Y-m-d', current_time('timestamp')))); }
         }
-        sort($cutoffs);
-        $this->render_form($g, $cutoffs, $ids);
+        // Only what is still ahead reaches the screen: the line "accepts requests up to 17:00" printed
+        // at 18:00 next to a date field saying tomorrow read as two screens disagreeing.
+        $this->render_form($g, self::upcoming($cutoffs), $ids);
     }
 
     private function render_form(array $g, array $cutoffs, array $ids): void {
@@ -141,7 +173,7 @@ class BGCouriers_Pickup {
            . '<tr><th scope="row"><label for="bgcouriers_date">' . esc_html__('Day', 'bg-couriers') . '</label></th>'
            . '<td><input type="date" id="bgcouriers_date" name="bgcouriers_date" value="' . esc_attr($date) . '" required /></td></tr>'
            . '<tr><th scope="row"><label for="bgcouriers_from">' . esc_html__('Between', 'bg-couriers') . '</label></th>'
-           . '<td><input type="time" id="bgcouriers_from" name="bgcouriers_from" value="14:00" required /> &ndash; '
+           . '<td><input type="time" id="bgcouriers_from" name="bgcouriers_from" value="14:00" required /> - '
            . '<input type="time" name="bgcouriers_to" value="17:00" required /></td></tr>'
            . '</tbody></table>';
         submit_button(__('Request the courier', 'bg-couriers'), 'primary', 'bgcouriers_confirm');
