@@ -97,6 +97,30 @@ final class PriceCarriesItsCurrencyTest extends WP_UnitTestCase {
     }
 
     /**
+     * And the read itself asks, not only the key.
+     *
+     * The key is what keeps two currencies apart in practice, but a key is a convention and a cache
+     * entry is data: this one records which currency it is in, so the reader can simply check. Put an
+     * entry in by hand under the key a euro quote would use, with a lev number inside it, and the
+     * checkout must not serve it. That is the same reasoning that put the office guard in cacheSet
+     * rather than at its call sites - the invariant belongs where the value is read, not in the shape
+     * of whatever built the key.
+     */
+    public function test_an_entry_that_disagrees_with_its_own_key_is_not_used(): void {
+        $this->currency = 'EUR';
+        // Warm the cache properly, so the key this test needs is the one the code really uses.
+        BGCouriers_Pricing::checkout_quote($this->courier(3.83), 'office', 77, 100, ['weight_kg' => 1.0], 'EUR');
+
+        // Now corrupt it the way a caller building the key some other way would.
+        $key = 'bgcouriers_q_speedy_office_77_1_eur';
+        $this->assertIsArray(get_transient($key), 'the key this test relies on is the one in use');
+        set_transient($key, ['p' => 7.50, 't' => 0.0, 'c' => 'BGN'], 3 * HOUR_IN_SECONDS);
+
+        $q = BGCouriers_Pricing::checkout_quote($this->courier(3.83), 'office', 77, 100, ['weight_kg' => 1.0], 'EUR');
+        $this->assertEqualsWithDelta(3.83, $q->price, 0.01, 'a lev entry is not a euro price, whatever it is filed under');
+    }
+
+    /**
      * The daily reference table holds ONE row per courier and method - the schema says so, a unique key
      * on (courier, method) - so it cannot carry both currencies at once. A row in a currency the shop no
      * longer uses is therefore not a price: it is no reference at all, and the merchant's own configured
