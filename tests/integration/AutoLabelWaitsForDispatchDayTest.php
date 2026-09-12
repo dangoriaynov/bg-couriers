@@ -208,6 +208,28 @@ final class AutoLabelWaitsForDispatchDayTest extends WP_UnitTestCase {
         $this->assertSame('', (string) wc_get_order($o->get_id())->get_meta('_bgcouriers_autolabel_at'));
     }
 
+    /**
+     * The stamp names a calendar day, and the day must come out the same in any zone. On the shop this
+     * was measured on the stamp is a UTC midnight (1790899200, "2 October"), which read in a zone west
+     * of Greenwich is the evening of 1 October; a plugin stamping the LOCAL midnight of a Sofia shop
+     * writes 21:00 UTC of the day before. Both must name the 2nd, and 07:00 of it in the site's zone.
+     */
+    public function test_the_stamp_names_the_same_day_in_every_zone(): void {
+        $utc_midnight   = 1790899200;                 // 2026-10-02 00:00:00 UTC, what Order Delivery Date wrote
+        $sofia_midnight = $utc_midnight - 3 * 3600;   // 2026-10-01 21:00:00 UTC, the same day's local midnight
+        foreach (['Europe/Sofia', 'America/New_York', 'Asia/Tokyo'] as $zone) {
+            update_option('timezone_string', $zone);
+            foreach ([$utc_midnight, $sofia_midnight] as $stamp) {
+                $o = new WC_Order();
+                $o->update_meta_data('_orddd_timestamp', $stamp);
+                $o->save();
+                $at = BGCouriers_Labels::dispatch_time($o);
+                $this->assertSame('2026-10-02 07:00', wp_date('Y-m-d H:i', $at), "stamp $stamp read in $zone");
+            }
+        }
+        update_option('timezone_string', 'Europe/Sofia');
+    }
+
     /** An order with no appointment is not touched by the Update button - the hook is not a second trigger. */
     public function test_the_update_button_does_not_label_an_order_that_was_never_scheduled(): void {
         update_option('bgcouriers_dispprobe_autolabel', 'no');
