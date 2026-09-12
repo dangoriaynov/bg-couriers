@@ -75,17 +75,21 @@ class BGCouriers_Boxnow_Webhook {
     }
 
     /** Record the parcel state on the matching order (visibility only - no forced status transition). */
+    /**
+     * Record the parcel state on the matching order - through the same code every polled courier's
+     * answer goes through. It used to write the state to a key of its own and add a note, on every
+     * message; nothing read that key, so the orders list showed a blank for a BOX NOW parcel, it never
+     * counted as finished, and it was never advanced on delivery. And a sender's retry - they do retry -
+     * was another note and another save each time.
+     */
     private static function apply(array $data): void {
         if (!function_exists('wc_get_orders')) { return; }
-        $order = self::find_order((string) ($data['parcelId'] ?? ''), (string) ($data['orderNumber'] ?? ''));
+        $parcel = (string) ($data['parcelId'] ?? '');
+        $order  = self::find_order($parcel, (string) ($data['orderNumber'] ?? ''));
         if (!$order) { return; }
-        $state  = (string) ($data['parcelState'] ?? '');
-        $labels = self::state_labels();
-        $human  = $labels[$state] ?? ($state !== '' ? $state : 'unknown');
-        $order->update_meta_data('_bgcouriers_boxnow_state', $state);
-        /* translators: %s: human-readable parcel state, e.g. "delivered" */
-        $order->add_order_note(sprintf(__('BOX NOW tracking update: %s', 'bg-couriers'), $human));
-        $order->save();
+        $t = BGCouriers_Boxnow::parse_tracking(['state' => (string) ($data['parcelState'] ?? '')],
+                                               $parcel !== '' ? $parcel : (string) $order->get_meta('_bgcouriers_waybill'));
+        BGCouriers_Tracking_Poller::record($order, $t, 'BOX NOW', (string) get_option('bgcouriers_autostatus_on_delivered', ''));
     }
 
     /** ParcelState enum -> human label. */

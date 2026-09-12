@@ -98,6 +98,22 @@ class BGCouriers_Tracking_Poller {
             }
             return;
         }
+        self::record($order, $t, $courier->label(), $advance);
+    }
+
+    /**
+     * Record one answer about a shipment on its order - whoever brought the answer.
+     *
+     * Six couriers are asked; BOX NOW tells us, through its webhook. What is written is the same either
+     * way, and it used not to be: the webhook wrote the parcel state to a key of its own that nothing
+     * read, while every screen and every rule reads what THIS writes. Separated from the asking so the
+     * webhook can bring its answer here.
+     *
+     * @param string $label   The courier's name, for the order notes.
+     * @param string $advance The status a delivered order is moved to, '' for none (the merchant's setting).
+     */
+    public static function record(\WC_Order $order, BGCouriers_Tracking $t, string $label, string $advance): void {
+        $wb = (string) $order->get_meta('_bgcouriers_waybill');
 
         // One answer from the courier is ONE write of the order. Each block below used to flush as it
         // went, so a single poll could save the same order five times - five database writes, five
@@ -122,7 +138,7 @@ class BGCouriers_Tracking_Poller {
             $order->update_meta_data('_bgcouriers_return_waybill', $t->waybill);
             /* translators: 1: courier name, 2: the waybill number the return travels under */
             $order->add_order_note(sprintf(__('%1$s: the parcel is coming back under a new waybill - %2$s.', 'bg-couriers'),
-                $courier->label(), $t->waybill));
+                $label, $t->waybill));
             $dirty = true;
         }
 
@@ -173,7 +189,7 @@ class BGCouriers_Tracking_Poller {
         if ($human !== '' && strcasecmp($human, 'UNKNOWN') !== 0) {
             /* translators: 1: courier name, 2: what stage the shipment is at, 3: the courier's own wording */
             $order->add_order_note(sprintf(__('%1$s - %2$s: "%3$s"', 'bg-couriers'),
-                $courier->label(), BGCouriers_Tracking::stage_label($t->stage()), $human));
+                $label, BGCouriers_Tracking::stage_label($t->stage()), $human));
         }
 
         // A refused parcel that has come all the way BACK: the goods are on the shelf again, so the order
