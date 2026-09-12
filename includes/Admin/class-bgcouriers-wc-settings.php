@@ -66,6 +66,17 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             'default' => '', 'autoload' => false];
     }
 
+    /**
+     * The courier ids that get a settings tab of their own, in tab order.
+     *
+     * One list, because there were three of them: sections() below, the field builder and output().
+     * The one in output() was a seven-branch if/elseif with a final else, and the About tab landed in
+     * that else - so the About tab rendered the General tab's 38 fields. A courier that is on the tab
+     * row can no longer be missing from either of the other two.
+     */
+    private const COURIER_SECTIONS = ['speedy', 'econt', 'pigeon', 'boxnow', 'sameday', 'expressone', 'evropat'];
+
+    /** The tab row. The labels are the couriers' own names, so they stay written out here. */
     private function sections(): array {
         return [
             ''       => __('General', 'bg-couriers'),
@@ -99,6 +110,19 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
      * @param array<int,array<string,mixed>> $fields
      * @return array<int,array<string,mixed>>
      */
+    /**
+     * Print a field list.
+     *
+     * Everything this page puts on screen goes through here, because no_autofill() below used to be
+     * applied by get_settings() alone - and get_settings() is the SAVE path. The courier tabs build
+     * and print their own field lists, so not one credential box on screen ever carried the guard:
+     * measured on dev, every one of them came back readonly=false, autocomplete=null. The guard is on
+     * the printing now, where it cannot be left off a screen.
+     */
+    private static function print_fields(array $fields): void {
+        WC_Admin_Settings::output_fields(self::no_autofill($fields));
+    }
+
     private static function no_autofill(array $fields): array {
         foreach ($fields as &$f) {
             // Every kind of secret, not just the login pair: BOX NOW's webhook secret and the Google
@@ -135,8 +159,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         // Every courier is built the same way: its own section, then the per-delivery-option groups.
         // BOX NOW is the exception and says why: it is locker-only and flat-rate, so there is nothing
         // to price per delivery option.
-        $couriers = ['speedy', 'econt', 'pigeon', 'boxnow', 'sameday', 'expressone', 'evropat'];
-        if (in_array($section, $couriers, true)) {
+        if (in_array($section, self::COURIER_SECTIONS, true)) {
             $f = $this->{$section . '_courier_fields'}();
             if ($section === 'boxnow') { return $f; }
             foreach (self::$method_labels as $m => $label) {
@@ -160,22 +183,13 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $this->section_nav((string) $current_section);
 
         echo '<div class="bgc-group">';
-        if ($current_section === 'speedy') {
-            $this->output_courier('speedy');
-        } elseif ($current_section === 'econt') {
-            $this->output_courier('econt');
-        } elseif ($current_section === 'pigeon') {
-            $this->output_courier('pigeon');
-        } elseif ($current_section === 'boxnow') {
-            $this->output_courier('boxnow');
-        } elseif ($current_section === 'sameday') {
-            $this->output_courier('sameday');
-        } elseif ($current_section === 'expressone') {
-            $this->output_courier('expressone');
-        } elseif ($current_section === 'evropat') {
-            $this->output_courier('evropat');
+        if (in_array($current_section, self::COURIER_SECTIONS, true)) {
+            $this->output_courier((string) $current_section);
         } else {
-            WC_Admin_Settings::output_fields($this->general_fields());
+            // Whatever the tab row offers that is not a courier - General, About - is the field list
+            // the builder makes for that section. Printing general_fields() here whatever the tab is
+            // what put the General tab's 38 rows under the About tab.
+            self::print_fields($this->build_settings((string) $current_section));
         }
         echo '</div></div>';
 
@@ -405,7 +419,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         BGCouriers_Settings::ppp_notice_block($courier_id); // full-width, escaped internally
         BGCouriers_Settings::readiness_block($courier_id);  // what is still missing, once it is switched ON
         BGCouriers_Settings::cred_hint_block($courier_id);  // full-width, escaped internally
-        WC_Admin_Settings::output_fields($fields);
+        self::print_fields($fields);
         $c_id    = esc_js($courier_id);
         $c_ajax  = esc_js(admin_url('admin-ajax.php'));
         $c_save  = esc_js(wp_create_nonce('bgcouriers_save'));
@@ -508,7 +522,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     return !(isset($f['id']) && $f['id'] === $en);
                 }));
                 echo '<div class="bgc-method-panel" data-bgc-panel="' . esc_attr($m) . '"' . ($first ? '' : ' style="display:none;"') . '>';
-                WC_Admin_Settings::output_fields($mf);
+                self::print_fields($mf);
                 echo '</div>';
                 $first = false;
             }
