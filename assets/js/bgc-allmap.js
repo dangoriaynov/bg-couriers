@@ -1057,7 +1057,13 @@
     $.get(BGCOURIERS.ajax, {
       action: 'bgcouriers_allmap_offices',
       name: state.cityName, post_code: state.cityCode, type: 'both'
-    }, function (data) { cache[key] = data || {}; render(cache[key]); })
+    }, function (data) {
+      // Too busy to look the town up. Caching that would be caching "this town has no points", and a
+      // town with no points is now a town the map DROPS - so a refused request would throw away the
+      // place the customer chose. Show what is already there and let the next open ask again.
+      if (data && data.bgc_busy) { return; }
+      cache[key] = data || {}; render(cache[key]);
+    })
      .always(function () { busy(false); });
   }
 
@@ -1514,7 +1520,7 @@
     $.get(BGCOURIERS.ajax, {
       action: 'bgcouriers_allmap_offices',
       name: state.cityName, post_code: state.cityCode, type: 'both'
-    }, function (data) { cache[key] = data || {}; });
+    }, function (data) { if (data && data.bgc_busy) { return; } cache[key] = data || {}; });
   }
   $(function () {
     if (window.requestIdleCallback) { window.requestIdleCallback(prefetch, { timeout: 5000 }); }
@@ -1550,7 +1556,7 @@
     }
     if (cache[key]) { answer(cache[key]); return; }
     $.get(BGCOURIERS.ajax, { action: 'bgcouriers_allmap_offices', name: name, post_code: code, type: 'both' })
-      .done(function (data) { cache[key] = data || {}; answer(cache[key]); })
+      .done(function (data) { if (data && data.bgc_busy) { cb(null); return; } cache[key] = data || {}; answer(cache[key]); })
       .fail(function () { cb(null); });
   }
 

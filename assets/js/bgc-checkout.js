@@ -172,6 +172,11 @@
       if (local) { availCache[key] = local; }
       else {
         $.get(BGCOURIERS.ajax, { action: 'bgcouriers_city_avail', courier: courier($wrap), country: country($wrap), city_id: city }, function (res) {
+          // The shop was too busy to ask the courier. That is NOT "this town has neither" - and it was
+          // being cached as exactly that, which greyed out both delivery options for the rest of the
+          // page and told the customer their town is not served when it is. Leave the tabs alone and
+          // ask again next time something moves.
+          if (res && res.bgc_busy) { return; }
           availCache[key] = { office: !!(res && res.office), automat: !!(res && res.automat) };
           applyAvail($wrap);
         });
@@ -322,7 +327,7 @@
     var key = officeKey($wrap, city, m);
     if (cacheGet(key) !== undefined) { return; }
     $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: courier($wrap), country: country($wrap), city_id: city, type: m, all: 1 },
-      function (rows) { cacheSet(key, rows); });
+      function (rows) { if (rows && rows.bgc_busy) { return; } cacheSet(key, rows); });
   }
 
   /**
@@ -362,7 +367,7 @@
       if (!queue.length) { return; }
       var c = queue.shift();
       $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: c, country: ctry, city_id: city, type: m, all: 1 })
-        .done(function (rows) { cacheSet(c + ':' + ctry + ':' + city + ':' + m, rows); })
+        .done(function (rows) { if (rows && rows.bgc_busy) { return; } cacheSet(c + ':' + ctry + ':' + city + ':' + m, rows); })
         .always(function () { idle(next); });
     })();
   }
