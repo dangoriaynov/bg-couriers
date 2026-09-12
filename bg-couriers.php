@@ -4,7 +4,7 @@
  * Description: Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday) - office/address/locker delivery, live rates, labels and tracking.
  * Plugin URI: https://github.com/dangoriaynov/bg-couriers
  * Version: 0.4.7
- * Author: Дан Горяйнов
+ * Author: Dan Goriaynov
  * Author URI: https://github.com/dangoriaynov
  * Requires PHP: 7.4
  * Requires at least: 6.0

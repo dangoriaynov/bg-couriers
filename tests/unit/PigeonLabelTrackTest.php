@@ -98,7 +98,7 @@ final class PigeonLabelTrackTest extends TestCase {
     }
 
     /**
-     * "Доставена в офис/локър" means the parcel ARRIVED at the pickup point - the customer has not been
+     * "delivered to an office/locker" means the parcel ARRIVED at the pickup point - the customer has not been
      * near it. Read as delivered it would complete the order and, because delivered is terminal, stop the
      * shipment being polled at all while it sat in a locker for a week and went back to the sender.
      */
@@ -109,10 +109,10 @@ final class PigeonLabelTrackTest extends TestCase {
     // ── Returns ────────────────────────────────────────────────────────────
     //
     // Pigeon does NOT walk the outward waybill back through 'returning_to_sender'/'returned'. Those two
-    // codes exist, but on a parcel nobody collected the outward number FREEZES at "Непотърсена" for good
+    // codes exist, but on a parcel nobody collected the outward number FREEZES at "unclaimed" for good
     // and Pigeon opens a SECOND waybill for the journey home, linked from the first one's `chain_after`.
     // Reading only the number we booked, a return is therefore completely invisible - which is exactly
-    // what happened to order 11244: outward 458640894807 stopped at "Непотърсена" on 21 Aug while
+    // what happened to order 11244: outward 458640894807 stopped at "unclaimed" on 21 Aug while
     // return 458824370227 travelled back and reached the shop's own office, and the order never moved.
     // Every fixture below is the live payload for that pair, except track-redirect-leg.json.
 
@@ -166,7 +166,7 @@ final class PigeonLabelTrackTest extends TestCase {
 
     /**
      * And the parcel is home. Pigeon words the end of a return exactly as it words the end of a delivery
-     * - "Готова за взимане в офис/АПС" - so on the return leg that wording is the shop's own office
+     * - "ready for collection at an office/locker" - so on the return leg that wording is the shop's own office
      * telling them to come and get their goods back, not a customer's.
      */
     public function test_a_parcel_back_at_your_office_reads_as_returned(): void {
@@ -189,7 +189,7 @@ final class PigeonLabelTrackTest extends TestCase {
 
     /**
      * A chained shipment is not always a return - a redirection makes one too, and that parcel is still
-     * going FORWARD. Only a chain whose opening event is "Връщане към подател" is a journey home; anything
+     * going FORWARD. Only a chain whose opening event is "returning to the sender" is a journey home; anything
      * else leaves the outward verdict alone rather than announcing a return that is not happening.
      */
     public function test_a_redirected_parcel_is_not_a_return(): void {
@@ -210,8 +210,8 @@ final class PigeonLabelTrackTest extends TestCase {
      *
      * Two verdicts are worth reading twice: 'ready' is NOT terminal (a parcel sitting unclaimed in an
      * office still has to be watched, which is the only reason we ever see it go back), and only
-     * "Отказана" is allowed to be read as a cancellation - "Отхвърлено пренасочване" is a rejected
-     * REDIRECT, and reading its "отхвърлено" as a cancellation would end tracking mid-journey.
+     * "refused" is allowed to be read as a cancellation - "redirect rejected" is a rejected
+     * REDIRECT, and reading its "rejected" as a cancellation would end tracking mid-journey.
      */
     public function test_every_published_status_code_lands_where_we_expect(): void {
         $expected = [

@@ -17,7 +17,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-speedy.p
  * The gates between a courier and a customer, and which of them decides what.
  *
  * Switching a courier ON is a DECISION and nothing is allowed to refuse it: the credentials come from
- * the courier, and two of them (Express One's collection address, Европът's sender file) can only be
+ * the courier, and two of them (Express One's collection address, Evropat's sender file) can only be
  * picked off a list its API returns - so a courier that could not be enabled before it was configured
  * could never be configured at all. What withholds it from the checkout is a separate question, asked
  * here rather than at the switch:

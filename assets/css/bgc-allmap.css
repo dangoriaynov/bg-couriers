@@ -52,7 +52,7 @@
 .bgc-allmap-head strong { grid-column: 2; text-align: center; }
 .bgc-allmap-head .bgc-allmap-close { grid-column: 3; justify-self: end; }
 .bgc-allmap-close { border: 0; background: none; font-size: 24px; line-height: 1; cursor: pointer; color: #50575e; }
-/* One row: the place on the left, who to show on the right. A label above the field said "Град" over
+/* One row: the place on the left, who to show on the right. A label above the field said "City" over
    a box whose placeholder already says it, and the couriers on a line of their own pushed the map a
    whole row further down the screen for no information at all. */
 .bgc-allmap-form { padding: 10px 14px; display: flex; align-items: flex-start; gap: 12px; }
@@ -208,7 +208,7 @@
 /* Row 1 - whose it is and how it is collected, which is the pair that decides whether this point is any
    use to you, with the price small at the end of the same line. The price is a fact worth having, not
    the headline, so it stays quiet and out of the reading order. */
-/* One line, and it stays one: "До автомат" is longer than "До офис", and wrapped mid-phrase under a
+/* One line, and it stays one: "To a locker" is longer than "To an office", and wrapped mid-phrase under a
    courier name set in a different size it read as three separate things rather than one sentence. The
    popup is allowed to widen instead (see bindPopup's minWidth/maxWidth), which is the cheaper of the
    two - a slightly wider card against a broken line. */

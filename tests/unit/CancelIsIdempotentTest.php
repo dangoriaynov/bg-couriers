@@ -12,7 +12,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.
 
 /**
  * Cancelling something that is already gone is not a failure - the end state the merchant asked for is
- * the one they have. Econt has always read "Пратка не е открита" that way; Sameday did not, so cancelling
+ * the one they have. Econt has always read "shipment not found" that way; Sameday did not, so cancelling
  * an AWB that had been cancelled earlier (or that lives on the demo stack) reported "the courier did not
  * cancel it" and left a dead number stuck on the order. Seen for real on 2026-08-18 while sweeping the
  * old test waybills: four refused, all four already dead.
@@ -38,12 +38,13 @@ final class CancelIsIdempotentTest extends TestCase {
     }
 
     /**
-     * The word the shop's own orders column had been reading as "Отменена" for hours, while the code
+     * The word the shop's own orders column had been reading as "Cancelled" for hours, while the code
      * that decides whether the dead number may be cleared did not recognise it.
      *
      * Sameday refused to collect from the sender on 2026-08-26 (a parcel booked seconds after checkout,
-     * for a dispatch a day later) and worded it "Отказ от взимане от подател". Its own is_cancelled()
-     * looked only for "анулиран"/"cancel", so "Re-issue waybill" - whose whole purpose is to replace a
+     * for a dispatch a day later) and worded it "collection from the sender refused". Its own is_cancelled()
+     * looked only for the Bulgarian for "cancelled" and for "cancel", so "Re-issue waybill" - whose whole
+     * purpose is to replace a
      * spent one - would have refused with "the courier did not cancel the waybill". One vocabulary now
      * answers the question everywhere: BGCouriers_Tracking::reads_cancelled().
      */

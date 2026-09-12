@@ -17,7 +17,7 @@ const { addAnyProductToCart, gotoCheckout, selectShippingMethod } = require('../
  * it. Every other @allmap test runs at home, so without this one the whole foreign path is unwatched.
  *
  * It books nothing and places no order. It does need the prepaid gateway on for its own length: dev's
- * cash on delivery is receipted through the courier's ППП, which stops at the border, so with no
+ * cash on delivery is receipted through the courier's PPP, which stops at the border, so with no
  * prepaid method every rate abroad is correctly refused - and the map button renders above the rates,
  * which means there would be no dialog to open at all. Put back the way it was FOUND afterwards.
  *

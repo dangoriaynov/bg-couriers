@@ -11,7 +11,7 @@ require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.p
  *
  * The couriers quote in kilograms. Passing the number across unconverted asked them about a parcel a
  * THOUSAND times too heavy: a 40 g basket went out as 40 kg, Sameday quoted 39,44 € for a locker
- * delivery, Pigeon 14,33 €, and Speedy refused the parcel outright ("над допустимия максимум от 32кг")
+ * delivery, Pigeon 14,33 €, and Speedy refused the parcel outright ("above the permitted maximum of 32 kg")
  * so its configured fallback price stood in for a delivery Speedy would never have carried. The label
  * built later DID convert, so the parcel booked never matched the price the customer was shown.
  *

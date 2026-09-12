@@ -186,7 +186,7 @@ final class EnableValidationTest extends TestCase {
      * Which agreement is the right one is the MERCHANT's arrangement with Econt, not ours to judge.
      * Econt's moneyTransfer flag does not map onto it the way it reads: CD139925 is marked
      * moneyTransfer=false and is exactly what this shop selects in Econt's own UI. Reading that as
-     * "not a ППП" put a red error on a correctly configured shop, so only existence is checked.
+     * "not a PPP" put a red error on a correctly configured shop, so only existence is checked.
      */
     public function test_econt_does_not_second_guess_which_agreement_is_right(): void {
         $this->opts($this->ok('econt') + [

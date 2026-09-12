@@ -5,12 +5,12 @@ const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMetho
         selectCity, pickFirstOffice, fillStreet } = require('../helpers/shop');
 
 /**
- * Европът, driven the way a customer drives it - both ways a parcel can go, and no third one.
+ * Evropat, driven the way a customer drives it - both ways a parcel can go, and no third one.
  *
  * Worth its own file for three things no other courier here has.
  *
  * **It prices both ends of the journey in one number.** Their `deliveryType` says where the parcel
- * starts as well as where it goes (ОФ-ОФ, ОФ-ВР, ВР-ОФ, ВР-ВР), so the merchant's own end is a setting
+ * starts as well as where it goes (office to office, office to door, door to office, door to door), so the merchant's own end is a setting
  * and the same parcel to Sofia costs 4.59 handed over at a counter and 6.52 collected from the door.
  * If the checkout ever shows one price for both tabs, that field has stopped reaching the quote - which
  * is why the last test compares them rather than asserting either number.
@@ -20,11 +20,11 @@ const { addAnyProductToCart, gotoCheckout, fillGuestBilling, selectShippingMetho
  * packing table, hours after the customer has gone. The address test therefore asserts on the ABSENCE
  * of a free-text box, not just on the picker working.
  *
- * **Cash on delivery depends on the account, not on the courier.** Европът does ППП, but only for an
- * account they have activated it for, and this shop receipts наложен платеж through exactly that. So
+ * **Cash on delivery depends on the account, not on the courier.** Evropat does PPP, but only for an
+ * account they have activated it for, and this shop receipts cash on delivery through exactly that. So
  * the rule is read from the setting rather than hardcoded: with the tick off, the checkout must take
  * cash on delivery away; with it on, it must offer it. Writing "COD is absent" as a constant would turn
- * this spec into a booby trap on the day Европът activates the service.
+ * this spec into a booby trap on the day Evropat activates the service.
  *
  * Nothing here places an order, so no waybill is created and no courier is called. Every price is the
  * courier's own, live, from the shop's real account.
@@ -95,7 +95,7 @@ test('to an address - the street may only come from their own list', async ({ pa
   await selectSpeedyTab(page, fields, 'address');
   await selectCity(page, fields, 'София');
 
-  // The assertion that matters is the absence: Европът refuses a street it was not given an id for, so
+  // The assertion that matters is the absence: Evropat refuses a street it was not given an id for, so
   // a free-text box here is a waybill that cannot be printed.
   await expect(fields.locator('.bgc-street-field input[type="text"]:not(.select2-search__field)'),
     'a courier that refuses an unlisted street must not offer a free-text street box').toHaveCount(0);
@@ -128,9 +128,9 @@ test('the door costs more than the counter - their deliveryType reaches the quot
 });
 
 test('cash on delivery follows whether this account may collect ППП', async ({ page }) => {
-  // The shop receipts наложен платеж through the courier's ППП, so a courier that cannot do one has no
-  // way to be paid in cash here and the checkout takes the gateway away. Европът activates ППП per
-  // account on request - and their API does NOT refuse a ППП it cannot do, it prices it at 0.00 and
+  // The shop receipts cash on delivery through the courier's PPP, so a courier that cannot do one has no
+  // way to be paid in cash here and the checkout takes the gateway away. Evropat activates PPP per
+  // account on request - and their API does NOT refuse a PPP it cannot do, it prices it at 0.00 and
   // books the shipment without one. Read the setting rather than assuming either answer.
   const ppp = dev('get', 'bgcouriers_evropat_ppp_payout') === 'yes';
   console.log(`[evropat] ППП payout for this account: ${ppp ? 'on' : 'off'}`);

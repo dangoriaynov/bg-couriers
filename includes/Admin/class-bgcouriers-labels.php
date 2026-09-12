@@ -95,8 +95,8 @@ class BGCouriers_Labels {
         $courier_id = (string) $order->get_meta('_bgcouriers_courier');
         $courier = $courier_id ? BGCouriers_Couriers::get($courier_id) : null;
         if (!$courier) { throw new BGCouriers_Api_Exception(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
-        // Money the courier cannot collect where this parcel is going. Express One carries no наложен
-        // платеж to an EXOBOX locker, and its API takes the COD field there quite happily - so a waybill
+        // Money the courier cannot collect where this parcel is going. Express One carries no cash on
+        // delivery to an EXOBOX locker, and its API takes the COD field there quite happily - so a waybill
         // booked from an order edited in the admin, or placed before this rule existed, would print,
         // travel, and be handed over collecting nothing. Refused once, here, in the single place every
         // label is made, rather than in each courier that ever grows such a rule.
@@ -616,7 +616,7 @@ class BGCouriers_Labels {
         $courier = $this->courier_for($order);
         if (!$courier) { wp_die(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
         $url  = $courier->tracking_url($waybill);
-        // A courier may publish no public tracking page at all (Европът does not). wp_safe_redirect('')
+        // A courier may publish no public tracking page at all (Evropat does not). wp_safe_redirect('')
         // sends the merchant to a blank screen with no clue why, so say it instead.
         if ($url === '') {
             wp_die(esc_html(sprintf(

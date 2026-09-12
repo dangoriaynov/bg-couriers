@@ -270,8 +270,8 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
      *
      * Three things beyond the tick decide whether a parcel can actually go: a WooCommerce shipping zone
      * that carries this courier, the towns and offices that arrive with the next Sync, and - for a shop
-     * whose cash-on-delivery is legal only because the courier does the ППП - a prepaid way to pay, since
-     * no courier's ППП crosses the border. The last sentence is left out where it does not apply: a shop
+     * whose cash-on-delivery is legal only because the courier does the PPP - a prepaid way to pay, since
+     * no courier's PPP crosses the border. The last sentence is left out where it does not apply: a shop
      * with a cash register is not warned about an arrangement it does not use.
      *
      * @param string $courier Courier id.
@@ -329,7 +329,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $url    = admin_url('admin.php?page=wc-settings&tab=bg_couriers' . ($id ? '&section=' . $id : ''));
         $active = $current === $id ? ' nav-tab-active' : '';
         // Green when the courier is enabled AND usable; red when disabled OR currently unusable (e.g. it can't
-        // do ППП and the shop has no prepaid method, so it won't appear at checkout).
+        // do PPP and the shop has no prepaid method, so it won't appear at checkout).
         $tint = '';
         if ($id !== '') {
             $on       = get_option('bgcouriers_' . $id . '_enabled', 'no') === 'yes';
@@ -400,7 +400,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     private function output_courier(string $courier_id): void {
         $fields    = $this->{$courier_id . '_courier_fields'}();
         $enable_id = 'bgcouriers_' . $courier_id . '_enabled';
-        // The enable toggle, the ППП notice and the API-credentials hint all render as prominent FULL-WIDTH
+        // The enable toggle, the PPP notice and the API-credentials hint all render as prominent FULL-WIDTH
         // blocks at the top of the tab (outside the form-table, which otherwise auto-sizes them narrow), so
         // pull them out of the field list here and echo them directly below.
         $fields = array_values(array_filter($fields, static function ($f) use ($enable_id) {
@@ -683,7 +683,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
      *
      * Every one of the seven has the same four blocks in the same order - the account (notice, hint,
      * enable, credentials, the validate button), "Delivery & label" ending in the auto-label row,
-     * "Pricing" starting with the two rows every courier has, and "Cash on delivery" ending in the ППП
+     * "Pricing" starting with the two rows every courier has, and "Cash on delivery" ending in the PPP
      * row - and each was written out in full, seven times. That is how the Econt tab came to render its
      * API username as a filled-in box while every other courier's was blank behind "leave blank to
      * keep": nobody was comparing them, because there was nothing to compare them against.
@@ -703,8 +703,8 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
      *   pricing_head => false to replace the standard ship-in-total + free-threshold pair (BOX NOW,
      *                   which is always in the total and has no per-option thresholds)
      *   pricing      => rows after (or instead of) the pair
-     *   cod          => rows in "Cash on delivery", above the ППП row
-     *   ppp          => ['default' => 'yes'|'no', 'desc' => '...'] for the ППП row itself
+     *   cod          => rows in "Cash on delivery", above the PPP row
+     *   ppp          => ['default' => 'yes'|'no', 'desc' => '...'] for the PPP row itself
      */
     /**
      * The placeholder for a box that is drawn empty because its value is a secret.
@@ -998,20 +998,21 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     /**
-     * Европът - office/address + live quote, one API key, and a courier it can call.
+     * Evropat - office/address + live quote, one API key, and a courier it can call.
      *
      * Two fields here are its own, and neither is decoration:
      *
      *  - **Send parcels from.** Their `senderFileID` fills the sender's town, address, name, phone,
      *    firm, client number and payment way from the merchant's own cabinet in one field - their words
      *    for it - so this is a list read from the account rather than seven boxes to retype.
-     *  - **Parcels leave from.** Европът's `deliveryType` encodes BOTH ends of the journey (ОФ-ОФ,
-     *    ОФ-ВР, ВР-ОФ, ВР-ВР), which no other courier here does, so the sender's end has to be a
+     *  - **Parcels leave from.** Evropat's `deliveryType` encodes BOTH ends of the journey (office to
+     *    office, office to door, door to office, door to door), which no other courier here does, so the
+     *    sender's end has to be a
      *    setting. It is not cosmetic: the same 1 kg parcel to Sofia was quoted 4.59 office-to-office
      *    and 6.52 door-to-door on 2026-08-31. A shop that hands parcels over at a counter and is
      *    quoted for a collection overcharges every customer it has.
      *
-     * There is no API username field, because Европът does not issue one - see credential_fields().
+     * There is no API username field, because Evropat does not issue one - see credential_fields().
      */
     private function evropat_courier_fields(): array {
         return $this->courier_section('evropat', __('Европът', 'bg-couriers'), [

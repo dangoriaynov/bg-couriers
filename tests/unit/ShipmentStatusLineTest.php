@@ -8,7 +8,7 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-colum
 
 /**
  * The shipment state in the orders list. It used to be a two-line block of the courier's own wording,
- * which is what made every row tall: "Изпратено известие за пратка в офис/автомат" in a narrow column
+ * which is what made every row tall: "notice sent: parcel at the office/locker" in a narrow column
  * wraps, and a list is meant to be scanned, not read. It is now a single icon in the button row, with
  * the whole sentence one hover away - the same trade the courier logo already makes.
  *

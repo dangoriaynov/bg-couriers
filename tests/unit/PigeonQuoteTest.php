@@ -26,7 +26,7 @@ final class PigeonQuoteTest extends TestCase {
      * charging Pigeon with the order billed 20% more than Pigeon collects.
      *
      * Settled on the live account 2026-08-31 the only way it could be - a waybill. The parcel quoted at
-     * 2.59 printed "За плащане - КУ: 2.59 EUR, Общо: 2.59 EUR", and "За плащане" is what the person
+     * 2.59 printed "To pay - courier service: 2.59 EUR, Total: 2.59 EUR", and "To pay" is what the person
      * hands over. Nothing in the API says this; its answer is the exact sum of its own parts with no tax
      * field at all, which is precisely what a net total looks like.
      */

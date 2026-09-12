@@ -23,7 +23,7 @@ require_once dirname(__DIR__) . '/stubs/wc-tax.php';
  * The rule these tests hold: the rate cost is the NET price where WooCommerce will add the tax, and
  * the price the courier will actually charge where it will not. A quote that carries no tax of its own
  * is handed over untouched either way, because both kinds that do are already right - a figure that
- * includes VAT (Pigeon, Европът, Econt where there are no rates to split it with) is what the courier
+ * includes VAT (Pigeon, Evropat, Econt where there are no rates to split it with) is what the courier
  * charges, and a flat price a merchant typed into the settings is a decision, not a courier's quote.
  *
  * @group core

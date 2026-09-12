@@ -125,8 +125,8 @@ case "${1:-}" in
       try { BGCouriers_Labels::cancel((int) $2); printf(\"CANCELLED %s\n\", \$w); }
       catch (\Exception \$e) { printf(\"FAILED %s - %s\n\", \$w, \$e->getMessage()); }'" | tr -d '\r' ;;
   # Turn a WooCommerce payment gateway on or off. The international spec needs one: a shop whose
-  # cash-on-delivery is legal only because the courier does the ППП cannot take COD abroad - no courier's
-  # ППП crosses the border - so a Romanian order has to be a prepaid one, and dev has COD and nothing
+  # cash-on-delivery is legal only because the courier does the PPP cannot take COD abroad - no courier's
+  # PPP crosses the border - so a Romanian order has to be a prepaid one, and dev has COD and nothing
   # else. Switched back off in the spec's teardown, because a payment method left enabled changes what
   # every other spec sees.
   #

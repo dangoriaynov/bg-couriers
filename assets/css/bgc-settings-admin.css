@@ -4,7 +4,7 @@
 /* Auto width (not 100%) so the table hugs its label + value columns instead of leaving a big empty
    gap to the right of every field. */
 #wpbody .bgc-settings table.form-table { margin: 0; width: auto !important; }
-/* Full-width banners (ППП notice, API-credentials hint) span the whole settings column, not just the
+/* Full-width banners (PPP notice, API-credentials hint) span the whole settings column, not just the
    auto-sized cell. */
 #wpbody .bgc-settings .bgc-ppp-notice,
 #wpbody .bgc-settings .bgc-cred-hint { display: block; width: 100%; max-width: none; box-sizing: border-box; }

@@ -30,11 +30,11 @@ final class RatePrefixTest extends TestCase {
     }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
-    /** The whole bug in one assertion: a real courier rate must survive the ППП filter. */
+    /** The whole bug in one assertion: a real courier rate must survive the PPP filter. */
     public function test_ppp_filter_keeps_rates_whose_courier_pays_out(): void {
         Functions\when('get_option')->alias(static function ($n, $d = false) {
             if ($n === 'bgcouriers_cod_fiscalization') { return 'ppp'; }
-            // Every courier pays out via ППП - so nothing may be removed.
+            // Every courier pays out via PPP - so nothing may be removed.
             if (substr($n, -11) === '_ppp_payout') { return 'yes'; }
             return $d;
         });

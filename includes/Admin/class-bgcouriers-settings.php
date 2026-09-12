@@ -113,7 +113,7 @@ class BGCouriers_Settings {
      * The gates, in the order a merchant meets them: switched on, credentials saved and validated
      * (courier_config()), and at least one delivery option left on. The zone is WooCommerce's own gate -
      * it never calls a shipping method that is not in a matching zone - and the courier's own
-     * configuration (a ППП it cannot do, a country it does not serve) is decided per package, later.
+     * configuration (a PPP it cannot do, a country it does not serve) is decided per package, later.
      *
      * The last one used to be missing: selection_for() falls back to 'office' when nothing is enabled,
      * so a courier with every delivery option switched off quoted an office delivery anyway. Measured on
@@ -475,14 +475,14 @@ class BGCouriers_Settings {
     /**
      * How the merchant fiscalises cash the courier collects on delivery:
      *  - 'cash_register' (default): the merchant issues the receipt themselves - COD works with any courier;
-     *  - 'ppp': the merchant relies on the courier paying out via пощенски паричен превод (ППП), which is only
-     *    legal with couriers that actually offer ППП.
+     *  - 'ppp': the merchant relies on the courier paying out via postal money order (PPP), which is only
+     *    legal with couriers that actually offer PPP.
      */
     public static function cod_fiscalization(): string {
         return get_option('bgcouriers_cod_fiscalization', 'cash_register') === 'ppp' ? 'ppp' : 'cash_register';
     }
 
-    /** Whether THIS courier pays collected COD out to the merchant via ППП (пощенски паричен превод). */
+    /** Whether THIS courier pays collected COD out to the merchant via PPP (postal money order). */
     /**
      * Whether the recipient may open - and possibly test - the parcel before paying.
      *
@@ -521,15 +521,15 @@ class BGCouriers_Settings {
 
     public static function courier_ppp_payout(string $courier): bool {
         // Per-courier toggle (default on for Speedy/Econt, off otherwise incl. BOX NOW). BOX NOW doesn't offer
-        // ППП today, but the merchant can flip it on the day it does - no code change needed.
+        // PPP today, but the merchant can flip it on the day it does - no code change needed.
         $default = in_array($courier, ['speedy', 'econt'], true) ? 'yes' : 'no';
         return get_option('bgcouriers_' . $courier . '_ppp_payout', $default) === 'yes';
     }
 
     /**
-     * Does this courier's ППП payout reach this destination?
+     * Does this courier's PPP payout reach this destination?
      *
-     * ППП is a Bulgarian postal money transfer, and it stops at the border. Speedy refuses it outright for
+     * PPP is a Bulgarian postal money transfer, and it stops at the border. Speedy refuses it outright for
      * a foreign address - sla.cod.moneyTransfer.cod_sub_service_validator.money-transfer-not-allowed-for-
      * foreign-countries, measured 2026-08-19 - and the whole price calculation is refused with it, so a
      * checkout that kept asking for one simply stopped offering the courier at all. Abroad the money can
@@ -537,7 +537,7 @@ class BGCouriers_Settings {
      *
      * Which matters twice over. It decides the processingType the shipment is created with, and it decides
      * whether cash-on-delivery may be offered at all: a shop whose COD is legal only BECAUSE the courier
-     * does the ППП has no such arrangement abroad, so an international order there has to be prepaid.
+     * does the PPP has no such arrangement abroad, so an international order there has to be prepaid.
      */
     public static function ppp_payout_reaches(string $courier, string $country): bool {
         return self::courier_ppp_payout($courier) && !self::is_intl($country);
@@ -562,7 +562,7 @@ class BGCouriers_Settings {
      * Whether cash on delivery may be used - with this courier, and for this kind of delivery.
      *
      * Two independent reasons it may not be. The merchant's own: a shop with no cash register fiscalises
-     * through the courier's ППП, so a courier that does not do one cannot legally take the money. And the
+     * through the courier's PPP, so a courier that does not do one cannot legally take the money. And the
      * courier's own: Express One collects nothing at an EXOBOX locker. Both answer the same question, so
      * they are answered in one place - the checkout, the quote and the waybill all ask it here.
      *
@@ -588,8 +588,8 @@ class BGCouriers_Settings {
         // Econt does support it - paymentReceiverMethod + paymentReceiverAmountIsPercent, verified live
         // against ee.econt.com: the whole fee moves from senderDueAmount to receiverDueAmount.
         // Express One does too: PAYER 1 was booked on its test account 2026-08-25 and the shipment came
-        // back reading "Получател", with and without a cash-on-delivery amount on it.
-        // Европът does too: its paymentWay enumerates a recipient payer twice over (2 in cash, 4 against
+        // back reading "Recipient", with and without a cash-on-delivery amount on it.
+        // Evropat does too: its paymentWay enumerates a recipient payer twice over (2 in cash, 4 against
         // an account), and /calculateprice quoted `payer` 2 without complaint on 2026-08-31.
         if (!in_array($courier, ['speedy', 'pigeon', 'sameday', 'econt', 'expressone', 'evropat'], true)) { return true; }
         $v = (string) get_option('bgcouriers_' . $courier . '_ship_in_total', '');
@@ -623,7 +623,7 @@ class BGCouriers_Settings {
 
     /**
      * Warning to show on a courier's settings tab when it can't be fully used under the current COD setup:
-     * only when fiscalisation = ППП and this courier does NOT do ППП. Returns ['level'=>'error'|'warning',
+     * only when fiscalisation = PPP and this courier does NOT do PPP. Returns ['level'=>'error'|'warning',
      * 'msg'=>string] or null when there's nothing to warn about.
      *
      * @return array{level:string,msg:string}|null
@@ -646,7 +646,7 @@ class BGCouriers_Settings {
             return ['level' => 'error', 'msg' => __('Sameday does not support “the recipient pays the delivery” on this account, so NO waybill can be created while it is set that way. Turn on “Delivery in the order total” below, or ask Sameday to allow recipient payment on your contract.', 'bg-couriers')];
         }
         // Econt collecting cash on delivery under an agreement that does not match how the shop says it
-        // is paid out: the money comes back as an ordinary transfer while the shop believes it is a ППП,
+        // is paid out: the money comes back as an ordinary transfer while the shop believes it is a PPP,
         // which is the difference between having fiscalisation covered and not.
         if ($courier === 'econt' && get_option('bgcouriers_econt_cod_enabled', 'no') === 'yes') {
             $c = BGCouriers_Couriers::get('econt');
@@ -922,7 +922,7 @@ jQuery(function($){
      */
     /**
      * Custom WC field: a banner at the top of a courier tab when it can't be fully used under the current COD
-     * setup (ППП mode + this courier does not do ППП). Amber = usable for prepaid only; red = unusable (no
+     * setup (PPP mode + this courier does not do PPP). Amber = usable for prepaid only; red = unusable (no
      * prepaid gateway) so it won't appear at checkout. Renders nothing when there's nothing to warn about.
      */
     public function render_ppp_notice($field): void {
@@ -948,7 +948,8 @@ jQuery(function($){
         echo '<tr valign="top"><td colspan="2" class="forminp" style="padding-top:4px;">';
         echo '<div class="bgc-about" style="max-width:760px;line-height:1.6;">';
         // Brand name - NOT translatable: if "BG Couriers for WooCommerce" is a translatable string, WordPress
-        // translates the plugin header too ("за WooCommerce"), which trips WP.org's trademark check (the name
+        // translates the plugin header too (the Bulgarian for "for WooCommerce"), which trips WP.org's
+        // trademark check (the name
         // must keep the English "for woocommerce" pattern).
         echo '<h3 style="margin:.2em 0 .4em;">' . esc_html('BG Couriers for WooCommerce') . '</h3>';
         echo '<p style="margin:.2em 0;">' . esc_html__('Free shipping integration for the Bulgarian couriers, built and maintained by an independent developer.', 'bg-couriers') . '</p>';
@@ -997,7 +998,7 @@ jQuery(function($){
     }
 
     /**
-     * Full-width ППП-notice banner rendered OUTSIDE the form-table (so it spans the whole settings column,
+     * Full-width PPP-notice banner rendered OUTSIDE the form-table (so it spans the whole settings column,
      * like the enable toggle). Echoes nothing when there is no notice to show.
      */
     public static function ppp_notice_block(string $courier): void {
@@ -1182,7 +1183,7 @@ jQuery(function($){
     }
 
     /**
-     * The credential fields THIS courier issues - both halves for all but Европът, which issues one key.
+     * The credential fields THIS courier issues - both halves for all but Evropat, which issues one key.
      *
      * Asked of the courier rather than assumed, so a shop is never refused for leaving blank a field its
      * courier never gave it. Falls back to the pair when the courier is not registered (the settings
@@ -1276,7 +1277,7 @@ jQuery(function($){
         }
         // Informs; it does not refuse. Switching a courier on is a decision the merchant is allowed to
         // make before anything else is in place - the credentials come from the courier, and two of them
-        // (Express One's collection address, Европът's sender file) can only be CHOSEN from a list the
+        // (Express One's collection address, Evropat's sender file) can only be CHOSEN from a list the
         // API returns, so demanding them first made the first step impossible. What is still missing is
         // shown instead, here and on the tab itself, and the checkout is what withholds the courier until
         // it is all there - see courier_offerable().

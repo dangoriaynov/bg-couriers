@@ -38,7 +38,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     /**
      * Yes - and there is no request to make: Sameday has no pickup API at all. The AWB itself is what
      * puts the parcel in the day's collection list for its pickup point. Measured on order 11260:
-     * waybill 09:44:04, and by 11:45 it had come back "Отказ от взимане от подател" - the courier had
+     * waybill 09:44:04, and by 11:45 it had come back "collection from the sender refused" - the courier had
      * been and gone while the parcel was still on the shelf, three hours after the order was placed.
      */
     public function books_pickup_on_create(): bool { return true; }
@@ -516,7 +516,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $code = (int) wp_remote_retrieve_response_code($r);
         if ($code < 300) { return true; }
         // A shipment Sameday does not have is a shipment nobody is coming for, which is the whole point
-        // of cancelling - so 404 counts as done, the way Econt's "не е открита" already does. Without
+        // of cancelling - so 404 counts as done, the way Econt's "not found" already does. Without
         // this, cancelling an AWB that was cancelled earlier (or lives on the demo stack) reported
         // "the courier did not cancel it" and left a dead number stuck on the order.
         return $code === 404;
@@ -563,8 +563,8 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         }
         // Sameday returns its history NEWEST FIRST. Everything downstream - human(), classify(), the status
         // shown in the orders list - reads the LAST entry as the current one, so an unsorted list reports
-        // the moment the label was created forever: a cancelled shipment still read "Създадена
-        // товарителница". Sort ascending so the newest really is last.
+        // the moment the label was created forever: a cancelled shipment still read "created
+        // waybill". Sort ascending so the newest really is last.
         usort($events, static function ($a, $b) {
             return strcmp((string) $a['date'], (string) $b['date']) ?: 0;
         });

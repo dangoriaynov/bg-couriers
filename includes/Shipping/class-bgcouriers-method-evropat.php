@@ -2,7 +2,7 @@
 defined('ABSPATH') || exit;
 
 /**
- * Европът as a WooCommerce shipping method. Everything it does lives in
+ * Evropat as a WooCommerce shipping method. Everything it does lives in
  * BGCouriers_Abstract_Method - the six of these were the same file, line for line.
  *
  * The class stays because WooCommerce stores its NAME (woocommerce_shipping_methods) and its method id

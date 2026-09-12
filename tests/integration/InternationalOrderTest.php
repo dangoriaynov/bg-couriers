@@ -89,7 +89,7 @@ final class InternationalOrderTest extends WP_UnitTestCase {
     /**
      * The money is still collected abroad - as CASH.
      *
-     * ППП is a Bulgarian postal money transfer and Speedy refuses it for a foreign address, so a label
+     * PPP is a Bulgarian postal money transfer and Speedy refuses it for a foreign address, so a label
      * asking for one is not created at all. The merchant's own pay-out contract still stands at home.
      */
     public function test_cash_on_delivery_abroad_is_collected_as_cash(): void {
@@ -108,7 +108,7 @@ final class InternationalOrderTest extends WP_UnitTestCase {
 
     /**
      * And with it the payment method itself: a shop whose cash-on-delivery is legal only BECAUSE the
-     * courier does the ППП has no such arrangement abroad, so an international order there is a prepaid
+     * courier does the PPP has no such arrangement abroad, so an international order there is a prepaid
      * one. Offering COD anyway would take money the shop cannot lawfully receipt.
      */
     public function test_cash_on_delivery_is_not_offered_abroad_to_a_shop_that_relies_on_ppp(): void {
@@ -130,7 +130,7 @@ final class InternationalOrderTest extends WP_UnitTestCase {
 
         // And with NO shipping method chosen at all, which is the state a shop with no prepaid gateway is
         // actually in abroad: every rate for the foreign address is refused, so there is no chosen courier
-        // to ask about the ППП. Asking one was the bug - cash on delivery stayed on screen underneath a
+        // to ask about the PPP. Asking one was the bug - cash on delivery stayed on screen underneath a
         // message saying the order could only be prepaid. The destination alone decides.
         WC()->session->set('chosen_shipping_methods', []);
         $this->assertArrayNotHasKey('cod', $checkout->cod_filter_gateways($gateways),

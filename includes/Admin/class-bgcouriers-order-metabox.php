@@ -75,7 +75,7 @@ class BGCouriers_Order_Metabox {
             $cancel_attr = 'type="button"' . ($locked ? '' : ' data-cancel-url="' . $cancel . '"') . $off_attrs;
             $actions = $act('button', 'update', $tip_of(__('Re-issue waybill (voids the current one)', 'bg-couriers')), $regen_attr, 'bgc-regen' . $off)
                 . $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary')
-                // Only where there is somewhere to send them. Европът has no public tracking page - its
+                // Only where there is somewhere to send them. Evropat has no public tracking page - its
                 // site is the cabinet, and nothing there shows one waybill to somebody not signed in - so
                 // the button would open a redirect to nowhere. The waybill number above is still the thing
                 // that identifies the parcel, and it is still one click to copy.

@@ -54,7 +54,7 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      * Which halves of the credential pair this courier actually issues.
      *
      * Every courier here but one hands out two things - a username and a password, a client id and a
-     * secret, a key and a secret - so the default is both. Европът issues ONE API key from the
+     * secret, a key and a secret - so the default is both. Evropat issues ONE API key from the
      * merchant's own cabinet and no username at all, and a shop cannot be made to invent the other half
      * to satisfy a check: creds_present() would otherwise refuse to enable a courier that is perfectly
      * configured, and the settings tab would ask for a field that does not exist.
@@ -67,7 +67,7 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      * Delivery kinds this courier CANNOT collect cash on.
      *
      * Cash on delivery is a service of the courier, not of the shop, and a courier may offer it to a
-     * person and not to a machine: Express One does not collect наложен платеж at an EXOBOX locker
+     * person and not to a machine: Express One does not collect cash on delivery at an EXOBOX locker
      * (their own words, 2026-08-26), while BOX NOW's lockers and Econt's automats do. So this is asked
      * of each courier per delivery kind rather than assumed of every locker.
      *
@@ -132,7 +132,7 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      * %PDF, throw otherwise - each with its own wording, its own timeout, and one of them without the
      * transport check at all, so a network blip reached the merchant as "the label is not a PDF".
      *
-     * What every one of them must do, and what only Европът did, is keep the URL out of the message:
+     * What every one of them must do, and what only Evropat did, is keep the URL out of the message:
      * its label link carries the account's API key in the query string, and an exception text travels
      * into order notes and logs. So no caller may quote it, and this one never does.
      *
@@ -140,7 +140,7 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      */
     protected function fetch_pdf(string $url, array $headers = [], string $who = ''): string {
         $who = $who !== '' ? $who : $this->id();
-        // Two of these links are not ours: Econt answers getShipmentStatuses with a pdfURL and Европът's
+        // Two of these links are not ours: Econt answers getShipmentStatuses with a pdfURL and Evropat's
         // /printshipment answers with a link, and both are then fetched by this server. The rest build
         // their URL from a constant base. So the one thing worth refusing is a link that points back
         // inside the shop's own network - it would be a blind request (the answer only ever leaves here
@@ -199,7 +199,7 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
      * What is still between this courier and a customer seeing it. An empty list means it is ready.
      *
      * It used to REFUSE the enable toggle, and that made the first step impossible: credentials come
-     * from the courier, and two of these fields (Express One's collection address, Европът's sender
+     * from the courier, and two of these fields (Express One's collection address, Evropat's sender
      * file) can only be picked off a list the API returns - so a courier could not be switched on until
      * it was configured, and could not be configured meaningfully until it was on. Switching one on is a
      * decision the merchant is allowed to make first; this list is what the tab shows them afterwards,

@@ -82,9 +82,9 @@ class BGCouriers_Pricing {
      * whether or not the shop has chosen to show its own prices with tax**, so a setting about the
      * shop-window cannot be what decides that number. It was: on the default 'excl' the customer was
      * told 2,20 and handed the courier 2,64 (measured on the live shop 2026-08-31 - Speedy short by
-     * 0.44, Express One by 0.68, Европът by 0.46, each exactly its own VAT).
+     * 0.44, Express One by 0.68, Evropat by 0.46, each exactly its own VAT).
      *
-     * Where the courier itself reports the tax - Speedy and Econt break it out, Express One and Европът
+     * Where the courier itself reports the tax - Speedy and Econt break it out, Express One and Evropat
      * have it taken back out of a gross total - that is the authority and the sum is simply put back
      * together. Where it does not (Pigeon, Sameday, a fixed or reference price), the plugin's standing
      * rule is that a quote is net, so the shop's own shipping rate stands in: on this market it is the
@@ -142,7 +142,7 @@ class BGCouriers_Pricing {
      *
      * So the net price where WooCommerce will add the tax, and the price the courier will actually
      * charge where it will not. A quote carrying no tax of its own is handed over unchanged, and both
-     * kinds that do are meant to be: a figure that already includes VAT (Pigeon, Европът, Econt on a
+     * kinds that do are meant to be: a figure that already includes VAT (Pigeon, Evropat, Econt on a
      * shop with no rates to split it with) is already what the courier charges, and a flat price the
      * merchant typed into the settings is a decision about what to charge, not a courier's quote.
      */
@@ -174,10 +174,10 @@ class BGCouriers_Pricing {
     /**
      * A courier price that ALREADY contains VAT, split into the net cost and the tax inside it.
      *
-     * The inverse of display_price(), and it exists for one courier: Европът quotes gross. Its API says
+     * The inverse of display_price(), and it exists for one courier: Evropat quotes gross. Its API says
      * nothing about tax - no field, no example, not the word - so the whole plugin was built on the
-     * assumption that its `price` was net like everybody else's. The printed товарителница settled it:
-     * the price block on the waybill is headed **"ЦЕНА С ДДС"** and its total is exactly the figure
+     * assumption that its `price` was net like everybody else's. The printed waybill settled it:
+     * the price block on the waybill is headed **"price with VAT"** and its total is exactly the figure
      * /calculateprice returns (3.31 service + 1.28 fuel = 4.59 EUR, waybill 9107785603, 2026-08-31).
      *
      * Handing that figure to WooCommerce as a net cost would tax it a second time - the 0.3.5 fault,

@@ -9,7 +9,7 @@ class BGCouriers_Sync {
      * First city alphabetically from a courier's cached cities in one country (the reference origin).
      *
      * The country is not optional in practice, only in signature: with two countries in the table the
-     * sort runs across both - Latin "Bucuresti" against Cyrillic "София" - and the collation would pick
+     * sort runs across both - Latin "Bucuresti" against Cyrillic "Sofia" - and the collation would pick
      * which country every Bulgarian shopper's pre-town price is quoted against. That is not a decision
      * anyone made, so '' means the shop's own country, never "any".
      */

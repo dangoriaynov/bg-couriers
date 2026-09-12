@@ -15,7 +15,7 @@ require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.
 require_once dirname(__DIR__) . '/stubs/wc-tax.php';
 
 /**
- * A Европът whose calls are answered from the fixtures instead of from the courier.
+ * A Evropat whose calls are answered from the fixtures instead of from the courier.
  *
  * Only call() is replaced, so everything above it - the envelope, the body builders, the caching, the
  * account questions - is the real code being tested.
@@ -51,12 +51,12 @@ final class Evropat_Fixture_Client extends BGCouriers_Evropat {
 }
 
 /**
- * Европът's answers, held to what the shop's own account actually returned on 2026-08-31.
+ * Evropat's answers, held to what the shop's own account actually returned on 2026-08-31.
  *
  * Every fixture here is a real answer with the account scrubbed out of it. The ones that would cost a
  * shop money if they drifted are the delivery type (it moves the price by 40%), the currency the price
  * comes back in (the account decides which of the two is EUR), the collection fee reaching the quote,
- * and a ППП the account cannot do being turned into a наложен платеж instead of being dropped.
+ * and a PPP the account cannot do being turned into a cash on delivery instead of being dropped.
  *
  * @group evropat
  */
@@ -131,8 +131,8 @@ final class EvropatParsersTest extends TestCase {
     // ── Price ────────────────────────────────────────────────────────────────
 
     public function test_their_price_includes_vat_and_is_handed_over_net(): void {
-        // Nothing in the API says the price is gross - the printed товарителница does, its price block
-        // headed "ЦЕНА С ДДС" over the same 4.59. Every quote in this plugin is net because WooCommerce
+        // Nothing in the API says the price is gross - the printed waybill does, its price block
+        // headed "price with VAT" over the same 4.59. Every quote in this plugin is net because WooCommerce
         // adds the shipping tax on top, so passing their figure through would tax it twice (the 0.3.5
         // fault). The split must give the courier's own total back when the tax is re-applied.
         $d = $this->body('calculateprice-office.json');
@@ -221,7 +221,7 @@ final class EvropatParsersTest extends TestCase {
     // ── Cash on delivery the account cannot actually do ──────────────────────
 
     public function test_a_ppp_the_account_is_not_allowed_becomes_a_plain_collection(): void {
-        // Their API prices a ППП it cannot do at 0.00 and books the shipment WITHOUT one - no error, no
+        // Their API prices a PPP it cannot do at 0.00 and books the shipment WITHOUT one - no error, no
         // flag. A waybill built on that answer travels with no money to collect.
         $c = $this->client(['/getclientaddresses' => $this->body('getclientaddresses.json')]);
         Functions\when('get_option')->alias(function ($k, $d = '') {
@@ -310,7 +310,7 @@ final class EvropatParsersTest extends TestCase {
     }
 
     public function test_a_refusal_is_not_a_cancellation(): void {
-        // "Отказана" reads as cancelled to the text rules, and the parcel is still in the van.
+        // "refused" reads as cancelled to the text rules, and the parcel is still in the van.
         $t = BGCouriers_Evropat::verdict([['code' => 6, 'name' => 'Отказана', 'date' => '2026-08-31 10:00:00']], '9100000000');
         $this->assertNotSame('cancelled', $t->stage());
     }
@@ -434,7 +434,7 @@ final class EvropatParsersTest extends TestCase {
     }
 
     public function test_two_events_in_the_same_second_keep_the_order_the_courier_listed_them_in(): void {
-        // Measured: the test waybill's "Създадена" and "Анулирана от експорт" share a timestamp to the
+        // Measured: the test waybill's "created" and "cancelled from export" share a timestamp to the
         // second. usort is not stable, so without a tie-break the last event - which decides the status
         // wherever no terminal code is involved - could differ between two runs on identical data.
         $c = $this->client([

@@ -5,8 +5,8 @@ const { addAnyProductToCart, gotoCheckout, selectShippingMethod } = require('../
  * The chosen courier's delivery fields sit UNDER its name, whatever the theme does to the row.
  *
  * Reported with a screenshot on 2026-09-11: the courier's name and price floating in the left half of
- * the card, the tabs and the town/office fields squeezed into the right half, "5,12 €Град" run
- * together. That is what a theme gets by laying each shipping <li> out as a flex row so the radio and
+ * the card, the tabs and the town/office fields squeezed into the right half, the price and the "City"
+ * label run together. That is what a theme gets by laying each shipping <li> out as a flex row so the radio and
  * the label share a line - a common trick - while this plugin's fields only said `display:block;
  * width:100%` and HOPED the row was a block. In a flex row the label and the fields become neighbours
  * and split the width between them.

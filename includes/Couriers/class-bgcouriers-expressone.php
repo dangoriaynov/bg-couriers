@@ -272,8 +272,8 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
 
     /**
      * Streets -> the rows the checkout renders, in the shape every courier here uses: the picker stores
-     * `name` and shows `label`, so the type ("УЛ.", "БУЛ.", "ЖК") belongs in the label - it is what tells
-     * a customer that "ЖК Младост" and "УЛ. Младост" are two different places.
+     * `name` and shows `label`, so the type ("ul.", "bul.", "zh.k.") belongs in the label - it is what tells
+     * a customer that "zh.k. Mladost" and "ul. Mladost" are two different places.
      *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
@@ -302,7 +302,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
      * the street's NAME (the picker's value is the name, and a customer may type one of their own).
      * So the id is looked up from the town's own list at the moment the waybill is made.
      *
-     * A name can belong to more than one street: Sofia has a "1" that is a УЛ. and a "1" that is an АЛ.,
+     * A name can belong to more than one street: Sofia has a "1" that is a ul. and a "1" that is an al.,
      * and the customer's pick lost the difference on its way into the order. The first is used and the
      * caller is told, because a parcel on the right-named street is recoverable and a refused waybill at
      * the packing table is not.
@@ -330,7 +330,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     /**
      * An EXOBOX takes no money.
      *
-     * Express One does not carry наложен платеж to a locker at the moment (theirs, 2026-08-26), and
+     * Express One does not carry cash on delivery to a locker at the moment (theirs, 2026-08-26), and
      * their API will not say so: /1/create-bol accepts COD beside TAKE_OFFICE_ID exactly as happily as
      * it accepts it for a courier delivery. So the refusal has to come from here, at the checkout,
      * rather than from the depot with the customer long gone - the same shape of fault as the typed

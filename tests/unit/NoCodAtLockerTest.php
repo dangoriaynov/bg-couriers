@@ -18,7 +18,7 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
 /**
  * A courier may collect money from a person and not from a machine.
  *
- * Express One carries no наложен платеж to an EXOBOX locker (their own words, 2026-08-26) and its API
+ * Express One carries no cash on delivery to an EXOBOX locker (their own words, 2026-08-26) and its API
  * will not say so - /1/create-bol accepts COD beside TAKE_OFFICE_ID exactly as happily as it accepts it
  * for a courier delivery. So the refusal is ours to make, and it has to hold in three places or it
  * leaks: the checkout takes the gateway away, the quote stops paying for a collection that cannot
@@ -74,7 +74,7 @@ final class NoCodAtLockerTest extends TestCase {
         $this->assertTrue(BGCouriers_Settings::cod_allowed_for('expressone'));
     }
 
-    /** The older rule is untouched: no cash register and no ППП from this courier = no cash on delivery. */
+    /** The older rule is untouched: no cash register and no PPP from this courier = no cash on delivery. */
     public function test_the_fiscalisation_rule_still_refuses_on_its_own(): void {
         $this->options([
             'bgcouriers_cod_fiscalization'      => 'ppp',

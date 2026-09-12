@@ -31,8 +31,8 @@ final class EcontQuoteTest extends TestCase {
      *
      * This asserted the raw 4.68 as the quote's PRICE, and a quote's price is a NET rate cost that
      * WooCommerce then taxes - so the checkout was adding 20% to a figure Econt does not add 20% to.
-     * The waybill settled it: a shipment quoted at 5.06 printed "Куриерска услуга: 5.06 EUR" and
-     * "Общо: събери 5.17 EUR". Two percent above the quote, not twenty; a net 5.06 would have been
+     * The waybill settled it: a shipment quoted at 5.06 printed "Courier service: 5.06 EUR" and
+     * "Total: collect 5.17 EUR". Two percent above the quote, not twenty; a net 5.06 would have been
      * collected as 6.07.
      */
     public function test_the_quoted_total_is_the_money_and_is_carried_split(): void {
