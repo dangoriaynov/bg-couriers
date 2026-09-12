@@ -86,6 +86,27 @@ else
   note "$(tail -3 /tmp/bgc-preflight-tests.log)"
 fi
 
+# The integration suite runs against real WordPress and real WooCommerce in wp-env, which is why it used
+# to be skipped whenever Docker was not up - and it went unrun long enough to collect seven failures
+# that were nothing but stale fixtures. Three courier gates, a required phone and delivery leaving the
+# order total by default had all arrived without it noticing. Worse than the failures: a courier those
+# tests never set up cannot be offered, so their negative assertions were passing for free. So it is a
+# release gate now, and Docker being down is a reason to start Docker, not a reason to ship.
+# (Owner, 2026-09-12: "fix the integration suite and run it before any new release in future".)
+if [ "${SKIP_TESTS:-}" = "1" ]; then
+  note "SKIP_TESTS=1 - integration tests not run"
+elif ! docker info >/dev/null 2>&1; then
+  bad "Docker is not running - the integration suite cannot run, and it gates a release"
+  note "start Docker (OrbStack/Docker Desktop), then: npx @wordpress/env start"
+elif BGC_SUITE=integration npx @wordpress/env run tests-cli \
+       --env-cwd=wp-content/plugins/bg-couriers -- ./vendor/bin/phpunit --testsuite integration \
+       >/tmp/bgc-preflight-integration.log 2>&1; then
+  ok "integration tests pass ($(grep -oE '[0-9]+ tests' /tmp/bgc-preflight-integration.log | tail -1))"
+else
+  bad "integration tests FAIL - see /tmp/bgc-preflight-integration.log"
+  note "$(tail -5 /tmp/bgc-preflight-integration.log)"
+fi
+
 # --- 6. Nothing that is not the plugin ---------------------------------------------------------------
 # test-results/.last-run.json has reached the WordPress.org package once and PROD once, by two different
 # routes. It is 45 bytes of Playwright bookkeeping and it should never leave this machine.
