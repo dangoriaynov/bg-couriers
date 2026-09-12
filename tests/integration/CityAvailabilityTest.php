@@ -72,6 +72,31 @@ final class CityAvailabilityTest extends WP_UnitTestCase {
             'the next customer is told the truth, not what was cached while the courier was down');
     }
 
+    /**
+     * A courier that answers "no offices here" is believed - by the tabs exactly as by the dropdown.
+     *
+     * The old availability path fell back to the synced table on an EMPTY live answer, not only on a
+     * failed one. The dropdown never did. So on a town whose offices had closed since the last sync,
+     * the tabs said "this courier has an office here" from the stale table while the dropdown, reading
+     * the live answer, listed none: a delivery option offered and nothing to choose in it. Every
+     * adapter answers a per-city fetch with real rows (a scoped call or a filter of the full list), so
+     * an empty one means what it says; and an empty one is not cached, so a hiccup costs one page load.
+     */
+    public function test_an_empty_live_answer_is_believed_and_agrees_with_the_dropdown(): void {
+        // Rows in the synced table that the live answer no longer has.
+        global $wpdb;
+        $wpdb->insert($wpdb->prefix . 'bgcouriers_offices', ['courier' => 'availprobe', 'office_id' => '9', 'city_id' => 904,
+            'type' => 'office', 'name' => 'Closed', 'address' => '', 'lat' => 0, 'lng' => 0, 'country' => 'BG']);
+        $this->assertCount(1, BGCouriers_Nomenclature::offices('availprobe', 904), 'the stale row is really there to fall back to');
+        BGCouriers_Avail_Stub::$mode = 'empty';
+
+        $tabs = BGCouriers_Ajax::city_avail_data('availprobe', 904, 'BG');
+        $list = BGCouriers_Ajax::city_offices('availprobe', 904, 'office', '', 5, 'BG');
+
+        $this->assertSame([], $list, 'the dropdown believes the courier');
+        $this->assertSame(['office' => false, 'automat' => false], $tabs, 'and so do the tabs - the two agree');
+    }
+
     /** A broken adapter - an Error, not an Exception - must not take the request down with it. */
     public function test_an_adapter_error_is_survived(): void {
         BGCouriers_Avail_Stub::$mode = 'error';
@@ -83,7 +108,7 @@ final class CityAvailabilityTest extends WP_UnitTestCase {
 /** Answers with one office and one locker, or refuses the way an API or a broken adapter does. */
 final class BGCouriers_Avail_Stub extends BGCouriers_Abstract_Courier {
     public static int $asked = 0;
-    /** @var string answer | throw | error */
+    /** @var string answer | throw | error | empty */
     public static string $mode = 'answer';
     public function id(): string { return 'availprobe'; }
     public function label(): string { return 'Probe'; }
@@ -93,6 +118,7 @@ final class BGCouriers_Avail_Stub extends BGCouriers_Abstract_Courier {
     public function fetch_offices(int $city_id, string $country = ''): array {
         self::$asked++;
         if (self::$mode === 'throw') { throw new BGCouriers_Api_Exception('down'); }
+        if (self::$mode === 'empty') { return []; }
         if (self::$mode === 'error') { throw new \TypeError('a broken adapter'); }
         return [
             ['office_id' => 1, 'city_id' => $city_id, 'type' => 'office',  'name' => 'A', 'address' => '', 'lat' => 0, 'lng' => 0],

@@ -123,6 +123,28 @@ final class OneWaybillPerOrderTest extends WP_UnitTestCase {
         $this->assertSame('', (string) $fresh->get_meta('_bgcouriers_track_updated'));
     }
 
+    /**
+     * Being told to wait is not a failed attempt. The auto-label retry counts failures and notes each
+     * one on the order; another request already issuing the waybill is a success elsewhere, and it
+     * must not cost a retry or leave a "failed, retrying in 5 min" note for something that did not fail.
+     * The claim is held from a second connection, which is what the other request is.
+     */
+    public function test_a_claim_held_elsewhere_is_not_counted_as_a_failed_attempt(): void {
+        $o     = $this->order();
+        $other = new wpdb(DB_USER, DB_PASSWORD, DB_NAME, DB_HOST);
+        $this->assertSame('1', (string) $other->get_var($other->prepare('SELECT GET_LOCK(%s, 0)', 'bgcouriers_label_' . $o->get_id())));
+
+        BGCouriers_Labels::attempt_auto_label($o->get_id());
+
+        $fresh = wc_get_order($o->get_id());
+        $this->assertSame('', (string) $fresh->get_meta('_bgcouriers_autolabel_try'), 'no retry counted');
+        $notes = array_map(static fn($n) => $n->content, wc_get_order_notes(['order_id' => $o->get_id()]));
+        $this->assertSame([], array_values(array_filter($notes, static fn($n) => stripos($n, 'auto-label') !== false)),
+            'and no failure note for what is a success elsewhere');
+        $this->assertSame([], BGCouriers_Waybill_Probe::$created, 'and it did not book one of its own');
+        $other->query($other->prepare('SELECT RELEASE_LOCK(%s)', 'bgcouriers_label_' . $o->get_id()));
+    }
+
     /** And the ordinary case is untouched: the second call for an already-labelled order just answers. */
     public function test_an_order_that_has_a_waybill_is_answered_without_the_courier(): void {
         $o = $this->order();
