@@ -136,6 +136,15 @@ and keep passing, testing the wrong thing in silence.
 WooCommerce Checkout **block**, created for this on purpose. The shop's own checkout page stays classic,
 so the spec proves the Store API gate without reconfiguring the site under itself.
 
+`blocks-address-checkout.spec.js` walks the pickers themselves on that page - the tab click (the block
+must hand the pickers back within ten seconds; until 2026-09-13 it never did), the town, a street off the
+list, the block's own form and an order that carries all of it - and reads the estimate off a
+recipient-pays rate row. Its second test types the house number a moment before Place Order. Two things
+about driving the block: its address reaches the server on blur with a debounce, so wait for the
+`update-customer` (or `batch`) response before placing the order or the plugin's phone check answers 409;
+and its shipping radios are React's - `check({ force: true })` reports "did not change its state", click
+the label instead.
+
 If that page is ever lost, recreate it:
 
 ```bash
