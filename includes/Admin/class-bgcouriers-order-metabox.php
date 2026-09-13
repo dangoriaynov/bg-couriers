@@ -114,7 +114,7 @@ class BGCouriers_Order_Metabox {
                 . ($text !== '' ? '<span class="bgc-shipstate-txt">' . esc_html($text) . '</span>' : '')
                 . ($when > 0
                     /* translators: %s: human-readable time difference, e.g. "2 hours" */
-                    ? '<span class="bgc-shipstate-when">' . esc_html(sprintf(__('updated %s ago', 'bg-couriers'), human_time_diff($when, time()))) . '</span>'
+                    ? '<span class="bgc-shipstate-when">' . esc_html(sprintf(__('unchanged for %s', 'bg-couriers'), human_time_diff($when, time()))) . '</span>'
                     : '')
                 . (BGCouriers_Labels::is_locked($order)
                     ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
