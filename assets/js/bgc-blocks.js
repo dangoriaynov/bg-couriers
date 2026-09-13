@@ -81,23 +81,44 @@
     // way it ended: a refresh that failed is no reason to leave the customer with dead fields.
     useEffect(function () {
       var busy = false, again = false;
+      // Is the block itself in the middle of telling the server something - a rate being selected, the
+      // customer's address on its way? A recalculation asked for in that moment could be answered from
+      // the state BEFORE that request landed, and the block adopts whatever answer comes last: the
+      // courier the customer had just clicked would flip back to the one before it. Seen once on
+      // 2026-09-14 (Express One chosen, its locker tab clicked at once, the block came back showing
+      // Speedy) and not reproduced in eight tries after; the wait takes the interleaving away.
+      function blockBusy() {
+        try {
+          var cart = wp.data.select('wc/store/cart');
+          return !!(cart && ((cart.isShippingRateBeingSelected && cart.isShippingRateBeingSelected())
+            || (cart.isCustomerDataUpdating && cart.isCustomerDataUpdating())
+            || (cart.hasPendingItemsOperations && cart.hasPendingItemsOperations())));
+        } catch (e) { return false; }
+      }
+      function whenIdle(cb, tries) {
+        if (!blockBusy() || tries <= 0) { cb(); return; }
+        setTimeout(function () { whenIdle(cb, tries - 1); }, 100);
+      }
       function refresh() {
         // One at a time; a change made while one is running is answered by the next, not lost.
         if (busy) { again = true; return; }
         busy = true;
-        // The payment method travels with the request. Cash on delivery costs the courier a
-        // collection fee that is in the price it quotes, and the classic checkout re-prices the
-        // rates the moment the customer picks it; the block keeps its choice in the browser until the
-        // order is placed, so the session - where the rates read it - never heard of it and the order
-        // was priced prepaid (measured 2026-09-13: Speedy 2.12 prepaid, 2.52 with 50 € to collect).
-        var data = { payment_method: activePaymentMethod() };
-        var p = (wc.blocksCheckout.extensionCartUpdate && wc.blocksCheckout.extensionCartUpdate({ namespace: 'bg-couriers', data: data })) || Promise.resolve();
-        var done = function () {
-          busy = false;
-          $(document.body).trigger('updated_checkout');
-          if (again) { again = false; refresh(); }
-        };
-        Promise.resolve(p).then(done, done);
+        whenIdle(function () {
+          // The payment method travels with the request. Cash on delivery costs the courier a
+          // collection fee that is in the price it quotes, and the classic checkout re-prices the
+          // rates the moment the customer picks it; the block keeps its choice in the browser until
+          // the order is placed, so the session - where the rates read it - never heard of it in
+          // time and the row showed the prepaid price (measured 2026-09-14: 2,12 € shown, 2,41 €
+          // charged).
+          var data = { payment_method: activePaymentMethod() };
+          var p = (wc.blocksCheckout.extensionCartUpdate && wc.blocksCheckout.extensionCartUpdate({ namespace: 'bg-couriers', data: data })) || Promise.resolve();
+          var done = function () {
+            busy = false;
+            $(document.body).trigger('updated_checkout');
+            if (again) { again = false; refresh(); }
+          };
+          Promise.resolve(p).then(done, done);
+        }, 50); // five seconds at most; a block that never settles must not leave the pickers dead
       }
       $(document.body).on('update_checkout.bgcblocks', refresh);
       // ...and a change of payment method is a reason to re-price on its own.
