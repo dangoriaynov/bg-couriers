@@ -221,7 +221,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $sect       = esc_js((string) $current_section);
         $i_saved    = esc_js(__('Saved', 'bg-couriers'));
         $i_failed   = esc_js(__('Could not save - please try again.', 'bg-couriers'));
-        BGCouriers_Settings::inline_js("\n"
+        BGCouriers_Settings_Admin::inline_js("\n"
             . "(function(\$){\n"
             . "    var ajaxurl='" . $ajaxurl . "', nonce='" . $save_nonce . "', section='" . $sect . "';\n"
             . "    function toast(msg,type,ms){ var c=\$('#bgc-toasts'); if(!c.length){ c=\$('<div id=\"bgc-toasts\"></div>').appendTo('body'); }\n"
@@ -354,7 +354,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         wp_enqueue_script('jquery-ui-sortable');
         $ajax  = esc_js(admin_url('admin-ajax.php'));
         $nonce = esc_js(wp_create_nonce('bgcouriers_admin'));
-        BGCouriers_Settings::inline_js("\n"
+        BGCouriers_Settings_Admin::inline_js("\n"
             . "jQuery(function(\$){\n"
             . "    var c = \$('.bgc-courier-tabs'); if (!c.length || !\$.fn.sortable) { return; }\n"
             . "    var dragged = false;\n"
@@ -376,7 +376,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $t_now  = esc_js(__('Update tracking now', 'bg-couriers'));
         $t_done = esc_js(__('Tracking updated', 'bg-couriers'));
         $t_fail = esc_js(__('Could not update - please try again.', 'bg-couriers'));
-        BGCouriers_Settings::inline_js("\n"
+        BGCouriers_Settings_Admin::inline_js("\n"
             . "jQuery(function(\$){\n"
             . "    var sel = \$('#bgcouriers_tracking_poll'); if (!sel.length) { return; }\n"
             . "    var b = \$('<button type=\"button\" class=\"button bgc-poll-now\" title=\"" . $t_now . "\" aria-label=\"" . $t_now . "\"><span class=\"dashicons dashicons-update\"></span></button>');\n"
@@ -416,9 +416,9 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . '<label class="bgc-switch"><input type="checkbox" name="' . esc_attr($enable_id) . '" value="1"' . checked($on, true, false) . '><span class="bgc-slider"></span></label>'
             . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> - <span class="bgc-enable-state">' . esc_html($on ? $on_t : $off_t) . '</span></span>'
             . '</div>';
-        BGCouriers_Settings::ppp_notice_block($courier_id); // full-width, escaped internally
-        BGCouriers_Settings::readiness_block($courier_id);  // what is still missing, once it is switched ON
-        BGCouriers_Settings::cred_hint_block($courier_id);  // full-width, escaped internally
+        BGCouriers_Settings_Admin::ppp_notice_block($courier_id); // full-width, escaped internally
+        BGCouriers_Settings_Admin::readiness_block($courier_id);  // what is still missing, once it is switched ON
+        BGCouriers_Settings_Admin::cred_hint_block($courier_id);  // full-width, escaped internally
         self::print_fields($fields);
         $c_id    = esc_js($courier_id);
         $c_ajax  = esc_js(admin_url('admin-ajax.php'));
@@ -431,7 +431,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $i_close = esc_js(__('Close', 'bg-couriers'));
         // Same wording as the Save button's own failure, so a shop sees one message for one thing.
         $i_nosave = esc_js(__('Could not save - please try again.', 'bg-couriers'));
-        BGCouriers_Settings::inline_js("\n"
+        BGCouriers_Settings_Admin::inline_js("\n"
             . "(function(\$){\n"
             . "    var courier='" . $c_id . "', ajaxurl='" . $c_ajax . "', saveNonce='" . $c_save . "', adminNonce='" . $c_admin . "', section='" . $c_id . "';\n"
             . "    function esc(s){ return \$('<i>').text(s==null?'':s).html(); }\n"
