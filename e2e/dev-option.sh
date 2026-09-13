@@ -167,6 +167,8 @@ case "${1:-}" in
       printf(\"%s\n\", \$g->get_option(\"enabled\"));'" | tr -d '\r' ;;
   # One meta value off one order, for a spec that has to check what the checkout actually wrote.
   meta) run "$WP eval 'print((string) wc_get_order((int) $2)->get_meta(\"$3\"));'" | tr -d '\r' ;;
+  # What the order charges for delivery: "shipping total + shipping tax" and the payment method.
+  shiptotal) run "$WP eval '\$o = wc_get_order((int) $2); printf(\"%s + %s tax, paid by %s\", \$o->get_shipping_total(), \$o->get_shipping_tax(), \$o->get_payment_method());'" | tr -d '\r' ;;
   # The order's own shipping address, as WooCommerce holds it: "line 1 | town | postcode | country".
   address) run "$WP eval '\$o = wc_get_order((int) $2); print(implode(\" | \", [\$o->get_shipping_address_1(), \$o->get_shipping_city(), \$o->get_shipping_postcode(), \$o->get_shipping_country()]));'" | tr -d '\r' ;;
   # The order editor's own markup and the config its script is given, for ONE order - so a spec can put
@@ -179,5 +181,5 @@ case "${1:-}" in
       ob_start(); (new BGCouriers_Order_Metabox())->render(\$o); \$html = ob_get_clean();
       global \$wp_scripts; \$cfg = (string) \$wp_scripts->get_data(\"bgc-order-admin\", \"data\");
       echo wp_json_encode([\"config\" => \$cfg, \"html\" => \$html]);'" | tr -d '\r' ;;
-  *) echo "usage: dev-option.sh get|set|sweep|label|cancel|meta|address|editor [name|order_id] [value|meta_key]" >&2; exit 1 ;;
+  *) echo "usage: dev-option.sh get|set|sweep|label|cancel|meta|address|shiptotal|editor [name|order_id] [value|meta_key]" >&2; exit 1 ;;
 esac

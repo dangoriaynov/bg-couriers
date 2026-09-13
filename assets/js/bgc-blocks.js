@@ -20,6 +20,14 @@
   var Slot = wc.blocksCheckout.ExperimentalOrderShippingPackages;
   if (!Slot) { return; }
 
+  /** The payment method the customer has picked in the block, '' before there is one. */
+  function activePaymentMethod() {
+    try {
+      var store = wp.data && wp.data.select && wp.data.select('wc/store/payment');
+      return store && store.getActivePaymentMethod ? String(store.getActivePaymentMethod() || '') : '';
+    } catch (e) { return ''; }
+  }
+
   /** The rate the customer has selected, read from the block's own radio inputs. */
   function selectedRate() {
     var checked = document.querySelector('.wc-block-components-radio-control__input:checked');
@@ -77,7 +85,13 @@
         // One at a time; a change made while one is running is answered by the next, not lost.
         if (busy) { again = true; return; }
         busy = true;
-        var p = (wc.blocksCheckout.extensionCartUpdate && wc.blocksCheckout.extensionCartUpdate({ namespace: 'bg-couriers', data: {} })) || Promise.resolve();
+        // The payment method travels with the request. Cash on delivery costs the courier a
+        // collection fee that is in the price it quotes, and the classic checkout re-prices the
+        // rates the moment the customer picks it; the block keeps its choice in the browser until the
+        // order is placed, so the session - where the rates read it - never heard of it and the order
+        // was priced prepaid (measured 2026-09-13: Speedy 2.12 prepaid, 2.52 with 50 € to collect).
+        var data = { payment_method: activePaymentMethod() };
+        var p = (wc.blocksCheckout.extensionCartUpdate && wc.blocksCheckout.extensionCartUpdate({ namespace: 'bg-couriers', data: data })) || Promise.resolve();
         var done = function () {
           busy = false;
           $(document.body).trigger('updated_checkout');
@@ -86,7 +100,19 @@
         Promise.resolve(p).then(done, done);
       }
       $(document.body).on('update_checkout.bgcblocks', refresh);
-      return function () { $(document.body).off('update_checkout.bgcblocks', refresh); };
+      // ...and a change of payment method is a reason to re-price on its own.
+      var lastPm = null;
+      var unsubscribe = (wp.data && wp.data.subscribe) ? wp.data.subscribe(function () {
+        var pm = activePaymentMethod();
+        if (!pm || pm === lastPm) { return; }
+        var first = lastPm === null;
+        lastPm = pm;
+        if (!first || pm === 'cod') { refresh(); } // the very first reading only matters when it is cash on delivery
+      }) : null;
+      return function () {
+        $(document.body).off('update_checkout.bgcblocks', refresh);
+        if (unsubscribe) { unsubscribe(); }
+      };
     }, []);
 
     if (!data.html) { return null; }
