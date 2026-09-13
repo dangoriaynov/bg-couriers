@@ -11,6 +11,22 @@ plugin; not blocked). **All three couriers have real, readable APIs** - only cre
 
 ---
 
+## Convention every adapter follows: a street is a name, a type and the courier's id
+
+Measured on 2026-09-13. The couriers list a street as a type and a name - Speedy "бул." + "ВИТОША" (id 26)
+and "ул." + "ВИТОША" (id 1314); Express One three ВИТОША in Sofia (БУЛ./КВ./УЛ.), Европът four - and
+Speedy REFUSES a bare name where the town has more than one street of it (`/validation/address`:
+"За избраното населено място се изисква ул./бул. от номенклатура"); Express One and Европът refuse
+any street not off their list. So the order carries `_bgcouriers_street_name` (the bare name, what every
+courier's label reads), `_bgcouriers_street_type` and `_bgcouriers_street_id` (the courier's own id, when
+the street was chosen off the list; 0 for a typed one). Speedy sends `streetId`; Express One and Европът
+resolve by the id first, then by name + type; Pigeon fills `delivery_address.street_id`. A street written
+as text - typed, or off the address map, which hands over "бул. Княз Александър Дондуков" for one point
+and "Кърниградска" for the next - goes through `BGCouriers_Street::split()`/`exact()`: the type off the
+front, the list searched by the bare name, the type telling two of a name apart; every courier's spelling
+of a type is one type ("бул.", "БУЛ.", "бул", "булевард"). Speedy's `/location/street` answers a name
+WITH its type in it with nothing, and returns at most 10 rows.
+
 ## Convention every adapter follows: the shipment says which ORDER it is
 
 **A new courier is not finished until its shipment carries the shop's order number.** The merchant's
@@ -49,7 +65,7 @@ Source: OpenAPI 3.0 spec at `https://api-docs.pigeonexpress.com/openapi.yaml` (R
 
 - **Auth:** headers `X-API-Key` + `X-API-Secret` (issued by Pigeon). Base URL is `{BASE_URL}` per account (prod + sandbox provided with creds - request both).
 - **Endpoints (map almost 1:1 to our interface):**
-  - `GET /v1/cities`, `GET /v1/cities/{cityId}`, `GET /v1/cities/{cityId}/streets` → `fetch_cities` / `search_streets`.
+  - `GET /v1/cities`, `GET /v1/cities/{cityId}`, `GET /v1/cities/{cityId}/streets` → `fetch_cities` / `search_streets`. **All three are paginated at 100 a page** (`meta{current_page,per_page,total,last_page}`, `per_page` above 100 → 422). Streets take a **`name` filter** (measured 2026-09-13: Sofia has 4657 streets on 47 pages, page one is the numbered ones; "Витоша" with `name` → 45 rows) - `search_streets` sends the term as `name` and reads up to three pages. Pigeon orders "улица 600-НА (ВИТОША)" before "улица Витоша"; the streets endpoint ranks every courier's answer prefix-first before the dropdown cut.
   - `GET /v1/offices?city_id=..&type=office|locker` → `fetch_offices` (it returns **both offices and lockers**, distinguished by `type` - so office **and** automat from one endpoint).
   - `POST /v1/shipments/calculate` → **live quote** (`quote()`). Request: `{pickup_type, pickup_office_id, delivery_type:"office|address|locker", delivery_address{}, packages:[{weight,length,width,height}], service_type, service_codes:{cod_amount, sms_notification_receiver}}`.
   - `POST /v1/shipments` → `create_label`; `GET /v1/shipments/{ref}/label` → `get_label_pdf`; `GET /v1/shipments/{ref}/track` (+ `/track/bulk`) → `track`; `POST /v1/shipments/{ref}/cancel` → `cancel_label`. Also `/v1/shipment-statuses`, `/v1/additional-services`.
