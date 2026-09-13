@@ -3,10 +3,15 @@ use PHPUnit\Framework\TestCase;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 
-require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
+require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-courier.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow.php';
+require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 
 /**
  * "Delivery in the order total" toggle: drives the checkout rate cost (0 when off) AND the waybill
@@ -15,8 +20,14 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-couri
  * @group core
  */
 final class ShipInTotalTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+    protected function setUp(): void {
+        parent::setUp(); Monkey\setUp();
+        // BOX NOW's "always in the order total" is the adapter's own answer now
+        // (recipient_can_pay_delivery()), so the real adapter is registered - nothing else is.
+        BGCouriers_Couriers::reset();
+        BGCouriers_Couriers::register('boxnow', 'BOX NOW', static function () { return new BGCouriers_Boxnow([]); });
+    }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
 
     private function options(array $map): void {
         Functions\when('get_option')->alias(function ($name, $default = false) use ($map) {

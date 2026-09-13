@@ -44,6 +44,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     }
     public function capabilities(): array { return ['automat']; } // locker-only
     public function pushes_tracking(): bool { return true; }       // its webhook, see BGCouriers_Boxnow_Webhook
+    public function recipient_can_pay_delivery(): bool { return false; } // no field for it: the fee is the merchant's by contract
 
     public function enable_problems(): array {
         $p = parent::enable_problems();

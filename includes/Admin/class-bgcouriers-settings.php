@@ -450,9 +450,10 @@ class BGCouriers_Settings {
         return in_array($v, ['no', 'open', 'test'], true) ? $v : 'no';
     }
     public static function courier_ppp_payout(string $courier): bool {
-        // Per-courier toggle (default on for Speedy/Econt, off otherwise incl. BOX NOW). BOX NOW doesn't offer
-        // PPP today, but the merchant can flip it on the day it does - no code change needed.
-        $default = in_array($courier, ['speedy', 'econt'], true) ? 'yes' : 'no';
+        // Per-courier toggle. The default is the courier's own answer (Speedy and Econt do it as
+        // standard); the merchant flips it either way the day their contract says so - no code change.
+        $co      = class_exists('BGCouriers_Couriers') ? BGCouriers_Couriers::get($courier) : null;
+        $default = ($co && method_exists($co, 'ppp_payout_by_default') && $co->ppp_payout_by_default()) ? 'yes' : 'no';
         return get_option('bgcouriers_' . $courier . '_ppp_payout', $default) === 'yes';
     }
     /**
@@ -503,21 +504,14 @@ class BGCouriers_Settings {
      * Whether this courier's delivery price is charged with the order at checkout (default) or only shown
      * for information while the customer pays the courier's own fee on delivery. Drives BOTH the checkout
      * rate cost (0 when off) and the waybill payer/COD amount (service_payer(): off = recipient pays,
-     * COD collects goods only). Econt and BOX NOW have no verified recipient-pays API field, so for them
-     * delivery is always charged with the order.
+     * COD collects goods only). A courier with no recipient-pays field in its API - BOX NOW - is always
+     * charged with the order; each courier answers that for itself (recipient_can_pay_delivery()).
      */
     public static function ship_in_total(string $courier): bool {
-        // BOX NOW has no way to charge the recipient for the delivery itself: its delivery-request payload
-        // is orderNumber/invoiceValue/paymentMode/amountToBeCollected/allowReturn/origin/destination/items,
-        // and paymentMode+amountToBeCollected are the cash-on-delivery of the GOODS - the courier fee is
-        // billed to the merchant by contract. So for BOX NOW delivery is always charged with the order.
-        // Econt does support it - paymentReceiverMethod + paymentReceiverAmountIsPercent, verified live
-        // against ee.econt.com: the whole fee moves from senderDueAmount to receiverDueAmount.
-        // Express One does too: PAYER 1 was booked on its test account 2026-08-25 and the shipment came
-        // back reading "Recipient", with and without a cash-on-delivery amount on it.
-        // Evropat does too: its paymentWay enumerates a recipient payer twice over (2 in cash, 4 against
-        // an account), and /calculateprice quoted `payer` 2 without complaint on 2026-08-31.
-        if (!in_array($courier, ['speedy', 'pigeon', 'sameday', 'econt', 'expressone', 'evropat'], true)) { return true; }
+        // Asked of the courier first: BOX NOW cannot bill the recipient, so for it the toggle does not
+        // apply and delivery is always charged with the order.
+        $co = class_exists('BGCouriers_Couriers') ? BGCouriers_Couriers::get($courier) : null;
+        if ($co && method_exists($co, 'recipient_can_pay_delivery') && !$co->recipient_can_pay_delivery()) { return true; }
         $v = (string) get_option('bgcouriers_' . $courier . '_ship_in_total', '');
         if ($v === '') {
             // Unset means a shop that has never opened the setting, and it now means OFF: the customer
