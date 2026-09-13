@@ -6,14 +6,78 @@
  * @group speedy
  */
 final class LabelIntegrityTest extends WP_UnitTestCase {
+    /** How many times the body builder went to Speedy's street list, and what it was told. */
+    private int $lookups = 0;
+    private array $streets = [];
+
+    protected function setUp(): void {
+        parent::setUp();
+        $this->lookups = 0;
+        // An address label may ask Speedy which street of that name is meant (resolve_street). The test
+        // answers from $this->streets instead of the live API - which has no credentials here anyway.
+        add_filter('pre_http_request', function ($pre, $args, $url) {
+            if (strpos($url, '/location/street') === false) { return $pre; }
+            $this->lookups++;
+            return ['response' => ['code' => 200], 'body' => wp_json_encode(['streets' => $this->streets])];
+        }, 10, 3);
+    }
+
     private function build(WC_Order $order): array {
         $m = new ReflectionMethod('BGCouriers_Speedy', 'build_shipment_body');
         $m->setAccessible(true);
         return $m->invoke(new BGCouriers_Speedy([]), $order);
     }
 
+    private function address_order(array $meta): WC_Order {
+        $order = wc_create_order();
+        $order->set_billing_first_name('Иван');
+        $order->set_billing_last_name('Петров');
+        $order->set_billing_phone('0888123456');
+        $order->set_billing_email('i@example.bg');
+        $order->set_shipping_first_name('Иван');
+        $order->set_shipping_last_name('Петров');
+        $order->update_meta_data('_bgcouriers_courier', 'speedy');
+        $order->update_meta_data('_bgcouriers_method', 'address');
+        $order->update_meta_data('_bgcouriers_site_id', 68134);
+        foreach ($meta as $k => $v) { $order->update_meta_data('_bgcouriers_' . $k, $v); }
+        $order->save();
+        return $order;
+    }
+
+    /** The checkout recorded which street: its id goes, and nobody is asked. */
+    public function test_a_street_chosen_at_checkout_goes_by_its_id_with_no_lookup(): void {
+        $order = $this->address_order(['street_name' => 'ВИТОША', 'street_id' => 1314, 'street_type' => 'ул.', 'street_no' => '10']);
+        $addr = $this->build($order)['recipient']['address'];
+        $this->assertSame(['countryId', 'siteId', 'streetNo', 'streetId'], array_keys($addr));
+        $this->assertSame(1314, $addr['streetId']);
+        $this->assertSame(0, $this->lookups);
+    }
+
+    /** An older order names the street only; one street of that name on the list settles it. */
+    public function test_a_name_alone_on_the_list_is_looked_up_once(): void {
+        $this->streets = [['id' => 2443, 'siteId' => 68134, 'type' => 'ул.', 'name' => 'ОБОРИЩЕ']];
+        $order = $this->address_order(['street_name' => 'Оборище', 'street_no' => '5']);
+        $addr = $this->build($order)['recipient']['address'];
+        $this->assertSame(2443, $addr['streetId']);
+        $this->assertArrayNotHasKey('streetName', $addr);
+        $this->assertSame(1, $this->lookups);
+    }
+
+    /** Two of that name and nothing to choose by: refused here, both spelled out, before Speedy is asked. */
+    public function test_two_streets_of_that_name_refuse_the_label_with_both_named(): void {
+        $this->streets = [
+            ['id' => 26,   'siteId' => 68134, 'type' => 'бул.', 'name' => 'ВИТОША'],
+            ['id' => 1314, 'siteId' => 68134, 'type' => 'ул.',  'name' => 'ВИТОША'],
+        ];
+        $order = $this->address_order(['street_name' => 'ВИТОША', 'street_no' => '10']);
+        $this->expectException(BGCouriers_Api_Exception::class);
+        $this->expectExceptionMessage('бул. ВИТОША, ул. ВИТОША');
+        $this->build($order);
+    }
+
     public function test_address_payload_is_exactly_the_entered_fields(): void {
         if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
+        $this->streets = []; // a street Speedy does not list: goes by name, exactly as entered
         $order = wc_create_order();
         $order->set_billing_first_name('Иван');
         $order->set_billing_last_name('Петров');

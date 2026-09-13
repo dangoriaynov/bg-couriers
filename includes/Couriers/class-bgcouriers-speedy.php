@@ -43,6 +43,17 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return max(0.0, round($total - $shipping_total - $shipping_tax, 2));
     }
 
+    /**
+     * The recipient's address as Speedy wants it.
+     *
+     * The street goes by its id when the order carries one, else by type + name, else by name alone.
+     * Speedy matches a bare name against its own street list for the town, and refuses it when the
+     * town has more than one street of that name: measured on 2026-09-13 against /validation/address,
+     * Sofia's "ВИТОША" alone is refused ("За избраното населено място се изисква ул./бул. от
+     * номенклатура") while "ЦАРИГРАДСКО ШОСЕ" alone passes - there is one бул. and one ул. ВИТОША, and
+     * one ЦАРИГРАДСКО ШОСЕ. Either streetId 1314 or streetType "ул." + the name passes for ВИТОША.
+     * The checkout offered both ВИТОША rows off Speedy's own list and posted the bare name for either.
+     */
     public static function build_address(int $site_id, array $fields, string $country = ''): array {
         $addr = ['countryId' => self::dest_country_id($country), 'siteId' => $site_id];
         $map = ['complex' => 'complexName', 'street' => 'streetName', 'street_no' => 'streetNo',
@@ -52,7 +63,61 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             $v = trim((string) ($fields[$k] ?? ''));
             if ($v !== '') { $addr[$api] = $v; }
         }
+        $street_id = (int) ($fields['street_id'] ?? 0);
+        $type      = trim((string) ($fields['street_type'] ?? ''));
+        if ($street_id > 0) {
+            $addr['streetId'] = $street_id;
+            unset($addr['streetName']);
+        } elseif ($type !== '' && isset($addr['streetName'])) {
+            $addr['streetType'] = $type;
+        }
         return $addr;
+    }
+
+    /**
+     * Which street of that name - looked up on Speedy's list when the order does not say.
+     *
+     * Orders placed before the checkout started recording the street's id, typed streets and streets
+     * taken off the map carry a name only (and possibly a type). One live lookup settles it: exactly one
+     * street of that name in the town, or one of the stored type, gives its id; none leaves the name as
+     * it is (a village outside Speedy's street list is delivered by name); more than one, with no type
+     * to tell them apart, is refused HERE with the choice spelled out, instead of by Speedy with a
+     * sentence about nomenclature. The lookup failing is not a reason to refuse the label: the name goes
+     * as it is and Speedy answers for itself, exactly as before.
+     */
+    public function resolve_street(int $site_id, array $fields, string $country = ''): array {
+        $name = trim((string) ($fields['street'] ?? ''));
+        if ((int) ($fields['street_id'] ?? 0) > 0 || $name === '' || $site_id <= 0) { return $fields; }
+        try {
+            $rows = $this->search_streets($site_id, $name, $country);
+        } catch (\Exception $e) {
+            return $fields;
+        }
+        $want = self::fold($name);
+        $type = self::fold((string) ($fields['street_type'] ?? ''));
+        $hits = [];
+        foreach ($rows as $r) {
+            if (self::fold($r['name']) === $want || self::fold($r['label']) === $want) { $hits[] = $r; }
+        }
+        if (count($hits) > 1 && $type !== '') {
+            $hits = array_values(array_filter($hits, static function ($r) use ($type) { return self::fold($r['type']) === $type; })) ?: $hits;
+        }
+        if (count($hits) === 1) {
+            $fields['street_id'] = (int) $hits[0]['id'];
+            return $fields;
+        }
+        if (count($hits) > 1) {
+            throw new BGCouriers_Api_Exception(esc_html(sprintf(
+                /* translators: 1: the street as it is written on the order, 2: the streets of that name, as the courier lists them. */
+                __('Speedy lists more than one street called "%1$s" in this town (%2$s) and refuses the name alone. Edit the delivery address and pick one from the list.', 'bg-couriers'),
+                $name, implode(', ', array_map(static function ($r) { return $r['label']; }, $hits)))));
+        }
+        return $fields;
+    }
+
+    private static function fold(string $s): string {
+        $s = trim((string) preg_replace('/\s+/u', ' ', $s));
+        return function_exists('mb_strtolower') ? mb_strtolower($s, 'UTF-8') : strtolower($s);
     }
 
     public function id(): string { return 'speedy'; }
@@ -387,16 +452,18 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             'email'         => BGCouriers_Settings::label_email($order),
         ];
         if ($method === 'address') {
-            $recipient['address'] = self::build_address($site_id, [
-                'complex'   => $order->get_meta('_bgcouriers_complex'),
-                'street'    => $order->get_meta('_bgcouriers_street_name'),
-                'street_no' => $order->get_meta('_bgcouriers_street_no'),
-                'block'     => $order->get_meta('_bgcouriers_block'),
-                'entrance'  => $order->get_meta('_bgcouriers_entrance'),
-                'floor'     => $order->get_meta('_bgcouriers_floor'),
-                'apartment' => $order->get_meta('_bgcouriers_apartment'),
-                'note'      => $order->get_meta('_bgcouriers_address_note'),
-            ], $country);
+            $recipient['address'] = self::build_address($site_id, $this->resolve_street($site_id, [
+                'complex'     => $order->get_meta('_bgcouriers_complex'),
+                'street'      => $order->get_meta('_bgcouriers_street_name'),
+                'street_id'   => (int) $order->get_meta('_bgcouriers_street_id'),
+                'street_type' => $order->get_meta('_bgcouriers_street_type'),
+                'street_no'   => $order->get_meta('_bgcouriers_street_no'),
+                'block'       => $order->get_meta('_bgcouriers_block'),
+                'entrance'    => $order->get_meta('_bgcouriers_entrance'),
+                'floor'       => $order->get_meta('_bgcouriers_floor'),
+                'apartment'   => $order->get_meta('_bgcouriers_apartment'),
+                'note'        => $order->get_meta('_bgcouriers_address_note'),
+            ], $country), $country);
         } else {
             $recipient['pickupOfficeId'] = $office;
         }

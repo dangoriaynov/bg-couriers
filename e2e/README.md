@@ -90,6 +90,14 @@ It prints, and you should read, three lines:
 The waybill is voided in `afterEach` and the number is printed whether the cancel worked or not. Re-check
 it at Speedy a few minutes later anyway - the suite's own sweep is the second net, not a guarantee.
 
+The second test in `speedy-street-type.spec.js` carries the same tag and the same teardown: it orders
+to **ул. ВИТОША 10, Sofia** - a town with a бул. ВИТОША too, where Speedy refuses the bare name - and
+books the waybill to prove the street id the order carries is what Speedy reads. It needs nothing set
+up beyond a purchasable product and Speedy on the checkout. Its first test runs in every ordinary run
+and books nothing.
+
+    cd e2e && BGC_REAL_WAYBILL=1 npx playwright test speedy-street-type
+
 ## A country the shop cannot deliver to
 
 `intl-no-delivery.spec.js` drives the other side of the same feature, and books nothing: with no prepaid

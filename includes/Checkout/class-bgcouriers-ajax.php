@@ -145,9 +145,11 @@ class BGCouriers_Ajax {
         ];
     }
     public static function address_fields(array $src): array {
-        $keys = ['street_name','street_no','complex','block','entrance','floor','apartment','address_note'];
+        $keys = ['street_name','street_type','street_no','complex','block','entrance','floor','apartment','address_note'];
         $out = [];
         foreach ($keys as $k) { $out[$k] = sanitize_text_field((string) ($src[$k] ?? '')); }
+        // The courier's own id for the chosen street, when it came off the list (0 for a typed one).
+        $out['street_id'] = max(0, (int) ($src['street_id'] ?? 0));
         return $out;
     }
     /**

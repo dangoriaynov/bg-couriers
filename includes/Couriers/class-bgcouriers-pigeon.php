@@ -485,6 +485,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
             'site_id'        => (int)    $order->get_meta('_bgcouriers_site_id'),
             'office_id'      => (int)    $order->get_meta('_bgcouriers_office_id'),
             'street_name'    => (string) $order->get_meta('_bgcouriers_street_name'),
+            'street_id'      => (int)    $order->get_meta('_bgcouriers_street_id'), // off Pigeon's own list, when chosen from it
             'street_no'      => (string) $order->get_meta('_bgcouriers_street_no'),
             'weight_kg'      => self::order_weight_kg($order),
             'service_payer'  => self::service_payer('pigeon', $order),

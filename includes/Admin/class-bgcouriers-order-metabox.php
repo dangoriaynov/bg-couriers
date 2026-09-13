@@ -247,8 +247,13 @@ class BGCouriers_Order_Metabox {
         if ($office_id && ($o = BGCouriers_Nomenclature::office_by_id($cur_courier, $office_id))) {
             $office_opt = '<option value="' . esc_attr($office_id) . '" selected>' . esc_html($o['name'] ?? '') . '</option>';
         }
+        // The box's value is the bare street name; its type and the courier's id for it sit in two hidden
+        // fields beside it, filled when the street is picked off the list (see the checkout's street box).
         $street = (string) $order->get_meta('_bgcouriers_street_name');
-        $street_opt = $street !== '' ? '<option value="' . esc_attr($street) . '" selected>' . esc_html($street) . '</option>' : '';
+        $stype  = (string) $order->get_meta('_bgcouriers_street_type');
+        $street_opt = $street !== '' ? '<option value="' . esc_attr($street) . '" selected>' . esc_html(trim($stype . ' ' . $street)) . '</option>' : '';
+        $street_hidden = '<input type="hidden" class="bgc-ed-street-id" value="' . esc_attr((string) (int) $order->get_meta('_bgcouriers_street_id')) . '">'
+            . '<input type="hidden" class="bgc-ed-street-type" value="' . esc_attr($stype) . '">';
         $v = static function ($k) use ($order) { return esc_attr((string) $order->get_meta('_bgcouriers_' . $k)); };
 
         wp_enqueue_style('select2');
@@ -327,7 +332,7 @@ class BGCouriers_Order_Metabox {
             . '<p class="bgc-ed-avail"></p>'
             . '<div class="bgc-ed-address">'
             . '<div class="bgc-ed-row bgc-ed-street-row">'
-            . '<div class="bgc-ed-fld bgc-ed-grow"><label>' . esc_html__('Street', 'bg-couriers') . '</label><select class="bgc-ed-street"><option></option>' . $street_opt . '</select></div>'
+            . '<div class="bgc-ed-fld bgc-ed-grow"><label>' . esc_html__('Street', 'bg-couriers') . '</label><select class="bgc-ed-street"><option value=""></option>' . $street_opt . '</select>' . $street_hidden . '</div>'
             . '<div class="bgc-ed-fld bgc-ed-no"><label>' . esc_html__('No.', 'bg-couriers') . '</label><input class="bgc-ed-streetno" value="' . $v('street_no') . '"></div>'
             . '<div class="bgc-ed-fld bgc-ed-mapcell"><label aria-hidden="true">&nbsp;</label><button type="button" class="button bgc-ed-addr-map bgc-ed-mapbtn" title="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '" aria-label="' . esc_attr__('Pick the address on the map', 'bg-couriers') . '"><span class="dashicons dashicons-location-alt"></span></button></div>'
             . '</div>'

@@ -146,7 +146,13 @@
   // foreign order is an empty list rather than an error.
   function country() { return C.country || 'BG'; }
   function resetOffice() { $office.val(null).trigger('change'); }
-  function resetStreet() { $street.val(null).trigger('change'); }
+  function resetStreet() { $street.val(null).trigger('change'); setStreetPick(null); }
+  // The courier's id and the type (ул./бул.) of the street chosen off the list, beside the bare name the
+  // box holds; emptied for a typed or map-picked street. Same shape as the checkout's street box.
+  function setStreetPick(d) {
+    $panel.find('.bgc-ed-street-id').val((d && d.sid) || 0);
+    $panel.find('.bgc-ed-street-type').val((d && d.stype) || '');
+  }
 
   function fillMethods() {
     var c = courier(), cur = $method.val() || $method.data('current'), ms = (C.caps[c] || []);
@@ -217,9 +223,19 @@
   sel2($street, { width: '100%', allowClear: true, tags: true, placeholder: I.street, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
       data: function (params) { return { action: 'bgcouriers_streets', courier: courier(), city_id: $city.val() || 0, term: params.term || '' }; },
-      processResults: function (rows) { return { results: bgcList(rows).map(function (s) { return { id: s.name, text: s.name }; }) }; }
+      // One row per street, keyed by the courier's label ("бул. ВИТОША" and "ул. ВИТОША" are two): keyed by
+      // the bare name they were one row, and the merchant could not tell them apart or pick the second.
+      processResults: function (rows) { return { results: bgcList(rows).map(function (s) { return { id: s.label || s.name, text: s.label || s.name, sname: s.name, sid: s.id || 0, stype: s.type || '' }; }) }; }
     }
   });
+  $street.on('select2:select', function (e) {
+    var d = (e.params && e.params.data) || {};
+    // The box keeps the bare name as its value (what every courier's label reads) and shows the label.
+    $street.find('option').not('[value=""]').remove();
+    $street.append(new Option(d.text || '', d.sname || d.id || '', true, true)).trigger('change.select2');
+    setStreetPick(d);
+  });
+  $street.on('select2:unselect', function () { setStreetPick(null); });
 
   // The selected city's id belongs to the PREVIOUS courier's nomenclature; when the courier changes we
   // re-look-up the same city name in the new courier's list so its offices/APS resolve (otherwise the
@@ -347,7 +363,7 @@
   function fillEditorAddress(geo) {
     function fields(pc) {
       if (pc) { $panel.find('.bgc-ed-postcode').val(pc); }
-      if (geo.street) { $street.append(new Option(geo.street, geo.street, true, true)).trigger('change'); }
+      if (geo.street) { $street.append(new Option(geo.street, geo.street, true, true)).trigger('change'); setStreetPick(null); }
       if (geo.number) { $panel.find('.bgc-ed-streetno').val(geo.number); }
     }
     function pick(r) { $city.empty().append(new Option(r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), r.city_id, true, true)).trigger('change.select2'); }
@@ -403,6 +419,7 @@
       courier: courier(), method: $method.val(),
       site_id: $city.val() || 0, office_id: $office.val() || 0, post_code: $panel.find('.bgc-ed-postcode').val() || '',
       street_name: $street.val() || '', street_no: $panel.find('.bgc-ed-streetno').val() || '',
+      street_id: $panel.find('.bgc-ed-street-id').val() || 0, street_type: $panel.find('.bgc-ed-street-type').val() || '',
       complex: $panel.find('.bgc-ed-complex').val() || '', block: $panel.find('.bgc-ed-block').val() || '',
       entrance: $panel.find('.bgc-ed-entrance').val() || '', floor: $panel.find('.bgc-ed-floor').val() || '',
       apartment: $panel.find('.bgc-ed-apartment').val() || '', address_note: $panel.find('.bgc-ed-note').val() || '',

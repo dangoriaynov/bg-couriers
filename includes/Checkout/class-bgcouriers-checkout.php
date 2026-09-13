@@ -915,6 +915,8 @@ class BGCouriers_Checkout {
             'quote_price'  => (float) $s->get('bgcouriers_quote_price_' . $courier, 0),
             'quote_source' => (string) $s->get('bgcouriers_quote_source_' . $courier, ''),
             'street_name'  => (string) $s->get('bgcouriers_addr_street_name', ''),
+            'street_id'    => (int) $s->get('bgcouriers_addr_street_id', 0),
+            'street_type'  => (string) $s->get('bgcouriers_addr_street_type', ''),
             'street_no'    => (string) $s->get('bgcouriers_addr_street_no', ''),
             'complex'      => (string) $s->get('bgcouriers_addr_complex', ''),
             'block'        => (string) $s->get('bgcouriers_addr_block', ''),
@@ -952,6 +954,12 @@ class BGCouriers_Checkout {
         $order->update_meta_data('_bgcouriers_office_id', (int) $g('office_id', 0));
         $order->update_meta_data('_bgcouriers_post_code', (string) $g('post_code'));
         $order->update_meta_data('_bgcouriers_street_name', (string) $g('street_name'));
+        // Which street of that name, when the town has more than one: the courier's own id for it and
+        // its type (ул./бул.), as chosen from the list. Empty for a typed or map-picked street. Neither is
+        // part of BGCouriers_Labels::label_fingerprint() - the fingerprint is recorded on every order with
+        // a waybill and a new key would change it for all of them at once.
+        $order->update_meta_data('_bgcouriers_street_id',   (int) $g('street_id', 0));
+        $order->update_meta_data('_bgcouriers_street_type', (string) $g('street_type'));
         $order->update_meta_data('_bgcouriers_street_no',   (string) $g('street_no'));
         $order->update_meta_data('_bgcouriers_complex',     (string) $g('complex'));
         $order->update_meta_data('_bgcouriers_block',       (string) $g('block'));
@@ -1255,8 +1263,17 @@ class BGCouriers_Checkout {
         $office_style = ($sel_method === 'address') ? ' style="display:none;"' : '';
 
         $av = function ($k) use ($s, $mine) { return $mine ? esc_attr((string) $s->get('bgcouriers_addr_' . $k, '')) : ''; };
-        $sn = $mine ? (string) $s->get('bgcouriers_addr_street_name', '') : '';
-        $street_option = $sn !== '' ? '<option value="' . esc_attr($sn) . '" selected>' . esc_html($sn) . '</option>' : '';
+        // The street box holds the bare NAME as its value (that is what every courier's label reads) and
+        // shows it with its type; the type and the courier's own id for it ride beside the box in two
+        // hidden fields. Two streets in one town can share a name - Sofia has a бул. ВИТОША and a ул.
+        // ВИТОША - and Speedy refuses the name alone in such a town (see BGCouriers_Speedy::build_address).
+        // WooCommerce re-renders this block from the session on every recalculation, so all three come
+        // back from the session or the next save would post an empty type over the one that was chosen.
+        $sn  = $mine ? (string) $s->get('bgcouriers_addr_street_name', '') : '';
+        $st  = $mine ? (string) $s->get('bgcouriers_addr_street_type', '') : '';
+        $sid = $mine ? (int) $s->get('bgcouriers_addr_street_id', 0) : 0;
+        $street_option = $sn !== '' ? '<option value="' . esc_attr($sn) . '" selected>' . esc_html(trim($st . ' ' . $sn)) . '</option>' : '';
+        $street_hidden = '<input type="hidden" class="bgc-street-id" value="' . esc_attr((string) $sid) . '"><input type="hidden" class="bgc-street-type" value="' . esc_attr($st) . '">';
         $addr_style = ($sel_method === 'address') ? '' : ' style="display:none;"';
 
         $office_label = ($sel_method === 'automat')
@@ -1314,7 +1331,7 @@ class BGCouriers_Checkout {
            . '<span>' . esc_html__('Map', 'bg-couriers') . '</span></button></div></div>'
            . '<div class="bgc-address-rows"' . $addr_style . '>'
            . '<div class="bgc-grid' . (get_option('bgcouriers_address_map', 'no') === 'yes' ? ' bgc-grid-map' : '') . '">'
-           . '<div class="bgc-field bgc-street-field" id="' . esc_attr(self::field_id($courier, 'street')) . '"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select></div>'
+           . '<div class="bgc-field bgc-street-field" id="' . esc_attr(self::field_id($courier, 'street')) . '"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select>' . $street_hidden . '</div>'
            . '<div class="bgc-field bgc-streetno-field" id="' . esc_attr(self::field_id($courier, 'streetno')) . '"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></div>'
            . (get_option('bgcouriers_address_map', 'no') === 'yes'
                // Small map-pin icon next to No. (same generic style as the order editor), not a full-width button.
