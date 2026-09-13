@@ -64,6 +64,17 @@ not honour it. A box that accepts "3" and ships one parcel is worse than no box.
 **11. Disabled beats absent, and a title says why.** A control that disappears leaves the merchant
 hunting. One that is dimmed with a reason teaches them something.
 
+**11a. Whatever the classic checkout does, the block does too - and it has to be measured there.**
+The checkout block renders the same picker markup, but nothing else carries over on its own: the
+label filters that dress a rate row never run in the Store API (a recipient-pays rate read
+"БЕЗПЛАТНО" there), `update_checkout` has no listener (the pickers stayed dead after a tab click),
+the form's submit never fires (a house number typed a moment before Place Order was refused), the
+required phone and the dropped address fields come from the country locale, not the checkout-fields
+filter. Six such gaps were found in one evening (2026-09-13) on a feature that had "worked" for
+months because its one spec went through the map. A new WooCommerce install's checkout page IS the
+block. When a behaviour is added to the checkout, `blocks-address-checkout.spec.js` is where its
+block half is proved.
+
 ---
 
 ## Both
