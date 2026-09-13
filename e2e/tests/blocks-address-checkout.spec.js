@@ -23,6 +23,18 @@ const BLOCKS_PAGE = '/blocks-checkout-test/';
 const SH = path.join(__dirname, '..', 'dev-option.sh');
 const dev = (...args) => execFileSync('bash', [SH, ...args], { encoding: 'utf8' }).trim();
 
+/**
+ * The block pushes what was typed in its own fields to the server on blur, after a debounce of its own,
+ * and its checkout does not always wait for that push. Ask the Store API until the phone is there: the
+ * cart's errors carry the plugin's "please enter a phone number" until the session has one.
+ */
+async function phoneOnServer(page) {
+  await expect.poll(async () => page.evaluate(async () => {
+    const r = await fetch('/wp-json/wc/store/v1/cart', { headers: { 'Content-Type': 'application/json' } });
+    return ((await r.json()).errors || []).map(e => e.message).join(' | ');
+  }), { timeout: 20000 }).not.toMatch(/телефон|phone/i);
+}
+
 test('block checkout: the pickers work after a tab click, the rate says what the courier collects, and an address order carries its street @blocks @speedy', async ({ page, baseURL }) => {
   test.setTimeout(240000);
   await addAnyProductToCart(page);
@@ -66,20 +78,24 @@ test('block checkout: the pickers work after a tab click, the rate says what the
   await fields().locator('.bgc-street-no').blur();
   await page.waitForTimeout(2500);
 
-  // The block's own form. Its address reaches the server on blur, a moment later - wait for it, or the
-  // order is refused for a phone the server has not been told yet.
+  // The block's own form - and WooCommerce's street, town and postcode are NOT on it: the courier's
+  // fields are the address, as on the classic form (until 2026-09-13 the block asked for both). What
+  // is typed reaches the server on blur, a moment later - wait for it, or the order is refused for a
+  // phone the server has not been told yet.
+  await expect(page.locator('#shipping-address_1, #shipping-city, #shipping-postcode')).toHaveCount(0);
   await page.fill('#email', 'e2e-blocks-address@example.com');
   await page.fill('#shipping-first_name', 'Тест');
   await page.fill('#shipping-last_name', 'Блок');
-  await page.fill('#shipping-address_1', 'x');
-  await page.fill('#shipping-city', 'София');
-  await page.fill('#shipping-postcode', '1000');
   await page.fill('#shipping-phone', '0888123456');
   await page.locator('#shipping-phone').blur();
-  await page.waitForResponse(r => /update-customer|store\/v1\/batch/.test(r.url()), { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(3000);
+  await phoneOnServer(page);
   await page.locator('#radio-control-wc-payment-method-options-cod').check({ force: true });
   await page.waitForTimeout(1500);
+  // The courier fields must still hold the street after the block's own round trips: a re-rendered
+  // block that lost them would save them away again on the flush.
+  await expect(fields().locator('.bgc-street')).toHaveValue('ВИТОША');
+  await expect(fields().locator('.bgc-street-no')).toHaveValue('10');
+  expect(await page.locator('.bgc-fields[data-courier="speedy"]').count(), 'one block for the courier').toBe(1);
   await page.locator('button:has-text("Place Order")').click();
   await expect(page).toHaveURL(/order-received/i, { timeout: 60000 });
   const orderId = (page.url().match(/order-received\/(\d+)/) || [])[1] || '';
@@ -90,6 +106,9 @@ test('block checkout: the pickers work after a tab click, the rate says what the
   expect(dev('meta', orderId, '_bgcouriers_street_type')).toBe('ул.');
   expect(dev('meta', orderId, '_bgcouriers_street_id')).toBe('1314');
   expect(dev('meta', orderId, '_bgcouriers_street_no')).toBe('10');
+  // ...and the order's own address is the courier selection, written by persist(): the block never
+  // asked for one.
+  expect(dev('address', orderId)).toBe('ул. ВИТОША 10 | СОФИЯ | 1000 | BG');
 });
 
 /**
@@ -111,13 +130,9 @@ test('block checkout: a house number typed a moment before Place Order reaches t
   await page.fill('#email', 'e2e-blocks-race@example.com');
   await page.fill('#shipping-first_name', 'Тест');
   await page.fill('#shipping-last_name', 'Гонка');
-  await page.fill('#shipping-address_1', 'x');
-  await page.fill('#shipping-city', 'София');
-  await page.fill('#shipping-postcode', '1000');
   await page.fill('#shipping-phone', '0888123456');
   await page.locator('#shipping-phone').blur();
-  await page.waitForResponse(r => /update-customer|store\/v1\/batch/.test(r.url()), { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(3000);
+  await phoneOnServer(page);
   await page.locator('#radio-control-wc-payment-method-options-cod').check({ force: true });
   // Then the courier fields, the number last.
   await fields().locator('.bgc-tab', { hasText: 'До адрес' }).click();
