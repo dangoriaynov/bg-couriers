@@ -976,7 +976,9 @@ class BGCouriers_Checkout {
         $post   = (string) $g('post_code') ?: (string) ($city['post_code'] ?? '');
         $region = (string) ($city['region'] ?? '');
         if ($method === 'address') {
-            $line1 = trim((string) $g('street_name') . ' ' . (string) $g('street_no'));
+            // With its type when the street was chosen off the list: "ВИТОША 10" on an invoice or a
+            // customer's order page is either of two streets in Sofia, "ул. ВИТОША 10" is one.
+            $line1 = trim(trim((string) $g('street_type') . ' ' . (string) $g('street_name')) . ' ' . (string) $g('street_no'));
             $line2 = trim((string) $g('complex'));
         } else {
             $o = (int) $g('office_id', 0) ? BGCouriers_Nomenclature::office_by_id($courier, (int) $g('office_id', 0)) : null;

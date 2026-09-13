@@ -46,7 +46,7 @@ final class OrderPersistenceTest extends WP_UnitTestCase {
         $this->assertSame('1314', (string) $r->get_meta('_bgcouriers_street_id'));
         $this->assertSame('ул.', $r->get_meta('_bgcouriers_street_type'));
         $this->assertSame('10', $r->get_meta('_bgcouriers_street_no'));
-        $this->assertSame('ВИТОША 10', $r->get_shipping_address_1(), 'the WC address line stays the plain name and number');
+        $this->assertSame('ул. ВИТОША 10', $r->get_shipping_address_1(), 'the WC address line carries the type - "ВИТОША 10" is either of two streets in Sofia');
 
         // A typed street: no id, no type - and the previous pick's id must not linger on.
         foreach (BGCouriers_Ajax::address_fields(['street_name' => 'Шипка', 'street_id' => '-5', 'street_no' => '3']) as $k => $v) {
@@ -59,5 +59,6 @@ final class OrderPersistenceTest extends WP_UnitTestCase {
         $this->assertSame('Шипка', $r2->get_meta('_bgcouriers_street_name'));
         $this->assertSame('0', (string) $r2->get_meta('_bgcouriers_street_id'));
         $this->assertSame('', $r2->get_meta('_bgcouriers_street_type'));
+        $this->assertSame('Шипка 3', $r2->get_shipping_address_1(), 'a typed street: the line is what was typed');
     }
 }
