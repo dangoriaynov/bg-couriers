@@ -99,6 +99,21 @@
     });
   }
 
+  // Nothing is ordered until what the customer typed has reached the session - the block's half of what
+  // bgc-checkout.js does on the classic form's submit. Our fields are saved by a fire-and-forget POST
+  // and the Store API validates the order against the SESSION; a house number typed and the button
+  // pressed straight after was refused for leaving blank the very thing on the screen (measured
+  // 2026-09-13: 70 ms between the two, "Моля, въведете улица и номер"). The block's checkout
+  // validation waits for observers, so this one hands back a promise that settles when the flush does.
+  var events = wc.blocksCheckoutEvents && wc.blocksCheckoutEvents.checkoutEvents;
+  if (events && typeof events.onCheckoutValidation === 'function') {
+    events.onCheckoutValidation(function () {
+      return (window.BGCOURIERS && typeof window.BGCOURIERS.flushSelection === 'function')
+        ? window.BGCOURIERS.flushSelection().then(function () { return true; }, function () { return true; })
+        : true;
+    }, 5);
+  }
+
   wp.plugins.registerPlugin('bgcouriers-checkout', {
     scope: 'woocommerce-checkout',
     render: function () { return el(Slot, null, el(Fields, null)); },

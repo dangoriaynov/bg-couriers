@@ -777,6 +777,24 @@
     setTimeout(go, 5000);
   }, true);   // CAPTURE: ahead of WooCommerce's own submit handler, and of the native submit
 
+  /**
+   * The same flush, for a checkout that does not submit a form: the checkout BLOCK places the order
+   * over the Store API from a button, and bgc-blocks.js holds that order on this until the session has
+   * what the fields hold (its onCheckoutValidation observer). Resolves either way - a save that never
+   * answers must not cost the customer their order, the server refuses on its own terms.
+   */
+  window.BGCOURIERS.flushSelection = function () {
+    clearTimeout(addrT);
+    var $wrap = $('.bgc-fields[data-courier="' + chosenCourier() + '"]').first();
+    return new Promise(function (resolve) {
+      var done = false;
+      var go = function () { if (!done) { done = true; resolve(true); } };
+      if (!$wrap.length) { go(); return; }
+      try { saveSelection($wrap).always(go); } catch (e) { go(); }
+      setTimeout(go, 5000);
+    });
+  };
+
   // Wiring ------------------------------------------------------------------
   // The chosen bgcouriers_<id> shipping method's courier id (each courier renders its own .bgc-fields).
   function chosenCourier() {
