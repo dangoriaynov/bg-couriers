@@ -34,6 +34,14 @@ register_activation_hook(__FILE__, function () {
     BGCouriers_Schema::create();
 });
 
+// A plugin that is switched off must not go on running from WP-Cron: measured on 2026-09-13, the
+// weekly sync, the daily rates and the tracking poll all stayed scheduled after deactivation, and
+// WordPress keeps re-scheduling a recurring event from the interval stored in it. Everything is put
+// back by the schedule() calls on the next init after re-activation.
+register_deactivation_hook(__FILE__, function () {
+    BGCouriers_Plugin::clear_cron();
+});
+
 add_action('before_woocommerce_init', function () {
     if (class_exists('\Automattic\WooCommerce\Utilities\FeaturesUtil')) {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);

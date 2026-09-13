@@ -43,10 +43,12 @@ final class UninstallLeavesNothingTest extends TestCase {
             }
         }
         $this->assertNotEmpty($hooks, 'the plugin should declare at least one cron hook');
-        $u = $this->uninstall();
+        // The hooks are cleared through one list, BGCouriers_Plugin::CRON_HOOKS, which uninstall.php
+        // reaches through clear_cron() - so a hook declared anywhere in the plugin has to be on it.
         foreach (array_keys($hooks) as $hook) {
-            $this->assertStringContainsString("'" . $hook . "'", $u, $hook . ' is scheduled but never cleared on uninstall');
+            $this->assertContains($hook, BGCouriers_Plugin::CRON_HOOKS, $hook . ' is scheduled but is not on the list uninstall clears');
         }
+        $this->assertStringContainsString('BGCouriers_Plugin::clear_cron()', $this->uninstall());
     }
 
     public function test_it_removes_the_settings_and_the_zone_rows(): void {

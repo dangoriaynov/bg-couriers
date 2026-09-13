@@ -15,6 +15,11 @@
 
 defined('WP_UNINSTALL_PLUGIN') || exit;
 
+// The plugin is not loaded during its own uninstall; its classes are, through its autoloader.
+if (!defined('BGCOURIERS_PATH')) { define('BGCOURIERS_PATH', plugin_dir_path(__FILE__)); }
+require_once BGCOURIERS_PATH . 'includes/class-bgcouriers-autoloader.php';
+BGCouriers_Autoloader::register();
+
 /**
  * Remove the plugin's own state from the current site.
  */
@@ -59,9 +64,11 @@ function bgcouriers_uninstall_site() {
     // Every schedule this plugin books, so a deleted plugin stops waking WP-Cron. The names are written
     // out rather than read from the classes: WordPress loads THIS FILE ALONE on uninstall, with none of
     // the plugin's code, so a constant reference here would be a fatal.
-    foreach (['bgcouriers_poll_tracking', 'bgcouriers_weekly_sync', 'bgcouriers_daily_rates', 'bgcouriers_retry_autolabel'] as $hook) {
-        wp_clear_scheduled_hook($hook);
-    }
+    // wp_unschedule_hook(), not wp_clear_scheduled_hook(): the latter, called without arguments, clears
+    // only the events scheduled without arguments - and every label retry and dispatch-day appointment
+    // carries its order id, so they all stayed behind (measured 2026-09-13). The list of hooks is the
+    // plugin's own, so a hook added later is cleared here without this file being told.
+    BGCouriers_Plugin::clear_cron();
 }
 
 if (is_multisite()) {

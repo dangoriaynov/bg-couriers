@@ -2,6 +2,25 @@
 defined('ABSPATH') || exit;
 
 class BGCouriers_Plugin {
+    /**
+     * Every WP-Cron hook this plugin schedules - the three recurring runs and the one-off events
+     * (the label retry and the dispatch-day appointment, which carry an order id as their argument;
+     * the one-off sync a plugin update asks for rides on the weekly hook's name).
+     *
+     * One list, read by deactivation and by uninstall.php, because a cron event outlives the code
+     * that scheduled it: WordPress keeps firing a recurring event after the plugin is switched off
+     * (since 5.1 it re-schedules from the interval stored in the event, so a schedule the plugin
+     * no longer registers is no obstacle), and a single event with arguments is not touched by
+     * wp_clear_scheduled_hook() called without those arguments - which is exactly how uninstall
+     * used to call it, so every retry and every dispatch-day appointment stayed behind.
+     */
+    const CRON_HOOKS = ['bgcouriers_poll_tracking', 'bgcouriers_weekly_sync', 'bgcouriers_daily_rates', 'bgcouriers_retry_autolabel'];
+
+    /** Take every event of every hook in CRON_HOOKS off WP-Cron, whatever arguments it carries. */
+    public static function clear_cron(): void {
+        foreach (self::CRON_HOOKS as $hook) { wp_unschedule_hook($hook); }
+    }
+
     private static $instance;
     public static function instance(): self {
         return self::$instance ??= new self();
