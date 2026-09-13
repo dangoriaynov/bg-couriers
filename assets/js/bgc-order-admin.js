@@ -363,8 +363,24 @@
   function fillEditorAddress(geo) {
     function fields(pc) {
       if (pc) { $panel.find('.bgc-ed-postcode').val(pc); }
-      if (geo.street) { $street.append(new Option(geo.street, geo.street, true, true)).trigger('change'); setStreetPick(null); }
       if (geo.number) { $panel.find('.bgc-ed-streetno').val(geo.number); }
+      if (!geo.street) { return; }
+      // The street the geocoder names, as the courier lists it - the same question the checkout's map
+      // asks (exact=1): one row that IS this street goes in with its id and type; otherwise the text
+      // stays, and the label-time lookup, or the merchant, has another go.
+      $.get(C.ajax, { action: 'bgcouriers_streets', courier: courier(), country: country(), city_id: $city.val() || 0, term: geo.street, exact: 1 })
+        .always(function (rows) {
+          var hits = bgcList(rows);
+          $street.find('option').not('[value=""]').remove();
+          if (hits.length === 1) {
+            $street.append(new Option(hits[0].label || hits[0].name, hits[0].name, true, true));
+            setStreetPick({ sid: hits[0].id, stype: hits[0].type });
+          } else {
+            $street.append(new Option(geo.street, geo.street, true, true));
+            setStreetPick(null);
+          }
+          $street.trigger('change');
+        });
     }
     function pick(r) { $city.empty().append(new Option(r.name + (r.post_code ? ' (' + r.post_code + ')' : ''), r.city_id, true, true)).trigger('change.select2'); }
     function find(term, cb) { if (!term) { cb(null); return; } $.get(C.ajax, { action: 'bgcouriers_search_cities', courier: courier(), country: country(), term: term }, function (rows) { cb((rows && rows.length) ? rows[0] : null); }); }

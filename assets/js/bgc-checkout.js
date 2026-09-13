@@ -555,9 +555,37 @@
     }
     function fields(pc) {
       if (pc) { $wrap.find('.bgc-postcode').val(pc); }
-      if (geo.street) { $wrap.find('.bgc-street').append(new Option(geo.street, geo.street, true, true)).trigger('change'); setStreetPick($wrap, null); }
       if (geo.number) { $wrap.find('.bgc-street-no').val(geo.number); }
-      resetOffice($wrap); showLoader($wrap); pushSelection($wrap); // recalc for the (possibly new) city
+      resetOffice($wrap);
+      if (!geo.street) { showLoader($wrap); pushSelection($wrap); return; }
+      // The street the geocoder names, as the courier lists it - asked before anything is saved, so
+      // the one save carries the street with its id and type. The geocoder writes "бул. Княз
+      // Александър Дондуков" for one point and "Кърниградска" for the next; Speedy refuses the typed
+      // form at label time when the town has two of that name, Express One and Европът refuse a
+      // street that is not off their list at all. One row that IS this street: it goes in with its
+      // id. None, or several with nothing to tell them apart: the text stays for a courier that takes
+      // one (the label-time lookup has another go), and the box is left for the customer to fill for
+      // a courier that lists its streets - a typed street there is an order nobody can label.
+      showLoader($wrap);
+      var listOnly = ((BGCOURIERS.streetListOnly || []).indexOf(courier($wrap)) !== -1);
+      var $street = $wrap.find('.bgc-street');
+      $.get(BGCOURIERS.ajax, { action: 'bgcouriers_streets', courier: courier($wrap), country: country($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: geo.street, exact: 1 })
+        .always(function (rows) {
+          var hits = bgcList(rows);
+          $street.find('option').not('[value=""]').remove();
+          if (hits.length === 1) {
+            $street.append(new Option(hits[0].label || hits[0].name, hits[0].name, true, true));
+            setStreetPick($wrap, { sid: hits[0].id, stype: hits[0].type });
+          } else if (!listOnly) {
+            $street.append(new Option(geo.street, geo.street, true, true));
+            setStreetPick($wrap, null);
+          } else {
+            $street.val(null);
+            setStreetPick($wrap, null);
+          }
+          $street.trigger('change');
+          pushSelection($wrap); // recalc for the (possibly new) city
+        });
     }
     function findCity(term, cb) {
       if (!term) { cb(null); return; }
