@@ -76,6 +76,22 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     /** One key, no username - so the settings tab asks for one field and creds_present() checks one. */
     public function credential_fields(): array { return ['password']; }
 
+    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
+    public function credential_hint(): array {
+        return [
+            'intro' => __('Европът issues the API key to you - you generate it yourself in your own online cabinet, without waiting on anybody.', 'bg-couriers'),
+            'steps' => [
+                __('Sign in to your Европът account at online.evropat.com.', 'bg-couriers'),
+                __('If there is no Settings menu, write to sales@evropat.com and ask them to activate it for your account. That is what unlocks the key.', 'bg-couriers'),
+                __('Generate the API key in Settings and paste it below - there is no username for this courier, only the key.', 'bg-couriers'),
+                __('Click Validate, then Sync. Then pick the address your parcels are sent from: it fills the sender half of every waybill and it is one half of every price.', 'bg-couriers'),
+            ],
+            'receive'   => __('One API key (+ the address parcels are sent from)', 'bg-couriers'),
+            'url_label' => __('Европът API documentation:', 'bg-couriers'),
+            'url'       => 'https://api.evropat.com/',
+        ];
+    }
+
     // ── The envelope ─────────────────────────────────────────────────────────
 
     /**

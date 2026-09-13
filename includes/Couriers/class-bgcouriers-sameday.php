@@ -33,6 +33,22 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     public function id(): string { return 'sameday'; }
     public function label(): string { return 'Sameday'; }
+
+    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
+    public function credential_hint(): array {
+        return [
+            'intro' => __('Sameday issues API credentials (username + password) to clients after a business contract.', 'bg-couriers'),
+            'steps' => [
+                __('Sign a Sameday business contract (via sameday.bg or your Sameday account manager).', 'bg-couriers'),
+                __('Request API / eAWB access; you receive a username + password.', 'bg-couriers'),
+                __('Ask for your pickup-point ID and the service IDs for each delivery type (office / address / easyBox locker) from your contract.', 'bg-couriers'),
+                __('Enter the username, password, pickup point and service IDs below; tick "Sandbox" to use the test environment (sameday-api.demo.zitec.com).', 'bg-couriers'),
+            ],
+            'receive'   => __('username + password (+ pickup point and per-type service IDs)', 'bg-couriers'),
+            'url_label' => __('Sameday Bulgaria:', 'bg-couriers'),
+            'url'       => 'https://sameday.bg',
+        ];
+    }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
 
     /**

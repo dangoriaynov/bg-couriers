@@ -130,9 +130,10 @@ class BGCouriers_Tracking_Poller {
     private static function poll_one(\WC_Order $order, string $advance): void {
         $cid = (string) $order->get_meta('_bgcouriers_courier');
         $wb  = (string) $order->get_meta('_bgcouriers_waybill');
-        if ($cid === '' || $cid === 'boxnow' || $wb === '') { return; } // BoxNow updates via its webhook
+        if ($cid === '' || $wb === '') { return; }
         $courier = BGCouriers_Couriers::get($cid);
         if (!$courier) { return; }
+        if (method_exists($courier, 'pushes_tracking') && $courier->pushes_tracking()) { return; } // BOX NOW reports through its webhook
         // \Throwable, not \Exception. An adapter that hits a TypeError on an answer it did not expect
         // throws an Error, and an Error used to escape this loop: every order behind it in the batch
         // went unpolled, every courier's, not only the broken one's - and since this order never gets

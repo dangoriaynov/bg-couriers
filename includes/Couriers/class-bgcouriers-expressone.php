@@ -46,6 +46,22 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     public function id(): string { return 'expressone'; }
     public function label(): string { return 'Express One'; }
 
+    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
+    public function credential_hint(): array {
+        return [
+            'intro' => __('Express One issues API access to contract clients, and starts you on a test environment before the live one.', 'bg-couriers'),
+            'steps' => [
+                __('Have (or open) an Express One business contract.', 'bg-couriers'),
+                __('Ask your account manager for REST API access. They issue a username and password for the API - these are NOT your my.expressone.bg login.', 'bg-couriers'),
+                __('Ask for the id of the address the courier collects from; it appears in "Send parcels from" below once the credentials validate.', 'bg-couriers'),
+                __('Enter the username and password below, click Validate, then Sync. Test credentials are usually issued first, and the live ones once the integration works.', 'bg-couriers'),
+            ],
+            'receive'   => __('API username + password (+ the address parcels are collected from)', 'bg-couriers'),
+            'url_label' => __('Express One API documentation:', 'bg-couriers'),
+            'url'       => 'https://system.expressone.bg/api/web/site/documentation',
+        ];
+    }
+
     /**
      * Everything this plugin knows how to offer. Express One delivers to its own depots, to partner
      * counters, to its EXOBOX lockers and to an address; /1/calculate-bol prices each of those

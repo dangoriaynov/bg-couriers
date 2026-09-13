@@ -369,101 +369,10 @@ jQuery(function($){
             . esc_html__('A courier can change its process - if a step differs, follow the courier\'s own instructions.', 'bg-couriers') . '</p>';
         echo '</div></details>';
     }
-    /** Researched per-courier credential-acquisition steps (verified against each courier's own site/docs). */
+    /** The courier's own account of how its credentials are obtained - BGCouriers_Abstract_Courier::credential_hint(). */
     public static function cred_hint_data(string $courier): array {
-        switch ($courier) {
-            case 'speedy':
-                return [
-                    'intro' => __('Speedy issues API access to registered business clients - there is no instant self-signup.', 'bg-couriers'),
-                    'steps' => [
-                        __('Have (or open) a Speedy business contract.', 'bg-couriers'),
-                        __('Request REST API access (ask for a test account first) from your Speedy account manager, or via the integration contact on the Speedy "System integration" page below.', 'bg-couriers'),
-                        __('Speedy issues an API username + password for api.speedy.bg.', 'bg-couriers'),
-                        __('Enter the username and password below, click Validate, then Sync.', 'bg-couriers'),
-                    ],
-                    'receive'   => __('API username + password', 'bg-couriers'),
-                    'url_label' => __('Speedy system integration:', 'bg-couriers'),
-                    'url'       => 'https://www.speedy.bg/en/system-integration',
-                ];
-            case 'econt':
-                return [
-                    'intro' => __('Econt\'s API uses your own e-Econt ("Моят Еконт") business account - there is no separate API key.', 'bg-couriers'),
-                    'steps' => [
-                        __('Register or open a business account in "Моят Еконт" at ee.econt.com.', 'bg-couriers'),
-                        __('Confirm with Econt that API access is enabled for your account.', 'bg-couriers'),
-                        __('Your API username is your account e-mail; the password is your account password.', 'bg-couriers'),
-                        __('Enter the e-mail and password below, click Validate, then Sync.', 'bg-couriers'),
-                    ],
-                    'receive'   => __('account e-mail (username) + password', 'bg-couriers'),
-                    'url_label' => __('Моят Еконт:', 'bg-couriers'),
-                    'url'       => 'https://ee.econt.com',
-                ];
-            case 'pigeon':
-                return [
-                    'intro' => __('Pigeon Express issues an API Key + Secret to business clients on request.', 'bg-couriers'),
-                    'steps' => [
-                        __('Contact Pigeon Express and request API access (e-mail support@pigeonexpress.com, or via pigeonexpress.com).', 'bg-couriers'),
-                        __('They issue an API Key + API Secret (production; ask for a sandbox/test key to test).', 'bg-couriers'),
-                        __('Ask them for your pickup office ID (the office you drop parcels off at).', 'bg-couriers'),
-                        __('Enter the Key, Secret and pickup office below, click Validate, then Sync. Tick "Sandbox" only for a test account.', 'bg-couriers'),
-                    ],
-                    'receive'   => __('API Key + API Secret (+ your pickup office ID)', 'bg-couriers'),
-                    'url_label' => __('Pigeon API docs:', 'bg-couriers'),
-                    'url'       => 'https://api-docs.pigeonexpress.com',
-                ];
-            case 'boxnow':
-                return [
-                    'intro' => __('BOX NOW issues OAuth2 credentials through its integration team.', 'bg-couriers'),
-                    'steps' => [
-                        __('E-mail integrationsupport@boxnow.bg with your company name, address, tax ID (ЕИК), contact details, and the phone numbers of the people who will use the Partner Portal (needed for OTP SMS login).', 'bg-couriers'),
-                        __('They issue your OAuth2 Client ID + Client Secret and confirm your Warehouse ID and Partner ID.', 'bg-couriers'),
-                        __('Enter the Client ID, Client Secret, Partner ID and Warehouse ID below; choose the Production environment (or Stage for testing).', 'bg-couriers'),
-                    ],
-                    'receive'   => __('OAuth2 Client ID + Client Secret (+ Partner ID, Warehouse ID)', 'bg-couriers'),
-                    'url_label' => __('BOX NOW:', 'bg-couriers'),
-                    'url'       => 'https://www.boxnow.bg',
-                ];
-            case 'sameday':
-                return [
-                    'intro' => __('Sameday issues API credentials (username + password) to clients after a business contract.', 'bg-couriers'),
-                    'steps' => [
-                        __('Sign a Sameday business contract (via sameday.bg or your Sameday account manager).', 'bg-couriers'),
-                        __('Request API / eAWB access; you receive a username + password.', 'bg-couriers'),
-                        __('Ask for your pickup-point ID and the service IDs for each delivery type (office / address / easyBox locker) from your contract.', 'bg-couriers'),
-                        __('Enter the username, password, pickup point and service IDs below; tick "Sandbox" to use the test environment (sameday-api.demo.zitec.com).', 'bg-couriers'),
-                    ],
-                    'receive'   => __('username + password (+ pickup point and per-type service IDs)', 'bg-couriers'),
-                    'url_label' => __('Sameday Bulgaria:', 'bg-couriers'),
-                    'url'       => 'https://sameday.bg',
-                ];
-            case 'expressone':
-                return [
-                    'intro' => __('Express One issues API access to contract clients, and starts you on a test environment before the live one.', 'bg-couriers'),
-                    'steps' => [
-                        __('Have (or open) an Express One business contract.', 'bg-couriers'),
-                        __('Ask your account manager for REST API access. They issue a username and password for the API - these are NOT your my.expressone.bg login.', 'bg-couriers'),
-                        __('Ask for the id of the address the courier collects from; it appears in "Send parcels from" below once the credentials validate.', 'bg-couriers'),
-                        __('Enter the username and password below, click Validate, then Sync. Test credentials are usually issued first, and the live ones once the integration works.', 'bg-couriers'),
-                    ],
-                    'receive'   => __('API username + password (+ the address parcels are collected from)', 'bg-couriers'),
-                    'url_label' => __('Express One API documentation:', 'bg-couriers'),
-                    'url'       => 'https://system.expressone.bg/api/web/site/documentation',
-                ];
-            case 'evropat':
-                return [
-                    'intro' => __('Европът issues the API key to you - you generate it yourself in your own online cabinet, without waiting on anybody.', 'bg-couriers'),
-                    'steps' => [
-                        __('Sign in to your Европът account at online.evropat.com.', 'bg-couriers'),
-                        __('If there is no Settings menu, write to sales@evropat.com and ask them to activate it for your account. That is what unlocks the key.', 'bg-couriers'),
-                        __('Generate the API key in Settings and paste it below - there is no username for this courier, only the key.', 'bg-couriers'),
-                        __('Click Validate, then Sync. Then pick the address your parcels are sent from: it fills the sender half of every waybill and it is one half of every price.', 'bg-couriers'),
-                    ],
-                    'receive'   => __('One API key (+ the address parcels are sent from)', 'bg-couriers'),
-                    'url_label' => __('Европът API documentation:', 'bg-couriers'),
-                    'url'       => 'https://api.evropat.com/',
-                ];
-        }
-        return [];
+        $co = BGCouriers_Couriers::get($courier);
+        return ($co && method_exists($co, 'credential_hint')) ? (array) $co->credential_hint() : [];
     }
     /** Keep a stored key/username (plaintext) when the field is submitted blank; store a new value plainly. */
     public function sanitize_keep($value, $option, $raw_value) {

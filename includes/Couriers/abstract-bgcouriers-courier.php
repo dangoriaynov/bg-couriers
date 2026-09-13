@@ -101,6 +101,26 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
     public function credential_fields(): array { return ['username', 'password']; }
 
     /**
+     * How a merchant gets this courier's credentials - shown on its settings tab, above the fields.
+     *
+     * intro: one sentence on who issues them; steps: what to do, in order; receive: what arrives;
+     * url_label + url: the courier's own page on the subject. Empty when there is nothing to say.
+     * Lives on the courier rather than in the settings screen because it is knowledge about the
+     * courier: the day an eighth one arrives, its hint is written next to its credential_fields().
+     *
+     * @return array{intro?:string,steps?:string[],receive?:string,url_label?:string,url?:string}
+     */
+    public function credential_hint(): array { return []; }
+
+    /**
+     * Does this courier tell the shop about a parcel's progress itself, instead of being asked?
+     *
+     * BOX NOW posts every parcel event to the plugin's webhook, so the tracking poller leaves its
+     * orders alone: asking it as well would be two writers on one order. Everyone else is polled.
+     */
+    public function pushes_tracking(): bool { return false; }
+
+    /**
      * Delivery kinds this courier CANNOT collect cash on.
      *
      * Cash on delivery is a service of the courier, not of the shop, and a courier may offer it to a

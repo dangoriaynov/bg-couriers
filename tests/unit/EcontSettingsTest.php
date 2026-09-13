@@ -16,6 +16,8 @@ if (!class_exists('WC_Settings_Page')) {
 }
 
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-wc-settings.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
+require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 
 /**
  * @group econt
@@ -25,6 +27,14 @@ final class EcontSettingsTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        // The settings tabs are the courier REGISTRY's list now (one per registered courier, in its
+        // order), so the couriers are registered here as BGCouriers_Plugin registers them - by id and
+        // name; no adapter is ever built by these tests.
+        BGCouriers_Couriers::reset();
+        foreach (['speedy' => 'Speedy', 'econt' => 'Econt', 'pigeon' => 'Pigeon Express', 'boxnow' => 'BOX NOW',
+                  'sameday' => 'Sameday', 'expressone' => 'Express One', 'evropat' => 'Европът'] as $id => $label) {
+            BGCouriers_Couriers::register($id, $label, static function () { return null; });
+        }
         // Stub WordPress translation and option functions used during construction.
         Functions\when('__')->returnArg(1);
         Functions\when('apply_filters')->returnArg(2);
@@ -34,6 +44,7 @@ final class EcontSettingsTest extends TestCase {
     }
 
     protected function tearDown(): void {
+        BGCouriers_Couriers::reset();
         Monkey\tearDown();
         parent::tearDown();
     }

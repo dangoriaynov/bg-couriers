@@ -21,6 +21,22 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
 
     public function id(): string { return 'pigeon'; }
     public function label(): string { return 'Pigeon Express'; }
+
+    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
+    public function credential_hint(): array {
+        return [
+            'intro' => __('Pigeon Express issues an API Key + Secret to business clients on request.', 'bg-couriers'),
+            'steps' => [
+                __('Contact Pigeon Express and request API access (e-mail support@pigeonexpress.com, or via pigeonexpress.com).', 'bg-couriers'),
+                __('They issue an API Key + API Secret (production; ask for a sandbox/test key to test).', 'bg-couriers'),
+                __('Ask them for your pickup office ID (the office you drop parcels off at).', 'bg-couriers'),
+                __('Enter the Key, Secret and pickup office below, click Validate, then Sync. Tick "Sandbox" only for a test account.', 'bg-couriers'),
+            ],
+            'receive'   => __('API Key + API Secret (+ your pickup office ID)', 'bg-couriers'),
+            'url_label' => __('Pigeon API docs:', 'bg-couriers'),
+            'url'       => 'https://api-docs.pigeonexpress.com',
+        ];
+    }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
 
     public function enable_problems(): array {

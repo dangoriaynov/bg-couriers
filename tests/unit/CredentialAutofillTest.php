@@ -12,6 +12,10 @@ if (!class_exists('WC_Settings_Page')) {
 }
 
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-wc-settings.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
+require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
+require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-columns.php';
+require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow-webhook.php';
 
 /**
  * No courier credential field may be offered to the browser's password manager.
@@ -30,6 +34,14 @@ final class CredentialAutofillTest extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
+        // The settings tabs are the courier REGISTRY's list now (one per registered courier, in its
+        // order), so the couriers are registered here as BGCouriers_Plugin registers them - by id and
+        // name; no adapter is ever built by these tests.
+        BGCouriers_Couriers::reset();
+        foreach (['speedy' => 'Speedy', 'econt' => 'Econt', 'pigeon' => 'Pigeon Express', 'boxnow' => 'BOX NOW',
+                  'sameday' => 'Sameday', 'expressone' => 'Express One', 'evropat' => 'Европът'] as $id => $label) {
+            BGCouriers_Couriers::register($id, $label, static function () { return null; });
+        }
         Functions\when('__')->returnArg(1);
         Functions\when('apply_filters')->returnArg(2);
         Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
@@ -42,7 +54,7 @@ final class CredentialAutofillTest extends TestCase {
         Functions\when('wc_get_weight')->returnArg(1);
     }
 
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
 
     /** @return array<int,array<string,mixed>> every credential field across every courier section */
     private function credential_fields(): array {
