@@ -195,4 +195,20 @@ final class TrackingStageTest extends TestCase {
             $this->assertSame('returned', BGCouriers_Tracking::classify($s), $s);
         }
     }
+
+    /**
+     * The order note quotes the courier's own words after the stage - unless they ARE the stage label,
+     * in which case the quote says nothing twice. Sameday's "Създадена товарителница" is the Bulgarian
+     * of "Label created" to the letter, so every Sameday order used to read it twice (prod, 2026-09-13).
+     */
+    public function test_the_status_note_quotes_the_courier_only_when_it_adds_something(): void {
+        $this->assertSame('Speedy - Label created: "Получена информация за пратка"',
+            BGCouriers_Tracking::status_note('Speedy', 'registered', 'Получена информация за пратка'));
+        $this->assertSame('Sameday - Label created',
+            BGCouriers_Tracking::status_note('Sameday', 'registered', 'Label created'), 'the same words are not quoted back');
+        $this->assertSame('Sameday - Label created',
+            BGCouriers_Tracking::status_note('Sameday', 'registered', '  label CREATED '), 'case and padding do not make them different');
+        $this->assertSame('Econt - Delivered: "Доставена"',
+            BGCouriers_Tracking::status_note('Econt', 'delivered', 'Доставена'));
+    }
 }
