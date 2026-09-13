@@ -123,12 +123,23 @@ abstract class BGCouriers_Abstract_Method extends WC_Shipping_Method {
         $free  = BGCouriers_Settings::free_shipping_label();
         if ($included && $cost <= 0 && $free !== '') { $label = $free; }
 
+        $rid = $this->get_rate_id();
         $this->add_rate([
-            'id'    => $this->get_rate_id(),
+            'id'    => $rid,
             'label' => $label,
             'cost'  => $cost,
             'taxes' => '', // '' = let WC calculate shipping tax; only false disables it
             'meta_data' => ['_bgcouriers_source' => $quote->source, '_bgcouriers_method' => $method, '_bgcouriers_info_price' => $info],
         ]);
+        // The checkout BLOCK prints a rate as its name and its price, and nothing of the label filters
+        // the classic checkout dresses the row with - so a delivery the customer pays the courier for at
+        // the door, whose rate is 0, read "Speedy  БЕЗПЛАТНО" there (measured 2026-09-13). The one text
+        // the block prints beside the price is the rate's delivery_time (WooCommerce 9.2+, after a dash):
+        // "БЕЗПЛАТНО - ~3,06 € се плащат на куриера при получаване". The classic checkout never reads it.
+        if ($info > 0 && isset($this->rates[$rid]) && method_exists($this->rates[$rid], 'set_delivery_time')) {
+            $price = html_entity_decode(wp_strip_all_tags(wc_price($info)), ENT_QUOTES, 'UTF-8');
+            /* translators: %s: the delivery price, e.g. "3,06 €" */
+            $this->rates[$rid]->set_delivery_time(sprintf(__('~%s paid to the courier on delivery', 'bg-couriers'), $price));
+        }
     }
 }

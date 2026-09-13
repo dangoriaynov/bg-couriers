@@ -63,6 +63,32 @@
       $(document.body).trigger('updated_checkout');
     }, [data.html]);
 
+    // "Recalculate" on this checkout. bgc-checkout.js saves every delivery change to the session and
+    // fires `update_checkout`, which the classic checkout answers by re-rendering the order review and
+    // firing `updated_checkout` - the event that hides the pickers' loading state and re-initialises
+    // them. The block answers neither: the rates stayed priced for the old selection and the pickers
+    // stayed greyed out and dead from the first tab click (measured 2026-09-13). So here it is asked of
+    // the Store API - the cart/extensions endpoint recalculates the cart, shipping rates included, and
+    // the block re-renders from the answer - and `updated_checkout` is fired when it is done, whichever
+    // way it ended: a refresh that failed is no reason to leave the customer with dead fields.
+    useEffect(function () {
+      var busy = false, again = false;
+      function refresh() {
+        // One at a time; a change made while one is running is answered by the next, not lost.
+        if (busy) { again = true; return; }
+        busy = true;
+        var p = (wc.blocksCheckout.extensionCartUpdate && wc.blocksCheckout.extensionCartUpdate({ namespace: 'bg-couriers', data: {} })) || Promise.resolve();
+        var done = function () {
+          busy = false;
+          $(document.body).trigger('updated_checkout');
+          if (again) { again = false; refresh(); }
+        };
+        Promise.resolve(p).then(done, done);
+      }
+      $(document.body).on('update_checkout.bgcblocks', refresh);
+      return function () { $(document.body).off('update_checkout.bgcblocks', refresh); };
+    }, []);
+
     if (!data.html) { return null; }
     // dangerouslySetInnerHTML is the point, not a shortcut: React then treats these nodes as opaque and
     // leaves them alone, which is what lets jQuery own them the way it does on the classic checkout.

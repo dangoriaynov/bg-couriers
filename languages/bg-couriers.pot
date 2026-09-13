@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-13 21:24+0300\n"
+"POT-Creation-Date: 2026-09-13 22:04+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3418,6 +3418,12 @@ msgstr ""
 #: includes/Shipping/abstract-bgcouriers-method.php:36
 #, php-format
 msgid "%s shipping (BG Couriers)"
+msgstr ""
+
+#. translators: %s: the delivery price, e.g. "3,06 €"
+#: includes/Shipping/abstract-bgcouriers-method.php:142
+#, php-format
+msgid "~%s paid to the courier on delivery"
 msgstr ""
 
 #: includes/Shipping/class-bgcouriers-method-boxnow.php:10
