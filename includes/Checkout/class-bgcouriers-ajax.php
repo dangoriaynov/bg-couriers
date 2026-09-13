@@ -540,8 +540,6 @@ class BGCouriers_Ajax {
         WC()->session->set('bgcouriers_site_id', (int) wp_unslash($_POST['site_id'] ?? 0)); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
         WC()->session->set('bgcouriers_office_id', (int) wp_unslash($_POST['office_id'] ?? 0)); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast
         WC()->session->set('bgcouriers_post_code', sanitize_text_field(wp_unslash($_POST['post_code'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-        WC()->session->set('bgcouriers_boxnow_name', sanitize_text_field(wp_unslash($_POST['boxnow_name'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- BoxNow locker label
-        WC()->session->set('bgcouriers_boxnow_addr', sanitize_text_field(wp_unslash($_POST['boxnow_addr'] ?? ''))); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         foreach (self::address_fields($_POST) as $k => $v) { WC()->session->set('bgcouriers_addr_' . $k, $v); }
         self::remember_for_courier(
             sanitize_key(wp_unslash($_POST['courier'] ?? '')), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
