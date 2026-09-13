@@ -439,6 +439,11 @@ class BGCouriers_Labels {
      */
     public static function label_fingerprint(\WC_Order $order): string {
         $parts = [];
+        // boxnow_name / boxnow_addr are retired: BOX NOW's widget wrote them and nothing writes them
+        // since 0.4.8 (the locker is read off the nomenclature by office_id, which is in here). They
+        // STAY in this list all the same. The fingerprint is an md5 recorded on every order with a live
+        // waybill, and dropping a key would change it for all of them at once - the next edit of any
+        // such order would then void and re-issue a waybill that nothing about the order had changed.
         foreach (['courier', 'method', 'site_id', 'office_id', 'post_code', 'street_name', 'street_no',
                   'complex', 'block', 'entrance', 'floor', 'apartment', 'address_note',
                   'boxnow_name', 'boxnow_addr', 'weight_kg', 'parcels', 'insurance'] as $k) {
@@ -765,7 +770,6 @@ class BGCouriers_Labels {
             'post_code' => $t('post_code'), 'street_name' => $t('street_name'), 'street_no' => $t('street_no'),
             'complex' => $t('complex'), 'block' => $t('block'), 'entrance' => $t('entrance'),
             'floor' => $t('floor'), 'apartment' => $t('apartment'), 'address_note' => $t('address_note'),
-            'boxnow_name' => $t('boxnow_name'), 'boxnow_addr' => $t('boxnow_addr'),
         ]);
         // Not part of the delivery ADDRESS, so written here rather than through apply_delivery(): the
         // checkout has no notion of either, and this editor is the only place a merchant sets them.

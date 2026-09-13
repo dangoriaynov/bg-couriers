@@ -922,8 +922,6 @@ class BGCouriers_Checkout {
             'floor'        => (string) $s->get('bgcouriers_addr_floor', ''),
             'apartment'    => (string) $s->get('bgcouriers_addr_apartment', ''),
             'address_note' => (string) $s->get('bgcouriers_addr_address_note', ''),
-            'boxnow_name'  => (string) $s->get('bgcouriers_boxnow_name', ''),
-            'boxnow_addr'  => (string) $s->get('bgcouriers_boxnow_addr', ''),
         ]);
     }
 
@@ -935,14 +933,6 @@ class BGCouriers_Checkout {
     public static function apply_delivery(\WC_Order $order, array $d): void {
         $courier = (string) ($d['courier'] ?? '');
         if ($courier === '') { return; }
-        // The locker's name and address are read off the nomenclature by its id, as every office is.
-        // They used to arrive from BOX NOW's map widget, which is gone; the two meta keys stay, filled
-        // from the same row, so orders made either way read alike on the order screen and the label.
-        // Before $g below: that closure holds its own copy of $d.
-        if ($courier === 'boxnow' && (int) ($d['office_id'] ?? 0) > 0) {
-            $row = BGCouriers_Nomenclature::office_by_id('boxnow', (int) $d['office_id']);
-            if ($row) { $d['boxnow_name'] = (string) $row['name']; $d['boxnow_addr'] = (string) $row['address']; }
-        }
         $g = static function ($k, $def = '') use ($d) { return $d[$k] ?? $def; };
         // BoxNow is locker-only; force 'automat' so a stale method can't leak on.
         $method = $courier === 'boxnow'
@@ -969,8 +959,6 @@ class BGCouriers_Checkout {
         $order->update_meta_data('_bgcouriers_floor',       (string) $g('floor'));
         $order->update_meta_data('_bgcouriers_apartment',   (string) $g('apartment'));
         $order->update_meta_data('_bgcouriers_address_note',(string) $g('address_note'));
-        $order->update_meta_data('_bgcouriers_boxnow_name', (string) $g('boxnow_name'));
-        $order->update_meta_data('_bgcouriers_boxnow_addr', (string) $g('boxnow_addr'));
         if (array_key_exists('quote_price', $d))  { $order->update_meta_data('_bgcouriers_quote_price', (float) $d['quote_price']); }
         if (array_key_exists('quote_source', $d)) { $order->update_meta_data('_bgcouriers_quote_source', (string) $d['quote_source']); }
 

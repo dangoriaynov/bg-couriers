@@ -1,9 +1,10 @@
 <?php
 /**
  * A BOX NOW order carries its locker the way any locker order does: the id the delivery request sends,
- * the method forced to the locker kind, and the locker's name and address - read off the nomenclature
- * by that id, since 2026-09-12 when BOX NOW's own widget (which used to hand the checkout a name and an
- * address of its own) was replaced by the standard town + locker block.
+ * the method forced to the locker kind, and the locker's name and address on the shipping lines - read
+ * off the nomenclature by that id, since 2026-09-12 when BOX NOW's own widget (which used to hand the
+ * checkout a name and an address of its own, kept in two meta keys of their own) was replaced by the
+ * standard town + locker block. Those two keys are written by nothing now.
  *
  * @group boxnow
  */
@@ -22,7 +23,7 @@ final class BoxnowPersistenceTest extends WP_UnitTestCase {
         WC()->session->set('bgcouriers_site_id', $town);
         WC()->session->set('bgcouriers_office_id', 8009);   // the chosen locker (APM) id
         WC()->session->set('bgcouriers_post_code', '1000');
-        // What a session from the old widget would still hold - the row wins over it.
+        // What a session from the old widget would still hold - nothing reads it any more.
         WC()->session->set('bgcouriers_boxnow_name', 'stale widget name');
         WC()->session->set('bgcouriers_boxnow_addr', 'stale widget address');
         $order = new WC_Order();
@@ -35,10 +36,10 @@ final class BoxnowPersistenceTest extends WP_UnitTestCase {
         $this->assertSame('8009', (string) $reloaded->get_meta('_bgcouriers_office_id'));
         $this->assertSame('boxnow', $reloaded->get_meta('_bgcouriers_courier'));
         $this->assertSame((string) $town, (string) $reloaded->get_meta('_bgcouriers_site_id'), 'and the town, which the widget never gave the order');
-        // Locker label/address are saved for display on the order - from the nomenclature.
-        $this->assertSame('APM Sofia Center', $reloaded->get_meta('_bgcouriers_boxnow_name'));
-        $this->assertSame('ul. Vitosha 1 София', $reloaded->get_meta('_bgcouriers_boxnow_addr'));
-        // And the shipping address block shows the locker (so the order is not blank).
+        // The widget-era meta is not written - not even from the stale session.
+        $this->assertSame('', (string) $reloaded->get_meta('_bgcouriers_boxnow_name'));
+        $this->assertSame('', (string) $reloaded->get_meta('_bgcouriers_boxnow_addr'));
+        // The shipping address block shows the locker, from the nomenclature (so the order is not blank).
         $this->assertSame('APM Sofia Center', $reloaded->get_shipping_address_1());
         $this->assertSame('ul. Vitosha 1 София', $reloaded->get_shipping_address_2());
         $this->assertSame('София', $reloaded->get_shipping_city());

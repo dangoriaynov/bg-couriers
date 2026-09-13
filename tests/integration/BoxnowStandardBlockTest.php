@@ -139,9 +139,9 @@ final class BoxnowStandardBlockTest extends WP_UnitTestCase {
             'site_id' => BGCouriers_Boxnow::town_id('София'), 'office_id' => 5365, 'post_code' => '1000']);
         $this->assertSame(5365, (int) $o->get_meta('_bgcouriers_office_id'), 'the locker id the delivery request sends');
         $this->assertSame('automat', $o->get_meta('_bgcouriers_method'));
-        $this->assertSame('Test Locker 1', $o->get_meta('_bgcouriers_boxnow_name'), 'the name the order screen shows, from the row');
-        $this->assertSame('Цар Симеон 170 София', $o->get_meta('_bgcouriers_boxnow_addr'));
-        $this->assertSame('Test Locker 1', $o->get_shipping_address_1());
+        $this->assertSame('', (string) $o->get_meta('_bgcouriers_boxnow_name'), 'the widget-era meta is not written any more: the row is read by office_id');
+        $this->assertSame('', (string) $o->get_meta('_bgcouriers_boxnow_addr'));
+        $this->assertSame('Test Locker 1', $o->get_shipping_address_1(), 'the name the order screen shows, from the row');
         $this->assertSame('Цар Симеон 170 София', $o->get_shipping_address_2());
         $this->assertSame('София', $o->get_shipping_city(), 'and the town, which the widget never gave the order');
     }
