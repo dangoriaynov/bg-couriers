@@ -115,8 +115,12 @@ class BGCouriers_Order_Columns {
         $updated = (int) $order->get_meta('_bgcouriers_track_updated');
         $tip = BGCouriers_Tracking::stage_label($stage) . ($text !== '' ? ' - ' . $text : '');
         if ($updated > 0) {
+            // The stamp is the last time the courier's answer CHANGED, not the last time it was asked -
+            // a poll that hears what it heard last time writes nothing (see the poller). "updated 9
+            // days ago" on a parcel Speedy has held as "information received" for nine days read as a
+            // poll that had stopped; it had not.
             /* translators: %s: human-readable time difference, e.g. "2 hours" */
-            $tip .= ' - ' . sprintf(__('updated %s ago', 'bg-couriers'), human_time_diff($updated, time()));
+            $tip .= ' - ' . sprintf(__('unchanged for %s', 'bg-couriers'), human_time_diff($updated, time()));
         }
         // The colour comes from the CLASS, never from an inline style: this column is printed through
         // BGCouriers_Kses::admin_actions(), whose <span> takes no style attribute, so the old coloured

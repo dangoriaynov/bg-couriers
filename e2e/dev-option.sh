@@ -167,5 +167,15 @@ case "${1:-}" in
       printf(\"%s\n\", \$g->get_option(\"enabled\"));'" | tr -d '\r' ;;
   # One meta value off one order, for a spec that has to check what the checkout actually wrote.
   meta) run "$WP eval 'print((string) wc_get_order((int) $2)->get_meta(\"$3\"));'" | tr -d '\r' ;;
-  *) echo "usage: dev-option.sh get|set|sweep|label|cancel|meta [name|order_id] [value|meta_key]" >&2; exit 1 ;;
+  # The order editor's own markup and the config its script is given, for ONE order - so a spec can put
+  # the real editor on a page of its own and drive it in a browser. wp-admin itself needs a login the
+  # suite does not have; the editor's script does not care where its markup came from. Printed as one
+  # JSON object {config, html}, the config being the exact `var BGCOURIERS_ED = {...};` line.
+  editor)
+    run "$WP eval '
+      \$o = wc_get_order((int) $2); if (!\$o) { print(\"{}\"); return; }
+      ob_start(); (new BGCouriers_Order_Metabox())->render(\$o); \$html = ob_get_clean();
+      global \$wp_scripts; \$cfg = (string) \$wp_scripts->get_data(\"bgc-order-admin\", \"data\");
+      echo wp_json_encode([\"config\" => \$cfg, \"html\" => \$html]);'" | tr -d '\r' ;;
+  *) echo "usage: dev-option.sh get|set|sweep|label|cancel|meta|editor [name|order_id] [value|meta_key]" >&2; exit 1 ;;
 esac
