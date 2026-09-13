@@ -55,9 +55,13 @@ class BGCouriers_Settings_Admin {
         $pages[] = new BGCouriers_WC_Settings();
         return $pages;
     }
-    /** Keep bgcouriers_dropdown_limit a positive number; an empty/invalid value resets to the default 5. */
+    /**
+     * Keep bgcouriers_dropdown_limit a positive number; an empty or invalid value resets to the default.
+     * The default is the reader's constant, not a number of its own: this used to say 5 after the
+     * default had moved to 20, so a merchant who cleared the field got a quarter of the list.
+     */
     public function sanitize_dropdown_limit($value, $option, $raw_value) {
-        return (int) $raw_value > 0 ? (string) (int) $raw_value : '5';
+        return (int) $raw_value > 0 ? (string) (int) $raw_value : (string) BGCouriers_Settings::DROPDOWN_LIMIT;
     }
     /** Custom WC field: drag-sortable order - of the delivery methods (bgcouriers_<courier>_method_order) OR the couriers (bgcouriers_courier_order). */
     public function render_sortable($field): void {
