@@ -63,6 +63,35 @@ final class AbstractCourierTest extends TestCase {
         catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 400: Bad request', $e->getMessage()); }
     }
 
+    /**
+     * Econt keeps the words one level down when it refuses an address: the outer message is empty and
+     * innerErrors[0].message says what is wrong (measured 2026-09-13, validateAddress for a street Sofia
+     * does not have). The merchant was shown the whole body - twelve lines of JSON - for that.
+     */
+    public function test_post_json_reads_econt_inner_errors_when_the_outer_message_is_empty(): void {
+        Functions\when('wp_remote_post')->justReturn(['x']);
+        Functions\when('is_wp_error')->justReturn(false);
+        Functions\when('wp_remote_retrieve_response_code')->justReturn(517);
+        Functions\when('wp_remote_retrieve_body')->justReturn('{"type":"ExInvalidParam","message":"","fields":[],"innerErrors":[{"type":"ExInvalidAddress","message":"Информацията, която попълнихте за адрес, е недостатъчна.","fields":[],"innerErrors":[]}]}');
+        Functions\when('wp_json_encode')->alias('json_encode');
+        try { (new BGCouriers_Test_Courier())->call('https://x', []); $this->fail('should have thrown'); }
+        catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 517: Информацията, която попълнихте за адрес, е недостатъчна.', $e->getMessage()); }
+    }
+
+    /** Two inner errors are two sentences; one nested deeper is still found; a bare shell is shown as it was. */
+    public function test_inner_errors_are_joined_and_followed_down(): void {
+        Functions\when('wp_remote_post')->justReturn(['x']);
+        Functions\when('is_wp_error')->justReturn(false);
+        Functions\when('wp_remote_retrieve_response_code')->justReturn(517);
+        Functions\when('wp_json_encode')->alias('json_encode');
+        Functions\when('wp_remote_retrieve_body')->justReturn('{"message":"","innerErrors":[{"message":"Първо."},{"message":"","innerErrors":[{"message":"Второ."}]}]}');
+        try { (new BGCouriers_Test_Courier())->call('https://x', []); $this->fail('should have thrown'); }
+        catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 517: Първо.; Второ.', $e->getMessage()); }
+        Functions\when('wp_remote_retrieve_body')->justReturn('{"type":"ExInvalidParam","message":"","innerErrors":[]}');
+        try { (new BGCouriers_Test_Courier())->call('https://x', []); $this->fail('should have thrown'); }
+        catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 517: {"type":"ExInvalidParam","message":"","innerErrors":[]}', $e->getMessage()); }
+    }
+
     public function test_post_json_shows_a_body_that_is_not_json_as_it_was(): void {
         Functions\when('wp_remote_post')->justReturn(['x']);
         Functions\when('is_wp_error')->justReturn(false);

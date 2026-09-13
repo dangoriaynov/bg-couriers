@@ -51,7 +51,25 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
             $t = self::leaf_text($m);
             if ($t !== '') { return $t; }
         }
-        return '';
+        // Econt keeps the words one level down: an address it cannot place is HTTP 517 {"type":
+        // "ExInvalidParam","message":"","innerErrors":[{"type":"ExInvalidAddress","message":"Информацията,
+        // която попълнихте за адрес, е недостатъчна. ..."}]} (measured 2026-09-13 against
+        // AddressService.validateAddress) - and with the outer message empty the merchant was shown the
+        // whole body, twelve lines of JSON. The inner messages are read, as deep as they go.
+        return self::inner_words($j['innerErrors'] ?? null, 0);
+    }
+
+    /** The messages of Econt's nested innerErrors, joined; '' when there are none. @param mixed $errors */
+    private static function inner_words($errors, int $depth): string {
+        if (!is_array($errors) || $depth > 4) { return ''; }
+        $out = [];
+        foreach ($errors as $e) {
+            if (!is_array($e)) { continue; }
+            $t = self::leaf_text($e['message'] ?? null);
+            if ($t === '') { $t = self::inner_words($e['innerErrors'] ?? null, $depth + 1); }
+            if ($t !== '') { $out[] = $t; }
+        }
+        return implode('; ', array_unique($out));
     }
 
     /** A string as it is; a list or object of strings joined; anything else nothing. @param mixed $m */
