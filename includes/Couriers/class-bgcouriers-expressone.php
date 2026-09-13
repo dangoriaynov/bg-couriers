@@ -406,7 +406,11 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
     private function streets_of(int $city_id): array {
-        $k = $this->key('streets_' . $city_id);
+        // With the nomenclature generation in the key, as every per-town cache here: "Sync now" retires
+        // the list, since a transient cannot be deleted by prefix (and on a shop with an object cache is
+        // not even in the database).
+        $gen = class_exists('BGCouriers_Ajax') ? BGCouriers_Ajax::nomenclature_generation('expressone') : '';
+        $k = $this->key('streets_' . $city_id . ($gen !== '' ? '_' . substr(md5($gen), 0, 8) : ''));
         $c = get_transient($k);
         if (is_array($c)) { return $c; }
         $rows = self::parse_streets($this->call('/1/list-street', ['city_id' => $city_id]));

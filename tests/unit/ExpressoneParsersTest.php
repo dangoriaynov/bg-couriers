@@ -30,6 +30,7 @@ final class ExpressoneParsersTest extends TestCase {
         // The street list is cached for a day against the rate limit; a unit test always asks cold.
         Functions\when('get_transient')->justReturn(false);
         Functions\when('set_transient')->justReturn(true);
+        Functions\when('get_option')->alias(static function ($k, $d = '') { return $d; }); // the nomenclature generation in the cache key
         if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }
     }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
