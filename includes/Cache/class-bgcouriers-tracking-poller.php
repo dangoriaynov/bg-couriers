@@ -236,9 +236,7 @@ class BGCouriers_Tracking_Poller {
         // A courier that answered without a usable status ("UNKNOWN" is what our parsers fall back to)
         // has told us nothing worth writing on the order - the note only ever confused whoever read it.
         if ($human !== '' && strcasecmp($human, 'UNKNOWN') !== 0) {
-            /* translators: 1: courier name, 2: what stage the shipment is at, 3: the courier's own wording */
-            $order->add_order_note(sprintf(__('%1$s - %2$s: "%3$s"', 'bg-couriers'),
-                $label, BGCouriers_Tracking::stage_label($t->stage()), $human));
+            $order->add_order_note(BGCouriers_Tracking::status_note($label, $t->stage(), $human));
         }
 
         // A refused parcel that has come all the way BACK: the goods are on the shelf again, so the order

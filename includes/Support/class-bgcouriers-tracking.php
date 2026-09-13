@@ -272,6 +272,24 @@ class BGCouriers_Tracking {
      * @param string $stage One of registered|transit|ready|delivered|returning|returned|cancelled.
      * @return string Translated label.
      */
+    /**
+     * The order note for a change of status: "<courier> - <stage>: "<what the courier said>"" - or, when
+     * the courier's own words are the stage label to the letter, "<courier> - <stage>" and no quote.
+     * Sameday's status for a fresh AWB is "Създадена товарителница", which is also the Bulgarian for
+     * "Label created": the note read `Sameday - Създадена товарителница: „Създадена товарителница“` on
+     * every Sameday order (prod, 2026-09-13). The quote is there to carry information the label does
+     * not; when it carries none, it goes.
+     */
+    public static function status_note(string $courier_label, string $stage, string $human): string {
+        $label = self::stage_label($stage);
+        if (function_exists('mb_strtolower') ? mb_strtolower(trim($human)) === mb_strtolower($label) : strcasecmp(trim($human), $label) === 0) {
+            /* translators: 1: courier name, 2: what stage the shipment is at */
+            return sprintf(__('%1$s - %2$s', 'bg-couriers'), $courier_label, $label);
+        }
+        /* translators: 1: courier name, 2: what stage the shipment is at, 3: the courier's own wording */
+        return sprintf(__('%1$s - %2$s: "%3$s"', 'bg-couriers'), $courier_label, $label, $human);
+    }
+
     public static function stage_label(string $stage): string {
         switch ($stage) {
             case 'registered': return __('Label created', 'bg-couriers');
