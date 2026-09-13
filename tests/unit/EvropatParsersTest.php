@@ -283,6 +283,47 @@ final class EvropatParsersTest extends TestCase {
         $this->assertStringContainsString($s['type'], $s['label']);
     }
 
+    /**
+     * Sofia lists four "витоша" (бул., кв., ул., жк.) and one name cannot say which. An order that
+     * carries the street's own id off this list, or its type, is settled by it - the first of the
+     * four with a warning is what a bare name gets, as before.
+     */
+    public function test_the_id_or_the_type_the_order_carries_settles_a_name_the_town_has_four_times(): void {
+        $co = new class ([]) extends BGCouriers_Evropat {
+            public int $asked = 0;
+            protected function call(string $path, array $body = []): array {
+                $this->asked++;
+                return [
+                    ['destinationID' => '273', 'addressID' => '36141',  'address' => 'витоша', 'addressFull' => 'бул. витоша', 'typeName' => 'бул'],
+                    ['destinationID' => '273', 'addressID' => '37785',  'address' => 'витоша', 'addressFull' => 'кв. витоша',  'typeName' => 'кв'],
+                    ['destinationID' => '273', 'addressID' => '38842',  'address' => 'витоша', 'addressFull' => 'ул. витоша',  'typeName' => 'ул'],
+                    ['destinationID' => '273', 'addressID' => '156617', 'address' => 'витоша', 'addressFull' => 'жк. витоша',  'typeName' => 'жк'],
+                    ['destinationID' => '273', 'addressID' => '40001',  'address' => 'шипка',  'addressFull' => 'ул. шипка',   'typeName' => 'ул'],
+                ];
+            }
+        };
+        $hit = $co->street_match(273, 'Витоша');
+        $this->assertSame(36141, $hit['id'], 'a bare name: the first, with the warning');
+        $this->assertTrue($hit['ambiguous']);
+
+        $hit = $co->street_match(273, 'Витоша', 'ул.', 38842);
+        $this->assertSame(38842, $hit['id']);
+        $this->assertFalse($hit['ambiguous']);
+        $this->assertSame('ул. витоша', $hit['label']);
+
+        $hit = $co->street_match(273, 'ВИТОША', 'ул.');
+        $this->assertSame(38842, $hit['id'], 'the type alone: "ул." and the list\'s "ул" are one type');
+        $this->assertFalse($hit['ambiguous']);
+
+        $hit = $co->street_match(273, 'Витоша', '', 1314);
+        $this->assertSame(36141, $hit['id'], 'an id off another courier\'s list is ignored, the name decides');
+        $this->assertTrue($hit['ambiguous']);
+
+        $hit = $co->street_match(273, 'Шипка', '', 38842);
+        $this->assertSame(40001, $hit['id'], 'an id whose street is not the named one is ignored');
+        $this->assertFalse($hit['ambiguous']);
+    }
+
     // ── Tracking ─────────────────────────────────────────────────────────────
 
     public function test_a_delivered_parcel_stays_delivered_under_later_paperwork(): void {

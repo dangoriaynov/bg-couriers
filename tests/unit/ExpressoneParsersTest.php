@@ -139,6 +139,38 @@ final class ExpressoneParsersTest extends TestCase {
         $this->assertSame(0, $co->street_match(0, '1')['id'], 'no town, no lookup');
     }
 
+    /**
+     * Since the checkout keeps which street was picked, the order carries the street's own id and its
+     * type beside the name - and either settles a name the town has twice, with no warning to give.
+     */
+    public function test_the_id_or_the_type_the_order_carries_settles_a_name_the_town_has_twice(): void {
+        $co = new class ([]) extends BGCouriers_Expressone {
+            protected function call(string $path, array $body = []): array {
+                return json_decode((string) file_get_contents(dirname(__DIR__) . '/fixtures/expressone/list-street.json'), true);
+            }
+        };
+        $hit = $co->street_match(68134, '1', 'АЛ.', 3387);
+        $this->assertSame(3387, $hit['id'], 'the id off the list wins');
+        $this->assertFalse($hit['ambiguous']);
+        $this->assertSame('АЛ. 1', $hit['label']);
+
+        $hit = $co->street_match(68134, '1', 'ал');
+        $this->assertSame(3387, $hit['id'], 'the type alone picks among the two - dot and case are not part of it');
+        $this->assertFalse($hit['ambiguous']);
+
+        $hit = $co->street_match(68134, '1', 'ПЛ.');
+        $this->assertSame(143, $hit['id'], 'a type neither has: the first, and the warning, as before');
+        $this->assertTrue($hit['ambiguous']);
+
+        $hit = $co->street_match(68134, '1', '', 999999);
+        $this->assertSame(143, $hit['id'], 'an id that is not on this list (another courier\'s) is ignored');
+        $this->assertTrue($hit['ambiguous']);
+
+        $hit = $co->street_match(68134, '10', '', 3387);
+        $this->assertSame(145, $hit['id'], 'an id whose street is not the named one is ignored too');
+        $this->assertFalse($hit['ambiguous']);
+    }
+
     // ── Price ────────────────────────────────────────────────────────────────
 
     public function test_the_price_woocommerce_is_given_is_net_of_its_vat(): void {

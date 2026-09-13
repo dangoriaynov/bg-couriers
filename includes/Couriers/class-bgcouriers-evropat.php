@@ -315,12 +315,29 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
      *
      * @return array{id:int,label:string,ambiguous:bool}
      */
-    public function street_match(int $city_id, string $name): array {
+    public function street_match(int $city_id, string $name, string $type = '', int $street_id = 0): array {
         $want = self::fold($name);
-        if ($city_id <= 0 || $want === '') { return ['id' => 0, 'label' => '', 'ambiguous' => false]; }
+        if ($city_id <= 0 || ($want === '' && $street_id <= 0)) { return ['id' => 0, 'label' => '', 'ambiguous' => false]; }
+        $rows = $this->streets_of($city_id);
+        // The street's own id off this list, recorded by the checkout since the pick started being kept:
+        // Sofia has four "витоша" (бул., кв., ул., жк.) and the id says which. An id that is not on
+        // this town's list is ignored and the name decides, as it did for every order before.
+        if ($street_id > 0) {
+            foreach ($rows as $s) {
+                if ((int) $s['id'] === $street_id && ($want === '' || self::fold($s['name']) === $want)) {
+                    return ['id' => $street_id, 'label' => (string) $s['label'], 'ambiguous' => false];
+                }
+            }
+        }
         $exact = [];
-        foreach ($this->streets_of($city_id) as $s) {
+        foreach ($rows as $s) {
             if (self::fold($s['name']) === $want) { $exact[] = $s; }
+        }
+        // Several of that name and a type to choose by ("ул" and "ул." are one type - the dot is the
+        // list's habit): keep the ones of that type.
+        if (count($exact) > 1 && rtrim(self::fold($type), '.') !== '') {
+            $of_type = array_values(array_filter($exact, static function ($s) use ($type) { return rtrim(self::fold($s['type']), '.') === rtrim(self::fold($type), '.'); }));
+            if ($of_type) { $exact = $of_type; }
         }
         if (!$exact) {
             // Nothing spelled exactly that; fall back to the single street that CONTAINS it, if there is
@@ -566,7 +583,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         $s        = $this->shipment_of($order);
         $problems = [];
         if ($s['method'] === 'address') {
-            $hit = $this->street_match((int) $s['city_id'], (string) $s['street']);
+            $hit = $this->street_match((int) $s['city_id'], (string) $s['street'], (string) $s['street_type'], (int) $s['street_id']);
             if ($hit['id'] <= 0) {
                 throw new BGCouriers_Api_Exception(esc_html(sprintf(
                     /* translators: %s: the street as it is written on the order. */
@@ -605,6 +622,8 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
             'office_id'    => (int) $order->get_meta('_bgcouriers_office_id'),
             'office_name'  => self::office_line((int) $order->get_meta('_bgcouriers_office_id')),
             'street'       => (string) $order->get_meta('_bgcouriers_street_name'),
+            'street_type'  => (string) $order->get_meta('_bgcouriers_street_type'), // which street of that name, when chosen off the list
+            'street_id'    => (int) $order->get_meta('_bgcouriers_street_id'),
             'street_no'    => (string) $order->get_meta('_bgcouriers_street_no'),
             'weight_kg'    => self::order_weight_kg($order),
             'parcels'      => max(1, (int) $order->get_meta('_bgcouriers_parcels')),
