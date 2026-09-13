@@ -206,8 +206,15 @@ test.describe('delivery in the total', () => {
     await page.waitForTimeout(4000);
     const prepaid = await price();
     expect(prepaid).toBeGreaterThan(0);
+    // The name and phone are typed BEFORE the payment change, and a payment change re-prices the rates
+    // over the Store API - which used to answer with the server's older, empty copy of the customer and
+    // wipe the fields as the customer watched (measured 2026-09-14). They must survive it.
+    await page.fill('#shipping-first_name', 'Тест');
+    await page.fill('#shipping-phone', '0888123456');
     await page.locator('label[for="radio-control-wc-payment-method-options-cod"]').click();
     await expect.poll(price, { timeout: 15000 }).toBeGreaterThan(prepaid);
+    await expect(page.locator('#shipping-first_name')).toHaveValue('Тест');
+    await expect(page.locator('#shipping-phone')).toHaveValue('0888123456');
     const cod = await price();
     await page.locator('label[for="radio-control-wc-payment-method-options-bacs"]').click();
     await expect.poll(price, { timeout: 15000 }).toBe(prepaid);
@@ -215,9 +222,7 @@ test.describe('delivery in the total', () => {
     await page.locator('label[for="radio-control-wc-payment-method-options-cod"]').click();
     await expect.poll(price, { timeout: 15000 }).toBe(cod);
     await page.fill('#email', 'e2e-blocks-cod@example.com');
-    await page.fill('#shipping-first_name', 'Тест');
     await page.fill('#shipping-last_name', 'НП');
-    await page.fill('#shipping-phone', '0888123456');
     await page.locator('#shipping-phone').blur();
     await phoneOnServer(page);
     await page.locator('button:has-text("Place Order")').click();

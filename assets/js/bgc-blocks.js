@@ -20,6 +20,19 @@
   var Slot = wc.blocksCheckout.ExperimentalOrderShippingPackages;
   if (!Slot) { return; }
 
+  /**
+   * Push what the block holds for the customer to the server, so a cart update does not answer with the
+   * server's older (or empty) copy and overwrite the fields the customer is filling in.
+   */
+  function persistCustomerData() {
+    try {
+      var sel = wp.data.select('wc/store/cart'), disp = wp.data.dispatch('wc/store/cart');
+      if (!sel || !disp || !sel.getCustomerData || !disp.updateCustomerData) { return Promise.resolve(); }
+      var cd = sel.getCustomerData();
+      return Promise.resolve(disp.updateCustomerData({ billing_address: cd.billingAddress, shipping_address: cd.shippingAddress }, false)).catch(function () {});
+    } catch (e) { return Promise.resolve(); }
+  }
+
   /** The payment method the customer has picked in the block, '' before there is one. */
   function activePaymentMethod() {
     try {
@@ -87,12 +100,14 @@
       // courier the customer had just clicked would flip back to the one before it. Seen once on
       // 2026-09-14 (Express One chosen, its locker tab clicked at once, the block came back showing
       // Speedy) and not reproduced in eight tries after; the wait takes the interleaving away.
+      // Only a rate being selected: that is the one the recalculation must not interleave with, or the
+      // courier just clicked flips back to the one before it. NOT isCustomerDataUpdating - a payment
+      // change is a customer-data update, and waiting on it would keep the repricing from ever firing;
+      // the half-typed fields are protected by persistCustomerData below, not by waiting.
       function blockBusy() {
         try {
           var cart = wp.data.select('wc/store/cart');
-          return !!(cart && ((cart.isShippingRateBeingSelected && cart.isShippingRateBeingSelected())
-            || (cart.isCustomerDataUpdating && cart.isCustomerDataUpdating())
-            || (cart.hasPendingItemsOperations && cart.hasPendingItemsOperations())));
+          return !!(cart && cart.isShippingRateBeingSelected && cart.isShippingRateBeingSelected());
         } catch (e) { return false; }
       }
       function whenIdle(cb, tries) {
@@ -111,13 +126,21 @@
           // time and the row showed the prepaid price (measured 2026-09-14: 2,12 € shown, 2,41 €
           // charged).
           var data = { payment_method: activePaymentMethod() };
-          var p = (wc.blocksCheckout.extensionCartUpdate && wc.blocksCheckout.extensionCartUpdate({ namespace: 'bg-couriers', data: data })) || Promise.resolve();
           var done = function () {
             busy = false;
             $(document.body).trigger('updated_checkout');
             if (again) { again = false; refresh(); }
           };
-          Promise.resolve(p).then(done, done);
+          // Persist what the customer has typed in the block's own fields FIRST. The cart update below
+          // answers with the cart the SERVER holds, and the block adopts it - so if a name or phone the
+          // customer typed has not reached the server yet (WooCommerce pushes those on a debounce of its
+          // own), the answer carries the empty server value and the field is wiped as the customer
+          // watches (measured 2026-09-14: type a name, switch to cash on delivery, the name and phone
+          // vanish). The store already holds the typed values; pushing them makes the answer match.
+          persistCustomerData().then(function () {
+            var p = (wc.blocksCheckout.extensionCartUpdate && wc.blocksCheckout.extensionCartUpdate({ namespace: 'bg-couriers', data: data })) || Promise.resolve();
+            Promise.resolve(p).then(done, done);
+          }, done);
         }, 50); // five seconds at most; a block that never settles must not leave the pickers dead
       }
       $(document.body).on('update_checkout.bgcblocks', refresh);
