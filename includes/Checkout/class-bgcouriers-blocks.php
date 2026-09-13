@@ -36,6 +36,9 @@ class BGCouriers_Blocks {
         // ...and writes the chosen courier, delivery type, town and office onto the order once it is
         // allowed through. Without this the order carries a shipping rate and nothing else.
         add_action('woocommerce_store_api_checkout_update_order_from_request', [$this, 'persist'], 10, 2);
+        // ...and once more when the order is fully built, in case WooCommerce's own address sync ran
+        // over it in between - see ensure_address().
+        add_action('woocommerce_store_api_checkout_order_processed', [$this, 'ensure_address']);
         add_action('wp_enqueue_scripts', [$this, 'assets'], 20);
         add_action('wp_ajax_bgcouriers_blocks_fields', [$this, 'ajax_fields']);
         add_action('wp_ajax_nopriv_bgcouriers_blocks_fields', [$this, 'ajax_fields']);
@@ -242,5 +245,22 @@ class BGCouriers_Blocks {
     /** @param \WC_Order $order the order the Store API has just built from the request */
     public function persist($order, $request = null): void {
         if ($order instanceof \WC_Order) { $this->checkout->persist($order); }
+    }
+
+    /**
+     * The order's address is the courier selection, whatever WooCommerce copied over it.
+     *
+     * persist() writes the delivery meta AND the order's own address from the session. Seen once on
+     * 2026-09-14 on dev: an order placed through the block carried the courier meta and an EMPTY
+     * shipping address - WooCommerce's address fields are hidden on the block, so its customer object
+     * holds blanks, and one of the Store API's own syncs of customer to order ran after ours. The
+     * next run carried the address. Rather than depend on the order of two syncs inside WooCommerce,
+     * the address is asserted again at the last hook before payment, and only where it is missing.
+     */
+    public function ensure_address($order): void {
+        if (!$order instanceof \WC_Order || (string) $order->get_meta('_bgcouriers_courier') === '') { return; }
+        if (trim((string) $order->get_shipping_address_1()) !== '' && trim((string) $order->get_shipping_city()) !== '') { return; }
+        $this->checkout->persist($order);
+        $order->save();
     }
 }
