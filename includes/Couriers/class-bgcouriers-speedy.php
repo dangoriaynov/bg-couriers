@@ -58,6 +58,22 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public function id(): string { return 'speedy'; }
     public function label(): string { return 'Speedy'; }
 
+    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
+    public function credential_hint(): array {
+        return [
+            'intro' => __('Speedy issues API access to registered business clients - there is no instant self-signup.', 'bg-couriers'),
+            'steps' => [
+                __('Have (or open) a Speedy business contract.', 'bg-couriers'),
+                __('Request REST API access (ask for a test account first) from your Speedy account manager, or via the integration contact on the Speedy "System integration" page below.', 'bg-couriers'),
+                __('Speedy issues an API username + password for api.speedy.bg.', 'bg-couriers'),
+                __('Enter the username and password below, click Validate, then Sync.', 'bg-couriers'),
+            ],
+            'receive'   => __('API username + password', 'bg-couriers'),
+            'url_label' => __('Speedy system integration:', 'bg-couriers'),
+            'url'       => 'https://www.speedy.bg/en/system-integration',
+        ];
+    }
+
     /**
      * Romania, and for now only Romania.
      *

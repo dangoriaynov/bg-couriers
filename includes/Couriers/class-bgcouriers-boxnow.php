@@ -27,7 +27,23 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
 
     public function id(): string { return 'boxnow'; }
     public function label(): string { return 'BOX NOW'; }
+
+    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
+    public function credential_hint(): array {
+        return [
+            'intro' => __('BOX NOW issues OAuth2 credentials through its integration team.', 'bg-couriers'),
+            'steps' => [
+                __('E-mail integrationsupport@boxnow.bg with your company name, address, tax ID (ЕИК), contact details, and the phone numbers of the people who will use the Partner Portal (needed for OTP SMS login).', 'bg-couriers'),
+                __('They issue your OAuth2 Client ID + Client Secret and confirm your Warehouse ID and Partner ID.', 'bg-couriers'),
+                __('Enter the Client ID, Client Secret, Partner ID and Warehouse ID below; choose the Production environment (or Stage for testing).', 'bg-couriers'),
+            ],
+            'receive'   => __('OAuth2 Client ID + Client Secret (+ Partner ID, Warehouse ID)', 'bg-couriers'),
+            'url_label' => __('BOX NOW:', 'bg-couriers'),
+            'url'       => 'https://www.boxnow.bg',
+        ];
+    }
     public function capabilities(): array { return ['automat']; } // locker-only
+    public function pushes_tracking(): bool { return true; }       // its webhook, see BGCouriers_Boxnow_Webhook
 
     public function enable_problems(): array {
         $p = parent::enable_problems();

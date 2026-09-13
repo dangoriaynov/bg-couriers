@@ -15,6 +15,22 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
 
     public function id(): string { return 'econt'; }
     public function label(): string { return 'Econt'; }
+
+    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
+    public function credential_hint(): array {
+        return [
+            'intro' => __('Econt\'s API uses your own e-Econt ("Моят Еконт") business account - there is no separate API key.', 'bg-couriers'),
+            'steps' => [
+                __('Register or open a business account in "Моят Еконт" at ee.econt.com.', 'bg-couriers'),
+                __('Confirm with Econt that API access is enabled for your account.', 'bg-couriers'),
+                __('Your API username is your account e-mail; the password is your account password.', 'bg-couriers'),
+                __('Enter the e-mail and password below, click Validate, then Sync.', 'bg-couriers'),
+            ],
+            'receive'   => __('account e-mail (username) + password', 'bg-couriers'),
+            'url_label' => __('Моят Еконт:', 'bg-couriers'),
+            'url'       => 'https://ee.econt.com',
+        ];
+    }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote', 'pickup']; }
 
     public function enable_problems(): array {

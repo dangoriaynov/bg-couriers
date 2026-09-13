@@ -67,28 +67,22 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     /**
-     * The courier ids that get a settings tab of their own, in tab order.
+     * The courier ids that get a settings tab of their own, in tab order - the courier registry's
+     * order, which is the order they are registered in BGCouriers_Plugin.
      *
      * One list, because there were three of them: sections() below, the field builder and output().
      * The one in output() was a seven-branch if/elseif with a final else, and the About tab landed in
      * that else - so the About tab rendered the General tab's 38 fields. A courier that is on the tab
-     * row can no longer be missing from either of the other two.
+     * row can no longer be missing from either of the other two. And it is the registry's list rather
+     * than one written out here, so a courier registered is a courier with a tab.
+     *
+     * @return string[]
      */
-    private const COURIER_SECTIONS = ['speedy', 'econt', 'pigeon', 'boxnow', 'sameday', 'expressone', 'evropat'];
+    private static function courier_sections(): array { return array_keys(BGCouriers_Couriers::all()); }
 
-    /** The tab row. The labels are the couriers' own names, so they stay written out here. */
+    /** The tab row: General, one tab per registered courier under its own name (brand names are not translated), About. */
     private function sections(): array {
-        return [
-            ''       => __('General', 'bg-couriers'),
-            'speedy' => __('Speedy', 'bg-couriers'),
-            'econt'  => __('Econt', 'bg-couriers'),
-            'pigeon' => __('Pigeon Express', 'bg-couriers'),
-            'boxnow' => __('BOX NOW', 'bg-couriers'),
-            'sameday' => __('Sameday', 'bg-couriers'),
-            'expressone' => __('Express One', 'bg-couriers'),
-            'evropat' => __('Европът', 'bg-couriers'),
-            'about'  => __('About', 'bg-couriers'),
-        ];
+        return ['' => __('General', 'bg-couriers')] + BGCouriers_Couriers::all() + ['about' => __('About', 'bg-couriers')];
     }
 
     /** Full field set for the section - used by save() (save_settings_for_current_section). */
@@ -159,7 +153,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         // Every courier is built the same way: its own section, then the per-delivery-option groups.
         // BOX NOW is the exception and says why: it is locker-only and flat-rate, so there is nothing
         // to price per delivery option.
-        if (in_array($section, self::COURIER_SECTIONS, true)) {
+        if (in_array($section, self::courier_sections(), true)) {
             $f = $this->{$section . '_courier_fields'}();
             if ($section === 'boxnow') { return $f; }
             foreach (self::$method_labels as $m => $label) {
@@ -183,7 +177,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $this->section_nav((string) $current_section);
 
         echo '<div class="bgc-group">';
-        if (in_array($current_section, self::COURIER_SECTIONS, true)) {
+        if (in_array($current_section, self::courier_sections(), true)) {
             $this->output_courier((string) $current_section);
         } else {
             // Whatever the tab row offers that is not a courier - General, About - is the field list
@@ -726,8 +720,9 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         return ((string) get_option($option, '')) !== '' ? '••••••••' : '';
     }
 
-    private function courier_section(string $id, string $label, array $parts): array {
-        $p    = 'bgcouriers_' . $id . '_';
+    private function courier_section(string $id, array $parts): array {
+        $label = BGCouriers_Couriers::all()[$id] ?? ucfirst($id); // the courier's own name, as registered
+        $p     = 'bgcouriers_' . $id . '_';
         $cur  = get_woocommerce_currency();
 
         $account = [
@@ -821,7 +816,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'desc' => self::intl_countries_desc('speedy', __('Speedy', 'bg-couriers')),
                 'default' => []],
         ] : [];
-        return $this->courier_section('speedy', __('Speedy', 'bg-couriers'), [
+        return $this->courier_section('speedy', [
             'creds' => [
                 ['username', 'text', __('API username', 'bg-couriers')],
                 ['password', 'password', __('API password', 'bg-couriers')],
@@ -866,7 +861,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 foreach ($econt->sender_addresses() as $sid => $lbl) { $sender_opts[$sid] = $lbl; }
             }
         }
-        return $this->courier_section('econt', __('Econt', 'bg-couriers'), [
+        return $this->courier_section('econt', [
             'creds' => [
                 ['username', 'text', __('API username', 'bg-couriers')],
                 ['password', 'password', __('API password', 'bg-couriers')],
@@ -902,7 +897,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     private function pigeon_courier_fields(): array {
-        return $this->courier_section('pigeon', __('Pigeon Express', 'bg-couriers'), [
+        return $this->courier_section('pigeon', [
             'creds' => [
                 ['username', 'text', __('API Key', 'bg-couriers')],
                 ['password', 'password', __('API Secret', 'bg-couriers')],
@@ -934,7 +929,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
 
     /** Sameday - office/address/easyBox + live quote. Needs a pickup point + per-type service IDs from the contract. */
     private function sameday_courier_fields(): array {
-        return $this->courier_section('sameday', __('Sameday', 'bg-couriers'), [
+        return $this->courier_section('sameday', [
             'creds' => [
                 ['username', 'text', __('Username', 'bg-couriers'), __('Sameday API username (X-Auth-Username).', 'bg-couriers')],
                 ['password', 'password', __('Password', 'bg-couriers')],
@@ -965,7 +960,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
      * because there is nothing to read it from before that.
      */
     private function expressone_courier_fields(): array {
-        return $this->courier_section('expressone', __('Express One', 'bg-couriers'), [
+        return $this->courier_section('expressone', [
             'creds' => [
                 ['username', 'text', __('API username', 'bg-couriers'),
                     __('The username Express One issued for the API. It is not the one you sign in to my.expressone.bg with.', 'bg-couriers')],
@@ -1019,7 +1014,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
      * There is no API username field, because Evropat does not issue one - see credential_fields().
      */
     private function evropat_courier_fields(): array {
-        return $this->courier_section('evropat', __('Европът', 'bg-couriers'), [
+        return $this->courier_section('evropat', [
             'creds' => [
                 ['password', 'password', __('API key', 'bg-couriers'),
                     __('The key you generate yourself in Settings at online.evropat.com. Европът issues no API username - this key is the whole credential.', 'bg-couriers')],
@@ -1064,7 +1059,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     /** BOX NOW - locker-only, flat-rate, OAuth2. Only the fields BoxNow actually uses (no dangling params). */
     private function boxnow_courier_fields(): array {
         $cur = get_woocommerce_currency();
-        return $this->courier_section('boxnow', __('BOX NOW', 'bg-couriers'), [
+        return $this->courier_section('boxnow', [
             'creds' => [
                 ['username', 'text', __('Client ID', 'bg-couriers')],
                 ['password', 'password', __('Client secret', 'bg-couriers')],
