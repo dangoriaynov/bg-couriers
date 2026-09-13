@@ -98,6 +98,14 @@ and books nothing.
 
     cd e2e && BGC_REAL_WAYBILL=1 npx playwright test speedy-street-type
 
+## The order editor, without a login
+
+`order-editor-street.spec.js` drives the wp-admin order editor's street box in a browser. The suite has
+no admin login, and does not need one: `dev-option.sh editor <order>` prints the editor's real markup
+and the config its script is given (as JSON), and the spec puts them on a page of their own with dev's
+jQuery, selectWoo and Leaflet and the plugin's admin script. The street lookups reach the real
+endpoint; the save is intercepted and its payload asserted. It places its own Speedy address order first.
+
 ## A country the shop cannot deliver to
 
 `intl-no-delivery.spec.js` drives the other side of the same feature, and books nothing: with no prepaid
