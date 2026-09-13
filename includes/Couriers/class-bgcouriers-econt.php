@@ -134,10 +134,16 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
      * (measured 2026-09-13) - and it was fetched again on every keystroke in the street box, on every
      * address label, and on every map pick. The list changes at the pace a town's streets do.
      *
+     * The key carries the nomenclature generation, like the per-town office lists (see
+     * BGCouriers_Ajax::city_offices): "Sync now" retires it, because a transient cannot be deleted by
+     * prefix and on a shop with an object cache it is not even in the database. And the API host, since
+     * the demo and the live nomenclatures are two.
+     *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
     private function streets_of(int $city_id): array {
-        $k = 'bgcouriers_econt_streets_' . $city_id;
+        $gen = class_exists('BGCouriers_Ajax') ? BGCouriers_Ajax::nomenclature_generation('econt') : '';
+        $k = 'bgcouriers_econt_streets_' . $city_id . '_' . substr(md5($this->base . '|' . $gen), 0, 8);
         $c = get_transient($k);
         if (is_array($c)) { return $c; }
         $rows = self::parse_streets($this->post_json($this->base . '/Nomenclatures/NomenclaturesService.getStreets.json', ['cityID' => $city_id]));
