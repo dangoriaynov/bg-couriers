@@ -10,18 +10,23 @@ there is no default, and the suite refuses to start without one. It also turns d
 for the length of a run over SSH, so `bin/deploy.conf` has to reach dev too - see
 [`e2e/README.md`](../e2e/README.md) for what that protects against.
 
-## The spec that books a real shipment
+## The specs that book a real shipment
 
-One spec is left out of every ordinary run, including `bin/test` and `bin/test speedy`: the parcel to
-**Romania** (`e2e/tests/intl-speedy-ro.spec.js`, tagged `@books-real-waybill`). It books a waybill at
-Speedy and voids it again, because Speedy's domestic and international services are mutually exclusive
-and a waybill coming back is the only proof the international one was used.
+Two tests are left out of every ordinary run, including `bin/test` and `bin/test speedy` - the ones
+tagged `@books-real-waybill`. Each books a waybill at Speedy and voids it again, because a waybill
+coming back is the only proof the courier accepts what the order carries:
 
-    cd e2e && BGC_REAL_WAYBILL=1 npx playwright test intl-speedy-ro
+- the parcel to **Romania** (`e2e/tests/intl-speedy-ro.spec.js`): Speedy's domestic and international
+  services are mutually exclusive, so the waybill proves the international one was used. Dev has to be
+  set up for it first - Romania in Speedy's "Also deliver to" with a **Sync now** since, and Romania in
+  a shipping zone that carries the Speedy method. [`e2e/README.md`](../e2e/README.md) has the full recipe
+  and what to check afterwards.
+- the parcel to **ул. ВИТОША** (the second test in `e2e/tests/speedy-street-type.spec.js`): Sofia has a
+  бул. ВИТОША too, and Speedy refuses the bare name in a town where it is not unique - the waybill
+  proves the order's street id is what reaches Speedy. The first test in that file runs every time and
+  books nothing.
 
-Dev has to be set up for it first - Romania in Speedy's "Also deliver to" with a **Sync now** since, and
-Romania in a shipping zone that carries the Speedy method. [`e2e/README.md`](../e2e/README.md) has the
-full recipe and what to check afterwards.
+    cd e2e && BGC_REAL_WAYBILL=1 npx playwright test intl-speedy-ro speedy-street-type
 
 ## Adding a new courier
 

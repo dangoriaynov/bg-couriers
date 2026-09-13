@@ -768,6 +768,7 @@ class BGCouriers_Labels {
             'courier' => $courier, 'method' => sanitize_key(wp_unslash($_POST['method'] ?? '')),
             'site_id' => absint(wp_unslash($_POST['site_id'] ?? 0)), 'office_id' => absint(wp_unslash($_POST['office_id'] ?? 0)),
             'post_code' => $t('post_code'), 'street_name' => $t('street_name'), 'street_no' => $t('street_no'),
+            'street_id' => absint(wp_unslash($_POST['street_id'] ?? 0)), 'street_type' => $t('street_type'),
             'complex' => $t('complex'), 'block' => $t('block'), 'entrance' => $t('entrance'),
             'floor' => $t('floor'), 'apartment' => $t('apartment'), 'address_note' => $t('address_note'),
         ]);

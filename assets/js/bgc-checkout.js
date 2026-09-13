@@ -160,7 +160,18 @@
     var $s = $wrap.find('.bgc-street');
     if ($s.hasClass('select2-hidden-accessible')) { $s.val(null).trigger('change.select2'); }
     $s.empty().append(new Option('', '', false, false));
+    setStreetPick($wrap, null);
     $wrap.find('.bgc-street-no').val('');
+  }
+  /**
+   * Which street of that name. The box's value is the bare name - that is what every courier's label
+   * reads - and the courier's own id and the type (ул./бул.) ride beside it in two hidden fields, filled
+   * when a street is chosen off the list and emptied for a typed or map-picked one: a name alone does not
+   * say which of two same-named streets is meant, and Speedy refuses it in a town that has both.
+   */
+  function setStreetPick($wrap, d) {
+    $wrap.find('.bgc-street-id').val((d && d.sid) || 0);
+    $wrap.find('.bgc-street-type').val((d && d.stype) || '');
   }
 
   function setMethod($wrap, m) {
@@ -544,7 +555,7 @@
     }
     function fields(pc) {
       if (pc) { $wrap.find('.bgc-postcode').val(pc); }
-      if (geo.street) { $wrap.find('.bgc-street').append(new Option(geo.street, geo.street, true, true)).trigger('change'); }
+      if (geo.street) { $wrap.find('.bgc-street').append(new Option(geo.street, geo.street, true, true)).trigger('change'); setStreetPick($wrap, null); }
       if (geo.number) { $wrap.find('.bgc-street-no').val(geo.number); }
       resetOffice($wrap); showLoader($wrap); pushSelection($wrap); // recalc for the (possibly new) city
     }
@@ -627,7 +638,12 @@
       ajax: {
         url: BGCOURIERS.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
         data: function (params) { return { action: 'bgcouriers_streets', courier: courier($wrap), country: country($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
-        processResults: function (rows) { return { results: bgcList(rows).map(function (s) { return { id: s.name, text: s.label || s.name }; }) }; }
+        // Each row's id is the courier's LABEL for the street - "бул. ВИТОША" and "ул. ВИТОША" are two
+        // rows, not one. With the bare name as the id they were the same row to select2: whichever the
+        // customer clicked, the box kept the first one, and once one was chosen the other showed as
+        // already selected and a click on it merely closed the list. The bare name goes into the box's
+        // value on select (below), so what the session and the label read is unchanged.
+        processResults: function (rows) { return { results: bgcList(rows).map(function (s) { return { id: s.label || s.name, text: s.label || s.name, sname: s.name, sid: s.id || 0, stype: s.type || '' }; }) }; }
       },
       createTag: function (params) {
         if (listOnly) { return null; }   // this courier delivers only to streets it lists
@@ -635,7 +651,17 @@
         return t ? { id: t, text: t } : null;
       }
     });
-    $street.on('select2:select', function () { saveSelection($wrap); });
+    $street.on('select2:select', function (e) {
+      var d = (e.params && e.params.data) || {};
+      // Rebuild the one chosen option: value = the bare name (a typed street IS its name), text = the label.
+      $street.find('option').not('[value=""]').remove();
+      $street.append(new Option(d.text || '', d.sname || d.id || '', true, true)).trigger('change.select2');
+      setStreetPick($wrap, d);
+      saveSelection($wrap);
+    });
+    // The × fires this BEFORE select2 empties the box (the office's handler does the same), so the
+    // value is emptied here or the save would carry the street that was just cleared.
+    $street.on('select2:unselect', function () { $street.val(null); setStreetPick($wrap, null); saveSelection($wrap); });
   }
 
   // Save the selection ------------------------------------------------------
@@ -646,6 +672,7 @@
       office_id: $wrap.find('.bgc-office').val() || 0,
       post_code: $wrap.find('.bgc-postcode').val() || '',
       street_name: $wrap.find('.bgc-street').val() || '', street_no: $wrap.find('.bgc-street-no').val() || '',
+      street_id: $wrap.find('.bgc-street-id').val() || 0, street_type: $wrap.find('.bgc-street-type').val() || '',
       complex: $wrap.find('.bgc-complex').val() || '', block: $wrap.find('.bgc-block').val() || '',
       entrance: $wrap.find('.bgc-entrance').val() || '', floor: $wrap.find('.bgc-floor').val() || '',
       apartment: $wrap.find('.bgc-apartment').val() || '', address_note: $wrap.find('.bgc-note').val() || ''
