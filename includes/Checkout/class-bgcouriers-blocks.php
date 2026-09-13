@@ -39,6 +39,41 @@ class BGCouriers_Blocks {
         add_action('wp_enqueue_scripts', [$this, 'assets'], 20);
         add_action('wp_ajax_bgcouriers_blocks_fields', [$this, 'ajax_fields']);
         add_action('wp_ajax_nopriv_bgcouriers_blocks_fields', [$this, 'ajax_fields']);
+        // The block's way of being told "recalculate": see refresh() and bgc-blocks.js.
+        add_action('woocommerce_blocks_loaded', [$this, 'register_refresh']);
+    }
+
+    /**
+     * The name under which the browser asks the block for a recalculation - see register_refresh().
+     */
+    public const REFRESH_NAMESPACE = 'bg-couriers';
+
+    /**
+     * A recalculation the browser can ask for.
+     *
+     * On the classic checkout every change to the delivery - the type, the town, the office - is saved to
+     * the session and then `update_checkout` is fired, WooCommerce re-renders the order review with the
+     * shipping rates priced for the new selection, and `updated_checkout` brings the pickers back to
+     * life. The checkout BLOCK has no handler for `update_checkout` at all: nothing recalculated, and the
+     * pickers stayed greyed out and dead (pointer-events none) from the first tab click - measured on
+     * 2026-09-13, ten seconds and counting; the classic checkout was back in four. The only way through
+     * was the combined map, which switches the rate itself.
+     *
+     * The Store API's way of letting a plugin ask for a recalculation is the cart/extensions endpoint:
+     * the browser posts to it under a registered name, the callback runs, and the cart - shipping rates
+     * included - comes back recalculated and the block re-renders from it. The callback has nothing to
+     * do: the selection is already in the session, where the rates read it. Being registered is the
+     * whole point.
+     */
+    public function register_refresh(): void {
+        if (!function_exists('woocommerce_store_api_register_update_callback')) { return; }
+        woocommerce_store_api_register_update_callback([
+            'namespace' => self::REFRESH_NAMESPACE,
+            'callback'  => static function ($data) {
+                // Every rate the block shows is priced from the session's selection. Nothing to write.
+                unset($data);
+            },
+        ]);
     }
 
     /**

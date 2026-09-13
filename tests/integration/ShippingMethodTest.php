@@ -47,6 +47,38 @@ final class ShippingMethodTest extends WP_UnitTestCase {
     }
 
     /**
+     * Delivery NOT in the order total: the rate costs 0 and the customer pays the courier at the door.
+     * The classic checkout says so through label filters; the checkout block prints a rate as its name
+     * and its price and runs none of them, so it read "Speedy  БЕЗПЛАТНО". The one text the block prints
+     * beside the price is the rate's delivery_time - it carries the estimate and who collects it.
+     */
+    public function test_a_recipient_pays_rate_says_so_where_the_block_can_print_it(): void {
+        $fake = $this->throwing_courier();
+        BGCouriers_Couriers::reset();
+        BGCouriers_Couriers::register('speedy', 'Speedy', static function () use ($fake) { return $fake; });
+        WC()->session = WC()->session ?: new WC_Session_Handler();
+        WC()->session->set('bgcouriers_method', 'office');
+        update_option('bgcouriers_speedy_ship_in_total', 'no');
+
+        $m = new BGCouriers_Method_Speedy();
+        $m->calculate_shipping(['contents_weight' => 1.0]);
+        $rate = reset($m->rates);
+        $this->assertEqualsWithDelta(0.0, (float) $rate->get_cost(), 0.001, 'the customer pays the courier, not the shop');
+        $this->assertEqualsWithDelta(5.55, (float) $rate->get_meta_data()['_bgcouriers_info_price'], 0.001);
+        $this->assertMatchesRegularExpression('/^~\D{0,3}5[.,]55/u', $rate->get_delivery_time(), 'the estimate in the shop\'s currency format, plain text');
+        $this->assertStringContainsString('paid to the courier on delivery', $rate->get_delivery_time());
+        $this->assertStringNotContainsString('<', $rate->get_delivery_time());
+
+        // Delivery in the total: the price is the price, and the line is not there to say otherwise.
+        update_option('bgcouriers_speedy_ship_in_total', 'yes');
+        $m = new BGCouriers_Method_Speedy();
+        $m->calculate_shipping(['contents_weight' => 1.0]);
+        $rate = reset($m->rates);
+        $this->assertEqualsWithDelta(5.55, (float) $rate->get_cost(), 0.001);
+        $this->assertSame('', $rate->get_delivery_time());
+    }
+
+    /**
      * The same courier, the same cached rate, an address in a country nobody switched on: no rate at
      * all. 5.55 is a Bulgarian price and offering it here would sell a delivery the shop cannot make.
      */
