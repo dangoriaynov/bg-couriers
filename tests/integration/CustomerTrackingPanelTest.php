@@ -9,6 +9,16 @@
  * @group core
  */
 final class CustomerTrackingPanelTest extends WP_UnitTestCase {
+    /** The couriers this test names, registered here: a test file before this one may have reset the registry. */
+    public function set_up() {
+        parent::set_up();
+        BGCouriers_Couriers::reset();
+        BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return new BGCouriers_Speedy([]); });
+        BGCouriers_Couriers::register('sameday', 'Sameday', static function () { return new BGCouriers_Sameday([]); });
+        BGCouriers_Couriers::register('boxnow', 'BOX NOW', static function () { return new BGCouriers_Boxnow([]); });
+    }
+    public function tear_down() { BGCouriers_Couriers::reset(); parent::tear_down(); }
+
     private function order(string $courier, string $waybill): WC_Order {
         $order = wc_create_order();
         $order->update_meta_data('_bgcouriers_courier', $courier);
