@@ -13,9 +13,9 @@ if (!$bgcouriers_is_integration && !defined('ABSPATH')) {
 
 // Unit suite: a do-nothing $wpdb, so code that reaches the database layer answers "nothing found"
 // instead of fataling on a null global. Several call sites are guarded with
-// class_exists('BGCouriers_Nomenclature'), which means whether they run at all depends on which
-// classes some OTHER test file happened to require - a test that loads one more class should not be
-// able to break an unrelated one. Any test needing real query behaviour overrides $GLOBALS['wpdb'].
+// class_exists('BGCouriers_Nomenclature'); with the plugin's autoloader registered below that guard
+// answers yes in every test file alike (the class is found and loaded), so such code always runs -
+// against this $wpdb. Any test needing real query behaviour overrides $GLOBALS['wpdb'].
 if (!$bgcouriers_is_integration && !isset($GLOBALS['wpdb'])) {
     class BGCouriers_Null_Wpdb {
         public $prefix = 'wp_';
@@ -32,6 +32,18 @@ if (!$bgcouriers_is_integration && !isset($GLOBALS['wpdb'])) {
     foreach (['OBJECT' => 'OBJECT', 'ARRAY_A' => 'ARRAY_A', 'ARRAY_N' => 'ARRAY_N'] as $k => $v) {
         if (!defined($k)) { define($k, $v); }
     }
+}
+
+// Unit suite: the plugin's own autoloader, so a test file that names a class gets that class - the
+// same class the plugin would load - instead of depending on which classes an EARLIER test file
+// happened to require. Measured on 2026-09-13: 33 of the unit files failed when run on their own
+// ("Class BGCouriers_Settings not found" and the like) and passed only inside the full run. The
+// explicit require_once lines in the tests stay: they say what a test is about, and they still
+// work. Nothing here loads WordPress - the sources guard on ABSPATH, defined above.
+if (!$bgcouriers_is_integration) {
+    if (!defined('BGCOURIERS_PATH')) { define('BGCOURIERS_PATH', dirname(__DIR__) . '/'); }
+    require_once dirname(__DIR__) . '/includes/class-bgcouriers-autoloader.php';
+    BGCouriers_Autoloader::register();
 }
 
 // Integration suite only: boot the WordPress test framework.

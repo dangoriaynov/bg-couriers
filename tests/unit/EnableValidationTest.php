@@ -176,9 +176,12 @@ final class EnableValidationTest extends TestCase {
     public function test_econt_cod_with_agreement_passes(): void {
         $this->opts($this->ok('econt') + ['bgcouriers_econt_cod_enabled' => 'yes', 'bgcouriers_econt_cd_num' => 'CD139925']);
         // The chosen agreement is also checked against how the shop says it is paid out, which reads the
-        // Econt profile through a transient. Nothing cached and no API here: the check bows out quietly.
+        // Econt profile through a transient and, with nothing cached, asks Econt for it. There is no
+        // network in a unit test, and a call that fails is not a payout warning - the check bows out
+        // quietly. (This used to pass only because an earlier test file had defined wp_remote_post.)
         Functions\when('get_transient')->justReturn(false);
         Functions\when('set_transient')->justReturn(true);
+        Functions\when('wp_remote_post')->alias(static function () { throw new \RuntimeException('no network in a unit test'); });
         $this->assertEmpty((new BGCouriers_Econt([]))->enable_problems());
     }
 
