@@ -98,10 +98,14 @@ class BGCouriers_Blocks {
     public function assets(): void {
         if (!self::is_block_checkout()) { return; }
         $js = BGCOURIERS_PATH . 'assets/js/bgc-blocks.js';
+        // The checkout events package is what lets the order wait for the fields' flush; a WooCommerce
+        // without it (before 9.x) still gets the pickers, without the wait.
+        $deps = ['jquery', 'wp-element', 'wp-plugins', 'wc-blocks-checkout', 'bgc-checkout'];
+        if (wp_script_is('wc-blocks-checkout-events', 'registered')) { $deps[] = 'wc-blocks-checkout-events'; }
         wp_enqueue_script(
             'bgc-blocks',
             BGCOURIERS_URL . 'assets/js/bgc-blocks.js',
-            ['jquery', 'wp-element', 'wp-plugins', 'wc-blocks-checkout', 'bgc-checkout'],
+            $deps,
             is_file($js) ? (string) filemtime($js) : BGCOURIERS_VERSION,
             true
         );
