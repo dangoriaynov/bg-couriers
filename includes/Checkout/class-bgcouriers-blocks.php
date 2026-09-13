@@ -33,6 +33,7 @@ class BGCouriers_Blocks {
         // Blocks the order while the destination is missing or belongs to another courier. Store API
         // surfaces whatever is added here to the customer and refuses to place the order.
         add_filter('woocommerce_store_api_cart_errors', [$this, 'validate'], 10, 2);
+        add_filter('rest_request_before_callbacks', [$this, 'note_route'], 10, 3);
         // ...and writes the chosen courier, delivery type, town and office onto the order once it is
         // allowed through. Without this the order carries a shipping rate and nothing else.
         add_action('woocommerce_store_api_checkout_update_order_from_request', [$this, 'persist'], 10, 2);
@@ -234,12 +235,41 @@ class BGCouriers_Blocks {
      */
     public function validate($errors, $cart = null) {
         if (!is_wp_error($errors)) { return $errors; }
+        // Only when the order is being PLACED. The Store API asks this filter on every cart read as
+        // well - the cart block's page, the checkout block's first paint - and the answer is shown as a
+        // red banner: a customer opening their cart read "please enter a phone number" and "please
+        // choose your Speedy delivery point before placing the order" over a cart they had not begun
+        // to check out (measured 2026-09-14 on dev, the cart block). The classic checkout says these
+        // things when the button is pressed, and so does the block now.
+        if (!self::placing_order()) { return $errors; }
         // The classic validator reads one thing from the posted form - the billing phone - and the rest
         // from the session. On the Store API there is no posted form, so hand it the customer's phone
         // from the object the Store API has already updated from the request.
         $phone = (function_exists('WC') && WC()->customer) ? (string) WC()->customer->get_billing_phone() : '';
         $this->checkout->validate(['billing_phone' => $phone], $errors);
         return $errors;
+    }
+
+    /** The REST route and method being served right now - the inner one, when the block batches. */
+    private static $route = '';
+    private static $method = '';
+
+    /**
+     * Note which REST request is being served. The block batches some of its requests through
+     * wc/store/v1/batch, and inside a batch the server's request URI says "batch" whatever the inner
+     * call is; the REST server hands each inner request through this filter with its own route.
+     */
+    public function note_route($response, $handler, $request) {
+        if ($request instanceof \WP_REST_Request) {
+            self::$route  = (string) $request->get_route();
+            self::$method = strtoupper((string) $request->get_method());
+        }
+        return $response;
+    }
+
+    /** Is this the Store API request that places the order - a POST to wc/store/v1/checkout? */
+    private static function placing_order(): bool {
+        return self::$method === 'POST' && preg_match('#/wc/store/v1/checkout$#', self::$route) === 1;
     }
 
     /** @param \WC_Order $order the order the Store API has just built from the request */

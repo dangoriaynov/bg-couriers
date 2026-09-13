@@ -136,6 +136,11 @@ and keep passing, testing the wrong thing in silence.
 WooCommerce Checkout **block**, created for this on purpose. The shop's own checkout page stays classic,
 so the spec proves the Store API gate without reconfiguring the site under itself.
 
+`/blocks-cart-test/` is the same for the CART block, carrying WooCommerce's own default cart content
+(`WC_Install::get_cart_block_content()`): a bare `wp:woocommerce/cart` renders its inner blocks under
+names the front end does not know and shows no shipping row at all, which no shop would see.
+`blocks-cart.spec.js` reads it.
+
 `blocks-address-checkout.spec.js` walks the pickers themselves on that page - the tab click (the block
 must hand the pickers back within ten seconds; until 2026-09-13 it never did), the town, a street off the
 list, the block's own form and an order that carries all of it - and reads the estimate off a
