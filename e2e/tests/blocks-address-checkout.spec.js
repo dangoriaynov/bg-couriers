@@ -33,6 +33,11 @@ test('block checkout: the pickers work after a tab click, the rate says what the
   await page.waitForTimeout(2500);
   await page.locator('.woocommerce-store-notice__dismiss-link').click({ timeout: 3000 }).catch(() => {});
 
+  // The phone is required, and said to be: a courier label needs a number, and the block used to print
+  // "Phone (optional)" and refuse the order for the missing phone at the very end.
+  await expect(page.locator('#shipping-phone')).toHaveAttribute('required', '');
+  await expect(page.locator('label[for="shipping-phone"]')).not.toContainText(/optional|по избор/i);
+
   // What the courier collects at the door is said on the rate row, not hidden behind "Free".
   const speedyRow = page.locator('.wc-block-components-radio-control__option', { hasText: 'Speedy' }).first();
   await expect(speedyRow).toContainText(/~\s?\d+[,.]\d{2}\s?€/);

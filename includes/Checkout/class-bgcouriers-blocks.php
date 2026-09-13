@@ -41,6 +41,34 @@ class BGCouriers_Blocks {
         add_action('wp_ajax_nopriv_bgcouriers_blocks_fields', [$this, 'ajax_fields']);
         // The block's way of being told "recalculate": see refresh() and bgc-blocks.js.
         add_action('woocommerce_blocks_loaded', [$this, 'register_refresh']);
+        // The phone is required on the block for the same reason it is on the classic form: a courier
+        // label needs a number to reach the recipient. See phone_required().
+        add_filter('option_woocommerce_checkout_phone_field', [$this, 'phone_required']);
+    }
+
+    /**
+     * The block's phone field is required, not "optional".
+     *
+     * The classic checkout makes the billing phone required through the checkout-fields filter, because
+     * every courier label needs a number for the recipient. The block reads its phone field's standing
+     * from the shop's `woocommerce_checkout_phone_field` setting instead - "optional" on a shop set up
+     * with the defaults - so it printed "Phone (optional)", let the order go without one, and the
+     * customer then read the plugin's refusal ("please enter a phone number so the courier can reach
+     * the recipient") at the very end. Measured 2026-09-13 on dev. Required here, the block asks for it
+     * where every other required field is asked for, and validates it itself.
+     *
+     * Front end and Store API only, and only where the plugin owns the address fields, as on the
+     * classic form: the settings screen and the block editor keep showing what the merchant chose.
+     */
+    public function phone_required($value) {
+        if (is_admin() || !class_exists('BGCouriers_Settings') || !BGCouriers_Settings::own_address_fields()) { return $value; }
+        // The Store API (wc/store) is where the block reads the field's standing and validates the
+        // order; the settings REST API the block editor reads is left alone, so the editor keeps
+        // showing what the merchant chose.
+        $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+        $store_api = defined('REST_REQUEST') && REST_REQUEST && strpos($uri, '/wc/store/') !== false;
+        if (!$store_api && !self::is_block_checkout()) { return $value; }
+        return 'required';
     }
 
     /**
