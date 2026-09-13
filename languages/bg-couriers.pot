@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-13 16:00+0300\n"
+"POT-Creation-Date: 2026-09-13 17:09+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -525,7 +525,7 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:283
 #: includes/Admin/class-bgcouriers-order-metabox.php:330
-#: includes/Checkout/class-bgcouriers-checkout.php:1324
+#: includes/Checkout/class-bgcouriers-checkout.php:1327
 msgid "City"
 msgstr ""
 
@@ -536,7 +536,7 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:283
 #: includes/Admin/class-bgcouriers-order-metabox.php:335
-#: includes/Checkout/class-bgcouriers-checkout.php:1334
+#: includes/Checkout/class-bgcouriers-checkout.php:1337
 msgid "Street"
 msgstr ""
 
@@ -562,22 +562,22 @@ msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:296
 #: includes/Admin/class-bgcouriers-order-metabox.php:331
-#: includes/Checkout/class-bgcouriers-checkout.php:1108
+#: includes/Checkout/class-bgcouriers-checkout.php:1110
 msgid "Pick from the map"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:297
-#: includes/Checkout/class-bgcouriers-checkout.php:1109
+#: includes/Checkout/class-bgcouriers-checkout.php:1111
 msgid "Choose this location"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:298
-#: includes/Checkout/class-bgcouriers-checkout.php:1110
+#: includes/Checkout/class-bgcouriers-checkout.php:1112
 msgid "Show my location"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:299
-#: includes/Checkout/class-bgcouriers-checkout.php:1111
+#: includes/Checkout/class-bgcouriers-checkout.php:1113
 msgid "No offices with a map location for this city yet - use the list."
 msgstr ""
 
@@ -601,18 +601,18 @@ msgid "Click the map or drag the pin to the address."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:304
-#: includes/Checkout/class-bgcouriers-checkout.php:1114
+#: includes/Checkout/class-bgcouriers-checkout.php:1116
 msgid "Use this address"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:305
-#: includes/Checkout/class-bgcouriers-checkout.php:1115
+#: includes/Checkout/class-bgcouriers-checkout.php:1117
 msgid "No address found here - try another spot."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:306
-#: includes/Checkout/class-bgcouriers-checkout.php:1124
-#: includes/Checkout/class-bgcouriers-checkout.php:1331
+#: includes/Checkout/class-bgcouriers-checkout.php:1126
+#: includes/Checkout/class-bgcouriers-checkout.php:1334
 msgid "Map"
 msgstr ""
 
@@ -643,7 +643,7 @@ msgid "Delivery option"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:336
-#: includes/Checkout/class-bgcouriers-checkout.php:1335
+#: includes/Checkout/class-bgcouriers-checkout.php:1338
 msgid "No."
 msgstr ""
 
@@ -652,7 +652,7 @@ msgid "Pick the address on the map"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:339
-#: includes/Checkout/class-bgcouriers-checkout.php:1344
+#: includes/Checkout/class-bgcouriers-checkout.php:1350
 msgid "Quarter / complex"
 msgstr ""
 
@@ -661,22 +661,22 @@ msgid "Bl."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:342
-#: includes/Checkout/class-bgcouriers-checkout.php:1347
+#: includes/Checkout/class-bgcouriers-checkout.php:1353
 msgid "Entr."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:343
-#: includes/Checkout/class-bgcouriers-checkout.php:1348
+#: includes/Checkout/class-bgcouriers-checkout.php:1354
 msgid "Floor"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:344
-#: includes/Checkout/class-bgcouriers-checkout.php:1349
+#: includes/Checkout/class-bgcouriers-checkout.php:1355
 msgid "Apt."
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-order-metabox.php:346
-#: includes/Checkout/class-bgcouriers-checkout.php:1351
+#: includes/Checkout/class-bgcouriers-checkout.php:1357
 msgid "Note"
 msgstr ""
 
@@ -2250,7 +2250,7 @@ msgid "to an office"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:389
-#: includes/Checkout/class-bgcouriers-checkout.php:1136
+#: includes/Checkout/class-bgcouriers-checkout.php:1138
 msgid "to your address"
 msgstr ""
 
@@ -2271,7 +2271,7 @@ msgid "Flat price %s."
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:513
-#: includes/Checkout/class-bgcouriers-checkout.php:1116
+#: includes/Checkout/class-bgcouriers-checkout.php:1118
 msgid "Interactive map"
 msgstr ""
 
@@ -2363,12 +2363,12 @@ msgid "Please choose an office/APS for %s."
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:1092
-#: includes/Checkout/class-bgcouriers-checkout.php:1281
+#: includes/Checkout/class-bgcouriers-checkout.php:1283
 msgid "Office"
 msgstr ""
 
 #: includes/Checkout/class-bgcouriers-checkout.php:1092
-#: includes/Checkout/class-bgcouriers-checkout.php:1280
+#: includes/Checkout/class-bgcouriers-checkout.php:1282
 msgid "APS (locker)"
 msgstr ""
 
@@ -2384,138 +2384,145 @@ msgstr ""
 msgid "Type a street…"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1096
+#. translators: 1: courier name, 2: the street as the map found it.
+#: includes/Checkout/class-bgcouriers-checkout.php:1097
+#, php-format
+msgid ""
+"%1$s does not list a street called \"%2$s\" here. Pick yours from the list."
+msgstr ""
+
+#: includes/Checkout/class-bgcouriers-checkout.php:1098
 msgid "Not available in this city"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1097
+#: includes/Checkout/class-bgcouriers-checkout.php:1099
 msgid "Select a city first"
 msgstr ""
 
 #. translators: %d is how many characters the search needs before it will look.
-#: includes/Checkout/class-bgcouriers-checkout.php:1102
+#: includes/Checkout/class-bgcouriers-checkout.php:1104
 #, php-format
 msgid "Type at least %d characters"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1103
+#: includes/Checkout/class-bgcouriers-checkout.php:1105
 msgid "Nothing found"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1104
+#: includes/Checkout/class-bgcouriers-checkout.php:1106
 msgid "Searching…"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1105
+#: includes/Checkout/class-bgcouriers-checkout.php:1107
 msgid "Loading more…"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1106
+#: includes/Checkout/class-bgcouriers-checkout.php:1108
 msgid "The results could not be loaded"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1107
-#: includes/Checkout/class-bgcouriers-checkout.php:1329
+#: includes/Checkout/class-bgcouriers-checkout.php:1109
+#: includes/Checkout/class-bgcouriers-checkout.php:1332
 msgid "View on map"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1112
+#: includes/Checkout/class-bgcouriers-checkout.php:1114
 msgid "Choose your address on the map"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1113
+#: includes/Checkout/class-bgcouriers-checkout.php:1115
 msgid "Click the map or drag the pin to your address."
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1117
+#: includes/Checkout/class-bgcouriers-checkout.php:1119
 msgid "Show the offices"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1118
+#: includes/Checkout/class-bgcouriers-checkout.php:1120
 msgid "Not available for this order"
 msgstr ""
 
 #. translators: %d: how many pickup points one bubble on the map stands for
-#: includes/Checkout/class-bgcouriers-checkout.php:1120
+#: includes/Checkout/class-bgcouriers-checkout.php:1122
 #, php-format
 msgid "%d pickup points here - zoom in to tell them apart"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1121
+#: includes/Checkout/class-bgcouriers-checkout.php:1123
 msgid "Choose"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1122
+#: includes/Checkout/class-bgcouriers-checkout.php:1124
 msgid "Choose a city"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1125
+#: includes/Checkout/class-bgcouriers-checkout.php:1127
 msgid "List"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1128
+#: includes/Checkout/class-bgcouriers-checkout.php:1130
 msgid "Loading the pickup points…"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1131
+#: includes/Checkout/class-bgcouriers-checkout.php:1133
 msgid "Directions"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1132
+#: includes/Checkout/class-bgcouriers-checkout.php:1134
 msgid "Clear"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1135
+#: includes/Checkout/class-bgcouriers-checkout.php:1137
 msgid "Closest to you"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1137
+#: includes/Checkout/class-bgcouriers-checkout.php:1139
 msgid "you save"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1138
+#: includes/Checkout/class-bgcouriers-checkout.php:1140
 msgid "as the crow flies"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1139
+#: includes/Checkout/class-bgcouriers-checkout.php:1141
 msgid "Find the closest office"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1140
+#: includes/Checkout/class-bgcouriers-checkout.php:1142
 msgid "Drag the pin to where you are"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1141
+#: includes/Checkout/class-bgcouriers-checkout.php:1143
 msgid "m"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1142
+#: includes/Checkout/class-bgcouriers-checkout.php:1144
 msgid "km"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1145
+#: includes/Checkout/class-bgcouriers-checkout.php:1147
 msgid "Show this point on the map"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1147
+#: includes/Checkout/class-bgcouriers-checkout.php:1149
 msgid "from you"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1297
+#: includes/Checkout/class-bgcouriers-checkout.php:1299
 msgid "Country"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1317
+#: includes/Checkout/class-bgcouriers-checkout.php:1320
 msgid ""
 "Cash on delivery is not available for this delivery option - choose another "
 "one, or pay in advance."
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1339
+#: includes/Checkout/class-bgcouriers-checkout.php:1342
 msgid "Choose on map"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-checkout.php:1346
+#: includes/Checkout/class-bgcouriers-checkout.php:1352
 msgid "Block"
 msgstr ""
 
@@ -2586,8 +2593,8 @@ msgstr ""
 #: includes/Couriers/abstract-bgcouriers-courier.php:30
 #: includes/Couriers/class-bgcouriers-sameday.php:539
 #: includes/Couriers/class-bgcouriers-sameday.php:550
-#: includes/Couriers/class-bgcouriers-speedy.php:231
-#: includes/Couriers/class-bgcouriers-speedy.php:236
+#: includes/Couriers/class-bgcouriers-speedy.php:227
+#: includes/Couriers/class-bgcouriers-speedy.php:232
 #, php-format
 msgid "The request failed: %s"
 msgstr ""
@@ -2858,7 +2865,7 @@ msgstr ""
 #. translators: %s: order number
 #. translators: %s: order number, printed on the waybill as the sender's reference
 #: includes/Couriers/class-bgcouriers-boxnow.php:410
-#: includes/Couriers/class-bgcouriers-speedy.php:498
+#: includes/Couriers/class-bgcouriers-speedy.php:494
 #, php-format
 msgid "Order %s"
 msgstr ""
@@ -2933,10 +2940,10 @@ msgstr ""
 
 #. translators: %s: courier name.
 #: includes/Couriers/class-bgcouriers-econt.php:348
-#: includes/Couriers/class-bgcouriers-evropat.php:551
-#: includes/Couriers/class-bgcouriers-expressone.php:514
-#: includes/Couriers/class-bgcouriers-pigeon.php:428
-#: includes/Couriers/class-bgcouriers-speedy.php:383
+#: includes/Couriers/class-bgcouriers-evropat.php:567
+#: includes/Couriers/class-bgcouriers-expressone.php:527
+#: includes/Couriers/class-bgcouriers-pigeon.php:451
+#: includes/Couriers/class-bgcouriers-speedy.php:379
 #, php-format
 msgid "%s sent no price in its answer."
 msgstr ""
@@ -2966,19 +2973,19 @@ msgstr ""
 
 #. translators: %s: courier name.
 #: includes/Couriers/class-bgcouriers-econt.php:671
-#: includes/Couriers/class-bgcouriers-evropat.php:771
+#: includes/Couriers/class-bgcouriers-evropat.php:789
 #, php-format
 msgid "%s sent no label link in its answer."
 msgstr ""
 
 #: includes/Couriers/class-bgcouriers-econt.php:781
-#: includes/Couriers/class-bgcouriers-speedy.php:769
+#: includes/Couriers/class-bgcouriers-speedy.php:765
 msgid "There are no shipments to collect."
 msgstr ""
 
 #. translators: %s: courier name.
 #: includes/Couriers/class-bgcouriers-econt.php:789
-#: includes/Couriers/class-bgcouriers-speedy.php:774
+#: includes/Couriers/class-bgcouriers-speedy.php:770
 #, php-format
 msgid "%s sent no pickup request number in its answer."
 msgstr ""
@@ -3027,15 +3034,15 @@ msgid "No credentials are saved for %s."
 msgstr ""
 
 #. translators: 1: courier name, 2: country code.
-#: includes/Couriers/class-bgcouriers-evropat.php:346
-#: includes/Couriers/class-bgcouriers-expressone.php:441
-#: includes/Couriers/class-bgcouriers-speedy.php:169
+#: includes/Couriers/class-bgcouriers-evropat.php:362
+#: includes/Couriers/class-bgcouriers-expressone.php:454
+#: includes/Couriers/class-bgcouriers-speedy.php:165
 #, php-format
 msgid "%1$s does not deliver to %2$s."
 msgstr ""
 
 #. translators: %s: the street as it is written on the order.
-#: includes/Couriers/class-bgcouriers-evropat.php:573
+#: includes/Couriers/class-bgcouriers-evropat.php:589
 #, php-format
 msgid ""
 "Европът does not list a street called \"%s\" in this town, and it refuses an "
@@ -3044,31 +3051,31 @@ msgid ""
 msgstr ""
 
 #. translators: %s: the street as the courier spells it.
-#: includes/Couriers/class-bgcouriers-evropat.php:580
-#: includes/Couriers/class-bgcouriers-expressone.php:537
+#: includes/Couriers/class-bgcouriers-evropat.php:596
+#: includes/Couriers/class-bgcouriers-expressone.php:550
 #, php-format
 msgid ""
 "More than one street in this town is called that; the parcel goes to \"%s\"."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-evropat.php:588
+#: includes/Couriers/class-bgcouriers-evropat.php:604
 msgid ""
 "This Европът account is not allowed to collect ППП, so the money is "
 "collected as наложен платеж instead."
 msgstr ""
 
 #. translators: %s: courier name.
-#: includes/Couriers/class-bgcouriers-evropat.php:722
-#: includes/Couriers/class-bgcouriers-expressone.php:647
+#: includes/Couriers/class-bgcouriers-evropat.php:740
+#: includes/Couriers/class-bgcouriers-expressone.php:662
 #, php-format
 msgid "%s sent no waybill number in its answer."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-evropat.php:954
+#: includes/Couriers/class-bgcouriers-evropat.php:972
 msgid "No \"send parcels from\" address is chosen for Европът."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-evropat.php:955
+#: includes/Couriers/class-bgcouriers-evropat.php:973
 msgid ""
 "Pick one of your Европът addresses on this tab - it fills the sender half of "
 "every waybill and it is one half of every price."
@@ -3112,8 +3119,8 @@ msgid "Express One API documentation:"
 msgstr ""
 
 #: includes/Couriers/class-bgcouriers-expressone.php:87
-#: includes/Couriers/class-bgcouriers-pigeon.php:774
-#: includes/Couriers/class-bgcouriers-speedy.php:756
+#: includes/Couriers/class-bgcouriers-pigeon.php:797
+#: includes/Couriers/class-bgcouriers-speedy.php:752
 msgid "the request was refused"
 msgstr ""
 
@@ -3133,7 +3140,7 @@ msgid ""
 msgstr ""
 
 #. translators: %s: the street as it is written on the order.
-#: includes/Couriers/class-bgcouriers-expressone.php:530
+#: includes/Couriers/class-bgcouriers-expressone.php:543
 #, php-format
 msgid ""
 "Express One does not list a street called \"%s\" in this town, and it "
@@ -3142,20 +3149,20 @@ msgid ""
 msgstr ""
 
 #. translators: 1: courier name, 2: the courier's own refusal text.
-#: includes/Couriers/class-bgcouriers-expressone.php:792
+#: includes/Couriers/class-bgcouriers-expressone.php:807
 #, php-format
 msgid "%1$s refused the pickup request: %2$s"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-expressone.php:793
+#: includes/Couriers/class-bgcouriers-expressone.php:808
 msgid "no reason given"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-expressone.php:802
+#: includes/Couriers/class-bgcouriers-expressone.php:817
 msgid "No \"send from\" address is chosen for Express One."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-expressone.php:803
+#: includes/Couriers/class-bgcouriers-expressone.php:818
 msgid ""
 "Pick one of your Express One addresses on this tab - every waybill is "
 "collected from it."
@@ -3217,13 +3224,13 @@ msgid ""
 "drop the parcels at an office."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-pigeon.php:544
+#: includes/Couriers/class-bgcouriers-pigeon.php:567
 msgid ""
 "Set your Pigeon pickup office ID in Settings > BG Couriers > Pigeon Express "
 "before generating a label."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-pigeon.php:572
+#: includes/Couriers/class-bgcouriers-pigeon.php:595
 msgid ""
 "Pigeon labels are only available at creation time and cannot be re-fetched. "
 "Regenerate the waybill to get a fresh label."
@@ -3323,87 +3330,87 @@ msgid ""
 msgstr ""
 
 #. translators: 1: the street as it is written on the order, 2: the streets of that name, as the courier lists them.
-#: includes/Couriers/class-bgcouriers-speedy.php:112
+#: includes/Couriers/class-bgcouriers-speedy.php:113
 #, php-format
 msgid ""
 "Speedy lists more than one street called \"%1$s\" in this town (%2$s) and "
 "refuses the name alone. Edit the delivery address and pick one from the list."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:131
+#: includes/Couriers/class-bgcouriers-speedy.php:127
 msgid ""
 "Speedy issues API access to registered business clients - there is no "
 "instant self-signup."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:133
+#: includes/Couriers/class-bgcouriers-speedy.php:129
 msgid "Have (or open) a Speedy business contract."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:134
+#: includes/Couriers/class-bgcouriers-speedy.php:130
 msgid ""
 "Request REST API access (ask for a test account first) from your Speedy "
 "account manager, or via the integration contact on the Speedy \"System "
 "integration\" page below."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:135
+#: includes/Couriers/class-bgcouriers-speedy.php:131
 msgid "Speedy issues an API username + password for api.speedy.bg."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:136
+#: includes/Couriers/class-bgcouriers-speedy.php:132
 msgid "Enter the username and password below, click Validate, then Sync."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:138
+#: includes/Couriers/class-bgcouriers-speedy.php:134
 msgid "API username + password"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:139
+#: includes/Couriers/class-bgcouriers-speedy.php:135
 msgid "Speedy system integration:"
 msgstr ""
 
 #. translators: 1: courier name, 2: country code.
-#: includes/Couriers/class-bgcouriers-speedy.php:194
+#: includes/Couriers/class-bgcouriers-speedy.php:190
 #, php-format
 msgid "%1$s has no delivery service for %2$s."
 msgstr ""
 
 #. translators: %s: the cash-on-delivery amount that was requested
-#: includes/Couriers/class-bgcouriers-speedy.php:410
+#: includes/Couriers/class-bgcouriers-speedy.php:406
 #, php-format
 msgid ""
 "Cash on delivery of %s was sent but Speedy did not apply it - the waybill "
 "collects nothing."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:422
+#: includes/Couriers/class-bgcouriers-speedy.php:418
 msgid "the shipment was rejected"
 msgstr ""
 
 #. translators: %s: courier name.
-#: includes/Couriers/class-bgcouriers-speedy.php:427
+#: includes/Couriers/class-bgcouriers-speedy.php:423
 #, php-format
 msgid "%s sent no shipment id in its answer."
 msgstr ""
 
 #. translators: %s: courier name.
-#: includes/Couriers/class-bgcouriers-speedy.php:620
+#: includes/Couriers/class-bgcouriers-speedy.php:616
 #, php-format
 msgid "%s could not print the label."
 msgstr ""
 
 #. translators: 1: courier name, 2: the courier's own error text.
-#: includes/Couriers/class-bgcouriers-speedy.php:629
+#: includes/Couriers/class-bgcouriers-speedy.php:625
 #, php-format
 msgid "%1$s could not print the label: %2$s"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:630
+#: includes/Couriers/class-bgcouriers-speedy.php:626
 msgid "the answer is not a PDF"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:763
+#: includes/Couriers/class-bgcouriers-speedy.php:759
 msgid "the pickup request was refused"
 msgstr ""
 

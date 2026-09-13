@@ -143,6 +143,35 @@ test.describe('checkout guidance @guidance', () => {
     await expect(page.locator('#bgcouriers-office-speedy')).not.toHaveClass(/bgc-invalid/);
   });
 
+  /**
+   * The street box is the one field that carries two HIDDEN inputs beside it (the street's id and
+   * type, "0" and "" until a street is chosen). "Is this field filled?" - asked on every re-render to
+   * decide whether a mark stays - must not count them: it did, and a refused empty street lost its
+   * red the moment WooCommerce redrew the table.
+   */
+  test('a refused street stays marked through a re-render', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await dismissStoreBanner(page);
+    await selectShippingMethod(page, 'speedy');
+    const fields = page.locator('.bgc-fields[data-courier="speedy"]');
+    await expect(fields).toBeVisible({ timeout: 15000 });
+    await selectSpeedyTab(page, fields, 'address');
+    await selectCity(page, fields, 'София');
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(1500);
+    await fillGuestBilling(page, { first: 'Тест', last: 'Насока', email: 'e2e-guidance@example.com', phone: '0888123456' });
+    await choosePayment(page, 'cod');
+    await page.locator('#place_order').click();
+    await expect(page.locator('.woocommerce-error li[data-id="bgcouriers-street-speedy"]')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('#bgcouriers-street-speedy')).toHaveClass(/bgc-invalid/);
+    await page.evaluate(() => jQuery(document.body).trigger('update_checkout'));
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(2500);
+    await expect(page.locator('#bgcouriers-street-speedy')).toHaveClass(/bgc-invalid/);
+  });
+
   test('the office already chosen is never folded into a bubble', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await addAnyProductToCart(page);

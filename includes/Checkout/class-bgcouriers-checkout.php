@@ -1093,6 +1093,8 @@ class BGCouriers_Checkout {
                 'emerg_default'=>__('Having trouble placing your order? We can help - call us:','bg-couriers'),
                 'close'=>__('Close','bg-couriers'),
                 'city_ph' => __('Type a city…','bg-couriers'),'office_ph'=>__('Search…','bg-couriers'),'street_ph'=>__('Type a street…','bg-couriers'),
+                /* translators: 1: courier name, 2: the street as the map found it. */
+                'street_unlisted' => __('%1$s does not list a street called "%2$s" here. Pick yours from the list.', 'bg-couriers'),
                 'na_city' => __('Not available in this city','bg-couriers'),
                 'office_need_city' => __('Select a city first','bg-couriers'),
                 // select2's own messages. It ships English ones and WooCommerce loads no other, so
@@ -1305,6 +1307,7 @@ class BGCouriers_Checkout {
         // Built up first, then escaped once at output - every field inside is already esc_attr/esc_html'd,
         // and wp_kses() restricts the result to the tags this form is made of.
         $html = '<div class="bgc-fields" data-courier="' . esc_attr($courier) . '" data-method="' . esc_attr($sel_method) . '"'
+           . ' data-label="' . esc_attr((string) (BGCouriers_Couriers::all()[$courier] ?? $courier)) . '"'
            . ' data-methods="' . esc_attr(implode(',', BGCouriers_Settings::enabled_methods($courier))) . '"'
            . ' data-order="' . esc_attr(implode(',', BGCouriers_Settings::method_order($courier))) . '"'
            . ' data-country="' . esc_attr($country) . '"'
@@ -1341,6 +1344,9 @@ class BGCouriers_Checkout {
                  . '</button></div>'
                : '')
            . '</div>'
+           // Filled and shown by the map hand-over when the street it found is not on this courier's list
+           // and the courier takes no other (see fillAddress in bgc-checkout.js); hidden once a street is chosen.
+           . '<div class="bgc-street-note" style="display:none;"></div>'
            . '<div class="bgc-field"><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label><input type="text" class="bgc-complex" autocomplete="off" value="' . $av('complex') . '"></div>'
            . '<div class="bgc-grid bgc-grid-4">'
            . '<div class="bgc-field"><label>' . esc_html__('Block', 'bg-couriers') . '</label><input type="text" class="bgc-block" value="' . $av('block') . '"></div>'

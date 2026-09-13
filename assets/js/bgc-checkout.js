@@ -161,6 +161,7 @@
     if ($s.hasClass('select2-hidden-accessible')) { $s.val(null).trigger('change.select2'); }
     $s.empty().append(new Option('', '', false, false));
     setStreetPick($wrap, null);
+    streetNote($wrap, '');
     $wrap.find('.bgc-street-no').val('');
   }
   /**
@@ -172,6 +173,23 @@
   function setStreetPick($wrap, d) {
     $wrap.find('.bgc-street-id').val((d && d.sid) || 0);
     $wrap.find('.bgc-street-type').val((d && d.stype) || '');
+  }
+  /**
+   * "This courier does not list the street the map found" - said under the street box, kept per
+   * courier and put back on every re-render: the block lives inside the order-review table, which
+   * update_checkout replaces wholesale, so a note written into it is gone at the next recalculation
+   * (the same reason the red marks are kept in invalidIds). Cleared the moment a street is chosen.
+   */
+  var streetNotes = {};
+  function streetNote($wrap, text) {
+    var id = courier($wrap);
+    if (text) { streetNotes[id] = text; } else { delete streetNotes[id]; }
+    $wrap.find('.bgc-street-note').text(text || '').toggle(!!text);
+  }
+  function reapplyStreetNote($wrap) {
+    var text = streetNotes[courier($wrap)];
+    if (text && String($wrap.find('.bgc-street').val() || '') === '') { $wrap.find('.bgc-street-note').text(text).show(); }
+    else { delete streetNotes[courier($wrap)]; $wrap.find('.bgc-street-note').hide(); }
   }
 
   function setMethod($wrap, m) {
@@ -573,6 +591,7 @@
         .always(function (rows) {
           var hits = bgcList(rows);
           $street.find('option').not('[value=""]').remove();
+          streetNote($wrap, '');
           if (hits.length === 1) {
             $street.append(new Option(hits[0].label || hits[0].name, hits[0].name, true, true));
             setStreetPick($wrap, { sid: hits[0].id, stype: hits[0].type });
@@ -583,7 +602,15 @@
             $street.val(null);
             setStreetPick($wrap, null);
           }
-          $street.trigger('change');
+          $street.trigger('change'); // select2 redraws - and a change on the street box clears any red mark on it
+          if (hits.length !== 1 && listOnly) {
+            // Said where it happened, and the field painted like a refused one (after the change above,
+            // which would have wiped the mark): an empty box after a map pick would otherwise be
+            // explained only at "Place order".
+            var who = ($wrap.attr('data-label') || courier($wrap));
+            streetNote($wrap, (BGCOURIERS.i18n && BGCOURIERS.i18n.street_unlisted || '%1$s: %2$s').replace('%1$s', who).replace('%2$s', geo.street));
+            invalidIds.push($wrap.find('.bgc-street-field').attr('id')); markInvalid();
+          }
           pushSelection($wrap); // recalc for the (possibly new) city
         });
     }
@@ -685,6 +712,7 @@
       $street.find('option').not('[value=""]').remove();
       $street.append(new Option(d.text || '', d.sname || d.id || '', true, true)).trigger('change.select2');
       setStreetPick($wrap, d);
+      streetNote($wrap, '');
       saveSelection($wrap);
     });
     // The × fires this BEFORE select2 empties the box (the office's handler does the same), so the
@@ -826,7 +854,8 @@
    *  it: the map's Choose writes the office straight into the select and lets the server re-render. */
   function filled($f) {
     var yes = false;
-    $f.find('select, input').each(function () { if (String($(this).val() || '').trim() !== '') { yes = true; } });
+    // Not the hidden ones: the street box carries its id and type in two, and "0" is not an answer.
+    $f.find('select, input').not('[type=hidden]').each(function () { if (String($(this).val() || '').trim() !== '') { yes = true; } });
     return yes;
   }
   function markInvalid() {
@@ -867,6 +896,7 @@
       if (!mine) { $wrap.hide().removeClass('bgc-ready'); return; } // hide (and re-arm) the other couriers' fields
       $wrap.show(); // show only the chosen courier's fields (multiple couriers can share a zone)
       renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); autoPickSingle($wrap); hideLoader($wrap);
+      reapplyStreetNote($wrap);
       reveal($wrap);
     });
   });
