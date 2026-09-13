@@ -44,6 +44,41 @@ class BGCouriers_Blocks {
         // The phone is required on the block for the same reason it is on the classic form: a courier
         // label needs a number to reach the recipient. See phone_required().
         add_filter('option_woocommerce_checkout_phone_field', [$this, 'phone_required']);
+        // ...and WooCommerce's own street, town and postcode fields step aside for the courier's, as
+        // they do on the classic form. See hide_address_fields().
+        add_filter('woocommerce_get_country_locale', [$this, 'hide_address_fields'], 20);
+    }
+
+    /**
+     * WooCommerce's address fields step aside for the courier's on the block too.
+     *
+     * The classic checkout drops WooCommerce's street, town, region and postcode fields when the plugin
+     * owns the address (BGCouriers_Checkout::simplify_fields): the customer names the town and the
+     * street or office in the courier's own fields, and persist() writes the order's address from
+     * that. The block kept WooCommerce's fields, required - so a customer typed the town and the
+     * street twice, once for WooCommerce and once for the courier, and whatever they typed the first
+     * time was overwritten by the second (measured 2026-09-13 on dev: shipping-address_1, city and
+     * postcode all required beside the courier's town and street).
+     *
+     * The block and the Store API both read a field's standing from the country locale, and both
+     * honour `hidden` - the block does not render such a field, the Store API does not require it. So
+     * they are hidden here, for every country, on the block page and on Store API requests, where the
+     * plugin owns the address fields; the classic form is untouched (it never reads `hidden`, and has
+     * already dropped the fields). The country stays: the shipping zone is matched on it.
+     */
+    public function hide_address_fields($locale) {
+        if (!is_array($locale) || is_admin() || !class_exists('BGCouriers_Settings') || !BGCouriers_Settings::own_address_fields()) { return $locale; }
+        $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+        $store_api = defined('REST_REQUEST') && REST_REQUEST && strpos($uri, '/wc/store/') !== false;
+        if (!$store_api && !self::is_block_checkout()) { return $locale; }
+        $hide = ['address_1', 'address_2', 'city', 'state', 'postcode'];
+        if (!isset($locale['default'])) { $locale['default'] = []; }
+        foreach (array_keys($locale) as $country) {
+            foreach ($hide as $field) {
+                $locale[$country][$field] = array_merge((array) ($locale[$country][$field] ?? []), ['hidden' => true, 'required' => false]);
+            }
+        }
+        return $locale;
     }
 
     /**
