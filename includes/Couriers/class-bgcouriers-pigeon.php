@@ -216,7 +216,18 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
     }
 
     /**
-     * Search streets in a city by a term (substring, case-insensitive, Cyrillic-aware).
+     * Search streets in a city by a term.
+     *
+     * /v1/cities/{id}/streets is paginated like /v1/cities and /v1/offices - 100 a page, `per_page`
+     * above 100 refused (422) - and it takes a `name` filter. Measured on 2026-09-13: Sofia (759) lists
+     * 4657 streets on 47 pages, and the first page is the numbered ones ("улица 1", "улица 10", "улица
+     * 1001"...). This used to read that one page and filter it, so for Sofia a customer could find a
+     * numbered street and nothing else - not Витоша, not Шипка. With `name` the API does the matching
+     * ("Витоша" -> 45 rows, one page; "ви" -> 215, three) and the pages are read up to a cap: a two-
+     * letter term is what the dropdown asks with, and three pages is more than it will ever show.
+     *
+     * The term is still matched here as well - the filter is the API's word, and a row it hands back
+     * that does not carry the term is not something to offer.
      *
      * @param int    $city_id  Pigeon city id.
      * @param string $term     Search term.
@@ -224,7 +235,19 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      */
     /** $country is accepted so every courier answers the same call; Pigeon delivers in Bulgaria only. */
     public function search_streets(int $city_id, string $term, string $country = ''): array {
-        $rows = self::parse_streets($this->get_json('/v1/cities/' . $city_id . '/streets'));
+        $rows = [];
+        $page = 1;
+        $cap  = 3;
+        do {
+            $query = ['per_page' => 100, 'page' => $page];
+            if ($term !== '') { $query['name'] = $term; }
+            $resp = $this->get_json('/v1/cities/' . $city_id . '/streets', $query);
+            $rows = array_merge($rows, self::parse_streets($resp));
+            $meta = $resp['meta'] ?? null;
+            $last_page = (int) ($meta['last_page'] ?? 1);
+            $curr_page = (int) ($meta['current_page'] ?? $page);
+            $page++;
+        } while ($curr_page < $last_page && $page <= $cap);
         if ($term === '') {
             return $rows;
         }
