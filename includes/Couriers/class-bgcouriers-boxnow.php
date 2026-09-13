@@ -495,8 +495,15 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return new BGCouriers_Tracking($waybill, $human, $events, $state !== '' ? 'boxnow_' . $state : '', null, true);
     }
 
+    /**
+     * The page a customer can open. boxnow.bg/track is the tracking page and ?track= prefills the parcel
+     * number on it (measured 2026-09-13: the field arrives filled and the page's own script starts from
+     * it; t.boxnow.bg/?track= is the same page, and BOX NOW's own plugin links t.boxnow.gr/?track=).
+     * "tracker.boxnow.bg", which this used to link, does not exist - NXDOMAIN - so every BOX NOW order's
+     * tracking link was dead.
+     */
     public function tracking_url(string $waybill): string {
-        return 'https://tracker.boxnow.bg/' . rawurlencode($waybill);
+        return 'https://boxnow.bg/track?track=' . rawurlencode($waybill);
     }
 
     public function cancel_label(string $waybill): bool {

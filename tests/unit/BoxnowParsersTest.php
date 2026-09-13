@@ -137,4 +137,14 @@ final class BoxnowParsersTest extends TestCase {
         $this->assertSame('', $t->phase, 'no state, no phase - the stage falls back to reading the text');
         $this->assertSame([], $t->events);
     }
+
+    /**
+     * The link the customer is given must be a page that exists. It was tracker.boxnow.bg/<id> - a
+     * host that does not resolve (NXDOMAIN, measured 2026-09-13) - so every BOX NOW order's "track
+     * this parcel" led nowhere. boxnow.bg/track?track=<id> is BOX NOW's tracking page with the number
+     * filled in.
+     */
+    public function test_the_customer_is_given_a_link_to_a_page_that_exists(): void {
+        $this->assertSame('https://boxnow.bg/track?track=0960382208', (new BGCouriers_Boxnow([]))->tracking_url('0960382208'));
+    }
 }

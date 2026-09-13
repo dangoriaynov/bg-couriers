@@ -611,7 +611,13 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return new BGCouriers_Tracking($waybill, $status, $events, $phase, null, true);
     }
 
+    /**
+     * The page a customer can open. sameday.bg/status-na-pratkata/?awb= is Sameday's tracking page
+     * with the number filled in (measured 2026-09-13: it asks api.sameday.bg for that AWB's history
+     * and shows it; the homepage's #awb= form redirects there). www.sameday.bg/track-awb?awb=, which
+     * this used to link, is a 404 page - so every Sameday order's tracking link was dead.
+     */
     public function tracking_url(string $waybill): string {
-        return 'https://www.sameday.bg/track-awb?awb=' . rawurlencode($waybill);
+        return 'https://sameday.bg/status-na-pratkata/?awb=' . rawurlencode($waybill);
     }
 }
