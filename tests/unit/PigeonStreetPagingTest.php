@@ -63,12 +63,15 @@ final class PigeonStreetPagingTest extends TestCase {
         $this->assertSame([1], array_column($c->search_streets(759, 'витоша'), 'id'));
     }
 
-    public function test_no_term_asks_without_a_filter(): void {
+    /** No term is the order editor opening the box: no filter, and one page - the box shows twenty rows. */
+    public function test_no_term_asks_without_a_filter_and_for_one_page_only(): void {
         $c = new BGCouriers_Pigeon_Street_Paging_Spy([
-            ['data' => self::rows(1, 3), 'meta' => ['current_page' => 1, 'per_page' => 100, 'total' => 3, 'last_page' => 1]],
+            ['data' => self::rows(1, 100),   'meta' => ['current_page' => 1, 'per_page' => 100, 'total' => 4657, 'last_page' => 47]],
+            ['data' => self::rows(101, 200), 'meta' => ['current_page' => 2, 'per_page' => 100, 'total' => 4657, 'last_page' => 47]],
         ]);
-        $this->assertCount(3, $c->search_streets(759, ''));
+        $this->assertCount(100, $c->search_streets(759, ''));
         $this->assertArrayNotHasKey('name', $c->queries[0]);
+        $this->assertSame(1, $c->calls);
     }
 }
 
