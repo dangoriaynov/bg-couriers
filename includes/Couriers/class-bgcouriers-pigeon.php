@@ -237,7 +237,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
     public function search_streets(int $city_id, string $term, string $country = ''): array {
         $rows = [];
         $page = 1;
-        $cap  = 3;
+        $cap  = $term === '' ? 1 : 3; // no term is the order editor opening the box: one page of the list is all it shows
         do {
             $query = ['per_page' => 100, 'page' => $page];
             if ($term !== '') { $query['name'] = $term; }
