@@ -348,23 +348,40 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
      * So the id is looked up from the town's own list at the moment the waybill is made.
      *
      * A name can belong to more than one street: Sofia has a "1" that is a ul. and a "1" that is an al.,
-     * and the customer's pick lost the difference on its way into the order. The first is used and the
-     * caller is told, because a parcel on the right-named street is recoverable and a refused waybill at
-     * the packing table is not.
+     * and three "ВИТОША" (БУЛ., КВ., УЛ.). An order placed since the checkout started recording the
+     * pick carries the street's own id off this list, and that settles it; one that carries the type
+     * only is settled by the type. A name alone with several streets to it takes the first and the
+     * caller is told, because a parcel on the right-named street is recoverable and a refused waybill
+     * at the packing table is not. An id that is not on this town's list is ignored - a courier switch
+     * on the order editor resets the pick, but the name is the one thing every path carries.
      *
      * @return array{id:int,label:string,ambiguous:bool}
      */
-    public function street_match(int $city_id, string $name): array {
+    public function street_match(int $city_id, string $name, string $type = '', int $street_id = 0): array {
         $want = self::fold($name);
-        if ($city_id <= 0 || $want === '') { return ['id' => 0, 'label' => '', 'ambiguous' => false]; }
+        if ($city_id <= 0 || ($want === '' && $street_id <= 0)) { return ['id' => 0, 'label' => '', 'ambiguous' => false]; }
         $rows = $this->streets_of($city_id);
+        if ($street_id > 0) {
+            foreach ($rows as $r) {
+                if ((int) $r['id'] === $street_id && ($want === '' || self::fold($r['name']) === $want)) {
+                    return ['id' => $street_id, 'label' => (string) $r['label'], 'ambiguous' => false];
+                }
+            }
+        }
         $hits = [];
         foreach ($rows as $r) {
             if (self::fold($r['name']) === $want || self::fold($r['label']) === $want) { $hits[] = $r; }
         }
+        if (count($hits) > 1 && self::fold_type($type) !== '') {
+            $of_type = array_values(array_filter($hits, static function ($r) use ($type) { return self::fold_type($r['type']) === self::fold_type($type); }));
+            if ($of_type) { $hits = $of_type; }
+        }
         if (!$hits) { return ['id' => 0, 'label' => '', 'ambiguous' => false]; }
         return ['id' => (int) $hits[0]['id'], 'label' => (string) $hits[0]['label'], 'ambiguous' => count($hits) > 1];
     }
+
+    /** "УЛ." and "ул" are one type: the dot and the case are the list's habit, not the street's. */
+    private static function fold_type(string $t): string { return rtrim(self::fold($t), '.'); }
 
     /**
      * Yes: /1/create-bol refuses RECEIVER_STREET without RECEIVER_STREET_ID, and an id only exists for a
@@ -523,7 +540,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         $s = self::shipment_of($order);
         $problems = [];
         if (($s['method'] ?? '') === 'address') {
-            $hit = $this->street_match((int) $s['city_id'], (string) $s['street']);
+            $hit = $this->street_match((int) $s['city_id'], (string) $s['street'], (string) $s['street_type'], (int) $s['street_id']);
             if ($hit['id'] <= 0) {
                 throw new BGCouriers_Api_Exception(esc_html(sprintf(
                     /* translators: %s: the street as it is written on the order. */
@@ -559,6 +576,8 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
             'post_code'    => (string) ($city['post_code'] ?? ''),
             'office_id'    => (int) $order->get_meta('_bgcouriers_office_id'),
             'street'       => (string) $order->get_meta('_bgcouriers_street_name'),
+            'street_type'  => (string) $order->get_meta('_bgcouriers_street_type'), // which street of that name, when chosen off the list
+            'street_id'    => (int) $order->get_meta('_bgcouriers_street_id'),
             'street_no'    => (string) $order->get_meta('_bgcouriers_street_no'),
             'weight_kg'    => self::order_weight_kg($order),
             'parcels'      => max(1, (int) $order->get_meta('_bgcouriers_parcels')),
