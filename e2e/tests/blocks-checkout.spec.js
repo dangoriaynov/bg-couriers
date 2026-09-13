@@ -39,19 +39,31 @@ test('block checkout: an order with no delivery point is refused @blocks', async
     };
   });
   expect(cart.selected.length, 'a courier rate is selected').toBeGreaterThan(0);
-
-  // ...and the Store API says why the order cannot go through, naming the courier.
-  expect(cart.errors.length, `the cart must carry a blocking error (got ${JSON.stringify(cart.errors)})`).toBeGreaterThan(0);
   const courier = cart.selected[0];
-  expect(cart.errors.join(' '), 'the message names the courier it is about').toContain(courier);
 
-  // Pressing the button must not produce an order. This is the assertion that matters: everything above
-  // could be true while the order sailed through anyway, which is exactly what used to happen.
+  // A cart READ carries no refusal: the same errors on every cart read painted a red banner over the
+  // cart block and over a checkout block nobody had touched yet (2026-09-14). The refusal comes when
+  // the order is placed - the request below - and names the courier.
+  expect(cart.errors, 'no refusal on a cart read').toEqual([]);
+
+  // The block's own fields filled - it validates those itself before it sends anything - and nothing
+  // chosen in the courier's. Pressing the button must not produce an order. This is the assertion that
+  // matters: everything above could be true while the order sailed through anyway, which is exactly
+  // what used to happen.
+  await page.locator('.woocommerce-store-notice__dismiss-link').click({ timeout: 3000 }).catch(() => {});
+  await page.fill('#email', 'e2e-blocks-refused@example.com');
+  await page.fill('#shipping-first_name', 'Тест');
+  await page.fill('#shipping-last_name', 'Отказ');
+  await page.fill('#shipping-phone', '0888123456');
+  await page.locator('#shipping-phone').blur();
+  await page.waitForTimeout(4000);
   const btn = page.locator('button.wc-block-components-checkout-place-order-button');
-  if (await btn.count()) {
-    await btn.click();
-    await page.waitForTimeout(8000);
-  }
+  expect(await btn.count(), 'the place-order button').toBe(1);
+  const resp = page.waitForResponse(r => /wc\/store\/v1\/checkout/.test(r.url()) && r.request().method() === 'POST', { timeout: 30000 });
+  await btn.click();
+  const r = await resp;
+  expect(r.status(), 'the Store API refuses the order').toBeGreaterThanOrEqual(400);
+  await page.waitForTimeout(3000);
   expect(/order-received/i.test(page.url()), `no order may be created - landed on ${page.url()}`).toBe(false);
   const notice = await page.locator('.wc-block-components-notice-banner').first().textContent().catch(() => '');
   expect((notice || '').replace(/\s+/g, ' '), 'the customer is told why').toContain(courier);
