@@ -53,7 +53,7 @@ class BGCouriers_Kses {
             // of the page can point at the field it is about.
             'div'    => ['class' => true, 'style' => true, 'id' => true, 'aria-hidden' => true, 'data-courier' => true,
                          'data-method' => true, 'data-methods' => true, 'data-order' => true, 'data-locker' => true,
-                         'data-country' => true, 'data-nocod' => true],
+                         'data-country' => true, 'data-nocod' => true, 'data-label' => true],
             'span'   => ['class' => true, 'aria-hidden' => true, 'data-tip' => true, 'aria-label' => true],
             'label'  => ['class' => true, 'for' => true],
             'strong' => ['class' => true],

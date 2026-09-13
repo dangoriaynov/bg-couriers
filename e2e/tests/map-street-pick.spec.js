@@ -89,10 +89,17 @@ test('a street the courier does not list stays as text for Speedy and is left em
   const e2 = page.locator('.bgc-fields[data-courier="expressone"]');
   await expect(e2.locator('.bgc-street')).toHaveValue('');
   await expect(e2.locator('.bgc-street-no')).toHaveValue('1');
+  // ...and says so where it happened, with the field painted like a refused one.
+  await expect(e2.locator('.bgc-street-note')).toBeVisible();
+  await expect(e2.locator('.bgc-street-note')).toContainText('Несъществуваща');
+  await expect(e2.locator('.bgc-street-note')).toContainText('Express One');
+  await expect(e2.locator('.bgc-street-field')).toHaveClass(/bgc-invalid/);
   // ...and one it does list arrives with Express One's own id.
   await pinAndUse(page, e2, { city: 'София', postcode: '1000', street: 'улица Витоша', number: '10' });
   const e3 = page.locator('.bgc-fields[data-courier="expressone"]');
   await expect(e3.locator('.bgc-street')).toHaveValue('ВИТОША');
+  await expect(e3.locator('.bgc-street-note')).toBeHidden();
+  await expect(e3.locator('.bgc-street-field')).not.toHaveClass(/bgc-invalid/);
   await expect(e3.locator('.bgc-street-type')).toHaveValue('УЛ.');
   await expect(e3.locator('.bgc-street-id')).toHaveValue('1314');
 });
