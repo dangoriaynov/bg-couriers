@@ -17,6 +17,7 @@ final class EcontStreetCacheTest extends TestCase {
         $store = &$this->store;
         Functions\when('get_transient')->alias(static function ($k) use (&$store) { return $store[$k] ?? false; });
         Functions\when('set_transient')->alias(static function ($k, $v, $ttl = 0) use (&$store) { $store[$k] = $v; return true; });
+        Functions\when('get_option')->alias(static function ($k, $d = '') { return $d; });
         if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }
     }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
@@ -37,7 +38,21 @@ final class EcontStreetCacheTest extends TestCase {
         $this->assertSame([197], array_column($e->search_streets(41, 'шип'), 'id'));
         $this->assertCount(2, $e->search_streets(41, ''));
         $this->assertSame(1, $e->asked, 'three lookups, one request');
-        $this->assertArrayHasKey('bgcouriers_econt_streets_41', $this->store);
+        $this->assertCount(1, $this->store);
+        $this->assertStringStartsWith('bgcouriers_econt_streets_41_', array_keys($this->store)[0]);
+    }
+
+    /** "Sync now" writes a new nomenclature generation, and that retires every town's list at once. */
+    public function test_a_sync_retires_the_list(): void {
+        $gen = 'a';
+        Functions\when('get_option')->alias(static function ($k, $d = '') use (&$gen) { return $k === 'bgcouriers_nomgen_econt' ? $gen : $d; });
+        $e = $this->econt();
+        $e->search_streets(41, 'Витоша');
+        $e->search_streets(41, 'Витоша');
+        $this->assertSame(1, $e->asked);
+        $gen = 'b';
+        $e->search_streets(41, 'Витоша');
+        $this->assertSame(2, $e->asked, 'a new generation is a new list');
     }
 
     public function test_another_town_is_another_list(): void {
@@ -55,6 +70,6 @@ final class EcontStreetCacheTest extends TestCase {
         };
         $e->search_streets(41, 'x'); $e->search_streets(41, 'x');
         $this->assertSame(2, $e->asked);
-        $this->assertArrayNotHasKey('bgcouriers_econt_streets_41', $this->store);
+        $this->assertSame([], $this->store);
     }
 }
