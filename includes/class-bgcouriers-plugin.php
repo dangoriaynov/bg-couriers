@@ -187,7 +187,7 @@ class BGCouriers_Plugin {
         // order pages) must see it registered too.
         new BGCouriers_Order_Status();
         if (is_admin()) {
-            new BGCouriers_Settings();
+            new BGCouriers_Settings_Admin();
             BGCouriers_Settings_Migrator::migrate();
             new BGCouriers_Order_Metabox();
             new BGCouriers_Order_Columns();
