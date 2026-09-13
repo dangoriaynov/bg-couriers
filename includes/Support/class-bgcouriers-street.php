@@ -88,7 +88,7 @@ class BGCouriers_Street {
             $of_type = array_values(array_filter($hits, static function ($r) use ($split) { return self::same_type((string) ($r['type'] ?? ''), $split['type']); }));
             if ($of_type) { $hits = $of_type; }
         }
-        return array_values($hits);
+        return $hits;
     }
 
     public static function fold(string $s): string {
