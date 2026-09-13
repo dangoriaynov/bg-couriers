@@ -121,6 +121,35 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
     public function pushes_tracking(): bool { return false; }
 
     /**
+     * Can this courier bill the delivery itself to the RECIPIENT - collect its own fee at the door,
+     * so the shop charges nothing for delivery?
+     *
+     * Every API here has a field for it except BOX NOW's: its delivery-request payload is
+     * orderNumber / invoiceValue / paymentMode / amountToBeCollected / allowReturn / origin /
+     * destination / items, and paymentMode + amountToBeCollected are the cash-on-delivery of the
+     * GOODS - the fee is billed to the merchant by contract. Econt does it (paymentReceiverMethod, the
+     * whole fee moves from senderDueAmount to receiverDueAmount, verified live), Express One does (PAYER
+     * 1, booked on its test account 2026-08-25), Evropat does (paymentWay 2 / 4, quoted 2026-08-31).
+     *
+     * A courier that cannot is always charged with the order, whatever the "delivery in the order
+     * total" toggle says - BGCouriers_Settings::ship_in_total() asks this first. Asked of the courier
+     * because the list it replaced named six of seven couriers a file away from any of them, and the
+     * eighth would have joined it silently as "always in total" with a toggle on its tab that did
+     * nothing.
+     */
+    public function recipient_can_pay_delivery(): bool { return true; }
+
+    /**
+     * Does this courier pay cash on delivery out through a postal money order (ППП, пощенски паричен
+     * превод) on an ordinary contract, so that a shop with no cash register of its own can take cash
+     * on delivery through it? This is only the DEFAULT for the per-courier setting
+     * (bgcouriers_<id>_ppp_payout) - the merchant's own contract decides, and the toggle is theirs.
+     * Speedy and Econt say yes (the two that do it as standard); everyone else is off until the
+     * merchant says otherwise.
+     */
+    public function ppp_payout_by_default(): bool { return false; }
+
+    /**
      * Delivery kinds this courier CANNOT collect cash on.
      *
      * Cash on delivery is a service of the courier, not of the shop, and a courier may offer it to a

@@ -59,6 +59,8 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public function label(): string { return 'Speedy'; }
 
     /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
+    public function ppp_payout_by_default(): bool { return true; } // pays cash on delivery out by postal money order as standard
+
     public function credential_hint(): array {
         return [
             'intro' => __('Speedy issues API access to registered business clients - there is no instant self-signup.', 'bg-couriers'),
