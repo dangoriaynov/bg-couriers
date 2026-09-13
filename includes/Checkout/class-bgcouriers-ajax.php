@@ -510,11 +510,46 @@ class BGCouriers_Ajax {
                 $courier = BGCouriers_Couriers::get($courier_id);
                 if (!$courier) { wp_send_json([]); }
                 if (method_exists($courier, 'search_streets')) {
-                    $out = array_slice($courier->search_streets($city, $term, self::request_country($courier_id)), 0, BGCouriers_Settings::dropdown_limit());
+                    $out = array_slice(self::rank_streets($courier->search_streets($city, $term, self::request_country($courier_id)), $term), 0, BGCouriers_Settings::dropdown_limit());
                 }
             } catch (\Throwable $e) { $out = []; }   // same guard as the office lookup, same reason
         }
         wp_send_json($out);
+    }
+
+    /**
+     * The streets that BEGIN with what was typed first, then the ones with a word that does, then the
+     * rest - in the courier's own order within each.
+     *
+     * The list is cut to the dropdown limit after this, and a courier's own order is not a ranking:
+     * Pigeon answers "Витоша" for Sofia with "улица 600-НА (ВИТОША)" and thirty more numbered streets
+     * before "улица Витоша" and "булевард ВИТОША" (measured 2026-09-13), which put both past the twenty
+     * the dropdown shows - so a customer typing the street's whole name did not find it. The same
+     * ordering the town search applies (bgcMatchRank in bgc-checkout.js), on the bare name.
+     *
+     * @param array[] $rows  Parsed street rows ({id,name,type,label}).
+     */
+    public static function rank_streets(array $rows, string $term): array {
+        $t = self::fold($term);
+        if ($t === '') { return $rows; }
+        $ranked = [];
+        foreach (array_values($rows) as $i => $r) {
+            $n = self::fold((string) ($r['name'] ?? ''));
+            // Character offsets, not byte offsets: the names are Cyrillic.
+            $p = function_exists('mb_strpos') ? mb_strpos($n, $t, 0, 'UTF-8') : strpos($n, $t);
+            if ($p === false) { $rank = 3; }
+            elseif ($p === 0) { $rank = 0; }
+            elseif (preg_match('/[\s\-.,()\/"\']/u', function_exists('mb_substr') ? mb_substr($n, $p - 1, 1, 'UTF-8') : substr($n, $p - 1, 1))) { $rank = 1; }
+            else { $rank = 2; }
+            $ranked[] = [$rank, $i, $r];
+        }
+        usort($ranked, static function ($a, $b) { return $a[0] <=> $b[0] ?: $a[1] <=> $b[1]; });
+        return array_map(static function ($x) { return $x[2]; }, $ranked);
+    }
+
+    private static function fold(string $s): string {
+        $s = trim((string) preg_replace('/\s+/u', ' ', $s));
+        return function_exists('mb_strtolower') ? mb_strtolower($s, 'UTF-8') : strtolower($s);
     }
     public function set_selection(): void {
         check_ajax_referer('bgcouriers_checkout', 'nonce');
