@@ -133,8 +133,16 @@ class BGCouriers_Blocks {
         woocommerce_store_api_register_update_callback([
             'namespace' => self::REFRESH_NAMESPACE,
             'callback'  => static function ($data) {
-                // Every rate the block shows is priced from the session's selection. Nothing to write.
-                unset($data);
+                // Every rate the block shows is priced from the session's selection - and from the
+                // payment method, which the classic checkout writes to the session on every
+                // recalculation and the block keeps to itself until the order is placed. Cash on
+                // delivery is a collection fee in the courier's price, so the block sends its choice
+                // along and it is written where the rates read it, before they are priced.
+                $pm = isset($data['payment_method']) ? sanitize_key((string) $data['payment_method']) : '';
+                if ($pm !== '' && function_exists('WC') && WC()->session && WC()->payment_gateways()
+                    && array_key_exists($pm, (array) WC()->payment_gateways()->get_available_payment_gateways())) {
+                    WC()->session->set('chosen_payment_method', $pm);
+                }
             },
         ]);
     }

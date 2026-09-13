@@ -157,3 +157,73 @@ test('block checkout: a house number typed a moment before Place Order reaches t
   expect(dev('meta', orderId, '_bgcouriers_street_no')).toBe('77');
   expect(dev('meta', orderId, '_bgcouriers_street_name')).toBe('Шипка');
 });
+
+/**
+ * Delivery IN the total and cash on delivery: the block shows the price the order will charge.
+ *
+ * The collection fee is in the courier's quote, and the session learns the payment method the block
+ * chose - but the block never re-priced its rates on that change: the Store API already answered
+ * 2,41 € while the row still read 2,12 €, and the order charged 2,41 € (measured 2026-09-14 on dev,
+ * Speedy to a Sofia office, 30 € of goods). The block now asks for a recalculation when the payment
+ * method changes, with the method in the request, and the row follows.
+ *
+ * Speedy is priced to the door on dev (delivery not in the total), so this test switches "delivery in
+ * the total" on for Speedy for its own length and puts it back the way it found it.
+ */
+test.describe('delivery in the total', () => {
+  let was = '';
+  test.beforeAll(() => { was = dev('get', 'bgcouriers_speedy_ship_in_total'); dev('set', 'bgcouriers_speedy_ship_in_total', 'yes'); });
+  test.afterAll(() => { dev('set', 'bgcouriers_speedy_ship_in_total', was || 'no'); });
+
+  test('block checkout: the rate row follows the payment method @blocks @speedy', async ({ page, baseURL }) => {
+    test.setTimeout(240000);
+    await page.goto(baseURL + '/');
+    // 30 € of goods: under Speedy's free-delivery threshold on dev, over the first cash-on-delivery band.
+    await page.evaluate(async () => {
+      const p = (await (await fetch('/wp-json/wc/store/v1/products?per_page=1')).json())[0];
+      const nonce = (await fetch('/wp-json/wc/store/v1/cart')).headers.get('nonce');
+      await fetch('/wp-json/wc/store/v1/cart/add-item', { method: 'POST', headers: { 'Content-Type': 'application/json', Nonce: nonce }, body: JSON.stringify({ id: p.id, quantity: 3 }) });
+    });
+    await page.goto(baseURL + BLOCKS_PAGE);
+    const fields = () => page.locator('.bgc-blocks-fields .bgc-fields[data-courier="speedy"]');
+    await expect(fields()).toBeVisible({ timeout: 30000 });
+    await page.waitForTimeout(2500);
+    await page.locator('.woocommerce-store-notice__dismiss-link').click({ timeout: 3000 }).catch(() => {});
+    const row = page.locator('.wc-block-components-radio-control__option', { hasText: 'Speedy' }).first();
+    const price = async () => { const m = (await row.innerText()).replace(/\s+/g, ' ').match(/(\d+[,.]\d{2})\s?€/); return m ? parseFloat(m[1].replace(',', '.')) : NaN; };
+    // An office, so the price is the price of a real destination.
+    await fields().locator('.bgc-city-field .select2-selection').click();
+    await page.locator('.select2-search__field').fill('София');
+    await page.locator('.select2-results__option[role="option"]').first().click({ timeout: 15000 });
+    await expect(page.locator('.bgc-blocks-fields .bgc-fields.bgc-loading')).toHaveCount(0, { timeout: 15000 });
+    await fields().locator('.bgc-office-row .select2-selection').click();
+    const opt = page.locator('.select2-results__option[role="option"]').first();
+    await expect(opt).toBeVisible({ timeout: 20000 });
+    await page.waitForTimeout(600);
+    await opt.click();
+    await expect(page.locator('.bgc-blocks-fields .bgc-fields.bgc-loading')).toHaveCount(0, { timeout: 15000 });
+    await page.locator('label[for="radio-control-wc-payment-method-options-bacs"]').click();
+    await page.waitForTimeout(4000);
+    const prepaid = await price();
+    expect(prepaid).toBeGreaterThan(0);
+    await page.locator('label[for="radio-control-wc-payment-method-options-cod"]').click();
+    await expect.poll(price, { timeout: 15000 }).toBeGreaterThan(prepaid);
+    const cod = await price();
+    await page.locator('label[for="radio-control-wc-payment-method-options-bacs"]').click();
+    await expect.poll(price, { timeout: 15000 }).toBe(prepaid);
+    // ...and what the order charges is what the row said.
+    await page.locator('label[for="radio-control-wc-payment-method-options-cod"]').click();
+    await expect.poll(price, { timeout: 15000 }).toBe(cod);
+    await page.fill('#email', 'e2e-blocks-cod@example.com');
+    await page.fill('#shipping-first_name', 'Тест');
+    await page.fill('#shipping-last_name', 'НП');
+    await page.fill('#shipping-phone', '0888123456');
+    await page.locator('#shipping-phone').blur();
+    await phoneOnServer(page);
+    await page.locator('button:has-text("Place Order")').click();
+    await expect(page).toHaveURL(/order-received/i, { timeout: 60000 });
+    const orderId = (page.url().match(/order-received\/(\d+)/) || [])[1] || '';
+    expect(orderId).toBeTruthy();
+    expect(dev('shiptotal', orderId)).toMatch(new RegExp('^' + cod.toFixed(2) + ' \\+ '));
+  });
+});
