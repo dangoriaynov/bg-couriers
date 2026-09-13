@@ -28,6 +28,22 @@
     var t = (text == null ? '' : String(text)).toLowerCase();
     return t.indexOf(term) !== -1 || bgcTranslit(t).indexOf(term) !== -1;
   }
+  // How well `text` matches the term: 0 = it starts with it, 1 = a word in it starts with it, 2 = the term
+  // is somewhere inside, -1 = no match. Cyrillic and the Latin transliteration both count; the best wins.
+  // The town list used to be shown in the order it was stored, so "Ст" listed Костенец, Кюстендил and
+  // Силистра (which merely contain it) before every town that begins with it - Стара Загора was not in
+  // the first five - and for Sameday the first answer was "Алеко Константиново". Measured 2026-09-13.
+  function bgcMatchRank(text, term) {
+    if (!term) { return 0; }
+    var t = (text == null ? '' : String(text)).toLowerCase(), forms = [t, bgcTranslit(t)], best = -1;
+    for (var i = 0; i < forms.length; i++) {
+      var pos = forms[i].indexOf(term);
+      if (pos === -1) { continue; }
+      var r = pos === 0 ? 0 : (/[\s\-.,()\/"']/.test(forms[i].charAt(pos - 1)) ? 1 : 2);
+      if (best === -1 || r < best) { best = r; }
+    }
+    return best;
+  }
   // select2 renders its dropdown at the end of <body>, outside .bgc-fields, so our stylesheet cannot
   // reach it by nesting. Tag every dropdown we open with a class of our own and style that - otherwise
   // the search box inside keeps select2's default height and looks squashed next to our 38px fields.
@@ -244,14 +260,20 @@
           var idx = BGCOURIERS.cityIndex && BGCOURIERS.cityIndex[cour];
           if (indexUsable($wrap) && m !== 'address' && idx && idx[m]) {
             var term = ((params.data && params.data.term) || '').toLowerCase(), rows = idx[m], out = [];
-            for (var i = 0; i < rows.length && out.length < 200; i++) {
+            for (var i = 0; i < rows.length; i++) {
               var a = rows[i]; // [city_id, name, post_code, name_lat]
               // Match the Cyrillic name (and its Latin transliteration), the official Latin name, or postcode -
-              // so a Latin spelling, the Cyrillic one and the post code all find the same town.
-              if (!term || bgcTextMatch(a[1], term) || (a[3] && String(a[3]).toLowerCase().indexOf(term) !== -1) || String(a[2]).indexOf(term) !== -1) {
-                out.push({ city_id: a[0], name: a[1], post_code: a[2] });
-              }
+              // so a Latin spelling, the Cyrillic one and the post code all find the same town. Ranked: a
+              // town that BEGINS with what was typed comes before one that merely contains it, and the
+              // list is cut to 200 only after ranking, so a late-alphabet town that begins with the term
+              // is never pushed out by two hundred that contain it.
+              var r = bgcMatchRank(a[1], term);
+              if (r !== 0 && a[3]) { var lp = String(a[3]).toLowerCase().indexOf(term); if (lp === 0) { r = 0; } else if (lp > 0 && r === -1) { r = 2; } }
+              if (r !== 0 && String(a[2]).indexOf(term) === 0) { r = 0; }
+              if (r !== -1) { out.push({ city_id: a[0], name: a[1], post_code: a[2], r: r, i: i }); }
             }
+            out.sort(function (x, y) { return x.r - y.r || x.i - y.i; });
+            out = out.slice(0, 200).map(function (o) { return { city_id: o.city_id, name: o.name, post_code: o.post_code }; });
             success(out); return { abort: function () {} };
           }
           return noAbortTransport(params, success, failure); // original AJAX path, untouched
