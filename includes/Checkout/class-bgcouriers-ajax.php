@@ -504,13 +504,21 @@ class BGCouriers_Ajax {
         $courier_id = sanitize_key(wp_unslash($_GET['courier'] ?? 'speedy')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
         $term = sanitize_text_field(wp_unslash($_GET['term'] ?? '')); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- public read-only nomenclature endpoint, no state change
+        // exact=1: not a search but a question - which rows of the list ARE this street, written as
+        // text? The address map asks it with what its reverse geocoding handed over ("бул. Княз
+        // Александър Дондуков", "Кърниградска"), so that the street box holds a street off the list,
+        // with its id and type, rather than the text - which Speedy refuses at label time when the town
+        // has two of that name, and Express One and Европът refuse outright.
+        $exact = !empty($_GET['exact']); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only nomenclature endpoint, no state change
         $out = [];
         if ($city > 0 && $term !== '') {
             try {
                 $courier = BGCouriers_Couriers::get($courier_id);
                 if (!$courier) { wp_send_json([]); }
                 if (method_exists($courier, 'search_streets')) {
-                    $out = array_slice(self::rank_streets($courier->search_streets($city, $term, self::request_country($courier_id)), $term), 0, BGCouriers_Settings::dropdown_limit());
+                    $rows = $courier->search_streets($city, $exact ? BGCouriers_Street::split($term)['name'] : $term, self::request_country($courier_id));
+                    $out  = $exact ? BGCouriers_Street::exact($rows, $term) : self::rank_streets($rows, $term);
+                    $out  = array_slice($out, 0, BGCouriers_Settings::dropdown_limit());
                 }
             } catch (\Throwable $e) { $out = []; }   // same guard as the office lookup, same reason
         }

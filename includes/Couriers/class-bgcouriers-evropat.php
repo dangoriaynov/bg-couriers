@@ -329,20 +329,19 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
                 }
             }
         }
-        $exact = [];
-        foreach ($rows as $s) {
-            if (self::fold($s['name']) === $want) { $exact[] = $s; }
-        }
+        // The name as written, the label as written, or the name with its type taken off the front
+        // ("булевард Витоша" off the map is "бул. витоша" here) - see BGCouriers_Street::exact().
+        $exact = BGCouriers_Street::exact($rows, $name);
         // Several of that name and a type to choose by ("ул" and "ул." are one type - the dot is the
         // list's habit): keep the ones of that type.
-        if (count($exact) > 1 && rtrim(self::fold($type), '.') !== '') {
-            $of_type = array_values(array_filter($exact, static function ($s) use ($type) { return rtrim(self::fold($s['type']), '.') === rtrim(self::fold($type), '.'); }));
+        if (count($exact) > 1 && trim($type) !== '') {
+            $of_type = array_values(array_filter($exact, static function ($s) use ($type) { return BGCouriers_Street::same_type((string) $s['type'], $type); }));
             if ($of_type) { $exact = $of_type; }
         }
         if (!$exact) {
             // Nothing spelled exactly that; fall back to the single street that CONTAINS it, if there is
             // exactly one - two would be a guess about where somebody's parcel goes.
-            $near = $this->search_streets($city_id, $name);
+            $near = $this->search_streets($city_id, BGCouriers_Street::split($name)['name']);
             if (count($near) !== 1) { return ['id' => 0, 'label' => '', 'ambiguous' => false]; }
             $exact = $near;
         }

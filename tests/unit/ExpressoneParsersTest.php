@@ -169,6 +169,13 @@ final class ExpressoneParsersTest extends TestCase {
         $hit = $co->street_match(68134, '10', '', 3387);
         $this->assertSame(145, $hit['id'], 'an id whose street is not the named one is ignored too');
         $this->assertFalse($hit['ambiguous']);
+
+        // What the address map writes: the type in front, in a spelling of its own.
+        $hit = $co->street_match(68134, 'алея 1');
+        $this->assertSame(3387, $hit['id'], '"алея 1" off the map is АЛ. 1 here');
+        $this->assertFalse($hit['ambiguous']);
+        $hit = $co->street_match(68134, 'ул. 10');
+        $this->assertSame(145, $hit['id']);
     }
 
     // ── Price ────────────────────────────────────────────────────────────────

@@ -88,19 +88,20 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public function resolve_street(int $site_id, array $fields, string $country = ''): array {
         $name = trim((string) ($fields['street'] ?? ''));
         if ((int) ($fields['street_id'] ?? 0) > 0 || $name === '' || $site_id <= 0) { return $fields; }
+        // Speedy's search answers a name with the type in it - "бул. Княз Александър Дондуков", which is
+        // how the address map writes a street - with nothing at all (measured 2026-09-13); the name
+        // alone finds it. So the search goes by the bare name, and the type the text carried, or the
+        // one stored with the order, picks among several of that name.
+        $split = BGCouriers_Street::split($name);
         try {
-            $rows = $this->search_streets($site_id, $name, $country);
+            $rows = $this->search_streets($site_id, $split['name'], $country);
         } catch (\Exception $e) {
             return $fields;
         }
-        $want = self::fold($name);
-        $type = self::fold((string) ($fields['street_type'] ?? ''));
-        $hits = [];
-        foreach ($rows as $r) {
-            if (self::fold($r['name']) === $want || self::fold($r['label']) === $want) { $hits[] = $r; }
-        }
-        if (count($hits) > 1 && $type !== '') {
-            $hits = array_values(array_filter($hits, static function ($r) use ($type) { return self::fold($r['type']) === $type; })) ?: $hits;
+        $hits = BGCouriers_Street::exact($rows, $name);
+        $type = (string) ($fields['street_type'] ?? '');
+        if (count($hits) > 1 && trim($type) !== '') {
+            $hits = array_values(array_filter($hits, static function ($r) use ($type) { return BGCouriers_Street::same_type((string) $r['type'], $type); })) ?: $hits;
         }
         if (count($hits) === 1) {
             $fields['street_id'] = (int) $hits[0]['id'];
@@ -113,11 +114,6 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
                 $name, implode(', ', array_map(static function ($r) { return $r['label']; }, $hits)))));
         }
         return $fields;
-    }
-
-    private static function fold(string $s): string {
-        $s = trim((string) preg_replace('/\s+/u', ' ', $s));
-        return function_exists('mb_strtolower') ? mb_strtolower($s, 'UTF-8') : strtolower($s);
     }
 
     public function id(): string { return 'speedy'; }

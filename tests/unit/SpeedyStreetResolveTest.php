@@ -98,6 +98,23 @@ final class SpeedyStreetResolveTest extends TestCase {
         $this->assertSame(0, $s->asked);
     }
 
+    /**
+     * The address map hands over "бул. Княз Александър Дондуков"; Speedy's search answers that with
+     * nothing and the bare name with the street (measured 2026-09-13). The search goes by the bare name
+     * and the type in the text picks among several of that name.
+     */
+    public function test_a_name_with_its_type_in_front_is_searched_bare_and_picked_by_the_type(): void {
+        $s = $this->speedy([['id' => 64, 'name' => 'КНЯЗ АЛЕКСАНДЪР ДОНДУКОВ', 'type' => 'бул.', 'label' => 'бул. КНЯЗ АЛЕКСАНДЪР ДОНДУКОВ']]);
+        $f = $s->resolve_street(68134, ['street' => 'бул. Княз Александър Дондуков', 'street_no' => '5']);
+        $this->assertSame([68134, 'Княз Александър Дондуков', ''], $s->last, 'asked with the name alone');
+        $this->assertSame(64, $f['street_id']);
+
+        $s = $this->speedy(self::VITOSHA);
+        $this->assertSame(1314, $s->resolve_street(68134, ['street' => 'улица Витоша'])['street_id'], '"улица" picks the ул. one');
+        $this->assertSame(26, $s->resolve_street(68134, ['street' => 'булевард „Витоша“'])['street_id'], 'in the geocoder\'s spelling, quotes and all');
+        $this->assertSame('Витоша', $s->last[1]);
+    }
+
     /** The lookup failing is Speedy's problem to report, not a reason to refuse the label here. */
     public function test_a_failed_lookup_sends_the_name_as_before(): void {
         $s = new class extends BGCouriers_Speedy {

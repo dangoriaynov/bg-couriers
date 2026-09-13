@@ -368,20 +368,16 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
                 }
             }
         }
-        $hits = [];
-        foreach ($rows as $r) {
-            if (self::fold($r['name']) === $want || self::fold($r['label']) === $want) { $hits[] = $r; }
-        }
-        if (count($hits) > 1 && self::fold_type($type) !== '') {
-            $of_type = array_values(array_filter($hits, static function ($r) use ($type) { return self::fold_type($r['type']) === self::fold_type($type); }));
+        // The name as written, the label as written, or the name with its type taken off the front
+        // ("булевард Витоша" off the map is БУЛ. ВИТОША here) - see BGCouriers_Street::exact().
+        $hits = BGCouriers_Street::exact($rows, $name);
+        if (count($hits) > 1 && trim($type) !== '') {
+            $of_type = array_values(array_filter($hits, static function ($r) use ($type) { return BGCouriers_Street::same_type((string) $r['type'], $type); }));
             if ($of_type) { $hits = $of_type; }
         }
         if (!$hits) { return ['id' => 0, 'label' => '', 'ambiguous' => false]; }
         return ['id' => (int) $hits[0]['id'], 'label' => (string) $hits[0]['label'], 'ambiguous' => count($hits) > 1];
     }
-
-    /** "УЛ." and "ул" are one type: the dot and the case are the list's habit, not the street's. */
-    private static function fold_type(string $t): string { return rtrim(self::fold($t), '.'); }
 
     /**
      * Yes: /1/create-bol refuses RECEIVER_STREET without RECEIVER_STREET_ID, and an id only exists for a

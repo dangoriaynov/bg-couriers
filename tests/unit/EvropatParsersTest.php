@@ -322,6 +322,14 @@ final class EvropatParsersTest extends TestCase {
         $hit = $co->street_match(273, 'Шипка', '', 38842);
         $this->assertSame(40001, $hit['id'], 'an id whose street is not the named one is ignored');
         $this->assertFalse($hit['ambiguous']);
+
+        // What the address map writes: the type in front, spelled out, and quotes around the name.
+        $hit = $co->street_match(273, 'булевард „Витоша“');
+        $this->assertSame(36141, $hit['id']);
+        $this->assertFalse($hit['ambiguous']);
+        $hit = $co->street_match(273, 'жк. Витоша');
+        $this->assertSame(156617, $hit['id']);
+        $this->assertFalse($hit['ambiguous']);
     }
 
     // ── Tracking ─────────────────────────────────────────────────────────────
