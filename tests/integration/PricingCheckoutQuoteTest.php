@@ -47,4 +47,34 @@ final class PricingCheckoutQuoteTest extends WP_UnitTestCase {
         $this->assertTrue($c->quote_called, 'a chosen city must produce the exact live quote');
         $this->assertEqualsWithDelta(9.99, $q->price, 0.01);
     }
+
+    /**
+     * The reference must carry the tax the live quote worked out, or on a shop that adds no shipping tax
+     * the pre-city price is ~20% low for every courier that reports its own tax (Speedy, Express One) or
+     * has it added (Sameday) - it read net there, then jumped to gross the moment a town was chosen. The
+     * cache already holds the live quote; it used to keep only the price and drop the tax.
+     */
+    public function test_the_reference_price_carries_the_couriers_own_tax(): void {
+        $key = BGCouriers_Pricing::reference_key('speedy', 'office', 1.0, 0.0, '', 'EUR');
+        set_transient($key, ['p' => 1.37, 't' => 0.27], HOUR_IN_SECONDS); // a warm live quote, tax and all
+        $c = $this->stub();
+        $q = BGCouriers_Pricing::checkout_quote($c, 'office', 0, 0, ['weight_kg' => 1.0], 'EUR');
+        $this->assertFalse($c->quote_called, 'a warm reference must not call the courier API');
+        $this->assertSame('reference', $q->source);
+        $this->assertEqualsWithDelta(1.37, $q->price, 0.001);
+        $this->assertEqualsWithDelta(0.27, $q->tax, 0.001, 'the reference kept the tax, so it matches the live price');
+    }
+
+    /**
+     * A reference cache entry written before the tax was kept has only a price. It must degrade to a net
+     * reading (tax 0), not error - a warm three-hour cache spans the upgrade.
+     */
+    public function test_an_old_reference_cache_entry_without_a_tax_reads_as_net(): void {
+        $key = BGCouriers_Pricing::reference_key('speedy', 'office', 1.0, 0.0, '', 'EUR');
+        set_transient($key, ['p' => 1.37], HOUR_IN_SECONDS); // the old shape, no 't'
+        $q = BGCouriers_Pricing::checkout_quote($this->stub(), 'office', 0, 0, ['weight_kg' => 1.0], 'EUR');
+        $this->assertSame('reference', $q->source);
+        $this->assertEqualsWithDelta(1.37, $q->price, 0.001);
+        $this->assertEqualsWithDelta(0.0, $q->tax, 0.001);
+    }
 }
