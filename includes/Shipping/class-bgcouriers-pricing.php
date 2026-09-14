@@ -152,6 +152,35 @@ class BGCouriers_Pricing {
     }
 
     /**
+     * The paid figure to advertise on the map for one office from a LIVE quote - the SAME number the
+     * shipping row will charge, so the map can never promise a price the checkout will not honour (the
+     * whole reason the map is fed from this class). Which number that is depends on who gets paid,
+     * exactly as the shipping method decides it: a delivery in the order total follows the shop window
+     * (display_price), one paid at the door is the courier's cash (door_price).
+     *
+     * A POSITIVE return is the only paid result; null means there is nothing to show (no quote, or a
+     * figure that came out at or below zero). That is deliberate and load-bearing: the map caller reads
+     * a positive number as "a price to print" and anything else as "drop this option", and treats FREE
+     * separately (it reads the cart, needs no quote, and is not decided here). So a zero can never be
+     * mistaken for free, and free is never mistaken for an unpriced courier.
+     *
+     * The quote passed here MUST carry its own tax already (a live quote does). A bare reference number
+     * - a stored net figure with no tax on it - must NOT be routed through here: door_price() would see
+     * tax == 0, take it for "the courier reported no tax", and add the shop's shipping rate on top of a
+     * figure that is not owed one. See courier_tax()'s standing warning. The reference path shows its
+     * stored number as it stands and only applies the free rule.
+     *
+     * @param BGCouriers_Quote|null $q      the LIVE quote (tax included), or null when unreachable
+     * @param bool                  $in_total whether the delivery is charged with the order for this courier
+     * @return float|null null = nothing to show, >0 = the price
+     */
+    public static function map_office_price(?BGCouriers_Quote $q, bool $in_total): ?float {
+        if (!$q) { return null; }
+        $v = $in_total ? self::display_price(self::rate_cost($q)) : self::door_price($q);
+        return $v > 0 ? $v : null;
+    }
+
+    /**
      * A quote on its way into the cache, and back out again.
      *
      * The cache used to keep the price and drop the tax, and quotes live in it for three hours - so
