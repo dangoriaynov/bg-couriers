@@ -84,11 +84,13 @@ class BGCouriers_Pricing {
      * told 2,20 and handed the courier 2,64 (measured on the live shop 2026-08-31 - Speedy short by
      * 0.44, Express One by 0.68, Evropat by 0.46, each exactly its own VAT).
      *
-     * Where the courier itself reports the tax - Speedy and Econt break it out, Express One and Evropat
-     * have it taken back out of a gross total - that is the authority and the sum is simply put back
-     * together. Where it does not (Pigeon, Sameday, a fixed or reference price), the plugin's standing
-     * rule is that a quote is net, so the shop's own shipping rate stands in: on this market it is the
-     * same 20% the couriers that do report it charge.
+     * Where the courier reports its own tax - Speedy breaks it out, Express One reports it beside a gross
+     * total - that is the authority and the sum is simply put back together. Where the price is gross
+     * with no tax field, the tax is split back out (Evropat, Pigeon, and Econt's calculate mode, which
+     * returns no VAT figure at all - re-checked live 2026-08-31). Where the figure is net and the courier
+     * says nothing (Sameday, settled by its own invoice; a fixed or reference price), the plugin's
+     * standing rule is that a quote is net, so the shop's own shipping rate stands in: on this market it
+     * is the same 20% the couriers that do report it charge.
      */
     public static function door_price(BGCouriers_Quote $q): float {
         if ($q->price <= 0) { return 0.0; }
@@ -375,9 +377,13 @@ class BGCouriers_Pricing {
         if ($site_id <= 0) {
             // The reference route is resolved in the destination country, so a customer who has said
             // "Romania" but not yet which town sees a Romanian price, not a Bulgarian one.
-            $est = self::reference_for_weight($courier, $method, $packed, $currency, $country);
-            if ($est !== null) { return new BGCouriers_Quote(round($est, 2), 0.0, $currency, 'reference'); }
+            $ref = self::reference_for_weight($courier, $method, $packed, $currency, $country);
+            if ($ref !== null) { return new BGCouriers_Quote(round($ref['p'], 2), round($ref['t'], 2), $currency, 'reference'); }
             if (!$abroad) {
+                // Last resort: the daily cached rate. It is a bare number with no tax to carry, so this
+                // one stays net - a courier that reports its own tax is ~20% low here until a town is
+                // picked, and only on a shop WooCommerce adds no shipping tax for. reference_for_weight()
+                // above is the path that carries the tax; this runs only when even that could not quote.
                 $est = self::estimate($courier->id(), $method);
                 if ($est !== null) { return new BGCouriers_Quote(round($est, 2), 0.0, $currency, 'reference'); }
             }
@@ -582,12 +588,13 @@ class BGCouriers_Pricing {
      * Returns null when the courier cannot be quoted at all, so the caller falls back to the old daily
      * figure rather than showing nothing.
      */
-    private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency, string $country = ''): ?float {
+    private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency, string $country = ''): ?array {
         $w    = self::reference_weight((float) ($packed['weight_kg'] ?? 0));
         $cod  = self::cart_cod_amount($courier->id(), $method);
         $tkey = self::reference_key($courier->id(), $method, $w, $cod, $country, $currency);
         $hit  = get_transient($tkey);
-        if (is_array($hit) && isset($hit['p'])) { return (float) $hit['p']; }
+        // 't' ?? 0: an entry written before the tax was kept has only a price, and reads back as net.
+        if (is_array($hit) && isset($hit['p'])) { return ['p' => (float) $hit['p'], 't' => (float) ($hit['t'] ?? 0)]; }
         if (!class_exists('BGCouriers_Sync')) { return null; }
         $ref = BGCouriers_Sync::reference_shipment($courier->id(), $method, $country);
         if (!$ref) { return null; }
@@ -611,11 +618,15 @@ class BGCouriers_Pricing {
             return null;
         }
         if ($q->source !== 'live') { return null; }
-        // NET, like every other price here. It was the gross total, and it is handed straight to the
-        // shipping rate's cost - which WooCommerce then taxes again. The delivery was therefore quoted
-        // ~20% high until the customer chose a town, and visibly dropped the moment they did.
-        set_transient($tkey, ['p' => $q->price], 3 * HOUR_IN_SECONDS);
-        return $q->price;
+        // The price is NET and the tax is the courier's own, exactly as the live quote built them - keep
+        // BOTH. Dropping the tax left the reference ~20% LOW, on a shop that adds no shipping tax, for
+        // every courier that reports its own tax (Speedy, Express One) or has it added (Sameday): it read
+        // net here and jumped to gross the moment a town was chosen. (An older bug was the mirror of this
+        // - it stored the GROSS total and WooCommerce taxed it AGAIN, ~20% high. The real net+tax pair is
+        // right both ways, and on a shop that DOES add shipping tax rate_cost ignores the tax regardless.)
+        $entry = ['p' => $q->price, 't' => $q->tax];
+        set_transient($tkey, $entry, 3 * HOUR_IN_SECONDS);
+        return $entry;
     }
 
     public static function estimate(string $courier, string $method): ?float {
