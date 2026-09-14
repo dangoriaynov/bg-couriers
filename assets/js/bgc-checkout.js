@@ -410,10 +410,40 @@
   function preloadOffices($wrap) {
     var city = $wrap.find('.bgc-city').val() || 0, m = method($wrap);
     if (!city || m === 'address') { return; }
+    // Warm the live locker-availability overlay for Sameday automats off the critical path - this fires on
+    // every city change and method pick, so the dropdown has the answer in hand the moment it is opened.
+    if (courier($wrap) === 'sameday' && m === 'automat') { warmAvail(country($wrap), city); }
     var key = officeKey($wrap, city, m);
     if (cacheGet(key) !== undefined) { return; }
     $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: courier($wrap), country: country($wrap), city_id: city, type: m, all: 1 },
       function (rows) { cacheSet(key, rows); });
+  }
+
+  /* Sameday easyBox free-compartment availability, per city: 'lockerId -> can the shop's parcel fit'.
+     This is LIVE (compartments fill and empty by the minute), so it is kept OUT of the office cache,
+     which lives for the tab and can be hours old - baking it in would freeze it. Cached here only
+     briefly (under the server's own 60s), so reopening the same city's dropdown costs no request; the
+     map polls the same endpoint on a timer for the same reason. A failure hands back null and the list
+     renders as usual - an availability hiccup must never hide a locker a customer could actually use. */
+  var availStore = {};    // 'country:city' -> { at: ms, map: { lockerId: canFit } }
+  var availInflight = {}; // key -> true while a request is on the wire, so a burst of opens makes one
+  var AVAIL_TTL = 45000;
+  // A FRESH cached answer, or null - never a request. The dropdown renders off this and so never waits.
+  function availHit(ctry, city) {
+    var h = availStore[ctry + ':' + city];
+    return (h && (Date.now() - h.at) < AVAIL_TTL) ? h.map : null;
+  }
+  // Warm the cache in the background, fire-and-forget. The list is drawn at once from availHit() and greys
+  // itself on the NEXT open, exactly as a failed fetch leaves it fully selectable - the owner asked for the
+  // freshness to be invisible and never to make the checkout wait ("непомітно щоб без підвисань"). One
+  // upstream crawl covers every locker in the city; a burst of opens while it is on the wire waits for none.
+  function warmAvail(ctry, city) {
+    var key = ctry + ':' + city;
+    if (availHit(ctry, city) !== null || availInflight[key]) { return; }
+    availInflight[key] = true;
+    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_sameday_availability', country: ctry, city_id: city })
+      .done(function (res) { availStore[key] = { at: Date.now(), map: (res && res.lockers) || {} }; })
+      .always(function () { delete availInflight[key]; });
   }
 
   /**
@@ -502,11 +532,22 @@
         transport: function (params, success, failure) {
           var d = params.data, key = d.courier + ':' + d.country + ':' + d.city_id + ':' + d.type, term = (d.term || '').toLowerCase();
           function done(rows) {
-            success(term ? rows.filter(function (o) {
+            var out = term ? rows.filter(function (o) {
               // Office names/addresses are Cyrillic only - also match their Latin transliteration so a
               // Latin-typed term (e.g. "mladost", "metro") finds them.
               return bgcTextMatch(o.name, term) || (String(o.office_id).indexOf(term) !== -1) || bgcTextMatch(o.address, term);
-            }) : rows);
+            }) : rows;
+            // Sameday automats carry a LIVE free-compartment answer - overlay it so a full easyBox shows
+            // greyed and unpickable, the same as on the map. Only here: every other courier/method has no
+            // such answer and the list renders unchanged. The flag goes on a COPY, never into the cached
+            // office rows, and a null overlay (fetch failed) leaves the list fully selectable.
+            if (d.courier === 'sameday' && d.type === 'automat' && d.city_id) {
+              var map = availHit(d.country, d.city_id); // fresh cache or null - the render NEVER waits on a fetch
+              success(map ? out.map(function (o) { return $.extend({}, o, { full: map[o.office_id] === false }); }) : out);
+              if (!map) { warmAvail(d.country, d.city_id); } // cold: list shows selectable now, greys on the next open
+            } else {
+              success(out);
+            }
           }
           var hit = cacheGet(key);
           if (hit !== undefined) { done(hit); return { abort: function () {} }; } // cached: no request at all
@@ -519,7 +560,11 @@
           return { courier: courier($wrap), country: country($wrap), city_id: $wrap.find('.bgc-city').val() || 0, type: method($wrap), term: params.term || '' };
         },
         processResults: function (rows) {
-          return { results: bgcList(rows).map(function (o) { return { id: o.office_id, text: o.name + ' - ' + o.address }; }) };
+          var fullTxt = (BGCOURIERS.i18n && BGCOURIERS.i18n.allmap_full) || 'Full';
+          return { results: bgcList(rows).map(function (o) {
+            var full = o.full === true; // a full easyBox: greyed, labelled, and unselectable (select2 honours disabled)
+            return { id: o.office_id, text: o.name + ' - ' + o.address + (full ? ' (' + fullTxt + ')' : ''), disabled: full };
+          }) };
         }
       }
     });
