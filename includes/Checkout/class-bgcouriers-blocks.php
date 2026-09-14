@@ -72,9 +72,7 @@ class BGCouriers_Blocks {
      */
     public function hide_address_fields($locale) {
         if (!is_array($locale) || is_admin() || !class_exists('BGCouriers_Settings') || !BGCouriers_Settings::own_address_fields()) { return $locale; }
-        $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
-        $store_api = defined('REST_REQUEST') && REST_REQUEST && strpos($uri, '/wc/store/') !== false;
-        if (!$store_api && !self::is_block_checkout()) { return $locale; }
+        if (!self::serving_courier_checkout()) { return $locale; }
         $hide = ['address_1', 'address_2', 'city', 'state', 'postcode'];
         if (!isset($locale['default'])) { $locale['default'] = []; }
         foreach (array_keys($locale) as $country) {
@@ -102,11 +100,9 @@ class BGCouriers_Blocks {
     public function phone_required($value) {
         if (is_admin() || !class_exists('BGCouriers_Settings') || !BGCouriers_Settings::own_address_fields()) { return $value; }
         // The Store API (wc/store) is where the block reads the field's standing and validates the
-        // order; the settings REST API the block editor reads is left alone, so the editor keeps
-        // showing what the merchant chose.
-        $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
-        $store_api = defined('REST_REQUEST') && REST_REQUEST && strpos($uri, '/wc/store/') !== false;
-        if (!$store_api && !self::is_block_checkout()) { return $value; }
+        // order; the core settings REST API the block editor reads is a different namespace and is
+        // left alone, so the editor keeps showing what the merchant chose. See serving_courier_checkout().
+        if (!self::serving_courier_checkout()) { return $value; }
         return 'required';
     }
 
@@ -168,6 +164,54 @@ class BGCouriers_Blocks {
         // does not depend on WHEN we are asked. See requested_page_id() and hide_address_fields().
         if (!$id) { $id = self::requested_page_id(); }
         return $id && has_block('woocommerce/checkout', $id);
+    }
+
+    /**
+     * Is this a request where the plugin owns the address fields - the checkout BLOCK page, or the
+     * Store API that serves and validates it? The address-field hide and the required phone both hang
+     * off this. Both are read from the country locale, which WC_Countries caches on its first read, so
+     * both must answer the same whenever they are asked - hence a URL test, never a constant that is
+     * only set partway through the request. See is_store_api_request() and is_block_checkout().
+     */
+    private static function serving_courier_checkout(): bool {
+        return self::is_store_api_request() || self::is_block_checkout();
+    }
+
+    /**
+     * Is this request served by the WooCommerce Store API - the block checkout's data-and-placement
+     * endpoint?
+     *
+     * Worked out from the request URL, not from REST_REQUEST. That constant is defined at
+     * parse_request - AFTER init and wp_loaded - so a locale read on an early hook (another plugin's
+     * init handler is the common one) would see it undefined and take a Store API request for an
+     * ordinary one; and because WC_Countries caches the locale on its first read, that one early wrong
+     * answer would stand for the whole request, and WooCommerce's own street/town/postcode would be
+     * required on an order the block never showed them on. The URL is the same whenever it is read.
+     *
+     * Two shapes carry the Store API: a pretty permalink puts wc/store under the REST prefix
+     * (/wp-json/wc/store/...), and a plain-permalink shop routes REST through ?rest_route=/wc/store/...
+     * The prefix is read from rest_get_url_prefix(), so a shop that renamed it is covered. Matching the
+     * route this way - rather than "the text /wc/store/ appears somewhere in the URI" - keeps a
+     * front-end URL that merely carries that text in a query value (a redirect argument, say) from
+     * being mistaken for the Store API.
+     */
+    public static function is_store_api_request(): bool {
+        if (empty($_SERVER['REQUEST_URI'])) { return false; }
+        // esc_url_raw, not sanitize_text_field: the plain-permalink form arrives with its slashes
+        // percent-encoded (?rest_route=%2Fwc%2Fstore%2F...), and sanitize_text_field DELETES every
+        // %xx octet, which would turn that into rest_route=wcstore... and miss it. esc_url_raw keeps
+        // the encoding, and parse_str() below decodes it back to /wc/store/ (verified on WP 6.x).
+        $uri    = esc_url_raw(wp_unslash($_SERVER['REQUEST_URI']));
+        $prefix = function_exists('rest_get_url_prefix') ? trim((string) rest_get_url_prefix(), '/') : 'wp-json';
+        $path   = (string) wp_parse_url($uri, PHP_URL_PATH);
+        if ($prefix !== '' && strpos($path, '/' . $prefix . '/wc/store/') !== false) { return true; }
+        $query = (string) wp_parse_url($uri, PHP_URL_QUERY);
+        if ($query !== '') {
+            $args = [];
+            parse_str($query, $args);
+            if (isset($args['rest_route']) && strpos((string) $args['rest_route'], '/wc/store/') === 0) { return true; }
+        }
+        return false;
     }
 
     /**
