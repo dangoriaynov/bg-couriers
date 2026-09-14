@@ -39,10 +39,6 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return $sender;
     }
 
-    public static function cod_amount(float $total, float $shipping_total, float $shipping_tax): float {
-        return max(0.0, round($total - $shipping_total - $shipping_tax, 2));
-    }
-
     /**
      * The recipient's address as Speedy wants it.
      *
