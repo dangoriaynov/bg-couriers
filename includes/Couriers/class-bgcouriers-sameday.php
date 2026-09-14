@@ -374,24 +374,54 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * The smallest easyBox size a parcel of these dimensions needs.
+     * The easyBox compartment envelope as a filterable table: the compartment opening (max length x
+     * width) and the height that tops out each of Sameday's S/M/L sizes, all in centimetres.
      *
-     * Mirrors BGCouriers_Boxnow::compartment_for() exactly - the plugin's existing locker-compartment
-     * standard (a ~60x45 cm footprint, heights 8/17/36 cm marking S/M/L). easyBox and BOX NOW are both
-     * APM parcel lockers built to the same compartment sizes, so one mapping serves both; if Sameday
-     * ever publishes different easyBox internals, only this table changes. An oversized parcel maps to
-     * the largest size (never "fits nothing"), leaving a true misfit for Sameday's own limits to reject,
-     * as the BOX NOW mapping does.
+     * Sameday's API names the compartment sizes and counts the free boxes (availableBoxes) but never
+     * publishes their physical size - there is no box-type, box-size, or locker-detail endpoint (probed
+     * 2026-09-14: every candidate 404s, the locker row carries only {size,number}). So these are not
+     * measured numbers: the heights are the commonly-published easyBox sizes (S 8, M 17, L 36 cm) and
+     * the opening is the APM compartment the plugin already uses for BOX NOW, easyBox's identically
+     * built sibling network. A shop whose lockers measure differently corrects the table through the
+     * `bgcouriers_sameday_box_dims` filter - no code change, and box_size_for() follows it - exactly as
+     * `bgcouriers_courier_vat_rate` lets a shop set an off-standard VAT rate. The size KEYS must stay
+     * Sameday's own 'S'/'M'/'L' (that is what availableBoxes reports and locker_fits() compares against).
+     *
+     * @return array{max_length:float,max_width:float,heights:array<string,float>}
+     */
+    public static function box_dims_table(): array {
+        $t = apply_filters('bgcouriers_sameday_box_dims', [
+            'max_length' => 60.0,
+            'max_width'  => 45.0,
+            'heights'    => ['S' => 8.0, 'M' => 17.0, 'L' => 36.0],
+        ]);
+        $heights = (is_array($t) && !empty($t['heights']) && is_array($t['heights'])) ? array_map('floatval', $t['heights']) : ['S' => 8.0, 'M' => 17.0, 'L' => 36.0];
+        return [
+            'max_length' => (float) (is_array($t) ? ($t['max_length'] ?? 60.0) : 60.0),
+            'max_width'  => (float) (is_array($t) ? ($t['max_width'] ?? 45.0) : 45.0),
+            'heights'    => $heights,
+        ];
+    }
+
+    /**
+     * The smallest easyBox size a parcel of these dimensions needs, from box_dims_table().
+     *
+     * A parcel wider than the compartment opening, or taller than the tallest compartment, maps to the
+     * largest size (never "fits nothing"), leaving a true misfit for Sameday's own limits to reject.
      *
      * @param array $dims ['length'=>cm,'width'=>cm,'height'=>cm] - the shop's box_dims().
      */
     public static function box_size_for(array $dims): string {
+        $t = self::box_dims_table();
         $l = (float) ($dims['length'] ?? 0);
         $w = (float) ($dims['width'] ?? 0);
         $h = (float) ($dims['height'] ?? 0);
-        if ($l <= 60.0 && $w <= 45.0) {
-            if ($h <= 8.0)  { return 'S'; }
-            if ($h <= 17.0) { return 'M'; }
+        if ($l <= $t['max_length'] && $w <= $t['max_width']) {
+            $heights = $t['heights'];
+            asort($heights); // smallest-fitting size first, even if a filter listed the sizes out of order
+            foreach ($heights as $size => $max) {
+                if ($h <= (float) $max) { return (string) $size; }
+            }
         }
         return 'L';
     }
