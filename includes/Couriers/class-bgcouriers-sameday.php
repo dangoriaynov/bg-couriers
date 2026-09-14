@@ -374,16 +374,19 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * The easyBox compartment envelope as a filterable table: the compartment opening (max length x
-     * width) and the height that tops out each of Sameday's S/M/L sizes, all in centimetres.
+     * The easyBox compartment envelope as a filterable table: the compartment opening (max parcel
+     * length x width laid on the cell floor) and the height that tops out each of Sameday's S/M/L
+     * sizes, all in centimetres.
      *
-     * Sameday's API names the compartment sizes and counts the free boxes (availableBoxes) but never
-     * publishes their physical size - there is no box-type, box-size, or locker-detail endpoint (probed
-     * 2026-09-14: every candidate 404s, the locker row carries only {size,number}). So these are not
-     * measured numbers: the heights are the commonly-published easyBox sizes (S 8, M 17, L 36 cm) and
-     * the opening is the APM compartment the plugin already uses for BOX NOW, easyBox's identically
-     * built sibling network. A shop whose lockers measure differently corrects the table through the
-     * `bgcouriers_sameday_box_dims` filter - no code change, and box_size_for() follows it - exactly as
+     * These are Sameday's OWN published cell sizes, from the easyBox national-postal-service terms on
+     * sameday.bg: a storage column holds 10 cells - 5 small at 445 x 100 x 470 mm, 3 medium at
+     * 445 x 200 x 470 mm, 2 large at 445 x 390 x 470 mm (width x height x depth; the five cell heights
+     * stack to the column). So the opening is 44.5 x 47 cm for every size and the height is what tells
+     * them apart: S 10, M 20, L 39 cm. The API itself never returns these - it reports only the size
+     * label and a free count per locker, no dimensions (probed 2026-09-14: every box-type/detail
+     * endpoint 404s), which is why the numbers are taken from the published terms rather than a live
+     * read. A shop whose lockers measure differently corrects the table through the
+     * `bgcouriers_sameday_box_dims` filter - no code change, and box_size_for() follows it - as
      * `bgcouriers_courier_vat_rate` lets a shop set an off-standard VAT rate. The size KEYS must stay
      * Sameday's own 'S'/'M'/'L' (that is what availableBoxes reports and locker_fits() compares against).
      *
@@ -391,14 +394,14 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
      */
     public static function box_dims_table(): array {
         $t = apply_filters('bgcouriers_sameday_box_dims', [
-            'max_length' => 60.0,
-            'max_width'  => 45.0,
-            'heights'    => ['S' => 8.0, 'M' => 17.0, 'L' => 36.0],
+            'max_length' => 47.0,  // easyBox cell depth, 470 mm
+            'max_width'  => 44.5,  // easyBox cell width, 445 mm
+            'heights'    => ['S' => 10.0, 'M' => 20.0, 'L' => 39.0], // cell heights 100 / 200 / 390 mm
         ]);
-        $heights = (is_array($t) && !empty($t['heights']) && is_array($t['heights'])) ? array_map('floatval', $t['heights']) : ['S' => 8.0, 'M' => 17.0, 'L' => 36.0];
+        $heights = (is_array($t) && !empty($t['heights']) && is_array($t['heights'])) ? array_map('floatval', $t['heights']) : ['S' => 10.0, 'M' => 20.0, 'L' => 39.0];
         return [
-            'max_length' => (float) (is_array($t) ? ($t['max_length'] ?? 60.0) : 60.0),
-            'max_width'  => (float) (is_array($t) ? ($t['max_width'] ?? 45.0) : 45.0),
+            'max_length' => (float) (is_array($t) ? ($t['max_length'] ?? 47.0) : 47.0),
+            'max_width'  => (float) (is_array($t) ? ($t['max_width'] ?? 44.5) : 44.5),
             'heights'    => $heights,
         ];
     }
