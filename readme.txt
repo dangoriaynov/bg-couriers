@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, pigeon
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.10
+Stable tag: 0.4.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -129,6 +129,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.11 =
+* Fixed: the Европът privacy-policy link now shows as a link rather than a long encoded web address.
 
 = 0.4.10 =
 * Fixed: **the estimated delivery price shown before a town is picked no longer reads about 20% low** for a courier that charges its own VAT (Speedy, Express One, Sameday) on a shop WooCommerce adds no shipping tax to - the estimate now carries the courier's tax and matches the price once a town is chosen.
