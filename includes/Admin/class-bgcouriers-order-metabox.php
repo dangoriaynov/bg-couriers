@@ -102,6 +102,21 @@ class BGCouriers_Order_Metabox {
         }
         $body .= '<span class="bgc-hd-acts">' . $actions . '</span></div>';
 
+        // The waybill's standing against the order and the printer, right under the header: red when the
+        // order has outgrown it (changed, not re-issued), green while the current one is not yet printed.
+        // Same call the orders list uses (BGCouriers_Labels::label_state), so the two screens agree.
+        $lstate = BGCouriers_Labels::label_state($order);
+        if ($lstate !== '') {
+            $lmsg = BGCouriers_Labels::label_state_message($order);
+            $lstyle = $lstate === BGCouriers_Labels::LABEL_STATE_STALE
+                ? 'background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;'
+                : 'background:#eef8f0;border:1px solid #a9d8b6;color:#1f6b34;';
+            $lico = $lstate === BGCouriers_Labels::LABEL_STATE_STALE ? 'warning' : 'printer';
+            $body .= '<div class="bgc-wb-state bgc-wb-' . esc_attr($lstate) . '" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;' . $lstyle . '">'
+                . '<span class="dashicons dashicons-' . esc_attr($lico) . '" style="vertical-align:middle;margin-right:4px;"></span>'
+                . esc_html($lmsg) . '</div>';
+        }
+
         // Where the shipment actually is, on the order itself. It used to live only in the orders list, so
         // the one screen a merchant opens to look at a single order was the one place that did not say.
         $stage = (string) $order->get_meta('_bgcouriers_track_stage');

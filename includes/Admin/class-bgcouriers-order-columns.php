@@ -148,12 +148,32 @@ class BGCouriers_Order_Columns {
         return $out;
     }
 
+    /** Red for a waybill the order has outgrown, green for one not yet printed - classes, not inline
+     *  styles, so they survive the kses that prints this column (see status_html). */
+    public static function state_color_css(): string {
+        return '.bgc-wb-flag{margin-left:2px;}'
+            . '.bgc-wb-flag.bgc-wb-stale{color:#dc2626;}'
+            . '.bgc-wb-flag.bgc-wb-unprinted{color:#3aa15a;}';
+    }
+
     public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = '', string $courier_label = '', string $courier_logo = '', string $regenerate_url = '', $order = null): string {
         // Once the courier holds the parcel, cancelling and re-issuing would only change our copy of the
         // waybill - the courier delivers against the one travelling with the parcel. Drop those controls
         // rather than leave them there to be clicked and refused.
         $locked = ($order instanceof \WC_Order) && BGCouriers_Labels::is_locked($order);
         $status = ($order instanceof \WC_Order) ? self::status_html($order) : '';
+        // Red when the order has outgrown the waybill (changed, not re-issued), green when the current
+        // waybill has not been printed yet - the same call the order screen uses, so they never disagree.
+        $state_ico = '';
+        if ($order instanceof \WC_Order) {
+            $state = BGCouriers_Labels::label_state($order);
+            if ($state !== '') {
+                $smsg  = BGCouriers_Labels::label_state_message($order);
+                $glyph = $state === BGCouriers_Labels::LABEL_STATE_STALE ? 'warning' : 'printer';
+                $state_ico = '<span class="bgc-wb-flag bgc-wb-' . esc_attr($state) . '" data-tip="' . esc_attr($smsg)
+                    . '" aria-label="' . esc_attr($smsg) . '"><span class="dashicons dashicons-' . esc_attr($glyph) . '"></span></span>';
+            }
+        }
         // Courier logo tile with a data-tip hover hint, SAME as the order-screen shipment panel header.
         $logo_tile = $courier_logo !== ''
             ? '<span class="bgc-ltile" data-tip="' . esc_attr($courier_label) . '"><img class="bgc-clogo" src="' . esc_url($courier_logo) . '" alt="' . esc_attr($courier_label) . '"></span>'
@@ -187,7 +207,7 @@ class BGCouriers_Order_Columns {
         // the shipment is, row 2 = Generate OR the waybill actions (copy / print / track / cancel). The
         // JS cancel-swap replaces row 2 and must also drop .bgc-regen from row 1, or it outlives its
         // waybill; it leaves the rest of row 1 alone, which is why the state icon can live there.
-        $row1 = '<span class="bgc-row">' . $logo_tile . $edit_ico . $regen_ico . $status . '</span>';
+        $row1 = '<span class="bgc-row">' . $logo_tile . $edit_ico . $regen_ico . $status . $state_ico . '</span>';
         if ($waybill === '') {
             return '<span class="bgc-cell">' . $row1
                 . '<span class="bgc-row"><a class="button button-small bgc-gen" href="' . esc_url($generate_url) . '">' . esc_html__('Generate', 'bg-couriers') . '</a></span></span>';
@@ -219,7 +239,7 @@ class BGCouriers_Order_Columns {
         BGCouriers_Tips::enqueue(); // the tiles' hover hints (data-tip)
         // Built here, not at load time: the colours are per-courier options and this is the only place we
         // know the screen is an orders list (and that the handle above is actually enqueued).
-        $tint = self::row_tint_css() . self::stage_color_css();
+        $tint = self::row_tint_css() . self::stage_color_css() . self::state_color_css();
         if ($tint !== '') { wp_add_inline_style('bgc-orders-list', $tint); }
         wp_enqueue_script('bgc-orders-list', BGCOURIERS_URL . 'assets/js/bgc-orders-list.js', [], is_file($js) ? (string) filemtime($js) : BGCOURIERS_VERSION, true);
         wp_localize_script('bgc-orders-list', 'BGCOURIERS_LIST', [
