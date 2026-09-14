@@ -92,8 +92,11 @@ def make_banner(w, h):
     tx = int(w*0.275)
     d.text((tx, int(h*0.20)), 'BG Couriers', font=font(int(60*scale), True), fill=WHITE)
     d.text((tx, int(h*0.20)+int(64*scale)), 'for WooCommerce', font=font(int(30*scale), False), fill=(226,246,238))
-    d.text((tx, int(h*0.20)+int(104*scale)), 'Speedy · Econt · BOX NOW · Pigeon · Sameday',
-           font=font(int(20*scale), True), fill=(210,240,232))
+    couriers = 'Speedy · Econt · BOX NOW · Sameday · Pigeon · Express One · Evropat'
+    csz = int(20*scale); cf = font(csz, True); avail = int(w*0.985) - tx
+    while csz > 8 and d.textlength(couriers, font=cf) > avail:
+        csz -= 1; cf = font(csz, True)
+    d.text((tx, int(h*0.20)+int(104*scale)), couriers, font=cf, fill=(210,240,232))
     d.text((tx, int(h*0.20)+int(133*scale)), 'Office · address · locker delivery - live rates, labels, tracking',
            font=font(int(17*scale), False), fill=(198,232,224))
     return base.convert('RGB')
