@@ -35,6 +35,10 @@
   // array - clicking Choose on it would resolve against the NEW array at the same index and could book a
   // different courier, city or office than the pin the customer actually clicked.
   var $dlg = null, map = null, layer = null, markers = [], points = [], cache = {};
+  // Sameday easyBox free-compartment poll: which lockers are full for this parcel, re-asked on a timer
+  // so the map stays live without the customer doing anything. availT is the interval; availSeq guards
+  // a late answer from a town the customer has since left.
+  var availT = null, availSeq = 0;
   // Pins that stand too close together at the current zoom are folded into one bubble carrying their
   // count - three hundred dots over a city say "many" and nothing else. `clusters` holds the bubbles,
   // `clustered[i]` says whether point i is inside one right now. Membership is DATA, not a DOM write:
@@ -276,6 +280,11 @@
     return !!current.officeId && p.courier === current.courier
         && String(p.office.office_id) === current.officeId;
   }
+  // Can the customer actually pick this point? A courier that does not offer it (no price) or, for a
+  // Sameday easyBox, one whose compartments are all full for this parcel (p.full, kept live by the
+  // availability poll). Both grey the pin and the row and refuse the choice, but say different things.
+  function usable(p) { return !!p.available && !p.full; }
+  function naText(p) { return p.full ? (I.allmap_full || '') : (I.allmap_na || ''); }
   function pinIcon(courierId, available, chosen) {
     return L.divIcon({
       className: 'bgc-allmap-pin' + (available ? '' : ' bgc-na') + (chosen ? ' bgc-chosen' : ''),
@@ -317,6 +326,7 @@
   }
 
   function close() {
+    if (availT) { clearInterval(availT); availT = null; }
     if (map) { map.remove(); map = null; }
     meMarker = null;
     layer = null; // the layer group is destroyed along with the map; just drop our reference to it
@@ -714,7 +724,7 @@
       // Exactly what applyFilter() shows, not a subset of it. Reading only the legend meant that after
       // typing a street the sentence still named the closest point in the whole town - a point whose
       // row and whose pin were both hidden by then, so pressing it opened a bubble over nothing.
-      if (d == null || !p.available || !shown(p, term)) { return; }   // not on offer: cannot be "nearest"
+      if (d == null || !usable(p) || !shown(p, term)) { return; }   // not on offer, or full: cannot be "nearest"
       if (!best[p.courier] || d < best[p.courier].d) { best[p.courier] = { d: d, i: i }; }
       if (!overall || d < overall.d) { overall = { d: d, i: i, p: p }; }
     });
@@ -858,6 +868,63 @@
   }
 
   /**
+   * Sameday easyBox availability, kept live on the open map.
+   *
+   * Sameday is the only courier that reports free compartments, so the map asks the server which of its
+   * lockers can still take the shop's parcel and greys out the full ones - on the pin, in the row and in
+   * the popup, where they can then no longer be chosen (the greyed row is `bgc-na`, which the list's own
+   * click handler already ignores; the popup drops its Choose button for "заповнено"). One call covers
+   * the whole map, and applyAvailability only touches the rows that actually changed.
+   */
+  function applyAvailability(lockers) {
+    if (!lockers || !points.length) { return; }
+    var any = false;
+    points.forEach(function (p, i) {
+      if (p.courier !== 'sameday' || p.type !== 'automat') { return; }
+      var id = p.office && (p.office.office_id != null ? p.office.office_id : p.office.code);
+      if (id == null) { return; }
+      // A locker missing from the answer is a Sameday PUDO counter (no compartments) - never "full".
+      var full = Object.prototype.hasOwnProperty.call(lockers, String(id)) ? !lockers[String(id)] : false;
+      if (p.full === full) { return; }
+      p.full = full; any = true;
+      var el = rowEls[i];
+      if (el) { $(el).html(rowInner(p)).toggleClass('bgc-na', !usable(p)); }
+      var mk = markers[i];
+      if (mk) {
+        if (mk.setIcon) { mk.setIcon(pinIcon(p.courier, usable(p), isCurrent(p))); }
+        if (mk.isPopupOpen && mk.isPopupOpen() && mk.getPopup()) { mk.getPopup().update(); }
+      }
+    });
+    if (any) { applyFilter(); }   // a newly-full locker changes what clusters and what is "nearest"
+  }
+
+  /** Has the current map any Sameday locker to ask availability for? */
+  function hasSamedayLockers() {
+    return points.some(function (p) { return p.courier === 'sameday' && p.type === 'automat'; });
+  }
+
+  /** One background availability call. Guarded on availSeq so a late answer from a town already left is
+   *  dropped, and it never blocks - a plain GET whose result is applied when it lands. */
+  function pollAvailability() {
+    if (!hasSamedayLockers()) { return; }
+    var seq = availSeq;
+    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_sameday_availability' })
+      .done(function (res) {
+        if (!$dlg || seq !== availSeq) { return; }
+        applyAvailability(res && res.lockers);
+      });
+  }
+
+  /** Start (or restart, on a new town) the once-a-minute availability poll for this map. */
+  function startAvailabilityPoll() {
+    if (availT) { clearInterval(availT); availT = null; }
+    availSeq++;
+    if (!hasSamedayLockers()) { return; }
+    pollAvailability();
+    availT = setInterval(pollAvailability, 60000);
+  }
+
+  /**
    * Fold the pins that sit on top of each other at this zoom into count bubbles, then paint.
    *
    * Bucketed in PROJECTED space - map.project() at the current zoom, not the container - so what
@@ -919,7 +986,7 @@
         var c = points[i].courier;
         if (!share[c]) { share[c] = 0; order.push(c); }
         share[c]++;
-        if (points[i].available) { offered = true; }
+        if (usable(points[i])) { offered = true; }
       });
       var n = idx.length, bg;
       if (order.length === 1) { bg = colourFor(order[0]); }
@@ -1084,6 +1151,17 @@
    * customer. That is the question a pin raises once one distance is on screen: the line above the map
    * names the closest, and every OTHER pin then has to be worth comparing against it.
    */
+  // The inside of one list row - built here rather than inline so the availability poll can rebuild a
+  // single row in place when a locker fills or frees, without re-rendering the whole list.
+  function rowInner(p) {
+    return (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
+      + '<span><span class="n">' + typeGlyph(p.type) + esc(p.office.name || '') + '</span>'
+      + '<span class="a">' + esc(p.office.address || '') + '</span>'
+      + (usable(p) ? '' : '<span class="bgc-allmap-na-note">' + esc(naText(p)) + '</span>')
+      + '</span>'
+      + (usable(p) && p.price ? '<span class="p">' + esc(priceLabel(p)) + '</span>' : '');
+  }
+
   function popupHtml(p, i) {
     var lat = Number(p.office.lat), lng = Number(p.office.lng);
     var d = nearOn() ? distOf(p) : null;
@@ -1093,7 +1171,7 @@
       + '<span class="c">' + esc(p.courierLabel) + '</span>'
       + typeGlyph(p.type)
       + '<span class="t">' + esc(typeLabel(p.type)) + '</span>'
-      + (p.available && p.price ? '<span class="bgc-allmap-pop-price">' + esc(priceLabel(p)) + '</span>' : '')
+      + (usable(p) && p.price ? '<span class="bgc-allmap-pop-price">' + esc(priceLabel(p)) + '</span>' : '')
       + '</div>'
       + '<div class="bgc-allmap-pop-n">' + esc(p.office.name || '') + '</div>'
       + '<div class="bgc-allmap-pop-a"><span class="bgc-pop-addr">' + esc(p.office.address || '') + '</span>'
@@ -1122,9 +1200,9 @@
             + '<polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></a>'
           : '')
       + '</span></div>'
-      + (p.available
+      + (usable(p)
           ? '<button type="button" class="button bgc-allmap-pick" data-i="' + i + '">' + esc(I.allmap_choose || '') + '</button>'
-          : '<em class="bgc-allmap-pop-na">' + esc(I.allmap_na || '') + '</em>')
+          : '<em class="bgc-allmap-pop-na">' + esc(naText(p)) + '</em>')
       + '</div>';
   }
 
@@ -1173,6 +1251,7 @@
         points.push({
           courier: cid, courierLabel: c.label || cid, logo: c.logo || '',
           available: !!c.available,
+          full: false,   // Sameday easyBox with no free compartment for this parcel; set by the availability poll
           // What THIS courier charges to deliver to the door - the number an office is being compared
           // against. Not a point on the map, which is exactly why it has to travel on the points.
           addressPrice: est.address || '',
@@ -1205,22 +1284,16 @@
       // Inline style, not a class: the colour is assigned at runtime (first-seen-courier order), so
       // there is no fixed set of classes to put in a stylesheet. This markup is built here in JS and
       // printed straight into the DOM, not passed through wp_kses, so the attribute is fine as-is.
-      rowHtml.push('<li class="bgc-allmap-item' + (p.available ? '' : ' bgc-na')
+      rowHtml.push('<li class="bgc-allmap-item' + (usable(p) ? '' : ' bgc-na')
         + (isCurrent(p) ? ' bgc-chosen' : '') + '" data-i="' + i + '"'
         + ' style="border-left-color:' + colourFor(p.courier) + '">'
-        + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
-        + '<span><span class="n">' + typeGlyph(p.type) + esc(p.office.name || '') + '</span>'
-        + '<span class="a">' + esc(p.office.address || '') + '</span>'
-        + (p.available ? '' : '<span class="bgc-allmap-na-note">' + esc(I.allmap_na || '') + '</span>')
-        + '</span>'
-        + (p.available && p.price ? '<span class="p">' + esc(priceLabel(p)) + '</span>' : '')
-        + '</li>');
+        + rowInner(p) + '</li>');
       var lat = Number(p.office.lat), lng = Number(p.office.lng);
       if (!lat && !lng) { return; }          // no coordinates: it stays in the list, off the map
       // The chosen one keeps its courier's colour - a colour of its own would fight the legend, which
       // is the one thing on this map that has to stay true. It pulses instead: motion says "this one"
       // without taking a hue away from anybody.
-      var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, p.available, isCurrent(p)),
+      var mk = L.marker([lat, lng], { icon: pinIcon(p.courier, usable(p), isCurrent(p)),
         zIndexOffset: isCurrent(p) ? 1000 : 0 }).addTo(layer);
       // Contents in popupHtml(), built when the bubble OPENS - the geometry it is framed by stays here,
       // because it is about this map's furniture rather than about the point.
@@ -1383,6 +1456,9 @@
     $list.off('click').on('click', '.bgc-allmap-item:not(.bgc-na)', function () {
       focusPoint(+$(this).data('i'));
     });
+
+    // ...and, if Sameday has lockers here, start the once-a-minute free-compartment poll for this town.
+    startAvailabilityPoll();
   }
 
   /**
