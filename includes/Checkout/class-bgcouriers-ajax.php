@@ -382,6 +382,11 @@ class BGCouriers_Ajax {
      * One quote per delivery TYPE, never per office: these couriers price by the city pair, so every
      * office in a town costs the same and quoting each would be hundreds of calls for one answer.
      */
+    /** A price the map hands the browser: WooCommerce's formatting, stripped of its markup and entities. */
+    private static function money(float $v): string {
+        return html_entity_decode(wp_strip_all_tags(wc_price($v)), ENT_QUOTES, 'UTF-8');
+    }
+
     public function allmap_prices(): void {
         if (!self::rate_ok()) { self::busy(); }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only price lookup, no state change
@@ -398,40 +403,72 @@ class BGCouriers_Ajax {
         if (!$city) { wp_send_json_success(['prices' => [], 'saves' => []]); }
 
         // The same parcel the shipping methods are priced for - one definition, so the map cannot
-        // advertise a price the checkout will not charge.
-        $packed = BGCouriers_Pricing::cart_parcel();
-        $prices = []; $raw = [];
-        foreach (BGCouriers_Settings::enabled_methods($cid) as $t) {
+        // advertise a price the checkout will not charge. The LIVE figure per delivery type; the cached
+        // reference the map opened on came the same way (allmap_collect), so replacing one with the
+        // other never changes what a price MEANS - see map_prices().
+        $packed   = BGCouriers_Pricing::cart_parcel();
+        $in_total = BGCouriers_Settings::ship_in_total($cid);
+        // A LIVE quote carries its own tax, so map_office_price() may take the door/shop-window price
+        // off it. See map_prices() and BGCouriers_Pricing::map_office_price().
+        $res = self::map_prices($cid, BGCouriers_Settings::enabled_methods($cid), $country, function ($t) use ($obj, $city, $packed, $country, $in_total) {
             try {
                 $q = BGCouriers_Pricing::checkout_quote($obj, $t, (int) $city['city_id'], 0, $packed, get_woocommerce_currency(), $country);
-                // Printed exactly the way the shipping row beside it is printed, because the map is
-                // what feeds that row - and the two numbers being different is the fault this line
-                // exists to prevent. Which sum that is depends on WHO gets paid: a delivery charged
-                // with the order is the shop's own price and follows the shop's display setting, while
-                // one paid at the door is the courier's cash and carries its tax whatever the shop
-                // chooses to show. Both branches are the same call the shipping method makes.
-                if (!$q) {
-                    $v = 0.0;
-                } elseif (BGCouriers_Settings::ship_in_total($cid)) {
-                    $v = BGCouriers_Pricing::display_price(BGCouriers_Pricing::rate_cost($q));
-                } else {
-                    $v = BGCouriers_Pricing::door_price($q);
-                }
-            } catch (\Throwable $e) { $v = 0.0; }   // one unreachable courier must not empty the map
-            if ($v > 0) {
-                $raw[$t]    = $v;
-                $prices[$t] = html_entity_decode(wp_strip_all_tags(wc_price($v)), ENT_QUOTES, 'UTF-8');
+            } catch (\Throwable $e) { return null; }   // one unreachable courier must not empty the map
+            return BGCouriers_Pricing::map_office_price($q, $in_total);
+        });
+        wp_send_json_success(['courier' => $cid, 'prices' => $res['prices'], 'saves' => $res['saves']]);
+    }
+
+    /**
+     * The map's per-delivery-type prices and the office-vs-address saving for one courier, presented
+     * the ONE way the shipping row presents them - so wherever a courier and a delivery method are
+     * priced (the cached map, the live map) the customer reads the same figure, free options included.
+     *
+     * The one rule that is the SAME whatever the price source is the free one, and it is applied here:
+     * a delivery the basket has earned for free shows the shop's free-shipping label (or a zero price),
+     * exactly as the shipping row shows it. Free is domestic only and decided from the cart, exactly as
+     * BGCouriers_Abstract_Method::calculate_shipping() decides it, and needs no price - so a free option
+     * never asks $paid_value for one.
+     *
+     * The PAID figure differs by source and is left to the caller: the live map hands over a quote's
+     * door/shop-window price (which carries the courier's tax), the cached map hands over its stored
+     * reference number as it stands. $paid_value returns the number to print, or null to drop the option
+     * (an unreachable courier, or a figure at or below zero) - never a re-taxed reference, which is the
+     * fault BGCouriers_Pricing::map_office_price() documents.
+     *
+     * @param string   $cid        courier id
+     * @param string[] $types      delivery methods to price
+     * @param string   $country    destination country
+     * @param callable $paid_value fn(string $type): ?float - the price to print for a PAID option, or null
+     * @return array{prices: array<string,string>, saves: array<string,string>}
+     */
+    private static function map_prices(string $cid, array $types, string $country, callable $paid_value): array {
+        $abroad   = BGCouriers_Settings::is_intl($country);
+        $has_cart = function_exists('WC') && WC() && WC()->cart;
+        $prices = []; $raw = [];
+        foreach ($types as $t) {
+            $free = !$abroad && $has_cart
+                && BGCouriers_Abstract_Method::is_free((float) WC()->cart->get_subtotal(), BGCouriers_Settings::free_shipping($cid, $t));
+            if ($free) {
+                $label      = BGCouriers_Settings::free_shipping_label();
+                $raw[$t]    = 0.0;
+                $prices[$t] = $label !== '' ? $label : self::money(0.0);
+                continue;
             }
+            $v = $paid_value($t);
+            if ($v === null || $v <= 0.0) { continue; }
+            $raw[$t]    = $v;
+            $prices[$t] = self::money($v);
         }
         $saves = [];
         if (isset($raw['address'])) {
             foreach (['office', 'automat'] as $t) {
                 if (isset($raw[$t]) && $raw['address'] > $raw[$t]) {
-                    $saves[$t] = html_entity_decode(wp_strip_all_tags(wc_price($raw['address'] - $raw[$t])), ENT_QUOTES, 'UTF-8');
+                    $saves[$t] = self::money($raw['address'] - $raw[$t]);
                 }
             }
         }
-        wp_send_json_success(['courier' => $cid, 'prices' => $prices, 'saves' => $saves]);
+        return ['prices' => $prices, 'saves' => $saves];
     }
 
     private static function allmap_collect(string $name, string $code, array $types, bool $live): array {
@@ -460,42 +497,23 @@ class BGCouriers_Ajax {
             // price of the type currently selected: with Speedy on "to office" its lockers were
             // advertised at 2.64 instead of 1.52, and the moment the customer switched to a locker its
             // offices were advertised at 1.52 instead. Whichever tab you were on, the other one lied.
-            // The map opens on the CACHED figure and never waits for a courier. Quoting live here made
-            // the first open of a new town slow enough that the tiles had not painted yet - and a map
-            // that is correct but arrives late is a worse map. The live number follows a moment later
-            // through bgcouriers_allmap_prices, per courier, the same way the distances do.
-            // A price PER DELIVERY TYPE, because a courier does not charge one. The map used to label
-            // every point of a courier with whatever its rate row happened to be showing, which is the
-            // price of the type currently selected: with Speedy on "to office" its lockers were
-            // advertised at 2.64 instead of 1.52, and the moment the customer switched to a locker its
-            // offices were advertised at 1.52 instead. Whichever tab you were on, the other one lied.
+            //
+            // The map opens on this CACHED reference and never waits for a courier; quoting live here
+            // made the first open of a new town slow enough that the tiles had not painted yet, and a
+            // map that is correct but arrives late is a worse map. The live number follows a moment
+            // later through bgcouriers_allmap_prices, per courier, the same way the distances do -
+            // through the SAME presenter (map_prices), so the reference and the live figure obey the
+            // same free rule: a free option shows the free-shipping label here too. The reference NUMBER
+            // is shown as it stands - the stored daily figure, not re-costed - because it has no tax on
+            // it to split and door_price() would add the shop's rate to a figure that is not owed one.
             // Every method this courier offers, not only the two the map plots. The address price is not
             // a point on the map, but it is the number the whole map is being compared AGAINST.
-            $prices = []; $raw = [];
-            foreach (BGCouriers_Settings::enabled_methods($cid) as $t) {
-                $v = BGCouriers_Pricing::estimate($cid, $t);
-                // Decoded, not merely stripped: wc_price() spells the amount with &nbsp; and &euro;, and
-                // the map escapes whatever it is handed before printing it - so the entities would reach
-                // the customer as the literal text "1,52&nbsp;&euro;".
-                if ($v !== null) {
-                    $raw[$t]    = (float) $v;
-                    $prices[$t] = html_entity_decode(wp_strip_all_tags(wc_price((float) $v)), ENT_QUOTES, 'UTF-8');
-                }
-            }
-            // What collecting from a point SAVES against having it brought to the door - formatted here,
-            // where both numbers and the shop's own currency formatter are. Working it out in the browser
-            // would mean parsing "~ 1,57 €" back into a number and re-formatting it, which breaks on the
-            // first shop with a different separator or symbol position.
-            $saves = [];
-            if (isset($raw['address'])) {
-                foreach (['office', 'automat'] as $t) {
-                    if (!isset($raw[$t]) || $raw[$t] >= $raw['address']) { continue; }
-                    $saves[$t] = html_entity_decode(
-                        wp_strip_all_tags(wc_price($raw['address'] - $raw[$t])), ENT_QUOTES, 'UTF-8');
-                }
-            }
-            $out[$cid] = ['city_id' => (int) $city['city_id'], 'prices' => $prices,
-                          'saves' => $saves, 'offices' => $rows];
+            $res = self::map_prices($cid, BGCouriers_Settings::enabled_methods($cid), $country, function ($t) use ($cid) {
+                $est = BGCouriers_Pricing::estimate($cid, $t);
+                return $est !== null ? (float) $est : null;
+            });
+            $out[$cid] = ['city_id' => (int) $city['city_id'], 'prices' => $res['prices'],
+                          'saves' => $res['saves'], 'offices' => $rows];
         }
         return $out;
     }
