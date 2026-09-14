@@ -5,11 +5,11 @@ Tags: speedy, econt, boxnow, sameday, pigeon
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.9
+Stable tag: 0.4.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Bulgaria's couriers in WooCommerce: Speedy, Econt, BOX NOW, Pigeon, Sameday, Express One - office, address and locker delivery, live rates, labels.
+Bulgaria's couriers in WooCommerce: Speedy, Econt, BOX NOW, Pigeon, Sameday, Express One, Evropat - office, address and locker delivery, live rates.
 
 == Description ==
 
@@ -96,7 +96,7 @@ https://github.com/dangoriaynov/bg-couriers/issues
 == Frequently Asked Questions ==
 
 = Which countries are supported? =
-Bulgaria, by six Bulgarian networks: **Speedy**, **Econt**, **Pigeon Express**, **Sameday** and **Express One** deliver to an office, to a street address or to a locker, and **BOX NOW** delivers to its lockers (APM). Delivery outside Bulgaria is not offered.
+Bulgaria, by seven Bulgarian networks: **Speedy**, **Econt**, **Pigeon Express**, **Sameday** and **Express One** deliver to an office, to a street address or to a locker, **Европът** to an office or a street address, and **BOX NOW** to its lockers (APM). Delivery outside Bulgaria is not offered.
 
 = How can I support the development? =
 The plugin is free, GPL, and stays that way - every courier, every feature, no paid tier. If it has saved you work and you would like to put something behind it: https://revolut.me/danq6lus. It is entirely voluntary and changes nothing about the support you get. Reporting a bug in the [support forum](https://wordpress.org/support/plugin/bg-couriers/), or leaving a review, helps just as much.
@@ -130,6 +130,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.4.10 =
+* Fixed: **the estimated delivery price shown before a town is picked no longer reads about 20% low** for a courier that charges its own VAT (Speedy, Express One, Sameday) on a shop WooCommerce adds no shipping tax to - the estimate now carries the courier's tax and matches the price once a town is chosen.
+* Added: **the map, and the checkout's automat dropdown, show which Sameday easyBox lockers are full and grey them out, kept live.** A full locker cannot be chosen; "full" follows your parcel's size against the box's small, medium and large compartments. Only Sameday reports free compartments, and staffed points are never marked full.
+* Fixed: the address map now shows a delivery as free once the order has earned free shipping, matching the checkout row instead of the ordinary per-office price.
+* Fixed: the checkout block's address hide and required phone now hold on the Store API even when another plugin reads the country locale early, so an order is no longer refused for a street or town the block never showed.
+
 = 0.4.9 =
 * Fixed: a delivery street that shares its name with another in the same town (Sofia's бул. ВИТОША and ул. ВИТОША) is no longer refused by the courier - the order now carries the exact street. Covers Speedy, Express One, Европът and Pigeon, and streets chosen on the address map.
 * Fixed: a Pigeon Express street can now be found in a big town (only the first page of its street list was read before).
@@ -140,32 +146,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Faster: a town's street list is fetched once a day instead of on every keystroke; town search now lists a name that starts with what you typed before one that merely contains it.
 * Fixed: switching the plugin off clears its scheduled tasks; the "Checkout dropdown results" setting honours its default of 20.
 
-= 0.4.8 =
-* Changed: **BOX NOW has the same checkout block as every other courier.** Its own map widget (a separate window, centred on Greece, asking the browser for a location, unable to take the town already chosen) is gone: BOX NOW's towns are read off its lockers, so the customer picks a town and a locker, the town carries over from the other couriers and the combined map, BOX NOW's lockers appear on that map, and the order editor uses the same town and locker fields.
-* Changed: a plugin update refreshes the courier nomenclature once, a minute after it lands (so BOX NOW's towns are there at once, not at the next weekly sync).
-* Fixed: a sync now retires every town's cached office list (it could go stale for six hours, sync or no sync).
-* Fixed: **the X on the town now clears the office too, and the checkout knows about it.** WooCommerce's select box fires no "clear" event, so clearing a town left the office in its field, the price quoted for the old town, and the next save carried an office with no town - which then rendered as a single greyed-out office with no list. The clear is bound to the event the box does fire, an office without a town is never rendered, and a point chosen on the map saves the town and the delivery type together.
-* Added: **the automatic waybill can wait for the day the order ships.** Orders carrying a dispatch day (Order Delivery Date's "ship on" date) had their waybill issued the moment they were paid - measured on a live shop: four shipments registered at Speedy three to four weeks before their parcels existed. A new General setting holds the waybill for the morning of that day; the order says so, a moved day moves it, and an order cancelled or completed in the meantime ships nothing. On for new installs; existing shops keep issuing at once until they tick it.
-* Fixed: a BOX NOW refusal is said in words (its bare codes are documented: P411 is an account not allowed to collect cash on delivery, P410 an order number already used).
-* Fixed: tracking is checked for every parcel in flight, not the oldest forty.
-* Fixed: a refused cancel, and a refused credential check, now say what the courier said.
-* Fixed: "Sync now" reported a refused login as a success.
-* Fixed: "Request the courier" never sent one.
-* Fixed: a notice on every request on sites with debugging on.
-* Fixed: "Request a courier" offered tomorrow while the courier still came today.
-* Fixed: a waybill the courier accepted but did not fully apply is now flagged on the order screen.
-* Fixed: a BOX NOW parcel's progress never reached the orders list.
-* Fixed: an order whose waybill was cancelled went on showing as "registered" in the orders list.
-* Fixed: an order could end up with two shipments booked at the courier.
-* Fixed: one courier with a faulty connector could stop tracking updates for every courier.
-* Fixed: a courier that failed to answer once could grey out both delivery options for a town for six hours.
-* Fixed: a delivery price could be shown in a currency the shop no longer uses.
-* Fixed: the delivery price recorded on an order belonged to whichever courier was priced last, not the one the customer chose.
-* Fixed: one courier with a sick API no longer makes every customer wait.
-
 Earlier versions, and the full account of every entry above - what each fix was and how it was found - are in docs/CHANGELOG.md in the plugin's repository.
 
 == Upgrade Notice ==
+
+= 0.4.10 =
+Fixes a delivery estimate that read low before a town was chosen for couriers that charge their own VAT (Speedy, Express One, Sameday) on shops with no shipping tax - the price shown could sit under the amount charged once a town was picked.
 
 = 0.4.6 =
 Fixes a BOX NOW checkout that could not be completed: the order was refused with "choose a locker" over a locker already picked. Also a delivery box that sat beside the courier's name on some themes, and a set of phone fixes.
