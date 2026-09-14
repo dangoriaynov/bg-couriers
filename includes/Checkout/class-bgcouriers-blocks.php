@@ -161,7 +161,40 @@ class BGCouriers_Blocks {
     public static function is_block_checkout(): bool {
         if (!function_exists('has_block')) { return false; }
         $id = get_queried_object_id();
+        // The main query may not have run yet - another plugin can read the country locale or the
+        // address fields on an early hook (init, wp_loaded), and WC_Countries caches the locale on its
+        // first read, so whatever answer we give then stands for the whole request. Before the query,
+        // get_queried_object_id() is 0; resolve the requested URL to a page id ourselves, so the answer
+        // does not depend on WHEN we are asked. See requested_page_id() and hide_address_fields().
+        if (!$id) { $id = self::requested_page_id(); }
         return $id && has_block('woocommerce/checkout', $id);
+    }
+
+    /**
+     * The page id the current request is FOR, worked out without the main query.
+     *
+     * is_block_checkout() reads get_queried_object_id(), which is 0 until WordPress has run the main
+     * query - so a locale or address-field read on an early hook (another plugin's init handler is the
+     * common one) would be told "not the block checkout", and because WC_Countries caches the locale on
+     * its first read that wrong answer would stick for the whole request: WooCommerce's own street, town
+     * and postcode fields would come back on the block checkout, the very double-address the locale hide
+     * exists to stop (measured 2026-09-14 on dev - an init read of get_country_locale() unhid them). This
+     * resolves the requested URL to a page id the way WordPress itself will, so the answer is the same
+     * whenever it is asked. Memoised: is_block_checkout() has several callers, and this is a database
+     * read most requests would otherwise repeat for nothing.
+     */
+    private static function requested_page_id(): int {
+        static $cache = [];
+        if (!function_exists('url_to_postid') || empty($_SERVER['REQUEST_URI'])) { return 0; }
+        $uri = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
+        if (array_key_exists($uri, $cache)) { return $cache[$uri]; }
+        // The bare home URL resolves to 0; a shop that puts the checkout block on a static front page is
+        // exactly that case, so the front-page id stands in for it.
+        $path = (string) wp_parse_url($uri, PHP_URL_PATH);
+        if ($path === '' || $path === '/') { return $cache[$uri] = (int) get_option('page_on_front'); }
+        $host = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : '';
+        $url  = $host !== '' ? ((is_ssl() ? 'https://' : 'http://') . $host . $uri) : $uri;
+        return $cache[$uri] = (int) url_to_postid($url);
     }
 
     /**
