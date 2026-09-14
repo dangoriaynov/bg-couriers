@@ -1120,6 +1120,7 @@ class BGCouriers_Checkout {
                 'allmap_title' => __('Interactive map', 'bg-couriers'),
                 'allmap_show' => __('Show the offices', 'bg-couriers'),
                 'allmap_na' => __('Not available for this order', 'bg-couriers'),
+                'allmap_full' => __('Full', 'bg-couriers'),
                 /* translators: %d: how many pickup points one bubble on the map stands for */
                 'allmap_cluster' => __('%d pickup points here - zoom in to tell them apart', 'bg-couriers'),
                 'allmap_choose' => __('Choose', 'bg-couriers'),
