@@ -3,7 +3,7 @@ defined('ABSPATH') || exit;
 
 class BGCouriers_Ajax {
     public function __construct() {
-        foreach (['search_cities','offices','city_avail','streets','set_selection','geocode','allmap_cities','allmap_offices','allmap_prices'] as $a) {
+        foreach (['search_cities','offices','city_avail','streets','set_selection','geocode','allmap_cities','allmap_offices','allmap_prices','sameday_availability'] as $a) {
             add_action("wp_ajax_bgcouriers_{$a}", [$this, $a]);
             add_action("wp_ajax_nopriv_bgcouriers_{$a}", [$this, $a]);
         }
@@ -280,6 +280,55 @@ class BGCouriers_Ajax {
         $rows = array_values($rows);
         usort($rows, static function ($a, $b) { return ((int) ($a['office_id'] ?? 0)) <=> ((int) ($b['office_id'] ?? 0)); });
         return array_slice($rows, 0, max(1, $limit));
+    }
+
+    /**
+     * Which Sameday easyBox lockers can take the shop's parcel RIGHT NOW - the free-compartment feature.
+     *
+     * Sameday is the only courier whose locker listing reports free compartments (availableBoxes), so
+     * this is Sameday-only. The map and the checkout locker list grey out a full one and refuse it; the
+     * map re-asks this on a timer so it stays live. `{lockers:{id:bool}}`, optionally narrowed to a town.
+     */
+    public function sameday_availability(): void {
+        if (!self::rate_ok()) { self::busy(); }
+        $city = (int) wp_unslash($_GET['city_id'] ?? 0); // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- int-cast, no state change
+        $map = self::sameday_availability_map();
+        if ($city > 0 && $map) {
+            $here = [];
+            foreach (self::city_offices('sameday', $city, 'automat', '', 100000, self::request_country('sameday')) as $o) {
+                $id = (int) ($o['office_id'] ?? 0);
+                if ($id && array_key_exists($id, $map)) { $here[$id] = $map[$id]; }
+            }
+            $map = $here;
+        }
+        wp_send_json(['lockers' => $map]);
+    }
+
+    /**
+     * lockerId => can the shop's parcel go in, for every Sameday easyBox. Live data (compartments fill
+     * and empty), so cached only a minute - the map polls it, and one upstream call covers every locker.
+     * The parcel is the shop's box_dims(), mapped to the smallest easyBox size it needs; a locker fits
+     * when it has a free compartment of that size or larger. Sameday-only; [] for any other shop.
+     *
+     * @return array<int,bool>
+     */
+    private static function sameday_availability_map(): array {
+        if (!class_exists('BGCouriers_Sameday')) { return []; }
+        $courier = BGCouriers_Couriers::get('sameday');
+        if (!$courier || !method_exists($courier, 'fetch_locker_availability')
+            || !BGCouriers_Settings::courier_offerable('sameday')) { return []; }
+        $free = get_transient('bgcouriers_sameday_avail');
+        if (!is_array($free)) {
+            try { $free = $courier->fetch_locker_availability(); }
+            catch (\Throwable $e) { return []; }
+            set_transient('bgcouriers_sameday_avail', $free, MINUTE_IN_SECONDS);
+        }
+        $required = BGCouriers_Sameday::box_size_for(BGCouriers_Settings::box_dims());
+        $out = [];
+        foreach ($free as $id => $boxes) {
+            $out[(int) $id] = BGCouriers_Sameday::locker_fits((array) $boxes, $required);
+        }
+        return $out;
     }
     /**
      * Places for the combined map's city picker, gathered across EVERY enabled courier rather than one
