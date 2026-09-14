@@ -341,6 +341,10 @@ class BGCouriers_Labels {
         $order->update_meta_data('_bgcouriers_label_paper_size', $primary);
         // Snapshot what this label was built from, so a later edit can tell whether it still matches.
         $order->update_meta_data('_bgcouriers_label_fp', self::label_fingerprint($order));
+        // A new waybill - fresh or re-issued - is a document nobody has printed yet: flag it so the order
+        // screen and the list show it green until it is printed. Keyed on the waybill, not the fingerprint,
+        // so a re-issue of an unchanged order (same fingerprint, new document) is flagged all the same.
+        $order->update_meta_data('_bgcouriers_label_needs_print', '1');
         /* translators: 1: courier name, 2: waybill number */
         $order->add_order_note(sprintf(__('%1$s label generated: %2$s', 'bg-couriers'), $courier->label(), $label->waybill));
         $order->save();
@@ -484,16 +488,23 @@ class BGCouriers_Labels {
      */
     public static function label_state(\WC_Order $order): string {
         if ((string) $order->get_meta('_bgcouriers_waybill') === '') { return self::LABEL_STATE_OK; }
+        // Red is order-vs-waybill: the fingerprint the waybill was issued for against the order as it
+        // stands. '' means the waybill predates the fingerprint - nothing to compare, so not red.
         $issued = (string) $order->get_meta('_bgcouriers_label_fp');
-        if ($issued === '') { return self::LABEL_STATE_OK; } // predates the fingerprint - nothing to compare
-        if ($issued !== self::label_fingerprint($order)) { return self::LABEL_STATE_STALE; }
-        if ((string) $order->get_meta('_bgcouriers_label_printed_fp') !== $issued) { return self::LABEL_STATE_UNPRINTED; }
+        if ($issued !== '' && $issued !== self::label_fingerprint($order)) { return self::LABEL_STATE_STALE; }
+        // Green is document identity, not order state: generate() flags each new waybill, print clears
+        // it. So a re-issue of an unchanged order is green (new document), and a label printed long
+        // before this feature is not (it carries no flag).
+        if ((string) $order->get_meta('_bgcouriers_label_needs_print') === '1') { return self::LABEL_STATE_UNPRINTED; }
         return self::LABEL_STATE_OK;
     }
 
-    /** The one line each state tells the merchant - the hover in the list, the banner on the order. */
-    public static function label_state_message(\WC_Order $order): string {
-        switch (self::label_state($order)) {
+    /**
+     * The one line each state tells the merchant - the hover in the list, the banner on the order. Takes
+     * the state where the caller already worked it out, so the fingerprint is not computed twice a row.
+     */
+    public static function label_state_message(\WC_Order $order, ?string $state = null): string {
+        switch ($state ?? self::label_state($order)) {
             case self::LABEL_STATE_STALE:
                 return self::is_locked($order)
                     ? __('The order changed after this waybill was issued, and the courier already holds the parcel - arrange the change with the courier.', 'bg-couriers')
@@ -532,6 +543,11 @@ class BGCouriers_Labels {
             }
             return;
         }
+
+        // A parcel the courier collected and the merchant then reopened by hand (is_locked() is false
+        // again): do not auto-void a waybill that may be physically on the parcel. The red "changed"
+        // flag shows the mismatch; re-issuing it is the merchant's own call, with the button.
+        if ((string) $order->get_meta('_bgcouriers_reopened') === 'yes') { return; }
 
         $now  = self::label_fingerprint($order);
         $were = (string) $order->get_meta('_bgcouriers_label_fp');
@@ -902,15 +918,13 @@ class BGCouriers_Labels {
         // payload is verified to BE a PDF first.
         if (strncmp($out, '%PDF', 4) !== 0) { wp_die(esc_html__('The generated file is not a valid PDF.', 'bg-couriers')); }
 
-        // Printing clears a waybill's "not printed yet" (green) mark: record, for each order this sheet
-        // carries, the fingerprint the waybill was issued for. A stale label (the order changed since)
-        // stays flagged - printing the old document does not make it match the order.
+        // Printing clears a waybill's "not printed yet" (green) flag. A stale label (the order changed
+        // since it was issued) is a separate signal and stays flagged - printing the old document does
+        // not make it match the order.
         foreach ($order_ids as $oid) {
             $o = wc_get_order((int) $oid);
-            if (!$o) { continue; }
-            $fp = (string) $o->get_meta('_bgcouriers_label_fp');
-            if ((string) $o->get_meta('_bgcouriers_waybill') === '' || $fp === '') { continue; }
-            $o->update_meta_data('_bgcouriers_label_printed_fp', $fp);
+            if (!$o || (string) $o->get_meta('_bgcouriers_waybill') === '') { continue; }
+            $o->update_meta_data('_bgcouriers_label_needs_print', '');
             $o->update_meta_data('_bgcouriers_label_printed_at', time());
             $o->save();
         }
