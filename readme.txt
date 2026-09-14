@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, bulgaria
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.8
+Stable tag: 0.4.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -128,6 +128,16 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.4.9 =
+* Fixed: a delivery street that shares its name with another in the same town (Sofia's бул. ВИТОША and ул. ВИТОША) is no longer refused by the courier - the order now carries the exact street. Covers Speedy, Express One, Европът and Pigeon, and streets chosen on the address map.
+* Fixed: a Pigeon Express street can now be found in a big town (only the first page of its street list was read before).
+* Checkout block: on WooCommerce's block-based checkout the courier pickers now come to life and re-price after a tab click, the address is asked once instead of twice, the phone is required in place, cash on delivery re-prices the rate, a house number typed just before Place Order is kept, and a fresh cart no longer shows refusals before anything is done.
+* Added: the waybill on the order screen and the orders list now shows when it is out of date (the order changed after it was issued) and when it still needs printing.
+* Fixed: the "track this parcel" links for BOX NOW and Sameday now open the courier's tracking page.
+* Fixed: an Econt address refusal is shown in the courier's own words.
+* Faster: a town's street list is fetched once a day instead of on every keystroke; town search now lists a name that starts with what you typed before one that merely contains it.
+* Fixed: switching the plugin off clears its scheduled tasks; the "Checkout dropdown results" setting honours its default of 20.
+
 = 0.4.8 =
 * Changed: **BOX NOW has the same checkout block as every other courier.** Its own map widget (a separate window, centred on Greece, asking the browser for a location, unable to take the town already chosen) is gone: BOX NOW's towns are read off its lockers, so the customer picks a town and a locker, the town carries over from the other couriers and the combined map, BOX NOW's lockers appear on that map, and the order editor uses the same town and locker fields.
 * Changed: a plugin update refreshes the courier nomenclature once, a minute after it lands (so BOX NOW's towns are there at once, not at the next weekly sync).
@@ -149,23 +159,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Fixed: a courier that failed to answer once could grey out both delivery options for a town for six hours.
 * Fixed: a delivery price could be shown in a currency the shop no longer uses.
 * Fixed: the delivery price recorded on an order belonged to whichever courier was priced last, not the one the customer chose.
-* Fixed: a busy moment could tell a customer their town is not served.
-* Fixed: the lookup allowance is given back every minute, not after a minute of silence.
 * Fixed: one courier with a sick API no longer makes every customer wait.
-* Faster: the weekly courier sync is seconds instead of minutes.
-* Fixed: an order is written once when its tracking is checked, not up to five times.
-* Fixed: a pickup point could stand alone on the map next to a bubble counting hundreds of others.
-* Fixed: choosing a town could tick an office nobody picked.
-
-= 0.4.7 =
-* Fixed: the map could open on a town the customer had never chosen
-* Fixed: the About tab showed the General tab's settings.
-* Fixed: the Econt tab wrote the shop's API username into the page source.
-* Fixed: the guard that keeps the browser's password manager out of the credential boxes was not on the boxes.
-* Fixed: the checkout accepted a city or an office the courier does not list.
-* Fixed: the BOX NOW webhook secret was printed into the settings page.
-* Changed: a label is only fetched from a public address.
-* Changed: nothing that is a credential can reach the debug log.
 
 Earlier versions, and the full account of every entry above - what each fix was and how it was found - are in docs/CHANGELOG.md in the plugin's repository.
 
