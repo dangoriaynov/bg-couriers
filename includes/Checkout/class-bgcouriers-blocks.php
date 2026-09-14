@@ -188,13 +188,22 @@ class BGCouriers_Blocks {
         if (!function_exists('url_to_postid') || empty($_SERVER['REQUEST_URI'])) { return 0; }
         $uri = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
         if (array_key_exists($uri, $cache)) { return $cache[$uri]; }
-        // The bare home URL resolves to 0; a shop that puts the checkout block on a static front page is
-        // exactly that case, so the front-page id stands in for it.
-        $path = (string) wp_parse_url($uri, PHP_URL_PATH);
-        if ($path === '' || $path === '/') { return $cache[$uri] = (int) get_option('page_on_front'); }
+        // url_to_postid() first, and for the whole URL: it reads a pretty permalink from the rewrite
+        // rules AND a ?page_id= / ?p= from the query string, so it answers on a plain-permalink shop too
+        // (where the block checkout is requested as /?page_id=N and the path is only "/").
         $host = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : '';
         $url  = $host !== '' ? ((is_ssl() ? 'https://' : 'http://') . $host . $uri) : $uri;
-        return $cache[$uri] = (int) url_to_postid($url);
+        $id = (int) url_to_postid($url);
+        if ($id) { return $cache[$uri] = $id; }
+        // Only the bare home URL is left unresolved. A shop that puts the checkout block on a static
+        // front page is that case, so the front-page id stands in - but only when the home really is a
+        // page (WordPress keeps page_on_front set after a switch back to a blog home, so the raw option
+        // can be a stale id) and only for a request that is the home path.
+        $path = (string) wp_parse_url($uri, PHP_URL_PATH);
+        if (($path === '' || $path === '/') && get_option('show_on_front') === 'page') {
+            return $cache[$uri] = (int) get_option('page_on_front');
+        }
+        return $cache[$uri] = 0;
     }
 
     /**
