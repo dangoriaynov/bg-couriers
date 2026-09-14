@@ -335,6 +335,83 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return $out;
     }
 
+    // ── easyBox availability (LIVE free compartments) ────────────────────────
+    // Sameday is the one courier whose locker listing reports how full each easyBox is: every locker
+    // row carries `availableBoxes` [{size,number}] - the FREE compartments by size (also occupiedBoxes,
+    // reservedBoxes, occupancyLevel). Measured on the live account 2026-09-14: 1721 lockers, e.g.
+    // {"size":"S","number":25},{"size":"M","number":4},{"size":"L","number":10}. This is live data (it
+    // moves as parcels come and go), so it is fetched fresh, never stored in the weekly office sync.
+
+    /** easyBox sizes, smallest first. A parcel needing one size fits that compartment OR any larger. */
+    public const BOX_SIZES = ['S', 'M', 'L'];
+
+    /**
+     * Free compartments per locker, by size, LIVE from /api/client/lockers.
+     *
+     * @return array<int,array<string,int>> lockerId => ['S'=>n,'M'=>n,'L'=>n] (only the sizes present)
+     */
+    public function fetch_locker_availability(): array {
+        $out = [];
+        foreach ($this->get_paged('/api/client/lockers') as $l) {
+            $id = (int) ($l['lockerId'] ?? $l['id'] ?? 0);
+            if (!$id) { continue; }
+            // Only a real easyBox has COMPARTMENTS. The lockers listing also returns staffed "SAMEDAY
+            // point" counters (measured 2026-09-14: ~half of them, name "SAMEDAY point ...", all three
+            // box lists empty) - a person takes the parcel there, so there is no compartment to be full
+            // of, and they are left out of the availability question entirely (the map shows them as
+            // usual, never greyed). A genuinely FULL easyBox is kept: its availableBoxes is empty but
+            // its occupiedBoxes is not, so it still counts as a compartment locker and reads as full.
+            $has_compartments = !empty($l['availableBoxes']) || !empty($l['occupiedBoxes']) || !empty($l['reservedBoxes']);
+            if (!$has_compartments) { continue; }
+            $free = [];
+            foreach ((array) ($l['availableBoxes'] ?? []) as $b) {
+                $size = strtoupper((string) ($b['size'] ?? ''));
+                if ($size !== '') { $free[$size] = (int) ($b['number'] ?? 0); }
+            }
+            $out[$id] = $free;
+        }
+        return $out;
+    }
+
+    /**
+     * The smallest easyBox size a parcel of these dimensions needs.
+     *
+     * Mirrors BGCouriers_Boxnow::compartment_for() exactly - the plugin's existing locker-compartment
+     * standard (a ~60x45 cm footprint, heights 8/17/36 cm marking S/M/L). easyBox and BOX NOW are both
+     * APM parcel lockers built to the same compartment sizes, so one mapping serves both; if Sameday
+     * ever publishes different easyBox internals, only this table changes. An oversized parcel maps to
+     * the largest size (never "fits nothing"), leaving a true misfit for Sameday's own limits to reject,
+     * as the BOX NOW mapping does.
+     *
+     * @param array $dims ['length'=>cm,'width'=>cm,'height'=>cm] - the shop's box_dims().
+     */
+    public static function box_size_for(array $dims): string {
+        $l = (float) ($dims['length'] ?? 0);
+        $w = (float) ($dims['width'] ?? 0);
+        $h = (float) ($dims['height'] ?? 0);
+        if ($l <= 60.0 && $w <= 45.0) {
+            if ($h <= 8.0)  { return 'S'; }
+            if ($h <= 17.0) { return 'M'; }
+        }
+        return 'L';
+    }
+
+    /**
+     * Does this locker have a free compartment the parcel fits into? A parcel needing size X fits a free
+     * box of X or of any LARGER size, so the answer is "any free box from the required size upward".
+     *
+     * @param array<string,int> $free_boxes size => free count (as fetch_locker_availability() returns)
+     * @param string            $required   the size box_size_for() asked for
+     */
+    public static function locker_fits(array $free_boxes, string $required): bool {
+        $from = array_search($required, self::BOX_SIZES, true);
+        if ($from === false) { return false; }
+        foreach (array_slice(self::BOX_SIZES, $from) as $size) {
+            if ((int) ($free_boxes[$size] ?? 0) > 0) { return true; }
+        }
+        return false;
+    }
+
     // ── Quote (live, weight-based) ───────────────────────────────────────────
 
     public function quote(array $shipment): BGCouriers_Quote {
