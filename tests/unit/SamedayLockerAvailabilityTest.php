@@ -15,8 +15,8 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.
 /**
  * Sameday easyBox availability: which locker has a free compartment the shop's parcel fits into.
  *
- * box_size_for() maps the shop's parcel to the smallest easyBox size (mirroring BOX NOW's compartment
- * mapping, the plugin's existing standard). locker_fits() answers "is a compartment of that size, or
+ * box_size_for() maps the shop's parcel to the smallest easyBox size (using Sameday's own published
+ * easyBox cell sizes - see box_dims_table()). locker_fits() answers "is a compartment of that size, or
  * any larger, free right now?" - because a parcel that needs S fits an S, M or L box, but one that
  * needs L fits only an L. The map and the office list grey out a locker where the answer is no.
  *
@@ -51,6 +51,19 @@ final class SamedayLockerAvailabilityTest extends TestCase {
         // Bigger than any compartment -> L (largest), leaving a true misfit for Sameday to reject, as the
         // BOX NOW mapping does. It must never return '' or the locker would read as "fits nothing" wrongly.
         $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 200, 'width' => 200, 'height' => 200]));
+    }
+
+    public function test_the_default_table_matches_sameday_published_cell_sizes(): void {
+        // Sameday's easyBox terms (sameday.bg): cells are 445 x {100,200,390} x 470 mm (W x H x D), so the
+        // opening is 44.5 x 47 cm and the heights S 10 / M 20 / L 39 cm separate the sizes. Pin the boundaries.
+        $this->assertSame('S', BGCouriers_Sameday::box_size_for(['length' => 47, 'width' => 44.5, 'height' => 10]));   // exactly the S cell
+        $this->assertSame('M', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 10.5]));   // just over S height -> M
+        $this->assertSame('M', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 20]));     // exactly the M cell
+        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 20.5]));   // just over M height -> L
+        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 39]));     // exactly the L cell
+        // Wider or deeper than the opening -> largest (a real misfit for Sameday to reject), never "nothing".
+        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 47.5, 'width' => 10, 'height' => 2]));    // deeper than 47 cm
+        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 44.6, 'height' => 2]));    // wider than 44.5 cm
     }
 
     public function test_the_box_dimensions_are_correctable_through_the_filter(): void {
