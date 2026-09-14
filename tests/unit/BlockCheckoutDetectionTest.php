@@ -86,16 +86,46 @@ final class BlockCheckoutDetectionTest extends TestCase {
     }
 
     /**
+     * A plain-permalink shop: the block checkout page is requested as /?page_id=<id>, whose path is
+     * only "/". url_to_postid() reads the id out of the query string, so it must be tried BEFORE the
+     * front-page fallback - or the fix is inert on every plain-permalink install.
+     */
+    public function test_before_the_query_a_plain_permalink_page_id_is_read(): void {
+        Functions\when('get_queried_object_id')->justReturn(0);
+        Functions\when('url_to_postid')->alias(static function ($url) {
+            return strpos((string) $url, 'page_id=77') !== false ? 77 : 0;
+        });
+        $_SERVER['REQUEST_URI'] = '/?page_id=77';
+        $this->assertTrue(BGCouriers_Blocks::is_block_checkout());
+    }
+
+    /**
      * The front-page edge. url_to_postid() returns 0 for the bare home URL, so a shop that puts the
      * checkout block on a static front page is covered through page_on_front.
      */
-    public function test_before_the_query_the_front_page_is_resolved(): void {
+    public function test_before_the_query_a_static_front_page_is_resolved(): void {
         Functions\when('get_queried_object_id')->justReturn(0);
         Functions\when('url_to_postid')->justReturn(0);
         Functions\when('get_option')->alias(static function ($name) {
+            if ($name === 'show_on_front') { return 'page'; }
             return $name === 'page_on_front' ? 99 : false;
         });
         $_SERVER['REQUEST_URI'] = '/';
         $this->assertTrue(BGCouriers_Blocks::is_block_checkout());
+    }
+
+    /**
+     * NEGATIVE CONTROL for the front-page fallback. A blog home (show_on_front is "posts") must not be
+     * taken for the block checkout even though WordPress may keep a stale page_on_front id around.
+     */
+    public function test_before_the_query_a_blog_home_is_not_the_front_page(): void {
+        Functions\when('get_queried_object_id')->justReturn(0);
+        Functions\when('url_to_postid')->justReturn(0);
+        Functions\when('get_option')->alias(static function ($name) {
+            if ($name === 'show_on_front') { return 'posts'; }
+            return $name === 'page_on_front' ? 99 : false; // stale id WordPress left behind
+        });
+        $_SERVER['REQUEST_URI'] = '/?home=blog';
+        $this->assertFalse(BGCouriers_Blocks::is_block_checkout());
     }
 }
