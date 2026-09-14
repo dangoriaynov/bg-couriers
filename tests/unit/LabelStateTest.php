@@ -40,8 +40,14 @@ final class LabelStateTest extends TestCase {
         $o->meta['_bgcouriers_waybill'] = '1CJALN21098719';
         return $o;
     }
-    /** Record the fingerprint the waybill was issued for, as generate() does. */
-    private function issue(WC_Order $o): void { $o->meta['_bgcouriers_label_fp'] = BGCouriers_Labels::label_fingerprint($o); }
+    /** What generate() records: the fingerprint the waybill was issued for, and the "not printed yet"
+     *  flag it sets on every new document. */
+    private function issue(WC_Order $o): void {
+        $o->meta['_bgcouriers_label_fp'] = BGCouriers_Labels::label_fingerprint($o);
+        $o->meta['_bgcouriers_label_needs_print'] = '1';
+    }
+    /** What printing does: clear the flag. */
+    private function printed(WC_Order $o): void { $o->meta['_bgcouriers_label_needs_print'] = ''; }
 
     public function test_no_waybill_has_no_state(): void {
         $o = $this->order();
@@ -61,14 +67,19 @@ final class LabelStateTest extends TestCase {
     }
 
     public function test_a_printed_waybill_that_matches_the_order_is_ok(): void {
-        $o = $this->order(); $this->issue($o);
-        $o->meta['_bgcouriers_label_printed_fp'] = $o->meta['_bgcouriers_label_fp'];
+        $o = $this->order(); $this->issue($o); $this->printed($o);
+        $this->assertSame(BGCouriers_Labels::LABEL_STATE_OK, BGCouriers_Labels::label_state($o));
+    }
+
+    /** A waybill made before this feature carries no flag - it must not read as "needs printing". */
+    public function test_a_legacy_waybill_with_no_print_flag_is_not_green(): void {
+        $o = $this->order();
+        $o->meta['_bgcouriers_label_fp'] = BGCouriers_Labels::label_fingerprint($o); // fp only, no flag
         $this->assertSame(BGCouriers_Labels::LABEL_STATE_OK, BGCouriers_Labels::label_state($o));
     }
 
     public function test_a_changed_total_makes_it_stale(): void {
-        $o = $this->order(); $this->issue($o);
-        $o->meta['_bgcouriers_label_printed_fp'] = $o->meta['_bgcouriers_label_fp']; // even if printed
+        $o = $this->order(); $this->issue($o); $this->printed($o); // even printed
         $o->total = 30.0;
         $this->assertSame(BGCouriers_Labels::LABEL_STATE_STALE, BGCouriers_Labels::label_state($o),
             'a printed label the order has outgrown is still stale');
@@ -80,13 +91,24 @@ final class LabelStateTest extends TestCase {
         $this->assertSame(BGCouriers_Labels::LABEL_STATE_STALE, BGCouriers_Labels::label_state($o));
     }
 
-    /** Re-issue records the new fingerprint but leaves the printed mark behind: green until reprinted. */
-    public function test_a_reissue_is_unprinted_again(): void {
-        $o = $this->order(); $this->issue($o);
-        $o->meta['_bgcouriers_label_printed_fp'] = $o->meta['_bgcouriers_label_fp'];
+    /** Re-issue flags the new document: green until reprinted, whether or not the order changed. */
+    public function test_a_reissue_after_a_change_is_unprinted_again(): void {
+        $o = $this->order(); $this->issue($o); $this->printed($o);
         $o->total = 30.0;
-        $this->issue($o); // the re-issue path records the new fingerprint
+        $this->issue($o); // the re-issue records the new fingerprint and flags the new document
         $this->assertSame(BGCouriers_Labels::LABEL_STATE_UNPRINTED, BGCouriers_Labels::label_state($o));
+    }
+
+    /**
+     * The one the fingerprint approach got wrong: re-issue an UNCHANGED order (same fingerprint, brand
+     * new waybill and PDF). It must still read as needing a print - the flag is keyed on the document.
+     */
+    public function test_a_reissue_of_an_unchanged_order_is_still_unprinted(): void {
+        $o = $this->order(); $this->issue($o); $this->printed($o);
+        $this->assertSame(BGCouriers_Labels::LABEL_STATE_OK, BGCouriers_Labels::label_state($o), 'printed, matches');
+        $this->issue($o); // re-issue, order untouched
+        $this->assertSame(BGCouriers_Labels::LABEL_STATE_UNPRINTED, BGCouriers_Labels::label_state($o),
+            'a re-issued waybill needs printing even if the order did not change');
     }
 
     public function test_the_stale_message_says_re_issue_when_it_still_can(): void {

@@ -107,7 +107,7 @@ class BGCouriers_Order_Metabox {
         // Same call the orders list uses (BGCouriers_Labels::label_state), so the two screens agree.
         $lstate = BGCouriers_Labels::label_state($order);
         if ($lstate !== '') {
-            $lmsg = BGCouriers_Labels::label_state_message($order);
+            $lmsg = BGCouriers_Labels::label_state_message($order, $lstate);
             $lstyle = $lstate === BGCouriers_Labels::LABEL_STATE_STALE
                 ? 'background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;'
                 : 'background:#eef8f0;border:1px solid #a9d8b6;color:#1f6b34;';

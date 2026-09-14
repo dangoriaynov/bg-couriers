@@ -168,7 +168,7 @@ class BGCouriers_Order_Columns {
         if ($order instanceof \WC_Order) {
             $state = BGCouriers_Labels::label_state($order);
             if ($state !== '') {
-                $smsg  = BGCouriers_Labels::label_state_message($order);
+                $smsg  = BGCouriers_Labels::label_state_message($order, $state);
                 $glyph = $state === BGCouriers_Labels::LABEL_STATE_STALE ? 'warning' : 'printer';
                 $state_ico = '<span class="bgc-wb-flag bgc-wb-' . esc_attr($state) . '" data-tip="' . esc_attr($smsg)
                     . '" aria-label="' . esc_attr($smsg) . '"><span class="dashicons dashicons-' . esc_attr($glyph) . '"></span></span>';
