@@ -23,7 +23,13 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.
  * @group sameday
  */
 final class SamedayLockerAvailabilityTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); Functions\when('__')->returnArg(1); }
+    protected function setUp(): void {
+        parent::setUp();
+        Monkey\setUp();
+        Functions\when('__')->returnArg(1);
+        // box_dims_table() reads the bgcouriers_sameday_box_dims filter; unstubbed it returns the default table.
+        Functions\when('apply_filters')->returnArg(2);
+    }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     // ── box_size_for(): parcel -> required easyBox size ──────────────────────
@@ -45,6 +51,30 @@ final class SamedayLockerAvailabilityTest extends TestCase {
         // Bigger than any compartment -> L (largest), leaving a true misfit for Sameday to reject, as the
         // BOX NOW mapping does. It must never return '' or the locker would read as "fits nothing" wrongly.
         $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 200, 'width' => 200, 'height' => 200]));
+    }
+
+    public function test_the_box_dimensions_are_correctable_through_the_filter(): void {
+        // Sameday publishes no compartment sizes, so the table is a documented default; a shop whose
+        // easyBox network measures differently corrects it through the filter, no code change.
+        Functions\when('apply_filters')->alias(static function ($tag, $value) {
+            return $tag === 'bgcouriers_sameday_box_dims'
+                ? ['max_length' => 60.0, 'max_width' => 45.0, 'heights' => ['S' => 5.0, 'M' => 10.0, 'L' => 20.0]]
+                : $value;
+        });
+        // 8 cm tall is S under the default table (S=8); under the tighter filtered table (S=5) it needs M.
+        $this->assertSame('M', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 8]));
+        // Taller than the filtered L height (20) -> largest, never nothing.
+        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 25]));
+    }
+
+    public function test_a_filter_that_lists_the_heights_out_of_order_still_picks_the_smallest_fit(): void {
+        Functions\when('apply_filters')->alias(static function ($tag, $value) {
+            return $tag === 'bgcouriers_sameday_box_dims'
+                ? ['max_length' => 60.0, 'max_width' => 45.0, 'heights' => ['L' => 36.0, 'S' => 8.0, 'M' => 17.0]]
+                : $value;
+        });
+        $this->assertSame('S', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 6]));
+        $this->assertSame('M', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 15]));
     }
 
     // ── locker_fits(): required size vs the locker's free boxes ───────────────
