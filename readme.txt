@@ -69,7 +69,7 @@ The plugin uses the online API of each courier **you enable**, to price a delive
 * **Sameday** - api.sameday.bg (sameday-api-bg.demo.zitec.com in test mode). Terms: https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/ · Privacy: https://sameday.bg/politika-za-poveritelnost/
 * **Express One** - system.expressone.bg. Terms: https://expressone.bg/bg/terms · Privacy: https://expressone.bg/bg/privacy-policy
 * **BOX NOW** - api-production.boxnow.bg (api-stage.boxnow.bg in test mode). Terms: https://boxnow.bg/terms-of-use-for-shipping-services · Privacy: https://boxnow.bg/personal-data-processing-notice
-* **Европът (Evropat)** - api.evropat.com. Terms: https://evropat.bg/terms/ · Privacy: https://evropat.bg/%D0%9F%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D0%B7%D0%B0+%D0%BF%D0%BE%D0%B2%D0%B5%D1%80%D0%B8%D1%82%D0%B5%D0%BB%D0%BD%D0%BE%D1%81%D1%82+%D0%BD%D0%B0+%D0%95%D0%B2%D1%80%D0%BE%D0%BF%D1%8A%D1%82
+* **Европът (Evropat)** - api.evropat.com. Terms: https://evropat.bg/terms/ · [Privacy](https://evropat.bg/%D0%9F%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D0%B7%D0%B0+%D0%BF%D0%BE%D0%B2%D0%B5%D1%80%D0%B8%D1%82%D0%B5%D0%BB%D0%BD%D0%BE%D1%81%D1%82+%D0%BD%D0%B0+%D0%95%D0%B2%D1%80%D0%BE%D0%BF%D1%8A%D1%82)
 
 **Maps and address lookup**
 
