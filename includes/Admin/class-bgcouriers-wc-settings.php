@@ -1077,7 +1077,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 // guide hands a signing key out only on request, and the header is what they offer.
                 ['type' => 'text', 'id' => 'bgcouriers_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
                     'value' => '', 'placeholder' => self::secret_placeholder('bgcouriers_boxnow_webhook_secret'),
-                    'desc' => esc_html__('Any value you choose. Register this webhook URL with BOX NOW and ask them to send this header with every message, with the secret as its value:', 'bg-couriers')
+                    'desc' => esc_html__('Any value you choose. Ask the BOX NOW integration team (the e-mail above) to register this webhook URL for your account and to send this header with every message, with the secret as its value:', 'bg-couriers')
                         . '<br><code>' . esc_html(BGCouriers_Boxnow_Webhook::url()) . '</code>'
                         . '<br><code>' . esc_html(BGCouriers_Boxnow_Webhook::HEADER) . ': ' . esc_html__('(the secret)', 'bg-couriers') . '</code><br>'
                         . esc_html__('A signing key BOX NOW gave you works here too. Stored but never shown again; leave it empty to keep the one you have.', 'bg-couriers'),
