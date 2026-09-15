@@ -86,6 +86,32 @@ final class BoxnowWebhookRecordsTrackingTest extends WP_UnitTestCase {
             'exactly one BOX NOW note for one piece of news');
     }
 
+    /**
+     * The proof BOX NOW actually offers (Webhook Guide v5): the secret in a request header, no
+     * datasignature anywhere. The first live shop to register the webhook got 401 on every message
+     * because the signature was the only proof accepted.
+     */
+    public function test_the_secret_in_the_header_is_proof_enough(): void {
+        $o   = $this->order('P-4');
+        $req = new WP_REST_Request('POST', '/bgc/v1/boxnow-webhook');
+        $req->set_body('{"specversion":"1.0","type":"gr.boxnow.parcel_event_change","data":{"parcelId":"P-4","parcelState":"delivered","orderNumber":"' . $o->get_id() . '"}}');
+        $req->set_header(BGCouriers_Boxnow_Webhook::HEADER, self::SECRET);
+        $r = (new BGCouriers_Boxnow_Webhook())->handle($req);
+
+        $this->assertSame(200, $r->get_status());
+        $this->assertSame('delivered', (string) wc_get_order($o->get_id())->get_meta('_bgcouriers_track_stage'));
+    }
+
+    /** A refusal says what was missing - BOX NOW support pastes the body into their e-mail verbatim. */
+    public function test_a_refusal_names_its_reason(): void {
+        $req = new WP_REST_Request('POST', '/bgc/v1/boxnow-webhook');
+        $req->set_body('{"specversion":"1.0","data":{"parcelId":"P-5","parcelState":"new"}}');
+        $r = (new BGCouriers_Boxnow_Webhook())->handle($req);
+
+        $this->assertSame(401, $r->get_status());
+        $this->assertSame(['ok' => false, 'reason' => 'no_credential'], $r->get_data());
+    }
+
     /** Every state BOX NOW documents maps to a stage the plugin knows. */
     public function test_every_documented_state_has_a_stage(): void {
         $expect = ['new' => 'registered', 'in-transit' => 'transit', 'in-final-destination' => 'ready',

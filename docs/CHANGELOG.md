@@ -4,6 +4,9 @@ The plugin's own `readme.txt` carries only the most recent entries: WordPress.or
 section at 5000 characters, and a changelog the directory cuts in half is worse than a short one
 that points here. Nothing is lost - this file is the full history.
 
+## Unreleased
+* Fixed: **the BOX NOW webhook accepts the proof BOX NOW actually sends, and a refusal says why.** The receiver trusted a message on one proof only: a `datasignature` HMAC-SHA256 over its data, keyed by a "webhook secret" the settings said you receive after registering the URL. BOX NOW's own Webhook Guide (v5, 12.2025) says otherwise - a signing key is handed out only on request, "if needed", and the way a partner authenticates is a request header configured in the BOX NOW profile. So the first live shop to register the webhook answered 401 to every message BOX NOW sent, and the `{"ok":false}` body gave nobody a clue which check had failed. Now the same secret is also accepted in a header: give BOX NOW the name `X-BGC-Webhook-Secret` and the secret as its value when you register the URL (the settings show both). A signature still works for a partner who has a signing key - and as hex or Base64 now; the guide never says which. A refusal answers `{"ok":false,"reason":"no_secret"|"no_credential"|"bad_header"|"bad_signature"}`, and with debug logging on, notes which headers and body keys arrived and what shape the signature had - never a value. The settings text says what to do instead of what does not happen.
+
 ## 0.4.11
 * Fixed: on the WordPress.org plugin page, the Европът privacy-policy link showed as a raw percent-encoded URL - evropat.bg's own privacy page has a Cyrillic slug with spaces, which encodes to a long unreadable string, and it was pasted in bare. It is a plain "Privacy" link now (the target URL is unchanged; it is the only working one - the site 404s the %20-spaced form and its own footer uses this exact +-encoded address). Readme/plugin-page only, no code change.
 
