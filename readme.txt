@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, pigeon
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.11
+Stable tag: 0.4.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 == Changelog ==
 
+= 0.4.12 =
+* Fixed: **the BOX NOW webhook accepts the header BOX NOW actually sends, and a refused message says why.** When you register the webhook URL with BOX NOW, give them the header name X-BGC-Webhook-Secret with your secret as its value (the settings show both); a message BOX NOW signs is still accepted, as hex or Base64. A refusal now names the reason, and with debug logging on says what arrived.
+* Fixed: a BOX NOW webhook message is read by its event, as BOX NOW's guide says, so a parcel waiting in the locker, in the depot or expired and on its way back lands on its own stage instead of "in transit".
+
 = 0.4.11 =
 * Fixed: the Европът privacy-policy link now shows as a link rather than a long encoded web address.
 
@@ -152,6 +156,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 Earlier versions, and the full account of every entry above - what each fix was and how it was found - are in docs/CHANGELOG.md in the plugin's repository.
 
 == Upgrade Notice ==
+
+= 0.4.12 =
+A shop whose BOX NOW webhook was registered had every message refused, so parcel stages never arrived. Ask BOX NOW to send the header the settings now show, with your secret as its value.
 
 = 0.4.10 =
 Fixes a delivery estimate that read low before a town was chosen for couriers that charge their own VAT (Speedy, Express One, Sameday) on shops with no shipping tax - the price shown could sit under the amount charged once a town was picked.
