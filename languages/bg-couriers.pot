@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-14 21:09+0300\n"
+"POT-Creation-Date: 2026-09-16 12:38+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1643,8 +1643,8 @@ msgid ""
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:760
-#: includes/Admin/class-bgcouriers-wc-settings.php:1098
-#: includes/Admin/class-bgcouriers-wc-settings.php:1132
+#: includes/Admin/class-bgcouriers-wc-settings.php:1102
+#: includes/Admin/class-bgcouriers-wc-settings.php:1136
 msgid "Free-shipping threshold"
 msgstr ""
 
@@ -2064,44 +2064,51 @@ msgstr ""
 msgid "Partner ID"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1075
+#: includes/Admin/class-bgcouriers-wc-settings.php:1078
 msgid "Webhook secret"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1077
+#: includes/Admin/class-bgcouriers-wc-settings.php:1080
 msgid ""
-"You receive it after you register this webhook URL in your BOX NOW account:"
+"Any value you choose. Register this webhook URL with BOX NOW and ask them to "
+"send this header with every message, with the secret as its value:"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1079
-msgid "Stored but never shown again. Leave it empty to keep the one you have."
+#: includes/Admin/class-bgcouriers-wc-settings.php:1082
+msgid "(the secret)"
 msgstr ""
 
 #: includes/Admin/class-bgcouriers-wc-settings.php:1083
+msgid ""
+"A signing key BOX NOW gave you works here too. Stored but never shown again; "
+"leave it empty to keep the one you have."
+msgstr ""
+
+#: includes/Admin/class-bgcouriers-wc-settings.php:1087
 msgid "Pickup location ID"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1084
+#: includes/Admin/class-bgcouriers-wc-settings.php:1088
 msgid ""
 "Your BOX NOW origin/pickup ID (where parcels ship FROM, not the customer’s "
 "locker). From your BOX NOW partner account."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1085
+#: includes/Admin/class-bgcouriers-wc-settings.php:1089
 msgid "Sender contact phone"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1086
+#: includes/Admin/class-bgcouriers-wc-settings.php:1090
 msgid ""
 "Your contact phone for the pickup/origin, printed on the parcel. Leave empty "
 "to omit."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1087
+#: includes/Admin/class-bgcouriers-wc-settings.php:1091
 msgid "Declare the value of prepaid parcels"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1088
+#: includes/Admin/class-bgcouriers-wc-settings.php:1092
 msgid ""
 "Send the order total to BOX NOW as the declared value of a parcel that is "
 "already paid for. Off by default, which is what BOX NOW's own plugin sends: "
@@ -2109,80 +2116,80 @@ msgid ""
 "delivery always carries its amount."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1090
+#: includes/Admin/class-bgcouriers-wc-settings.php:1094
 msgid "Allow returns"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1096
-#: includes/Admin/class-bgcouriers-wc-settings.php:1124
+#: includes/Admin/class-bgcouriers-wc-settings.php:1100
+#: includes/Admin/class-bgcouriers-wc-settings.php:1128
 msgid "Delivery price"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1097
+#: includes/Admin/class-bgcouriers-wc-settings.php:1101
 msgid ""
 "Flat BOX NOW locker price (no live rate API). In the store currency and "
 "WITHOUT VAT: WooCommerce adds the shipping tax on top."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1099
+#: includes/Admin/class-bgcouriers-wc-settings.php:1103
 msgid ""
 "Ship BOX NOW free above this goods total (excluding shipping). Empty or 0 "
 "disables. Store currency."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1102
+#: includes/Admin/class-bgcouriers-wc-settings.php:1106
 msgid ""
 "Enable if your BOX NOW contract pays COD out via ППП. BOX NOW has no ППП "
 "today, so leave off - COD then needs your own cash register."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1115
+#: includes/Admin/class-bgcouriers-wc-settings.php:1119
 msgid ""
 "Live price only - no fixed default (show the cached price until the address "
 "is chosen)"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1116
+#: includes/Admin/class-bgcouriers-wc-settings.php:1120
 msgid "Live price, use the fixed price below only if the API is unavailable"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1117
+#: includes/Admin/class-bgcouriers-wc-settings.php:1121
 msgid "Always the fixed price below - no live API calls at checkout"
 msgstr ""
 
 #. translators: shown when the courier has no price API at all
-#: includes/Admin/class-bgcouriers-wc-settings.php:1120
+#: includes/Admin/class-bgcouriers-wc-settings.php:1124
 msgid "Always the fixed price below - this courier publishes no live prices"
 msgstr ""
 
 #. translators: %s: courier name
-#: includes/Admin/class-bgcouriers-wc-settings.php:1123
+#: includes/Admin/class-bgcouriers-wc-settings.php:1127
 #, php-format
 msgid "Enable “%s”"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1126
+#: includes/Admin/class-bgcouriers-wc-settings.php:1130
 msgid "Fixed / default price"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1131
+#: includes/Admin/class-bgcouriers-wc-settings.php:1135
 msgid ""
 "Used by the “fixed” and “fallback” delivery-price modes above. In the store "
 "currency and WITHOUT VAT: WooCommerce adds the shipping tax on top of it, "
 "exactly as it does to a live quote."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1133
+#: includes/Admin/class-bgcouriers-wc-settings.php:1137
 msgid ""
 "Free delivery for THIS option above this goods total (excluding shipping). "
 "Applies only while the courier-level threshold is empty; empty or 0 disables."
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1139
+#: includes/Admin/class-bgcouriers-wc-settings.php:1143
 msgid "Card payment for COD"
 msgstr ""
 
-#: includes/Admin/class-bgcouriers-wc-settings.php:1140
+#: includes/Admin/class-bgcouriers-wc-settings.php:1144
 msgid ""
 "Let the customer pay the cash-on-delivery amount by card at handover (your "
 "Speedy account default). Off explicitly forbids card payment for this "
@@ -2611,10 +2618,10 @@ msgstr ""
 #. translators: %s: the transport error.
 #. translators: %s: the courier's own error text, or the HTTP status.
 #: includes/Couriers/abstract-bgcouriers-courier.php:30
-#: includes/Couriers/class-bgcouriers-sameday.php:616
-#: includes/Couriers/class-bgcouriers-sameday.php:627
-#: includes/Couriers/class-bgcouriers-speedy.php:227
-#: includes/Couriers/class-bgcouriers-speedy.php:232
+#: includes/Couriers/class-bgcouriers-sameday.php:649
+#: includes/Couriers/class-bgcouriers-sameday.php:660
+#: includes/Couriers/class-bgcouriers-speedy.php:223
+#: includes/Couriers/class-bgcouriers-speedy.php:228
 #, php-format
 msgid "The request failed: %s"
 msgstr ""
@@ -2669,39 +2676,39 @@ msgstr ""
 msgid "This courier has no pickup-request service."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:98
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:157
 msgid "registered"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:99
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:158
 msgid "in transit"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:100
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:159
 msgid "in the locker - ready for pickup"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:101
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:160
 msgid "delivered"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:102
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:161
 msgid "returned"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:103
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:162
 msgid "returned (not collected in time)"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:104
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:163
 msgid "canceled"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:105
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:164
 msgid "lost"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:106
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:165
 msgid "missing"
 msgstr ""
 
@@ -2885,7 +2892,7 @@ msgstr ""
 #. translators: %s: order number
 #. translators: %s: order number, printed on the waybill as the sender's reference
 #: includes/Couriers/class-bgcouriers-boxnow.php:410
-#: includes/Couriers/class-bgcouriers-speedy.php:494
+#: includes/Couriers/class-bgcouriers-speedy.php:490
 #, php-format
 msgid "Order %s"
 msgstr ""
@@ -2963,7 +2970,7 @@ msgstr ""
 #: includes/Couriers/class-bgcouriers-evropat.php:567
 #: includes/Couriers/class-bgcouriers-expressone.php:531
 #: includes/Couriers/class-bgcouriers-pigeon.php:451
-#: includes/Couriers/class-bgcouriers-speedy.php:379
+#: includes/Couriers/class-bgcouriers-speedy.php:375
 #, php-format
 msgid "%s sent no price in its answer."
 msgstr ""
@@ -2999,13 +3006,13 @@ msgid "%s sent no label link in its answer."
 msgstr ""
 
 #: includes/Couriers/class-bgcouriers-econt.php:805
-#: includes/Couriers/class-bgcouriers-speedy.php:765
+#: includes/Couriers/class-bgcouriers-speedy.php:761
 msgid "There are no shipments to collect."
 msgstr ""
 
 #. translators: %s: courier name.
 #: includes/Couriers/class-bgcouriers-econt.php:813
-#: includes/Couriers/class-bgcouriers-speedy.php:770
+#: includes/Couriers/class-bgcouriers-speedy.php:766
 #, php-format
 msgid "%s sent no pickup request number in its answer."
 msgstr ""
@@ -3056,7 +3063,7 @@ msgstr ""
 #. translators: 1: courier name, 2: country code.
 #: includes/Couriers/class-bgcouriers-evropat.php:362
 #: includes/Couriers/class-bgcouriers-expressone.php:458
-#: includes/Couriers/class-bgcouriers-speedy.php:165
+#: includes/Couriers/class-bgcouriers-speedy.php:161
 #, php-format
 msgid "%1$s does not deliver to %2$s."
 msgstr ""
@@ -3140,7 +3147,7 @@ msgstr ""
 
 #: includes/Couriers/class-bgcouriers-expressone.php:87
 #: includes/Couriers/class-bgcouriers-pigeon.php:797
-#: includes/Couriers/class-bgcouriers-speedy.php:752
+#: includes/Couriers/class-bgcouriers-speedy.php:748
 msgid "the request was refused"
 msgstr ""
 
@@ -3337,12 +3344,12 @@ msgid ""
 msgstr ""
 
 #. translators: %s: courier name.
-#: includes/Couriers/class-bgcouriers-sameday.php:500
+#: includes/Couriers/class-bgcouriers-sameday.php:533
 #, php-format
 msgid "%s quoted a price in a different currency from the shop."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-sameday.php:525
+#: includes/Couriers/class-bgcouriers-sameday.php:558
 msgid ""
 "Sameday refused \"the recipient pays the delivery\" - this account is not "
 "contracted for it. Turn on \"Delivery in the order total\" for Sameday, or "
@@ -3350,87 +3357,87 @@ msgid ""
 msgstr ""
 
 #. translators: 1: the street as it is written on the order, 2: the streets of that name, as the courier lists them.
-#: includes/Couriers/class-bgcouriers-speedy.php:113
+#: includes/Couriers/class-bgcouriers-speedy.php:109
 #, php-format
 msgid ""
 "Speedy lists more than one street called \"%1$s\" in this town (%2$s) and "
 "refuses the name alone. Edit the delivery address and pick one from the list."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:127
+#: includes/Couriers/class-bgcouriers-speedy.php:123
 msgid ""
 "Speedy issues API access to registered business clients - there is no "
 "instant self-signup."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:129
+#: includes/Couriers/class-bgcouriers-speedy.php:125
 msgid "Have (or open) a Speedy business contract."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:130
+#: includes/Couriers/class-bgcouriers-speedy.php:126
 msgid ""
 "Request REST API access (ask for a test account first) from your Speedy "
 "account manager, or via the integration contact on the Speedy \"System "
 "integration\" page below."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:131
+#: includes/Couriers/class-bgcouriers-speedy.php:127
 msgid "Speedy issues an API username + password for api.speedy.bg."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:132
+#: includes/Couriers/class-bgcouriers-speedy.php:128
 msgid "Enter the username and password below, click Validate, then Sync."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:134
+#: includes/Couriers/class-bgcouriers-speedy.php:130
 msgid "API username + password"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:135
+#: includes/Couriers/class-bgcouriers-speedy.php:131
 msgid "Speedy system integration:"
 msgstr ""
 
 #. translators: 1: courier name, 2: country code.
-#: includes/Couriers/class-bgcouriers-speedy.php:190
+#: includes/Couriers/class-bgcouriers-speedy.php:186
 #, php-format
 msgid "%1$s has no delivery service for %2$s."
 msgstr ""
 
 #. translators: %s: the cash-on-delivery amount that was requested
-#: includes/Couriers/class-bgcouriers-speedy.php:406
+#: includes/Couriers/class-bgcouriers-speedy.php:402
 #, php-format
 msgid ""
 "Cash on delivery of %s was sent but Speedy did not apply it - the waybill "
 "collects nothing."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:418
+#: includes/Couriers/class-bgcouriers-speedy.php:414
 msgid "the shipment was rejected"
 msgstr ""
 
 #. translators: %s: courier name.
-#: includes/Couriers/class-bgcouriers-speedy.php:423
+#: includes/Couriers/class-bgcouriers-speedy.php:419
 #, php-format
 msgid "%s sent no shipment id in its answer."
 msgstr ""
 
 #. translators: %s: courier name.
-#: includes/Couriers/class-bgcouriers-speedy.php:616
+#: includes/Couriers/class-bgcouriers-speedy.php:612
 #, php-format
 msgid "%s could not print the label."
 msgstr ""
 
 #. translators: 1: courier name, 2: the courier's own error text.
-#: includes/Couriers/class-bgcouriers-speedy.php:625
+#: includes/Couriers/class-bgcouriers-speedy.php:621
 #, php-format
 msgid "%1$s could not print the label: %2$s"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:626
+#: includes/Couriers/class-bgcouriers-speedy.php:622
 msgid "the answer is not a PDF"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-speedy.php:759
+#: includes/Couriers/class-bgcouriers-speedy.php:755
 msgid "the pickup request was refused"
 msgstr ""
 
@@ -3475,7 +3482,7 @@ msgid "Sameday"
 msgstr ""
 
 #. translators: 1: courier name, 2: country code.
-#: includes/Shipping/class-bgcouriers-pricing.php:528
+#: includes/Shipping/class-bgcouriers-pricing.php:534
 #, php-format
 msgid "%1$s: no live price for %2$s."
 msgstr ""

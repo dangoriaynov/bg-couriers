@@ -1070,13 +1070,17 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     'default' => 'yes', 'autoload' => false],
                 ['type' => 'text', 'id' => 'bgcouriers_boxnow_partner_id', 'title' => __('Partner ID', 'bg-couriers'), 'autoload' => false],
                 // Drawn empty like every other credential, and kept when saved blank (sanitize_keep, wired
-                // in BGCouriers_Settings). It is the key the webhook's signature is checked with, and it
-                // was the one secret on these screens that printed its stored value into the page.
+                // in BGCouriers_Settings). It is what an incoming message is checked against - in the
+                // header the shop asks BOX NOW to send, or as the key of a datasignature - and it was
+                // the one secret on these screens that printed its stored value into the page.
+                // It used to say "you receive it after you register the URL": nobody does, BOX NOW's
+                // guide hands a signing key out only on request, and the header is what they offer.
                 ['type' => 'text', 'id' => 'bgcouriers_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
                     'value' => '', 'placeholder' => self::secret_placeholder('bgcouriers_boxnow_webhook_secret'),
-                    'desc' => __('You receive it after you register this webhook URL in your BOX NOW account:', 'bg-couriers')
-                        . '<br><code>' . esc_html(BGCouriers_Boxnow_Webhook::url()) . '</code><br>'
-                        . esc_html__('Stored but never shown again. Leave it empty to keep the one you have.', 'bg-couriers'),
+                    'desc' => esc_html__('Any value you choose. Register this webhook URL with BOX NOW and ask them to send this header with every message, with the secret as its value:', 'bg-couriers')
+                        . '<br><code>' . esc_html(BGCouriers_Boxnow_Webhook::url()) . '</code>'
+                        . '<br><code>' . esc_html(BGCouriers_Boxnow_Webhook::HEADER) . ': ' . esc_html__('(the secret)', 'bg-couriers') . '</code><br>'
+                        . esc_html__('A signing key BOX NOW gave you works here too. Stored but never shown again; leave it empty to keep the one you have.', 'bg-couriers'),
                     'autoload' => false],
             ],
             'delivery' => [

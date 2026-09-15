@@ -4,14 +4,27 @@ defined('ABSPATH') || exit;
 /**
  * BOX NOW webhook receiver - real-time parcel tracking.
  *
- * BoxNow posts a WebhookMessage to a URL the merchant registers in their BoxNow account on every parcel
- * event. The message's `data` object is authenticated by `datasignature` = HMAC-SHA256 of the data, keyed
- * by the shared "Webhook secret" (bgcouriers_boxnow_webhook_secret). We verify that, then record the state on the
- * matching order. Auth is the HMAC, not a WP capability, so the route is public.
+ * BOX NOW posts a WebhookMessage to a URL the merchant registers with BOX NOW on every parcel event.
+ * A message is trusted on either of two proofs, both keyed by the one "Webhook secret"
+ * (bgcouriers_boxnow_webhook_secret):
+ *
+ *  - the secret itself in the HEADER header - the "name/value pair configured in the profile" that
+ *    BOX NOW's Webhook Guide (v5, 2025-12) offers as the way to authenticate ("if additional
+ *    authentication is required, this can be managed through request headers"), and what their
+ *    support asks a shop for;
+ *  - `datasignature` = HMAC-SHA256 over the `data` object, hex or Base64, for a partner BOX NOW has
+ *    handed a signing key to. The guide gives one out only "if needed".
+ *
+ * Until 0.4.12 the signature was the ONLY proof and the settings said the key "arrives after you
+ * register the URL" - it does not, it has to be asked for - so the first live shop to register the
+ * webhook answered 401 to every message and nothing said why. A refusal now names its reason.
+ * Auth is the secret, not a WP capability, so the route is public.
  */
 class BGCouriers_Boxnow_Webhook {
-    const NS   = 'bgc/v1';
-    const PATH = '/boxnow-webhook';
+    const NS     = 'bgc/v1';
+    const PATH   = '/boxnow-webhook';
+    /** The header a shop hands BOX NOW: this name, the webhook secret as the value. Hyphenated, so nginx passes it. */
+    const HEADER = 'X-BGC-Webhook-Secret';
 
     public function __construct() {
         add_action('rest_api_init', [$this, 'register']);
@@ -33,8 +46,17 @@ class BGCouriers_Boxnow_Webhook {
     public function handle($request) {
         $raw    = (string) $request->get_body();
         $secret = (string) get_option('bgcouriers_boxnow_webhook_secret', '');
-        if ($secret === '' || !self::verify($raw, $secret)) {
-            return new WP_REST_Response(['ok' => false], 401);
+        $why    = self::refusal($raw, $secret, (string) $request->get_header(self::HEADER));
+        if ($why !== '') {
+            // The shape of what arrived, never the values: enough to see whether BOX NOW signs at all
+            // and what the signature looks like, which is the one question a 401 could not answer.
+            $sig = self::signature($raw);
+            BGCouriers_Logger::debug('boxnow webhook: refused', [
+                'reason' => $why, 'headers' => array_keys((array) $request->get_headers()),
+                'body_keys' => is_array($m = json_decode($raw, true)) ? array_keys($m) : [],
+                'sig_len' => strlen($sig), 'sig_shape' => self::shape($sig),
+            ]);
+            return new WP_REST_Response(['ok' => false, 'reason' => $why], 401);
         }
         $msg  = json_decode($raw, true);
         $data = (is_array($msg) && isset($msg['data']) && is_array($msg['data'])) ? $msg['data'] : [];
@@ -42,14 +64,51 @@ class BGCouriers_Boxnow_Webhook {
         return new WP_REST_Response(['ok' => true], 200);
     }
 
-    /** Verify the HMAC-SHA256 signature over the message's `data`, keyed by the webhook secret. */
+    /**
+     * Why a message is not trusted - '' when it is. $header is what arrived in self::HEADER.
+     *
+     * Either proof suffices: the secret in the header, or a signature that checks out. A wrong header
+     * beside a good signature is still a good signature. The reason names the FIRST thing to fix:
+     * no secret saved at all, nothing to check (neither header nor datasignature), or the one that
+     * was sent being wrong.
+     */
+    public static function refusal(string $raw, string $secret, string $header): string {
+        if ($secret === '') { return 'no_secret'; }
+        if ($header !== '' && hash_equals($secret, $header)) { return ''; }
+        if (self::verify($raw, $secret)) { return ''; }
+        if ($header !== '') { return 'bad_header'; }
+        return self::signature($raw) === '' ? 'no_credential' : 'bad_signature';
+    }
+
+    /**
+     * Verify the HMAC-SHA256 signature over the message's `data`, keyed by the webhook secret.
+     *
+     * The guide says "HMAC SHA256 digest" and no more, so the digest is accepted as hex or as Base64
+     * (standard or URL-safe, padded or not) - the same 32 bytes either way, and no weaker.
+     */
     public static function verify(string $raw, string $secret): bool {
         if ($secret === '') { return false; }
-        $msg = json_decode($raw, true);
-        $sig = is_array($msg) ? (string) ($msg['datasignature'] ?? '') : '';
+        $sig = trim(self::signature($raw));
         if ($sig === '') { return false; }
-        $calc = hash_hmac('sha256', self::data_bytes($raw, $msg), $secret);
-        return hash_equals(strtolower($calc), strtolower($sig));
+        $mac = hash_hmac('sha256', self::data_bytes($raw, json_decode($raw, true)), $secret, true);
+        $b64 = base64_encode($mac);
+        return hash_equals(bin2hex($mac), strtolower($sig))
+            || hash_equals($b64, $sig)
+            || hash_equals(rtrim(strtr($b64, '+/', '-_'), '='), rtrim(strtr($sig, '+/', '-_'), '='));
+    }
+
+    /** The message's `datasignature`, '' when there is none. */
+    private static function signature(string $raw): string {
+        $msg = json_decode($raw, true);
+        return is_array($msg) ? (string) ($msg['datasignature'] ?? '') : '';
+    }
+
+    /** What a signature looks like, for the log: hex, base64, other, or none. */
+    private static function shape(string $sig): string {
+        if ($sig === '') { return 'none'; }
+        if (preg_match('/^[0-9a-f]+$/i', $sig)) { return 'hex'; }
+        if (preg_match('/^[A-Za-z0-9+\/_-]+=*$/', $sig)) { return 'base64'; }
+        return 'other';
     }
 
     /** The exact `data` bytes BoxNow signs: the raw substring as received, else a re-encode. */
