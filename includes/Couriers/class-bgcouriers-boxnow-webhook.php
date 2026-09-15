@@ -46,20 +46,28 @@ class BGCouriers_Boxnow_Webhook {
     public function handle($request) {
         $raw    = (string) $request->get_body();
         $secret = (string) get_option('bgcouriers_boxnow_webhook_secret', '');
-        $why    = self::refusal($raw, $secret, (string) $request->get_header(self::HEADER));
+        $header = (string) $request->get_header(self::HEADER);
+        $why    = self::refusal($raw, $secret, $header);
+        $msg    = json_decode($raw, true);
+        $data   = (is_array($msg) && isset($msg['data']) && is_array($msg['data'])) ? $msg['data'] : [];
+        $sig    = self::signature($raw);
+        // The shape of what arrived, never the values. On a refusal: enough to see whether BOX NOW
+        // signs at all and what the signature looks like - the one question a 401 could not answer.
+        // On an accepted message too: which proof carried it, and the event beside the state - the
+        // first real message is the only chance to learn which bytes BOX NOW signs and whether the
+        // two ever disagree, and it would have answered 200 and taught nothing.
+        $shape = [
+            'headers' => array_keys((array) $request->get_headers()), 'body_keys' => is_array($msg) ? array_keys($msg) : [],
+            'data_keys' => array_keys($data), 'sig_len' => strlen($sig), 'sig_shape' => self::shape($sig),
+        ];
         if ($why !== '') {
-            // The shape of what arrived, never the values: enough to see whether BOX NOW signs at all
-            // and what the signature looks like, which is the one question a 401 could not answer.
-            $sig = self::signature($raw);
-            BGCouriers_Logger::debug('boxnow webhook: refused', [
-                'reason' => $why, 'headers' => array_keys((array) $request->get_headers()),
-                'body_keys' => is_array($m = json_decode($raw, true)) ? array_keys($m) : [],
-                'sig_len' => strlen($sig), 'sig_shape' => self::shape($sig),
-            ]);
+            BGCouriers_Logger::debug('boxnow webhook: refused', ['reason' => $why] + $shape);
             return new WP_REST_Response(['ok' => false, 'reason' => $why], 401);
         }
-        $msg  = json_decode($raw, true);
-        $data = (is_array($msg) && isset($msg['data']) && is_array($msg['data'])) ? $msg['data'] : [];
+        BGCouriers_Logger::debug('boxnow webhook: accepted', [
+            'proof' => self::header_ok($secret, $header) ? 'header' : 'signature',
+            'event' => (string) ($data['event'] ?? ''), 'parcelState' => (string) ($data['parcelState'] ?? ''),
+        ] + $shape);
         self::apply($data);
         return new WP_REST_Response(['ok' => true], 200);
     }
@@ -74,10 +82,14 @@ class BGCouriers_Boxnow_Webhook {
      */
     public static function refusal(string $raw, string $secret, string $header): string {
         if ($secret === '') { return 'no_secret'; }
-        if ($header !== '' && hash_equals($secret, $header)) { return ''; }
+        if (self::header_ok($secret, $header)) { return ''; }
         if (self::verify($raw, $secret)) { return ''; }
         if ($header !== '') { return 'bad_header'; }
         return self::signature($raw) === '' ? 'no_credential' : 'bad_signature';
+    }
+
+    private static function header_ok(string $secret, string $header): bool {
+        return $secret !== '' && $header !== '' && hash_equals($secret, $header);
     }
 
     /**
@@ -146,12 +158,17 @@ class BGCouriers_Boxnow_Webhook {
         $parcel = (string) ($data['parcelId'] ?? '');
         $order  = self::find_order($parcel, (string) ($data['orderNumber'] ?? ''));
         if (!$order) { return; }
-        $t = BGCouriers_Boxnow::parse_tracking(['state' => (string) ($data['parcelState'] ?? '')],
+        // The guide: "although parcelState and event appear similar, please rely on the event property
+        // when parsing the status" - it is what the customer's tracking page shows. The state is the
+        // fallback, for a message that carries only that.
+        $state = (string) ($data['event'] ?? '');
+        if ($state === '') { $state = (string) ($data['parcelState'] ?? ''); }
+        $t = BGCouriers_Boxnow::parse_tracking(['state' => $state],
                                                $parcel !== '' ? $parcel : (string) $order->get_meta('_bgcouriers_waybill'));
         BGCouriers_Tracking_Poller::record($order, $t, 'BOX NOW', (string) get_option('bgcouriers_autostatus_on_delivered', ''));
     }
 
-    /** ParcelState enum -> human label. */
+    /** ParcelState enum, and the webhook's event vocabulary (Webhook Guide v5) -> human label. */
     public static function state_labels(): array {
         return [
             'new'                  => __('registered', 'bg-couriers'),
@@ -163,6 +180,13 @@ class BGCouriers_Boxnow_Webhook {
             'canceled'             => __('canceled', 'bg-couriers'),
             'lost'                 => __('lost', 'bg-couriers'),
             'missing'              => __('missing', 'bg-couriers'),
+            // The events, where they are spelled differently or have no state of their own.
+            'final-destination'    => __('in the locker - ready for pickup', 'bg-couriers'),
+            'expired'              => __('returned (not collected in time)', 'bg-couriers'),
+            'cancelled'            => __('canceled', 'bg-couriers'),
+            'in-depot'             => __('at a BOX NOW depot', 'bg-couriers'),
+            'accepted-to-locker'   => __('dropped in the locker - on its way', 'bg-couriers'),
+            'accepted-for-return'  => __('accepted for return', 'bg-couriers'),
         ];
     }
 

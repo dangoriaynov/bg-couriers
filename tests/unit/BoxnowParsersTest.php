@@ -109,6 +109,22 @@ final class BoxnowParsersTest extends TestCase {
         $this->assertSame('2026-06-07T12:33:18Z', $t->events[0]['time']);
     }
 
+    /**
+     * BOX NOW's Webhook Guide v5 says "rely on the event property", and its event vocabulary is not
+     * the parcelState enum: final-destination beside in-final-destination, expired beside
+     * expired-return, and in-depot / accepted-to-locker / accepted-for-return with no counterpart.
+     * Unlisted, each fell to "transit" - a parcel waiting in the locker read as still on its way.
+     */
+    public function test_the_webhook_guides_event_spellings_resolve_to_stages(): void {
+        $expect = ['final-destination' => 'ready', 'expired' => 'returned', 'in-depot' => 'transit',
+                   'accepted-to-locker' => 'transit', 'accepted-for-return' => 'returning', 'cancelled' => 'cancelled'];
+        foreach ($expect as $event => $stage) {
+            $t = BGCouriers_Boxnow::parse_tracking(['state' => $event], 'P');
+            $this->assertSame($stage, $t->stage(), "event '{$event}'");
+            $this->assertNotSame($event, $t->human(), "event '{$event}' has a wording, not the code");
+        }
+    }
+
     /** A parcel BOX NOW knows nothing about must still answer, rather than fatal on a missing key. */
     /**
      * The live account answered a cash-on-delivery request with {"code":"P411","status":400} on 2026-09-13

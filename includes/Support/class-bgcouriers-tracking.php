@@ -33,6 +33,16 @@ class BGCouriers_Tracking {
         'boxnow_returned'             => 'returned',
         'boxnow_expired-return'       => 'returned',
         'boxnow_canceled'             => 'cancelled',
+        // ...and the webhook's EVENT vocabulary (Webhook Guide v5: "rely on the event property"),
+        // which spells the same things differently and has three of its own. Unlisted, each fell to
+        // "transit": a parcel waiting in the locker, or one expired and on its way back, read as
+        // still on its way. "cancelled" is the /parcels spelling of the same verdict.
+        'boxnow_final-destination'    => 'ready',
+        'boxnow_expired'              => 'returned',
+        'boxnow_in-depot'             => 'transit',
+        'boxnow_accepted-to-locker'   => 'transit',
+        'boxnow_accepted-for-return'  => 'returning',
+        'boxnow_cancelled'            => 'cancelled',
         // Pigeon. Still on the merchant's desk - the label exists, the parcel has not been collected.
         // Pigeon words the second of these "awaiting loading by the courier", which the text rules read
         // as movement (the Bulgarian for "awaiting" is in the in-flight list below), so the code is the

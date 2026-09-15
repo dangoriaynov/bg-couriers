@@ -112,6 +112,45 @@ final class BoxnowWebhookRecordsTrackingTest extends WP_UnitTestCase {
         $this->assertSame(['ok' => false, 'reason' => 'no_credential'], $r->get_data());
     }
 
+    /** The guide: "rely on the event JSON property when parsing the status" - and it may come alone. */
+    public function test_the_event_is_read_and_its_spelling_is_understood(): void {
+        $o = $this->order('P-6');
+        $this->deliver(['parcelId' => 'P-6', 'event' => 'final-destination', 'orderNumber' => (string) $o->get_id()]);
+        $this->assertSame('ready', (string) wc_get_order($o->get_id())->get_meta('_bgcouriers_track_stage'), 'in the locker');
+
+        $o = $this->order('P-7');
+        $this->deliver(['parcelId' => 'P-7', 'event' => 'expired', 'parcelState' => 'expired-return', 'orderNumber' => (string) $o->get_id()]);
+        $this->assertSame('returned', (string) wc_get_order($o->get_id())->get_meta('_bgcouriers_track_stage'), 'not collected in time');
+    }
+
+    /**
+     * An accepted message leaves a debug line too: which proof it carried, the event and the state,
+     * the shape of its signature - the first real message is the only chance to learn which bytes
+     * BOX NOW signs and whether event and parcelState ever disagree, and it would have 200'd and gone.
+     */
+    public function test_an_accepted_message_is_noted_in_the_debug_log(): void {
+        update_option('bgcouriers_debug', 'yes');
+        $log = tempnam(sys_get_temp_dir(), 'bgc-log');
+        $was = ini_set('error_log', $log);
+        try {
+            $o   = $this->order('P-8');
+            $req = new WP_REST_Request('POST', '/bgc/v1/boxnow-webhook');
+            $req->set_body('{"specversion":"1.0","data":{"parcelId":"P-8","event":"in-depot","parcelState":"in-transit","orderNumber":"' . $o->get_id() . '"}}');
+            $req->set_header(BGCouriers_Boxnow_Webhook::HEADER, self::SECRET);
+            (new BGCouriers_Boxnow_Webhook())->handle($req);
+        } finally {
+            ini_set('error_log', (string) $was);
+            update_option('bgcouriers_debug', 'no');
+        }
+        $line = (string) file_get_contents($log);
+        unlink($log);
+        $this->assertStringContainsString('boxnow webhook: accepted', $line);
+        $this->assertStringContainsString('"proof":"header"', $line);
+        $this->assertStringContainsString('"event":"in-depot"', $line);
+        $this->assertStringContainsString('"parcelState":"in-transit"', $line);
+        $this->assertStringNotContainsString(self::SECRET, $line, 'never the value');
+    }
+
     /** Every state BOX NOW documents maps to a stage the plugin knows. */
     public function test_every_documented_state_has_a_stage(): void {
         $expect = ['new' => 'registered', 'in-transit' => 'transit', 'in-final-destination' => 'ready',

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-16 12:38+0300\n"
+"POT-Creation-Date: 2026-09-16 12:47+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2676,40 +2676,55 @@ msgstr ""
 msgid "This courier has no pickup-request service."
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:157
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:174
 msgid "registered"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:158
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:175
 msgid "in transit"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:159
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:176
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:184
 msgid "in the locker - ready for pickup"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:160
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:177
 msgid "delivered"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:161
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:178
 msgid "returned"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:162
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:179
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:185
 msgid "returned (not collected in time)"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:163
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:180
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:186
 msgid "canceled"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:164
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:181
 msgid "lost"
 msgstr ""
 
-#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:165
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:182
 msgid "missing"
+msgstr ""
+
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:187
+msgid "at a BOX NOW depot"
+msgstr ""
+
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:188
+msgid "dropped in the locker - on its way"
+msgstr ""
+
+#: includes/Couriers/class-bgcouriers-boxnow-webhook.php:189
+msgid "accepted for return"
 msgstr ""
 
 #: includes/Couriers/class-bgcouriers-boxnow.php:34
@@ -3488,42 +3503,42 @@ msgid "%1$s: no live price for %2$s."
 msgstr ""
 
 #. translators: 1: courier name, 2: what stage the shipment is at
-#: includes/Support/class-bgcouriers-tracking.php:287
+#: includes/Support/class-bgcouriers-tracking.php:297
 #, php-format
 msgid "%1$s - %2$s"
 msgstr ""
 
 #. translators: 1: courier name, 2: what stage the shipment is at, 3: the courier's own wording
-#: includes/Support/class-bgcouriers-tracking.php:290
+#: includes/Support/class-bgcouriers-tracking.php:300
 #, php-format
 msgid "%1$s - %2$s: \"%3$s\""
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:295
+#: includes/Support/class-bgcouriers-tracking.php:305
 msgid "Label created"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:296
+#: includes/Support/class-bgcouriers-tracking.php:306
 msgid "On its way back"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:297
+#: includes/Support/class-bgcouriers-tracking.php:307
 msgid "Ready for collection"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:298
+#: includes/Support/class-bgcouriers-tracking.php:308
 msgid "Delivered"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:299
+#: includes/Support/class-bgcouriers-tracking.php:309
 msgid "Back with you"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:300
+#: includes/Support/class-bgcouriers-tracking.php:310
 msgid "Cancelled"
 msgstr ""
 
-#: includes/Support/class-bgcouriers-tracking.php:301
+#: includes/Support/class-bgcouriers-tracking.php:311
 msgid "On its way"
 msgstr ""
 
