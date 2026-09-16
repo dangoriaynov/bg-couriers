@@ -1,11 +1,11 @@
 === BG Couriers for WooCommerce ===
 Contributors: winter2007d
 Donate link: https://revolut.me/danq6lus
-Tags: speedy, econt, boxnow, sameday, pigeon
+Tags: speedy, econt, box now, sameday, express one
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.12
+Stable tag: 0.4.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,17 +21,19 @@ BG Couriers puts Bulgaria's couriers inside WooCommerce: your customer chooses w
 
 **It is free**, GPL, and stays that way: every courier, every feature, no paid tier. Deliveries are within Bulgaria.
 
-**Couriers**
+**На български:** доставка с куриер за WooCommerce - Спиди, Еконт, BOX NOW, Sameday (easyBox), Pigeon Express, Express One и Европът. Всички куриери в един плъгин: до офис, до адрес или до автомат, наложен платеж, товарителници и етикети с едно кликване, проследяване на пратката. Интерфейсът е изцяло на български.
 
-* **Speedy** - office / address / APS. Live rates, labels, tracking.
-* **Econt** - office / address / Econtomat. Live rates, labels, tracking, and **cash on delivery (наложен платеж)** with an itemised packing list.
+= Couriers =
+
+* **Speedy (Спиди)** - office / address / APS. Live rates, labels, tracking.
+* **Econt (Еконт)** - office / address / Econtomat. Live rates, labels, tracking, and **cash on delivery (наложен платеж)** with an itemised packing list.
 * **Pigeon Express** - office / address / locker. Live rates, labels, tracking.
 * **Sameday** - office / address / easyBox. Live rates, labels, tracking.
-* **BOX NOW** - lockers (APM) only, picked by town and locker like every other courier (the towns are read off its lockers). Flat rate.
+* **BOX NOW** (BoxNow) - lockers (APM) only, picked by town and locker like every other courier (the towns are read off its lockers). Flat rate.
 * **Express One** - office / address / EXOBOX locker. Live rates, labels, tracking. The address is chosen from Express One's own street list, which is what its waybills require.
 * **Европът (Evropat)** - office / address. Live rates, labels, tracking. The address is chosen from Европът's own street list, which its waybills require.
 
-**Setting it up**
+= Setting it up =
 
 You need your own account with each courier you want to offer: the prices your customers see and the labels you print are your own contract's, and nothing is resold through this plugin. Once you have the API credentials, a courier takes a couple of minutes:
 
@@ -41,7 +43,7 @@ You need your own account with each courier you want to offer: the prices your c
 
 Everything else already has a working default: the prices, the map, the checkout fields and the label size all work as they ship.
 
-**Also included**
+= Also included =
 
 * **Cash on delivery (наложен платеж)**, with the choice of who pays the delivery - and the amount to collect follows that choice.
 * Free-shipping thresholds, per courier and per delivery type.
@@ -55,27 +57,27 @@ Everything else already has a working default: the prices, the map, the checkout
 
 The plugin uses the online API of each courier **you enable**, to price a delivery, to create a label and to track a parcel. Nothing is sent to a courier you have not configured.
 
-**What is sent, and when**
+= What is sent, and when =
 
 * **Price quote** (cart / checkout) - the parcel weight, the destination town or office, and the delivery type. When the customer views the shipping options.
 * **Label** (admin) - the recipient's name, phone, e-mail, the chosen address or office/locker, the parcel weight, and, with cash on delivery, the amount to collect and the item list. When you generate the label.
 * **Tracking** - the waybill number. When tracking is opened or refreshed.
 
-**Courier APIs**
+= Courier APIs =
 
-* **Speedy** - api.speedy.bg. Terms: https://www.speedy.bg/en/terms-and-conditions · Privacy: https://www.speedy.bg/en/gdpr
-* **Econt** - ee.econt.com. Terms: https://www.econt.com/en/terms · Privacy: https://www.econt.com/en/privacy-policy
-* **Pigeon Express** - api.pigeonexpress.com (api-demo.pigeonexpress.com in test mode). Terms: https://pigeonexpress.com/terms · Privacy: https://pigeonexpress.com/privacy
-* **Sameday** - api.sameday.bg (sameday-api-bg.demo.zitec.com in test mode). Terms: https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/ · Privacy: https://sameday.bg/politika-za-poveritelnost/
-* **Express One** - system.expressone.bg. Terms: https://expressone.bg/bg/terms · Privacy: https://expressone.bg/bg/privacy-policy
-* **BOX NOW** - api-production.boxnow.bg (api-stage.boxnow.bg in test mode). Terms: https://boxnow.bg/terms-of-use-for-shipping-services · Privacy: https://boxnow.bg/personal-data-processing-notice
-* **Европът (Evropat)** - api.evropat.com. Terms: https://evropat.bg/terms/ · [Privacy](https://evropat.bg/%D0%9F%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D0%B7%D0%B0+%D0%BF%D0%BE%D0%B2%D0%B5%D1%80%D0%B8%D1%82%D0%B5%D0%BB%D0%BD%D0%BE%D1%81%D1%82+%D0%BD%D0%B0+%D0%95%D0%B2%D1%80%D0%BE%D0%BF%D1%8A%D1%82)
+* **Speedy** - api.speedy.bg. [Terms](https://www.speedy.bg/en/terms-and-conditions) · [Privacy](https://www.speedy.bg/en/gdpr)
+* **Econt** - ee.econt.com. [Terms](https://www.econt.com/en/terms) · [Privacy](https://www.econt.com/en/privacy-policy)
+* **Pigeon Express** - api.pigeonexpress.com (api-demo.pigeonexpress.com in test mode). [Terms](https://pigeonexpress.com/terms) · [Privacy](https://pigeonexpress.com/privacy)
+* **Sameday** - api.sameday.bg (sameday-api-bg.demo.zitec.com in test mode). [Terms](https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/) · [Privacy](https://sameday.bg/politika-za-poveritelnost/)
+* **Express One** - system.expressone.bg. [Terms](https://expressone.bg/bg/terms) · [Privacy](https://expressone.bg/bg/privacy-policy)
+* **BOX NOW** - api-production.boxnow.bg (api-stage.boxnow.bg in test mode). [Terms](https://boxnow.bg/terms-of-use-for-shipping-services) · [Privacy](https://boxnow.bg/personal-data-processing-notice)
+* **Европът (Evropat)** - api.evropat.com. [Terms](https://evropat.bg/terms/) · [Privacy](https://evropat.bg/%D0%9F%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D0%B7%D0%B0+%D0%BF%D0%BE%D0%B2%D0%B5%D1%80%D0%B8%D1%82%D0%B5%D0%BB%D0%BD%D0%BE%D1%81%D1%82+%D0%BD%D0%B0+%D0%95%D0%B2%D1%80%D0%BE%D0%BF%D1%8A%D1%82)
 
-**Maps and address lookup**
+= Maps and address lookup =
 
-* **OpenStreetMap tiles** - tile.openstreetmap.org. Map tiles only, loaded when the customer opens a map. Tile policy: https://operations.osmfoundation.org/policies/tiles/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
-* **OpenStreetMap Nominatim** - nominatim.openstreetmap.org. One set of coordinates, turned into an address or a town name. It happens in two cases only: the customer drops a pin on the **address map picker** (a setting, **off by default**), or presses "find me" on the map before naming a town, so the town can be filled in for them. Nominatim policy: https://operations.osmfoundation.org/policies/nominatim/ · Privacy: https://wiki.osmfoundation.org/wiki/Privacy_Policy
-* **Google Maps Geocoding** - maps.googleapis.com. Takes over those same lookups, and only if you set a Google Maps API key in the settings (optional; OpenStreetMap is used if the key is empty or Google does not answer). It receives the coordinates and nothing else. Terms: https://cloud.google.com/maps-platform/terms · Privacy: https://policies.google.com/privacy
+* **OpenStreetMap tiles** - tile.openstreetmap.org. Map tiles only, loaded when the customer opens a map. [Tile policy](https://operations.osmfoundation.org/policies/tiles/) · [Privacy](https://wiki.osmfoundation.org/wiki/Privacy_Policy)
+* **OpenStreetMap Nominatim** - nominatim.openstreetmap.org. One set of coordinates, turned into an address or a town name. It happens in two cases only: the customer drops a pin on the **address map picker** (a setting, **off by default**), or presses "find me" on the map before naming a town, so the town can be filled in for them. [Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/) · [Privacy](https://wiki.osmfoundation.org/wiki/Privacy_Policy)
+* **Google Maps Geocoding** - maps.googleapis.com. Takes over those same lookups, and only if you set a Google Maps API key in the settings (optional; OpenStreetMap is used if the key is empty or Google does not answer). It receives the coordinates and nothing else. [Terms](https://cloud.google.com/maps-platform/terms) · [Privacy](https://policies.google.com/privacy)
 
 The map's "closest to you" (on by default, switchable off) works out the distances in the customer's own browser. Their position is never stored on the site and is forgotten when the page is closed.
 
@@ -83,8 +85,7 @@ No data is sent to any service you have not configured, and the plugin sends not
 
 == Contributing ==
 
-The plugin is developed in the open. Bugs, ideas and pull requests are welcome:
-https://github.com/dangoriaynov/bg-couriers/issues
+The plugin is developed in the open. Bugs, ideas and pull requests are welcome on [GitHub](https://github.com/dangoriaynov/bg-couriers/issues).
 
 == Installation ==
 
@@ -99,7 +100,7 @@ https://github.com/dangoriaynov/bg-couriers/issues
 Bulgaria, by seven Bulgarian networks: **Speedy**, **Econt**, **Pigeon Express**, **Sameday** and **Express One** deliver to an office, to a street address or to a locker, **Европът** to an office or a street address, and **BOX NOW** to its lockers (APM). Delivery outside Bulgaria is not offered.
 
 = How can I support the development? =
-The plugin is free, GPL, and stays that way - every courier, every feature, no paid tier. If it has saved you work and you would like to put something behind it: https://revolut.me/danq6lus. It is entirely voluntary and changes nothing about the support you get. Reporting a bug in the [support forum](https://wordpress.org/support/plugin/bg-couriers/), or leaving a review, helps just as much.
+The plugin is free, GPL, and stays that way - every courier, every feature, no paid tier. If it has saved you work and you would like to put something behind it: [revolut.me/danq6lus](https://revolut.me/danq6lus). It is entirely voluntary and changes nothing about the support you get. Reporting a bug in the [support forum](https://wordpress.org/support/plugin/bg-couriers/), or leaving a review, helps just as much.
 
 = When is the waybill created, and when should it be? =
 Either when you choose, or by itself. **Auto-generate labels** (BG Couriers -> General) issues the waybill the moment an order reaches the status you pick; each courier's own tab can overrule that for itself. With it off, an order shows a **Generate** button instead, and the bulk action **Print waybills A4/A6** creates any that are missing and hands you one PDF - so you print at the packing table and the waybill is made at that moment.
@@ -129,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.13 =
+* Changed: the plugin page's tags and description carry the names people search for - Express One and BOX NOW as they are written, and Спиди, Еконт and Европът in Bulgarian, with a Bulgarian summary. Every courier's terms and privacy policy is a link, and the page has real headings. Readme only, no code change.
 
 = 0.4.12 =
 * Fixed: **the BOX NOW webhook accepts the header BOX NOW actually sends, and a refused message says why.** When you register the webhook URL with BOX NOW, give them the header name X-BGC-Webhook-Secret with your secret as its value (the settings show both); a message BOX NOW signs is still accepted, as hex or Base64. A refusal now names the reason, and with debug logging on says what arrived.
