@@ -57,6 +57,10 @@ EXCLUDES=(
   --exclude '.wp-env.json' --exclude 'composer.*' --exclude 'phpunit.xml.dist'
   --exclude '.wordpress-org' --exclude '.distignore' --exclude '.github'
   --exclude 'README.md' --exclude 'CONTRIBUTING.md'
+  # tmp/ is the gitignored scratch dir. It is not in git, so build-zip never sees it, but rsync did:
+  # a readme-preview copy of WordPress.org's parser went to dev with 0.4.13 and Plugin Check refused
+  # the release over a PHP file that was never part of the plugin.
+  --exclude 'tmp'
 )
 
 if [ -n "${BGC_LXC_HOST:-}" ]; then
