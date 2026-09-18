@@ -5,7 +5,7 @@ Tags: speedy, econt, box now, sameday, express one
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.14
+Stable tag: 0.4.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -65,19 +65,19 @@ The plugin uses the online API of each courier **you enable**, to price a delive
 
 = Courier APIs =
 
-* **Speedy** - api.speedy.bg. [Terms](https://www.speedy.bg/en/terms-and-conditions) · [Privacy](https://www.speedy.bg/en/gdpr)
-* **Econt** - ee.econt.com. [Terms](https://www.econt.com/en/terms) · [Privacy](https://www.econt.com/en/privacy-policy)
-* **Pigeon Express** - api.pigeonexpress.com (api-demo.pigeonexpress.com in test mode). [Terms](https://pigeonexpress.com/terms) · [Privacy](https://pigeonexpress.com/privacy)
-* **Sameday** - api.sameday.bg (sameday-api-bg.demo.zitec.com in test mode). [Terms](https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/) · [Privacy](https://sameday.bg/politika-za-poveritelnost/)
-* **Express One** - system.expressone.bg. [Terms](https://expressone.bg/bg/terms) · [Privacy](https://expressone.bg/bg/privacy-policy)
-* **BOX NOW** - api-production.boxnow.bg (api-stage.boxnow.bg in test mode). [Terms](https://boxnow.bg/terms-of-use-for-shipping-services) · [Privacy](https://boxnow.bg/personal-data-processing-notice)
-* **Европът (Evropat)** - api.evropat.com. [Terms](https://evropat.bg/terms/) · [Privacy](https://evropat.bg/%D0%9F%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D0%B7%D0%B0+%D0%BF%D0%BE%D0%B2%D0%B5%D1%80%D0%B8%D1%82%D0%B5%D0%BB%D0%BD%D0%BE%D1%81%D1%82+%D0%BD%D0%B0+%D0%95%D0%B2%D1%80%D0%BE%D0%BF%D1%8A%D1%82)
+* **Speedy** - [api.speedy.bg](https://api.speedy.bg). [Terms](https://www.speedy.bg/en/terms-and-conditions) · [Privacy](https://www.speedy.bg/en/gdpr)
+* **Econt** - [ee.econt.com](https://ee.econt.com). [Terms](https://www.econt.com/en/terms) · [Privacy](https://www.econt.com/en/privacy-policy)
+* **Pigeon Express** - [api.pigeonexpress.com](https://api.pigeonexpress.com) ([api-demo.pigeonexpress.com](https://api-demo.pigeonexpress.com) in test mode). [Terms](https://pigeonexpress.com/terms) · [Privacy](https://pigeonexpress.com/privacy)
+* **Sameday** - [api.sameday.bg](https://api.sameday.bg) ([sameday-api-bg.demo.zitec.com](https://sameday-api-bg.demo.zitec.com) in test mode). [Terms](https://sameday.bg/terms-and-conditions-delivery-courier-services-bg/) · [Privacy](https://sameday.bg/politika-za-poveritelnost/)
+* **Express One** - [system.expressone.bg](https://system.expressone.bg). [Terms](https://expressone.bg/bg/terms) · [Privacy](https://expressone.bg/bg/privacy-policy)
+* **BOX NOW** - [api-production.boxnow.bg](https://api-production.boxnow.bg) ([api-stage.boxnow.bg](https://api-stage.boxnow.bg) in test mode). [Terms](https://boxnow.bg/terms-of-use-for-shipping-services) · [Privacy](https://boxnow.bg/personal-data-processing-notice)
+* **Европът (Evropat)** - [api.evropat.com](https://api.evropat.com). [Terms](https://evropat.bg/terms/) · [Privacy](https://evropat.bg/%D0%9F%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D0%B7%D0%B0+%D0%BF%D0%BE%D0%B2%D0%B5%D1%80%D0%B8%D1%82%D0%B5%D0%BB%D0%BD%D0%BE%D1%81%D1%82+%D0%BD%D0%B0+%D0%95%D0%B2%D1%80%D0%BE%D0%BF%D1%8A%D1%82)
 
 = Maps and address lookup =
 
-* **OpenStreetMap tiles** - tile.openstreetmap.org. Map tiles only, loaded when the customer opens a map. [Tile policy](https://operations.osmfoundation.org/policies/tiles/) · [Privacy](https://wiki.osmfoundation.org/wiki/Privacy_Policy)
-* **OpenStreetMap Nominatim** - nominatim.openstreetmap.org. One set of coordinates, turned into an address or a town name. It happens in two cases only: the customer drops a pin on the **address map picker** (a setting, **off by default**), or presses "find me" on the map before naming a town, so the town can be filled in for them. [Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/) · [Privacy](https://wiki.osmfoundation.org/wiki/Privacy_Policy)
-* **Google Maps Geocoding** - maps.googleapis.com. Takes over those same lookups, and only if you set a Google Maps API key in the settings (optional; OpenStreetMap is used if the key is empty or Google does not answer). It receives the coordinates and nothing else. [Terms](https://cloud.google.com/maps-platform/terms) · [Privacy](https://policies.google.com/privacy)
+* **OpenStreetMap tiles** - [tile.openstreetmap.org](https://tile.openstreetmap.org). Map tiles only, loaded when the customer opens a map. [Tile policy](https://operations.osmfoundation.org/policies/tiles/) · [Privacy](https://wiki.osmfoundation.org/wiki/Privacy_Policy)
+* **OpenStreetMap Nominatim** - [nominatim.openstreetmap.org](https://nominatim.openstreetmap.org). One set of coordinates, turned into an address or a town name. It happens in two cases only: the customer drops a pin on the **address map picker** (a setting, **off by default**), or presses "find me" on the map before naming a town, so the town can be filled in for them. [Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/) · [Privacy](https://wiki.osmfoundation.org/wiki/Privacy_Policy)
+* **Google Maps Geocoding** - [maps.googleapis.com](https://maps.googleapis.com). Takes over those same lookups, and only if you set a Google Maps API key in the settings (optional; OpenStreetMap is used if the key is empty or Google does not answer). It receives the coordinates and nothing else. [Terms](https://cloud.google.com/maps-platform/terms) · [Privacy](https://policies.google.com/privacy)
 
 The map's "closest to you" (on by default, switchable off) works out the distances in the customer's own browser. Their position is never stored on the site and is forgotten when the page is closed.
 
@@ -130,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.15 =
+* Changed: on the plugin page, every service address (api.speedy.bg, ee.econt.com, the map providers and the rest) is a link, like the terms and privacy links beside it. Readme only, no code change.
 
 = 0.4.14 =
 * Added: **Speedy "Send parcels from"** - choose the Speedy office you hand parcels in at, and every price quote and every waybill starts there (Speedy's drop-off office) instead of a courier pickup from your address. Whether that is cheaper depends on your Speedy contract; the estimate shown before a town is picked is re-quoted the moment you change it.
