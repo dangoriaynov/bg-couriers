@@ -27,6 +27,7 @@ final class InternationalServiceTest extends TestCase {
         Monkey\setUp();
         Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
         Functions\when('esc_html')->returnArg(1); // exception messages are esc_html()'d (Plugin Check)
+        Functions\when('get_option')->alias(static fn($n, $d = false) => $d); // no drop-off office: the plain body
     }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 

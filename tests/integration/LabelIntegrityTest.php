@@ -124,4 +124,23 @@ final class LabelIntegrityTest extends WP_UnitTestCase {
         $this->assertSame('Мария Иванова', $recipient['clientName']);
         $this->assertSame('0888000000', $recipient['phone1']['number']);
     }
+
+    /**
+     * Where the parcel STARTS is the shop's setting, not Speedy's guess. With a drop-off office chosen
+     * the shipment's sender names it (sender.dropoffOfficeId - the schema's spelling), and nothing else
+     * about the sender changes; without one there is no sender office and Speedy books a pickup from
+     * the account's own address, as it always did.
+     */
+    public function test_the_shipment_starts_at_the_drop_off_office_when_one_is_chosen(): void {
+        $order = $this->address_order(['street_name' => 'ВИТОША', 'street_id' => 1314, 'street_type' => 'ул.', 'street_no' => '10']);
+
+        delete_option('bgcouriers_speedy_dropoff_office');
+        $this->assertArrayNotHasKey('dropoffOfficeId', $this->build($order)['sender'] ?? []);
+
+        update_option('bgcouriers_speedy_dropoff_office', '307');
+        $sender = $this->build($order)['sender'];
+        $this->assertSame(307, $sender['dropoffOfficeId']);
+        $this->assertArrayNotHasKey('clientId', $sender); // the account's own client, as before
+        delete_option('bgcouriers_speedy_dropoff_office');
+    }
 }

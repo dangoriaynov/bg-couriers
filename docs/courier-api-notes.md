@@ -335,6 +335,33 @@ the whole sender half from the cabinet, and `shipmentMoreInfo` prints the order 
 voucher, the same idea as Speedy's) and `shipmentValue` (declared value, which needs a document type
 and number - not optional the way Speedy's is) are both real and both unmeasured.
 
+## Where a Speedy parcel starts: the drop-off office - *BUILT 0.4.14, measured 2026-09-18*
+
+Speedy's `/calculate` and `/shipment` both take a `sender`, and the plugin sent none: Speedy then takes
+the account's own client and address and prices and books a **courier pickup from there**, whatever the
+shop has arranged with its office in person or set on speedy.bg. A shop that walks every parcel to an
+office asked why its quotes looked like address prices. The field is **`sender.dropoffOfficeId`** - the
+schema's own spelling (`CalculationSender`, `ShipmentSender`; lower-case "off"), next to a `dropoff`
+boolean and a `dropoffGeoPUDOId`.
+
+Measured on the live account, read-only (`/calculate`, 0.5 kg, Sofia office → Plovdiv office):
+
+- the id **alone** is accepted - no `clientId` (which is still never sent: an explicit one triggers
+  "Sender client not found"), no `dropoff` flag;
+- `dropoff: true` **without** an office id is refused: `shipment-sender-dropoff.siteId.required`;
+- the price breakdown carries exactly the two lines a contract would move: **`addressPickupSurcharge`**
+  and **`dropOffDiscount`**. On this account both are 0 and the total (2.66 EUR) is the same with and
+  without the office - so on a contract with no pickup surcharge the setting changes the booking, not
+  the number. On a contract that charges for the pickup, this is where the difference shows;
+- **`GET /location/office/{id}`** (auth in the body, as everywhere) returns the office record with
+  `dropOffAllowed` / `pickUpAllowed` / `cargoTypesAllowed` - the flags the cached office list does not
+  carry. The setting checks a NEW choice against it once, on save.
+
+Setting: Speedy → "Send parcels from" (`bgcouriers_speedy_dropoff_office`), a picker over the synced
+offices (type `office` only). `BGCouriers_Speedy::dropoff_office()` puts it on every quote and every
+shipment; the daily pre-town reference price is re-quoted when it changes. Not measured abroad
+(service 202) - see `docs/international-shipping.md`.
+
 ## Courier pickup requests - NOT built, and it is part of the flow, not an extra
 
 A waybill only says a parcel exists. The courier comes for it **on a request that names the specific

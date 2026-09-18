@@ -42,6 +42,7 @@ class BGCouriers_Settings_Admin {
             add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_' . $cid . '_webhook_secret', [$this, 'sanitize_keep'], 10, 3);
         }
         add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_dropdown_limit', [$this, 'sanitize_dropdown_limit'], 10, 3);
+        add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_speedy_dropoff_office', [$this, 'sanitize_speedy_dropoff'], 10, 3);
         add_action('wp_ajax_bgcouriers_validate_creds', [$this, 'ajax_validate']);
         add_action('wp_ajax_bgcouriers_sync_now', [$this, 'ajax_sync']);
         add_action('wp_ajax_bgcouriers_reset_creds', [$this, 'ajax_reset_creds']);
@@ -378,6 +379,46 @@ jQuery(function($){
         $co = BGCouriers_Couriers::get($courier);
         return ($co && method_exists($co, 'credential_hint')) ? (array) $co->credential_hint() : [];
     }
+    /**
+     * What a sanitiser refused, for the AJAX save to hand back. WooCommerce's own add_error() only ever
+     * reaches a full page load; the settings screen saves over AJAX and its toast said "Saved" while the
+     * value had quietly gone back to what it was.
+     * @var string[]
+     */
+    private static $refused = [];
+    private static function refuse(string $why): void {
+        self::$refused[] = $why;
+        if (class_exists('WC_Admin_Settings')) { WC_Admin_Settings::add_error($why); }
+    }
+
+    /**
+     * The Speedy drop-off office: an office (never an automat) from the synced list, and one Speedy
+     * itself says takes parcels handed in - its record carries `dropOffAllowed`, the cached list does
+     * not, so a NEW choice is checked against Speedy once, on save. An office it refuses is not saved;
+     * the previous choice stays and the merchant is told which office and why. Speedy unreachable or
+     * no credentials yet = not checked, the choice is taken on the list alone.
+     */
+    public function sanitize_speedy_dropoff($value, $option, $raw_value) {
+        $id  = max(0, (int) $raw_value);
+        $was = (string) get_option('bgcouriers_speedy_dropoff_office', '');
+        if ($id === 0) { return ''; }
+        if ((string) $id === $was) { return $was; }
+        $office = class_exists('BGCouriers_Nomenclature') ? BGCouriers_Nomenclature::office_by_id('speedy', $id) : null;
+        if (!$office || (string) ($office['type'] ?? '') !== 'office') {
+            self::refuse(__('That is not a Speedy office in the synced list - the drop-off office was not changed.', 'bg-couriers'));
+            return $was;
+        }
+        $co = BGCouriers_Couriers::get('speedy');
+        $takes = ($co && method_exists($co, 'office_takes_dropoff') && BGCouriers_Settings::creds_present('speedy'))
+            ? $co->office_takes_dropoff($id) : null;
+        if ($takes === false) {
+            /* translators: %s: the office's name as Speedy lists it */
+            self::refuse(sprintf(__('Speedy says %s does not take parcels handed in - choose another office. The drop-off office was not changed.', 'bg-couriers'), (string) $office['name']));
+            return $was;
+        }
+        return (string) $id;
+    }
+
     /** Keep a stored key/username (plaintext) when the field is submitted blank; store a new value plainly. */
     public function sanitize_keep($value, $option, $raw_value) {
         $key = is_array($option) ? (string) ($option['id'] ?? '') : (string) $option;
@@ -544,6 +585,9 @@ jQuery(function($){
         $page = new BGCouriers_WC_Settings();
         WC_Admin_Settings::save_fields($page->get_settings($section), $_POST); // runs the same sanitize filters as a normal save
         $courier = array_key_exists($section, BGCouriers_Couriers::all()) ? $section : '';
+        // Everything else on the page did save; the toast says what did not, so the merchant is not
+        // left believing a value they can still see in the form has been taken.
+        if (self::$refused) { wp_send_json_error(['msg' => implode(' ', self::$refused), 'courier' => $courier]); }
         wp_send_json_success([
             'msg'       => __('Saved', 'bg-couriers'),
             'courier'   => $courier,

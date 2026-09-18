@@ -169,6 +169,16 @@ class BGCouriers_Plugin {
         add_action('init', ['BGCouriers_Tracking_Poller', 'schedule']);
         add_action(BGCouriers_Tracking_Poller::HOOK, ['BGCouriers_Tracking_Poller', 'run']);
         add_action('update_option_bgcouriers_tracking_poll', ['BGCouriers_Tracking_Poller', 'schedule']); // re-schedule on change
+        // The drop-off office changes where every Speedy quote starts, and the pre-town reference price
+        // is quoted once a day: quote it again the moment the office changes, or the checkout shows a
+        // price from the old origin until tomorrow. (add_ as well: the first save of an option that
+        // never existed fires that one, not update_.)
+        foreach (['update_option_bgcouriers_speedy_dropoff_office', 'add_option_bgcouriers_speedy_dropoff_office'] as $hook) {
+            add_action($hook, static function () {
+                $c = BGCouriers_Couriers::get('speedy');
+                if ($c) { BGCouriers_Sync::seed_rates($c); }
+            });
+        }
         // Hide our internal shipping-line meta from the admin order screen. The front end (emails, order
         // pages) hides underscore-prefixed keys on its own, but the admin order editor renders item meta via
         // get_all_formatted_meta_data('') - no prefix hiding - so every key must be listed here explicitly. Both
