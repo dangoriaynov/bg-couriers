@@ -132,6 +132,19 @@ else
   bad "these are tracked and must not be: $STRAY"
 fi
 
+# --- 7. No dashes on the plugin page ----------------------------------------------------------------
+# WordPress.org runs the readme through wptexturize: a hyphen with a space on each side (or at a line's
+# edge) is served as an en dash, "--" too, "---" as an em dash. The readme had 44 of them and the page
+# showed "Sameday – api.sameday.bg" on the day 0.4.15 shipped; the owner does not want a dash on the
+# page any more than in a commit (0.4.16). Colons, commas, semicolons and parentheses survive intact.
+DASHES="$(grep -nE '(^|[[:space:]])-([[:space:]]|$)|--' readme.txt || true)"
+if [ -z "$DASHES" ]; then
+  ok "readme.txt has no spaced or doubled hyphen for WordPress.org to turn into a dash"
+else
+  bad "readme.txt has hyphens WordPress.org will serve as dashes - use a colon, comma, semicolon or parentheses"
+  note "$(printf '%s\n' "$DASHES" | head -5 | cut -c1-110)"
+fi
+
 echo
 if [ "$fail" -ne 0 ]; then echo "PREFLIGHT FAILED"; exit 1; fi
 echo "Preflight OK for ${VERSION}"
