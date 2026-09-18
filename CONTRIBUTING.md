@@ -64,15 +64,20 @@ bin/test econt|pigeon|core  # per-courier / framework groups
   specs are skipped while delivery abroad is off - one of them books a real shipment on purpose and was
   held out of every ordinary run besides (`cd e2e && BGC_REAL_WAYBILL=1 npx playwright test
   intl-speedy-ro`). Setup recipe and what to check afterwards: [`e2e/README.md`](e2e/README.md).
-- **Releasing.** Three scripts, run in this order; each refuses rather than half-doing the job.
+- **Releasing.** One command does the whole thing, and refuses rather than half-doing it.
   ```bash
-  bin/preflight        # one version in all 3 places, changelog entry, clean+pushed tree,
-                       # Bulgarian complete AND compiled, unit tests, nothing test-shaped tracked
-  bin/release-prod     # backup (named for the version being REPLACED) → deploy → verify → purge → smoke
-  bin/release-wporg    # refuses unless prod already runs this build and the tag is unpublished;
-                       # Plugin Check on dev, audit the zip, then SVN trunk + tag, then confirm the
-                       # directory really serves it
+  bin/release-prod --detach   # the release, start to finish, in a session of its own (log: tmp/release-<v>.log)
+  bin/release-status          # where every copy stands: checkout, dev, prod, wp.org served + tagged
   ```
+  What `release-prod` runs, in order: `bin/preflight` (one version in all 3 places, changelog entry,
+  clean+pushed tree, Bulgarian complete AND compiled, unit + integration tests, nothing test-shaped
+  tracked), Plugin Check on dev, backup (named for the version being REPLACED), deploy, verify, purge,
+  smoke - and then `bin/release-wporg` itself: audit the zip, SVN trunk + tag, confirm the directory
+  serves it. Without `--yes`/`--detach` it asks twice, once before the shop and once before the
+  directory. `--detach` exists because a release outlasts a terminal session and 0.4.13 was left on
+  the shop alone when the session that started its second half was killed; `bin/deploy.sh dev` now
+  prints that state whenever it recurs, and `release-status` is how to look on purpose.
+  `bin/release-wporg` still runs on its own, to finish a release that stopped after the shop.
   Every check in `bin/preflight` stands in for something that has gone wrong here at least once; the
   comment above each says which.
 - **Deploy to dev:** `bash bin/deploy.sh dev` then chown to the site user, activate via wp-admin (wp-cli /

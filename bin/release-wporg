@@ -50,7 +50,15 @@ P="${BGC_PROD_PATH%/}"
 WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"
 WP="${BGC_WP_BIN:-/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp} --allow-root"
 
-bash bin/preflight
+# bin/release-prod runs this script last and hands over the commit its own preflight passed on. The
+# same commit, and nothing changed since: then the suites ran on exactly this code minutes ago and are
+# not run again. Anything else - a different commit, a dirty tree, this script started on its own -
+# gets the whole preflight, as it always did.
+if [ "${BGC_PREFLIGHT_OK:-}" = "$(git rev-parse HEAD)" ] && [ -z "$(git status --porcelain)" ]; then
+  echo "Preflight passed on $(git rev-parse --short HEAD) in this same release run - not repeated"
+else
+  bash bin/preflight
+fi
 
 echo "==> the shop must already be running this build"
 # The rule this encodes: SVN last, prod-verified builds only. Shipping to the directory something the
@@ -165,9 +173,13 @@ if [ "$GOT" = "$VERSION" ]; then
   PUB_V="$(unzip -p "$TMP/pub.zip" bg-couriers/bg-couriers.php | grep -m1 '^ \* Version:' | awk '{print $3}')"
   echo "  published download is ${PUB_V}"
   [ "$PUB_V" = "$VERSION" ] || { echo "PUBLISHED PACKAGE DISAGREES" >&2; exit 1; }
+  echo
+  echo "PUBLISHED ${VERSION}: https://wordpress.org/plugins/bg-couriers"
 else
-  echo "  not indexed yet - the commits are in; re-check the API in a few minutes"
+  # Not "published": the directory serves what its indexer has got to, and that has taken over forty
+  # minutes (0.4.12). The commits are in and nothing is left for this script to do - but the word for
+  # that is "committed", and the way to see it served is to ask again later.
+  echo
+  echo "COMMITTED ${VERSION} to SVN (trunk + tags/${VERSION}); the directory still serves ${GOT:-?}"
+  echo "It re-indexes on its own time. Check later with: bin/release-status"
 fi
-
-echo
-echo "PUBLISHED ${VERSION}: https://wordpress.org/plugins/bg-couriers"
