@@ -295,6 +295,20 @@ class BGCouriers_Nomenclature {
             $courier, $office_id), ARRAY_A);
         return $row ?: null;
     }
+    /**
+     * Every office of a type, with its town, in one list ordered by town then name - for a settings
+     * picker of "the office I hand parcels in at". Rows are [office_id, name, city]. Home country
+     * unless told otherwise: the shop stands in one country, whatever it delivers to.
+     */
+    public static function all_offices(string $courier, string $type, string $country = ''): array {
+        global $wpdb; $o = $wpdb->prefix . 'bgcouriers_offices'; $c = $wpdb->prefix . 'bgcouriers_cities';
+        $args = [$courier, $type];
+        $sql  = "SELECT o.office_id,o.name,c.name city FROM {$o} o
+             JOIN {$c} c ON c.courier=o.courier AND c.city_id=o.city_id
+             WHERE o.courier=%s AND o.type=%s";
+        $sql .= self::country_sql($country !== '' ? $country : BGCouriers_Settings::home_country(), $args, 'o.country');
+        return (array) $wpdb->get_results($wpdb->prepare($sql . ' ORDER BY c.name, o.name', ...$args), ARRAY_A);
+    }
     public static function offices(string $courier, int $city_id, string $type = ''): array {
         global $wpdb; $t = $wpdb->prefix . 'bgcouriers_offices';
         $sql = "SELECT office_id,code,city_id,type,name,address,lat,lng FROM {$t} WHERE courier=%s AND city_id=%d";

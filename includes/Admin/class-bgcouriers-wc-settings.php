@@ -830,6 +830,15 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                         'PALLET'   => __('Pallet', 'bg-couriers'),
                     ],
                     'default' => 'BOX'],
+                // The office the shop hands parcels in at. Sent as the sender's drop-off office on every
+                // quote and every shipment (BGCouriers_Speedy::dropoff_office()): without it Speedy
+                // prices and books a courier pickup from the account's address, whatever the shop does
+                // in practice. The list is the synced office nomenclature, so it is empty until the
+                // first sync - and says so.
+                ['type' => 'select', 'id' => 'bgcouriers_speedy_dropoff_office', 'title' => __('Send parcels from', 'bg-couriers'),
+                    'desc' => __('The Speedy office you hand parcels in at. Speedy then prices and books every shipment as handed in there and sends no courier for it; whether that is cheaper depends on your contract. Leave empty when a courier collects from your address.', 'bg-couriers'),
+                    'options' => self::speedy_dropoff_options(), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
+                    'default' => ''],
             ], $intl),
             'pricing' => [
                 ['type' => 'select', 'id' => 'bgcouriers_speedy_declared_value', 'title' => __('Declared value', 'bg-couriers'),
@@ -974,6 +983,29 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             'ppp' => ['default' => 'no',
                 'desc' => __('Enable if your Express One contract pays COD out via ППП (пощенски паричен превод). Off = COD needs your own cash register.', 'bg-couriers')],
         ]);
+    }
+
+    /**
+     * Speedy's offices as a picker, "TOWN - office", every office in the shop's country. Offices only:
+     * an automat takes no parcels handed in. Empty until the nomenclature has been synced, and says so
+     * rather than showing a blank list. The one office already chosen stays in the list even when the
+     * sync has not run yet on this install, so a saved choice never reads as "nothing".
+     *
+     * @return array<string,string>
+     */
+    private static function speedy_dropoff_options(): array {
+        $out  = ['' => __('- my address: a courier collects -', 'bg-couriers')];
+        $rows = class_exists('BGCouriers_Nomenclature') ? BGCouriers_Nomenclature::all_offices('speedy', 'office') : [];
+        if (!$rows) {
+            $chosen = (int) get_option('bgcouriers_speedy_dropoff_office', 0);
+            if ($chosen > 0) { $out[(string) $chosen] = sprintf('#%d', $chosen); }
+            $out[''] = __('- my address: a courier collects - (sync the towns and offices, and the offices list here)', 'bg-couriers');
+            return $out;
+        }
+        foreach ($rows as $r) {
+            $out[(string) (int) $r['office_id']] = $r['city'] . ' - ' . $r['name'];
+        }
+        return $out;
     }
 
     /**

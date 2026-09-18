@@ -94,6 +94,9 @@ Measured against Speedy's live account on 2026-08-19, and against the API - not 
    to say so.
 7. **VAT is the shop's problem and the plugin says nothing about it.** Selling into another country
    is not only a shipping question.
+8. **The Speedy drop-off office (0.4.14) was measured domestically only.** It goes on every quote and
+   shipment, abroad included, but no foreign quote has been asked with `sender.dropoffOfficeId` on the
+   international service (202). A refusal there would surface as "no price" for that country.
 
 ## What finishing it looks like
 

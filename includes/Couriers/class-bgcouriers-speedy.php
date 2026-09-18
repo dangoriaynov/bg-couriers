@@ -36,7 +36,42 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         if (!empty($s['name']))  { $sender['contactName'] = $s['name']; }
         if (!empty($s['phone'])) { $sender['phone1'] = ['number' => $s['phone']]; }
         if (!empty($s['email'])) { $sender['email'] = $s['email']; }
+        $office = self::dropoff_office();
+        if ($office > 0) { $sender['dropoffOfficeId'] = $office; }
         return $sender;
+    }
+
+    /**
+     * The Speedy office the shop hands its parcels in at; 0 = a courier collects from the shop's address.
+     *
+     * `sender.dropoffOfficeId` is the field on both the price calculation and the shipment (the
+     * schema's own spelling - lower-case "off"). Without it Speedy quotes and books a courier pickup
+     * from the account's own address, whatever the shop has arranged with its Speedy office in person:
+     * a shop that walked every parcel to an office asked why its quotes looked like address prices.
+     * Measured 2026-09-18 on the live account: the id alone is enough on /calculate (no clientId, no
+     * `dropoff` flag - `dropoff: true` by itself is refused, "siteId required"), and the price
+     * breakdown carries the two lines a contract would move, addressPickupSurcharge and
+     * dropOffDiscount. On that account both are 0, so the number did not change; on a contract that
+     * charges for the pickup, this is where the difference shows.
+     */
+    public static function dropoff_office(): int {
+        return function_exists('get_option') ? max(0, (int) get_option('bgcouriers_speedy_dropoff_office', 0)) : 0;
+    }
+
+    /**
+     * Whether Speedy takes parcels handed in at this office: true/false from its record, null when
+     * Speedy could not be asked (no credentials, no answer). Read off /location/office/{id}, which is
+     * the one place the flag lives - the cached office list does not carry it.
+     */
+    public function office_takes_dropoff(int $office_id): ?bool {
+        if ($office_id <= 0) { return false; }
+        try {
+            $r = $this->post_json($this->base . '/location/office/' . $office_id, $this->auth([]));
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (empty($r['office']) || !is_array($r['office'])) { return null; }
+        return !empty($r['office']['dropOffAllowed']);
     }
 
     /**
@@ -354,9 +389,10 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
                     ? 'POSTAL_MONEY_TRANSFER' : 'CASH',
             ];
         }
-        return [
-            // No 'sender' on a price calc: Speedy expects an object, and PHP's [] serialises to a
-            // JSON array, which Speedy rejects ("Cannot deserialize CalculationSender from Array").
+        $body = [
+            // No 'sender' on a price calc unless there is something to say: Speedy expects an object,
+            // and PHP's [] serialises to a JSON array, which Speedy rejects ("Cannot deserialize
+            // CalculationSender from Array").
             'recipient' => $recipient,
             'service'   => $service,
             'content'   => ['parcelsCount' => 1, 'totalWeight' => (float) ($s['weight_kg'] ?? 2.0)],
@@ -366,6 +402,11 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             // charges the customer for it at the checkout instead.
             'payment'   => ['courierServicePayer' => self::is_abroad($country) ? 'SENDER' : 'RECIPIENT'],
         ];
+        // The one thing worth saying about the sender: where the parcel starts. The quote must start
+        // where the shipment will, or the checkout prices a courier pickup the shop never books.
+        $office = self::dropoff_office();
+        if ($office > 0) { $body['sender'] = ['dropoffOfficeId' => $office]; }
+        return $body;
     }
 
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
