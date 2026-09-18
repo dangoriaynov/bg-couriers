@@ -5,7 +5,7 @@ Tags: speedy, econt, box now, sameday, express one
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.13
+Stable tag: 0.4.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.14 =
+* Added: **Speedy "Send parcels from"** - choose the Speedy office you hand parcels in at, and every price quote and every waybill starts there (Speedy's drop-off office) instead of a courier pickup from your address. Whether that is cheaper depends on your Speedy contract; the estimate shown before a town is picked is re-quoted the moment you change it.
+* Fixed: the "Add X more for free delivery" notice keeps the text colour your theme gives it. On a theme that paints the notice blue with white text it read dark grey on blue.
 
 = 0.4.13 =
 * Changed: the plugin page's tags and description carry the names people search for - Express One and BOX NOW as they are written, and Спиди, Еконт and Европът in Bulgarian, with a Bulgarian summary. Every courier's terms and privacy policy is a link, and the page has real headings. Readme only, no code change.
