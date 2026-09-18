@@ -16,6 +16,12 @@ final class SpeedyDropoffSettingTest extends WP_UnitTestCase {
 
     protected function setUp(): void {
         parent::setUp();
+        // Other tests reset the courier registry in their tear_down and leave it EMPTY, so in a full run
+        // Couriers::get('speedy') answers null and the sanitiser - by design - takes the office unasked.
+        // These two branches exist to prove Speedy IS asked, so Speedy has to be there to ask.
+        if (!BGCouriers_Couriers::get('speedy')) {
+            BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return new BGCouriers_Speedy([]); });
+        }
         delete_option('bgcouriers_speedy_dropoff_office');
         BGCouriers_Nomenclature::upsert_cities('speedy', [
             ['city_id' => 68134, 'name' => 'СОФИЯ', 'post_code' => '1000', 'country' => 'BG'],
