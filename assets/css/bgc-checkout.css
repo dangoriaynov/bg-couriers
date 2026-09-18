@@ -116,8 +116,11 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 .bgc-ship-logo { width: 16px; height: 16px; object-fit: contain; vertical-align: -3px; margin-right: 5px; display: inline-block; }
 /* Notices sit on a theme-colored panel and the theme picks a legible text color for it - force every
    nested span (the theme-styled .woocommerce-Price-amount) to inherit that color instead of its own
-   accent, which may match the panel background (e.g. blue-on-blue). */
-.bgc-free-notice, .bgc-free-notice * { color: inherit !important; }
+   accent, which may match the panel background (e.g. blue-on-blue).
+   The DESCENDANTS only. This rule once named `.bgc-free-notice` itself as well, and `inherit` on the
+   element takes the page's body colour, not the theme's panel colour - with !important it beat the
+   theme's white, and a shop on Razzi read dark grey on blue and asked which setting the colour was. */
+.bgc-free-notice * { color: inherit !important; }
 
 /* Office / APS map picker (Leaflet) */
 .bgc-office-pick { display: flex; gap: 6px; align-items: stretch; max-width: 100%; }
