@@ -4,10 +4,32 @@
 # Order matters and is not negotiable: preflight, BACKUP, deploy, verify, purge, smoke. Everything after
 # the backup can be undone by restoring it, and nothing before the backup touches the site.
 #
-# Usage: bin/release-prod            (asks once, then runs)
-#        bin/release-prod --yes      (no prompt - for when it is already agreed)
+# It does not stop at the shop. Once prod is on this build and has survived it, bin/release-wporg runs
+# from here, with the same --yes (or the same prompt): a release is the shop AND the directory, and a
+# script that ended with "Next: bin/release-wporg" left 0.4.13 on the shop alone for two days - the run
+# that was to follow it was killed with the terminal session that started it, and nothing said so.
+#
+# Usage: bin/release-prod            (asks once, then runs; asks again before the directory)
+#        bin/release-prod --yes      (no prompts - for when it is already agreed)
+#        bin/release-prod --detach   (--yes, in a session of its own, logging to tmp/release-<version>.log:
+#                                    a release that outlives the terminal that started it)
 set -euo pipefail
 cd "$(dirname "$0")/.."
+VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
+
+# A release takes longer than a terminal session is guaranteed to last: the integration suite, two SSH
+# hops, a backup, and up to ten minutes waiting for the directory. Started as a background job of a tool
+# that kills its jobs when the session ends, that is exactly how 0.4.13 was left half-done. setsid()
+# puts the run in a session and process group of its own, where neither a hang-up nor a kill of the
+# caller's group reaches it; python3 is what this machine has that can call it (macOS ships no setsid).
+if [ "${1:-}" = "--detach" ]; then
+  mkdir -p tmp; LOG="tmp/release-${VERSION}.log"
+  nohup python3 -c 'import os,sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
+    bash "$0" --yes > "$LOG" 2>&1 < /dev/null &
+  echo "release ${VERSION} is running on its own; follow it with: tail -f ${LOG}"
+  echo "when it ends, bin/release-status says where everything stands"
+  exit 0
+fi
 . bin/deploy.conf
 : "${BGC_SSH_HOST:?set BGC_SSH_HOST in bin/deploy.conf}"
 : "${BGC_SSH_PORT:=22}"
@@ -56,8 +78,6 @@ run_dev() {
   fi
   ssh -p "${BGC_SSH_PORT:-22}" "$BGC_SSH_HOST" "$@" 2>/dev/null
 }
-VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
-
 bash bin/preflight
 
 # --- A published version is finished; the next change is the NEXT version -----------------------------
@@ -75,6 +95,20 @@ if svn ls --non-interactive "https://plugins.svn.wordpress.org/bg-couriers/tags/
     exit 1
   fi
   echo "  ${VERSION} is published; re-deploying it unchanged (--republish)"
+fi
+
+# --- What the shop runs now, and whether the directory ever got it ----------------------------------
+# Read once, here, and reused for the backup's name below. Also the moment to say whether the LAST
+# release finished: a version on the shop with no tag on WordPress.org is a release that stopped
+# halfway, and this one supersedes it - the directory goes straight to ${VERSION}, the superseded
+# version's changelog entry riding along. Said out loud, because the alternative is finding out from a
+# shop that read about a fix and cannot find it in the update.
+WAS="$(run "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r' || echo unknown)"
+[ -n "$WAS" ] || WAS=unknown
+if [ "$WAS" != unknown ] && [ "$WAS" != "$VERSION" ] \
+   && ! svn ls --non-interactive "https://plugins.svn.wordpress.org/bg-couriers/tags/${WAS}" >/dev/null 2>&1; then
+  echo "  NOTE: prod runs ${WAS} and WordPress.org has no tags/${WAS} - that release never finished."
+  echo "        This one supersedes it: the directory goes from what it serves now straight to ${VERSION}."
 fi
 
 # --- Plugin Check, BEFORE anything is touched -------------------------------------------------------
@@ -106,7 +140,6 @@ echo "==> backup"
 # Named for the version being REPLACED and stamped, so a second run can never overwrite the archive that
 # is the way back. An earlier draft of this script named it after the version going ON, which meant
 # re-running it replaced a good rollback point with a copy of the code you were trying to roll back from.
-WAS="$(run "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r' || echo unknown)"
 BACKUP="$(dirname "$WPROOT")/bg-couriers-backup-${WAS}-$(date +%Y%m%d-%H%M).tgz"
 echo "  replacing ${WAS} with ${VERSION}"
 run "cd \"\$(dirname '$P')\" && tar czf '$BACKUP' bg-couriers && du -h '$BACKUP'"
@@ -155,4 +188,16 @@ foreach (array_keys(BGCouriers_Couriers::all()) as \$c) {
 echo
 [ "$fail" -eq 0 ] || { echo "SMOKE FAILED - a page did not return 200. Backup: $BACKUP" >&2; exit 1; }
 echo "PROD is on ${VERSION} ($(git rev-parse --short HEAD)). Backup: ${BACKUP}"
-echo "Next: bin/release-wporg"
+
+# --- The directory, from here ------------------------------------------------------------------------
+# The same process, not a line telling somebody to run it. A re-deploy of a published version has
+# nothing left to publish and stops here. Preflight passed on this exact commit minutes ago; the second
+# script is told which commit and does not run the suites again.
+if svn ls --non-interactive "https://plugins.svn.wordpress.org/bg-couriers/tags/${VERSION}" >/dev/null 2>&1; then
+  echo "tags/${VERSION} is already on WordPress.org - nothing left to publish"
+  exit 0
+fi
+echo
+echo "==> WordPress.org"
+YES=""; [ "${1:-}" = "--yes" ] && YES="--yes"
+BGC_PREFLIGHT_OK="$(git rev-parse HEAD)" exec bash bin/release-wporg $YES

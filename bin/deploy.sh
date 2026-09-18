@@ -61,7 +61,16 @@ EXCLUDES=(
   # a readme-preview copy of WordPress.org's parser went to dev with 0.4.13 and Plugin Check refused
   # the release over a PHP file that was never part of the plugin.
   --exclude 'tmp'
+  # Finder's droppings. Gitignored, so build-zip never sees them either - but the tar below took every
+  # .DS_Store on the laptop to dev, and Plugin Check (which runs against DEV, on purpose) refused
+  # 0.4.14 over six hidden files that were never part of the plugin. `._*` is the AppleDouble file
+  # macOS tar writes beside anything that has extended attributes; COPYFILE_DISABLE below stops those
+  # being made at all, and the exclude is for a tree that already has them.
+  --exclude '.DS_Store' --exclude '._*'
 )
+# See the .DS_Store note above: without this, bsdtar on macOS packs a `._name` AppleDouble entry for
+# every file carrying an xattr, and GNU tar on the other side unpacks them as files.
+export COPYFILE_DISABLE=1
 
 if [ -n "${BGC_LXC_HOST:-}" ]; then
   # The sites live in LXC containers that do not take our SSH key, so the way in is the host that holds
@@ -95,4 +104,12 @@ chown -R ${OWNER} \"${DEST}\""
 else
   rsync -az --delete "${EXCLUDES[@]}" -e "ssh -p ${BGC_SSH_PORT}" ./ "${BGC_SSH_HOST}:${DEST}"
   echo "Synced to ${TARGET}. Activate via wp-admin."
+fi
+
+# Every dev sync is a moment somebody is looking, so it is the moment to say whether the last release
+# actually finished: prod on a version the directory never got is a state nobody chose, and 0.4.13 sat
+# in it for two days with nothing on this side to say so. A read-only look, and a warning, not a
+# refusal - dev is where work in progress belongs.
+if [ "$TARGET" = dev ]; then
+  bash bin/release-status --quiet || true
 fi
