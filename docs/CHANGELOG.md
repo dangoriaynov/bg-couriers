@@ -4,6 +4,9 @@ The plugin's own `readme.txt` carries only the most recent entries: WordPress.or
 section at 5000 characters, and a changelog the directory cuts in half is worse than a short one
 that points here. Nothing is lost - this file is the full history.
 
+## 0.4.16
+* Changed: **the WordPress.org page reads without dashes.** The directory runs the readme through wptexturize, which serves a hyphen with a space on each side as an en dash ("Sameday – api.sameday.bg" on the page the day 0.4.15 shipped), "--" as an en dash and "---" as an em dash. The readme had 44 spaced hyphens; each is now a colon, a comma, a semicolon or a pair of parentheses, which the texturizer leaves alone, and `bin/preflight` refuses a release while readme.txt holds a hyphen the directory would turn into a dash. In-word hyphens (e-mail, drop-off) were never touched. Readme and tooling only, no code change.
+
 ## 0.4.15
 * Changed: **every service address on the WordPress.org page is a link.** 0.4.13 made the terms and privacy URLs links and left the thirteen hostnames beside them (api.speedy.bg, ee.econt.com, the two Sameday hosts, tile.openstreetmap.org and the rest) as plain text; the owner read the page the day 0.4.14 landed and asked for them too. Each now links to itself over HTTPS - all thirteen were checked to answer (an API root answering 401/403/404 is still a live host). Readme only, no code change; a page-text change reaches the directory only through a stable tag, hence the version.
 
