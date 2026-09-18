@@ -66,18 +66,19 @@ bin/test econt|pigeon|core  # per-courier / framework groups
   intl-speedy-ro`). Setup recipe and what to check afterwards: [`e2e/README.md`](e2e/README.md).
 - **Releasing.** One command does the whole thing, and refuses rather than half-doing it.
   ```bash
-  bin/release-prod --detach   # the release, start to finish, in a session of its own (log: tmp/release-<v>.log)
+  bin/release-prod            # the release, start to finish; asks before the shop and again before wp.org
   bin/release-status          # where every copy stands: checkout, dev, prod, wp.org served + tagged
   ```
   What `release-prod` runs, in order: `bin/preflight` (one version in all 3 places, changelog entry,
   clean+pushed tree, Bulgarian complete AND compiled, unit + integration tests, nothing test-shaped
   tracked), Plugin Check on dev, backup (named for the version being REPLACED), deploy, verify, purge,
   smoke - and then `bin/release-wporg` itself: audit the zip, SVN trunk + tag, confirm the directory
-  serves it. Without `--yes`/`--detach` it asks twice, once before the shop and once before the
-  directory. `--detach` exists because a release outlasts a terminal session and 0.4.13 was left on
-  the shop alone when the session that started its second half was killed; `bin/deploy.sh dev` now
-  prints that state whenever it recurs, and `release-status` is how to look on purpose.
-  `bin/release-wporg` still runs on its own, to finish a release that stopped after the shop.
+  serves it. The two prompts are the two decisions; `--yes` answers both in advance, and
+  `--detach` is `--yes` in a session of its own, logged to `tmp/release-<version>.log` - for a release
+  that has ALREADY been agreed and must outlast the terminal: 0.4.13 was left on the shop alone when
+  the session that started its second half was killed. `bin/deploy.sh dev` prints that state whenever
+  it recurs, and `release-status` is how to look on purpose. `bin/release-wporg` still runs on its
+  own, to finish a release that stopped after the shop.
   Every check in `bin/preflight` stands in for something that has gone wrong here at least once; the
   comment above each says which.
 - **Deploy to dev:** `bash bin/deploy.sh dev` then chown to the site user, activate via wp-admin (wp-cli /

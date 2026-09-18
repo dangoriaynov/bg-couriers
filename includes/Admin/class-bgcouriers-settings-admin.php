@@ -396,7 +396,8 @@ jQuery(function($){
      * itself says takes parcels handed in - its record carries `dropOffAllowed`, the cached list does
      * not, so a NEW choice is checked against Speedy once, on save. An office it refuses is not saved;
      * the previous choice stays and the merchant is told which office and why. Speedy unreachable or
-     * no credentials yet = not checked, the choice is taken on the list alone.
+     * no credentials yet = not checked, the choice is taken on the list alone. The one call rides the
+     * courier's 20 s POST timeout, once per change - a slow answer is a slow Save, not a hung one.
      */
     public function sanitize_speedy_dropoff($value, $option, $raw_value) {
         $id  = max(0, (int) $raw_value);
