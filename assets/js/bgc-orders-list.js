@@ -49,6 +49,15 @@
       .catch(function () { x.style.pointerEvents = ''; toast(M.err); });
   }
   document.addEventListener('click', function (e) {
+    // Print: the PDF opens in a new tab and this page stays, so the green "not printed yet" tile would
+    // outlive the print it announces. Turn it back here; the server clears the flag as it streams the
+    // PDF, so a reload shows the same thing. (A failed print shows its error in that other tab.)
+    var p = e.target.closest('.bgc-primary.bgc-unprinted');
+    if (p) {
+      p.classList.remove('bgc-unprinted');
+      if (M.print) { p.setAttribute('data-tip', M.print); p.setAttribute('aria-label', M.print); }
+      return; // the link itself still opens
+    }
     var c = e.target.closest('.bgc-copy');
     if (c) {
       e.preventDefault(); e.stopPropagation();

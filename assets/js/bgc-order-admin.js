@@ -62,6 +62,14 @@
     $m.find('.bgc-m-yes').focus();
   }
 
+  // --- print: the tile is green until it is clicked ----------------------------------------------
+  // The PDF opens in a new tab and this page stays, so the "not printed yet" colour would outlive the
+  // print. The server clears the flag as it streams the PDF; this only keeps the screen in step.
+  $(document).on('click', '.bgc-order-panel .bgc-primary.bgc-unprinted', function () {
+    $(this).removeClass('bgc-unprinted');
+    if (I.print) { $(this).attr({ 'data-tip': I.print, 'aria-label': I.print }); }
+  });
+
   // --- copy the waybill number (the number field itself is the copy button) ---------------------
   $(document).on('click', '.bgc-wb-copy', function (e) {
     e.preventDefault();
