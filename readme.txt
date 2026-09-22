@@ -5,7 +5,7 @@ Tags: speedy, econt, box now, sameday, express one
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.16
+Stable tag: 0.4.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,11 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.17 =
+* Fixed: WooCommerce > Reports > Sales by date died with "add_to_reports(): Argument #1 must be of type array, false given". WooCommerce passes false for its refund sub-queries there, and the plugin's order-status filter refused it; the value now passes through untouched. Reported by a user, thank you.
+* Fixed: the bulk "Print labels" action never marked its waybills as printed, so a shop that prints in batches saw every waybill flagged "not printed yet" for good.
+* Changed: "not printed yet" is the Print button itself turning green, on the orders list and on the order screen, with the wording on hover; the separate printer badge and the green banner are gone. The button turns back the moment it is clicked, through every print route.
 
 = 0.4.16 =
 * Changed: the plugin page reads without dashes. Readme only, no code change.
