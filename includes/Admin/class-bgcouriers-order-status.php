@@ -65,7 +65,18 @@ class BGCouriers_Order_Status {
         return $out;
     }
 
-    public function add_to_reports(array $statuses): array {
+    /**
+     * Legacy Reports > Sales by date passes `false` here for its refund sub-queries ("no status clause,
+     * filter on the parent order instead") - a strict `array` type on this parameter took the whole
+     * report page down (reported by a WP.org user, 2026-09-22). The false has to come back untouched:
+     * turning it into [shipped] would put a status clause into a query that deliberately has none, and
+     * the report would count zero refunds.
+     *
+     * @param array|false $statuses
+     * @return array|false
+     */
+    public function add_to_reports($statuses) {
+        if (!is_array($statuses)) { return $statuses; }
         $statuses[] = self::SLUG;
         return $statuses;
     }
