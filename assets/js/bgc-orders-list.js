@@ -48,16 +48,25 @@
       })
       .catch(function () { x.style.pointerEvents = ''; toast(M.err); });
   }
+  // A print tile turning back to plain: the PDF opens in a new tab (or, for the bulk action, replaces
+  // this page until Back) and the list never reloads, so the green "not printed yet" would outlive the
+  // print it announces. The server clears the flag as it streams the PDF, so a reload agrees; this only
+  // keeps the screen in step. (A failed print shows its error in that other tab.)
+  function printed(tile) {
+    if (!tile) { return; }
+    tile.classList.remove('bgc-unprinted');
+    if (M.print) { tile.setAttribute('data-tip', M.print); tile.setAttribute('aria-label', M.print); }
+  }
+  function tileOf(orderId) {
+    return document.querySelector('.bgc-primary.bgc-unprinted[href*="order_id=' + orderId + '&"]');
+  }
   document.addEventListener('click', function (e) {
-    // Print: the PDF opens in a new tab and this page stays, so the green "not printed yet" tile would
-    // outlive the print it announces. Turn it back here; the server clears the flag as it streams the
-    // PDF, so a reload shows the same thing. (A failed print shows its error in that other tab.)
+    // One row's print tile.
     var p = e.target.closest('.bgc-primary.bgc-unprinted');
-    if (p) {
-      p.classList.remove('bgc-unprinted');
-      if (M.print) { p.setAttribute('data-tip', M.print); p.setAttribute('aria-label', M.print); }
-      return; // the link itself still opens
-    }
+    if (p) { printed(p); return; } // the link itself still opens
+    // The "Print N on A4 / A6" links after a bulk generate or re-issue: they name their orders.
+    var b = e.target.closest('a[data-ids]');
+    if (b) { (b.getAttribute('data-ids') || '').split(',').forEach(function (id) { printed(tileOf(id)); }); return; }
     var c = e.target.closest('.bgc-copy');
     if (c) {
       e.preventDefault(); e.stopPropagation();
@@ -119,6 +128,15 @@
       var btn = e.target.closest('#doaction, #doaction2');
       if (!btn || going) { return; }
       var sel = document.getElementById(btn.id === 'doaction' ? 'bulk-action-selector-top' : 'bulk-action-selector-bottom');
+      // The bulk print streams its PDF into THIS tab; on Back the browser may show the list from its
+      // cache, so the checked rows' tiles turn plain before the form goes.
+      if (sel && (C.printActions || []).indexOf(sel.value) !== -1) {
+        document.querySelectorAll('tbody .check-column input:checked').forEach(function (cb) {
+          var row = cb.closest('tr');
+          if (row) { printed(row.querySelector('.bgc-primary.bgc-unprinted')); }
+        });
+        return;
+      }
       var d = sel ? MAP[sel.value] : null;
       if (!d) { return; }
       e.preventDefault(); e.stopPropagation();

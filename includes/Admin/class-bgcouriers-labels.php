@@ -500,6 +500,25 @@ class BGCouriers_Labels {
     }
 
     /**
+     * Printing clears a waybill's "not printed yet" (green) flag - from EVERY print route. This used to
+     * live inside the per-order print alone, and the bulk "Print labels" action never touched the flag,
+     * so a merchant who prints in batches saw every waybill stay green for good, reload or not (reported
+     * 2026-09-22). A stale label (the order changed since it was issued) is a separate signal and stays
+     * flagged: printing the old document does not make it match the order.
+     *
+     * @param int[] $order_ids
+     */
+    public static function mark_printed(array $order_ids): void {
+        foreach ($order_ids as $oid) {
+            $o = wc_get_order((int) $oid);
+            if (!$o || (string) $o->get_meta('_bgcouriers_waybill') === '') { continue; }
+            $o->update_meta_data('_bgcouriers_label_needs_print', '');
+            $o->update_meta_data('_bgcouriers_label_printed_at', time());
+            $o->save();
+        }
+    }
+
+    /**
      * The print tile's hover text, on both admin screens. A waybill nobody has printed yet says so on the
      * tile itself (which is also green) - the JS puts the plain wording back the moment it is clicked.
      */
@@ -926,16 +945,7 @@ class BGCouriers_Labels {
         // payload is verified to BE a PDF first.
         if (strncmp($out, '%PDF', 4) !== 0) { wp_die(esc_html__('The generated file is not a valid PDF.', 'bg-couriers')); }
 
-        // Printing clears a waybill's "not printed yet" (green) flag. A stale label (the order changed
-        // since it was issued) is a separate signal and stays flagged - printing the old document does
-        // not make it match the order.
-        foreach ($order_ids as $oid) {
-            $o = wc_get_order((int) $oid);
-            if (!$o || (string) $o->get_meta('_bgcouriers_waybill') === '') { continue; }
-            $o->update_meta_data('_bgcouriers_label_needs_print', '');
-            $o->update_meta_data('_bgcouriers_label_printed_at', time());
-            $o->save();
-        }
+        self::mark_printed($order_ids);
 
         nocache_headers();
         header('Content-Type: application/pdf');

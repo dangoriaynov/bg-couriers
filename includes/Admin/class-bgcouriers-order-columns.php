@@ -265,6 +265,8 @@ class BGCouriers_Order_Columns {
             // Our bulk actions are gathered under one labelled section in the dropdown (see the JS). The
             // exact action values are passed so the JS moves only OUR options, never a prefix guess.
             'group' => ['label' => 'BG Couriers', 'actions' => BGCouriers_Bulk_Labels::actions()],
+            // The bulk actions that print: the JS turns the checked rows' green tiles plain as the form goes.
+            'printActions' => BGCouriers_Bulk_Labels::print_actions(),
             // Bulk actions that void live shipments and so must be confirmed before Apply submits,
             // keyed by their action value. Anything not listed here submits straight away.
             'confirmBulk' => [
