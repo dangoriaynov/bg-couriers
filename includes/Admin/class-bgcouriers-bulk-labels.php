@@ -18,6 +18,9 @@ class BGCouriers_Bulk_Labels {
     }
 
     /** Our bulk-action values, in the order they are registered (drives the dropdown grouping in JS). */
+    /** The two bulk actions that end in a PDF - the list script needs to know them apart from the rest. */
+    public static function print_actions(): array { return [self::PRINT_A4, self::PRINT_A6]; }
+
     public static function actions(): array {
         return [self::PRINT_A4, self::PRINT_A6, self::ACTION, self::REGEN, self::CANCEL, self::PICKUP];
     }
@@ -123,6 +126,9 @@ class BGCouriers_Bulk_Labels {
         // instead of trusting it, refuse to stream anything that is not actually a PDF: that makes the raw
         // echo below safe by construction rather than by convention.
         if (strncmp($out, '%PDF', 4) !== 0) { wp_die(esc_html__('The generated file is not a valid PDF.', 'bg-couriers')); }
+        // These waybills are printed now - the same bookkeeping the per-order print does. Left out here
+        // until 2026-09-22, which kept every batch-printed waybill "not printed yet" for good.
+        BGCouriers_Labels::mark_printed($ok);
         nocache_headers();
         header('Content-Type: application/pdf');
         header('Content-Disposition: inline; filename="labels-' . strtolower($paper) . '.pdf"');
@@ -188,10 +194,15 @@ class BGCouriers_Bulk_Labels {
         $base = admin_url('admin-post.php?action=bgcouriers_print_batch');
         $a4   = esc_url(wp_nonce_url($base . '&paper=a4', 'bgcouriers_print_batch'));
         $a6   = esc_url(wp_nonce_url($base . '&paper=a6', 'bgcouriers_print_batch'));
-        return ' <a class="button button-primary" target="_blank" href="' . $a4 . '">'
+        // The batch's order ids ride on the links (the same transient the print handler reads), so the
+        // list script can turn those rows' green "not printed yet" tiles back on the click: the PDF opens
+        // in another tab and this page never reloads. data-ids is on the kses allow-list for that.
+        $ids  = implode(',', array_filter(array_map('intval', (array) get_transient('bgcouriers_print_batch_' . get_current_user_id()))));
+        $data = $ids !== '' ? ' data-ids="' . esc_attr($ids) . '"' : '';
+        return ' <a class="button button-primary" target="_blank" href="' . $a4 . '"' . $data . '>'
             /* translators: %d: number of labels */
             . esc_html(sprintf(__('Print %d on A4 (packed)', 'bg-couriers'), $total)) . '</a>'
-            . ' <a class="button" target="_blank" href="' . $a6 . '">' . esc_html__('A6 stickers', 'bg-couriers') . '</a>';
+            . ' <a class="button" target="_blank" href="' . $a6 . '"' . $data . '>' . esc_html__('A6 stickers', 'bg-couriers') . '</a>';
     }
 
     /**

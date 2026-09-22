@@ -38,7 +38,7 @@ class BGCouriers_Kses {
             'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'title' => true,
                          'aria-disabled' => true,
                          'aria-label' => true, 'data-tip' => true, 'data-courier' => true, 'data-id' => true,
-                         'data-nonce' => true, 'data-gennonce' => true],
+                         'data-nonce' => true, 'data-gennonce' => true, 'data-ids' => true],
             'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'title' => true, 'data-tip' => true,
                          'data-wb' => true, 'data-cancel-url' => true, 'data-regen-url' => true, 'data-method' => true],
             'div'    => ['class' => true, 'style' => true],
