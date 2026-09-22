@@ -138,4 +138,47 @@ final class OrderColumnCellTest extends TestCase {
         $this->assertStringContainsString('http://g', $h);
         $this->assertStringNotContainsString('http://p', $h);
     }
+
+    /**
+     * "Not printed yet" is the PRINT TILE turning green, not a second printer icon beside the buttons.
+     * The owner's reading of the list (2026-09-22): the extra badge made the row look like it had one
+     * more action than it did, and it outlived the print because the PDF opens in a new tab and the list
+     * never reloads. One tile, one colour, and the click itself turns it back (bgc-orders-list.js).
+     */
+    public function test_an_unprinted_waybill_turns_the_print_tile_green_instead_of_adding_a_badge(): void {
+        foreach (['esc_html', 'esc_html__', 'esc_attr', 'esc_attr__', 'esc_url', 'sanitize_html_class'] as $f) {
+            Functions\when($f)->alias('trim');
+        }
+        Functions\when('wc_get_order')->justReturn(new class { public function get_edit_order_url(): string { return 'http://edit'; } });
+        $order = new WC_Order();
+        $order->meta = ['_bgcouriers_waybill' => 'W123', '_bgcouriers_label_needs_print' => '1'];
+        $h = BGCouriers_Order_Columns::cell_html('W123', 'http://p', 'http://t', 'http://g', 7, '', '', '', '', 'http://re', $order);
+        $this->assertMatchesRegularExpression('~<a class="bgc-ico bgc-primary bgc-unprinted"[^>]*href="http://p"~', $h, 'the print tile carries the state');
+        $this->assertStringNotContainsString('bgc-wb-flag', $h, 'no separate badge');
+        $this->assertStringContainsString('Print label (not printed yet)', $h, 'the tile says so on hover');
+
+        $printed = new WC_Order();
+        $printed->meta = ['_bgcouriers_waybill' => 'W123', '_bgcouriers_label_needs_print' => ''];
+        $g = BGCouriers_Order_Columns::cell_html('W123', 'http://p', 'http://t', 'http://g', 7, '', '', '', '', 'http://re', $printed);
+        $this->assertStringNotContainsString('bgc-unprinted', $g);
+        $this->assertStringNotContainsString('not printed yet', $g);
+    }
+
+    /** The red "order changed" warning is a different signal and keeps its own badge. */
+    public function test_a_stale_waybill_keeps_the_red_badge_and_a_plain_print_tile(): void {
+        foreach (['esc_html', 'esc_html__', 'esc_attr', 'esc_attr__', 'esc_url', 'sanitize_html_class'] as $f) {
+            Functions\when($f)->alias('trim');
+        }
+        // The fingerprint compares the order as it stands, which reads WooCommerce's number helpers.
+        Functions\when('wc_format_decimal')->alias(static fn($v, $d = 2) => number_format((float) $v, (int) $d, '.', ''));
+        Functions\when('wc_get_weight')->alias(static fn($w, $to, $from = null) => (float) $w / 1000);
+        Functions\when('get_option')->justReturn('1');
+        Functions\when('wc_get_order')->justReturn(new class { public function get_edit_order_url(): string { return 'http://edit'; } });
+        $order = new WC_Order();
+        $order->meta = ['_bgcouriers_waybill' => 'W123', '_bgcouriers_label_fp' => 'old', '_bgcouriers_label_needs_print' => '1'];
+        $h = BGCouriers_Order_Columns::cell_html('W123', 'http://p', 'http://t', 'http://g', 7, '', '', '', '', 'http://re', $order);
+        $this->assertStringContainsString('bgc-wb-flag bgc-wb-stale', $h);
+        $this->assertStringContainsString('dashicons-warning', $h);
+        $this->assertStringNotContainsString('bgc-unprinted', $h, 'stale outranks unprinted, as label_state() says');
+    }
 }

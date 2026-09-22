@@ -148,12 +148,12 @@ class BGCouriers_Order_Columns {
         return $out;
     }
 
-    /** Red for a waybill the order has outgrown, green for one not yet printed - classes, not inline
-     *  styles, so they survive the kses that prints this column (see status_html). */
+    /** Red for a waybill the order has outgrown - a class, not an inline style, so it survives the kses
+     *  that prints this column (see status_html). "Not printed yet" is the print tile's own colour
+     *  (.bgc-unprinted in the stylesheet), not a flag. */
     public static function state_color_css(): string {
         return '.bgc-wb-flag{margin-left:2px;}'
-            . '.bgc-wb-flag.bgc-wb-stale{color:#dc2626;}'
-            . '.bgc-wb-flag.bgc-wb-unprinted{color:#3aa15a;}';
+            . '.bgc-wb-flag.bgc-wb-stale{color:#dc2626;}';
     }
 
     public static function cell_html(string $waybill, string $print_url, string $track_url, string $generate_url, int $order_id = 0, string $cancel_nonce = '', string $generate_nonce = '', string $courier_label = '', string $courier_logo = '', string $regenerate_url = '', $order = null): string {
@@ -162,17 +162,22 @@ class BGCouriers_Order_Columns {
         // rather than leave them there to be clicked and refused.
         $locked = ($order instanceof \WC_Order) && BGCouriers_Labels::is_locked($order);
         $status = ($order instanceof \WC_Order) ? self::status_html($order) : '';
-        // Red when the order has outgrown the waybill (changed, not re-issued), green when the current
-        // waybill has not been printed yet - the same call the order screen uses, so they never disagree.
+        // Red badge when the order has outgrown the waybill (changed, not re-issued). "Not printed yet"
+        // used to be a second, green printer icon beside the buttons: it read as one more action in a
+        // row that already had six, and it outlived the print itself, because the PDF opens in a new
+        // tab and this page never reloads. Now the print tile IS the signal - green until it is clicked
+        // (the JS turns it back on the click; the server clears the flag when it streams the PDF). Same
+        // label_state() call as the order screen, so the two never disagree.
         $state_ico = '';
+        $unprinted = false;
         if ($order instanceof \WC_Order) {
             $state = BGCouriers_Labels::label_state($order);
-            if ($state !== '') {
-                $smsg  = BGCouriers_Labels::label_state_message($order, $state);
-                $glyph = $state === BGCouriers_Labels::LABEL_STATE_STALE ? 'warning' : 'printer';
+            if ($state === BGCouriers_Labels::LABEL_STATE_STALE) {
+                $smsg = BGCouriers_Labels::label_state_message($order, $state);
                 $state_ico = '<span class="bgc-wb-flag bgc-wb-' . esc_attr($state) . '" data-tip="' . esc_attr($smsg)
-                    . '" aria-label="' . esc_attr($smsg) . '"><span class="dashicons dashicons-' . esc_attr($glyph) . '"></span></span>';
+                    . '" aria-label="' . esc_attr($smsg) . '"><span class="dashicons dashicons-warning"></span></span>';
             }
+            $unprinted = $state === BGCouriers_Labels::LABEL_STATE_UNPRINTED;
         }
         // Courier logo tile with a data-tip hover hint, SAME as the order-screen shipment panel header.
         $logo_tile = $courier_logo !== ''
@@ -220,7 +225,7 @@ class BGCouriers_Order_Columns {
         $copy_label = sprintf(__('Copy waybill %s', 'bg-couriers'), $waybill);
         return '<span class="bgc-cell">' . $row1 . '<span class="bgc-row">'
             . '<button type="button" class="bgc-ico bgc-copy" data-wb="' . esc_attr($waybill) . '" data-tip="' . esc_attr($waybill) . '" aria-label="' . esc_attr($copy_label) . '"><span class="dashicons dashicons-admin-page"></span></button>'
-            . '<a class="bgc-ico bgc-primary" target="_blank" href="' . esc_url($print_url) . '" data-tip="' . esc_attr__('Print label', 'bg-couriers') . '" aria-label="' . esc_attr__('Print label', 'bg-couriers') . '"><span class="dashicons dashicons-printer"></span></a>'
+            . '<a class="bgc-ico bgc-primary' . ($unprinted ? ' bgc-unprinted' : '') . '" target="_blank" href="' . esc_url($print_url) . '" data-tip="' . esc_attr(BGCouriers_Labels::print_tip($unprinted)) . '" aria-label="' . esc_attr(BGCouriers_Labels::print_tip($unprinted)) . '"><span class="dashicons dashicons-printer"></span></a>'
             . '<a class="bgc-ico" target="_blank" href="' . esc_url($track_url) . '" data-tip="' . esc_attr__('Track shipment', 'bg-couriers') . '" aria-label="' . esc_attr__('Track shipment', 'bg-couriers') . '"><span class="dashicons dashicons-location"></span></a>'
             . ($locked ? '' : '<a href="#" class="bgc-ico bgc-danger bgc-wb-cancel" data-id="' . (int) $order_id . '" data-nonce="' . esc_attr($cancel_nonce) . '" data-gennonce="' . esc_attr($generate_nonce) . '" data-tip="' . esc_attr__('Cancel waybill', 'bg-couriers') . '" aria-label="' . esc_attr__('Cancel waybill', 'bg-couriers') . '"><span class="dashicons dashicons-no-alt"></span></a>')
             . '</span></span>';
@@ -251,6 +256,7 @@ class BGCouriers_Order_Columns {
                 'cancelled'    => __('Waybill cancelled', 'bg-couriers'),
                 'copied'       => __('Copied to clipboard', 'bg-couriers'),
                 'gen'          => __('Generate', 'bg-couriers'),
+                'print'        => BGCouriers_Labels::print_tip(false), // the tile's hint once it has been clicked
                 'err'          => __('Could not cancel.', 'bg-couriers'),
                 'regenTitle'   => __('Re-issue this waybill?', 'bg-couriers'),
                 'regenBody'    => __('The current waybill is voided with the courier and a new one is issued from this order\'s current delivery details, products and settings. This cannot be undone.', 'bg-couriers'),

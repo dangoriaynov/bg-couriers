@@ -500,6 +500,14 @@ class BGCouriers_Labels {
     }
 
     /**
+     * The print tile's hover text, on both admin screens. A waybill nobody has printed yet says so on the
+     * tile itself (which is also green) - the JS puts the plain wording back the moment it is clicked.
+     */
+    public static function print_tip(bool $unprinted): string {
+        return $unprinted ? __('Print label (not printed yet)', 'bg-couriers') : __('Print label', 'bg-couriers');
+    }
+
+    /**
      * The one line each state tells the merchant - the hover in the list, the banner on the order. Takes
      * the state where the caller already worked it out, so the fingerprint is not computed twice a row.
      */

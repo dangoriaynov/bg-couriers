@@ -45,6 +45,10 @@ class BGCouriers_Order_Metabox {
         // order back to Processing or Pending payment. Print and Track stay live: reading is always fine.
         $locked     = BGCouriers_Labels::is_locked($order);
         $locked_msg = BGCouriers_Labels::locked_message();
+        // How the waybill stands against the order and the printer - the same call the orders list makes,
+        // so the two screens agree. Read once here: it colours the print tile and picks the banner below.
+        $lstate     = $waybill !== '' ? BGCouriers_Labels::label_state($order) : '';
+        $unprinted  = $lstate === BGCouriers_Labels::LABEL_STATE_UNPRINTED;
         $off        = $locked ? ' bgc-off' : '';
         $off_attrs  = $locked ? ' aria-disabled="true" tabindex="-1"' : '';
         $tip_of     = static function (string $tip) use ($locked, $locked_msg): string {
@@ -74,7 +78,9 @@ class BGCouriers_Order_Metabox {
             $regen_attr  = 'type="button"' . ($locked ? '' : ' data-regen-url="' . $regen . '"') . $off_attrs;
             $cancel_attr = 'type="button"' . ($locked ? '' : ' data-cancel-url="' . $cancel . '"') . $off_attrs;
             $actions = $act('button', 'update', $tip_of(__('Re-issue waybill (voids the current one)', 'bg-couriers')), $regen_attr, 'bgc-regen' . $off)
-                . $act('a', 'printer', __('Print label', 'bg-couriers'), 'href="' . $print . '" target="_blank"', 'bgc-primary')
+                // Green while nobody has printed this waybill: the tile is the signal, the same as in the
+                // orders list. The click turns it back (bgc-order-admin.js); the PDF opens in a new tab.
+                . $act('a', 'printer', BGCouriers_Labels::print_tip($unprinted), 'href="' . $print . '" target="_blank"', 'bgc-primary' . ($unprinted ? ' bgc-unprinted' : ''))
                 // Only where there is somewhere to send them. Evropat has no public tracking page - its
                 // site is the cabinet, and nothing there shows one waybill to somebody not signed in - so
                 // the button would open a redirect to nowhere. The waybill number above is still the thing
@@ -102,18 +108,13 @@ class BGCouriers_Order_Metabox {
         }
         $body .= '<span class="bgc-hd-acts">' . $actions . '</span></div>';
 
-        // The waybill's standing against the order and the printer, right under the header: red when the
-        // order has outgrown it (changed, not re-issued), green while the current one is not yet printed.
-        // Same call the orders list uses (BGCouriers_Labels::label_state), so the two screens agree.
-        $lstate = BGCouriers_Labels::label_state($order);
-        if ($lstate !== '') {
+        // Red banner right under the header when the order has outgrown its waybill (changed, not
+        // re-issued). "Not printed yet" has no banner any more: it is the green print tile above, the
+        // same way the orders list shows it - one signal in the place the merchant will click.
+        if ($lstate === BGCouriers_Labels::LABEL_STATE_STALE) {
             $lmsg = BGCouriers_Labels::label_state_message($order, $lstate);
-            $lstyle = $lstate === BGCouriers_Labels::LABEL_STATE_STALE
-                ? 'background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;'
-                : 'background:#eef8f0;border:1px solid #a9d8b6;color:#1f6b34;';
-            $lico = $lstate === BGCouriers_Labels::LABEL_STATE_STALE ? 'warning' : 'printer';
-            $body .= '<div class="bgc-wb-state bgc-wb-' . esc_attr($lstate) . '" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;' . $lstyle . '">'
-                . '<span class="dashicons dashicons-' . esc_attr($lico) . '" style="vertical-align:middle;margin-right:4px;"></span>'
+            $body .= '<div class="bgc-wb-state bgc-wb-' . esc_attr($lstate) . '" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;">'
+                . '<span class="dashicons dashicons-warning" style="vertical-align:middle;margin-right:4px;"></span>'
                 . esc_html($lmsg) . '</div>';
         }
 
@@ -297,6 +298,7 @@ class BGCouriers_Order_Metabox {
             'methodLabels' => ['office' => __('To office', 'bg-couriers'), 'address' => __('To address', 'bg-couriers'), 'automat' => __('To APS', 'bg-couriers')],
             'i18n'    => ['city' => __('City', 'bg-couriers'), 'office' => __('Office / APS', 'bg-couriers'), 'street' => __('Street', 'bg-couriers'),
                           'saving' => __('Saving…', 'bg-couriers'), 'err' => __('Could not save.', 'bg-couriers'),
+                          'print' => BGCouriers_Labels::print_tip(false), // the print tile's hint once clicked
                           'saved' => __('Saved.', 'bg-couriers'),
                           'copied' => __('Copied to clipboard', 'bg-couriers'),
                           'trackRefreshing' => __('Asking the courier…', 'bg-couriers'),

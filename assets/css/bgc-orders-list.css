@@ -17,6 +17,11 @@
 .bgc-cell,.bgc-cell .bgc-row{overflow:visible;}
 .bgc-ico.bgc-primary{background:#2271b1;border-color:#2271b1!important;color:#fff;}
 .bgc-ico.bgc-primary:hover{background:#1c5d92;border-color:#1c5d92!important;color:#fff;}
+/* A waybill nobody has printed yet: the print tile itself is green (no separate badge - it read as one
+   more action). The class comes off on the click (bgc-orders-list.js), so the row answers at once even
+   though the PDF opens in another tab and this page never reloads. */
+.bgc-ico.bgc-primary.bgc-unprinted{background:#2e9e4f;border-color:#2e9e4f!important;}
+.bgc-ico.bgc-primary.bgc-unprinted:hover{background:#25813f;border-color:#25813f!important;}
 .bgc-ico.bgc-danger{color:#b32d2e;border-color:#e6a2a5!important;}
 .bgc-ico.bgc-danger:hover{background:#fcecec;border-color:#cf6a6f!important;color:#8a1f2b;}
 .bgc-ltoast{position:fixed;z-index:1000001;left:50%;bottom:32px;transform:translateX(-50%) translateY(6px);background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;}

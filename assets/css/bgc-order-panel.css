@@ -28,6 +28,10 @@
 .bgc-order-panel .bgc-act .dashicons{font-size:16px!important;width:16px!important;height:16px!important;line-height:1!important;margin:0!important;padding:0!important;}
 .bgc-order-panel .bgc-act.bgc-primary{background:#2271b1;border-color:#2271b1!important;color:#fff;}
 .bgc-order-panel .bgc-act.bgc-primary:hover{background:#1c5d92;border-color:#1c5d92!important;}
+/* Green while the waybill has not been printed - the same signal as the orders list; the click turns
+   it back (bgc-order-admin.js). */
+.bgc-order-panel .bgc-act.bgc-primary.bgc-unprinted{background:#2e9e4f;border-color:#2e9e4f!important;}
+.bgc-order-panel .bgc-act.bgc-primary.bgc-unprinted:hover{background:#25813f;border-color:#25813f!important;}
 .bgc-order-panel .bgc-act.bgc-danger{color:#b32d2e;border-color:#e6a2a5!important;}
 .bgc-order-panel .bgc-act.bgc-danger:hover{background:#fcecec;border-color:#cf6a6f!important;color:#8a1f2b;}
 .bgc-order-panel .bgc-act.bgc-gen{width:auto!important;padding:0 11px!important;gap:6px;font-size:12px;font-weight:600;}
