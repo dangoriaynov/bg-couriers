@@ -81,7 +81,7 @@ class BGCouriers_Schema {
      */
     private static function retire_index(string $table, string $index): void {
         global $wpdb;
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- schema work on our own table; names are literals from this file
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.SchemaChange -- schema work on our own table; names are literals from this file
         $have = $wpdb->get_var($wpdb->prepare("SHOW INDEX FROM {$table} WHERE Key_name = %s", $index));
         if ($have === null) { return; }
         $wpdb->query("ALTER TABLE {$table} DROP INDEX `{$index}`");
