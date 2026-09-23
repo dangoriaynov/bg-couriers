@@ -5,6 +5,9 @@ class BGCouriers_Sync {
     const HOOK       = 'bgcouriers_weekly_sync'; // full nomenclature sync (heavy) - weekly
     const RATES_HOOK = 'bgcouriers_daily_rates'; // reference-price refresh (light) - daily
 
+    /** Courier id -> its own id for Sofia, as far as this request has looked it up. See sofia_city(). */
+    private static $sofia_ids = [];
+
     /**
      * First city alphabetically from a courier's cached cities in one country (the reference origin).
      *
@@ -14,9 +17,54 @@ class BGCouriers_Sync {
      * anyone made, so '' means the shop's own country, never "any".
      */
     public static function first_city(string $courier, string $country = ''): int {
-        $rows = BGCouriers_Nomenclature::search_cities($courier, '', 1, self::country_or_home($country)); // term '' -> all, ORDER BY name
-        return (int) ($rows[0]['city_id'] ?? 0);
+        // Two rows, not one: the first of them is the reference origin for the COUNTRY zone, and the
+        // capital must not be it. Alphabetically it never is (Cyrillic С sorts late among five thousand
+        // towns), but "never in the data we have" is not the same as "cannot", and a COUNTRY reference
+        // quoted inside Sofia would be the cheap price advertised to the whole country.
+        $rows = BGCouriers_Nomenclature::search_cities($courier, '', 2, self::country_or_home($country)); // term '' -> all, ORDER BY name
+        foreach ($rows as $r) {
+            if (BGCouriers_Zones::is_sofia_name((string) ($r['name'] ?? ''), (string) ($r['name_lat'] ?? ''))) { continue; }
+            return (int) $r['city_id'];
+        }
+        // Nothing but the capital in the list: 0, meaning this courier has no out-of-Sofia route to
+        // measure. Handing Sofia back instead would file its price as the country one, and a checkout
+        // reads that figure before it knows where the parcel is going - so every customer in the country
+        // would be quoted the city tariff, and the shop would pay the difference on each of them.
+        return 0;
     }
+
+    /**
+     * The courier's own id for Sofia, or 0 when it does not list it.
+     *
+     * Searched by name rather than by post code: 1000 is the capital in Bulgaria and a Bucharest sector in
+     * Romania, and the name test is the one BGCouriers_Zones reads a destination with - the origin of a
+     * reference price and the destinations it will be read for have to agree about what Sofia is, or a
+     * shop would cache a zone nothing ever asks for. The post code is the fallback for a courier that
+     * spells the name in a way the test does not know yet; it is filtered through the same test, so a
+     * Romanian 1000 cannot answer.
+     */
+    public static function sofia_city(string $courier): int {
+        // Asked for by every reference route, both zones of it (the country one needs the id to avoid),
+        // so the lookup is remembered for the rest of the request - and forgotten by a sync that has just
+        // rewritten the towns it reads (a first sync runs in the same request as the seeding that follows
+        // it, and would otherwise seed every Sofia price against a town list that was empty when asked).
+        if (isset(self::$sofia_ids[$courier])) { return self::$sofia_ids[$courier]; }
+        self::$sofia_ids[$courier] = 0;
+        $home = BGCouriers_Settings::home_country();
+        foreach (BGCouriers_Nomenclature::search_cities($courier, 'София', 10, $home) as $r) {
+            if (BGCouriers_Zones::is_sofia_name((string) ($r['name'] ?? ''), (string) ($r['name_lat'] ?? ''))) {
+                return self::$sofia_ids[$courier] = (int) $r['city_id'];
+            }
+        }
+        $row = BGCouriers_Nomenclature::city_by_postcode($courier, '1000', $home);
+        if ($row && BGCouriers_Zones::is_sofia_name((string) ($row['name'] ?? ''), (string) ($row['name_lat'] ?? ''))) {
+            return self::$sofia_ids[$courier] = (int) $row['city_id'];
+        }
+        return 0;
+    }
+
+    /** Forget the remembered Sofia ids - a sync has just rewritten the towns they came from. */
+    public static function forget_sofia(): void { self::$sofia_ids = []; }
 
     /** '' = the shop's own country. Never "any country" - see first_city(). */
     private static function country_or_home(string $country): string {
@@ -25,32 +73,56 @@ class BGCouriers_Sync {
     }
 
     /**
-     * Reference shipment for a method, from the courier's first cached city + (for office/automat)
-     * a representative office of that city. Returns [] if the method can't be referenced yet.
+     * Reference shipment for a method in one price zone: a route inside Sofia, or one to the courier's
+     * first cached city outside it + (for office/automat) a representative office of that city.
+     * Returns [] if the method can't be referenced yet in that zone.
      */
-    public static function reference_shipment(string $courier, string $method, string $country = ''): array {
+    public static function reference_shipment(string $courier, string $method, string $country = '', string $zone = BGCouriers_Zones::DEFAULT_ZONE): array {
         $store   = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'EUR';
         $country = self::country_or_home($country);
+        // Zones are a home-country idea (see BGCouriers_Zones): abroad every reference route is simply
+        // "that country", and asking for its Sofia one would quote a Bulgarian route under a foreign label.
+        $zone  = BGCouriers_Settings::is_intl($country) ? BGCouriers_Zones::COUNTRY : BGCouriers_Zones::sanitize($zone);
         $base  = ['method' => $method, 'cod_amount' => 0.0, 'currency' => $store, 'country' => $country,
                   'weight_kg' => 2.0, 'length_cm' => 10, 'width_cm' => 10, 'height_cm' => 10];
+        // Sofia's own id is needed either way: as the route for its zone, and as the town the COUNTRY
+        // route must avoid.
+        $sofia = BGCouriers_Settings::is_intl($country) ? 0 : self::sofia_city($courier);
+        $want_sofia = $zone === BGCouriers_Zones::SOFIA;
+        // Asked for Sofia and the courier does not list it: no route, so no reference. Returning the
+        // country one instead would file a longer route's price under 'sofia', and every Sofia checkout
+        // would then read it as if it had been measured.
+        if ($want_sofia && $sofia <= 0) { return []; }
         if ($method === 'address') {
-            $city = self::first_city($courier, $country);
+            $city = $want_sofia ? $sofia : self::first_city($courier, $country);
             if ($city <= 0) { return []; }
             return array_merge($base, ['site_id' => $city, 'office_id' => 0, 'office_code' => '',
                                        'street_name' => 'Тест', 'street_no' => '1']);
         }
-        // office / automat - first office of that type, in the alphabetically-first city that has one
-        // (the first city overall is often a village with no Econtomat/locker).
-        $off = BGCouriers_Nomenclature::first_office($courier, $method, $country);
+        // office / automat - a representative office of that type: in Sofia for that zone, otherwise the
+        // first city alphabetically that has one (the first city overall is often a village with no
+        // Econtomat/locker). Sofia has offices and lockers of every kind, so the search there is the
+        // city's own list.
+        $off = $want_sofia
+            ? (BGCouriers_Nomenclature::offices($courier, $sofia, $method)[0] ?? [])
+            : (array) BGCouriers_Nomenclature::first_office($courier, $method, $country, $sofia);
         if (empty($off['office_id'])) { return []; }
-        return array_merge($base, ['site_id' => (int) $off['city_id'], 'office_id' => (int) $off['office_id'],
+        return array_merge($base, ['site_id' => (int) ($off['city_id'] ?? $sofia), 'office_id' => (int) $off['office_id'],
                                    'office_code' => (string) ($off['code'] ?? '')]);
     }
 
     /**
-     * Seed the reference (standard-rate fallback) prices per enabled delivery method, quoting the
-     * courier's first alphabetical city. Stored in BGCouriers_Rates and shown at checkout BEFORE the
-     * customer picks a destination; if a method can't be quoted the configured default price applies.
+     * Seed the reference (standard-rate fallback) prices per enabled delivery method AND price zone -
+     * one quote inside Sofia, one for a town outside it (BGCouriers_Zones). Stored in BGCouriers_Rates and
+     * shown at checkout BEFORE the customer picks a destination; if a method can't be quoted the
+     * configured default price applies.
+     *
+     * Two zones is twice the quotes: for seven couriers with three methods each that is 42 calls on the
+     * daily run instead of 21, spread over one cron event that nobody is waiting for. The checkout is what
+     * this buys - it reads a price measured for the zone the customer is actually in, so the number stops
+     * changing under them when they name their town.
+     *
+     * @return int How many prices were written (methods x zones that could be quoted).
      */
     public static function seed_rates(BGCouriers_Courier_Interface $courier, ?string &$failure = null): int {
         $id   = $courier->id();
@@ -59,33 +131,38 @@ class BGCouriers_Sync {
             static function ($m) use ($caps) { return in_array($m, $caps, true); }));
         $n = 0;
         foreach ($methods as $method) {
-            $shipment = self::reference_shipment($id, $method);
-            $store    = (string) ($shipment['currency'] ?? '');   // what this shop asked to be quoted in
-            if (!$shipment) { continue; }
-            try {
-                $q = $courier->quote($shipment);
-                // NET. This is read back as a shipping rate's cost, and a rate's cost is taxed by
-                // WooCommerce on top - storing the gross total charged the VAT twice.
-                //
-                // Stored with the currency the courier ANSWERED in, not the one it was asked for. They
-                // are normally the same - the shipment above names the shop's currency and every
-                // adapter passes it on - and where they are not, the row says what the number really
-                // is. Writing the shop's currency over a figure quoted in another one is precisely the
-                // fault this column exists to prevent. A row like that is unreadable to the shop by
-                // design, so it is worth a line saying why rather than a reference that silently never
-                // appears.
-                if ($q->currency !== '' && $store !== '' && $q->currency !== $store) {
-                    BGCouriers_Logger::debug('seed_rates: quoted in another currency, so this shop has no reference for it', [
-                        'courier' => $id, 'method' => $method, 'asked' => $store, 'answered' => $q->currency]);
+            foreach (BGCouriers_Zones::all() as $zone) {
+                $shipment = self::reference_shipment($id, $method, '', $zone);
+                $store    = (string) ($shipment['currency'] ?? '');   // what this shop asked to be quoted in
+                // A zone with no route of its own is skipped, not filled in from the other one: a courier that
+                // does not list Sofia has no Sofia price, and BGCouriers_Rates::get says so by falling back to
+                // the country figure at read time, where the fallback is visible.
+                if (!$shipment) { continue; }
+                try {
+                    $q = $courier->quote($shipment);
+                    // NET. This is read back as a shipping rate's cost, and a rate's cost is taxed by
+                    // WooCommerce on top - storing the gross total charged the VAT twice.
+                    //
+                    // Stored with the currency the courier ANSWERED in, not the one it was asked for. They
+                    // are normally the same - the shipment above names the shop's currency and every
+                    // adapter passes it on - and where they are not, the row says what the number really
+                    // is. Writing the shop's currency over a figure quoted in another one is precisely the
+                    // fault this column exists to prevent. A row like that is unreadable to the shop by
+                    // design, so it is worth a line saying why rather than a reference that silently never
+                    // appears.
+                    if ($q->currency !== '' && $store !== '' && $q->currency !== $store) {
+                        BGCouriers_Logger::debug('seed_rates: quoted in another currency, so this shop has no reference for it', [
+                            'courier' => $id, 'method' => $method, 'asked' => $store, 'answered' => $q->currency]);
+                    }
+                    BGCouriers_Rates::set($id, $method, $zone, $q->price, $q->currency);
+                    $n++;
+                } catch (\Throwable $e) {
+                    // The first refusal, for the caller that wants to say why there are no rates: a
+                    // nomenclature that synced beside quotes a courier refused is "0 rates" in green
+                    // otherwise, which is what a wrong password looked like on the settings screen.
+                    if ($failure === null) { $failure = $e->getMessage(); }
+                    BGCouriers_Logger::debug('seed_rates: quote failed', ['courier' => $id, 'method' => $method, 'zone' => $zone, 'err' => $e->getMessage()]);
                 }
-                BGCouriers_Rates::set($id, $method, $q->price, $q->currency);
-                $n++;
-            } catch (\Throwable $e) {
-                // The first refusal, for the caller that wants to say why there are no rates: a
-                // nomenclature that synced beside quotes a courier refused is "0 rates" in green
-                // otherwise, which is what a wrong password looked like on the settings screen.
-                if ($failure === null) { $failure = $e->getMessage(); }
-                BGCouriers_Logger::debug('seed_rates: quote failed', ['courier' => $id, 'method' => $method, 'err' => $e->getMessage()]);
             }
         }
         return $n;
@@ -155,7 +232,7 @@ class BGCouriers_Sync {
         }
         // One table came back and the other threw: a run that did its half, and says which half it did not.
         if ($failed) { $out['warning'] = $failed[0]; }
-        if ($cities)  { $out['cities']  = BGCouriers_Nomenclature::upsert_cities($id, $cities, $run); }
+        if ($cities)  { $out['cities']  = BGCouriers_Nomenclature::upsert_cities($id, $cities, $run); self::forget_sofia(); }
         if ($offices) { $out['offices'] = BGCouriers_Nomenclature::upsert_offices($id, $offices, $run); }
         // Rows are written a few hundred at a time, so a statement the database refuses takes a whole
         // batch with it - and the prune below deletes exactly what this run did not write. A short write
@@ -189,7 +266,7 @@ class BGCouriers_Sync {
         // (BGCouriers_Ajax::city_offices), so a new one retires all of them at once.
         update_option('bgcouriers_nomgen_' . $id, $run);
 
-        $out['rates'] = self::seed_rates($courier, $rate_failure); // reference price per method, first city
+        $out['rates'] = self::seed_rates($courier, $rate_failure); // reference price per method AND zone
         if ($out['rates'] === 0 && $rate_failure !== null && !isset($out['warning'])) { $out['warning'] = $rate_failure; }
         return $out;
     }

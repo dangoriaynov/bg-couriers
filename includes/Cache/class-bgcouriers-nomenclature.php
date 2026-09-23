@@ -322,13 +322,20 @@ class BGCouriers_Nomenclature {
      * First office of a type, in the alphabetically-first city that has one (reference origin for
      * office/automat). With a country, the first one THERE - a reference price for Romania quoted
      * against a Bulgarian office is a Bulgarian price with a Romanian label on it.
+     *
+     * $exclude_city is how the price zones keep their routes apart (BGCouriers_Zones): the "outside Sofia"
+     * reference must not be measured to an office IN Sofia, and offices sort by city name, so the capital
+     * can perfectly well come first - it does for every courier whose city list starts alphabetically
+     * above it. Without this the country zone and the Sofia zone would cache the same journey twice and
+     * the cheaper price would be advertised to the whole country.
      */
-    public static function first_office(string $courier, string $type, string $country = ''): ?array {
+    public static function first_office(string $courier, string $type, string $country = '', int $exclude_city = 0): ?array {
         global $wpdb; $o = $wpdb->prefix . 'bgcouriers_offices'; $c = $wpdb->prefix . 'bgcouriers_cities';
         $args = [$courier, $type];
         $sql  = "SELECT o.office_id,o.country,o.code,o.city_id,o.type,o.name,o.address FROM {$o} o
              JOIN {$c} c ON c.courier=o.courier AND c.city_id=o.city_id
              WHERE o.courier=%s AND o.type=%s";
+        if ($exclude_city > 0) { $sql .= ' AND o.city_id<>%d'; $args[] = $exclude_city; }
         $sql .= self::country_sql($country, $args, 'o.country');
         $row = $wpdb->get_row($wpdb->prepare($sql . ' ORDER BY c.name LIMIT 1', ...$args), ARRAY_A);
         return $row ?: null;

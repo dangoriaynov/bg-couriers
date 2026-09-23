@@ -34,7 +34,7 @@ final class PricingTest extends WP_UnitTestCase {
         $this->assertEqualsWithDelta(4.0, $q->price, 0.001);
     }
     public function test_falls_back_to_cached_standard_rate(): void {
-        BGCouriers_Rates::set('speedy', 'office', 7.5, get_woocommerce_currency());
+        BGCouriers_Rates::set('speedy', 'office', BGCouriers_Zones::COUNTRY, 7.5, get_woocommerce_currency());
         $q = BGCouriers_Pricing::quote($this->courier(true), ['method'=>'office']);
         $this->assertSame('standard', $q->source);
         $this->assertEqualsWithDelta(7.5, $q->total(), 0.001);
@@ -57,7 +57,7 @@ final class PricingTest extends WP_UnitTestCase {
         $this->assertEqualsWithDelta(3.20, $q->price, 0.001);
     }
     public function test_no_live_quote_capability_uses_cache(): void {
-        BGCouriers_Rates::set('speedy', 'office', 9.0, get_woocommerce_currency());
+        BGCouriers_Rates::set('speedy', 'office', BGCouriers_Zones::COUNTRY, 9.0, get_woocommerce_currency());
         $fake = new class implements BGCouriers_Courier_Interface {
             public function id(): string { return 'speedy'; }
             public function label(): string { return 'Speedy'; }
