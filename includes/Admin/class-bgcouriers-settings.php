@@ -384,6 +384,27 @@ class BGCouriers_Settings {
         return get_option('bgcouriers_own_address_fields', 'yes') === 'yes';
     }
     /**
+     * Where the destination picker (town, office, locker, street) is shown at checkout.
+     *
+     * 'rate' - under the courier's own shipping rate, where WooCommerce keeps the rates: the order-review
+     * table, at the bottom of the page. That is where it has always been, and it stays the default because
+     * the picker belongs to a rate and reads as part of it.
+     *
+     * 'details' - under the customer's own details, right after the phone. On a shop with checkout add-ons
+     * ("extras"), gift options or a long totals table, the rates sit below all of it, so the one field the
+     * customer has to fill in for the parcel to arrive is the last thing they reach - after everything
+     * optional. This puts it with the rest of what the order needs from them; the rate radios and the
+     * price stay in the table.
+     *
+     * Classic checkout only. The block checkout renders in React over the Store API and fires none of
+     * WooCommerce's form hooks (see BGCouriers_Blocks), so there is nothing to print the host into and it
+     * keeps the picker with its rate - which is what the setting's own description says on the screen.
+     */
+    public static function picker_position(): string {
+        $v = (string) get_option('bgcouriers_picker_position', 'rate');
+        return in_array($v, ['rate', 'details'], true) ? $v : 'rate';
+    }
+    /**
      * Whether WooCommerce's cart shipping calculator (Country / Region / City / Postcode) is hidden.
      *
      * ON by default for the same reason: it prices a delivery to a postcode, while every rate here is

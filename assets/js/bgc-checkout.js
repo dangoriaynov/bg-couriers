@@ -856,6 +856,26 @@
     });
   }
 
+  /**
+   * Move the chosen courier's picker up under the customer's own details, when the shop asks for that
+   * (BGCouriers_Settings::picker_position).
+   *
+   * The block is always RENDERED with its shipping rate, inside the order-review table, because it shows
+   * the session's current selection and that table is what WooCommerce replaces whenever anything changes.
+   * So every recalculation hands us a fresh block in the table and a stale one in the host; this puts the
+   * fresh one in place and drops what was there before, in that order, so the customer never sees two.
+   *
+   * Done BEFORE the fields are built: selectWoo measures the box it is initialised in, and a dropdown
+   * initialised inside a table cell and then moved opens at the width of the cell.
+   */
+  function relocate($wrap) {
+    if (!BGCOURIERS || BGCOURIERS.pickerPosition !== 'details') { return; }
+    var $host = $('#bgcouriers-picker-host');
+    if (!$host.length || $wrap.parent().is($host)) { return; }
+    $host.children('.bgc-fields').not($wrap).remove();
+    $host.append($wrap);
+  }
+
   // Fade the chosen courier's fields in once they are fully built, instead of flashing raw selects on load.
   // Only reveals the first time (persists across totals refreshes); re-reveals when you switch couriers.
   function reveal($wrap) {
@@ -958,6 +978,7 @@
       var mine = $wrap.attr('data-courier') === chosen;
       if (!mine) { $wrap.hide().removeClass('bgc-ready'); return; } // hide (and re-arm) the other couriers' fields
       $wrap.show(); // show only the chosen courier's fields (multiple couriers can share a zone)
+      relocate($wrap);
       renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); autoPickSingle($wrap); hideLoader($wrap);
       reapplyStreetNote($wrap);
       reveal($wrap);
