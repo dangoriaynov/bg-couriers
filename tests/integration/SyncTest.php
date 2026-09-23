@@ -38,12 +38,22 @@ final class SyncTest extends WP_UnitTestCase {
         $r1 = BGCouriers_Sync::run($courier);
         $this->assertSame(2, $r1['cities']);
         $this->assertSame(3, $r1['offices']); // 2 offices + 1 automat, one bulk call
-        $this->assertSame(3, $r1['rates']); // address + office + automat, each from the first city (Sofia) + its representative office
+        // Five, not six: three methods x two price zones (BGCouriers_Zones), less the one pair that has no
+        // route. Sofia (city 1) has an office AND an automat, so both of its zones can be quoted; outside
+        // it there is only Varna's office, so `automat` has no country route and is skipped rather than
+        // filled in from the Sofia one. The address zones quote to Sofia and to Varna respectively - the
+        // country reference must never be measured inside the capital, which is the cheaper tariff.
+        $this->assertSame(5, $r1['rates']);
         // NET, not the 6.00 gross this once expected: a reference rate is read back as a shipping
         // cost, and WooCommerce taxes a shipping cost on top - storing the gross charged the VAT twice
         // (fixed in 0.3.5; this expectation was left behind).
-        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','office',get_woocommerce_currency()), 0.001);
-        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','automat',get_woocommerce_currency()), 0.001);
+        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','office', BGCouriers_Zones::COUNTRY,get_woocommerce_currency()), 0.001);
+        // 'automat' has no route outside Sofia here, so its country row was never written - and the read
+        // says so by handing back the country figure's absence, not the Sofia price it does have.
+        $this->assertNull(BGCouriers_Rates::get('speedy','automat', BGCouriers_Zones::COUNTRY, get_woocommerce_currency()),
+            'an automat outside Sofia is not something this courier offers, so there is no country price to read');
+        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','automat', BGCouriers_Zones::SOFIA, get_woocommerce_currency()), 0.001);
+        $this->assertEqualsWithDelta(5.0, BGCouriers_Rates::get('speedy','office', BGCouriers_Zones::SOFIA, get_woocommerce_currency()), 0.001);
 
         // Second run: Varna gone -> pruned.
         $courier->cities = [['city_id'=>1,'name'=>'Sofia','name_lat'=>'Sofia','post_code'=>'1000','region'=>'Sofia']];

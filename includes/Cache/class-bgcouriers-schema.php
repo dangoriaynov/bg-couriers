@@ -59,11 +59,32 @@ class BGCouriers_Schema {
  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
  courier VARCHAR(20) NOT NULL,
  method VARCHAR(10) NOT NULL,
+ zone VARCHAR(10) NOT NULL DEFAULT 'country',
  price DECIMAL(10,2) NOT NULL,
  currency VARCHAR(3) NOT NULL DEFAULT 'BGN',
  updated_at DATETIME NULL,
  PRIMARY KEY  (id),
- UNIQUE KEY courier_method (courier, method)
+ UNIQUE KEY courier_method_zone (courier, method, zone)
 ) {$charset};");
+        self::retire_index($p . 'bgcouriers_standard_rates', 'courier_method');
+    }
+
+    /**
+     * Drop an index this schema no longer describes.
+     *
+     * dbDelta adds what is missing and never removes what is not: given the table above it creates
+     * `courier_method_zone` and leaves the old `UNIQUE KEY (courier, method)` in place - which is the one
+     * key that makes the new one pointless, because it still allows a single row per courier and method.
+     * The second zone's price would replace the first zone's on every seeding run, silently, and the
+     * checkout would read back whichever zone was quoted last. Every row that predates the `zone` column
+     * takes its DEFAULT, 'country', which is what those figures were: quoted against a town outside Sofia.
+     */
+    private static function retire_index(string $table, string $index): void {
+        global $wpdb;
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- schema work on our own table; names are literals from this file
+        $have = $wpdb->get_var($wpdb->prepare("SHOW INDEX FROM {$table} WHERE Key_name = %s", $index));
+        if ($have === null) { return; }
+        $wpdb->query("ALTER TABLE {$table} DROP INDEX `{$index}`");
+        // phpcs:enable
     }
 }

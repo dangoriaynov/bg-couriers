@@ -13,6 +13,14 @@
 .bgc-fields label::before, .bgc-fields label::marker,
 .bgc-fields .bgc-field::before, .bgc-fields .bgc-field::marker { content: none !important; display: none !important; }
 
+/* The picker moved up under the customer's details (bgc-checkout.js relocate()). In the order-review
+   table the block sits in a cell that gives it its spacing; standing on its own in the form it needs
+   its own, and a rule above it so it reads as a section of the form rather than as part of the phone
+   field above. Empty until the browser fills it, so nothing shows on a shop where no courier is chosen. */
+.bgc-picker-host:empty { display: none; }
+.bgc-picker-host { margin: 18px 0 6px; padding-top: 14px; border-top: 1px solid #e2e6ea; }
+.bgc-picker-host > .bgc-fields { margin: 0; }
+
 /* Delivery-type tabs */
 .bgc-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .bgc-tab { flex: 1 1 auto; min-width: 92px; padding: 9px 12px; border: 1px solid #e2e6ea; border-radius: 10px;

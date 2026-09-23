@@ -539,7 +539,12 @@ class BGCouriers_Pricing {
         if (($mode === 'fixed' || $mode === 'fallback') && $default > 0) {
             return new BGCouriers_Quote(round($default, 2), 0.0, $store, 'fixed');
         }
-        $cached = BGCouriers_Rates::get($courier->id(), $method, $store);
+        // The zone the parcel is actually going to, not the one a checkout shows before it knows: a
+        // Sofia destination whose live quote failed falls back to the Sofia reference, and everything
+        // else to the country one. Before the zone column there was a single row per courier and method,
+        // and whichever village the last sync quoted was the price a failed Sofia quote fell back to.
+        $zone   = BGCouriers_Zones::for_shipment($courier->id(), $shipment);
+        $cached = BGCouriers_Rates::get($courier->id(), $method, $zone, $store);
         if ($cached !== null) { return new BGCouriers_Quote($cached, 0.0, $store, 'standard'); }
         $amount = $default > 0 ? $default : 6.99;
         return new BGCouriers_Quote(round($amount, 2), 0.0, $store, 'flat');
@@ -565,9 +570,17 @@ class BGCouriers_Pricing {
         return max(0.5, ceil($weight_kg * 2) / 2);
     }
 
-    /** Transient key for a reference price. Carries the weight, or a heavy cart reads a light one's price. */
-    public static function reference_key(string $courier, string $method, float $weight_kg, float $cod = 0.0, string $country = '', string $currency = ''): string {
+    /**
+     * Transient key for a reference price. Carries the weight, or a heavy cart reads a light one's price.
+     *
+     * And the zone, for the same reason: the two are different prices for the same parcel, so one key for
+     * both would hand a Sofia figure to a customer in Varna, or the reverse - which is the price jump this
+     * pair of zones exists to remove, moved from the checkout into the cache. The COUNTRY zone keeps the
+     * bare key it always had, so a shop updating the plugin does not re-quote every cart it has cached.
+     */
+    public static function reference_key(string $courier, string $method, float $weight_kg, float $cod = 0.0, string $country = '', string $currency = '', string $zone = BGCouriers_Zones::DEFAULT_ZONE): string {
         return 'bgcouriers_ref_' . $courier . '_' . $method . '_' . str_replace('.', '', (string) self::reference_weight($weight_kg))
+             . ($zone === BGCouriers_Zones::COUNTRY ? '' : '_' . $zone)
              . ($cod > 0 ? '_cod' . str_replace('.', '', (string) round($cod, 2)) : '')
              // Home keeps the bare key it always had; another country gets its own, or the two would
              // read each other's price out of the cache.
@@ -588,15 +601,15 @@ class BGCouriers_Pricing {
      * Returns null when the courier cannot be quoted at all, so the caller falls back to the old daily
      * figure rather than showing nothing.
      */
-    private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency, string $country = ''): ?array {
+    private static function reference_for_weight(BGCouriers_Courier_Interface $courier, string $method, array $packed, string $currency, string $country = '', string $zone = BGCouriers_Zones::DEFAULT_ZONE): ?array {
         $w    = self::reference_weight((float) ($packed['weight_kg'] ?? 0));
         $cod  = self::cart_cod_amount($courier->id(), $method);
-        $tkey = self::reference_key($courier->id(), $method, $w, $cod, $country, $currency);
+        $tkey = self::reference_key($courier->id(), $method, $w, $cod, $country, $currency, $zone);
         $hit  = get_transient($tkey);
         // 't' ?? 0: an entry written before the tax was kept has only a price, and reads back as net.
         if (is_array($hit) && isset($hit['p'])) { return ['p' => (float) $hit['p'], 't' => (float) ($hit['t'] ?? 0)]; }
         if (!class_exists('BGCouriers_Sync')) { return null; }
-        $ref = BGCouriers_Sync::reference_shipment($courier->id(), $method, $country);
+        $ref = BGCouriers_Sync::reference_shipment($courier->id(), $method, $country, $zone);
         if (!$ref) { return null; }
         // The route stays the reference one - there is no destination yet, that is the whole situation -
         // and only the parcel becomes the customer's: their weight, and their box, since a courier
@@ -629,7 +642,7 @@ class BGCouriers_Pricing {
         return $entry;
     }
 
-    public static function estimate(string $courier, string $method): ?float {
+    public static function estimate(string $courier, string $method, string $zone = BGCouriers_Zones::DEFAULT_ZONE): ?float {
         $mc = BGCouriers_Settings::method_config($courier, $method);
         // 'fixed' mode shows its fixed price everywhere; otherwise the daily cached reference, then the default.
         if (BGCouriers_Settings::price_mode($courier, $method) === 'fixed') {
@@ -638,7 +651,7 @@ class BGCouriers_Pricing {
         // In today's currency, or not at all - see BGCouriers_Rates::get. A row from before a shop
         // changed currency is not a price to show beside a courier's name.
         $store  = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : '';
-        $cached = BGCouriers_Rates::get($courier, $method, $store);
+        $cached = BGCouriers_Rates::get($courier, $method, $zone, $store);
         if ($cached !== null) { return (float) $cached; }
         return $mc['price'] > 0 ? (float) $mc['price'] : null;
     }

@@ -7,12 +7,19 @@ defined('ABSPATH') || exit;
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name is $wpdb->prefix, not user input; this class IS the cache
 
 class BGCouriers_Rates {
-    public static function set(string $courier, string $method, float $price, string $currency): void {
+    /**
+     * A reference price for one courier, method and price zone (BGCouriers_Zones).
+     *
+     * The zone is required and not defaulted for the same reason the currency is not: a caller that does
+     * not know which zone it measured has written down a number nobody can read back safely, and the
+     * cheaper of the two zones is exactly the wrong thing to guess.
+     */
+    public static function set(string $courier, string $method, string $zone, float $price, string $currency): void {
         global $wpdb; $t = $wpdb->prefix . 'bgcouriers_standard_rates';
         $wpdb->query($wpdb->prepare(
-            "INSERT INTO {$t} (courier,method,price,currency,updated_at) VALUES (%s,%s,%f,%s,NOW())
+            "INSERT INTO {$t} (courier,method,zone,price,currency,updated_at) VALUES (%s,%s,%s,%f,%s,NOW())
              ON DUPLICATE KEY UPDATE price=VALUES(price),currency=VALUES(currency),updated_at=NOW()",
-            $courier, $method, $price, $currency));
+            $courier, $method, BGCouriers_Zones::sanitize($zone), $price, $currency));
     }
     /**
      * The daily reference price, or null when there is not one IN THIS CURRENCY.
@@ -27,11 +34,18 @@ class BGCouriers_Rates {
      * The currency is required and not defaulted on purpose: a caller that does not know which currency
      * it is asking about has no business being handed a price.
      */
-    public static function get(string $courier, string $method, string $currency): ?float {
+    public static function get(string $courier, string $method, string $zone, string $currency): ?float {
         global $wpdb;
         $v = $wpdb->get_var($wpdb->prepare(
-            "SELECT price FROM {$wpdb->prefix}bgcouriers_standard_rates WHERE courier=%s AND method=%s AND currency=%s",
-            $courier, $method, $currency));
+            "SELECT price FROM {$wpdb->prefix}bgcouriers_standard_rates WHERE courier=%s AND method=%s AND zone=%s AND currency=%s",
+            $courier, $method, BGCouriers_Zones::sanitize($zone), $currency));
+        // A site that has not re-seeded since the zone column arrived has one row per courier and method,
+        // carrying the DEFAULT zone - so a Sofia read finds nothing until the daily run fills it in. The
+        // country figure is the honest stand-in for it: quoted for a longer route, so never the cheaper of
+        // the two, and it is what this site was already showing for Sofia yesterday.
+        if ($v === null && $zone !== BGCouriers_Zones::COUNTRY) {
+            return self::get($courier, $method, BGCouriers_Zones::COUNTRY, $currency);
+        }
         return $v === null ? null : (float) $v;
     }
 }
