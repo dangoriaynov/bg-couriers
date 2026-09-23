@@ -20,14 +20,16 @@ fi
 : "${BGC_SSH_PORT:=22}"
 
 case "$TARGET" in
-  dev)  DEST="${BGC_DEV_PATH:?set BGC_DEV_PATH in bin/deploy.conf}"; LXC="${BGC_LXC_DEV:-}"; OWNER="${BGC_DEV_OWNER:-}";;
-  prod) DEST="${BGC_PROD_PATH:?set BGC_PROD_PATH in bin/deploy.conf}"; LXC="${BGC_LXC_PROD:-}"; OWNER="${BGC_PROD_OWNER:-}";
+  dev)  DEST="${BGC_DEV_PATH:?set BGC_DEV_PATH in bin/deploy.conf}"; LXC="${BGC_LXC_DEV:-}"; OWNER="${BGC_DEV_OWNER:-}"
+        LXC_HOST="${BGC_LXC_DEV_HOST:-${BGC_LXC_HOST:-}}"; LXC_PORT="${BGC_LXC_DEV_PORT:-${BGC_LXC_PORT:-22}}";;
+  prod) DEST="${BGC_PROD_PATH:?set BGC_PROD_PATH in bin/deploy.conf}"; LXC="${BGC_LXC_PROD:-}"; OWNER="${BGC_PROD_OWNER:-}"
+        LXC_HOST="${BGC_LXC_HOST:-}"; LXC_PORT="${BGC_LXC_PORT:-22}";
         read -p "Deploy to PROD (${LXC:-$BGC_SSH_HOST})? type yes: " c; [ "$c" = yes ] || exit 1;;
   *) echo "usage: deploy.sh dev|prod"; exit 1;;
 esac
 # A container route that is half-configured must not quietly fall back to the SSH one: that is how a
 # deploy lands on the machine nobody is looking at, which is exactly what happened when dev moved.
-if [ -n "${BGC_LXC_HOST:-}" ] && [ -z "$LXC" ]; then
+if [ -n "$LXC_HOST" ] && [ -z "$LXC" ]; then
   echo "BGC_LXC_HOST is set but no container is named for '$TARGET' - set BGC_LXC_DEV / BGC_LXC_PROD" >&2
   exit 1
 fi
@@ -72,7 +74,7 @@ EXCLUDES=(
 # every file carrying an xattr, and GNU tar on the other side unpacks them as files.
 export COPYFILE_DISABLE=1
 
-if [ -n "${BGC_LXC_HOST:-}" ]; then
+if [ -n "$LXC_HOST" ]; then
   # The sites live in LXC containers that do not take our SSH key, so the way in is the host that holds
   # them. rsync cannot speak `lxc exec`, so the tree goes over as a tar and is unpacked into a sibling
   # directory first - then one rsync INSIDE the container swaps it in with --delete. The plugin is never
@@ -99,7 +101,7 @@ rm -rf \"\$T\""
 chown -R ${OWNER} \"${DEST}\""
   fi
   tar czf - "${EXCLUDES[@]}" . \
-    | ssh -o ConnectTimeout=25 -p "${BGC_LXC_PORT:-22}" "$BGC_LXC_HOST" "lxc exec ${LXC} -- bash -c $(printf '%q' "$REMOTE")"
+    | ssh -o ConnectTimeout=25 -p "$LXC_PORT" "$LXC_HOST" "lxc exec ${LXC} -- bash -c $(printf '%q' "$REMOTE")"
   echo "Synced to ${TARGET} (${LXC}). Activate via wp-admin."
 else
   rsync -az --delete "${EXCLUDES[@]}" -e "ssh -p ${BGC_SSH_PORT}" ./ "${BGC_SSH_HOST}:${DEST}"

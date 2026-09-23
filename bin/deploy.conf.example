@@ -34,3 +34,6 @@ BGC_DB_PREFIX="wp_"                               # WordPress table prefix on th
 # wrong one reports success and changes nothing anybody can see. Name the port, and the target is a
 # decision rather than a default.
 #BGC_LXC_PORT=22
+# When dev lives on a different machine from prod, give it its own way in (defaults to the two above):
+#BGC_LXC_DEV_HOST="user@10.0.0.2"
+#BGC_LXC_DEV_PORT=22
