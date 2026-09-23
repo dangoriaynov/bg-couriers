@@ -857,23 +857,36 @@
   }
 
   /**
-   * Move the chosen courier's picker up under the customer's own details, when the shop asks for that
-   * (BGCouriers_Settings::picker_position).
+   * Move the WHOLE delivery block up under the customer's own details, when the shop asks for that
+   * (BGCouriers_Settings::delivery_position).
    *
-   * The block is always RENDERED with its shipping rate, inside the order-review table, because it shows
-   * the session's current selection and that table is what WooCommerce replaces whenever anything changes.
-   * So every recalculation hands us a fresh block in the table and a stale one in the host; this puts the
-   * fresh one in place and drops what was there before, in that order, so the customer never sees two.
+   * The whole block, never the fields alone. Moving only the pickers left a town and an office box
+   * standing under the e-mail field with no courier name, no price and nothing to say what they were
+   * for, while the courier they belonged to stayed at the bottom of the page: the two halves of one
+   * question, a screen apart. WooCommerce already renders each courier as a row that CONTAINS its own
+   * fields (woocommerce_after_shipping_rate puts them inside the rate's <li>), so moving the list moves
+   * every label and price with it and keeps the fields inside the row they belong to.
+   *
+   * What moves: the map shortcut, the courier list, and WooCommerce's own "delivering to" note - every
+   * row the order review gives to delivery. The rows they came from are hidden, not emptied, because
+   * the table rebuilds them on the next recalculation.
    *
    * Done BEFORE the fields are built: selectWoo measures the box it is initialised in, and a dropdown
    * initialised inside a table cell and then moved opens at the width of the cell.
    */
-  function relocate($wrap) {
-    if (!BGCOURIERS || BGCOURIERS.pickerPosition !== 'details') { return; }
-    var $host = $('#bgcouriers-picker-host');
-    if (!$host.length || $wrap.parent().is($host)) { return; }
-    $host.children('.bgc-fields').not($wrap).remove();
-    $host.append($wrap);
+  function relocateDelivery() {
+    if (!BGCOURIERS || BGCOURIERS.deliveryPosition !== 'details') { return; }
+    var $host = $('#bgcouriers-delivery-host');
+    if (!$host.length) { return; }
+    var $rows = $('tr.bgc-allmap-open, tr.woocommerce-shipping-totals, tr.shipping');
+    // No such rows: a theme that lays its checkout out some other way than WooCommerce's totals table.
+    // Nothing is moved and the block stays where it was rendered, which is a working checkout.
+    if (!$rows.length) { return; }
+    var $moving = $rows.children('td').children();
+    // Nothing to move means the table has not been rebuilt since the last move and everything is in the
+    // host already - emptying it here would delete the only copy there is.
+    if ($moving.length) { $host.empty().append($moving); }
+    $rows.addClass('bgc-moved-away');
   }
 
   // Fade the chosen courier's fields in once they are fully built, instead of flashing raw selects on load.
@@ -902,6 +915,9 @@
     var wide = window.matchMedia('(min-width: 783px)').matches;
     $('tr.woocommerce-shipping-totals, tr.shipping').each(function () {
       var $tr = $(this), $th = $tr.children('th'), $td = $tr.children('td');
+      // Moved out from under the table: the row is hidden and empty, and giving it a colspan is work
+      // done on a row nobody sees.
+      if ($tr.hasClass('bgc-moved-away')) { return; }
       if ($th.length !== 1 || $td.length !== 1 || $.trim($th.text()) !== '') { return; }
       var cols = 0;
       $tr.closest('table').find('tr').each(function () {
@@ -968,6 +984,7 @@
   $(document.body).on('input', '.bgc-fields .bgc-street-no', function () { clearInvalid(this); });
 
   $(document.body).on('updated_checkout', function () {
+    relocateDelivery();
     spanShippingRow();
     dimRates();
     markInvalid();
@@ -978,7 +995,6 @@
       var mine = $wrap.attr('data-courier') === chosen;
       if (!mine) { $wrap.hide().removeClass('bgc-ready'); return; } // hide (and re-arm) the other couriers' fields
       $wrap.show(); // show only the chosen courier's fields (multiple couriers can share a zone)
-      relocate($wrap);
       renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); autoPickSingle($wrap); hideLoader($wrap);
       reapplyStreetNote($wrap);
       reveal($wrap);
