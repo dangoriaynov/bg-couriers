@@ -43,13 +43,13 @@ final class InternationalPricingTest extends WP_UnitTestCase {
     }
 
     public function test_a_failed_domestic_quote_still_falls_back(): void {
-        BGCouriers_Rates::set('speedy', 'office', 3.50, get_woocommerce_currency());
+        BGCouriers_Rates::set('speedy', 'office', BGCouriers_Zones::COUNTRY, 3.50, get_woocommerce_currency());
         $q = BGCouriers_Pricing::quote($this->stub(true), ['method' => 'office', 'country' => 'BG']);
         $this->assertEqualsWithDelta(3.50, $q->price, 0.01, 'home keeps every fallback it had');
     }
 
     public function test_a_failed_international_quote_has_nothing_to_fall_back_to(): void {
-        BGCouriers_Rates::set('speedy', 'office', 3.50, get_woocommerce_currency());
+        BGCouriers_Rates::set('speedy', 'office', BGCouriers_Zones::COUNTRY, 3.50, get_woocommerce_currency());
         $this->expectException(BGCouriers_Api_Exception::class);
         BGCouriers_Pricing::quote($this->stub(true), ['method' => 'office', 'country' => 'RO']);
     }

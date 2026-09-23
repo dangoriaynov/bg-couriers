@@ -33,7 +33,7 @@ final class PricingCheckoutQuoteTest extends WP_UnitTestCase {
     }
 
     public function test_no_destination_uses_reference_without_a_live_call(): void {
-        BGCouriers_Rates::set('speedy', 'office', 3.50, get_woocommerce_currency());
+        BGCouriers_Rates::set('speedy', 'office', BGCouriers_Zones::COUNTRY, 3.50, get_woocommerce_currency());
         $c = $this->stub();
         $q = BGCouriers_Pricing::checkout_quote($c, 'office', 0, 0, ['weight_kg' => 1.0], 'EUR');
         $this->assertFalse($c->quote_called, 'must not call the courier API before a city is chosen');
