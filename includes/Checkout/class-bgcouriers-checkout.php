@@ -30,6 +30,10 @@ class BGCouriers_Checkout {
     public function __construct() {
         add_action('woocommerce_after_shipping_rate', [$this, 'render_fields'], 10, 2);
         add_action('woocommerce_review_order_before_shipping', [$this, 'render_allmap_button']);
+        // An empty anchor after the billing fields - the phone is the last of them on a shop using the
+        // plugin's own address fields. Printed only for the setting that asks for it, and filled by the
+        // browser, so a shop that leaves the picker with its rate gets no extra markup at all.
+        add_action('woocommerce_after_checkout_billing_form', [$this, 'render_picker_host'], 5);
         add_action('wp_enqueue_scripts', [$this, 'assets']);
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
@@ -1082,6 +1086,11 @@ class BGCouriers_Checkout {
             // on delivery radio still sitting under it, chose it, and was refused after pressing Order.
             'codGateways' => self::cod_gateway_ids(),
             'addressMap' => get_option('bgcouriers_address_map', 'no') === 'yes',
+            // Where the chosen courier's picker is shown: with its rate, or moved up under the customer's
+            // own details (BGCouriers_Settings::picker_position). The block is RENDERED with the rate
+            // either way - it is stateful, and the order-review table is what WooCommerce re-renders when
+            // anything changes - so the move is the browser's job, into the empty host below.
+            'pickerPosition' => BGCouriers_Settings::picker_position(),
             // The Google Maps key is deliberately NOT sent to the browser: nothing here loads a Google
             // map, and the key is only ever used server-side, for the reverse geocode in
             // BGCouriers_Ajax::geocode(). Localising it printed the merchant's key in the page source of
@@ -1165,6 +1174,20 @@ class BGCouriers_Checkout {
             wp_add_inline_style('bgc-checkout', '#billing_country_field,#shipping_country_field{display:none !important;}');
         }
     }
+    /**
+     * The empty box the destination picker is moved into (see bgc-checkout.js).
+     *
+     * Empty on purpose. The picker itself has to be rendered where WooCommerce renders shipping rates,
+     * because it carries the session's current selection and the order-review table is what gets replaced
+     * on every recalculation - render it here as well and there would be two of them, disagreeing. So the
+     * server says where it belongs and the browser puts it there.
+     */
+    public function render_picker_host(): void {
+        if (BGCouriers_Settings::picker_position() !== 'details') { return; }
+        if (function_exists('is_checkout') && !is_checkout()) { return; }
+        echo '<div class="bgc-picker-host" id="bgcouriers-picker-host"></div>';
+    }
+
     public function render_fields($method, $index): void {
         if (strpos((string) $method->get_method_id(), 'bgcouriers_') !== 0) { return; }
         // The interactive pickers belong to checkout (their JS/CSS only load there). On the cart page keep

@@ -127,18 +127,18 @@ final class PriceCarriesItsCurrencyTest extends WP_UnitTestCase {
      * price is what should be shown instead of a number in the wrong unit.
      */
     public function test_a_reference_row_in_another_currency_is_not_a_price(): void {
-        BGCouriers_Rates::set('speedy', 'office', 7.50, 'BGN');
+        BGCouriers_Rates::set('speedy', 'office', BGCouriers_Zones::COUNTRY, 7.50, 'BGN');
         $this->currency = 'EUR';
 
-        $this->assertNull(BGCouriers_Rates::get('speedy', 'office', 'EUR'),
+        $this->assertNull(BGCouriers_Rates::get('speedy', 'office', BGCouriers_Zones::COUNTRY, 'EUR'),
             'a lev row is not a euro price');
-        $this->assertEqualsWithDelta(7.50, (float) BGCouriers_Rates::get('speedy', 'office', 'BGN'), 0.01,
+        $this->assertEqualsWithDelta(7.50, (float) BGCouriers_Rates::get('speedy', 'office', BGCouriers_Zones::COUNTRY, 'BGN'), 0.01,
             'and it is still exactly the lev price it always was');
     }
 
     /** What the cart and the settings screen show comes from that table, so it must not show it either. */
     public function test_the_estimate_shown_before_a_town_is_chosen_is_in_todays_currency(): void {
-        BGCouriers_Rates::set('speedy', 'office', 7.50, 'BGN');
+        BGCouriers_Rates::set('speedy', 'office', BGCouriers_Zones::COUNTRY, 7.50, 'BGN');
         update_option('bgcouriers_speedy_office_price', '4.20');   // what the merchant configured
         $this->currency = 'EUR';
 
