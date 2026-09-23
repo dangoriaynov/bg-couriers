@@ -1,0 +1,142 @@
+# Publish a tagged release to WordPress.org.
+#
+# Why this exists: the release used to be possible only from the owner's own machine, because that is
+# where the Subversion working copy and its cached WordPress.org credentials live. Anyone else - a
+# second machine, the dev box, an assistant - could prepare a release to the last comma and then not
+# ship it. The credentials belong in exactly one place that is not a laptop: this repository's secrets.
+#
+# The gate is DEV, not the shop (see bin/release-wporg): the build must be running on the dev site, and
+# it must pass Plugin Check and both test suites here, on a real WordPress with real WooCommerce. What
+# the shop is running is the owner's own business and no longer holds the directory up.
+#
+# Triggered by pushing an annotated tag `v<version>` - the tag IS the release decision, and it has to
+# agree with the version in the code or nothing happens:
+#
+#   git tag -a v0.4.18 -m "0.4.18" && git push origin v0.4.18
+#
+# Required once, in repository settings:
+#   Secrets:   SVN_USERNAME, SVN_PASSWORD   (the WordPress.org account that owns the plugin)
+#   Secrets:   BGC_LEAK_PATTERNS            (optional; grep -E alternation of strings that must never
+#                                            be published - the same value bin/deploy.conf carries)
+#   Variables: BGC_DEV_URL                  (optional; defaults to the dev site below)
+name: Release to WordPress.org
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SLUG: bg-couriers
+  DEV_URL: ${{ vars.BGC_DEV_URL || 'https://dev.dobavki.club' }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- The version is one number, in four places now: the tag is the fourth ----------------------
+      # 0.2.2 shipped with BGCOURIERS_VERSION left behind, which serves stale cached assets to every
+      # customer. A tag that disagrees with the code would publish something nobody named.
+      - name: Version agrees with the tag
+        run: |
+          VERSION="$(grep -m1 '^ \* Version:' ${SLUG}.php | awk '{print $3}')"
+          CONST="$(grep -m1 "define('BGCOURIERS_VERSION'" ${SLUG}.php | sed "s/.*'\([0-9.]*\)'.*/\1/")"
+          STABLE="$(grep -m1 '^Stable tag:' readme.txt | awk '{print $3}')"
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "header=$VERSION constant=$CONST stable=$STABLE tag=$TAG"
+          [ "$VERSION" = "$CONST" ] && [ "$VERSION" = "$STABLE" ] || { echo "::error::the three version places disagree"; exit 1; }
+          case "$GITHUB_REF_TYPE" in
+            tag) [ "$VERSION" = "$TAG" ] || { echo "::error::tag ${GITHUB_REF_NAME} is not version ${VERSION}"; exit 1; } ;;
+          esac
+          grep -q "^= ${VERSION} =" readme.txt || { echo "::error::readme.txt has no changelog entry for ${VERSION}"; exit 1; }
+
+      # --- Bulgarian, complete and compiled ----------------------------------------------------------
+      # A user-facing string added without its Bulgarian lands on a Bulgarian shop in English, and a .po
+      # edited after the .mo was built is a translation WordPress never reads.
+      - name: Translations
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq gettext
+          bash bin/make-pot --check
+          [ languages/${SLUG}-bg_BG.po -nt languages/${SLUG}-bg_BG.mo ] \
+            && { echo "::error::.po is newer than .mo - run msgfmt"; exit 1; } || true
+          echo "untranslated: $(msgattrib --untranslated languages/${SLUG}-bg_BG.po | grep -c '^msgid "' || true)"
+
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.1', coverage: none }
+      - name: Composer
+        run: composer install --no-interaction --no-progress
+
+      - name: Unit tests
+        run: ./vendor/bin/phpunit --testsuite unit
+
+      # --- Real WordPress, real WooCommerce ----------------------------------------------------------
+      # The integration suite went unrun long enough once to collect seven failures that were nothing but
+      # stale fixtures, and a courier those tests never set up cannot be offered - so their negative
+      # assertions were passing for free. It is a release gate, and a slow runner is not a reason to ship.
+      - name: Integration tests + Plugin Check (wp-env)
+        run: |
+          npx --yes @wordpress/env start
+          BGC_SUITE=integration npx @wordpress/env run tests-cli \
+            --env-cwd=wp-content/plugins/${SLUG} -- ./vendor/bin/phpunit --testsuite integration
+          npx @wordpress/env run cli -- wp plugin install plugin-check --activate
+          CHECK="$(npx @wordpress/env run cli -- wp plugin check ${SLUG} 2>&1 | tail -3)"
+          echo "$CHECK"
+          echo "$CHECK" | grep -q "No errors found" || { echo "::error::Plugin Check reported errors"; exit 1; }
+
+      # --- The dev site must already be running this build -------------------------------------------
+      # The rule this encodes: SVN last, DEV-verified builds only. Read from the readme the site serves,
+      # the same way bin/release-status and bin/release-wporg read it.
+      - name: Dev is on this version
+        run: |
+          DEV="$(curl -sS -m 20 -L -A 'bg-couriers release-ci' "${DEV_URL%/}/wp-content/plugins/${SLUG}/readme.txt" \
+                 | grep -i '^Stable tag:' | head -1 | awk '{print $3}' | tr -d '\r')"
+          echo "dev (${DEV_URL}) is on ${DEV:-unknown}, this is ${VERSION}"
+          [ "$DEV" = "$VERSION" ] || { echo "::error::deploy ${VERSION} to dev first"; exit 1; }
+
+      # --- Nothing private in the package ------------------------------------------------------------
+      # Host names, phone numbers, the dev address: the last thing between a private string and a public
+      # zip. Unset means there is nothing configured to look for, which is said out loud rather than
+      # passing quietly.
+      - name: Leak check
+        env:
+          LEAKS: ${{ secrets.BGC_LEAK_PATTERNS }}
+        run: |
+          if [ -z "$LEAKS" ]; then echo "::warning::BGC_LEAK_PATTERNS is not set - the package was not checked for private strings"; exit 0; fi
+          # bin/build-zip takes the output directory as its argument (it defaults to ~/Downloads, which
+          # is the owner's machine talking, not this one).
+          bash bin/build-zip "${RUNNER_TEMP}/pkg" >/dev/null
+          ZIP="${RUNNER_TEMP}/pkg/${SLUG}-${VERSION}.zip"
+          [ -f "$ZIP" ] || { echo "::error::no package was built"; exit 1; }
+          if unzip -p "$ZIP" '*' | grep -aEq "$LEAKS"; then echo "::error::the package contains a string that must never be published"; exit 1; fi
+          echo "the package carries none of the configured private strings"
+
+      # --- The directory ------------------------------------------------------------------------------
+      # 10up's action is what does the Subversion work: trunk, the assets from .wordpress-org, and the
+      # tag, honouring .distignore exactly as bin/build-zip does. A tag that already exists is refused by
+      # WordPress.org itself, which is the behaviour we want: a published tag never changes.
+      - name: Publish
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: bg-couriers
+          ASSETS_DIR: .wordpress-org
+
+      # --- Did it actually arrive ---------------------------------------------------------------------
+      # The directory takes a few minutes to serve a new tag. Not a failure if it has not yet - the
+      # commit is done - but worth saying, because "committed" and "served" were confused here before.
+      - name: The directory serves it
+        run: |
+          for i in 1 2 3 4 5 6; do
+            GOT="$(curl -sS -m 20 "https://api.wordpress.org/plugins/info/1.0/${SLUG}.json" \
+                   | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || true)"
+            [ "$GOT" = "$VERSION" ] && { echo "the directory serves ${VERSION}"; exit 0; }
+            echo "directory still on ${GOT:-?} (try $i)"; sleep 30
+          done
+          echo "::warning::committed, but the directory still serves an older version - check in a few minutes"
