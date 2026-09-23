@@ -94,10 +94,22 @@ fi
 echo "  tags/${VERSION} is free"
 
 echo "==> Plugin Check, on the code that is about to ship"
-# Run against DEV, which the gate above has already established is on this build: checking a working
-# copy that is not what gets packaged has caught nothing twice before. It also reads the plugin NAME in
-# the site's language, which is how the trademark rule was broken invisibly on an English install.
+# Run against DEV: checking a working copy that is not what gets packaged has caught nothing twice
+# before. It also reads the plugin NAME in the site's language, which is how the trademark rule was
+# broken invisibly on an English install.
+#
+# Checked AGAIN here, and not taken from the gate above, because the two can be different machines.
+# The gate asks the site the world sees, over HTTP; this asks the installation Plugin Check is about to
+# run IN. dev.dobavki.club was repointed at a different container on 2026-09-23 and for a while those
+# two were not the same WordPress at all - which would have run Plugin Check over an older build and
+# reported a clean bill of health for code nobody was shipping.
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
+DEV_V="$(run_dev "$WP --path=${DEVROOT} plugin get bg-couriers --field=version" | tr -d '\r' || true)"
+if [ "$DEV_V" != "$VERSION" ]; then
+  echo "REFUSING: the dev install Plugin Check runs in is on ${DEV_V:-unknown}, this is ${VERSION}." >&2
+  echo "          Deploy this build there (bin/deploy.sh dev), or point BGC_DEV_PATH/BGC_LXC_DEV at the site ${DEV_SITE} actually serves." >&2
+  exit 1
+fi
 CHECK="$(run_dev "$WP --path=${DEVROOT} plugin check bg-couriers 2>&1 | tail -3" || true)"
 echo "$CHECK" | sed 's/^/  /'
 echo "$CHECK" | grep -q "No errors found" || { echo "REFUSING: Plugin Check reported errors" >&2; exit 1; }
