@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # Publish the current commit to WordPress.org.
 #
-# Runs LAST, after the shop has been on this exact build and survived it. The directory is the one place
-# a mistake reaches people who cannot be told to wait: a bad tag is downloaded by every install with
-# auto-updates on, and a tag that has shipped must never quietly become different code under the same
-# number - it gets a new number instead.
+# The build must have been on DEV and passed Plugin Check there. It used to have to be on the SHOP
+# first, which tied every directory release to one particular server being reachable and to the owner
+# being ready to touch his own checkout - and the shop is not what the gate was ever really about: what
+# protects the directory is a build proven on a real WordPress with real WooCommerce, which is exactly
+# what dev is and what Plugin Check runs against (owner, 2026-09-23).
+#
+# The directory is still the one place a mistake reaches people who cannot be told to wait: a bad tag is
+# downloaded by every install with auto-updates on, and a tag that has shipped must never quietly become
+# different code under the same number - it gets a new number instead. Hence the gates below; only the
+# question of WHICH site has to be running the build has changed.
 #
 # Usage: bin/release-wporg [--yes]
 set -euo pipefail
@@ -60,15 +66,23 @@ else
   bash bin/preflight
 fi
 
-echo "==> the shop must already be running this build"
-# The rule this encodes: SVN last, prod-verified builds only. Shipping to the directory something the
-# owner's own shop has not run is asking strangers to find the problems first.
-LIVE="$(run "$WP --path=${WPROOT} plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r')"
-if [ "$LIVE" != "$VERSION" ]; then
-  echo "REFUSING: prod is on ${LIVE}, this is ${VERSION}. Run bin/release-prod first." >&2
+echo "==> the dev site must already be running this build"
+# The rule this encodes: SVN last, DEV-verified builds only. Shipping to the directory something that
+# has not run on a real WordPress is asking strangers to find the problems first - and dev is that real
+# WordPress. The shop is no longer part of this gate (see the header).
+#
+# Read over HTTP, from the readme the site serves, the same way bin/release-status reads it: a version
+# check that needs no shell works from anywhere - the owner's laptop, a box with no key to that site,
+# or CI - and it asks the SITE what it is running rather than asking a machine what it was told to run.
+DEV_SITE="${BGC_DEV_URL:-${BGC_E2E_BASE_URL:-}}"
+: "${DEV_SITE:?set BGC_DEV_URL (or BGC_E2E_BASE_URL) in bin/deploy.conf - the dev site this build must be on}"
+DEV_README="$(curl -sS -m 20 -L -A 'bg-couriers release-wporg' "${DEV_SITE%/}/wp-content/plugins/bg-couriers/readme.txt" 2>/dev/null || true)"
+DEV_LIVE="$(printf '%s\n' "$DEV_README" | grep -i '^Stable tag:' | head -1 | awk '{print $3}' | tr -d '\r')"
+if [ "$DEV_LIVE" != "$VERSION" ]; then
+  echo "REFUSING: dev is on ${DEV_LIVE:-unknown}, this is ${VERSION}. Deploy it to dev first (bin/deploy.sh dev)." >&2
   exit 1
 fi
-echo "  prod is on ${VERSION}"
+echo "  dev is on ${VERSION}"
 
 echo "==> this version must not already be published"
 # Rewriting a published tag is the one irreversible mistake here: installs that already took it never
@@ -80,15 +94,10 @@ fi
 echo "  tags/${VERSION} is free"
 
 echo "==> Plugin Check, on the code that is about to ship"
-# Run against DEV, which must be on the release commit: checking a working copy that is not what gets
-# packaged has caught nothing twice before. It also reads the plugin NAME in the site's language, which
-# is how the trademark rule was broken invisibly on an English install.
+# Run against DEV, which the gate above has already established is on this build: checking a working
+# copy that is not what gets packaged has caught nothing twice before. It also reads the plugin NAME in
+# the site's language, which is how the trademark rule was broken invisibly on an English install.
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
-DEV_V="$(run_dev "$WP --path=${DEVROOT} plugin get bg-couriers --field=version" | tr -d '\r' || true)"
-if [ "$DEV_V" != "$VERSION" ]; then
-  echo "REFUSING: dev is on ${DEV_V}; deploy this build to dev first (bin/deploy.sh dev)" >&2
-  exit 1
-fi
 CHECK="$(run_dev "$WP --path=${DEVROOT} plugin check bg-couriers 2>&1 | tail -3" || true)"
 echo "$CHECK" | sed 's/^/  /'
 echo "$CHECK" | grep -q "No errors found" || { echo "REFUSING: Plugin Check reported errors" >&2; exit 1; }

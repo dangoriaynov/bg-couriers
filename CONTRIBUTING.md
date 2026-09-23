@@ -64,21 +64,31 @@ bin/test econt|pigeon|core  # per-courier / framework groups
   specs are skipped while delivery abroad is off - one of them books a real shipment on purpose and was
   held out of every ordinary run besides (`cd e2e && BGC_REAL_WAYBILL=1 npx playwright test
   intl-speedy-ro`). Setup recipe and what to check afterwards: [`e2e/README.md`](e2e/README.md).
-- **Releasing.** One command does the whole thing, and refuses rather than half-doing it.
+- **Releasing.** The gate is DEV, not the shop. A build goes to WordPress.org once it is running on the
+  dev site and has passed Plugin Check and both suites there; what the shop is running is a separate
+  decision that no longer holds the directory up (owner, 2026-09-23). The old rule tied every release to
+  one particular server being reachable, and the live shop is not even on the machine the scripts assumed.
   ```bash
-  bin/release-prod            # the release, start to finish; asks before the shop and again before wp.org
+  bin/deploy.sh dev           # the build lands on dev; that is what the release is then gated on
+  git tag -a v0.4.18 -m "0.4.18" && git push origin v0.4.18   # CI releases it to WordPress.org
+  bin/release-prod            # the SHOP, separately; asks before it, and runs wp.org after if not done
   bin/release-status          # where every copy stands: checkout, dev, prod, wp.org served + tagged
   ```
-  What `release-prod` runs, in order: `bin/preflight` (one version in all 3 places, changelog entry,
-  clean+pushed tree, Bulgarian complete AND compiled, unit + integration tests, nothing test-shaped
-  tracked), Plugin Check on dev, backup (named for the version being REPLACED), deploy, verify, purge,
-  smoke - and then `bin/release-wporg` itself: audit the zip, SVN trunk + tag, confirm the directory
-  serves it. The two prompts are the two decisions; `--yes` answers both in advance, and
-  `--detach` is `--yes` in a session of its own, logged to `tmp/release-<version>.log` - for a release
-  that has ALREADY been agreed and must outlast the terminal: 0.4.13 was left on the shop alone when
-  the session that started its second half was killed. `bin/deploy.sh dev` prints that state whenever
-  it recurs, and `release-status` is how to look on purpose. `bin/release-wporg` still runs on its
-  own, to finish a release that stopped after the shop.
+  **From CI** (`.github/workflows/release-wporg.yml`, triggered by the `v<version>` tag): version agrees
+  with the tag, Bulgarian complete and compiled, unit + integration suites, Plugin Check, dev is on this
+  version, nothing private in the package, then SVN trunk + assets + tag, then a look at whether the
+  directory serves it. The WordPress.org credentials live in the repository's secrets
+  (`SVN_USERNAME`, `SVN_PASSWORD`), so a release no longer needs one particular laptop with an SVN
+  working copy on it; `BGC_LEAK_PATTERNS` is a secret too, and `BGC_DEV_URL` a variable.
+  **From a machine that has `bin/deploy.conf`**, `bin/release-wporg` does the same locally, and
+  `bin/release-prod` runs `bin/preflight` (one version in all 3 places, changelog entry, clean+pushed
+  tree, Bulgarian complete AND compiled, unit + integration tests, nothing test-shaped tracked), Plugin
+  Check on dev, backup (named for the version being REPLACED), deploy, verify, purge, smoke - and then
+  `bin/release-wporg` if the version is not published yet. Its two prompts are its two decisions;
+  `--yes` answers both in advance, and `--detach` is `--yes` in a session of its own, logged to
+  `tmp/release-<version>.log` - for a release that has ALREADY been agreed and must outlast the
+  terminal: 0.4.13 was left on the shop alone when the session that started its second half was killed.
+  `bin/deploy.sh dev` prints that state whenever it recurs, and `release-status` is how to look on purpose.
   Every check in `bin/preflight` stands in for something that has gone wrong here at least once; the
   comment above each says which.
 - **Deploy to dev:** `bash bin/deploy.sh dev` then chown to the site user, activate via wp-admin (wp-cli /

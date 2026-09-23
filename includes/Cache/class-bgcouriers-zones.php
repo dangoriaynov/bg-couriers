@@ -83,11 +83,4 @@ class BGCouriers_Zones {
     public static function for_shipment(string $courier, array $shipment): string {
         return self::for_city($courier, (int) ($shipment['site_id'] ?? 0), (string) ($shipment['country'] ?? ''));
     }
-
-    /** Name for a screen: the admin rates table and the sync report both say which zone a price is for. */
-    public static function label(string $zone): string {
-        return $zone === self::SOFIA
-            ? __('Sofia', 'bg-couriers')
-            : __('Outside Sofia', 'bg-couriers');
-    }
 }

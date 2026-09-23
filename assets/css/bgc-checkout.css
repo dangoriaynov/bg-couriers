@@ -13,13 +13,19 @@
 .bgc-fields label::before, .bgc-fields label::marker,
 .bgc-fields .bgc-field::before, .bgc-fields .bgc-field::marker { content: none !important; display: none !important; }
 
-/* The picker moved up under the customer's details (bgc-checkout.js relocate()). In the order-review
-   table the block sits in a cell that gives it its spacing; standing on its own in the form it needs
-   its own, and a rule above it so it reads as a section of the form rather than as part of the phone
-   field above. Empty until the browser fills it, so nothing shows on a shop where no courier is chosen. */
-.bgc-picker-host:empty { display: none; }
-.bgc-picker-host { margin: 18px 0 6px; padding-top: 14px; border-top: 1px solid #e2e6ea; }
-.bgc-picker-host > .bgc-fields { margin: 0; }
+/* The delivery block moved up under the customer's details (bgc-checkout.js relocateDelivery()).
+   In the order-review table the couriers sit in a cell that gives them their spacing; standing in the
+   form they need their own, and a rule above them so the block reads as a section of the form rather
+   than as part of the e-mail field above it. Empty until the browser fills it, so a page with no
+   courier rates shows nothing at all. */
+.bgc-delivery-host:empty { display: none; }
+.bgc-delivery-host { margin: 18px 0 6px; padding-top: 14px; border-top: 1px solid #e2e6ea; }
+.bgc-delivery-host > ul#shipping_method { margin: 0; }
+.bgc-delivery-host > .bgc-fields { margin: 0; }
+/* The rows the block came from. Hidden rather than emptied: WooCommerce rebuilds them on every
+   recalculation, and a stray empty "Delivery" line in the totals is the table saying the parcel has no
+   price. `!important` because a theme may set its own display on the shipping row. */
+tr.bgc-moved-away { display: none !important; }
 
 /* Delivery-type tabs */
 .bgc-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
