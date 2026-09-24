@@ -5,7 +5,7 @@ Tags: speedy, econt, box now, sameday, express one
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.18
+Stable tag: 0.4.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.19 =
+* Changed: the delivery type is now part of the shipping method on the order itself, so it reads "Speedy: To office" (or To address / To APS) wherever a shipping method is shown: the WooCommerce mobile app, the order screen, the customer's e-mail, the invoice. For an office or locker order the address on the order IS the office's, which reads like a home address with a company line above it, and nothing on the order said which kind of delivery it was.
 
 = 0.4.18 =
 * Changed: the reference price a courier row shows BEFORE a town is chosen is now measured per price zone (inside Sofia, and outside it), and the one shown by default is the outside-Sofia price. Every courier here charges two different prices for the same parcel, and the single cached reference was quoted against whichever town sorted first in the courier's own list (a village), so the price moved the moment a customer named their town. Most customers now see that first number confirmed; a customer in Sofia sees it go down.
