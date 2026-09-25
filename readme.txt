@@ -5,7 +5,7 @@ Tags: speedy, econt, box now, sameday, express one
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.19
+Stable tag: 0.4.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.20 =
+* Fixed: on a shop using "delay JavaScript until interaction" (WP Rocket, perfmatters), the checkout now keeps its own scripts out of that delay. The delivery block is put in place by script, and the town and office pickers are built by one, so until the customer touched the page the block sat at the bottom and the pickers were bare dropdowns. Only the checkout is excluded; every other page keeps the shop's speed settings as they are.
+* Fixed: on a phone or a tablet, the courier tabs and the delivery-option sub-tabs on the settings screen could stop responding to taps until the page was reloaded. Both rows can be dragged to reorder them, and that drag listens for mouse events a touch screen never sends properly: once it believed a drag had begun and never saw it end, every tap after that was swallowed. Dragging is now left to devices with a mouse; on touch the tabs are simply tabs.
 
 = 0.4.19 =
 * Changed: the delivery type is now part of the shipping method on the order itself, so it reads "Speedy: To office" (or To address / To APS) wherever a shipping method is shown: the WooCommerce mobile app, the order screen, the customer's e-mail, the invoice. For an office or locker order the address on the order IS the office's, which reads like a home address with a company line above it, and nothing on the order said which kind of delivery it was.
