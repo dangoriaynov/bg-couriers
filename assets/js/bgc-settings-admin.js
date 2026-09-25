@@ -51,7 +51,17 @@
             $('.bgc-method-panel').hide().filter('[data-bgc-panel="' + t + '"]').show();
         }
         var dragged = false;
-        if (mn.length && $.fn.sortable) {
+        // Drag-to-reorder is a MOUSE gesture, and on a touch screen it is worse than absent: jQuery UI's
+        // sortable listens for mouse events, which a phone only ever gets as the compatibility events the
+        // browser synthesises after a tap - and it does not synthesise them for a touch that moved, which
+        // every real finger does. A sortable that has seen `start` and never sees `stop` leaves `dragged`
+        // true, and from then on the handler below swallows every tap on a tab: the sub-tabs simply stop
+        // switching until the page is reloaded. Reported from a phone, 2026-09-25.
+        //
+        // So on a coarse pointer the tabs are left alone: they are tabs first and a sortable second, and
+        // reordering couriers is something the shop does once, at a desk.
+        var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        if (mn.length && $.fn.sortable && !coarse) {
             mn.sortable({ items: '> .bgc-method-tab', distance: 6, tolerance: 'pointer', cursor: 'move', opacity: .85,
                 start: function () { dragged = true; }, stop: function () { setTimeout(function () { dragged = false; }, 0); },
                 update: function () {
