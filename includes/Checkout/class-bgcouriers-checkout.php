@@ -37,6 +37,9 @@ class BGCouriers_Checkout {
         add_action('wp_enqueue_scripts', [$this, 'assets']);
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
+        // The delivery type onto the order's own shipping line. persist() cannot do it: it runs on
+        // woocommerce_checkout_create_order, and WooCommerce adds the shipping items after that.
+        add_action('woocommerce_checkout_create_order_shipping_item', [$this, 'name_shipping_item'], 10, 4);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
         // Two ends of the same filter: the first note what WooCommerce itself called the package, the
@@ -902,6 +905,66 @@ class BGCouriers_Checkout {
         return false;
     }
 
+    /**
+     * The shipping line's name, with the delivery type in it: "Speedy: До офис".
+     *
+     * The WooCommerce mobile app shows an order's shipping method and its address, and nothing else
+     * about the delivery - so an office order read as a name and a street with no word anywhere to say
+     * whether the parcel is going to that office, to a locker, or to the customer's own door. The
+     * address alone cannot say it: for an office it IS the office's ("ВАРНА - ДРАГОМАН" on line one,
+     * its street on line two), and that reads exactly like somebody's home address with a company
+     * above it (owner, with a screenshot, 2026-09-24).
+     *
+     * The type goes on the shipping line rather than into the address because that is the field the
+     * question is asked of - "which delivery method was this?" - and it reaches every screen that shows
+     * a shipping method: the app, the order screen, the customer's e-mail, the invoice.
+     *
+     * Composed from the base name, never appended to the current one: an order re-saved in the admin
+     * editor would otherwise read "Speedy: До офис: До офис", once per save.
+     */
+    public static function shipping_item_name(string $base, string $method): string {
+        $base  = trim($base);
+        $label = BGCouriers_Icons::method_label($method);
+        // method_label() hands back the method id itself for anything it does not know: a name is not
+        // the place to print 'automat' at a customer, so an unknown type simply adds nothing.
+        if ($base === '' || $label === '' || $label === $method) { return $base; }
+        return $base . ': ' . $label;
+    }
+
+    /**
+     * Write that name onto one shipping line, remembering what it was called first.
+     *
+     * The base name is kept in the item's own meta (underscore-prefixed, so WooCommerce keeps it out of
+     * the admin and the e-mails): the rate's label is what the shop configured, it can be edited, and
+     * re-deriving it by stripping a suffix off the current name would be a regex against a translated
+     * string - which stops working the day someone translates the catalogue differently.
+     */
+    public static function label_shipping_item(\WC_Order_Item_Shipping $item, string $method): void {
+        $base = (string) $item->get_meta('_bgcouriers_base_name', true);
+        if ($base === '') {
+            $base = (string) $item->get_name();
+            $item->update_meta_data('_bgcouriers_base_name', $base);
+        }
+        $item->set_name(self::shipping_item_name($base, $method));
+    }
+
+    /** The classic checkout's shipping line, as WooCommerce builds it from the chosen rate. */
+    public function name_shipping_item($item, $package_key = 0, $package = [], $order = null): void {
+        if (!$item instanceof \WC_Order_Item_Shipping) { return; }
+        $id = (string) $item->get_method_id();
+        if (strpos($id, 'bgcouriers_') !== 0) { return; }
+        $courier = substr($id, self::PREFIX_LEN);
+        $s = WC()->session;
+        // BoxNow is locker-only, exactly as apply_delivery() reads it: a stale session method must not
+        // name a locker delivery something else.
+        $method = $courier === 'boxnow'
+            ? 'automat'
+            : (string) ($s ? $s->get('bgcouriers_method', '') : '');
+        if ($method === '') { $method = BGCouriers_Settings::enabled_methods($courier)[0] ?? ''; }
+        if ($method === '') { return; }
+        self::label_shipping_item($item, $method);
+    }
+
     public function persist(\WC_Order $order): void {
         $courier = self::chosen_courier(); if (!$courier) { return; }
         $s = WC()->session; if (!$s) { return; }
@@ -999,6 +1062,16 @@ class BGCouriers_Checkout {
         }
         $order->set_shipping_first_name($order->get_billing_first_name());
         $order->set_shipping_last_name($order->get_billing_last_name());
+
+        // And the shipping line, when the order has one already: the admin editor changing an order from
+        // an office to an address, and the block checkout, whose order is built with its items before
+        // this runs. The classic checkout has no shipping item yet at this point - name_shipping_item()
+        // is what names it there.
+        foreach ($order->get_items('shipping') as $item) {
+            if ($item instanceof \WC_Order_Item_Shipping && strpos((string) $item->get_method_id(), 'bgcouriers_') === 0) {
+                self::label_shipping_item($item, $method);
+            }
+        }
     }
     public function assets(): void {
         $on_cart     = function_exists('is_cart') && is_cart();
