@@ -79,15 +79,51 @@ jobs:
       # The integration suite went unrun long enough once to collect seven failures that were nothing but
       # stale fixtures, and a courier those tests never set up cannot be offered - so their negative
       # assertions were passing for free. It is a release gate, and a slow runner is not a reason to ship.
-      - name: Integration tests + Plugin Check (wp-env)
+      - name: Integration tests (wp-env)
         run: |
           npx --yes @wordpress/env start
           BGC_SUITE=integration npx @wordpress/env run tests-cli \
             --env-cwd=wp-content/plugins/${SLUG} -- ./vendor/bin/phpunit --testsuite integration
+          # Stopped before the next environment starts: wp-env binds fixed ports, and two of them in one
+          # job fight over 8888.
+          npx @wordpress/env stop
+
+      # --- The package, built once and checked as it will be published --------------------------------
+      # Not the checkout. Plugin Check reads whatever is in the plugin folder, and the folder here carries
+      # the workbench: .wp-env.json and phpunit.xml.dist are "hidden files"/"application files" to it, and
+      # .github a directory that "should not be included" - all true of the repository and none of it true
+      # of the zip, which .distignore strips. Checking the checkout therefore failed the release over
+      # files that were never going to be published (first run of this workflow, 2026-09-25). This is the
+      # same thing bin/release-wporg does by checking the DEV SITE: a copy with the workbench gone.
+      - name: Build the package
+        run: |
+          bash bin/build-zip "${RUNNER_TEMP}/pkg"
+          ZIP="${RUNNER_TEMP}/pkg/${SLUG}-${VERSION}.zip"
+          [ -f "$ZIP" ] || { echo "::error::no package was built"; exit 1; }
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+          mkdir -p "${RUNNER_TEMP}/pkgdir"
+          unzip -q "$ZIP" -d "${RUNNER_TEMP}/pkgdir"
+          # The wp-env config lives BESIDE the package, never inside it: a .wp-env.json in the plugin
+          # folder is one more hidden file for Plugin Check to refuse.
+          cat > "${RUNNER_TEMP}/pkgdir/.wp-env.json" <<JSON
+          { "core": null, "phpVersion": "8.1",
+            "plugins": [ "https://downloads.wordpress.org/plugin/woocommerce.zip", "./${SLUG}" ] }
+          JSON
+
+      - name: Plugin Check, on the code that is about to ship
+        working-directory: ${{ runner.temp }}/pkgdir
+        run: |
+          npx --yes @wordpress/env start
           npx @wordpress/env run cli -- wp plugin install plugin-check --activate
-          CHECK="$(npx @wordpress/env run cli -- wp plugin check ${SLUG} 2>&1 | tail -3)"
-          echo "$CHECK"
-          echo "$CHECK" | grep -q "No errors found" || { echo "::error::Plugin Check reported errors"; exit 1; }
+          # Warnings are not a release gate here (the directory's own review reads them, a human answers
+          # them); an ERROR is. --format=json so the verdict is a field, not a sentence that can be reworded.
+          OUT="$( npx @wordpress/env run cli -- wp plugin check ${SLUG} --ignore-warnings --format=json 2>&1 )"
+          echo "$OUT"
+          if printf '%s' "$OUT" | grep -q '"type":"ERROR"'; then
+            echo "::error::Plugin Check reported errors in the package"
+            exit 1
+          fi
+          npx @wordpress/env stop
 
       # --- The dev site must already be running this build -------------------------------------------
       # The rule this encodes: SVN last, DEV-verified builds only. Read from the readme the site serves,
@@ -108,11 +144,6 @@ jobs:
           LEAKS: ${{ secrets.BGC_LEAK_PATTERNS }}
         run: |
           if [ -z "$LEAKS" ]; then echo "::warning::BGC_LEAK_PATTERNS is not set - the package was not checked for private strings"; exit 0; fi
-          # bin/build-zip takes the output directory as its argument (it defaults to ~/Downloads, which
-          # is the owner's machine talking, not this one).
-          bash bin/build-zip "${RUNNER_TEMP}/pkg" >/dev/null
-          ZIP="${RUNNER_TEMP}/pkg/${SLUG}-${VERSION}.zip"
-          [ -f "$ZIP" ] || { echo "::error::no package was built"; exit 1; }
           if unzip -p "$ZIP" '*' | grep -aEq "$LEAKS"; then echo "::error::the package contains a string that must never be published"; exit 1; fi
           echo "the package carries none of the configured private strings"
 
