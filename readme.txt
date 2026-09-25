@@ -132,6 +132,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.20 =
+* Fixed: on a shop using "delay JavaScript until interaction" (WP Rocket, perfmatters), the checkout now keeps its own scripts out of that delay. The delivery block is put in place by script, and the town and office pickers are built by one, so until the customer touched the page the block sat at the bottom and the pickers were bare dropdowns. Only the checkout is excluded; every other page keeps the shop's speed settings as they are.
 * Fixed: on a phone or a tablet, the courier tabs and the delivery-option sub-tabs on the settings screen could stop responding to taps until the page was reloaded. Both rows can be dragged to reorder them, and that drag listens for mouse events a touch screen never sends properly: once it believed a drag had begun and never saw it end, every tap after that was swallowed. Dragging is now left to devices with a mouse; on touch the tabs are simply tabs.
 
 = 0.4.19 =
