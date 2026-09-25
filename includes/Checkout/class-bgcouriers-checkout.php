@@ -79,6 +79,10 @@ class BGCouriers_Checkout {
         // methods" when this plugin is the one that took them away - see no_payment_reason().
         add_filter('woocommerce_no_available_payment_methods_message', [$this, 'no_payment_reason']);
         add_action('template_redirect', [$this, 'reset_country']);
+        // Speed plugins that hold JavaScript back until the customer touches the page (WP Rocket's
+        // "delay JavaScript execution", perfmatters' equivalent) must not hold THIS page's back.
+        add_filter('rocket_delay_js_exclusions', [$this, 'no_delayed_js']);
+        add_filter('perfmatters_delay_js_exclusions', [$this, 'no_delayed_js']);
     }
 
     /**
@@ -1255,6 +1259,40 @@ class BGCouriers_Checkout {
      * selection - so the block is rendered there, as always, and moved here by the browser. Rendering
      * it in both places would mean two of them, disagreeing about what is chosen.
      */
+    /**
+     * Keep the checkout's own scripts out of "delay JavaScript until interaction".
+     *
+     * That optimisation is right for a landing page and wrong for a checkout. Here the delivery block is
+     * MOVED into place by script (see render_delivery_host), the town and office boxes are built by
+     * selectWoo, and the tabs answer clicks - so until the delay lifts the customer sees the delivery
+     * block at the bottom of the page where WooCommerce printed it, and the pickers as bare selects. On
+     * this shop's own checkout that is exactly what the owner reported: "the courier choice is at the
+     * bottom again", with the setting switched on and the code in place (measured 2026-09-25: WP Rocket
+     * with delay_js = 1).
+     *
+     * jQuery and selectWoo are on the list because ours depends on them: excluding a script whose
+     * dependency is still delayed is worse than delaying both - it runs first and dies.
+     *
+     * Only on the checkout. Everywhere else the shop's speed settings are the shop's business, and a
+     * courier plugin has no business opting a home page out of them.
+     *
+     * @param mixed $excluded The patterns the optimiser matches against script URLs.
+     * @return mixed
+     */
+    public function no_delayed_js($excluded) {
+        if (!is_array($excluded)) { return $excluded; }
+        $on_checkout = (function_exists('is_checkout') && is_checkout())
+            || (class_exists('BGCouriers_Blocks') && BGCouriers_Blocks::is_block_checkout());
+        if (!$on_checkout) { return $excluded; }
+        return array_merge($excluded, [
+            'bg-couriers/assets/js/',
+            'js/jquery/jquery.min.js',
+            'js/jquery/jquery.js',
+            'selectWoo',
+            'select2',
+        ]);
+    }
+
     public function render_delivery_host(): void {
         if (BGCouriers_Settings::delivery_position() !== 'details') { return; }
         if (function_exists('is_checkout') && !is_checkout()) { return; }

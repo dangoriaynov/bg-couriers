@@ -351,6 +351,10 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         BGCouriers_Settings_Admin::inline_js("\n"
             . "jQuery(function(\$){\n"
             . "    var c = \$('.bgc-courier-tabs'); if (!c.length || !\$.fn.sortable) { return; }\n"
+            // Not on a touch screen: see the same guard, and the same reason, in bgc-settings-admin.js.
+            // A sortable that starts and never stops leaves every tab dead until the page is reloaded,
+            // and these tabs are how a phone reaches a courier's settings at all.
+            . "    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) { return; }\n"
             . "    var dragged = false;\n"
             . "    c.sortable({ items: '> .bgc-courier-tab', distance: 6, cursor: 'move', tolerance: 'pointer', opacity: .85,\n"
             . "        start: function(){ dragged = true; },\n"
