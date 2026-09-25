@@ -57,15 +57,34 @@ jobs:
           grep -q "^= ${VERSION} =" readme.txt || { echo "::error::readme.txt has no changelog entry for ${VERSION}"; exit 1; }
 
       # --- Bulgarian, complete and compiled ----------------------------------------------------------
-      # A user-facing string added without its Bulgarian lands on a Bulgarian shop in English, and a .po
-      # edited after the .mo was built is a translation WordPress never reads.
+      # A user-facing string added without its Bulgarian lands on a Bulgarian shop in English, and a .mo
+      # built from an older .po is a translation WordPress never reads.
+      #
+      # The staleness test is on CONTENT, not on file dates. bin/preflight compares mtimes, which is right
+      # on a working copy somebody has been editing - but a fresh clone has no mtimes worth comparing:
+      # git writes every file at checkout time, in whatever order it likes, so "the .po is newer than the
+      # .mo" was a coin toss. It came up heads on the first release run and tails on the second, which is
+      # how 0.4.19 got refused over a catalogue nobody had touched. Recompiling the .po and comparing the
+      # two catalogues as data answers the real question: does the shipped .mo say what the .po says?
       - name: Translations
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq gettext
           bash bin/make-pot --check
-          [ languages/${SLUG}-bg_BG.po -nt languages/${SLUG}-bg_BG.mo ] \
-            && { echo "::error::.po is newer than .mo - run msgfmt"; exit 1; } || true
-          echo "untranslated: $(msgattrib --untranslated languages/${SLUG}-bg_BG.po | grep -c '^msgid "' || true)"
+          PO=languages/${SLUG}-bg_BG.po
+          MO=languages/${SLUG}-bg_BG.mo
+          msgfmt -o "${RUNNER_TEMP}/fresh.mo" "$PO"
+          # POT-Creation-Date is a timestamp in the header, not a translation; msgfmt stamps the fresh one
+          # with today. Everything else must match.
+          norm() { msgunfmt "$1" | msgattrib --translated --no-wrap | grep -v '^"POT-Creation'; }
+          norm "${RUNNER_TEMP}/fresh.mo" > "${RUNNER_TEMP}/fresh.po"
+          norm "$MO" > "${RUNNER_TEMP}/shipped.po"
+          if ! diff -q "${RUNNER_TEMP}/fresh.po" "${RUNNER_TEMP}/shipped.po" >/dev/null; then
+            echo "::error::the shipped .mo does not match the .po - run: msgfmt -o $MO $PO"
+            diff "${RUNNER_TEMP}/fresh.po" "${RUNNER_TEMP}/shipped.po" | head -20
+            exit 1
+          fi
+          echo "translations: $(grep -c '^msgid' "${RUNNER_TEMP}/shipped.po") in the catalogue, .mo matches the .po"
+          echo "untranslated: $(msgattrib --untranslated "$PO" | grep -c '^msgid "' || true)"
 
       - uses: shivammathur/setup-php@v2
         with: { php-version: '8.1', coverage: none }
