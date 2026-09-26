@@ -642,6 +642,58 @@ class BGCouriers_Pricing {
         return $entry;
     }
 
+    /**
+     * The shipment an ORDER represents, in the shape every courier adapter quotes.
+     *
+     * The checkout quotes a basket going to a place the customer has just picked; this quotes the parcel
+     * the shop is actually about to hand over - the same town, office and weight the waybill is being
+     * created for. That is why it reads the order's own meta rather than the session: by label time the
+     * session is somebody else's, or gone.
+     *
+     * @return array|null null when the order carries no BG Couriers delivery at all.
+     */
+    public static function order_shipment(\WC_Order $order): ?array {
+        $courier = (string) $order->get_meta('_bgcouriers_courier');
+        if ($courier === '') { return null; }
+        $dims   = BGCouriers_Settings::box_dims();
+        $method = (string) $order->get_meta('_bgcouriers_method');
+        if ($method === '') { $method = BGCouriers_Settings::enabled_methods($courier)[0] ?? 'office'; }
+        return [
+            'method'       => $method,
+            'site_id'      => (int) $order->get_meta('_bgcouriers_site_id'),
+            'office_id'    => (int) $order->get_meta('_bgcouriers_office_id'),
+            'office_code'  => '',
+            'post_code'    => (string) $order->get_meta('_bgcouriers_post_code'),
+            'country'      => BGCouriers_Settings::order_country($order),
+            'currency'     => $order->get_currency(),
+            'weight_kg'    => BGCouriers_Abstract_Courier::order_weight_kg($order),
+            'length_cm'    => (int) $dims['length'],
+            'width_cm'     => (int) $dims['width'],
+            'height_cm'    => (int) $dims['height'],
+            // Cash on delivery changes the price at every courier measured here (Econt +1.54, Pigeon
+            // +0.75, Sameday +0.50, Speedy +0.40 on a 50 EUR collection), so a door price quoted without
+            // it would be the one number the customer never pays.
+            'cod_amount'   => self::order_cod_amount($order),
+            'street_name'  => (string) $order->get_meta('_bgcouriers_street_name'),
+            'street_type'  => (string) $order->get_meta('_bgcouriers_street_type'),
+            'street_no'    => (string) $order->get_meta('_bgcouriers_street_no'),
+            'complex'      => (string) $order->get_meta('_bgcouriers_complex'),
+            'block'        => (string) $order->get_meta('_bgcouriers_block'),
+            'entrance'     => (string) $order->get_meta('_bgcouriers_entrance'),
+            'floor'        => (string) $order->get_meta('_bgcouriers_floor'),
+            'apartment'    => (string) $order->get_meta('_bgcouriers_apartment'),
+            'address_note' => (string) $order->get_meta('_bgcouriers_address_note'),
+        ];
+    }
+
+    /** What the courier will collect at the door for this order: the order total when it is paid there, 0 when it was paid online. */
+    public static function order_cod_amount(\WC_Order $order): float {
+        $gid = (string) $order->get_payment_method();
+        $gws = function_exists('WC') && WC() && WC()->payment_gateways() ? WC()->payment_gateways()->payment_gateways() : [];
+        if (!BGCouriers_Settings::is_cod_gateway($gid, $gws[$gid] ?? null)) { return 0.0; }
+        return max(0.0, round((float) $order->get_total(), 2));
+    }
+
     public static function estimate(string $courier, string $method, string $zone = BGCouriers_Zones::DEFAULT_ZONE): ?float {
         $mc = BGCouriers_Settings::method_config($courier, $method);
         // 'fixed' mode shows its fixed price everywhere; otherwise the daily cached reference, then the default.

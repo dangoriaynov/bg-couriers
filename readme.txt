@@ -5,7 +5,7 @@ Tags: speedy, econt, box now, sameday, express one
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.20
+Stable tag: 0.4.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.21 =
+* Added: when the delivery is paid to the courier ("Delivery in the order total" off), the order, the customer e-mail and My account now say how much that is, under the delivery row: "~3,06 EUR paid to the courier on delivery". The amount is not added to the order total. It is re-quoted the moment the waybill is created, so it is what the courier is about to charge rather than what the basket guessed; cancelling a waybill leaves it alone. The shop sees the same line on the order screen, where the delivery row otherwise reads 0.
+* Fixed: switching a courier on now asks for its towns and offices straight away. Until now that happened only on the weekly sync, so a courier enabled the day after one ran stood on the checkout for days with an empty town dropdown and no price, as if the plugin were broken.
 
 = 0.4.20 =
 * Fixed: on a shop using "delay JavaScript until interaction" (WP Rocket, perfmatters), the checkout now keeps its own scripts out of that delay. The delivery block is put in place by script, and the town and office pickers are built by one, so until the customer touched the page the block sat at the bottom and the pickers were bare dropdowns. Only the checkout is excluded; every other page keeps the shop's speed settings as they are.

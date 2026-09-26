@@ -302,6 +302,30 @@ class BGCouriers_Sync {
         wp_schedule_single_event(time() + $in, self::HOOK);
     }
 
+    /**
+     * A courier has just been switched on: ask for its towns and offices now, not next week.
+     *
+     * Switching one on is the moment a shop expects it to work. Until this existed, nothing asked:
+     * the weekly run picks up whatever is enabled WHEN IT COMES ROUND, so a courier turned on the day
+     * after one ran sat on the checkout for six more days with an empty town box and no price - which
+     * reads as "the plugin is broken", not as "the data has not arrived yet". Reported by the shop
+     * owner after switching Express One and Европът on, 2026-09-25.
+     *
+     * The one-off event is the same one a plugin update schedules (schedule_once), so two couriers
+     * switched on a minute apart cost one sync, not two.
+     *
+     * Both hooks that can fire are wired to this: `update_option_X` hands over (old, new) and
+     * `add_option_X` hands over (option, value) - the second argument is the new value either way, and
+     * the first save of an option that never existed fires the one nobody remembers.
+     *
+     * @param mixed $first  old value, or the option name
+     * @param mixed $value  the value being saved
+     */
+    public static function on_courier_enabled($first = null, $value = null): void {
+        if ($value !== 'yes' || $first === 'yes') { return; }
+        self::schedule_once();
+    }
+
     /** Weekly: full nomenclature sync (cities + offices + reference rates) for every enabled courier. */
     public static function cron(): void {
         foreach (self::enabled_couriers() as $courier) { self::run($courier); }
