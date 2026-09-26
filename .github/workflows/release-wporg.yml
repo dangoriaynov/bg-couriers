@@ -178,15 +178,34 @@ jobs:
           SLUG: bg-couriers
           ASSETS_DIR: .wordpress-org
 
-      # --- Did it actually arrive ---------------------------------------------------------------------
-      # The directory takes a few minutes to serve a new tag. Not a failure if it has not yet - the
-      # commit is done - but worth saying, because "committed" and "served" were confused here before.
-      - name: The directory serves it
+      # --- Did the directory pick it up yet ------------------------------------------------------------
+      # Separate from the release itself, on purpose: by this point the commit to WordPress.org's SVN has
+      # happened and cannot be un-happened. How long the directory takes to re-index it is the
+      # directory's business - minutes usually, sometimes longer - and failing the run over that would
+      # call a finished release broken.
+      #
+      # What it must NOT do is what it did on 0.4.21: print ::warning:: and finish, which leaves a green
+      # tick beside "The directory serves it" while the directory was still serving the version before.
+      # A warning does not fail a step, so the tick meant nothing. The answer now goes into the job
+      # summary - the page anybody opens after a release - and the step is named as the question it
+      # actually answers.
+      - name: Did the directory pick it up yet
         run: |
           for i in 1 2 3 4 5 6; do
             GOT="$(curl -sS -m 20 "https://api.wordpress.org/plugins/info/1.0/${SLUG}.json" \
                    | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || true)"
-            [ "$GOT" = "$VERSION" ] && { echo "the directory serves ${VERSION}"; exit 0; }
-            echo "directory still on ${GOT:-?} (try $i)"; sleep 30
+            if [ "$GOT" = "$VERSION" ]; then
+              echo "### ✅ ${SLUG} ${VERSION} is published and the directory serves it" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "directory still on ${GOT:-?} (try $i)"
+            sleep 30
           done
-          echo "::warning::committed, but the directory still serves an older version - check in a few minutes"
+          {
+            echo "### ⏳ ${SLUG} ${VERSION} is published, the directory has not re-indexed yet"
+            echo ""
+            echo "The SVN commit is done: trunk and \`tags/${VERSION}\` carry it."
+            echo "The directory usually catches up within minutes - check"
+            echo "<https://wordpress.org/plugins/${SLUG}/>. Nothing to re-run here."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning::published, but the directory still serves ${GOT:-an older version}"
