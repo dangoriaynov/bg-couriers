@@ -132,6 +132,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.21 =
+* Added: when the delivery is paid to the courier ("Delivery in the order total" off), the order, the customer e-mail and My account now say how much that is, under the delivery row: "~3,06 EUR paid to the courier on delivery". The amount is not added to the order total. It is re-quoted the moment the waybill is created, so it is what the courier is about to charge rather than what the basket guessed; cancelling a waybill leaves it alone. The shop sees the same line on the order screen, where the delivery row otherwise reads 0.
 * Fixed: switching a courier on now asks for its towns and offices straight away. Until now that happened only on the weekly sync, so a courier enabled the day after one ran stood on the checkout for days with an empty town dropdown and no price, as if the plugin were broken.
 
 = 0.4.20 =
