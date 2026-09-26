@@ -195,6 +195,57 @@ class BGCouriers_Labels {
      * first, in the database where a second PHP process can see it, and read again once it is ours:
      * whoever held the claim before us has saved their waybill by the time they let go of it.
      */
+    /**
+     * Re-quote what the courier will collect at the door, and write it on the order's shipping line.
+     *
+     * Only for a shop whose delivery is NOT in the order total: there the customer pays the courier and
+     * the number is the whole point - the order shows no shipping amount of its own (see
+     * BGCouriers_Checkout::order_shipping_row). Where delivery IS charged with the order, WooCommerce
+     * already prints the amount it charged and there is nothing to add.
+     *
+     * Asked again rather than taken from the courier's own answer to "create this shipment": that answer
+     * carries a price for Speedy, in a shape nobody here has measured for the other six. One quote of the
+     * SAME shipment works for all of them and costs one call per waybill.
+     *
+     * Failure leaves the previous figure alone. A door price from the checkout is a day old at worst; a
+     * cleared one is a customer asking how much to bring and nobody able to say. For the same reason
+     * cancelling a waybill does not touch it either: what the courier will charge does not change
+     * because the shop voided a label (owner, 2026-09-26).
+     */
+    public static function refresh_door_price(\WC_Order $order): void {
+        $courier_id = (string) $order->get_meta('_bgcouriers_courier');
+        if ($courier_id === '' || BGCouriers_Settings::ship_in_total($courier_id)) { return; }
+        $courier = BGCouriers_Couriers::get($courier_id);
+        $shipment = BGCouriers_Pricing::order_shipment($order);
+        if (!$courier || !$shipment) { return; }
+        try {
+            $quote = BGCouriers_Pricing::quote($courier, $shipment);
+        } catch (\Throwable $e) {
+            BGCouriers_Logger::debug('door price: re-quote failed, keeping the old one', [
+                'order' => $order->get_id(), 'courier' => $courier_id, 'err' => $e->getMessage()]);
+            return;
+        }
+        // ONLY a live answer. BGCouriers_Pricing::quote() never refuses - it cannot, the checkout has to
+        // print something - so a courier that is down comes back as the configured default or the flat
+        // 6.99 last resort. Writing that over a figure the courier itself gave would replace a real
+        // number with a placeholder, and the customer would be told to bring the wrong money. Caught by
+        // DoorPriceTest, which expected the old figure to survive a refused quote and got 6.99.
+        // (BGCouriers_Pricing::reference_for_weight refuses non-live answers for the same reason.)
+        if ($quote->source !== 'live') {
+            BGCouriers_Logger::debug('door price: not a live quote, keeping the old one', [
+                'order' => $order->get_id(), 'courier' => $courier_id, 'source' => $quote->source]);
+            return;
+        }
+        $door = BGCouriers_Pricing::door_price($quote);
+        if ($door <= 0) { return; }
+        foreach ($order->get_items('shipping') as $item) {
+            if (!$item instanceof \WC_Order_Item_Shipping) { continue; }
+            if (strpos((string) $item->get_method_id(), 'bgcouriers_') !== 0) { continue; }
+            $item->update_meta_data('_bgcouriers_info_price', $door);
+            $item->save();
+        }
+    }
+
     public static function generate(int $order_id): BGCouriers_Label {
         $order = wc_get_order($order_id);
         if (!$order) { throw new BGCouriers_Api_Exception(esc_html__('Order not found.', 'bg-couriers')); }
@@ -288,6 +339,11 @@ class BGCouriers_Labels {
         // and created another, and the first was never heard of again. The PDF is a convenience -
         // printing fetches it on demand - and it is treated as one below.
         $order->save();
+
+        // The waybill is the moment the delivery price stops being an estimate: the parcel, the town and
+        // the office are settled now, not as the customer guessed them at the checkout. See
+        // refresh_door_price() - it never clears what it cannot renew.
+        self::refresh_door_price($order);
 
         // A courier can accept a shipment and quietly drop part of it (Speedy's COD carries
         // ignoreIfNotApplicable by design). The waybill then prints with nothing to collect, and since
