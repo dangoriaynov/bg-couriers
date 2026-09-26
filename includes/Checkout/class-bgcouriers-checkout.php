@@ -58,6 +58,7 @@ class BGCouriers_Checkout {
         // store that unticks it gets WooCommerce's calculator back on the very next page load.
         add_filter('pre_option_woocommerce_enable_shipping_calc', [$this, 'hide_calculator_option']);
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_price_label'], 4, 2);     // "delivery not in the total": estimate instead of a price
+        add_filter('woocommerce_get_order_item_totals', [$this, 'order_shipping_row'], 10, 2);              // the same figure on the order, the e-mail and My account
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'logo_shipping_label'], 5, 2);  // courier brand logo before the name
         add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_tip_label'], 30, 2);      // (i) hover hint LAST, so the row stays one short line
         // Our own delivery fields ARE the address, so WooCommerce's are dropped - unless the store also
@@ -407,6 +408,42 @@ class BGCouriers_Checkout {
         }
         /* translators: %s = delivery type */
         return sprintf(__('Flat price %s.', 'bg-couriers'), $type);
+    }
+
+    /**
+     * Say what the courier will collect, on the order itself - the e-mail, the order-received page and
+     * My account all print the same rows.
+     *
+     * With "Delivery in the order total" off the shipping line costs 0, and WooCommerce then renders the
+     * row as the method's NAME and nothing else (get_shipping_to_display: no amount when the total is
+     * zero). So an order that will cost the customer 2,98 EUR at the door said "Speedy: To office" and
+     * left them to guess. The amount is not added to the row's value but written under it, small: it is
+     * not part of the order total, and a number sitting beside "Total" that does not add up is worse
+     * than no number at all.
+     *
+     * The figure is the one recorded on the shipping line - quoted at the checkout and re-quoted when the
+     * waybill was created (BGCouriers_Labels::refresh_door_price), so it is what the courier is about to
+     * charge, not what the basket guessed a week ago.
+     *
+     * @param array $totals WooCommerce's rows: key => ['label' => .., 'value' => ..]
+     * @return array
+     */
+    public function order_shipping_row($totals, $order) {
+        if (!is_array($totals) || !isset($totals['shipping']) || !$order instanceof \WC_Order) { return $totals; }
+        $courier = (string) $order->get_meta('_bgcouriers_courier');
+        if ($courier === '' || BGCouriers_Settings::ship_in_total($courier)) { return $totals; }
+        $info = 0.0;
+        foreach ($order->get_items('shipping') as $item) {
+            if ($item instanceof \WC_Order_Item_Shipping && strpos((string) $item->get_method_id(), 'bgcouriers_') === 0) {
+                $info = max($info, (float) $item->get_meta('_bgcouriers_info_price', true));
+            }
+        }
+        if ($info <= 0) { return $totals; }
+        $price = html_entity_decode(wp_strip_all_tags(wc_price($info, ['currency' => $order->get_currency()])), ENT_QUOTES, 'UTF-8');
+        /* translators: %s: the delivery price, e.g. "3,06 EUR" - the same sentence the checkout row uses. */
+        $note  = sprintf(__('~%s paid to the courier on delivery', 'bg-couriers'), $price);
+        $totals['shipping']['value'] .= '<br><small class="bgc-door-price">' . esc_html($note) . '</small>';
+        return $totals;
     }
 
     /**
