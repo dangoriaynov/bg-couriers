@@ -165,6 +165,13 @@ class BGCouriers_Plugin {
         add_action('init', ['BGCouriers_Sync', 'schedule']);
         add_action(BGCouriers_Sync::HOOK, ['BGCouriers_Sync', 'cron']);
         add_action(BGCouriers_Sync::RATES_HOOK, ['BGCouriers_Sync', 'refresh_rates']); // daily reference-price refresh
+        // A courier switched on gets its nomenclature now, not whenever the weekly run next comes round:
+        // until then it stands on the checkout with an empty town box (see Sync::on_courier_enabled).
+        foreach (array_keys(BGCouriers_Couriers::all()) as $cid) {
+            foreach (['update_option', 'add_option'] as $when) {
+                add_action("{$when}_bgcouriers_{$cid}_enabled", ['BGCouriers_Sync', 'on_courier_enabled'], 10, 2);
+            }
+        }
         // Tracking auto-update: poll couriers without a webhook (Speedy/Econt/Pigeon/Sameday) on a schedule.
         add_action('init', ['BGCouriers_Tracking_Poller', 'schedule']);
         add_action(BGCouriers_Tracking_Poller::HOOK, ['BGCouriers_Tracking_Poller', 'run']);

@@ -108,6 +108,24 @@ class BGCouriers_Order_Metabox {
         }
         $body .= '<span class="bgc-hd-acts">' . $actions . '</span></div>';
 
+        // What the courier collects at the door, on the screen the shop opens to look at ONE order. The
+        // shipping line there reads 0,00 - correct (the shop charges nothing) and unreadable: it looks
+        // like a delivery nobody is paying for. The customer's copy says it too, in the totals; this is
+        // the same sentence, so the two never disagree.
+        if (!BGCouriers_Settings::ship_in_total($courier->id())) {
+            $door = 0.0;
+            foreach ($order->get_items('shipping') as $sitem) {
+                if ($sitem instanceof \WC_Order_Item_Shipping && strpos((string) $sitem->get_method_id(), 'bgcouriers_') === 0) {
+                    $door = max($door, (float) $sitem->get_meta('_bgcouriers_info_price', true));
+                }
+            }
+            if ($door > 0) {
+                $price = html_entity_decode(wp_strip_all_tags(wc_price($door, ['currency' => $order->get_currency()])), ENT_QUOTES, 'UTF-8');
+                /* translators: %s: the delivery price, e.g. "3,06 EUR" */
+                $body .= '<div class="bgc-door-price">' . esc_html(sprintf(__('~%s paid to the courier on delivery', 'bg-couriers'), $price)) . '</div>';
+            }
+        }
+
         // Red banner right under the header when the order has outgrown its waybill (changed, not
         // re-issued). "Not printed yet" has no banner any more: it is the green print tile above, the
         // same way the orders list shows it - one signal in the place the merchant will click.
