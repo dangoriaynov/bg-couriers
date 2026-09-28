@@ -1334,6 +1334,22 @@ class BGCouriers_Checkout {
         if (BGCouriers_Settings::delivery_position() !== 'details') { return; }
         if (function_exists('is_checkout') && !is_checkout()) { return; }
         echo '<div class="bgc-delivery-host" id="bgcouriers-delivery-host"></div>';
+        // The block is rendered by WooCommerce inside the order review and moved here by script, so for
+        // a moment it was visible on the right and then jumped left - on a slow first paint it read as
+        // the page tearing itself apart (owner, 2026-09-28). The rows are hidden BEFORE the review is
+        // printed instead; this hook runs before it.
+        //
+        // The class comes from script, not from the stylesheet, on purpose: with scripts off nothing
+        // moves anything, and a hidden shipping row would be a checkout with no way to choose delivery.
+        // The browser that hides the row is the one that will move it. bgc-checkout.js gives up the
+        // class again if there is nothing to move, or if the move has not happened within three seconds.
+        // Таймерът стои ТУК, а не в bgc-checkout.js: файлът може изобщо да не се зареди (оптимизатор,
+        // грешка по-нагоре, липсваща jQuery), а тогава редовете ще останат скрити завинаги и поръчката
+        // ще е без избор на доставка. Кодът, който крие, носи и връщането назад.
+        echo '<script>(function(d){var h=d.documentElement;h.className+=\' bgc-relocating\';'
+            . 'setTimeout(function(){var n=d.getElementById(\'bgcouriers-delivery-host\');'
+            . 'if(!n||!n.children.length){h.className=h.className.replace(/(^|\\s)bgc-relocating(\\s|$)/,\' \');}'
+            . '},3000);})(document);</script>';
     }
 
     public function render_fields($method, $index): void {
