@@ -874,20 +874,29 @@
    * Done BEFORE the fields are built: selectWoo measures the box it is initialised in, and a dropdown
    * initialised inside a table cell and then moved opens at the width of the cell.
    */
+  // The rows are hidden from the first paint by `html.bgc-relocating` (set next to the host, see
+  // render_delivery_host). Giving up that class puts them back where WooCommerce drew them: whenever the
+  // move cannot happen, the customer must still have somewhere to choose delivery.
+  function stopHiding() {
+    document.documentElement.className =
+      document.documentElement.className.replace(/(^|\s)bgc-relocating(\s|$)/, ' ');
+  }
+
   function relocateDelivery() {
-    if (!BGCOURIERS || BGCOURIERS.deliveryPosition !== 'details') { return; }
+    if (!BGCOURIERS || BGCOURIERS.deliveryPosition !== 'details') { stopHiding(); return; }
     var $host = $('#bgcouriers-delivery-host');
-    if (!$host.length) { return; }
+    if (!$host.length) { stopHiding(); return; }
     var $rows = $('tr.bgc-allmap-open, tr.woocommerce-shipping-totals, tr.shipping');
     // No such rows: a theme that lays its checkout out some other way than WooCommerce's totals table.
     // Nothing is moved and the block stays where it was rendered, which is a working checkout.
-    if (!$rows.length) { return; }
+    if (!$rows.length) { stopHiding(); return; }
     var $moving = $rows.children('td').children();
     // Nothing to move means the table has not been rebuilt since the last move and everything is in the
     // host already - emptying it here would delete the only copy there is.
     if ($moving.length) { $host.empty().append($moving); }
     $rows.addClass('bgc-moved-away');
   }
+
 
   // Fade the chosen courier's fields in once they are fully built, instead of flashing raw selects on load.
   // Only reveals the first time (persists across totals refreshes); re-reveals when you switch couriers.

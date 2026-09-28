@@ -5,7 +5,7 @@ Tags: speedy, econt, box now, sameday, express one
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.21
+Stable tag: 0.4.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.22 =
+* The delivery block no longer appears in the order totals for a blink before moving under the customer's details. WooCommerce renders it on the right and the browser carries it to the left, so on a slow first paint it was drawn twice and jumped. The rows are hidden from the first paint instead - by the same script that does the moving, never by the stylesheet, and the hiding undoes itself after three seconds if nothing moved: with scripts blocked a hidden shipping row would be a checkout with no way to choose delivery.
 
 = 0.4.21 =
 * Added: when the delivery is paid to the courier ("Delivery in the order total" off), the order, the customer e-mail and My account now say how much that is, under the delivery row: "~3,06 EUR paid to the courier on delivery". The amount is not added to the order total. It is re-quoted the moment the waybill is created, so it is what the courier is about to charge rather than what the basket guessed; cancelling a waybill leaves it alone. The shop sees the same line on the order screen, where the delivery row otherwise reads 0.

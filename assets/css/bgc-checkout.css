@@ -27,6 +27,15 @@
    price. `!important` because a theme may set its own display on the shipping row. */
 tr.bgc-moved-away { display: none !important; }
 
+/* Before the move: the rows are already in the page, and the browser paints them where WooCommerce put
+   them - to the right, in the totals - a blink before the script carries them to the left. Hidden from
+   the first paint, so the block appears once, where it belongs. Scoped to the review table: the copy
+   that lands in the host is no longer inside it and stays visible. `bgc-relocating` is set by the
+   script that does the moving (see render_delivery_host), never by the page itself. */
+html.bgc-relocating .woocommerce-checkout-review-order tr.bgc-allmap-open,
+html.bgc-relocating .woocommerce-checkout-review-order tr.woocommerce-shipping-totals,
+html.bgc-relocating .woocommerce-checkout-review-order tr.shipping { display: none !important; }
+
 /* Delivery-type tabs */
 .bgc-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .bgc-tab { flex: 1 1 auto; min-width: 92px; padding: 9px 12px; border: 1px solid #e2e6ea; border-radius: 10px;
