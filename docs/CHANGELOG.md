@@ -4,6 +4,9 @@ The plugin's own `readme.txt` carries only the most recent entries: WordPress.or
 section at 5000 characters, and a changelog the directory cuts in half is worse than a short one
 that points here. Nothing is lost - this file is the full history.
 
+## 0.4.24
+* Changed (directory listing, no code): **the BOX NOW tag was invisible.** Written as `box now`, WordPress.org made it a tag of its own - `box-now`, with exactly one plugin on it, ours - and the directory does not render a tag that only one plugin uses (measured: `econt` 5 plugins and `sameday` 2 are shown, `box-now` 1 and `express-one` 0 are not; the same happens to other plugins' single-use tags). So one of the five slots had been doing nothing since the plugin was published. `boxnow` - the form three plugins share, including both BOX NOW delivery plugins - is rendered and links to a page where this plugin sits beside them.
+
 ## 0.4.23
 * Changed (directory listing, no code): **the plugin says the word shops type.** Measured in the WordPress.org search before this change: found 1st for "evropat", 1st for "куриер woocommerce", 3rd for "pigeon woocommerce", 8th for "econt woocommerce" - and NOT in the top 25 for "speedy woocommerce" or "box now woocommerce", the two highest-intent queries there are. The competitors that win those carry the brand in their plugin NAME, which weighs most in that search; the owner chose not to put somebody else's trademark in ours (2026-09-28), so the lever left is the text. The short description now leads with "Bulgarian courier shipping" - it carried neither "shipping" nor "Bulgarian" before, only "Bulgaria's couriers" - and the first line of the description says shipping too. Tags are capped at five by WordPress.org ("Tags – 1 to 5 comma separated terms"), so `express one` - a tag page with three plugins on it - gave way to `shipping`. Express One stays in the title-less places that are indexed anyway: the short description and the courier list.
 
