@@ -1,11 +1,11 @@
 === BG Couriers for WooCommerce ===
 Contributors: winter2007d
 Donate link: https://revolut.me/danq6lus
-Tags: speedy, econt, box now, sameday, shipping
+Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.23
+Stable tag: 0.4.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.24 =
+* Directory listing only: the BOX NOW tag was written "box now", which WordPress.org turned into a tag of its own with exactly one plugin on it - ours - and a tag page with one plugin is not shown at all. `boxnow`, which three plugins share, is shown. Nothing else changed.
 
 = 0.4.23 =
 * Directory listing only, no code change: the short description now says "Bulgarian courier shipping" - the word shops actually type - and one tag was swapped for `shipping`. Measured in the directory before this: the plugin is found for "evropat" (1st), "куриер woocommerce" (1st) and "econt woocommerce" (8th), but not in the top 25 for "speedy woocommerce".
