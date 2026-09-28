@@ -1,19 +1,19 @@
 === BG Couriers for WooCommerce ===
 Contributors: winter2007d
 Donate link: https://revolut.me/danq6lus
-Tags: speedy, econt, box now, sameday, express one
+Tags: speedy, econt, box now, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.22
+Stable tag: 0.4.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Bulgaria's couriers in WooCommerce: Speedy, Econt, BOX NOW, Pigeon, Sameday, Express One, Evropat: office, address and locker delivery, live rates.
+Bulgarian courier shipping for WooCommerce: Speedy, Econt, BOX NOW, Pigeon, Sameday, Express One, Evropat - office, address, locker, live rates.
 
 == Description ==
 
-BG Couriers puts Bulgaria's couriers inside WooCommerce: your customer chooses where the parcel goes and sees what that delivery costs, and you print the label and follow the parcel without leaving WordPress.
+BG Couriers is shipping with Bulgaria's own couriers inside WooCommerce: your customer chooses where the parcel goes and sees what that delivery costs, and you print the label and follow the parcel without leaving WordPress.
 
 **At the checkout** every courier you switch on shows its own price for the basket, live from that courier's API. Your customer picks how the parcel is delivered (to an office, to an address, or to a locker/APS) and finds the office by typing the town, or by pointing at it on one map that carries every courier's offices and lockers at once, each with its own price. The map can also say which pickup point is closest to them.
 
@@ -130,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.23 =
+* Directory listing only, no code change: the short description now says "Bulgarian courier shipping" - the word shops actually type - and one tag was swapped for `shipping`. Measured in the directory before this: the plugin is found for "evropat" (1st), "куриер woocommerce" (1st) and "econt woocommerce" (8th), but not in the top 25 for "speedy woocommerce".
 
 = 0.4.22 =
 * The delivery block no longer appears in the order totals for a blink before moving under the customer's details. WooCommerce renders it on the right and the browser carries it to the left, so on a slow first paint it was drawn twice and jumped. The rows are hidden from the first paint instead - by the same script that does the moving, never by the stylesheet, and the hiding undoes itself after three seconds if nothing moved: with scripts blocked a hidden shipping row would be a checkout with no way to choose delivery.
