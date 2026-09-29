@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.24
+Stable tag: 0.4.25
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.25 =
+* Fixed: the plugin's own strings could come out in English on a Bulgarian shop - "To office", "City", "Office" - while WordPress, WooCommerce and the theme around them were all translated. The Bulgarian catalogue ships with the plugin and is fine; what fails is WordPress's just-in-time loading, which needs the plugin's translation path to be registered, and that registration is lost on a renamed plugin folder, a stale plugin cache, or a string asked for before init. The plugin now loads its catalogue itself, from its own folder, on init - the path is taken from the plugin file rather than from that registry.
 
 = 0.4.24 =
 * Directory listing only: the BOX NOW tag was written "box now", which WordPress.org turned into a tag of its own with exactly one plugin on it - ours - and a tag page with one plugin is not shown at all. `boxnow`, which three plugins share, is shown. Nothing else changed.
