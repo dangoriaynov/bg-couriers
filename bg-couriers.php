@@ -3,7 +3,7 @@
  * Plugin Name: BG Couriers for WooCommerce
  * Description: Shipping with Bulgarian couriers (Speedy, Econt, BOX NOW, Pigeon, Sameday, Express One, Evropat) - office/address/locker delivery, live rates, labels and tracking.
  * Plugin URI: https://github.com/dangoriaynov/bg-couriers
- * Version: 0.4.24
+ * Version: 0.4.25
  * Author: Дан Горяйнов
  * Author URI: https://github.com/dangoriaynov
  * Requires PHP: 7.4
@@ -17,7 +17,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('BGCOURIERS_VERSION', '0.4.24');
+define('BGCOURIERS_VERSION', '0.4.25');
 define('BGCOURIERS_FILE', __FILE__);
 define('BGCOURIERS_PATH', plugin_dir_path(__FILE__));
 define('BGCOURIERS_URL', plugin_dir_url(__FILE__));
@@ -25,8 +25,21 @@ define('BGCOURIERS_URL', plugin_dir_url(__FILE__));
 require_once BGCOURIERS_PATH . 'includes/class-bgcouriers-autoloader.php';
 BGCouriers_Autoloader::register();
 
-// Translations: WordPress auto-loads them just-in-time from /languages (bg_BG ships there) for the
-// plugin's own text domain, so no manual load_plugin_textdomain() call is needed (discouraged since WP 4.6).
+// Translations. WordPress loads them just-in-time from /languages (bg_BG ships there), and on a healthy
+// install that is enough - the call below is the fallback, not the mechanism.
+//
+// It exists because just-in-time needs the plugin's Domain Path to be REGISTERED, and a shop can end up
+// without that registration: a folder renamed on upload (bg-couriers-main), a stale plugin cache after a
+// manual copy, a string asked for before `init` on WP 6.7+. Then every string comes out in English on a
+// site whose WordPress, WooCommerce and theme are all Bulgarian - which is exactly what two shops
+// reported, one with a screenshot of a Bulgarian checkout full of "To office" and "City" (2026-09-28).
+// load_plugin_textdomain() does not depend on that registry: it resolves the path from THIS file.
+//
+// On `init` at priority 0, because that is the earliest point where WordPress considers translations
+// fair game, and the checkout builds its labels later. Loading an already-loaded domain is a no-op.
+add_action('init', static function () {
+    load_plugin_textdomain('bg-couriers', false, dirname(plugin_basename(__FILE__)) . '/languages');
+}, 0);
 
 register_activation_hook(__FILE__, function () {
     require_once BGCOURIERS_PATH . 'includes/class-bgcouriers-autoloader.php';
