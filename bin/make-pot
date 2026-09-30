@@ -82,4 +82,6 @@ if [ "${FZ:-0}" -gt 1 ]; then
   printf 'fuzzy (guessed - check them, then drop the "#, fuzzy" line): %s\n' "$((FZ - 1))"
   msgattrib --only-fuzzy --no-obsolete "$PO" | grep '^msgid "' | grep -v '^msgid ""$' | sed 's/^/  /'
 fi
-echo "Now fill any empty msgstr in $PO, then: msgfmt -o languages/bg-couriers-bg_BG.mo $PO"
+echo "Now fill any empty msgstr in $PO, then:"
+echo "  msgfmt -o languages/bg-couriers-bg_BG.mo $PO && bin/make-php"
+echo "(bin/make-php writes the .l10n.php form, which WordPress reads BEFORE the .mo since 6.5)"
