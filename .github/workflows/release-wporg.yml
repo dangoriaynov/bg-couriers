@@ -83,6 +83,9 @@ jobs:
             diff "${RUNNER_TEMP}/fresh.po" "${RUNNER_TEMP}/shipped.po" | head -20
             exit 1
           fi
+          # And the THIRD file, the one WordPress actually reads first since 6.5: the PHP catalogue.
+          # A .l10n.php left behind by an older build would answer before the .mo and say something else.
+          php bin/make-php --check
           echo "translations: $(grep -c '^msgid' "${RUNNER_TEMP}/shipped.po") in the catalogue, .mo matches the .po"
           echo "untranslated: $(msgattrib --untranslated "$PO" | grep -c '^msgid "' || true)"
 
