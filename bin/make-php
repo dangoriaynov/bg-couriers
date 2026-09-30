@@ -1,0 +1,104 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Build languages/bg-couriers-bg_BG.l10n.php from the compiled .mo - and check it is in step.
+ *
+ * Why this file exists. Since WordPress 6.5 the loader asks for the PHP form of a catalogue FIRST
+ * (`$preferred_format = apply_filters('translation_file_format', 'php', $domain)` in l10n.php) and only
+ * falls back to the .mo. A plugin that ships just a .mo is therefore one file behind: any stale
+ * `.l10n.php` left somewhere with higher precedence - Loco Translate's folder, a host's "translation
+ * cleanup" - answers before ours does. That is how a Bulgarian shop ended up reading the checkout in
+ * English with a complete catalogue sitting inside the plugin (two shops, 2026-09-28..30). Shipping the
+ * PHP form also saves WordPress parsing a 130 KB binary on every request.
+ *
+ *   bin/make-php            rebuild the PHP catalogue from the .mo
+ *   bin/make-php --check    touch nothing; fail if the shipped file is not what the .mo says
+ *
+ * No wp-cli, no gettext: the .mo is a documented binary and the PHP form is an array literal, so the
+ * release does not gain a tool it has to install. Run it after msgfmt, or through bin/make-pot.
+ */
+
+$root  = dirname(__DIR__);
+$mo    = $root . '/languages/bg-couriers-bg_BG.mo';
+$php   = $root . '/languages/bg-couriers-bg_BG.l10n.php';
+$check = in_array('--check', array_slice($argv, 1), true);
+
+if (!is_file($mo)) {
+    fwrite(STDERR, "no $mo - compile the catalogue first (msgfmt)\n");
+    exit(1);
+}
+
+/**
+ * Read a .mo into [headers, messages].
+ *
+ * Plural entries keep the shape the format gives them: the key is "singular\0plural" and the value is
+ * the forms joined by "\0". WordPress reads them back exactly so - see WP_Translation_File_MO - and a
+ * converter that "tidied" them would quietly drop every plural.
+ */
+function bgc_read_mo(string $file): array {
+    $raw = (string) file_get_contents($file);
+    if (strlen($raw) < 24) { fwrite(STDERR, "$file is too short to be a .mo\n"); exit(1); }
+    $magic = substr($raw, 0, 4);
+    if ($magic === "\xde\x12\x04\x95") { $fmt = 'V'; }        // little-endian
+    elseif ($magic === "\x95\x04\x12\xde") { $fmt = 'N'; }    // big-endian
+    else { fwrite(STDERR, "$file is not a .mo (bad magic)\n"); exit(1); }
+
+    $header       = unpack("{$fmt}rev/{$fmt}count/{$fmt}origin/{$fmt}translation", substr($raw, 4, 16));
+    $originals    = unpack("{$fmt}" . ($header['count'] * 2), substr($raw, $header['origin'], $header['count'] * 8));
+    $translations = unpack("{$fmt}" . ($header['count'] * 2), substr($raw, $header['translation'], $header['count'] * 8));
+
+    $messages = [];
+    $headers  = [];
+    for ($i = 0; $i < $header['count']; $i++) {
+        $olen = $originals[$i * 2 + 1];
+        $ooff = $originals[$i * 2 + 2];
+        $tlen = $translations[$i * 2 + 1];
+        $toff = $translations[$i * 2 + 2];
+        $original    = $olen > 0 ? substr($raw, $ooff, $olen) : '';
+        $translation = $tlen > 0 ? substr($raw, $toff, $tlen) : '';
+        if ($original === '') {
+            // The empty msgid carries the catalogue's headers, one per line.
+            foreach (explode("\n", $translation) as $line) {
+                if (strpos($line, ':') === false) { continue; }
+                [$k, $v] = explode(':', $line, 2);
+                $headers[strtolower(trim($k))] = trim($v);
+            }
+            continue;
+        }
+        $messages[$original] = $translation;
+    }
+    return [$headers, $messages];
+}
+
+[$headers, $messages] = bgc_read_mo($mo);
+if (!$messages) { fwrite(STDERR, "$mo holds no translations\n"); exit(1); }
+
+// The keys WordPress keeps on a catalogue, plus the messages themselves.
+$data = [
+    'domain'             => 'bg-couriers',
+    'plural-forms'       => $headers['plural-forms'] ?? 'nplurals=2; plural=(n != 1);',
+    'language'           => $headers['language'] ?? 'bg_BG',
+    'project-id-version' => $headers['project-id-version'] ?? 'BG Couriers for WooCommerce',
+    'pot-creation-date'  => $headers['pot-creation-date'] ?? '',
+    'po-revision-date'   => $headers['po-revision-date'] ?? '',
+    'x-generator'        => 'bin/make-php',
+    'messages'           => $messages,
+];
+
+$out = "<?php\n" . 'return ' . var_export($data, true) . ";\n";
+
+if ($check) {
+    if (!is_file($php)) {
+        fwrite(STDERR, "missing $php - run bin/make-php\n");
+        exit(1);
+    }
+    if ((string) file_get_contents($php) !== $out) {
+        fwrite(STDERR, "$php is not what the .mo says - run bin/make-php and commit the result\n");
+        exit(1);
+    }
+    printf("the PHP catalogue matches the .mo (%d strings)\n", count($messages));
+    exit(0);
+}
+
+file_put_contents($php, $out);
+printf("wrote %s (%d strings, %d KB)\n", basename($php), count($messages), (int) round(filesize($php) / 1024));
