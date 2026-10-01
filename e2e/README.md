@@ -36,9 +36,15 @@ back until it is asked for by name.
 
 ## Express One
 
-`expressone-checkout.spec.js` drives all three delivery kinds - office, EXOBOX locker and address -
-against Express One's TEST environment, so the prices are the courier's own and no real parcel is
-created. It needs three things on the site under test: Express One enabled with credentials and a
+`expressone-checkout.spec.js` drives all three delivery kinds - office, EXOBOX locker and address.
+
+> **The dev site now carries Express One's PRODUCTION credentials, not the test ones** (checked
+> 2026-10-01: dev and the live shop hold the same account). Quotes are harmless, but an order placed
+> while auto-labelling is on would book a real waybill on the merchant's account. What stops that is
+> `global-setup.js` switching dev's auto-labels off for the length of a run - not the environment, the
+> way this section used to claim. So the suite must not be run with that setup bypassed.
+
+It needs three things on the site under test: Express One enabled with credentials and a
 sender address chosen, its method in the Bulgarian shipping zone, and - because the shop receipts
 наложен платеж through ППП - "COD payout via ППП" ticked on its tab, or cash on delivery is correctly
 withheld and the spec says so.

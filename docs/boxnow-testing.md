@@ -6,9 +6,9 @@ with production credentials + real APMs (see the last section).
 
 > **Credentials are NOT in this file.** The OAuth **Client ID + Client Secret** live ONLY in the
 > plugin's encrypted settings (server-side) - never in the repo, per the project's credential rule.
-> The **stage creds are already stored on dev** (encrypted) as `bgc_boxnow_username` +
-> `bgc_boxnow_password`, with `bgc_boxnow_base_url` / `bgc_boxnow_partner_id` / `bgc_boxnow_origin_id`
-> set - round-trip verified, so the build can use them directly (no re-entry). Everything below is
+> The options are `bgcouriers_boxnow_username` + `bgcouriers_boxnow_password` (the OAuth client id and
+> secret, encrypted), with `bgcouriers_boxnow_live` choosing stage or production and
+> `bgcouriers_boxnow_partner_id` / `bgcouriers_boxnow_warehouse_id` beside them. Everything below is
 > non-secret test configuration + the rules to follow.
 
 ## Stage environment
