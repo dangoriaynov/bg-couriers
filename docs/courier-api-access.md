@@ -1,8 +1,12 @@
-# Getting API access for the remaining couriers
+# How API access was obtained, per courier
 
-Speedy and Econt are integrated and live-verified. The couriers below still need **you to open
-an account and obtain API credentials** before their adapters can be built + tested. None of them
-offer fully self-service API signup - each requires contacting the courier.
+**All seven couriers are built, live-verified and released.** This file is the record of how each
+one's credentials were obtained, kept because the route is not obvious and because it is the first
+thing anyone setting up a second shop will need. A merchant-facing version of the same thing is
+[`getting-api-credentials.md`](getting-api-credentials.md).
+
+Only Европът offers self-service signup; every other courier issues credentials by hand, to a
+contract client, after somebody writes to them.
 
 > **Credential handling:** once you have credentials, transfer them **server-side** (enter them in
 > the plugin's WooCommerce settings on the server, encrypted) - never paste them in chat or commit
@@ -34,10 +38,13 @@ offer fully self-service API signup - each requires contacting the courier.
   3. There is **no self-service portal** - credentials are issued by their team.
   4. Hand me the API Key/Secret server-side; the `pigeon` adapter is partly mapped already from prior art.
 
-## 3. Express One (Bulgaria) - courier (expressone.bg)  *(BUILT 2026-08-25, on a test account)*
+## 3. Express One (Bulgaria) - courier (expressone.bg)  *(LIVE; built on a test account 2026-08-25, production since 2026-09-25)*
 
-- **Access obtained.** Express One issued a **test-environment** USERNAME + PASSWORD and a sender object
-  id (`SEND_OFFICE_ID`) created for this shop. Real credentials follow "upon successful integration".
+- **Access obtained, then promoted.** Express One issues a **USERNAME + PASSWORD**, starting on a
+  **test environment** and replacing it with production credentials "upon successful integration",
+  which is what happened here. The live shop has been quoting and booking on the production account
+  since 2026-09-25 (checked again 2026-10-01: a 5 kg office quote comes back live, and the account's
+  own sender objects are the merchant's company rather than the test account's eighteen generic ones).
 - **API docs:** https://system.expressone.bg/api/web/site/documentation - and it disagrees with the API
   in several places, so `docs/courier-api-notes.md` records what the API actually answered.
 - **Auth:** `POST /1/authorize` (username+password) → `POST /1/accesstoken` → `X-Access-Token`. The BOL
@@ -45,9 +52,8 @@ offer fully self-service API signup - each requires contacting the courier.
 - **What it turned out to support:** office, address AND locker delivery, live per-destination prices,
   labels (PDF and ZPL), cancellation, tracking and a courier pickup request - everything this plugin
   asks of a courier.
-- **Still needed from them:** production credentials, and the production sender object id.
 
-## 4. Европът / Evropat-2000 (Bulgaria) - courier (evropat.bg)  *(KEY IN HAND, adapter built 2026-08-31)*
+## 4. Европът / Evropat-2000 (Bulgaria) - courier (evropat.bg)  *(LIVE; adapter built and measured 2026-08-31, released in 0.4.2)*
 
 - **The API key is self-service, and that is what makes this one cheap.** It is generated from the
   merchant's own account at **https://online.evropat.com** - or by asking sales - and generating it also
@@ -127,11 +133,14 @@ remaining "big player" gap - DPD turned out to be Speedy.
 
 ---
 
-## Roadmap
+## Where this stands
 
-1. **Speedy** - done, live-verified, on `main`.
-2. **Econt** - Phase 2 (in progress), live-verified against your real account.
-3. **BOX NOW**, **Pigeon Express**, **Express One**, **Европът** - each a Phase-3 adapter on the existing multi-courier
-   framework (registry + `BGC_Method_*` + settings section + `@group <courier>` tests), built once its
-   credentials are available. Each follows the same shape as Econt: confirm live API shapes → adapter
-   (nomenclature/quote/label/track) → method + settings → checkout + E2E live-verify.
+Every courier on the roadmap this file once carried is built, live-verified and released: Speedy and
+Econt first, then BOX NOW, Pigeon Express, Sameday, Express One and Европът. There is no remaining
+Bulgarian network worth adding (see the ruled-out list above), so the next adapter would only be
+needed if a merchant asks for one by name.
+
+The shape each of them followed, and the shape an eighth would follow: obtain credentials server-side
+→ confirm the live API shapes → `BGCouriers_<Courier>` adapter (nomenclature / quote / label / track)
+→ `BGCouriers_Method_<Courier>` + registry + settings section → `@group <courier>` tests → drive a real
+order through the checkout on dev.
