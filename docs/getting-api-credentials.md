@@ -50,11 +50,19 @@ to enter the credentials.
 
 ## Express One
 - **Contact:** **international@expressone.bg** / your Express One BG account manager · https://expressone.bg
-- *Important:* Express One BG is part of the **Austrian Post Group (CEE)**. Express One's API uses an **API Key**; the technical shape is the group's `api.expressone.*` style, but **confirm the correct Bulgaria API base URL** with Express One BG (do not assume the Slovenia host).
+- *Important:* the API account is **not** your my.expressone.bg web login, and it is a **username + password**, not an API key. The address (`system.expressone.bg`) is fixed in the plugin, so there is no base URL to enter.
 - **Steps:**
-  1. Contact Express One BG and request **API integration / an API Key** for your account.
-  2. Ask them for: your **API Key** and the **Bulgaria API base URL**.
-  3. Enter the **API Key + base URL** in the plugin's **Express One** settings.
+  1. Contact Express One BG and request **API access** for your contract. They start you on a **test environment** and issue production credentials once the integration works.
+  2. Ask them for: the **API username + password**, and your **sender object id** (the address parcels are collected from).
+  3. Enter the **username** and **password** in the plugin's **Express One** settings, click **Validate**, then **Sync**, and pick your sender address from the list that appears.
+
+## Европът (Evropat-2000)
+- **Contact:** your own cabinet at **https://online.evropat.com**, or **sales@evropat.com** · https://evropat.bg
+- *Important:* this is the one courier here with **self-service** credentials, and there is **no username**: the API key is the whole credential.
+- **Steps:**
+  1. Generate the **API Key** in the online cabinet, or e-mail sales@evropat.com and ask for one.
+  2. Enter the **API Key** in the plugin's **Европът** settings, **Validate**, then **Sync**.
+- *Note:* Европът delivers to **offices and addresses** (no lockers), and its prices already include VAT; the plugin splits the VAT back out so WooCommerce does not add it twice.
 
 ---
 
@@ -67,7 +75,8 @@ to enter the credentials.
 | BOX NOW | integrationsupport@boxnow.bg | OAuth2 Client ID + Secret |
 | Pigeon Express | support@pigeonexpress.com | API Key + Secret + base URL |
 | Sameday | sameday.bg / account manager | username + password (+ pickup point & service IDs) |
-| Express One | international@expressone.bg | API Key (+ confirm BG base URL) |
+| Express One | international@expressone.bg | API username + password (+ sender object id) |
+| Европът | online.evropat.com / sales@evropat.com | API Key (no username) |
 
 A courier's exact process can change - if a step differs from the above, follow the courier's own
 instructions; the plugin only needs the credentials they give you.
