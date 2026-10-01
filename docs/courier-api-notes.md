@@ -59,7 +59,7 @@ deliberately not its post id, so both halves of the rule are pinned at once.
 
 ---
 
-## 1. Pigeon Express - *best fit, build first when creds arrive*
+## 1. Pigeon Express - *BUILT and live; the notes below are what was read before the key arrived*
 
 Source: OpenAPI 3.0 spec at `https://api-docs.pigeonexpress.com/openapi.yaml` (Redoc).
 
@@ -71,10 +71,10 @@ Source: OpenAPI 3.0 spec at `https://api-docs.pigeonexpress.com/openapi.yaml` (R
   - `POST /v1/shipments` → `create_label`; `GET /v1/shipments/{ref}/label` → `get_label_pdf`; `GET /v1/shipments/{ref}/track` (+ `/track/bulk`) → `track`; `POST /v1/shipments/{ref}/cancel` → `cancel_label`. Also `/v1/shipment-statuses`, `/v1/additional-services`.
 - **Delivery types:** office + address + locker(automat) - same 3-tab UX as Speedy/Econt.
 - **Framework fit:** ✅ excellent. `BGC_Pigeon extends BGC_Abstract_Courier` with a header-auth `http_post` override (like Econt's Basic-auth override); parsers for cities/offices(type→office/automat)/streets; `quote` via `/shipments/calculate`; create/label/track/cancel. `capabilities()` = `['address','office','automat','live_quote']`. **No checkout changes** - reuses the existing courier-aware checkout.
-- **What's needed:** Pigeon API Key + Secret + base URLs (prod+sandbox) → then a normal Phase-2-style adapter (confirm live shapes → adapter → method → settings → `@group pigeon` tests → E2E). Estimated the same shape/size as the Econt phase.
+- **Built as described above**, on the API Key + Secret + base URLs Pigeon issued. Office, address and locker all live, with labels and tracking verified against real shipments.
 - **Note:** the spec's examples use `city_id=68134` (Sofia) - same id as Speedy; confirm Pigeon's real city ids on first live call.
 
-## 2. BOX NOW (Bulgaria) - *locker-only; diverges from the city/office model*
+## 2. BOX NOW (Bulgaria) - *BUILT and live; locker-only, and it diverges from the city/office model*
 
 Source: BG Partner API manual v1.65 (`boxnow.bg/en/partner-api`).
 
@@ -93,9 +93,9 @@ Source: BG Partner API manual v1.65 (`boxnow.bg/en/partner-api`).
   2. **Origin warehouse setting** (which `/origins` location ships from).
   3. **Flat-rate pricing** (override `BGC_Pricing` to skip live quote for BoxNow).
   4. COD via `amountToBeCollected` (0-5000); compartment size S/M/L; hide method when cart exceeds locker size.
-- **What's needed:** OAuth2 client_id+secret (sandbox+prod) → adapter (token caching, destinations/origins, delivery-requests, label, parcels/webhook) **+ a locker-picker checkout component** + a flat-rate config + an origin-warehouse setting. More work than Pigeon/Econt because of the UX divergence.
+- **All four divergences were built**, and the locker picker is BOX NOW's own map widget rather than a town/office pair: it is the only way to choose one of its lockers. The create → label → track → cancel cycle is verified.
 
-## 3. Express One (Bulgaria) - *BUILT 2026-08-25, measured against the live test account*
+## 3. Express One (Bulgaria) - *BUILT 2026-08-25 on the test account, in production since 2026-09-25*
 
 `https://system.expressone.bg/api/web`. **Everything below came back from the API**, not from its
 documentation and not from Express One's Slovenian open-source plugin - the two systems are unrelated
@@ -362,11 +362,16 @@ offices (type `office` only). `BGCouriers_Speedy::dropoff_office()` puts it on e
 shipment; the daily pre-town reference price is re-quoted when it changes. Not measured abroad
 (service 202) - see `docs/international-shipping.md`.
 
-## Courier pickup requests - NOT built, and it is part of the flow, not an extra
+## Courier pickup requests - BUILT, and it is part of the flow, not an extra
 
 A waybill only says a parcel exists. The courier comes for it **on a request that names the specific
-waybills** and a day - that is how these carriers work, and all three APIs that have it are built around
-exactly that. The plugin creates waybills and cannot request a collection for them at all.
+waybills** and a day - that is how these carriers work, and every API that has it is built around
+exactly that.
+
+**"Request a courier" is a bulk action on the orders list** (`bgcouriers_pickup`), over the selected
+orders that already have waybills, grouped by courier so N orders cost one call. It is offered only
+for the couriers that implement `request_pickup()`: **Speedy, Econt, Express One and Европът**.
+Sameday, Pigeon and BOX NOW do not show it, for the reasons in the table below.
 
 | courier | endpoint | shape |
 |---|---|---|
@@ -377,23 +382,5 @@ exactly that. The plugin creates waybills and cannot request a collection for th
 | **Pigeon** | none | absent from the vendor's own `ApiClient`. |
 | **BOX NOW** | none | collection is per contract. |
 
-**The reference plugins have this and we do not:** Drusoft Speedy posts to `/v1/pickup`, Drusoft Econt
-calls `requestCourier`, and ShipBG exposes it as a bulk action on the orders list.
-
-**Shape it should take here:** a bulk action on the orders list over the selected orders that already have
-waybills, grouped by courier (one request per courier - the APIs take a list, so N orders = 1 call), a date
-and a time window offered from Speedy's `pickup/terms` where available, the returned request id stored on
-each order, and the action offered ONLY for couriers that support it. Sameday, Pigeon and BOX NOW must not
-show it at all.
-
-## Recommended order
-
-1. **Pigeon** - SCAFFOLDED (code on `main`); just needs the API Key/Secret + base URL to live-verify.
-2. **Express One** - readable via its open-source plugin (address + pickup-point, flat-rate); build once an API Key is in hand. Reasonably fits the existing checkout (no locker-picker needed - pickup-points are office-like).
-3. **BoxNow** - build last; budget extra time for the locker-picker UX + flat-rate + origin-warehouse setting (the biggest UX divergence).
-
-(Express One promoted above BoxNow now that its API is confirmed readable + it fits the existing office/address checkout, whereas BoxNow needs new locker-picker UI.)
-
-Each adapter follows the proven flow: obtain creds (server-side) → confirm live API shapes (fixtures) →
-`BGC_<Courier>` adapter → `BGC_Method_<Courier>` + register → settings section → `@group <courier>`
-tests + E2E live-verify → review → merge.
+**Express One's own rule:** its request has **no request number by design** - "Полученият номер на
+пратка представлява и самата поръчка за посещения" (their integration developer, 2026-08-25).

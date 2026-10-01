@@ -1,99 +1,110 @@
 # BG Couriers for WooCommerce
 
-Ship with Bulgaria's couriers straight from WooCommerce - **Speedy, Econt, Pigeon Express, Sameday
-and BOX NOW**. Your customer picks where the parcel goes and sees what it costs; you print the label
-and follow the parcel without leaving WordPress.
+Ship with Bulgaria's couriers straight from WooCommerce: **Speedy, Econt, Pigeon Express, Sameday,
+Express One, Европът and BOX NOW**. Your customer picks where the parcel goes and sees what it costs;
+you print the label and follow the parcel without leaving WordPress.
 
 **Install it from WordPress.org:** https://wordpress.org/plugins/bg-couriers/
-Free, GPL, and staying that way - every courier, every feature, no paid tier. Deliveries are within
+Free, GPL, and staying that way: every courier, every feature, no paid tier. Deliveries are within
 Bulgaria.
 
 ![Every courier's offices and lockers for one town, each with its own price](.wordpress-org/screenshot-3.jpg)
 
-### What your customer sees
+## What your customer sees
 
 Every courier you switch on shows its own price for the basket, live from that courier's API. The
-customer picks how the parcel is delivered - **to an office, to an address, or to a locker/APS** -
-and finds the office by typing the town, or by pointing at it on one map that carries every courier's
-offices and lockers at once, each with its own price. The map can also say which pickup point is
-closest to them, and what collecting from it saves against delivery to the door.
+customer picks how the parcel is delivered (to an office, to an address, or to a locker) and finds the
+pickup point by typing the town, or by pointing at it on one map that carries every courier's offices
+and lockers at once.
 
-### What you get in the admin
+## What you get in the admin
 
-One click issues the waybill and the label - one order, or fifty of them into a single PDF (A6 labels
-or an A4 sheet). Each shipment's status is then kept up to date on its own, and your customer sees
-the waybill and a tracking link on their order and in the e-mails you already send them. Cash on
-delivery, several parcels per shipment, insurance and free-shipping thresholds are all settings, not
-code.
+One click issues the waybill and the label: one order, or fifty of them into a single PDF. Each
+shipment's status is then kept up to date on its own, and your customer sees the waybill and a
+tracking link on their order and in the e-mails you already send them.
 
-### Setting it up
+## Setting it up
 
-You need your own account with each courier you want to offer - the prices your customers see and
-the labels you print are your own contract's, and nothing is resold through this plugin. Then, per
-courier:
+You need your own account with each courier you want to offer. The prices your customers see and the
+labels you print are your own contract's, and nothing is resold through this plugin.
 
-1. Paste the API credentials on that courier's tab and switch the courier on. It checks them with the
-   courier there and then, and says so plainly if they are refused.
-2. Sync its towns and offices - one button.
-3. Add it to your **Bulgaria** shipping zone - and to the zone of any other country you deliver to.
+1. Paste the API credentials on that courier's tab and switch the courier on. The plugin checks them
+   with the courier there and then.
+2. Sync its towns and offices: one button.
+3. Add it to your **Bulgaria** shipping zone.
 
 Everything else already has a working default. Getting the credentials is the slow part, and
 [`docs/getting-api-credentials.md`](docs/getting-api-credentials.md) says who to ask, per courier.
 
 Bugs and ideas: https://github.com/dangoriaynov/bg-couriers/issues
-Working on the code: [`CONTRIBUTING.md`](CONTRIBUTING.md) - architecture, tests, releasing.
+Working on the code: [`CONTRIBUTING.md`](CONTRIBUTING.md) (architecture, tests, releasing).
 
----
+## Couriers
 
-## Courier status
+All seven are live on `main` and published on WordPress.org.
 
-| Courier | Status | Notes |
+| Courier | Delivers to | Notes |
 |---|---|---|
-| **Speedy** | ✅ Live on `main` | checkout (office/address/APS), live quotes, labels, tracking, settings |
-| **Econt** | ✅ Live on `main` | + **наложен платеж (COD)** with itemised packing list (опис) & ППП money-transfer agreement - live-verified; E2E 7/7 with Speedy |
-| **Express One** | 🧪 On `main`, test account | checkout (office/address/EXOBOX locker), live quotes per destination type, labels, tracking, cancel, courier request. Driven through the real checkout on dev - all three delivery kinds ordered, booked, printed, tracked and cancelled - against Express One's **test** environment; production credentials not yet issued. Its street box takes only streets Express One lists, because its waybills refuse anything else |
-| **Pigeon Express** | ✅ Live on `main` | checkout (office/address), live quotes, labels; tracking live-verified against real shipments |
-| **BOX NOW** | ✅ Live on `main` | locker-only, flat-rate, OAuth2, **map-widget** locker picker; full create → label → track → cancel cycle verified. Needs a prepaid gateway to be offered at checkout: it cannot do наложен платеж |
-| **Sameday** | ✅ Live on `main` | checkout (address/APS), live quotes, labels, tracking; create → PDF → track → cancel verified against a live account (easyBox-only on it) |
-| **Европът (Evropat-2000)** | ✅ Built on `main` (unreleased) | checkout (office/address), live per-destination quotes, labels, tracking, cancel, courier request. Measured against a live account 2026-08-31 and driven through the full create → print → track → cancel cycle. **Their price includes VAT** (the waybill says so; the API never does) and is split back before WooCommerce re-adds it. No lockers in BG (`countryBoxDeliveryAvailable: 0`), no deep-linkable tracking, one API key and no username |
-| **Български пощи** | ❌ Not planned | no public API - integration only under contract, and *no* Bulgarian integrator carries them (Izprati, CloudCart, SELITON, PRIM.IO all omit them). Dropped 2026-08-17 |
+| **Speedy** | office · address · APS | Choose which office you hand parcels in at |
+| **Econt** | office · address · Econtomat | Наложен платеж with an itemised опис and the ППП agreement |
+| **Pigeon Express** | office · address · locker | |
+| **Sameday** | office · address · easyBox | Full lockers are greyed out at the checkout |
+| **Express One** | office · address · EXOBOX | The street comes from Express One's own list. No COD to a locker |
+| **Европът** | office · address | Its prices include VAT, which the plugin splits back out. No lockers, and no public tracking page |
+| **BOX NOW** | lockers (APM) | Flat rate, picked on BOX NOW's own map widget. Prepaid only: it cannot do наложен платеж |
 
-## Features in detail
+**Български пощи is not planned.** They have no public API, integration is only under contract, and no
+Bulgarian integrator carries them. Dropped 2026-08-17; the research is in
+[`docs/courier-api-access.md`](docs/courier-api-access.md) so it is not repeated.
 
-- **Delivery types** per courier - to office / to address / to APS (locker) - as searchable checkout tabs
-  (BoxNow is locker-only via its map widget).
-- **Live pricing** from each courier's API, with a **daily reference baseline** (shown before a destination
-  is picked) and a configured per-method fallback when the API is down. BoxNow is a flat configured rate
-  (no rate API). Prices are net; WooCommerce adds 20% VAT once (no double-VAT).
-- **Labels & tracking** - per-order + bulk "Generate labels" → one combined PDF (A6 label / A4 office),
-  waybill + track link at the top of the order, copy-waybill in the orders list.
-- **Econt COD (наложен платеж)** - itemised опис (seq / name / weight / qty / price), the ППП postal-money-
-  transfer agreement, sum(price×count) reconciled to the collected amount; live-verified with a real waybill.
-- **Cart shipping estimate** - optional per-courier + delivery-type estimate on the cart page.
-- **Courier-aware checkout validation** - an order can't be placed without a valid, specified destination
-  for **any** courier (BoxNow needs a locker; a selection made for one courier can't satisfy another),
-  with clear per-courier error messages.
-- **Emergency help** - a configurable help phone + message shown after repeated checkout failures.
-- **One interactive map for every courier** - a bundled-Leaflet (no CDN) map showing every enabled
-  courier's offices AND lockers for a town at once, each point priced for the way it is collected. The
-  legend names and colours the couriers and doubles as a filter; there is a searchable list beside the
-  map, "show my location", and a directions link per point. **Closest to you** (on by default, one
-  General setting to switch off) sorts the list by distance, puts each courier's own nearest point on
-  its legend badge, and answers the actual question in one line - which point is closest, what it
-  costs, and what it saves against delivery to the door. The answer line is a button that goes to the
-  point it means. Distances are haversine, computed in the browser over points the page already has. Choosing a point sets the courier, delivery
-  type, town and office in one go. A courier's own "Map" button opens this same map filtered to it - the
-  separate per-courier map was removed, because keeping two meant every fix had to land twice. BoxNow
-  keeps its own GPS map widget, which is the only way to pick one of its lockers.
-- **Delivery to another country** (Speedy) - built and measured against a live account, and **switched off
-  in the plugin**: the feature is not finished, so no shop is offered a delivery outside Bulgaria and no
-  setting turns one on. What exists, what is missing and how to run it anyway:
+## Features
+
+### At the checkout
+
+- **Live prices** from each courier's API, per delivery type. A daily reference price stands in before
+  the customer names a town, and a configured fallback covers an API that is down.
+- **Delivery types as tabs**, with searchable town and office pickers.
+- **One map for every courier**: every enabled courier's offices and lockers for a town at once, each
+  point priced for the way it is collected. Bundled Leaflet, no CDN.
+- **Closest to you**: how far each point is, which is nearest, and what collecting from it saves
+  against delivery to the door. Worked out in the browser; the customer's position is never stored.
+- **Cart estimate**, optional, before the customer reaches the checkout.
+- **Validation per courier**: an order cannot be placed without a destination that the chosen courier
+  can actually accept.
+- Works on both the classic and the block checkout.
+
+### Labels and tracking
+
+- Waybill and label in one click, per order or in bulk into one combined PDF (A6 labels or an A4
+  sheet).
+- Automatic labels when an order reaches a status you choose, per courier or globally, and held until
+  the dispatch day when the order names one.
+- Shipment status kept up to date on its own; waybill and track link on the order, in the customer's
+  e-mails and in the orders list.
+- Request a courier to collect the parcels (Speedy, Econt, Express One, Европът).
+
+### Money
+
+- **Наложен платеж**, with the choice of who pays the delivery.
+- When the delivery is paid at the door, the order and the customer's e-mail say how much that will
+  be, without adding it to the total.
+- Free-shipping thresholds per courier and per delivery type; insurance; several parcels per shipment.
+
+### Settings
+
+- One tab per courier, showing only the fields that courier uses.
+- Drag to reorder the couriers and the delivery options; pick a default courier.
+- Choose where the delivery block sits on the classic checkout: in the order review, or under the
+  customer's details.
+- Fully translated to Bulgarian.
+
+### Not offered yet
+
+- **Delivery to another country** (Speedy) is built and measured, and switched off in the plugin: the
+  feature is unfinished, so no shop is offered a foreign delivery and no setting turns one on. See
   [`docs/international-shipping.md`](docs/international-shipping.md).
-- **Settings** - one tab per courier (only the fields each courier actually uses), toggles tinted green/red,
-  AJAX save with a toast, default courier, drag-to-order couriers + delivery options, hide-country,
-  per-method free-shipping thresholds.
 
 ## License
 
-GPLv2-or-later - published free on **WordPress.org**.
+GPLv2-or-later, published free on **WordPress.org**.
 © Dan Goriaynov.
