@@ -132,6 +132,21 @@ jobs:
             "plugins": [ "https://downloads.wordpress.org/plugin/woocommerce.zip", "./${SLUG}" ] }
           JSON
 
+      # --- What Subversion actually receives ----------------------------------------------------------
+      # The zip above is NOT the published package. 10up's action rsyncs the WORKSPACE into SVN honouring
+      # .distignore, while bin/build-zip strips its own hard-coded list - and when the two disagreed, the
+      # difference was the shops' language: `languages` was in .distignore from 2026-07-28, so Plugin
+      # Check read a zip WITH the Bulgarian catalogue while the directory served a package without it, and
+      # every wordpress.org install read the plugin in English from 0.4.26 (shop owner, 2026-10-02).
+      # Nothing on the way to the directory had ever looked at the copy SVN gets. This step does.
+      - name: Subversion gets the catalogue
+        run: |
+          rsync -rc --exclude-from=.distignore ./ "${RUNNER_TEMP}/svn/" --delete --delete-excluded
+          for f in languages/${SLUG}-bg_BG.mo languages/${SLUG}-bg_BG.l10n.php; do
+            [ -s "${RUNNER_TEMP}/svn/$f" ] || { echo "::error::$f is not in what Subversion receives - check .distignore"; exit 1; }
+          done
+          echo "the published copy carries: $(ls "${RUNNER_TEMP}/svn/languages" | tr '\n' ' ')"
+
       - name: Plugin Check, on the code that is about to ship
         working-directory: ${{ runner.temp }}/pkgdir
         run: |
