@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.26
+Stable tag: 0.4.27
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.27 =
+* Fixed: **the Bulgarian catalogue is back in the package.** Installs from WordPress.org have been reading the plugin in English since 0.4.26 - the whole of it, the checkout customers see included - on shops whose WordPress, WooCommerce and theme are all Bulgarian. The catalogue was never missing from the plugin's code; it was being stripped out of the published package, and the directory has no language pack of its own to put back. The compiled catalogue ships again. If a language pack appears on WordPress.org later, it still wins: WordPress reads wp-content/languages before the plugin's own folder.
 
 = 0.4.26 =
 * The Bulgarian catalogue now ships in the form WordPress reads first. Since 6.5 the loader asks for a `.l10n.php` before the `.mo`, so a leftover PHP catalogue elsewhere - one Loco Translate wrote, or a host's translation cleanup - answered before the plugin's own and the shop read the checkout in English. The plugin now carries both files, built from the same catalogue and checked against each other on every release. It also saves WordPress parsing a 130 KB binary on each request.
