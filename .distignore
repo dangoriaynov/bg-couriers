@@ -19,7 +19,16 @@ docs
 e2e
 tests
 vendor
-# Translations come from translate.wordpress.org for wordpress.org installs (Plugins Team, round 2).
-# Kept in the repo because our own dev/prod sites deploy by rsync and need the compiled .mo.
-languages
+# The COMPILED catalogue ships; only the sources stay behind.
+#
+# Round 2 asked for the opposite - translations come from translate.wordpress.org - and the consequence
+# was written down at the time: a wordpress.org install has no Bulgarian until the directory has it.
+# The directory never got it (api.wordpress.org/translations/plugins/1.0/?slug=bg-couriers answers
+# "translations":[]), so from 0.4.26 every wordpress.org shop read the plugin - checkout included - in
+# English, while the same code deployed by rsync to our own sites was Bulgarian (shop owner, 2026-10-02).
+#
+# This is a floor, not a conflict: load_plugin_textdomain() reads wp-content/languages BEFORE the plugin
+# folder, so the official pack takes over by itself the day it exists.
+languages/*.po
+languages/*.pot
 test-results
