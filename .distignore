@@ -24,8 +24,13 @@ vendor
 # Round 2 asked for the opposite - translations come from translate.wordpress.org - and the consequence
 # was written down at the time: a wordpress.org install has no Bulgarian until the directory has it.
 # The directory never got it (api.wordpress.org/translations/plugins/1.0/?slug=bg-couriers answers
-# "translations":[]), so from 0.4.26 every wordpress.org shop read the plugin - checkout included - in
+# "translations":[]), so from 0.4.21 every wordpress.org shop read the plugin - checkout included - in
 # English, while the same code deployed by rsync to our own sites was Bulgarian (shop owner, 2026-10-02).
+#
+# The line sat here harmlessly for two months: releases were made from the owner's machine, where
+# bin/build-zip strips its own list and never reads this file. It took effect the day publishing moved
+# to CI, because 10up's deploy action rsyncs through .distignore - 0.4.18 still carries the catalogue,
+# 0.4.21 (the first CI release, 2026-09-26) does not.
 #
 # This is a floor, not a conflict: load_plugin_textdomain() reads wp-content/languages BEFORE the plugin
 # folder, so the official pack takes over by itself the day it exists.

@@ -4,7 +4,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * The catalogue has to be in what WordPress.org PUBLISHES, not only in the repository.
  *
- * This is the test the 0.4.26 bug walked past. `languages` sat in .distignore from 2026-07-28, so the
+ * This is the test the 0.4.21 bug walked past. `languages` sat in .distignore from 2026-07-28, so the
  * copy rsynced into Subversion carried no catalogue at all - every wordpress.org install read the
  * plugin in English, checkout included, while the identical code rsynced to our own sites was
  * Bulgarian. Nothing caught it: TranslationsLoadTest and PhpCatalogueTest read the files from the
@@ -63,7 +63,7 @@ final class CataloguePackagedTest extends TestCase {
             $this->assertNull(
                 $pattern,
                 "$file would be stripped from the WordPress.org package by the .distignore line \"$pattern\" - "
-                . 'a Bulgarian shop would then read the plugin in English, as it did in 0.4.26'
+                . 'a Bulgarian shop would then read the plugin in English, as it did from 0.4.21 to 0.4.26'
             );
         }
     }

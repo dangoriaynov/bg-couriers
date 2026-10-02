@@ -137,7 +137,8 @@ jobs:
       # .distignore, while bin/build-zip strips its own hard-coded list - and when the two disagreed, the
       # difference was the shops' language: `languages` was in .distignore from 2026-07-28, so Plugin
       # Check read a zip WITH the Bulgarian catalogue while the directory served a package without it, and
-      # every wordpress.org install read the plugin in English from 0.4.26 (shop owner, 2026-10-02).
+      # every wordpress.org install read the plugin in English from 0.4.21, the first release this
+      # workflow published (shop owner, 2026-10-02).
       # Nothing on the way to the directory had ever looked at the copy SVN gets. This step does.
       - name: Subversion gets the catalogue
         run: |
