@@ -36,8 +36,9 @@ final class ParcelBoxTest extends TestCase {
         ]);
         $this->assertSame(30, $box['length']);
         $this->assertSame(20, $box['width']);
-        // 600 + 250 = 850 cm3 over 600 cm2
-        $this->assertSame(2, $box['height']);
+        // 600 + 250 = 850 cm3 over 600 cm2 is 1.4 cm - but the two cubes beside the flat sheet are 5 cm
+        // tall, and a box they do not fit into is not the parcel.
+        $this->assertSame(5, $box['height']);
     }
 
     /** An item entered standing up is the same item: its own dimensions are sorted before anything else. */
@@ -82,6 +83,27 @@ final class ParcelBoxTest extends TestCase {
         ];
         // 600 + 200 = 800 cm3 over the 30x20 footprint
         $this->assertSame(['length' => 30, 'width' => 20, 'height' => 2], BGCouriers_Settings::box_of_units($units));
+    }
+
+    /**
+     * The real pack this came from: a 300 ml bottle with a sachet of paste beside it. The sachet widens
+     * the footprint to 14x10, over which 706 cm3 is barely 5 cm - and the bottle is 7 cm tall. The box
+     * has to hold each thing in it, not only their volume.
+     */
+    public function test_the_box_is_never_shorter_than_the_tallest_item(): void {
+        $box = BGCouriers_Settings::box_of_units([
+            ['l' => 14, 'w' => 7,  'h' => 7,   'qty' => 1],
+            ['l' => 10, 'w' => 10, 'h' => 0.2, 'qty' => 1],
+        ]);
+        $this->assertSame(14, $box['length']);
+        $this->assertSame(10, $box['width']);
+        $this->assertSame(7, $box['height'], 'the bottle has to fit standing in it');
+    }
+
+    /** Volume still wins when it asks for more than any single item is thick. */
+    public function test_volume_still_decides_when_it_asks_for_more(): void {
+        $box = BGCouriers_Settings::box_of_units([['l' => 10, 'w' => 10, 'h' => 2, 'qty' => 5]]);
+        $this->assertSame(10, $box['height']);
     }
 
     /** Nothing measurable: the caller must fall back to the configured parcel, so it gets an empty answer. */

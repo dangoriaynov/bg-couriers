@@ -252,6 +252,7 @@ class BGCouriers_Settings {
         $volume   = 0.0;
         $long     = 0.0;
         $short    = 0.0;
+        $thick    = 0.0;
         $measured = false;
         foreach ($units as $u) {
             $d = [(float) ($u['l'] ?? 0), (float) ($u['w'] ?? 0), (float) ($u['h'] ?? 0)];
@@ -260,6 +261,7 @@ class BGCouriers_Settings {
             $volume += $d[0] * $d[1] * $d[2] * max(1, (int) ($u['qty'] ?? 1));
             $long    = max($long, $d[0]);
             $short   = max($short, $d[1]);
+            $thick   = max($thick, $d[2]);
             // A unit standing in for a product that has no dimensions is not a measurement.
             if (false !== ($u['measured'] ?? true)) { $measured = true; }
         }
@@ -272,9 +274,12 @@ class BGCouriers_Settings {
         return [
             'length' => (int) ceil($long),
             'width'  => (int) ceil($short),
-            // Never below the thickest single item: the volume can round down to nothing for one flat
-            // sachet, and a parcel 0 cm high is not a parcel.
-            'height' => max(1, (int) ceil($volume / ($long * $short))),
+            // Never below the THICKEST single item. The volume alone can ask for less than one item is
+            // tall: a 300 ml bottle (14x7x7) with a sachet of paste beside it (10x10x0.2) spreads the
+            // footprint to 14x10, and 706 cm3 over that is 5 cm - a parcel the bottle does not go into
+            // (owner's description of this very pack, 2026-10-05). The box has to hold each thing in it,
+            // not just their volume.
+            'height' => max(1, (int) ceil($thick), (int) ceil($volume / ($long * $short))),
         ];
     }
 
