@@ -300,6 +300,30 @@ class BGCouriers_Tracking {
         return sprintf(__('%1$s - %2$s: "%3$s"', 'bg-couriers'), $courier_label, $label, $human);
     }
 
+    /**
+     * When an event happened, as a unix timestamp - 0 when the courier's date cannot be read.
+     *
+     * Every courier words its date differently and one of them does not word it at all: Econt sends
+     * milliseconds, Speedy and Pigeon an ISO-ish string, Express One its own format. Milliseconds are
+     * recognised by their size - a seconds timestamp that large would be in the year 50,000 - and the
+     * rest is left to strtotime, which is the only thing that reads all of them.
+     *
+     * @param array $event ['code'=>..,'name'=>..,'date'=>..]
+     */
+    public static function event_time(array $event): int {
+        $raw = trim((string) ($event['date'] ?? ''));
+        if ($raw === '') { return 0; }
+        if (ctype_digit($raw)) {
+            $n = (int) $raw;
+            return $n > 100000000000 ? (int) round($n / 1000) : $n;   // ms vs s
+        }
+        $ts = strtotime($raw);
+        return $ts ? (int) $ts : 0;
+    }
+
+    /** The order the stages happen in, for showing them as a line rather than a heap. */
+    public const STAGE_ORDER = ['registered', 'transit', 'ready', 'delivered', 'returning', 'returned', 'cancelled'];
+
     public static function stage_label(string $stage): string {
         switch ($stage) {
             case 'registered': return __('Label created', 'bg-couriers');

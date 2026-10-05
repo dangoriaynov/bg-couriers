@@ -108,6 +108,10 @@
 .bgc-shipstate .bgc-track-dot { flex:0 0 auto; width:8px; height:8px; border-radius:50%; }
 .bgc-shipstate-txt { color:#50575e; }
 .bgc-shipstate-when { color:#8c8f94; margin-left:auto; white-space:nowrap; }
+/* Кога се е случило всяко нещо: един ред под състоянието, а не четене на бележките. */
+.bgc-timeline { display:flex; flex-wrap:wrap; gap:4px 14px; margin:6px 0 0; padding:6px 10px; border-radius:6px; background:#f6f7f7; font-size:12px; color:#50575e; }
+.bgc-timeline .bgc-tl-step { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+.bgc-timeline time { color:#1d2327; font-weight:600; }
 .bgc-shipstate .bgc-lock { flex:0 0 auto; font-size:15px; width:15px; height:15px; color:#8c8f94; cursor:help; }
 
 /* Ask-the-courier-now button, PINNED to the panel's top-right corner.
