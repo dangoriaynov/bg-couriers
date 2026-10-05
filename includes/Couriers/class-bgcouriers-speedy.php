@@ -507,7 +507,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             ? (string) get_option('bgcouriers_speedy_package', 'BOX')
             : 'BOX';
         $contents = BGCouriers_Settings::shipment_contents();
-        $dims     = BGCouriers_Settings::box_dims();
+        $dims     = BGCouriers_Settings::box_dims($order);
         // One entry per box, weights adding back up to totalWeight - a courier that re-weighs at the
         // depot bills the difference, so "roughly" is not good enough. Every box gets the configured
         // size: the plugin knows one box shape, and claiming per-box dimensions it does not have would

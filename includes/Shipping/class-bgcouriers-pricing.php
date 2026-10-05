@@ -655,7 +655,7 @@ class BGCouriers_Pricing {
     public static function order_shipment(\WC_Order $order): ?array {
         $courier = (string) $order->get_meta('_bgcouriers_courier');
         if ($courier === '') { return null; }
-        $dims   = BGCouriers_Settings::box_dims();
+        $dims   = BGCouriers_Settings::box_dims($order);
         $method = (string) $order->get_meta('_bgcouriers_method');
         if ($method === '') { $method = BGCouriers_Settings::enabled_methods($courier)[0] ?? 'office'; }
         return [

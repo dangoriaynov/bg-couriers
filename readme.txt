@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.27
+Stable tag: 0.4.28
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.28 =
+* New: **the parcel is measured from the order, not declared one size for all.** The shop ships in a bag, so its size is the size of what went into it: the footprint of the largest item, and the height that makes the parcel hold exactly what was ordered. That is the number a locker compartment is picked by, at the checkout as well as on the waybill, so an order that no longer fits a small box stops being offered one. Two new settings go with it - a packaging allowance (the bag and the air inside it, 1.1 by default) and the packaging's own weight, added to the goods. On by default; a product with no dimensions counts as the default parcel below it, so filling your products in is what makes this worth having.
 
 = 0.4.27 =
 * Fixed: **the Bulgarian catalogue is back in the package.** Installs from WordPress.org have been reading the plugin in English since 0.4.26 - the whole of it, the checkout customers see included - on shops whose WordPress, WooCommerce and theme are all Bulgarian. The catalogue was never missing from the plugin's code; it was being stripped out of the published package, and the directory has no language pack of its own to put back. The compiled catalogue ships again. If a language pack appears on WordPress.org later, it still wins: WordPress reads wp-content/languages before the plugin's own folder.

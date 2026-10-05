@@ -323,7 +323,10 @@ class BGCouriers_Ajax {
             catch (\Throwable $e) { return []; }
             set_transient('bgcouriers_sameday_avail', $free, MINUTE_IN_SECONDS);
         }
-        $required = BGCouriers_Sameday::box_size_for(BGCouriers_Settings::box_dims());
+        // The CART's parcel, not the shop's one-size default: the compartment shown to the customer is
+        // the one the shipment is later booked into, and these two disagreeing is how a parcel ends up
+        // at a locker it does not fit.
+        $required = BGCouriers_Sameday::box_size_for(BGCouriers_Settings::cart_box_dims());
         $out = [];
         foreach ($free as $id => $boxes) {
             $out[(int) $id] = BGCouriers_Sameday::locker_fits((array) $boxes, $required);
