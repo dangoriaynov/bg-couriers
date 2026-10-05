@@ -13,6 +13,12 @@ defined('ABSPATH') || exit;
  */
 class BGCouriers_Settings {
 
+    /**
+     * Product types that are a list of other products rather than a parcel: WooCommerce's own grouped
+     * product and the bundle plugins this shop (and most shops) use.
+     */
+    private const CONTAINER_TYPES = ['bundle', 'grouped', 'woosb', 'yith_bundle', 'composite'];
+
     const METHODS = ['office', 'address', 'automat'];
     // ---- data accessors ----
 
@@ -246,6 +252,7 @@ class BGCouriers_Settings {
         $volume   = 0.0;
         $long     = 0.0;
         $short    = 0.0;
+        $thick    = 0.0;
         $measured = false;
         foreach ($units as $u) {
             $d = [(float) ($u['l'] ?? 0), (float) ($u['w'] ?? 0), (float) ($u['h'] ?? 0)];
@@ -254,6 +261,7 @@ class BGCouriers_Settings {
             $volume += $d[0] * $d[1] * $d[2] * max(1, (int) ($u['qty'] ?? 1));
             $long    = max($long, $d[0]);
             $short   = max($short, $d[1]);
+            $thick   = max($thick, $d[2]);
             // A unit standing in for a product that has no dimensions is not a measurement.
             if (false !== ($u['measured'] ?? true)) { $measured = true; }
         }
@@ -266,9 +274,12 @@ class BGCouriers_Settings {
         return [
             'length' => (int) ceil($long),
             'width'  => (int) ceil($short),
-            // Never below the thickest single item: the volume can round down to nothing for one flat
-            // sachet, and a parcel 0 cm high is not a parcel.
-            'height' => max(1, (int) ceil($volume / ($long * $short))),
+            // Never below the THICKEST single item. The volume alone can ask for less than one item is
+            // tall: a 300 ml bottle (14x7x7) with a sachet of paste beside it (10x10x0.2) spreads the
+            // footprint to 14x10, and 706 cm3 over that is 5 cm - a parcel the bottle does not go into
+            // (owner's description of this very pack, 2026-10-05). The box has to hold each thing in it,
+            // not just their volume.
+            'height' => max(1, (int) ceil($thick), (int) ceil($volume / ($long * $short))),
         ];
     }
 
@@ -323,6 +334,15 @@ class BGCouriers_Settings {
             $l = $product && method_exists($product, 'get_length') ? (float) $product->get_length() : 0.0;
             $w = $product && method_exists($product, 'get_width')  ? (float) $product->get_width()  : 0.0;
             $h = $product && method_exists($product, 'get_height') ? (float) $product->get_height() : 0.0;
+            // A bundle/grouped line is a HEADING, not a thing: its contents are in the same order as
+            // their own lines, with their own sizes (checked on order #6300 - the bundle line, then the
+            // acid and the paste it holds). Counting it as well would add a whole default parcel of
+            // nothing to every such order. A bundle that carries its own dimensions is a real parcel -
+            // the merchant said so - and is counted.
+            if (!($l > 0 && $w > 0 && $h > 0) && $product && method_exists($product, 'get_type')
+                && in_array((string) $product->get_type(), self::CONTAINER_TYPES, true)) {
+                continue;
+            }
             $units[] = ($l > 0 && $w > 0 && $h > 0)
                 ? ['l' => $to_cm($l), 'w' => $to_cm($w), 'h' => $to_cm($h), 'qty' => $qty]
                 : ['l' => (float) $default['length'], 'w' => (float) $default['width'],
