@@ -403,6 +403,12 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             $value  += (float) $item->get_total() + (float) $item->get_total_tax();
             $size    = max($size, self::compartment_size($product));
         }
+        // The compartment is for the PARCEL, not for its largest item: five flat sachets in one bag are
+        // taller than any one of them, and the biggest-item reading booked a small box for a parcel that
+        // no longer fits it. BGCouriers_Settings::box_dims() measures the whole order (when the setting
+        // is on) and otherwise returns the shop default, which is where this started.
+        $box  = BGCouriers_Settings::box_dims($order);
+        $size = max($size, self::compartment_for((float) $box['length'], (float) $box['width'], (float) $box['height']));
         if ($lines === 0) { $value = (float) $order->get_total(); }
         return [[
             'id'     => (string) $order->get_order_number(),
