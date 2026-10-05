@@ -463,8 +463,14 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
             $total += (float) wc_get_weight((float) $w, 'kg') * max(1, (int) $item->get_quantity());
         }
         if ($total <= 0) {
+            // The default IS a whole parcel's weight, packaging included - adding it again would count
+            // the bag twice.
             return class_exists('BGCouriers_Settings') ? BGCouriers_Settings::default_weight_kg() : 1.0;
         }
+        // The products weigh what they weigh; the bag, the tape and the padding are the shop's own and
+        // are declared once, from the settings. A courier that re-weighs at the depot bills the
+        // difference, so a gram shop sending 40 g of sachets in a 60 g envelope was under-declaring.
+        if (class_exists('BGCouriers_Settings')) { $total += BGCouriers_Settings::packaging_kg(); }
         return max(0.1, round($total, 3));
     }
 

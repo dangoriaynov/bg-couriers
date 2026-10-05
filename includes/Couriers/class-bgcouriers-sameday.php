@@ -502,9 +502,13 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
      * tarifficator prices in RON) throws, so the pricing pipeline falls back to the reference/fixed
      * price instead of charging a foreign number.
      */
-    /** Shared default parcel dimensions in Sameday's field names (width/length/height, cm). */
-    protected static function parcel_dims(): array {
-        $d = BGCouriers_Settings::box_dims();
+    /**
+     * The parcel's dimensions in Sameday's field names (width/length/height, cm). With an order in hand
+     * they are measured from it; without one - a quote, before there is an order - the configured
+     * default is all there is.
+     */
+    protected static function parcel_dims(?\WC_Order $order = null): array {
+        $d = BGCouriers_Settings::box_dims($order);
         return ['width' => $d['width'], 'length' => $d['length'], 'height' => $d['height']];
     }
 
@@ -612,7 +616,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
                 'postalCode'   => (string) $order->get_meta('_bgcouriers_post_code'),
             ], static function ($v) { return $v !== ''; }),
             'parcels'        => array_map(
-                static function ($kg) { return array_merge(['weight' => $kg], self::parcel_dims()); },
+                static function ($kg) use ($order) { return array_merge(['weight' => $kg], self::parcel_dims($order)); },
                 BGCouriers_Order::parcel_weights($w, $parcel_n)
             ),
         ];
