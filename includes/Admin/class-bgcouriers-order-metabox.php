@@ -162,6 +162,28 @@ class BGCouriers_Order_Metabox {
                 . '</div>';
         }
 
+        // WHEN it happened, not just where it is now. The order notes carry every change already, but they
+        // carry the stock movements, the delivery-date plugin and everything else alongside, and the
+        // question being asked here is a short one: when did this go out, when did it arrive, when did it
+        // come back (owner, 2026-10-05).
+        $times = $order->get_meta('_bgcouriers_track_times');
+        if (is_array($times) && $times) {
+            $steps = [];
+            foreach (BGCouriers_Tracking::STAGE_ORDER as $st) {
+                $when = (int) ($times[$st] ?? 0);
+                if ($when <= 0) { continue; }
+                $steps[] = '<span class="bgc-tl-step">'
+                    . '<span class="bgc-track-dot" style="background:'
+                    . esc_attr(BGCouriers_Order_Columns::STAGE_COLORS[$st] ?? '#6b7280') . '"></span>'
+                    . esc_html(BGCouriers_Tracking::stage_label($st))
+                    . ' <time datetime="' . esc_attr(gmdate('c', $when)) . '">'
+                    . esc_html(date_i18n('j M, H:i', $when)) . '</time></span>';
+            }
+            if ($steps) {
+                $body .= '<div class="bgc-timeline">' . implode('', $steps) . '</div>';
+            }
+        }
+
         // The waybill was created but the courier did not apply everything asked of it - Speedy's COD
         // carries ignoreIfNotApplicable by design, so a shipment can print with nothing to collect.
         // generate() records this on the order "and keeps a flag the admin screens can show", and no

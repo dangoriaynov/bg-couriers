@@ -132,6 +132,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.28 =
+* New: the order now says WHEN each stage happened - label created, on its way, ready for collection, delivered, on its way back, back with you - as one line with dates, instead of being read out of the order notes among the stock movements. The courier's own event time is used where it gives one.
 * New: **the parcel is measured from the order, not declared one size for all.** The shop ships in a bag, so its size is the size of what went into it: the footprint of the largest item, and the height that makes the parcel hold exactly what was ordered. That is the number a locker compartment is picked by, at the checkout as well as on the waybill, so an order that no longer fits a small box stops being offered one. Two new settings go with it - a packaging allowance (the bag and the air inside it, 1.1 by default) and the packaging's own weight, added to the goods. On by default; a product with no dimensions counts as the default parcel below it, so filling your products in is what makes this worth having.
 
 = 0.4.27 =
