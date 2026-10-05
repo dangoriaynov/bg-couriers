@@ -209,6 +209,12 @@ class BGCouriers_Tracking_Poller {
         $human = $t->human();
         $stored_stage = (string) $order->get_meta('_bgcouriers_track_stage');
         if ($human !== '' && ($stored_stage !== $stage || (string) $order->get_meta('_bgcouriers_track_text') !== $human)) {
+            // WHEN each stage began, kept on the order itself. The notes already carry every change, but
+            // they carry the stock movements and everything else alongside, and "when did this go out,
+            // when did it arrive, when did it come back" is not a question to answer by reading a wall of
+            // notes (owner, 2026-10-05). Written only on a real change of stage, so a poll that finds
+            // nothing still writes nothing - forty unchanged orders are not forty writes.
+            if ($stored_stage !== $stage) { self::remember_stage_time($order, $stage, $t); }
             $order->update_meta_data('_bgcouriers_track_text', $human);
             $order->update_meta_data('_bgcouriers_track_stage', $stage);
             $order->update_meta_data('_bgcouriers_track_updated', time());
@@ -256,6 +262,33 @@ class BGCouriers_Tracking_Poller {
         }
         if (in_array($stage, ['transit', 'ready', 'returning'], true) && self::mark_shipped($order, $t)) { return; } // update_status() saved it
         $order->save();
+    }
+
+    /**
+     * Note the moment a stage was first reached, under `_bgcouriers_track_times` (stage => unix time).
+     *
+     * @return bool true when something was written and the order needs saving.
+     */
+    public static function remember_stage_time(\WC_Order $order, string $stage, ?BGCouriers_Tracking $t = null): bool {
+        if ($stage === '') { return false; }
+        $times = $order->get_meta('_bgcouriers_track_times');
+        $times = is_array($times) ? $times : [];
+        if (isset($times[$stage]) && (int) $times[$stage] > 0) { return false; }
+
+        // The courier's own clock when it gives one: the LAST event is the one that put the shipment in
+        // this stage. Ours only as a fallback.
+        $when = 0;
+        $events = $t ? ($t->events ?? []) : [];
+        if (is_array($events) && $events) {
+            $when = BGCouriers_Tracking::event_time((array) end($events));
+        }
+        // A date in the future, or before this plugin existed, is a misread format - our own time is
+        // less precise but never nonsense.
+        if ($when <= 0 || $when > time() + DAY_IN_SECONDS || $when < strtotime('2020-01-01')) { $when = time(); }
+
+        $times[$stage] = $when;
+        $order->update_meta_data('_bgcouriers_track_times', $times);
+        return true;
     }
 
     /**

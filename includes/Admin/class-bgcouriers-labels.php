@@ -401,6 +401,11 @@ class BGCouriers_Labels {
         // screen and the list show it green until it is printed. Keyed on the waybill, not the fingerprint,
         // so a re-issue of an unchanged order (same fingerprint, new document) is flagged all the same.
         $order->update_meta_data('_bgcouriers_label_needs_print', '1');
+        // The first moment of the shipment's timeline, stamped here rather than waiting for a poll: the
+        // waybill exists from now, and "when did this go out" starts being answerable at once.
+        if (class_exists('BGCouriers_Tracking_Poller')) {
+            BGCouriers_Tracking_Poller::remember_stage_time($order, 'registered');
+        }
         /* translators: 1: courier name, 2: waybill number */
         $order->add_order_note(sprintf(__('%1$s label generated: %2$s', 'bg-couriers'), $courier->label(), $label->waybill));
         $order->save();
