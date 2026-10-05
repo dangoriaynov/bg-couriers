@@ -13,6 +13,12 @@ defined('ABSPATH') || exit;
  */
 class BGCouriers_Settings {
 
+    /**
+     * Product types that are a list of other products rather than a parcel: WooCommerce's own grouped
+     * product and the bundle plugins this shop (and most shops) use.
+     */
+    private const CONTAINER_TYPES = ['bundle', 'grouped', 'woosb', 'yith_bundle', 'composite'];
+
     const METHODS = ['office', 'address', 'automat'];
     // ---- data accessors ----
 
@@ -323,6 +329,15 @@ class BGCouriers_Settings {
             $l = $product && method_exists($product, 'get_length') ? (float) $product->get_length() : 0.0;
             $w = $product && method_exists($product, 'get_width')  ? (float) $product->get_width()  : 0.0;
             $h = $product && method_exists($product, 'get_height') ? (float) $product->get_height() : 0.0;
+            // A bundle/grouped line is a HEADING, not a thing: its contents are in the same order as
+            // their own lines, with their own sizes (checked on order #6300 - the bundle line, then the
+            // acid and the paste it holds). Counting it as well would add a whole default parcel of
+            // nothing to every such order. A bundle that carries its own dimensions is a real parcel -
+            // the merchant said so - and is counted.
+            if (!($l > 0 && $w > 0 && $h > 0) && $product && method_exists($product, 'get_type')
+                && in_array((string) $product->get_type(), self::CONTAINER_TYPES, true)) {
+                continue;
+            }
             $units[] = ($l > 0 && $w > 0 && $h > 0)
                 ? ['l' => $to_cm($l), 'w' => $to_cm($w), 'h' => $to_cm($h), 'qty' => $qty]
                 : ['l' => (float) $default['length'], 'w' => (float) $default['width'],
