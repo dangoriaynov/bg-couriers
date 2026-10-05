@@ -185,7 +185,17 @@ class BGCouriers_Settings {
      * (a locker parcel must fit its box). Falls back to the old per-Pigeon options on installs
      * that configured those before the fields moved to General.
      */
-    public static function box_dims(): array {
+    public static function box_dims(?\WC_Order $order = null): array {
+        $default = self::configured_box();
+        if ($order instanceof \WC_Order && self::auto_box()) {
+            $box = self::box_of_units(self::order_units($order, $default), self::box_factor());
+            if ($box) { return $box; }
+        }
+        return $default;
+    }
+
+    /** The one parcel size from the settings - what every order used to be declared as. */
+    public static function configured_box(): array {
         // Default 10x10x2 cm - the shape this shop actually ships (sachets and small bottles), and small
         // enough to pass every courier's locker (APS) compartment validation out of the box. A too-large
         // default is not free: Speedy rejected automat shipments outright at the old 40cm.
@@ -195,6 +205,130 @@ class BGCouriers_Settings {
             return max(1, $v);
         };
         return ['length' => $g('length', 10), 'width' => $g('width', 10), 'height' => $g('height', 2)];
+    }
+
+    /** Measure the parcel from what is in the order, instead of declaring one size for everything. */
+    public static function auto_box(): bool {
+        return 'no' !== get_option('bgcouriers_auto_box', 'yes');
+    }
+
+    /**
+     * How much bigger the parcel is than the goods in it: the bag, the air between the items, a sheet of
+     * bubble wrap. 1.1 = ten per cent, which is what a bag of sachets comes to.
+     */
+    public static function box_factor(): float {
+        $v = (float) get_option('bgcouriers_box_factor', 1.1);
+        return min(3.0, max(1.0, $v > 0 ? $v : 1.1));
+    }
+
+    /** The packaging's own weight in kg, added to the goods. 0 = do not count it. */
+    public static function packaging_kg(): float {
+        return max(0.0, min(5.0, round((float) get_option('bgcouriers_packaging_kg', 0.0), 3)));
+    }
+
+    /**
+     * One rectangle for a parcel holding these units.
+     *
+     * The shop ships in a BAG, not in a box: its size is the goods' size (owner, 2026-10-05). So the
+     * FOOTPRINT is the biggest item's - nothing can be packed smaller than the largest thing in it -
+     * and the HEIGHT is whatever makes the rectangle hold exactly the goods' volume, times the
+     * packaging factor. A flat parcel therefore stays flat, which is the whole point: a locker
+     * compartment is chosen by height.
+     *
+     * Each unit's own three dimensions are sorted first, so an item entered as 2 x 30 x 10 counts as
+     * lying down like everything else.
+     *
+     * @param array[] $units [['l'=>cm,'w'=>cm,'h'=>cm,'qty'=>n], ...]
+     * @param float   $factor Packaging allowance, 1.0 = none.
+     * @return array ['length'=>cm,'width'=>cm,'height'=>cm] or [] when nothing has a size.
+     */
+    public static function box_of_units(array $units, float $factor = 1.0): array {
+        $volume   = 0.0;
+        $long     = 0.0;
+        $short    = 0.0;
+        $measured = false;
+        foreach ($units as $u) {
+            $d = [(float) ($u['l'] ?? 0), (float) ($u['w'] ?? 0), (float) ($u['h'] ?? 0)];
+            rsort($d);
+            if ($d[0] <= 0 || $d[1] <= 0 || $d[2] <= 0) { continue; }
+            $volume += $d[0] * $d[1] * $d[2] * max(1, (int) ($u['qty'] ?? 1));
+            $long    = max($long, $d[0]);
+            $short   = max($short, $d[1]);
+            // A unit standing in for a product that has no dimensions is not a measurement.
+            if (false !== ($u['measured'] ?? true)) { $measured = true; }
+        }
+        // Nothing in the order was actually measured: the answer is the configured parcel, exactly as
+        // before - not the configured parcel plus a packaging allowance, which would quietly grow every
+        // shipment of a shop that has no dimensions on its products.
+        if (!$measured) { return []; }
+        if ($volume <= 0 || $long <= 0 || $short <= 0) { return []; }
+        $volume *= max(1.0, $factor);
+        return [
+            'length' => (int) ceil($long),
+            'width'  => (int) ceil($short),
+            // Never below the thickest single item: the volume can round down to nothing for one flat
+            // sachet, and a parcel 0 cm high is not a parcel.
+            'height' => max(1, (int) ceil($volume / ($long * $short))),
+        ];
+    }
+
+    /**
+     * Every ordered unit's size in cm. A product without its own dimensions counts as the configured
+     * default parcel: it is the only size the shop has declared for it, and guessing smaller is what
+     * makes a parcel not fit the locker it was booked into.
+     *
+     * Public because it is the half of the measurement that needs an order around it, and the only way
+     * to check on real orders what the shop will actually declare.
+     *
+     * @return array[] units for box_of_units()
+     */
+    public static function order_units(\WC_Order $order, array $default): array {
+        $pairs = [];
+        foreach ($order->get_items() as $item) {
+            $pairs[] = [method_exists($item, 'get_product') ? $item->get_product() : null,
+                        max(1, (int) $item->get_quantity())];
+        }
+        return self::units_of($pairs, $default);
+    }
+
+    /**
+     * The same measurement for the CART, which is what the checkout has before there is an order. It
+     * decides which lockers are offered at all: a parcel measured only at label time would be booked
+     * into a compartment the customer was shown and it does not fit.
+     */
+    public static function cart_box_dims(): array {
+        $default = self::configured_box();
+        if (!self::auto_box() || !function_exists('WC') || !WC()->cart) { return $default; }
+        $pairs = [];
+        foreach (WC()->cart->get_cart() as $line) {
+            $pairs[] = [$line['data'] ?? null, max(1, (int) ($line['quantity'] ?? 1))];
+        }
+        $box = self::box_of_units(self::units_of($pairs, $default), self::box_factor());
+        return $box ?: $default;
+    }
+
+    /**
+     * @param array[] $pairs [[\WC_Product|null, qty], ...]
+     * @return array[] units for box_of_units()
+     */
+    private static function units_of(array $pairs, array $default): array {
+        $unit  = (string) get_option('woocommerce_dimension_unit', 'cm');
+        $to_cm = static function ($v) use ($unit) {
+            return function_exists('wc_get_dimension') ? (float) wc_get_dimension((float) $v, 'cm', $unit) : (float) $v;
+        };
+        $units = [];
+        foreach ($pairs as $pair) {
+            $product = $pair[0] ?? null;
+            $qty     = max(1, (int) ($pair[1] ?? 1));
+            $l = $product && method_exists($product, 'get_length') ? (float) $product->get_length() : 0.0;
+            $w = $product && method_exists($product, 'get_width')  ? (float) $product->get_width()  : 0.0;
+            $h = $product && method_exists($product, 'get_height') ? (float) $product->get_height() : 0.0;
+            $units[] = ($l > 0 && $w > 0 && $h > 0)
+                ? ['l' => $to_cm($l), 'w' => $to_cm($w), 'h' => $to_cm($h), 'qty' => $qty]
+                : ['l' => (float) $default['length'], 'w' => (float) $default['width'],
+                   'h' => (float) $default['height'], 'qty' => $qty, 'measured' => false];
+        }
+        return $units;
     }
     /**
      * Default parcel weight in kg, declared on a waybill when the order's products carry no weight of
