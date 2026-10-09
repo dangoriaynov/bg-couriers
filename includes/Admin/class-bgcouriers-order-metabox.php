@@ -15,6 +15,9 @@ class BGCouriers_Order_Metabox {
         if (!$screen || !in_array($screen->id, ['woocommerce_page_wc-orders', 'shop_order'], true)) { return; }
         $css = BGCOURIERS_PATH . 'assets/css/bgc-order-panel.css';
         wp_enqueue_style('bgc-order-panel', BGCOURIERS_URL . 'assets/css/bgc-order-panel.css', [], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
+        // The stage colours, from the same generator the orders list uses - one source for both screens.
+        // Without this the panel's stage icons would all be the stylesheet's neutral grey.
+        wp_add_inline_style('bgc-order-panel', BGCouriers_Order_Columns::stage_color_css());
         BGCouriers_Tips::enqueue(); // the panel's hover hints (data-tip)
     }
 
@@ -151,7 +154,10 @@ class BGCouriers_Order_Metabox {
             $tip = BGCouriers_Tracking::stage_tip($stage, $text, $when);
             $body .= '<div class="bgc-shipstate bgc-stage-' . esc_attr(sanitize_html_class($stage ?: 'transit')) . '">'
                 . '<span class="bgc-shipstate-lbl" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '">'
-                . '<span class="bgc-track-dot" style="background:' . esc_attr(BGCouriers_Order_Columns::STAGE_COLORS[$stage] ?? '#6b7280') . '"></span>'
+                // The SAME indicator the orders list draws - same glyph, same colour, same place at the
+                // head of the line. This was a coloured dot, so the two screens drew the same stage
+                // differently (owner, 2026-10-09).
+                . BGCouriers_Order_Columns::stage_icon($stage)
                 . '<strong>' . esc_html(BGCouriers_Tracking::stage_label_short($stage)) . '</strong></span>'
                 . ($when > 0
                     /* translators: %s: human-readable time difference, e.g. "2 hours" */
@@ -190,8 +196,7 @@ class BGCouriers_Order_Metabox {
                 // element still wraps both - it is the machine-readable one - and gives up its box to
                 // the grid (display:contents) so its two halves are cells in their own right.
                 $steps[] = '<span class="bgc-tl-k" data-tip="' . esc_attr(BGCouriers_Tracking::stage_label($st)) . '">'
-                    . '<span class="bgc-track-dot" style="background:'
-                    . esc_attr(BGCouriers_Order_Columns::STAGE_COLORS[$st] ?? '#6b7280') . '"></span>'
+                    . BGCouriers_Order_Columns::stage_icon($st, '', 13)
                     . '<span>' . esc_html(BGCouriers_Tracking::stage_label_short($st)) . '</span></span>'
                     . '<time class="bgc-tl-v" datetime="' . esc_attr(gmdate('c', $when)) . '">'
                     . '<span class="bgc-tl-d">' . esc_html(date_i18n('j M', $when)) . '</span>'
