@@ -101,9 +101,13 @@ jobs:
       # The integration suite went unrun long enough once to collect seven failures that were nothing but
       # stale fixtures, and a courier those tests never set up cannot be offered - so their negative
       # assertions were passing for free. It is a release gate, and a slow runner is not a reason to ship.
+      # bin/wpenv-start, not `wp-env start` directly: Docker Hub rate-limits anonymous pulls per IP and
+      # GitHub's runners share them, so two release runs for 0.4.29 and the first for 0.4.28 died on
+      # `toomanyrequests` with nothing wrong in the build. The wrapper fetches the images first, waiting
+      # out a burst, and retries the start.
       - name: Integration tests (wp-env)
         run: |
-          npx --yes @wordpress/env start
+          bash bin/wpenv-start
           BGC_SUITE=integration npx @wordpress/env run tests-cli \
             --env-cwd=wp-content/plugins/${SLUG} -- ./vendor/bin/phpunit --testsuite integration
           # Stopped before the next environment starts: wp-env binds fixed ports, and two of them in one
@@ -150,7 +154,9 @@ jobs:
       - name: Plugin Check, on the code that is about to ship
         working-directory: ${{ runner.temp }}/pkgdir
         run: |
-          npx --yes @wordpress/env start
+          # The package directory has its own .wp-env.json (written above); the wrapper is in the
+          # checkout, which is not the working directory here.
+          bash "${GITHUB_WORKSPACE}/bin/wpenv-start"
           npx @wordpress/env run cli -- wp plugin install plugin-check --activate
           # Warnings are not a release gate here (the directory's own review reads them, a human answers
           # them); an ERROR is. --format=json so the verdict is a field, not a sentence that can be reworded.
