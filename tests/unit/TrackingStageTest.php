@@ -12,7 +12,11 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.
  * @group core
  */
 final class TrackingStageTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); Functions\when('__')->returnArg(1); }
+    protected function setUp(): void {
+        parent::setUp(); Monkey\setUp();
+        Functions\when('__')->returnArg(1);
+        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
+    }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     /** Real Speedy operation descriptions observed live on the account. */
@@ -210,5 +214,32 @@ final class TrackingStageTest extends TestCase {
             BGCouriers_Tracking::status_note('Sameday', 'registered', '  label CREATED '), 'case and padding do not make them different');
         $this->assertSame('Econt - Delivered: "Доставена"',
             BGCouriers_Tracking::status_note('Econt', 'delivered', 'Доставена'));
+    }
+
+    /**
+     * The same thing, one level down, because two screens read it as well as the notes: what goes in
+     * bold and what goes beside it. On a Bulgarian shop the label and the courier's line are often the
+     * SAME word - Pigeon's "Непотърсена" is our label for that stage - and the panel printed both
+     * (owner, screenshot, 2026-10-09).
+     */
+    public function test_the_headline_never_says_one_thing_twice(): void {
+        // Identical: the label alone.
+        $this->assertSame(['Label created', ''], BGCouriers_Tracking::stage_headline('registered', 'Label created'));
+        $this->assertSame(['Label created', ''], BGCouriers_Tracking::stage_headline('registered', ' label CREATED. '));
+        // The courier's sentence CONTAINS our label: it is ours plus more, so it takes the bold alone.
+        $this->assertSame(['Not collected since 21 Aug', ''],
+            BGCouriers_Tracking::stage_headline('unclaimed', 'Not collected since 21 Aug'));
+        // ...and the other way round: our label is the longer of the two. Pigeon ends a return with
+        // "Върната" where our label is "Back with you" - in Bulgarian, "Върната при вас" (screenshot,
+        // 2026-10-09).
+        $this->assertSame(['Back with you', ''], BGCouriers_Tracking::stage_headline('returned', 'Back with'));
+        // A sentence that says something else keeps both - that is what the second line is for.
+        $this->assertSame(['On its way', 'Приемане от куриер'],
+            BGCouriers_Tracking::stage_headline('transit', 'Приемане от куриер'));
+        // The word our parsers fall back to is not a status: orders that already carry it from an older
+        // release must not print it at a merchant.
+        $this->assertSame(['On its way', ''], BGCouriers_Tracking::stage_headline('transit', 'UNKNOWN'));
+        // Nothing heard yet: the stage still has to show.
+        $this->assertSame(['Ready for collection', ''], BGCouriers_Tracking::stage_headline('ready', ''));
     }
 }
