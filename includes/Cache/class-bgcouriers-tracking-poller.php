@@ -210,6 +210,18 @@ class BGCouriers_Tracking_Poller {
         // as last time. It is derived from our own rules, and those change - after a rule fix, orders
         // whose status happened not to move would otherwise keep showing the old verdict for good.
         $human = $t->human();
+        // ...but an answer we cannot READ is not an answer. "UNKNOWN" is what our parsers fall back to
+        // when a courier replies with something they do not recognise - an error page, an empty body, a
+        // shape that changed - and it was being written to the order as if it were a status: the orders
+        // list and the order screen showed the English word UNKNOWN on a Bulgarian shop, beside a stage
+        // nobody had reported (two orders on the dev shop read "Създадена товарителница - UNKNOWN" after
+        // their couriers answered with nothing readable, having been at the office beforehand). Nothing
+        // is recorded from such a poll and no rule is run on it: what the courier last really said
+        // stands until it says something else, and the next poll asks again.
+        if ($human === '' || strcasecmp(trim($human), 'UNKNOWN') === 0) {
+            if ($dirty) { $order->save(); }
+            return;
+        }
         $stored_stage = (string) $order->get_meta('_bgcouriers_track_stage');
         if ($human !== '' && ($stored_stage !== $stage || (string) $order->get_meta('_bgcouriers_track_text') !== $human)) {
             // WHEN each stage began, kept on the order itself. The notes already carry every change, but
@@ -242,11 +254,8 @@ class BGCouriers_Tracking_Poller {
         // detect change - it is never what we show.
         $order->update_meta_data('_bgcouriers_track_status', $key);
         $order->update_meta_data('_bgcouriers_track_updated', time());
-        // A courier that answered without a usable status ("UNKNOWN" is what our parsers fall back to)
-        // has told us nothing worth writing on the order - the note only ever confused whoever read it.
-        if ($human !== '' && strcasecmp($human, 'UNKNOWN') !== 0) {
-            $order->add_order_note(BGCouriers_Tracking::status_note($label, $t->stage(), $human));
-        }
+        // A readable answer always earns its note; the unreadable ones turned back above.
+        $order->add_order_note(BGCouriers_Tracking::status_note($label, $stage, $human));
 
         // A refused parcel that has come all the way BACK: the goods are on the shelf again, so the order
         // is over. Only on 'returned' - while it is still travelling back nothing has been recovered yet.

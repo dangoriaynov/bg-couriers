@@ -54,6 +54,7 @@ final class PollWritesOnceTest extends TestCase {
     protected function setUp(): void {
         parent::setUp(); Monkey\setUp();
         Functions\when('__')->returnArg(1);
+        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
         Functions\when('get_option')->justReturn('');   // every auto-status feature off
         BGCouriers_Couriers::reset();
     }
@@ -123,6 +124,28 @@ final class PollWritesOnceTest extends TestCase {
             ]
         );
         $this->assertSame(1, $o->saves, 'only refresh_one own write; the poll itself found nothing to say');
+    }
+
+    /**
+     * An answer nobody can read is not an answer. Our parsers fall back to "UNKNOWN" for a reply they do
+     * not recognise, and that word was written to the order as a status: the orders list and the order
+     * screen showed it - in English, on a Bulgarian shop - next to a stage the courier never reported,
+     * over the top of the one it had (two orders on the dev shop, 2026-10-09: "ready for collection"
+     * became "Label created - UNKNOWN"). The last thing really said has to stand.
+     */
+    public function test_an_unreadable_answer_changes_nothing(): void {
+        $o = $this->poll(
+            new BGCouriers_Tracking('W1', 'UNKNOWN', [], '', null, true),
+            [
+                '_bgcouriers_track_status' => 'Известие за пратка',
+                '_bgcouriers_track_text'   => 'Известие за пратка',
+                '_bgcouriers_track_stage'  => 'ready',
+            ]
+        );
+        $this->assertSame('ready', $o->meta['_bgcouriers_track_stage'], 'the stage it really reached stands');
+        $this->assertSame('Известие за пратка', $o->meta['_bgcouriers_track_text'], 'and the words it really said');
+        $this->assertSame([], $o->notes, 'nothing to tell the merchant');
+        $this->assertSame(1, $o->saves, 'only refresh_one own write');
     }
 
     /** A courier that cannot be reached leaves the order exactly as it was. */

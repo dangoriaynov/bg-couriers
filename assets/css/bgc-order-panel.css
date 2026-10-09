@@ -3,15 +3,55 @@
    button and the action buttons were three different sizes, and with 8 controls they no longer fitted the
    narrow order sidebar, so the row wrapped and the second line jumped right. Everything below derives from
    these two custom properties - change the size in one place, not four. */
-.bgc-order-panel{overflow:visible;margin-top:8px;padding:10px 11px;border:1px solid #e6e9ec;border-radius:9px;background:#fff;
+.bgc-order-panel{overflow:visible;box-sizing:border-box;max-width:100%;margin-top:8px;padding:10px 11px;border:1px solid #e6e9ec;border-radius:9px;background:#fff;
   --bgc-tile:28px;--bgc-gap:4px;}
-.bgc-order-panel .bgc-hd{overflow:visible;display:flex;align-items:center;gap:var(--bgc-gap);margin:0 0 8px;flex-wrap:nowrap;}
+/* The panel measures ITSELF for the rules that depend on how much room it has - the order screen gives
+   it a third of the page on a desktop and a sliver in a narrow column, and the viewport says nothing
+   about which. */
+.bgc-order-panel { container-type:inline-size; }
+/* WHERE THE BUTTONS ARE DOES NOT CHANGE: identity on the left (courier logo, delivery type, the
+   waybill-copy button), actions on the right, in the order they have always been in. People reach for
+   them without looking and a release that moves them is a release that makes them look (owner,
+   2026-10-09). The only thing fixed here is what used to happen when they did not FIT: with
+   flex-wrap:nowrap the last tile - the red "cancel the waybill" - was drawn OUTSIDE the panel's own
+   border, and with plain wrapping the action group broke away as a block and left one button hanging
+   on a line of its own under a half-empty first line. So the row still wraps, and only when the panel
+   is too narrow for one row at all does it become a tidy grid of tile-wide columns - see below. */
+.bgc-order-panel .bgc-hd{overflow:visible;display:flex;flex-wrap:wrap;align-items:center;gap:var(--bgc-gap);margin:0 0 8px;min-width:0;}
 .bgc-order-panel .bgc-hd b{font-size:13px;color:#1d2327;}
 .bgc-order-panel .bgc-logo{max-width:18px;max-height:18px;width:auto;height:auto;object-fit:contain;display:block;}
 /* Logo + delivery-type icon share the SAME 31x31 tile as the action buttons, so the whole row is one size. */
 .bgc-order-panel .bgc-tile{width:var(--bgc-tile);height:var(--bgc-tile);min-width:var(--bgc-tile);flex:0 0 auto;padding:0;border:1px solid #c9ced6;border-radius:7px;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;cursor:default;}
-.bgc-order-panel .bgc-hd-acts{margin-left:auto;display:inline-flex;align-items:center;gap:var(--bgc-gap);}
-.bgc-order-panel .bgc-chip{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}
+.bgc-order-panel .bgc-hd-acts{margin-left:auto;display:inline-flex;align-items:center;gap:var(--bgc-gap);flex-wrap:wrap;justify-content:flex-end;min-width:0;}
+/* An order with a waybill carries eight tiles and eight need 252px. Below that the row stops being a
+   row: the tiles fall into a grid of equal columns that fits as many as the width allows - six, then
+   five, then four as the window narrows, one at a time, and back up again as it widens. The columns
+   are 1fr wide so the slack is shared out between them instead of piling up on the right, and every
+   tile sits under the tile above it, so a last row of one or two reads as part of the grid rather than
+   as something left hanging. The ORDER is untouched - the same tiles, left to right, simply wrapped.
+   The action group gives up its own box (display:contents) so its buttons are tiles in that grid like
+   the rest, and the header items that carry text rather than a glyph take a row to themselves instead
+   of being crushed into one tile's column. */
+/* First, the tiles themselves give a little: every size in this panel derives from --bgc-tile, so a
+   couple of pixels off each keeps all eight on ONE line down to a 220px card instead of breaking the
+   row in two. Fewer rows is the whole point of a wider window. */
+/* The property is set on the ROW, not on the panel: a container query styles the container's
+   descendants, never the container itself. */
+@container (min-width:220px) and (max-width:251px) { .bgc-order-panel .bgc-hd{--bgc-tile:24px;} }
+/* Below that they cannot share a line however small they are, so they fall into four columns: eight
+   tiles read as four and four, seven (a courier with no tracking page) as four and three - never one
+   on a line by itself. The columns are 1fr, so they spread across the card as it widens rather than
+   huddling at the left, and every tile sits under the tile above it. */
+@container (max-width:219px) {
+  .bgc-order-panel .bgc-hd{display:grid;grid-template-columns:repeat(4,minmax(var(--bgc-tile),1fr));justify-items:start;}
+  .bgc-order-panel .bgc-hd-acts{display:contents;}
+  .bgc-order-panel .bgc-hd > .bgc-chip,.bgc-order-panel .bgc-hd > b,.bgc-order-panel .bgc-hd .bgc-act.bgc-gen{grid-column:1 / -1;justify-self:start;}
+}
+/* A card too narrow even for four: three, and the last row still has two on it. */
+@container (max-width:131px) { .bgc-order-panel .bgc-hd{grid-template-columns:repeat(3,minmax(var(--bgc-tile),1fr));} }
+/* The delivery-type chip is the one control in the row with TEXT in it ("До офис/автомат"), so it is
+   the one that can grow with the translation. It gives way first rather than pushing the buttons out. */
+.bgc-order-panel .bgc-chip{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 9px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}
 /* The waybill number IS the copy button: clicking the field copies it to the clipboard. */
 /* Geometry is !important: other plugins' admin CSS styles bare <button> elements (this copy */
 /* chip and the .bgc-act buttons) and was blowing their size/spacing up on some installs. */
@@ -103,16 +143,77 @@
    look at a single order did not, so the answer was always one click away in the wrong direction. */
 /* position:relative + the reserved right padding are for the refresh button pinned into the corner
    below - the text wraps under it and can never reach it. */
-.bgc-shipstate { position:relative; display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:8px 0 0;
-  padding:7px 36px 7px 10px; border:1px solid #e2e6ea; border-radius:8px; background:#fafbfc; font-size:12px; line-height:1.4; }
-.bgc-shipstate .bgc-track-dot { flex:0 0 auto; width:8px; height:8px; border-radius:50%; }
+/* Two cells: the stage on the left, how long it has stood there on the right. As a wrapping flex row
+   the age dropped onto a second line as soon as the two did not fit, so the row was one line tall on
+   one order and two on the next, with the age floating in the middle of nowhere (owner, 2026-10-09).
+   The stage gives way instead - it is ellipsised, and its full wording is on the hint, where the
+   courier's own sentence already is. */
+.bgc-shipstate { position:relative; box-sizing:border-box; max-width:100%; display:grid; grid-template-columns:minmax(0,1fr) auto;
+  align-items:center; column-gap:6px; margin:8px 0 0;
+  /* The right padding is the refresh button's corner (22px + its 6px inset) and no more than that:
+     every pixel reserved here is a pixel the stage word loses before it is ellipsised. */
+  padding:7px 32px 7px 9px; border:1px solid #e2e6ea; border-radius:8px; background:#fafbfc; font-size:12px; line-height:1.4; }
+/* The stage, in one word, with its colour dot. The long wording and the courier's own sentence are on
+   the hint - this row is scanned, not read. */
+.bgc-shipstate .bgc-shipstate-lbl { display:inline-flex; align-items:center; gap:6px; min-width:0; cursor:help; }
+.bgc-shipstate .bgc-shipstate-lbl strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bgc-shipstate-txt { min-width:0; overflow-wrap:break-word; }
+/* The stage indicator, the same glyph the orders list draws, coloured by its own stage class (the
+   rules come from BGCouriers_Order_Columns::stage_color_css(), added to this stylesheet at enqueue).
+   No tile around it here: the state row is already a bordered strip, and the list's square belongs to
+   a row of square buttons. */
+.bgc-shipstate .bgc-track-ico,.bgc-timeline .bgc-track-ico { display:inline-flex; align-items:center; flex:0 0 auto; color:#6b7280; }
+.bgc-shipstate .bgc-track-ico svg,.bgc-timeline .bgc-track-ico svg { display:block; }
 .bgc-shipstate-txt { color:#50575e; }
-.bgc-shipstate-when { color:#8c8f94; margin-left:auto; white-space:nowrap; }
+/* How long it has stood still: a clock and the duration, never the sentence around it ("без промяна
+   от ..." took more room than the status). Whatever WordPress's own human_time_diff() says fits here -
+   seconds, hours, weeks, months - because nothing but the number and its unit is printed. Pushed to the
+   right when there is room, allowed to break when there is not. */
+.bgc-shipstate-when { display:inline-flex; align-items:center; gap:3px; color:#8c8f94; justify-self:end; white-space:nowrap; cursor:help; }
+.bgc-shipstate-when .bgc-clock-ico { flex:0 0 auto; }
 /* Кога се е случило всяко нещо: един ред под състоянието, а не четене на бележките. */
-.bgc-timeline { display:flex; flex-wrap:wrap; gap:4px 14px; margin:6px 0 0; padding:6px 10px; border-radius:6px; background:#f6f7f7; font-size:12px; color:#50575e; }
-.bgc-timeline .bgc-tl-step { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
-.bgc-timeline time { color:#1d2327; font-weight:600; }
-.bgc-shipstate .bgc-lock { flex:0 0 auto; font-size:15px; width:15px; height:15px; color:#8c8f94; cursor:help; }
+/* TWO COLUMNS, so the dates line up under each other. As a wrapping row of "<stage> <date>" pairs the
+   dates started wherever the stage before them ended, and a column of dates is read down (owner,
+   2026-10-09). The first column is as wide as the longest stage word and no wider; the second takes the
+   rest, so nothing can push a date out of the card. */
+/* Three columns across the WHOLE card: the stage takes the slack on the left, the day and the clock
+   time sit against the right edge. Sized to their content they huddled on the left and left a lake of
+   empty space on the right of the card (owner, 2026-10-09) - and the slack has to go somewhere, so it
+   goes where the words are, not between the two halves of a date. */
+.bgc-timeline { box-sizing:border-box; max-width:100%; display:grid;
+  grid-template-columns:minmax(min-content,1fr) minmax(min-content,max-content) minmax(min-content,max-content);
+  gap:3px 10px; margin:6px 0 0; padding:6px 10px; border-radius:6px; background:#f6f7f7; font-size:12px; color:#50575e; }
+/* The <time> is the machine-readable wrapper; the grid lays out its two halves. */
+.bgc-timeline .bgc-tl-v { display:contents; }
+.bgc-timeline .bgc-tl-d,.bgc-timeline .bgc-tl-t { color:#1d2327; font-weight:600; white-space:nowrap; }
+.bgc-timeline .bgc-tl-k { display:inline-flex; align-items:center; gap:6px; min-width:0; overflow-wrap:break-word; cursor:help; }
+
+/* Below about 185px of room INSIDE the panel (a container query measures the content box, and the
+   panel is the container - the order screen gives this card a third of the page or a sliver depending
+   on where it sits, and the viewport says nothing about which) the stage word and its date cannot
+   share a line: squeezed, the date broke into "17:5 / 6" and the stage into "Непотърсен / а", two
+   letters on a line (owner, phone screenshot, 2026-10-09). The stage takes the line above instead and
+   the date and time keep their own columns underneath, so they still line up. */
+@container (max-width:185px) {
+  .bgc-timeline { grid-template-columns:max-content minmax(min-content,1fr); gap:0 8px; }
+  .bgc-timeline .bgc-tl-k { grid-column:1 / -1; }
+  .bgc-timeline .bgc-tl-d { margin:0 0 5px 19px; }
+  .bgc-timeline .bgc-tl-t { margin:0 0 5px; justify-self:end; }
+}
+/* The state row runs out of room sooner than the timeline does - the stage word, a clock, a duration
+   and the refresh button in its corner need about 215px between them. Below that the two stop sharing
+   a line, and the age goes LEFT, under the stage: on its own line pushed right it looked like it had
+   come loose (owner, 2026-10-09). The ellipsis above is only the last resort for a language whose
+   stage word is longer still. */
+@container (max-width:215px) {
+  .bgc-shipstate { grid-template-columns:minmax(0,1fr); row-gap:2px; }
+  .bgc-shipstate .bgc-shipstate-when { justify-self:start; }
+  .bgc-shipstate .bgc-shipstate-lbl strong { white-space:normal; overflow:visible; }
+}
+/* The padlock that says the courier has the parcel keeps its place at the end of the row - placed
+   explicitly, so the column it needs exists only on the orders that show it and the rest do not pay a
+   gap for it. */
+.bgc-shipstate .bgc-lock { grid-row:1; grid-column:3; flex:0 0 auto; font-size:15px; width:15px; height:15px; color:#8c8f94; cursor:help; }
 
 /* Ask-the-courier-now button, PINNED to the panel's top-right corner.
    It used to sit at the end of the row, in the flow, so it moved with whatever the courier had said:

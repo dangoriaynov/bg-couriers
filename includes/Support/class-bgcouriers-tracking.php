@@ -299,22 +299,65 @@ class BGCouriers_Tracking {
      * @param string $stage One of registered|transit|ready|unclaimed|delivered|returning|returned|cancelled.
      * @return string Translated label.
      */
+    /** Lower-cased, trimmed, without the punctuation a courier ends a status line with. */
+    private static function fold(string $s): string {
+        $s = trim($s);
+        $s = function_exists('mb_strtolower') ? mb_strtolower($s) : strtolower($s);
+        return trim($s, " \t\n\r\0\x0B.!?:;,-");
+    }
+
+    /**
+     * Where the shipment is, as the two things a screen shows: what to put in bold, and the courier's own
+     * words beside it - empty when they would only say it again.
+     *
+     * On a Bulgarian shop the stage label and the courier's status line are frequently the same words -
+     * Pigeon answers "Непотърсена" and our label for that stage is "Непотърсена" - so the panel read
+     * `Непотърсена Непотърсена` and the orders-list hint said it twice too (owner, 2026-10-09). So:
+     * identical, or one contained in the other, means one of them says everything, and the longer one
+     * is the one kept - the courier's "Върната" disappears into our "Върната при вас", our "Непотърсена"
+     * into its "Непотърсена пратка". Only a sentence that says something DIFFERENT keeps both.
+     *
+     * @return array{0:string,1:string} [headline, the courier's own words or '']
+     */
+    public static function stage_headline(string $stage, string $human): array {
+        $label = self::stage_label($stage);
+        $human = trim($human);
+        // Orders polled before the poller learned to refuse an unreadable answer still carry the word
+        // "UNKNOWN" where their status should be. It is not a status and it is not Bulgarian either, so
+        // no screen prints it: those orders show their stage until the next poll overwrites the word.
+        if ($human === '' || strcasecmp($human, 'UNKNOWN') === 0) { return [$label, '']; }
+        $h   = self::fold($human);
+        $len = static function (string $s): int { return function_exists('mb_strlen') ? mb_strlen($s) : strlen($s); };
+        // Against BOTH wordings of the stage: the courier's "Върната" is the short label to the letter
+        // and the opening of the long one, and either way it is not news beside it.
+        foreach ([$label, self::stage_label($stage), self::stage_label_short($stage)] as $cand) {
+            $c = self::fold($cand);
+            if ($c === '') { continue; }
+            if ($h === $c) { return [$label, '']; }
+            // Short enough to be a coincidence is not a repetition: only whole words of some length are
+            // matched this way, never a two-letter fragment that happens to appear in the other.
+            if ($len($c) >= 4 && strpos($h, $c) !== false) { return [$human, '']; }
+            if ($len($h) >= 4 && strpos($c, $h) !== false) { return [$label, '']; }
+        }
+        return [$label, $human];
+    }
+
     /**
      * The order note for a change of status: "<courier> - <stage>: "<what the courier said>"" - or, when
-     * the courier's own words are the stage label to the letter, "<courier> - <stage>" and no quote.
+     * the courier's own words already say the stage, "<courier> - <what it said>" and no quote.
      * Sameday's status for a fresh AWB is "Създадена товарителница", which is also the Bulgarian for
      * "Label created": the note read `Sameday - Създадена товарителница: „Създадена товарителница“` on
      * every Sameday order (prod, 2026-09-13). The quote is there to carry information the label does
      * not; when it carries none, it goes.
      */
     public static function status_note(string $courier_label, string $stage, string $human): string {
-        $label = self::stage_label($stage);
-        if (function_exists('mb_strtolower') ? mb_strtolower(trim($human)) === mb_strtolower($label) : strcasecmp(trim($human), $label) === 0) {
+        [$headline, $detail] = self::stage_headline($stage, $human);
+        if ($detail === '') {
             /* translators: 1: courier name, 2: what stage the shipment is at */
-            return sprintf(__('%1$s - %2$s', 'bg-couriers'), $courier_label, $label);
+            return sprintf(__('%1$s - %2$s', 'bg-couriers'), $courier_label, $headline);
         }
         /* translators: 1: courier name, 2: what stage the shipment is at, 3: the courier's own wording */
-        return sprintf(__('%1$s - %2$s: "%3$s"', 'bg-couriers'), $courier_label, $label, $human);
+        return sprintf(__('%1$s - %2$s: "%3$s"', 'bg-couriers'), $courier_label, $headline, $detail);
     }
 
     /**
@@ -340,6 +383,43 @@ class BGCouriers_Tracking {
 
     /** The order the stages happen in, for showing them as a line rather than a heap. */
     public const STAGE_ORDER = ['registered', 'transit', 'ready', 'unclaimed', 'delivered', 'returning', 'returned', 'cancelled'];
+
+    /**
+     * The same stage in ONE word, for the places that are read at a glance rather than read: the state
+     * row on the order and its timeline. "Създадена товарителница 24 сеп., 17:56" is a sentence per line
+     * where the merchant is scanning a column of dates (owner, 2026-10-09) - "Създадена" says it, and
+     * the full wording is one hover away. Separate msgids with a context of their own, because the short
+     * Bulgarian is not a shortening of the long one in every case.
+     *
+     * @param string $stage One of registered|transit|ready|unclaimed|delivered|returning|returned|cancelled.
+     */
+    public static function stage_label_short(string $stage): string {
+        switch ($stage) {
+            case 'registered': return _x('Created', 'short stage label', 'bg-couriers');
+            case 'ready':      return _x('Ready', 'short stage label', 'bg-couriers');
+            case 'unclaimed':  return _x('Not collected', 'short stage label', 'bg-couriers');
+            case 'delivered':  return _x('Delivered', 'short stage label', 'bg-couriers');
+            case 'returning':  return _x('Returning', 'short stage label', 'bg-couriers');
+            case 'returned':   return _x('Returned', 'short stage label', 'bg-couriers');
+            case 'cancelled':  return _x('Cancelled', 'short stage label', 'bg-couriers');
+            default:           return _x('Travelling', 'short stage label', 'bg-couriers');
+        }
+    }
+
+    /**
+     * Everything known about where the shipment is, as one line for a hover hint: the stage, the
+     * courier's own words when they add something, and how long it has stood still. Built in one place
+     * so the orders list and the order screen cannot word it differently.
+     */
+    public static function stage_tip(string $stage, string $human, int $updated = 0): string {
+        [$headline, $detail] = self::stage_headline($stage, $human);
+        $tip = $headline . ($detail !== '' ? ' - ' . $detail : '');
+        if ($updated > 0) {
+            /* translators: %s: human-readable time difference, e.g. "2 hours" */
+            $tip .= ' - ' . sprintf(__('unchanged for %s', 'bg-couriers'), human_time_diff($updated, time()));
+        }
+        return $tip;
+    }
 
     public static function stage_label(string $stage): string {
         switch ($stage) {

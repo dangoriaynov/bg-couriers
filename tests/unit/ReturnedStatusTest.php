@@ -16,7 +16,11 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.
  * @group core
  */
 final class ReturnedStatusTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); Functions\when('__')->returnArg(1); }
+    protected function setUp(): void {
+        parent::setUp(); Monkey\setUp();
+        Functions\when('__')->returnArg(1);
+        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
+    }
     protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     /** Speedy's two return wordings must land on different stages - that is what gates the status. */
