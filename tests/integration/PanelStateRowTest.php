@@ -72,6 +72,35 @@ final class PanelStateRowTest extends WP_UnitTestCase {
         $this->assertStringNotContainsString('>Изтекъл срок', $html, 'but not printed in the row');
     }
 
+    /**
+     * ONE indicator for a stage, wherever it is drawn. The order screen used to draw a coloured dot and
+     * the orders list its glyph, so the same shipment looked like two different things depending on
+     * which screen you were on (owner, 2026-10-09).
+     */
+    public function test_the_stage_icon_is_the_one_the_orders_list_draws(): void {
+        $o = $this->order([
+            '_bgcouriers_track_stage'   => 'unclaimed',
+            '_bgcouriers_track_text'    => 'Непотърсена',
+            '_bgcouriers_track_updated' => time() - DAY_IN_SECONDS,
+        ]);
+        $panel = $this->panel($o);
+        $list  = BGCouriers_Order_Columns::status_html($o);
+        // The drawing is compared by its path data, not by the whole element: the panel's markup goes
+        // through wp_kses(), which lower-cases viewBox and re-spaces the self-closing tags.
+        preg_match_all('/ d="([^"]+)"/', BGCouriers_Icons::stage('unclaimed'), $paths);
+        $this->assertNotEmpty($paths[1], 'the stage has a glyph to compare');
+        foreach ([$panel, $list] as $html) {
+            $this->assertStringContainsString('bgc-track-ico bgc-stage-unclaimed', $html, 'same class, same colour rule');
+            foreach ($paths[1] as $d) {
+                $this->assertStringContainsString($d, $html, 'and the same drawing');
+            }
+        }
+        $this->assertStringNotContainsString('bgc-track-dot', $panel, 'the dot is gone - one indicator, not two');
+        // The colours both screens use come from one generator, and the panel now gets them too.
+        $this->assertStringContainsString('.bgc-track-ico.bgc-stage-unclaimed{color:'
+            . BGCouriers_Order_Columns::STAGE_COLORS['unclaimed'], BGCouriers_Order_Columns::stage_color_css());
+    }
+
     /** The timeline: a stage column and a date column, and the dates survive kses as <time>. */
     public function test_the_timeline_is_a_grid_and_its_dates_are_time_elements(): void {
         $when = time() - 5 * DAY_IN_SECONDS;

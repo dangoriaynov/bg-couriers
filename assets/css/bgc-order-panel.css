@@ -24,17 +24,31 @@
 .bgc-order-panel .bgc-tile{width:var(--bgc-tile);height:var(--bgc-tile);min-width:var(--bgc-tile);flex:0 0 auto;padding:0;border:1px solid #c9ced6;border-radius:7px;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;cursor:default;}
 .bgc-order-panel .bgc-hd-acts{margin-left:auto;display:inline-flex;align-items:center;gap:var(--bgc-gap);flex-wrap:wrap;justify-content:flex-end;min-width:0;}
 /* An order with a waybill carries eight tiles and eight need 252px. Below that the row stops being a
-   row: the tiles line up in columns of one tile each, four and four, which is the same shape on a
-   tablet and on a phone and leaves nothing hanging on a line by itself. The ORDER is untouched - the
-   same tiles, left to right, simply wrapped. The action group gives up its own box (display:contents)
-   so its buttons are tiles in that grid like the rest, and the two header items that carry text
-   rather than a glyph take a row to themselves instead of being crushed into one tile's column. */
-@container (max-width:251px) {
-  .bgc-order-panel .bgc-hd{display:grid;grid-template-columns:repeat(4,var(--bgc-tile));justify-content:start;}
+   row: the tiles fall into a grid of equal columns that fits as many as the width allows - six, then
+   five, then four as the window narrows, one at a time, and back up again as it widens. The columns
+   are 1fr wide so the slack is shared out between them instead of piling up on the right, and every
+   tile sits under the tile above it, so a last row of one or two reads as part of the grid rather than
+   as something left hanging. The ORDER is untouched - the same tiles, left to right, simply wrapped.
+   The action group gives up its own box (display:contents) so its buttons are tiles in that grid like
+   the rest, and the header items that carry text rather than a glyph take a row to themselves instead
+   of being crushed into one tile's column. */
+/* First, the tiles themselves give a little: every size in this panel derives from --bgc-tile, so a
+   couple of pixels off each keeps all eight on ONE line down to a 220px card instead of breaking the
+   row in two. Fewer rows is the whole point of a wider window. */
+/* The property is set on the ROW, not on the panel: a container query styles the container's
+   descendants, never the container itself. */
+@container (min-width:220px) and (max-width:251px) { .bgc-order-panel .bgc-hd{--bgc-tile:24px;} }
+/* Below that they cannot share a line however small they are, so they fall into four columns: eight
+   tiles read as four and four, seven (a courier with no tracking page) as four and three - never one
+   on a line by itself. The columns are 1fr, so they spread across the card as it widens rather than
+   huddling at the left, and every tile sits under the tile above it. */
+@container (max-width:219px) {
+  .bgc-order-panel .bgc-hd{display:grid;grid-template-columns:repeat(4,minmax(var(--bgc-tile),1fr));justify-items:start;}
   .bgc-order-panel .bgc-hd-acts{display:contents;}
   .bgc-order-panel .bgc-hd > .bgc-chip,.bgc-order-panel .bgc-hd > b,.bgc-order-panel .bgc-hd .bgc-act.bgc-gen{grid-column:1 / -1;justify-self:start;}
 }
-@container (max-width:123px) { .bgc-order-panel .bgc-hd{grid-template-columns:repeat(3,var(--bgc-tile));} }
+/* A card too narrow even for four: three, and the last row still has two on it. */
+@container (max-width:131px) { .bgc-order-panel .bgc-hd{grid-template-columns:repeat(3,minmax(var(--bgc-tile),1fr));} }
 /* The delivery-type chip is the one control in the row with TEXT in it ("До офис/автомат"), so it is
    the one that can grow with the translation. It gives way first rather than pushing the buttons out. */
 .bgc-order-panel .bgc-chip{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 9px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}
@@ -144,7 +158,12 @@
 .bgc-shipstate .bgc-shipstate-lbl { display:inline-flex; align-items:center; gap:6px; min-width:0; cursor:help; }
 .bgc-shipstate .bgc-shipstate-lbl strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .bgc-shipstate-txt { min-width:0; overflow-wrap:break-word; }
-.bgc-shipstate .bgc-track-dot { flex:0 0 auto; width:8px; height:8px; border-radius:50%; }
+/* The stage indicator, the same glyph the orders list draws, coloured by its own stage class (the
+   rules come from BGCouriers_Order_Columns::stage_color_css(), added to this stylesheet at enqueue).
+   No tile around it here: the state row is already a bordered strip, and the list's square belongs to
+   a row of square buttons. */
+.bgc-shipstate .bgc-track-ico,.bgc-timeline .bgc-track-ico { display:inline-flex; align-items:center; flex:0 0 auto; color:#6b7280; }
+.bgc-shipstate .bgc-track-ico svg,.bgc-timeline .bgc-track-ico svg { display:block; }
 .bgc-shipstate-txt { color:#50575e; }
 /* How long it has stood still: a clock and the duration, never the sentence around it ("без промяна
    от ..." took more room than the status). Whatever WordPress's own human_time_diff() says fits here -
@@ -168,9 +187,7 @@
 .bgc-timeline .bgc-tl-v { display:contents; }
 .bgc-timeline .bgc-tl-d,.bgc-timeline .bgc-tl-t { color:#1d2327; font-weight:600; white-space:nowrap; }
 .bgc-timeline .bgc-tl-k { display:inline-flex; align-items:center; gap:6px; min-width:0; overflow-wrap:break-word; cursor:help; }
-/* The stage's own colour, per line - the dot had no size of its own here, so the timeline was the one
-   place the colours did not show. */
-.bgc-timeline .bgc-track-dot { flex:0 0 auto; width:7px; height:7px; border-radius:50%; }
+
 /* Below about 185px of room INSIDE the panel (a container query measures the content box, and the
    panel is the container - the order screen gives this card a third of the page or a sliver depending
    on where it sits, and the viewport says nothing about which) the stage word and its date cannot
@@ -180,7 +197,7 @@
 @container (max-width:185px) {
   .bgc-timeline { grid-template-columns:max-content minmax(min-content,1fr); gap:0 8px; }
   .bgc-timeline .bgc-tl-k { grid-column:1 / -1; }
-  .bgc-timeline .bgc-tl-d { margin:0 0 5px 13px; }
+  .bgc-timeline .bgc-tl-d { margin:0 0 5px 19px; }
   .bgc-timeline .bgc-tl-t { margin:0 0 5px; justify-self:end; }
 }
 /* The state row runs out of room sooner than the timeline does - the stage word, a clock, a duration
