@@ -73,6 +73,7 @@ final class OneBrokenAdapterTest extends TestCase {
         $this->store = [];
         $store = &$this->store;
         Functions\when('__')->returnArg(1);
+        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
         Functions\when('esc_html')->returnArg(1);
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
         Functions\when('get_transient')->alias(static function ($k) use (&$store) { return $store[$k] ?? false; });

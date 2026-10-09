@@ -22,6 +22,7 @@ final class UnclaimedStageTest extends TestCase {
     protected function setUp(): void {
         parent::setUp(); Monkey\setUp();
         Functions\when('__')->returnArg(1);
+        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
         Functions\when('esc_attr')->returnArg(1);
         Functions\when('sanitize_html_class')->returnArg(1);
         if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }

@@ -142,13 +142,21 @@ class BGCouriers_Order_Metabox {
         $text  = trim((string) $order->get_meta('_bgcouriers_track_text'));
         if ($stage !== '' || $text !== '') {
             $when = (int) $order->get_meta('_bgcouriers_track_updated');
+            // ONE WORD and a clock. This row used to read "Непотърсена Непотърсена без промяна от 2
+            // седмици" - the stage, the courier saying the same thing, and a sentence about the clock -
+            // on a card narrow enough to wrap all three (owner, screenshot, 2026-10-09). The stage is
+            // now the short label, the age is the duration alone behind a clock glyph, and everything
+            // that was dropped - the long label, the courier's own wording, the full sentence about the
+            // age - is in the hover hints, which is where a list-sized screen keeps its detail.
+            $tip = BGCouriers_Tracking::stage_tip($stage, $text, $when);
             $body .= '<div class="bgc-shipstate bgc-stage-' . esc_attr(sanitize_html_class($stage ?: 'transit')) . '">'
+                . '<span class="bgc-shipstate-lbl" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '">'
                 . '<span class="bgc-track-dot" style="background:' . esc_attr(BGCouriers_Order_Columns::STAGE_COLORS[$stage] ?? '#6b7280') . '"></span>'
-                . '<strong>' . esc_html(BGCouriers_Tracking::stage_label($stage)) . '</strong> '
-                . ($text !== '' ? '<span class="bgc-shipstate-txt">' . esc_html($text) . '</span>' : '')
+                . '<strong>' . esc_html(BGCouriers_Tracking::stage_label_short($stage)) . '</strong></span>'
                 . ($when > 0
                     /* translators: %s: human-readable time difference, e.g. "2 hours" */
-                    ? '<span class="bgc-shipstate-when">' . esc_html(sprintf(__('unchanged for %s', 'bg-couriers'), human_time_diff($when, time()))) . '</span>'
+                    ? '<span class="bgc-shipstate-when" data-tip="' . esc_attr(sprintf(__('unchanged for %s', 'bg-couriers'), human_time_diff($when, time()))) . '">'
+                        . BGCouriers_Icons::clock() . '<span>' . esc_html(human_time_diff($when, time())) . '</span></span>'
                     : '')
                 . (BGCouriers_Labels::is_locked($order)
                     ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
@@ -168,16 +176,26 @@ class BGCouriers_Order_Metabox {
         // come back (owner, 2026-10-05).
         $times = $order->get_meta('_bgcouriers_track_times');
         if (is_array($times) && $times) {
+            // Two columns, so every date starts at the same place: a column of dates is read down, and
+            // ragged ones are read word by word instead (owner, 2026-10-09). The stage is the short
+            // label for the same reason - the long one pushed the dates a different distance on every
+            // line. The full wording is on the hover hint.
             $steps = [];
             foreach (BGCouriers_Tracking::STAGE_ORDER as $st) {
                 $when = (int) ($times[$st] ?? 0);
                 if ($when <= 0) { continue; }
-                $steps[] = '<span class="bgc-tl-step">'
+                // The day and the clock time are separate cells, so the TIME starts at the same place on
+                // every line: with them in one cell "29 сеп." pushed its time further right than "9 окт."
+                // did, and a column read down jumped left and right (owner, 2026-10-09). The <time>
+                // element still wraps both - it is the machine-readable one - and gives up its box to
+                // the grid (display:contents) so its two halves are cells in their own right.
+                $steps[] = '<span class="bgc-tl-k" data-tip="' . esc_attr(BGCouriers_Tracking::stage_label($st)) . '">'
                     . '<span class="bgc-track-dot" style="background:'
                     . esc_attr(BGCouriers_Order_Columns::STAGE_COLORS[$st] ?? '#6b7280') . '"></span>'
-                    . esc_html(BGCouriers_Tracking::stage_label($st))
-                    . ' <time datetime="' . esc_attr(gmdate('c', $when)) . '">'
-                    . esc_html(date_i18n('j M, H:i', $when)) . '</time></span>';
+                    . '<span>' . esc_html(BGCouriers_Tracking::stage_label_short($st)) . '</span></span>'
+                    . '<time class="bgc-tl-v" datetime="' . esc_attr(gmdate('c', $when)) . '">'
+                    . '<span class="bgc-tl-d">' . esc_html(date_i18n('j M', $when)) . '</span>'
+                    . '<span class="bgc-tl-t">' . esc_html(date_i18n('H:i', $when)) . '</span></time>';
             }
             if ($steps) {
                 $body .= '<div class="bgc-timeline">' . implode('', $steps) . '</div>';
@@ -228,6 +246,9 @@ class BGCouriers_Order_Metabox {
         'span'   => ['class' => true, 'style' => true, 'data-wb' => true, 'data-tip' => true, 'role' => true, 'tabindex' => true, 'aria-label' => true],
         'strong' => ['class' => true],
         'b'      => [],
+        // The timeline's dates. Without this on the list kses dropped the element (keeping the text),
+        // so the dates could not be styled as a column - and the machine-readable datetime was lost.
+        'time'   => ['class' => true, 'datetime' => true],
         'img'    => ['class' => true, 'src' => true, 'alt' => true, 'data-tip' => true],
         'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'aria-label' => true, 'data-tip' => true],
         'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true, 'data-regen-url' => true, 'data-id' => true,
