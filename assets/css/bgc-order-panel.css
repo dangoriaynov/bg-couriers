@@ -9,30 +9,32 @@
    it a third of the page on a desktop and a sliver in a narrow column, and the viewport says nothing
    about which. */
 .bgc-order-panel { container-type:inline-size; }
-/* A GRID of equal tiles, not a row with a right-aligned group on the end. Eight fixed-size tiles plus
-   the waybill button need ~290px and the order screen's column gives about 250, so with the old
-   nowrap the last tile - the red "cancel the waybill" - was drawn OUTSIDE the panel's border; with
-   plain wrapping the action group broke away as a block and left one button hanging on a line of its
-   own, under a half-empty first line (owner, screenshots, 2026-10-09). As a grid of one tile width
-   they simply fill the rows, left to right, however many fit - the same arrangement at every width,
-   and every tile in a column with the tiles above it. The action group gives up its own box
-   (display:contents) so its buttons are tiles in this grid like the rest. */
-.bgc-order-panel .bgc-hd{overflow:visible;display:grid;grid-template-columns:repeat(auto-fill,var(--bgc-tile));
-  justify-content:start;align-items:center;gap:var(--bgc-gap);margin:0 0 8px;min-width:0;}
-/* An order with a waybill has eight tiles, and eight need 252px. Below that they do NOT simply spill
-   one at a time - seven and a lone eighth on a line of its own is the "hanging button" this was
-   supposed to end - they go to four and four, which is the same shape on a tablet and on a phone. */
-@container (max-width:251px) { .bgc-order-panel .bgc-hd{grid-template-columns:repeat(4,var(--bgc-tile));} }
-@container (max-width:123px) { .bgc-order-panel .bgc-hd{grid-template-columns:repeat(3,var(--bgc-tile));} }
+/* WHERE THE BUTTONS ARE DOES NOT CHANGE: identity on the left (courier logo, delivery type, the
+   waybill-copy button), actions on the right, in the order they have always been in. People reach for
+   them without looking and a release that moves them is a release that makes them look (owner,
+   2026-10-09). The only thing fixed here is what used to happen when they did not FIT: with
+   flex-wrap:nowrap the last tile - the red "cancel the waybill" - was drawn OUTSIDE the panel's own
+   border, and with plain wrapping the action group broke away as a block and left one button hanging
+   on a line of its own under a half-empty first line. So the row still wraps, and only when the panel
+   is too narrow for one row at all does it become a tidy grid of tile-wide columns - see below. */
+.bgc-order-panel .bgc-hd{overflow:visible;display:flex;flex-wrap:wrap;align-items:center;gap:var(--bgc-gap);margin:0 0 8px;min-width:0;}
 .bgc-order-panel .bgc-hd b{font-size:13px;color:#1d2327;}
 .bgc-order-panel .bgc-logo{max-width:18px;max-height:18px;width:auto;height:auto;object-fit:contain;display:block;}
 /* Logo + delivery-type icon share the SAME 31x31 tile as the action buttons, so the whole row is one size. */
 .bgc-order-panel .bgc-tile{width:var(--bgc-tile);height:var(--bgc-tile);min-width:var(--bgc-tile);flex:0 0 auto;padding:0;border:1px solid #c9ced6;border-radius:7px;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;cursor:default;}
-.bgc-order-panel .bgc-hd-acts{display:contents;}
-/* The two header items that carry TEXT rather than a glyph - the delivery-type chip where a courier
-   has no icon for the type, the courier's name when it has no logo, and the wide "Generate label"
-   button - take a row to themselves instead of being crushed into one tile's column. */
-.bgc-order-panel .bgc-hd > .bgc-chip,.bgc-order-panel .bgc-hd > b,.bgc-order-panel .bgc-hd .bgc-act.bgc-gen{grid-column:1 / -1;justify-self:start;}
+.bgc-order-panel .bgc-hd-acts{margin-left:auto;display:inline-flex;align-items:center;gap:var(--bgc-gap);flex-wrap:wrap;justify-content:flex-end;min-width:0;}
+/* An order with a waybill carries eight tiles and eight need 252px. Below that the row stops being a
+   row: the tiles line up in columns of one tile each, four and four, which is the same shape on a
+   tablet and on a phone and leaves nothing hanging on a line by itself. The ORDER is untouched - the
+   same tiles, left to right, simply wrapped. The action group gives up its own box (display:contents)
+   so its buttons are tiles in that grid like the rest, and the two header items that carry text
+   rather than a glyph take a row to themselves instead of being crushed into one tile's column. */
+@container (max-width:251px) {
+  .bgc-order-panel .bgc-hd{display:grid;grid-template-columns:repeat(4,var(--bgc-tile));justify-content:start;}
+  .bgc-order-panel .bgc-hd-acts{display:contents;}
+  .bgc-order-panel .bgc-hd > .bgc-chip,.bgc-order-panel .bgc-hd > b,.bgc-order-panel .bgc-hd .bgc-act.bgc-gen{grid-column:1 / -1;justify-self:start;}
+}
+@container (max-width:123px) { .bgc-order-panel .bgc-hd{grid-template-columns:repeat(3,var(--bgc-tile));} }
 /* The delivery-type chip is the one control in the row with TEXT in it ("До офис/автомат"), so it is
    the one that can grow with the translation. It gives way first rather than pushing the buttons out. */
 .bgc-order-panel .bgc-chip{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 9px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}
@@ -155,8 +157,12 @@
    dates started wherever the stage before them ended, and a column of dates is read down (owner,
    2026-10-09). The first column is as wide as the longest stage word and no wider; the second takes the
    rest, so nothing can push a date out of the card. */
+/* Three columns across the WHOLE card: the stage takes the slack on the left, the day and the clock
+   time sit against the right edge. Sized to their content they huddled on the left and left a lake of
+   empty space on the right of the card (owner, 2026-10-09) - and the slack has to go somewhere, so it
+   goes where the words are, not between the two halves of a date. */
 .bgc-timeline { box-sizing:border-box; max-width:100%; display:grid;
-  grid-template-columns:minmax(min-content,max-content) minmax(min-content,max-content) minmax(min-content,max-content);
+  grid-template-columns:minmax(min-content,1fr) minmax(min-content,max-content) minmax(min-content,max-content);
   gap:3px 10px; margin:6px 0 0; padding:6px 10px; border-radius:6px; background:#f6f7f7; font-size:12px; color:#50575e; }
 /* The <time> is the machine-readable wrapper; the grid lays out its two halves. */
 .bgc-timeline .bgc-tl-v { display:contents; }
@@ -172,10 +178,10 @@
    letters on a line (owner, phone screenshot, 2026-10-09). The stage takes the line above instead and
    the date and time keep their own columns underneath, so they still line up. */
 @container (max-width:185px) {
-  .bgc-timeline { grid-template-columns:max-content max-content; gap:0 8px; }
+  .bgc-timeline { grid-template-columns:max-content minmax(min-content,1fr); gap:0 8px; }
   .bgc-timeline .bgc-tl-k { grid-column:1 / -1; }
   .bgc-timeline .bgc-tl-d { margin:0 0 5px 13px; }
-  .bgc-timeline .bgc-tl-t { margin:0 0 5px; }
+  .bgc-timeline .bgc-tl-t { margin:0 0 5px; justify-self:end; }
 }
 /* The state row runs out of room sooner than the timeline does - the stage word, a clock, a duration
    and the refresh button in its corner need about 215px between them. Below that the two stop sharing
@@ -187,7 +193,10 @@
   .bgc-shipstate .bgc-shipstate-when { justify-self:start; }
   .bgc-shipstate .bgc-shipstate-lbl strong { white-space:normal; overflow:visible; }
 }
-.bgc-shipstate .bgc-lock { flex:0 0 auto; font-size:15px; width:15px; height:15px; color:#8c8f94; cursor:help; }
+/* The padlock that says the courier has the parcel keeps its place at the end of the row - placed
+   explicitly, so the column it needs exists only on the orders that show it and the rest do not pay a
+   gap for it. */
+.bgc-shipstate .bgc-lock { grid-row:1; grid-column:3; flex:0 0 auto; font-size:15px; width:15px; height:15px; color:#8c8f94; cursor:help; }
 
 /* Ask-the-courier-now button, PINNED to the panel's top-right corner.
    It used to sit at the end of the row, in the flow, so it moved with whatever the courier had said:

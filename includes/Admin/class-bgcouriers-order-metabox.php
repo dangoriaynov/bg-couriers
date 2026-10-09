@@ -176,7 +176,7 @@ class BGCouriers_Order_Metabox {
         // come back (owner, 2026-10-05).
         $times = $order->get_meta('_bgcouriers_track_times');
         if (is_array($times) && $times) {
-            // Two columns, so every date starts at the same place: a column of dates is read down, and
+            // A grid, so every date starts at the same place: a column of dates is read down, and
             // ragged ones are read word by word instead (owner, 2026-10-09). The stage is the short
             // label for the same reason - the long one pushed the dates a different distance on every
             // line. The full wording is on the hover hint.
