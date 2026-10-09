@@ -191,7 +191,10 @@ class BGCouriers_Tracking_Poller {
             $dirty = true;
         }
 
-        $stage = $t->stage();
+        // The courier's verdict first, then our own clock: Pigeon and Evropat say "nobody came for it"
+        // outright, the other five keep reporting "ready for collection" for as long as the parcel
+        // stands in the office, so for them the days are the only signal there is.
+        $stage = self::derive_unclaimed($order, $t->stage());
         // Mark a finished shipment done BEFORE the change check. A parcel that is already delivered stops
         // changing, so a check that returns early on "no change" never got here - and the same handful of
         // long-finished orders were re-polled on every run, forever, crowding out the live ones.
@@ -255,13 +258,65 @@ class BGCouriers_Tracking_Poller {
             return; // update_status() saved it
         }
 
+        // Nobody came for the parcel. It is still at the courier and still ours to get back, so this is
+        // NOT the return rule above - but it is the moment the sale is in trouble, and the moment a shop
+        // wants to see without reading notes. WooCommerce's own "Failed" is what a merchant picks here.
+        $stuck = (string) get_option('bgcouriers_autostatus_on_unclaimed', '');
+        $stuck = strpos($stuck, 'wc-') === 0 ? substr($stuck, 3) : $stuck;
+        if ($stage === 'unclaimed' && $stuck !== '' && $order->get_status() !== $stuck) {
+            $order->update_status($stuck, __('BG Couriers: nobody has collected the parcel (auto status).', 'bg-couriers'));
+            return; // update_status() saved it
+        }
+
         $target = strpos($advance, 'wc-') === 0 ? substr($advance, 3) : $advance;
         if ($stage === 'delivered' && $target !== '' && $order->get_status() !== $target) {
             $order->update_status($target, __('BG Couriers: shipment delivered (auto status).', 'bg-couriers')); // saves the order
             return;
         }
-        if (in_array($stage, ['transit', 'ready', 'returning'], true) && self::mark_shipped($order, $t)) { return; } // update_status() saved it
+        if (in_array($stage, ['transit', 'ready', 'unclaimed', 'returning'], true) && self::mark_shipped($order, $t)) { return; } // update_status() saved it
         $order->save();
+    }
+
+    /**
+     * How long a parcel may wait for its customer before the shop is told nobody came, in days - 0 when
+     * the merchant has switched the rule off. Capped so a typo cannot push the deadline past the 45 days
+     * after which a shipment stops being polled at all.
+     */
+    public static function unclaimed_days(): int {
+        $d = (int) get_option('bgcouriers_unclaimed_days', 7);
+        return $d > 0 ? min($d, 45) : 0;
+    }
+
+    /**
+     * 'unclaimed' for a parcel that has stood at the office or locker longer than that, otherwise the
+     * stage exactly as the courier reported it.
+     *
+     * Derived, not courier-supplied, and only ever applied to 'ready': a parcel that has moved on - been
+     * collected, cancelled, started its way back - is reported by its own stage, and a courier that has
+     * its own word for "unclaimed" (Pigeon, Evropat) never gets here because its verdict is already
+     * 'unclaimed'. Public because this one decision is the whole feature and is worth testing directly.
+     */
+    public static function derive_unclaimed(\WC_Order $order, string $stage): string {
+        if ($stage !== 'ready') { return $stage; }
+        $days = self::unclaimed_days();
+        if ($days === 0) { return $stage; }
+        $since = self::stage_since($order, 'ready');
+        if ($since <= 0) { return $stage; }
+        return (time() - $since) >= $days * DAY_IN_SECONDS ? 'unclaimed' : $stage;
+    }
+
+    /**
+     * When the shipment reached a stage, as a unix timestamp - 0 when there is nothing to go on.
+     *
+     * The stamps (`_bgcouriers_track_times`) only exist for stages reached since they were added, so a
+     * parcel that was already waiting falls back to the last time the courier's answer CHANGED. For a
+     * parcel standing still that is the same moment: it changed when it arrived and has not since.
+     */
+    private static function stage_since(\WC_Order $order, string $stage): int {
+        $times = $order->get_meta('_bgcouriers_track_times');
+        $when  = is_array($times) ? (int) ($times[$stage] ?? 0) : 0;
+        if ($when <= 0) { $when = (int) $order->get_meta('_bgcouriers_track_updated'); }
+        return $when;
     }
 
     /**
