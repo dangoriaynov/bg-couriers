@@ -701,8 +701,10 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
      * the counter to get its goods back. The phase is translated into the two codes our stage rules
      * already understand, so nothing downstream has to know Pigeon chains anything.
      *
-     * A chain that is NOT a return (a redirection makes one too, and that parcel is still going forward)
-     * leaves the outward verdict exactly as it was.
+     * A chain that is NOT a return (a redirection makes one too) carries the parcel FORWARD, so the new
+     * leg's own status is where the parcel is - under the booked number, which is the one the shop knows.
+     * The outward leg froze on whatever it last said, and for a redirection that is "Непотърсена": left
+     * as the verdict, a parcel on its way to a second address read as one nobody came for.
      *
      * @param array $outward Decoded track response for the booked waybill.
      * @param array $chained Decoded track response for the shipment named by chained_ref().
@@ -711,7 +713,16 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
     public static function follow_chain(array $outward, array $chained): BGCouriers_Tracking {
         $out = self::parse_tracking($outward);
         $ret = self::parse_tracking($chained);
-        if ((string) ($ret->events[0]['code'] ?? '') !== self::RETURN_OPENS) { return $out; }
+        if ((string) ($ret->events[0]['code'] ?? '') !== self::RETURN_OPENS) {
+            return new BGCouriers_Tracking(
+                $out->waybill,                                  // the number the shop booked and knows
+                $ret->status,
+                array_merge($out->events, $ret->events),
+                $ret->phase,
+                true,                                           // a parcel being carried on was collected
+                $ret->status_is_human
+            );
+        }
         $home = in_array($ret->phase, self::RETURN_HOME, true);
         return new BGCouriers_Tracking(
             $ret->waybill,
