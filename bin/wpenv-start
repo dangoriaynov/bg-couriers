@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# Start wp-env, surviving Docker Hub's rate limit on anonymous pulls.
+#
+# Both release runs for 0.4.29 died on the same line, and the first run for 0.4.28 before them:
+#
+#   ✖ Could not pull `mariadb:lts` (mysql, tests-mysql), `phpmyadmin` (phpmyadmin, tests-phpmyadmin),
+#     and they are not available locally.
+#   Error response from daemon: toomanyrequests: You have reached your unauthenticated pull rate limit.
+#
+# Nothing was wrong with the plugin either time. GitHub's shared runners come from a pool of addresses
+# and Docker Hub counts anonymous pulls per address, so a release lands in somebody else's quota; the
+# same tag published forty minutes later with no change to anything. A release that fails on a stranger's
+# quota is one nobody can explain and everybody re-runs by hand, so the images are fetched HERE, with
+# waits long enough to outlast a burst, before wp-env is asked to start. The start itself is retried too:
+# the pull is not the only thing in it that touches the network.
+#
+#   bin/wpenv-start                 # pull what wp-env needs, then start it
+#   BGC_WPENV_TRIES=2 bin/wpenv-start
+#   BGC_WPENV_IMAGES="mariadb:lts" bin/wpenv-start
+#
+# It is only ever a wrapper: the environment it starts, and the .wp-env.json it reads, are whatever the
+# caller's working directory says. Nothing here is specific to this plugin.
+set -u
+
+IMAGES="${BGC_WPENV_IMAGES:-mariadb:lts phpmyadmin wordpress wordpress:cli}"
+TRIES="${BGC_WPENV_TRIES:-5}"
+# Doubling, starting at a minute: 1 + 2 + 4 + 8 = 15 minutes of patience before giving up. Long enough
+# for the burst that caused this, short enough that a release does not sit in a queue for an hour.
+BASE_WAIT="${BGC_WPENV_WAIT:-60}"
+
+say()  { printf '%s\n' "$*"; }
+warn() { printf '::warning::%s\n' "$*"; }
+
+# One image, retried. A pull that fails because the image is already here (offline runner, pre-warmed
+# cache) is not a failure: wp-env only needs it present.
+pull() {
+  local image="$1" i=1 wait=$BASE_WAIT
+  while :; do
+    if docker pull --quiet "$image" >/dev/null 2>&1; then
+      say "  $image ok"
+      return 0
+    fi
+    if docker image inspect "$image" >/dev/null 2>&1; then
+      say "  $image already here (pull refused, the local copy will do)"
+      return 0
+    fi
+    if [ "$i" -ge "$TRIES" ]; then
+      warn "could not pull $image after $TRIES tries"
+      return 1
+    fi
+    warn "could not pull $image (try $i of $TRIES), waiting ${wait}s"
+    sleep "$wait"
+    i=$((i + 1)); wait=$((wait * 2))
+  done
+}
+
+say "warming the images wp-env needs:"
+missing=0
+for image in $IMAGES; do
+  pull "$image" || missing=1
+done
+# A missing image is not fatal on its own - wp-env may not need all of them, and it will say so itself
+# in a sentence that names the one it wanted. Starting is what decides.
+[ "$missing" -eq 0 ] || warn "some images are missing; starting anyway, wp-env will say if it minds"
+
+i=1
+while :; do
+  if npx --yes @wordpress/env start; then
+    exit 0
+  fi
+  if [ "$i" -ge 3 ]; then
+    printf '::error::%s\n' "wp-env would not start after 3 tries - if the log says toomanyrequests, that is Docker Hub's anonymous quota on this runner, not this build: re-run the job"
+    exit 1
+  fi
+  warn "wp-env did not start (try $i of 3), stopping what is up and trying again"
+  npx @wordpress/env stop >/dev/null 2>&1 || true
+  sleep "$BASE_WAIT"
+  i=$((i + 1))
+done
