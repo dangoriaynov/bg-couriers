@@ -33,6 +33,9 @@ class BGCouriers_Icons {
                       . '<circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
         // Arrived at the office or locker and waiting for the customer: dropped INTO something.
         'ready'      => '<path d="M4 13v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/><path d="M12 3v10"/><path d="M8 9l4 4 4-4"/>',
+        // Still in the same tray as 'ready', but nobody came: the arrow going in is replaced by a warning
+        // standing over it, so the two read as the same place with different news.
+        'unclaimed'  => '<path d="M4 13v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/><path d="M12 3v6"/><path d="M12 11.5v.01"/>',
         'delivered'  => '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>',
         // Travelling the other way - the U-turn is still a road.
         'returning'  => '<path d="M9 15l-5-5 5-5"/><path d="M4 10h10a5 5 0 0 1 0 10h-4"/>',

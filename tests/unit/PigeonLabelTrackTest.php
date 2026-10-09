@@ -189,14 +189,18 @@ final class PigeonLabelTrackTest extends TestCase {
 
     /**
      * A chained shipment is not always a return - a redirection makes one too, and that parcel is still
-     * going FORWARD. Only a chain whose opening event is "returning to the sender" is a journey home; anything
-     * else leaves the outward verdict alone rather than announcing a return that is not happening.
+     * going FORWARD. Only a chain whose opening event is "returning to the sender" is a journey home; a
+     * redirection reports the new leg's own progress under the booked number, because the outward leg
+     * froze on "Непотърсена" and that is now a stage of its own: a parcel being carried to a second
+     * address must not read as one nobody came for.
      */
     public function test_a_redirected_parcel_is_not_a_return(): void {
         $t = BGCouriers_Pigeon::follow_chain(
             $this->fx('track-unclaimed-return-chain.json'), $this->fx('track-redirect-leg.json'));
-        $this->assertSame('ready', $t->stage());
-        $this->assertSame('458640894807', $t->waybill);
+        $this->assertSame('transit', $t->stage(), 'on its way to the new address, not unclaimed');
+        $this->assertNotSame('returned', $t->stage());
+        $this->assertSame('458640894807', $t->waybill, 'the number the shop booked');
+        $this->assertSame('В процес на доставка', $t->status);
     }
 
     /**
@@ -232,9 +236,9 @@ final class PigeonLabelTrackTest extends TestCase {
             ['shipment_delivered_to_office',     'Доставена в офис/локър',       'ready'],
             ['shipment_left_in_locker',          'Оставена в локър',             'ready'],
             ['shipment_held_by_sender',          'Задържана в офис',             'ready'],
-            ['shipment_untracked',               'Непотърсена',                  'ready'],
-            ['shipment_locker_time_expired',     'Изтекъл престой в локъра',     'ready'],
-            ['shipment_storage_expired',         'Изтекъл срок на съхранение',   'ready'],
+            ['shipment_untracked',               'Непотърсена',                  'unclaimed'],
+            ['shipment_locker_time_expired',     'Изтекъл престой в локъра',     'unclaimed'],
+            ['shipment_storage_expired',         'Изтекъл срок на съхранение',   'unclaimed'],
             ['shipment_delivered_to_recipient',  'Взета от получателя',          'delivered'],
             ['shipment_cancelled',               'Отказана',                     'cancelled'],
             ['shipment_returning_to_sender',     'Връщане към подател',          'returning'],
