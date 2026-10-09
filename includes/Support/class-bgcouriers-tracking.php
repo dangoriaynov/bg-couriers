@@ -57,10 +57,12 @@ class BGCouriers_Tracking {
         'shipment_left_in_locker'       => 'ready',
         'shipment_held_by_sender'       => 'ready',
         // Nobody came for it. The parcel is still at the office, so it is not moving and not returned
-        // either - keeping it non-terminal is what lets us see it turn into a return.
-        'shipment_untracked'            => 'ready',
-        'shipment_locker_time_expired'  => 'ready',
-        'shipment_storage_expired'      => 'ready',
+        // either - keeping it non-terminal is what lets us see it turn into a return. A stage of its own
+        // rather than 'ready', because to the shop these two are not the same news at all: one is a
+        // parcel waiting for its customer, the other a sale about to come back.
+        'shipment_untracked'            => 'unclaimed',
+        'shipment_locker_time_expired'  => 'unclaimed',
+        'shipment_storage_expired'      => 'unclaimed',
         'shipment_delivered_to_recipient' => 'delivered',
         'shipment_cancelled'              => 'cancelled',
         'shipment_returning_to_sender'    => 'returning',
@@ -83,7 +85,7 @@ class BGCouriers_Tracking {
         'evropat_1'  => 'registered',   // created - the waybill exists, the parcel has not moved
         'evropat_2'  => 'registered',   // printed - and still on the merchant's desk
         'evropat_64' => 'ready',        // assigned to an office
-        'evropat_82' => 'ready',        // unclaimed - at the office, nobody has come for it
+        'evropat_82' => 'unclaimed',    // unclaimed - at the office, nobody has come for it
         'evropat_86' => 'ready',        // arrived at an office/depot - the Bulgarian reads as arrival, not delivery
         'evropat_19' => 'delivered',    // delivered on the round
         'evropat_83' => 'returning',    // on its way back to the sender
@@ -225,6 +227,17 @@ class BGCouriers_Tracking {
     public const READY_CODES = ['134', '1134'];
 
     /**
+     * Wordings that mean the parcel arrived, waited and NOBODY CAME. Only Pigeon and Evropat publish a
+     * code for this (see PHASES); the rest say it in prose or not at all, and these three phrases are
+     * unambiguous enough to read: "unclaimed", "storage period expired", "locker stay expired". None of
+     * them contains a word the delivered or cancelled rules would match, so the order of the checks below
+     * is not what keeps them apart.
+     * @var string[]
+     */
+    private const UNCLAIMED_PHRASES = ['непотърсен', 'изтекъл срок на съхранение', 'изтекъл престой',
+        'unclaimed', 'not collected in time'];
+
+    /**
      * Does this status line mean the shipment is cancelled?
      *
      * Asked by the couriers' own is_cancelled() as well as by the orders list, and that is the point.
@@ -260,6 +273,10 @@ class BGCouriers_Tracking {
         // completed while its parcel had not left the shop.
         if (preg_match('/достав(ен|ена|ено|ени)/u', $s) === 1) { return 'delivered'; }
         if (preg_match('/\bdelivered\b/', $s) === 1) { return 'delivered'; }
+        // Arrived, waited, and nobody came - checked before the plain "waiting" rules, because a parcel
+        // whose storage period has expired is still sitting in the same office and some couriers keep
+        // saying so in the same breath.
+        foreach (self::UNCLAIMED_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'unclaimed'; } }
         // Arrived and waiting to be collected - checked after the terminal verdicts so a delivered or
         // cancelled parcel can never be reported as merely waiting.
         foreach (self::READY_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'ready'; } }
@@ -279,7 +296,7 @@ class BGCouriers_Tracking {
      * What to call a stage in the admin. The raw verdicts are internal; these are what the merchant reads
      * on the order and in the orders list.
      *
-     * @param string $stage One of registered|transit|ready|delivered|returning|returned|cancelled.
+     * @param string $stage One of registered|transit|ready|unclaimed|delivered|returning|returned|cancelled.
      * @return string Translated label.
      */
     /**
@@ -322,13 +339,14 @@ class BGCouriers_Tracking {
     }
 
     /** The order the stages happen in, for showing them as a line rather than a heap. */
-    public const STAGE_ORDER = ['registered', 'transit', 'ready', 'delivered', 'returning', 'returned', 'cancelled'];
+    public const STAGE_ORDER = ['registered', 'transit', 'ready', 'unclaimed', 'delivered', 'returning', 'returned', 'cancelled'];
 
     public static function stage_label(string $stage): string {
         switch ($stage) {
             case 'registered': return __('Label created', 'bg-couriers');
             case 'returning': return __('On its way back', 'bg-couriers');
             case 'ready':     return __('Ready for collection', 'bg-couriers');
+            case 'unclaimed': return __('Not collected', 'bg-couriers');
             case 'delivered': return __('Delivered', 'bg-couriers');
             case 'returned':  return __('Back with you', 'bg-couriers');
             case 'cancelled': return __('Cancelled', 'bg-couriers');

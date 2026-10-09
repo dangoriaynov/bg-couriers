@@ -88,12 +88,15 @@ class BGCouriers_Order_Columns {
 
     /**
      * Colour for a tracking stage. Not decoration: the orders list is scanned, not read, and "returned"
-     * has to stand out from "delivered" at a glance.
+     * has to stand out from "delivered" at a glance. 'unclaimed' is the brighter red of the two: a parcel
+     * nobody came for is the one row on the page somebody still has to do something about, while a return
+     * that has already arrived is over.
      *
      * @var array<string,string>
      */
     const STAGE_COLORS = ['registered' => '#8c8f94', 'transit' => '#2271b1', 'ready' => '#b26b00',
-        'delivered' => '#00814f', 'returning' => '#b32d2e', 'returned' => '#b32d2e', 'cancelled' => '#6b7280'];
+        'unclaimed' => '#d63638', 'delivered' => '#00814f', 'returning' => '#b32d2e', 'returned' => '#b32d2e',
+        'cancelled' => '#6b7280'];
 
     /**
      * Where this shipment is, as ONE icon that sits in the button row.
