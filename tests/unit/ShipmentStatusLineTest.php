@@ -15,11 +15,12 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-colum
  * @group core
  */
 final class ShipmentStatusLineTest extends TestCase {
-    private const STAGES = ['registered', 'transit', 'ready', 'delivered', 'returning', 'returned', 'cancelled'];
+    private const STAGES = ['registered', 'transit', 'ready', 'unclaimed', 'delivered', 'returning', 'returned', 'cancelled'];
 
     protected function setUp(): void {
         parent::setUp(); Monkey\setUp();
         Functions\when('__')->returnArg(1);
+        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
         foreach (['esc_html', 'esc_attr', 'esc_html__', 'esc_attr__', 'esc_url'] as $f) {
             Functions\when($f)->alias(static fn($v) => (string) $v);
         }
@@ -70,6 +71,20 @@ final class ShipmentStatusLineTest extends TestCase {
         $this->assertStringContainsString('Изпратено известие', $tip[1] ?? '', 'the sentence must be in the hint');
         // Nothing outside the tags: the icon carries no text node of its own.
         $this->assertSame('', trim(wp_strip_all_tags_stub($h)), 'the row itself must render no text');
+    }
+
+    /**
+     * The hint must not say one thing twice. Pigeon answers "Непотърсена" and that is also our label for
+     * the stage on a Bulgarian shop, so the hint read "Непотърсена - Непотърсена - unchanged for ...".
+     */
+    public function test_the_hint_does_not_repeat_the_stage_in_the_couriers_words(): void {
+        $h = BGCouriers_Order_Columns::status_html($this->order([
+            '_bgcouriers_track_stage' => 'unclaimed',
+            '_bgcouriers_track_text'  => 'Not collected',
+        ]));
+        $tip = [];
+        preg_match('/data-tip="([^"]*)"/', $h, $tip);
+        $this->assertSame('Not collected', $tip[1] ?? '', 'the stage and the courier agreed - say it once');
     }
 
     /** No waybill, nothing heard: genuinely nothing to say. */

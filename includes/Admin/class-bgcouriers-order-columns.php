@@ -115,27 +115,40 @@ class BGCouriers_Order_Columns {
         // The stage alone is worth showing: a label created minutes ago has a real state and no courier
         // wording yet, and a blank cell reads as "something is broken" rather than "nothing has happened".
         if ($stage === '' && $text === '') { return ''; }
-        $updated = (int) $order->get_meta('_bgcouriers_track_updated');
-        $tip = BGCouriers_Tracking::stage_label($stage) . ($text !== '' ? ' - ' . $text : '');
-        if ($updated > 0) {
-            // The stamp is the last time the courier's answer CHANGED, not the last time it was asked -
-            // a poll that hears what it heard last time writes nothing (see the poller). "updated 9
-            // days ago" on a parcel Speedy has held as "information received" for nine days read as a
-            // poll that had stopped; it had not.
-            /* translators: %s: human-readable time difference, e.g. "2 hours" */
-            $tip .= ' - ' . sprintf(__('unchanged for %s', 'bg-couriers'), human_time_diff($updated, time()));
-        }
-        // The colour comes from the CLASS, never from an inline style: this column is printed through
-        // BGCouriers_Kses::admin_actions(), whose <span> takes no style attribute, so the old coloured
-        // dot was stripped at output and the list had no colour in it at all. stage_color_css() below
-        // turns STAGE_COLORS into the matching rules, so the colours still live in one place.
-        $cls = 'bgc-track-ico bgc-stage-' . sanitize_html_class($stage ?: 'transit');
-        $glyph = BGCouriers_Icons::stage($stage);
+        // Stage, the courier's own words where they add something, and how long it has stood still -
+        // built by BGCouriers_Tracking so this hint and the order screen's cannot word it differently.
+        // The stamp is the last time the courier's answer CHANGED, not the last time it was asked - a
+        // poll that hears what it heard last time writes nothing (see the poller). "updated 9 days ago"
+        // on a parcel Speedy has held as "information received" for nine days read as a poll that had
+        // stopped; it had not.
+        $tip = BGCouriers_Tracking::stage_tip($stage, $text, (int) $order->get_meta('_bgcouriers_track_updated'));
+        return self::stage_icon($stage, $tip);
+    }
+
+    /**
+     * THE stage indicator - the one both screens draw, so a stage cannot look like one thing in the
+     * orders list and another on the order itself. The glyph is BGCouriers_Icons::stage(), the colour
+     * comes from the stage CLASS (never an inline style: the orders list is printed through
+     * BGCouriers_Kses::admin_actions(), whose <span> takes no style attribute, so an inline colour was
+     * stripped at output and the list had no colour in it at all), and stage_color_css() below turns
+     * STAGE_COLORS into the matching rules for both stylesheets. The order screen used to draw a
+     * coloured DOT here instead - same colours, different shape, and the two screens disagreed about
+     * what "ready" looks like (owner, 2026-10-09).
+     *
+     * @param string $stage Our stage; '' is drawn as 'transit', which is the safe reading.
+     * @param string $tip   The hover hint; '' makes the icon decorative (the caller carries the hint).
+     * @param int    $size  Glyph size in px.
+     */
+    public static function stage_icon(string $stage, string $tip = '', int $size = 15): string {
+        $cls   = 'bgc-track-ico bgc-stage-' . sanitize_html_class($stage ?: 'transit');
+        $glyph = BGCouriers_Icons::stage($stage, $size);
         // A stage we have no glyph for still has to be visible and hoverable, so fall back to the
         // generic "on its way" drawing rather than rendering an empty box.
-        if ($glyph === '') { $glyph = BGCouriers_Icons::stage('transit'); }
-        return '<span class="' . esc_attr($cls) . '" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '">'
-            . $glyph . '</span>';
+        if ($glyph === '') { $glyph = BGCouriers_Icons::stage('transit', $size); }
+        $attrs = $tip !== ''
+            ? ' data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '"'
+            : ' aria-hidden="true"';
+        return '<span class="' . esc_attr($cls) . '"' . $attrs . '>' . $glyph . '</span>';
     }
 
     /**
