@@ -240,6 +240,25 @@ class BGCouriers_Ajax {
         return (string) get_option('bgcouriers_nomgen_' . $courier_id, '');
     }
 
+    /**
+     * The office list the dropdown is showing for a town, from its cache only - or null while it is cold.
+     *
+     * The dropdown's list is the courier's live answer (city_offices), the synced table beside it can be
+     * shorter (a courier's country-wide listing is capped), and the checkout block used to decide
+     * "this town has one office" and to label the chosen one off the TABLE. So a town the dropdown
+     * showed with a single office was not auto-selected, and an office picked from the dropdown that the
+     * table did not hold came back from the next recalculation as an empty field. This is the same list,
+     * read without ever calling the courier: a recalculation must not wait on a live API.
+     *
+     * @return array<int,array<string,mixed>>|null
+     */
+    public static function cached_city_offices(string $courier_id, int $city, string $country = ''): ?array {
+        if ($city <= 0) { return null; }
+        $tkey   = 'bgcouriers_off_' . $courier_id . '_' . $country . '_' . $city . '_' . self::nomenclature_generation($courier_id);
+        $cached = get_transient($tkey);
+        return is_array($cached) ? $cached : null;
+    }
+
     public static function city_offices(string $courier_id, int $city, string $type, string $term = '', int $limit = 5, string $country = ''): array {
         $rows = [];
         if ($city > 0) {
