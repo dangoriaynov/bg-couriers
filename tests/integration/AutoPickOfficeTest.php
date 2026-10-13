@@ -87,4 +87,45 @@ final class AutoPickOfficeTest extends WP_UnitTestCase {
         $this->town(5003, [[900, 'office'], [903, 'office']]);
         $this->assertStringNotContainsString('data-auto="1"', $this->block(5003));
     }
+
+    /** The list the dropdown shows, as the checkout's own AJAX cached it (the courier's live answer). */
+    private function warm(int $city_id, array $rows): void {
+        $country = BGCouriers_Pricing::destination_country();
+        set_transient('bgcouriers_off_speedy_' . $country . '_' . $city_id . '_' . BGCouriers_Ajax::nomenclature_generation('speedy'), array_map(static function ($r) {
+            return ['office_id' => $r[0], 'type' => $r[1], 'name' => 'ЖИВ ' . $r[0], 'address' => 'ул. Жива', 'lat' => 0, 'lng' => 0, 'code' => (string) $r[0], 'city_id' => 0];
+        }, $rows), HOUR_IN_SECONDS);
+    }
+
+    /** Dropdown shows one office, the synced table holds none: that one office is still not a choice. */
+    public function test_the_list_the_dropdown_shows_decides_when_it_is_cached(): void {
+        $this->town(5010, []);
+        $this->warm(5010, [[700, 'office']]);
+        $html = $this->block(5010);
+        $this->assertStringContainsString('data-auto="1"', $html);
+        $this->assertStringContainsString('ЖИВ 700', $html);
+    }
+
+    /** ...and the other way round: the table holds one, the dropdown shows two, so it is a choice. */
+    public function test_a_table_with_one_office_does_not_override_a_longer_cached_list(): void {
+        $this->town(5011, [[900, 'office']]);
+        $this->warm(5011, [[900, 'office'], [901, 'office']]);
+        $this->assertStringNotContainsString('data-auto="1"', $this->block(5011));
+    }
+
+    /** An office chosen from the dropdown that the table does not hold must survive the next render. */
+    public function test_a_chosen_office_missing_from_the_table_is_rendered_from_the_cached_list(): void {
+        $this->town(5012, [[900, 'office'], [901, 'office']]);
+        $this->warm(5012, [[900, 'office'], [901, 'office'], [702, 'office']]);
+        $s = WC()->session;
+        $s->set('chosen_shipping_methods', ['bgcouriers_speedy']);
+        $s->set('bgcouriers_selection_courier', 'speedy');
+        $s->set('bgcouriers_method', 'office');
+        $s->set('bgcouriers_site_id', 5012);
+        $s->set('bgcouriers_office_id', 702);
+        $rate = new WC_Shipping_Rate('bgcouriers_speedy', 'Speedy', 0.0, [], 'bgcouriers_speedy');
+        ob_start();
+        (new BGCouriers_Checkout())->render_fields($rate, 0);
+        $html = (string) ob_get_clean();
+        $this->assertStringContainsString('<option value="702" selected>', $html);
+    }
 }

@@ -49,7 +49,21 @@
   // the search box inside keeps select2's default height and looks squashed next to our 38px fields.
   function sel2($el, opts) {
     opts = $.extend({ dropdownCssClass: 'bgc-drop', language: s2lang() }, opts || {});
-    return ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts));
+    var inst = ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts));
+    // The list is drawn on <body>, so a theme rule, a re-layout after it opened (the review table is
+    // rebuilt under it) or a field inside a flex row can leave it narrower than the field it belongs to
+    // Its width is pinned to the field's own box every time it opens; its position stays select2's.
+    $el.on('select2:open', function () {
+      var $box = $el.next('.select2-container');
+      var fit = function () {
+        var $d = $('.select2-container--open .select2-dropdown.bgc-drop');
+        if (!$d.length || !$box.length) { return; }
+        var r = $box[0].getBoundingClientRect(), w = Math.round(r.width);
+        $d.css({ width: w + 'px', minWidth: w + 'px' });
+      };
+      fit(); setTimeout(fit, 0);
+    });
+    return inst;
   }
   /**
    * select2 writes its own sentences into the dropdown, and the copy WooCommerce loads here is the
@@ -323,8 +337,22 @@
     $city.on('select2:select', function (e) {
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
       $wrap.find('.bgc-map-btn').prop('disabled', false).attr('title', '');
-      resetOffice($wrap); resetStreet($wrap); showLoader($wrap); pushSelection($wrap); preloadOffices($wrap);
-      idle(function () { prefetchOtherCouriers($wrap.find('.bgc-city').val() || 0, method($wrap), country($wrap)); });
+      resetOffice($wrap); resetStreet($wrap);
+      // The town's own office list is asked for FIRST: it is the slow one (a live call to the courier),
+      // and the recalculation that follows the save needs a PHP worker of its own. Both start at once
+      // either way, but the list must not be the one queued behind the other.
+      var cour = courier($wrap), city = $wrap.find('.bgc-city').val() || 0, m = method($wrap);
+      var listReq = preloadOffices($wrap);
+      var saved = $.Deferred();
+      pushSelection($wrap).always(function () { saved.resolve(); });
+      // Only after the save has landed - an office written earlier is overwritten by it - and the one
+      // office of a small town goes straight in.
+      $.when(listReq, saved).done(function (rows) { autoPickFromList(cour, city, m, rows); });
+      // The other couriers' lists wait for the recalculation to be over: asked during it, they are three
+      // more slow requests competing with the one the customer is waiting for.
+      $(document.body).one('updated_checkout', function () {
+        idle(function () { prefetchOtherCouriers(city, m, country($wrap)); });
+      });
     });
     // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
     //
@@ -408,15 +436,42 @@
   // asked about is a wrong answer that outlives the question.
   function officeKey($wrap, city, m) { return courier($wrap) + ':' + country($wrap) + ':' + city + ':' + m; }
   function preloadOffices($wrap) {
-    var city = $wrap.find('.bgc-city').val() || 0, m = method($wrap);
-    if (!city || m === 'address') { return; }
+    var city = $wrap.find('.bgc-city').val() || 0, m = method($wrap), cour = courier($wrap);
+    if (!city || m === 'address') { return $.Deferred().resolve().promise(); }
     // Warm the live locker-availability overlay for Sameday automats off the critical path - this fires on
     // every city change and method pick, so the dropdown has the answer in hand the moment it is opened.
-    if (courier($wrap) === 'sameday' && m === 'automat') { warmAvail(country($wrap), city); }
+    if (cour === 'sameday' && m === 'automat') { warmAvail(country($wrap), city); }
     var key = officeKey($wrap, city, m);
-    if (cacheGet(key) !== undefined) { return; }
-    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: courier($wrap), country: country($wrap), city_id: city, type: m, all: 1 },
-      function (rows) { cacheSet(key, rows); });
+    var hit = cacheGet(key);
+    if (hit !== undefined) { return $.Deferred().resolve(hit).promise(); }
+    var d = $.Deferred();
+    $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: cour, country: country($wrap), city_id: city, type: m, all: 1 },
+      function (rows) { d.resolve(cacheSet(key, rows)); }).fail(function () { d.resolve(undefined); });
+    return d.promise();
+  }
+
+  /**
+   * A town with exactly one office needs no choosing - and the answer is the very list the dropdown shows.
+   *
+   * The server decides this too (render_fields), but only from what it has cached by the time the
+   * recalculation renders, and the list is a live call to the courier that is often still on its way
+   * then. So the browser finishes the job the moment the list is here: put the office in the field, tell
+   * the session, and look once more afterwards in case the block was re-rendered in between.
+   */
+  function pickSingleOffice(cour, city, m, rows) {
+    var list = bgcList(rows || []);
+    if (list.length !== 1) { return false; }
+    var $w = $('.bgc-fields[data-courier="' + cour + '"]');
+    if (!$w.length || String($w.find('.bgc-city').val() || '') !== String(city) || method($w) !== m) { return false; }
+    var $o = $w.find('.bgc-office');
+    if (!$o.length || String($o.val() || '') !== '' || list[0].full === true) { return false; }
+    $o.append(new Option(list[0].name + ' - ' + list[0].address, list[0].office_id, true, true)).val(String(list[0].office_id)).trigger('change.select2');
+    return $w;
+  }
+  function autoPickFromList(cour, city, m, rows) {
+    var $w = pickSingleOffice(cour, city, m, rows);
+    if (!$w) { return; }
+    saveSelection($w).always(function () { pickSingleOffice(cour, city, m, rows) && saveSelection($('.bgc-fields[data-courier="' + cour + '"]')); });
   }
 
   /* Sameday easyBox free-compartment availability, per city: 'lockerId -> can the shop's parcel fit'.
@@ -779,7 +834,7 @@
       apartment: $wrap.find('.bgc-apartment').val() || '', address_note: $wrap.find('.bgc-note').val() || ''
     };
   }
-  function pushSelection($wrap) { showLoader($wrap); $.post(BGCOURIERS.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
+  function pushSelection($wrap) { showLoader($wrap); return $.post(BGCOURIERS.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
   function saveSelection($wrap) { return $.post(BGCOURIERS.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
 
   /**
@@ -1103,93 +1158,57 @@
         var v = String(this.value || '');
         return v === want || v.indexOf(want + ':') === 0;
       });
-      if ($radio.length) { $radio.prop('checked', true).trigger('change'); }
-      // 2. the city - BEFORE the delivery-type tab, because setMethod() saves the whole block as it
-      //    stands. Written the other way round, it posted the block with the town still empty and a
-      //    second post with the town followed two milliseconds later (measured 2026-09-12); the
-      //    session kept whichever the server finished last, and when that was the first one the next
-      //    render had no town and a disabled office field. One save now, with everything in it.
-      //    The city's change starts an async office reload, and the save below triggers
-      //    update_checkout, which re-renders this whole block - so the office cannot be written here
-      //    and survive. It is set once the block is final, below.
+      // The rate is ticked WITHOUT its change event: WooCommerce answers that with a recalculation of its
+      // own, which raced the save below and let a stale round overwrite the office. One recalculation,
+      // started after the save has landed, reads the ticked rate just the same.
+      if ($radio.length) { $radio.prop('checked', true); dimRates(); }
+      // Everything the pick says is written into the block first - town, post code (the only
+      // courier-agnostic handle on a place, so it travels with the town), type, office - and then saved
+      // in ONE request that carries all of it. The earlier version saved once per step and rebuilt the
+      // office after the server's re-render in up to three guesses; the answer depended on which request
+      // the server finished last.
       var $city = $wrap.find('.bgc-city');
-      // The POST CODE travels with the city, and it is not decoration: it is the only courier-agnostic
-      // handle on a place. Switching courier resolves the same town for the new one from this value
-      // (render_fields' carry branch), so a pick made on the map that left it empty meant the city
-      // silently vanished the moment the customer tried another courier.
+      var newTown = String($city.val() || '') !== String(pick.cityId);
       $wrap.find('.bgc-postcode').val(pick.postCode || '');
       $city.append(new Option(pick.cityLabel, pick.cityId, true, true)).val(String(pick.cityId)).trigger('change');
-      // 3. its delivery-type tab - which saves courier, town and type together and recalculates, the
-      //    same save a manual pick performs.
-      setMethod($wrap, pick.method);
-
-      // 4. the office, on the re-rendered block. The radio's own `change` and setMethod() each start
-      //    their OWN checkout recalculation, so several
-      //    independent 'updated_checkout' events can land before the block is actually final. A `.one()`
-      //    subscription is spent by whichever fires FIRST - often one of the earlier, not-yet-settled
-      //    rounds - so the office write never happens; it only looked reliable on dev because WooCommerce
-      //    happens to abort the earlier in-flight request there. Subscribe with `.on()` instead.
-      //
-      //    Which round is "the settled one" is not knowable from here, so write the office on every round
-      //    instead of guessing - self-correcting whatever order the rounds land in. But an UNBOUNDED
-      //    version of that is worse than the race it replaces: left running, it would (a) leak - keep
-      //    firing on every future checkout edit for the rest of the session once the customer switches to
-      //    a different courier, (b) override the customer - silently put this office back the moment they
-      //    pick a DIFFERENT one by hand, since any value but pick.officeId reads as "not settled yet", and
-      //    (c) hammer the server with a real save on every single recalculation. So retire the handler the
-      //    moment ANY of three things is true: the value stuck, the customer's chosen rate is no longer
-      //    this pick's courier, or it has already written the office 3 times without it sticking (past
-      //    that many rounds something else owns this field, and continuing to fight it is the harm this
-      //    guard exists to prevent). Also retire whatever was left over from a PREVIOUS applyPick, so a
-      //    pick nobody wants applied any more doesn't keep listening either.
-      if (pendingOfficeApply) { $(document.body).off('updated_checkout', pendingOfficeApply); }
-      var officeTries = 0;
-      var onOfficeRound = function () {
+      if (newTown) { resetStreet($wrap); }
+      $wrap.attr('data-method', pick.method);
+      syncMethodUI($wrap); syncOffice($wrap); syncMapBtn($wrap);
+      var $office = $wrap.find('.bgc-office');
+      resetOffice($wrap);
+      $office.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change.select2');
+      showLoader($wrap);
+      if (pendingOfficeApply) { $(document.body).off('updated_checkout', pendingOfficeApply); pendingOfficeApply = null; }
+      var restore = function () {
         var $w = $('.bgc-fields[data-courier="' + pick.courier + '"]');
-        var $o = $w.find('.bgc-office');
-        function done() {
-          $(document.body).off('updated_checkout', onOfficeRound);
-          pendingOfficeApply = null;
+        if (!$w.length) { return null; }
+        if (String($w.find('.bgc-city').val() || '') !== String(pick.cityId)) {
+          $w.find('.bgc-city').append(new Option(pick.cityLabel, pick.cityId, true, true)).val(String(pick.cityId));
         }
-        if (!$o.length) { return; }
-        if (String($o.val() || '') === String(pick.officeId)) { done(); return; }         // 1. it stuck
-        // 2. the customer moved on to a different courier - same match as the radio above (want + the
-        //    colon guard), against whichever rate is actually CHECKED now.
-        var checkedVal = String($('input[name^="shipping_method"]:checked').val() || '');
-        if (checkedVal !== want && checkedVal.indexOf(want + ':') !== 0) { done(); return; }
-        if (officeTries >= 3) { done(); return; }                                          // 3. gave it enough tries
-        officeTries++;
-        // The delivery TYPE has to be put back too, and before the rest. On one of the recalculations
-        // this pick sets off, the server can render this block with an EMPTY data-method - the session
-        // has not recorded the courier yet at that moment - and renderTabs() then falls back to the
-        // courier's FIRST tab. For Sameday that is "to address", so choosing a locker on the map
-        // landed the customer on an empty address form with the locker still saved underneath.
-        // Set the attribute and re-sync the tabs directly rather than calling setMethod(): that one
-        // clears the office and starts another recalculation, which is what we are already inside of.
-        if (method($w) !== pick.method) {
-          $w.attr('data-method', pick.method);
-          syncMethodUI($w);
-        }
-        // The CITY has to be put back first. saveSelection() below sends the whole block - courier,
-        // city, office, address - read straight off the fields, so saving while the re-rendered city
-        // select is still empty stores site_id 0 and wipes the city that was chosen a moment ago. The
-        // customer was left with an office and no town, which is not a state they can order from.
-        var $c = $w.find('.bgc-city');
-        if ($c.length && String($c.val() || '') !== String(pick.cityId)) {
-          $c.append(new Option(pick.cityLabel, pick.cityId, true, true)).val(String(pick.cityId));
-        }
-        // Re-asserted with the city, for the same reason: this block was re-rendered by the server and
-        // the hidden field came back with whatever the session had, which may be nothing yet.
         $w.find('.bgc-postcode').val(pick.postCode || '');
-        // A block rendered without the town was built with its office field disabled; the town is in
-        // it now, so the field follows (syncOffice) - or the office written next is one the customer
-        // can see and never open.
+        if (method($w) !== pick.method) { $w.attr('data-method', pick.method); syncMethodUI($w); }
         syncOffice($w); syncMapBtn($w);
-        $o.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change');
-        saveSelection($w);
+        $w.find('.bgc-office').append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change.select2');
+        return $w;
       };
-      pendingOfficeApply = onOfficeRound;
-      $(document.body).on('updated_checkout', onOfficeRound);
+      saveSelection($wrap).always(function () {
+        // One check on the re-rendered block, armed only now that the save is in: a render the server
+        // built from a session that did not hold the pick is put right once and saved quietly. It never
+        // loops - this is a safety net, not a second way to do the job.
+        var check = function () {
+          $(document.body).off('updated_checkout', check);
+          pendingOfficeApply = null;
+          var $w = $('.bgc-fields[data-courier="' + pick.courier + '"]');
+          if (!$w.length || String($w.find('.bgc-office').val() || '') === String(pick.officeId)) { return; }
+          var checkedVal = String($('input[name^="shipping_method"]:checked').val() || '');
+          if (checkedVal !== want && checkedVal.indexOf(want + ':') !== 0) { return; } // the customer moved on
+          $w = restore();
+          if ($w) { saveSelection($w); }
+        };
+        pendingOfficeApply = check;
+        $(document.body).on('updated_checkout', check);
+        $(document.body).trigger('update_checkout');
+      });
       return true;
     }
   };

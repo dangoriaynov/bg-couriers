@@ -1414,6 +1414,10 @@ class BGCouriers_Checkout {
         }
         $office_option = '';
         $auto_office = false;
+        // The country the browser's own office lookups are made for (the same one data-country carries
+        // below) - the key of the cached list the dropdown shows.
+        $off_country = BGCouriers_Pricing::destination_country();
+        if (!in_array($off_country, BGCouriers_Settings::delivery_countries($courier), true)) { $off_country = BGCouriers_Settings::home_country(); }
         // An office with no town is not a selection, it is half of one: a save that reached the session
         // after the town was cleared in the browser held exactly that (the clear never reached the
         // session, so the next save sent the office alone). Rendered, it was one office in a field
@@ -1422,6 +1426,14 @@ class BGCouriers_Checkout {
         if (!$site_id) { $office_id = 0; }
         if ($office_id) {
             $office = BGCouriers_Nomenclature::office_by_id($courier, $office_id);
+            // Not in the synced table does not mean not in the dropdown: that list is the courier's live
+            // answer, which can hold an office the table does not. Without this look, such an office was
+            // saved, then rendered as an empty field by the very next recalculation.
+            if (!$office && $site_id) {
+                foreach ((array) BGCouriers_Ajax::cached_city_offices($courier, $site_id, $off_country) as $row) {
+                    if ((int) ($row['office_id'] ?? 0) === $office_id) { $office = $row; break; }
+                }
+            }
             if ($office) {
                 $office_option = '<option value="' . esc_attr($office_id) . '" selected>' . esc_html($office['name'] . ' - ' . $office['address']) . '</option>';
             }
@@ -1440,7 +1452,12 @@ class BGCouriers_Checkout {
             // waited for it and still had to click it, ordered nothing (the order was refused with
             // "choose an office"). The locker stays one tab away. This replaces the rule from Aytos,
             // which counted every pickup type in the town before choosing for the customer.
-            $only = BGCouriers_Nomenclature::offices($courier, $site_id, $sel_method);
+            // The list the dropdown shows decides when it is warm (see cached_city_offices); the synced
+            // table only while it is cold.
+            $warm = BGCouriers_Ajax::cached_city_offices($courier, $site_id, $off_country);
+            $only = $warm === null
+                ? BGCouriers_Nomenclature::offices($courier, $site_id, $sel_method)
+                : array_values(array_filter($warm, static function ($o) use ($sel_method) { return ($o['type'] ?? '') === $sel_method; }));
             if (count($only) === 1) {
                 $one = $only[0];
                 $office_option = '<option value="' . esc_attr((string) $one['office_id']) . '" selected>'
