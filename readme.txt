@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.29
+Stable tag: 0.4.30
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.30 =
+* Fixed: **a customer who opens "To office" in a town with a single office of that courier no longer has to click it.** The checkout showed a dropdown with one row in it, the customer saw the office, did not select it, and the order was refused with "choose an office", so no order existed at all (reported by a Bulgarian shop: Speedy has one counter and one locker in Белослав). The tab the customer is on now decides: one office on "To office", or one locker on "To locker", is chosen for them. Two or more on a tab are still theirs to pick, and the other tab is one click away.
+* Changed: the release pipeline no longer fails because Docker Hub has refused an anonymous pull to a shared runner. Nothing in the plugin itself changes.
 
 = 0.4.29 =
 * New: **a parcel nobody came for is no longer shown as one waiting to be collected.** Until now both were the same amber "Ready for collection" the order had carried since the day the parcel arrived, so a sale stuck at the counter for ten days looked exactly like one that got there this morning (suggested by a Bulgarian shop, 2026-10-09). "Not collected" is now a stage of its own, with its own red icon in the orders list and its own place on the order's timeline. Pigeon and Evropat report it themselves (Непотърсена, изтекъл престой/срок на съхранение, Evropat's status 82) and are flagged the moment they do; for the couriers that keep saying "ready for collection" for as long as the box stands there, a new setting counts the days: 7 by default, 0 turns it off. A second setting can move such an order to a status of your choice ("Failed" is the usual one), while the parcel is still AT the courier, because the existing return rule only fires once the goods are back on your counter, by which time the sale has been lost for a fortnight.
