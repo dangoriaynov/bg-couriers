@@ -1434,17 +1434,14 @@ class BGCouriers_Checkout {
             // every recalculation: doing it in JS meant the selection was made and then wiped by the very
             // next round, which is the same race that has bitten this file before. Rendered as the chosen
             // option it simply IS the state, and cannot be lost.
+            //
+            // The tab the customer is on decides, not the whole town: Beloslav has one Speedy counter
+            // and a locker, and a customer who opened "To office" and saw a dropdown with one row in it,
+            // waited for it and still had to click it, ordered nothing (the order was refused with
+            // "choose an office"). The locker stays one tab away. This replaces the rule from Aytos,
+            // which counted every pickup type in the town before choosing for the customer.
             $only = BGCouriers_Nomenclature::offices($courier, $site_id, $sel_method);
-            // ...and only where it is the town's ONLY pickup point, of any kind. Aytos has one Speedy
-            // counter and two Speedy lockers: choosing the counter because it is the only counter
-            // answered a question the customer had not been asked, in a town where there was plainly
-            // something to ask. Counted across the delivery options this courier actually offers - a
-            // locker the merchant has switched off is not an alternative the customer could have taken.
-            $total = 0;
-            foreach (array_intersect(BGCouriers_Settings::enabled_methods($courier), ['office', 'automat']) as $m) {
-                $total += count(BGCouriers_Nomenclature::offices($courier, $site_id, $m));
-            }
-            if (count($only) === 1 && $total === 1) {
+            if (count($only) === 1) {
                 $one = $only[0];
                 $office_option = '<option value="' . esc_attr((string) $one['office_id']) . '" selected>'
                     . esc_html($one['name'] . ' - ' . $one['address']) . '</option>';

@@ -1,12 +1,10 @@
 <?php
 /**
- * A town with ONE pickup point needs no dropdown; a town with several must not answer for the customer.
+ * A tab (office or locker) holding ONE pickup point needs no dropdown; a tab with several is the customer's.
  *
- * Reported from Aytos: Speedy has one counter and two lockers there, and choosing the town from the
- * list ticked the counter. It was the only counter, which is what the check asked - and the wrong
- * question, because the customer could have had either locker and was never shown that they had a
- * choice. Counted across the delivery options the courier actually offers now, so a locker the merchant
- * has switched off still does not count as an alternative.
+ * History: Aytos (one counter, two lockers) once made this depend on the whole town holding a single
+ * pickup point. Beloslav (one counter, a locker) then showed the cost: the customer opened "To office",
+ * got a one-row dropdown, did not click it and the order was refused. The tab now decides.
  *
  * @group core
  */
@@ -61,32 +59,32 @@ final class AutoPickOfficeTest extends WP_UnitTestCase {
         $this->assertStringContainsString('АЙТОС 900', $html);
     }
 
-    public function test_a_town_with_a_counter_and_two_lockers_is_left_to_the_customer(): void {
-        // Aytos itself.
+    public function test_the_only_counter_is_chosen_even_when_the_town_also_has_lockers(): void {
+        // Beloslav: one counter and a locker. The customer on the "To office" tab has exactly one row to pick.
         $this->town(5002, [[900, 'office'], [901, 'automat'], [902, 'automat']]);
         $html = $this->block(5002);
-        $this->assertStringNotContainsString('data-auto="1"', $html,
-            'the only counter is not the only pickup point - the customer was never asked');
-        // The CITY is ticked - the customer chose it. The office box is the one that must be empty.
-        $this->assertStringContainsString('<select class="bgc-office"></select>', $html,
-            'the office box has something in it, and nobody chose it');
+        $this->assertStringContainsString('data-auto="1"', $html, 'the only counter on the tab was left for the customer to click');
+        $this->assertStringContainsString('АЙТОС 900', $html);
+        $this->assertStringNotContainsString('АЙТОС 901', $html, 'a locker was put into the counter tab');
+    }
+
+    public function test_two_lockers_on_the_locker_tab_are_left_to_the_customer(): void {
+        $this->town(5005, [[900, 'office'], [901, 'automat'], [902, 'automat']]);
+        $html = $this->block(5005, 'automat');
+        $this->assertStringNotContainsString('data-auto="1"', $html, 'two lockers are a choice');
+        $this->assertStringContainsString('<select class="bgc-office"></select>', $html);
+    }
+
+    public function test_the_only_locker_is_chosen_on_the_locker_tab(): void {
+        $this->town(5006, [[900, 'office'], [901, 'office'], [902, 'automat']]);
+        $html = $this->block(5006, 'automat');
+        $this->assertStringContainsString('data-auto="1"', $html);
+        $this->assertStringContainsString('АЙТОС 902', $html);
     }
 
     /** Two of the same kind was never auto-picked, and still is not. */
     public function test_a_town_with_two_offices_is_left_to_the_customer(): void {
         $this->town(5003, [[900, 'office'], [903, 'office']]);
         $this->assertStringNotContainsString('data-auto="1"', $this->block(5003));
-    }
-
-    /**
-     * A locker the merchant has switched off is not an alternative the customer could have taken, so
-     * the single counter beside it is still the only thing there is.
-     */
-    public function test_a_locker_the_shop_does_not_offer_does_not_count(): void {
-        update_option('bgcouriers_speedy_automat_enabled', 'no');
-        $this->town(5004, [[900, 'office'], [901, 'automat']]);
-        $html = $this->block(5004);
-        update_option('bgcouriers_speedy_automat_enabled', 'yes');
-        $this->assertStringContainsString('data-auto="1"', $html);
     }
 }
