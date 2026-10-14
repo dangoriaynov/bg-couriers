@@ -104,6 +104,7 @@ return array (
     'Ask them for your pickup office ID (the office you drop parcels off at).' => 'Поискайте от тях вашето ID на офис за приемане (офисът, в който предавате пратките).',
     'Ask your account manager for REST API access. They issue a username and password for the API - these are NOT your my.expressone.bg login.' => 'Поискайте достъп до REST API от вашия мениджър. Издават потребителско име и парола за API - те НЕ са данните ви за вход в my.expressone.bg.',
     'Asking the courier…' => 'Питаме куриера…',
+    'At the door' => 'При получаване',
     'Attach наложен платеж (full total + packing list) to every COD Econt order, paid out via the agreement below. Prepaid orders are never charged again.' => 'Добавя наложен платеж (пълна сума + опис на стоките) към всяка Econt поръчка с наложен платеж, изплащан чрез договора по-долу. Предплатените поръчки не се таксуват повторно.',
     'Auto-cancel of the waybill after a full refund failed: %s' => 'Автоматичното анулиране на товарителницата след пълно възстановяване беше неуспешно: %s',
     'Auto-generate labels' => 'Автоматично генериране на етикети',

@@ -385,6 +385,18 @@ class BGCouriers_Tracking {
     public const STAGE_ORDER = ['registered', 'transit', 'ready', 'unclaimed', 'delivered', 'returning', 'returned', 'cancelled'];
 
     /**
+     * Stages after which the courier has nothing more to say, so nobody asks again and no screen counts
+     * how long it has stood there. 'returning' and 'unclaimed' are deliberately absent: the parcel is
+     * still moving, or still at the office where it can turn into a return.
+     */
+    public const FINAL_STAGES = ['delivered', 'cancelled', 'returned'];
+
+    /** Is this a stage the shipment never leaves? */
+    public static function is_final(string $stage): bool {
+        return in_array($stage, self::FINAL_STAGES, true);
+    }
+
+    /**
      * The same stage in ONE word, for the places that are read at a glance rather than read: the state
      * row on the order and its timeline. "Създадена товарителница 24 сеп., 17:56" is a sentence per line
      * where the merchant is scanning a column of dates (owner, 2026-10-09) - "Създадена" says it, and

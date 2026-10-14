@@ -55,6 +55,25 @@ final class PollerReachesEveryShipmentTest extends WP_UnitTestCase {
         $this->assertNotContains('WDONE', BGCouriers_Poll_Probe::$asked, 'a finished shipment is left alone');
     }
 
+    /** A shipment whose recorded stage is final is closed without a courier call, even if never marked done. */
+    public function test_a_final_stage_is_closed_without_asking_the_courier(): void {
+        $o = new WC_Order();
+        $o->update_meta_data('_bgcouriers_courier', 'pollprobe');
+        $o->update_meta_data('_bgcouriers_waybill', 'WFINAL');
+        $o->update_meta_data('_bgcouriers_track_stage', 'delivered');
+        $o->save();
+        $live = new WC_Order();
+        $live->update_meta_data('_bgcouriers_courier', 'pollprobe');
+        $live->update_meta_data('_bgcouriers_waybill', 'WLIVE');
+        $live->update_meta_data('_bgcouriers_track_stage', 'unclaimed');
+        $live->save();
+
+        BGCouriers_Tracking_Poller::run();
+        $this->assertSame(['WLIVE'], BGCouriers_Poll_Probe::$asked, 'unclaimed is not final, delivered is');
+        $this->assertSame('yes', (string) wc_get_order($o->get_id())->get_meta('_bgcouriers_track_done'), 'and it is marked, so the query drops it next time');
+        $this->assertNotSame('yes', (string) wc_get_order($live->get_id())->get_meta('_bgcouriers_track_done'), 'the live one is left open');
+    }
+
     public function test_the_time_budget_ends_a_run_that_is_not_finished(): void {
         $this->shipments(5);
         add_filter('bgcouriers_poll_budget', '__return_zero'); // no time at all: the first shipment, then stop
