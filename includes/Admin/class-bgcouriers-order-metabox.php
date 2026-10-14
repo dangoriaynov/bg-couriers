@@ -125,7 +125,13 @@ class BGCouriers_Order_Metabox {
             if ($door > 0) {
                 $price = html_entity_decode(wp_strip_all_tags(wc_price($door, ['currency' => $order->get_currency()])), ENT_QUOTES, 'UTF-8');
                 /* translators: %s: the delivery price, e.g. "3,06 EUR" */
-                $body .= '<div class="bgc-door-price">' . esc_html(sprintf(__('~%s paid to the courier on delivery', 'bg-couriers'), $price)) . '</div>';
+                $full = sprintf(__('~%s paid to the courier on delivery', 'bg-couriers'), $price);
+                // One short chip, not the sentence: the label and the amount are what is scanned, and the
+                // whole sentence (the same one the checkout uses) is on the hint.
+                $body .= '<div class="bgc-door-price" data-tip="' . esc_attr($full) . '" aria-label="' . esc_attr($full) . '">'
+                    . BGCouriers_Icons::cash(14)
+                    . '<span class="bgc-door-lbl">' . esc_html__('At the door', 'bg-couriers') . '</span>'
+                    . '<strong>~' . esc_html($price) . '</strong></div>';
             }
         }
 
@@ -141,69 +147,78 @@ class BGCouriers_Order_Metabox {
 
         // Where the shipment actually is, on the order itself. It used to live only in the orders list, so
         // the one screen a merchant opens to look at a single order was the one place that did not say.
+        // The current stage is the TITLE of a collapsible panel; the journey so far, newest first, is
+        // what it opens onto. A final stage (delivered, cancelled, returned) prints no clock and no
+        // refresh button: nothing will change, so there is nothing to wait for or to ask about.
         $stage = (string) $order->get_meta('_bgcouriers_track_stage');
         $text  = trim((string) $order->get_meta('_bgcouriers_track_text'));
         if ($stage !== '' || $text !== '') {
-            $when = (int) $order->get_meta('_bgcouriers_track_updated');
-            // ONE WORD and a clock. This row used to read "Непотърсена Непотърсена без промяна от 2
-            // седмици" - the stage, the courier saying the same thing, and a sentence about the clock -
-            // on a card narrow enough to wrap all three (owner, screenshot, 2026-10-09). The stage is
-            // now the short label, the age is the duration alone behind a clock glyph, and everything
-            // that was dropped - the long label, the courier's own wording, the full sentence about the
-            // age - is in the hover hints, which is where a list-sized screen keeps its detail.
-            $tip = BGCouriers_Tracking::stage_tip($stage, $text, $when);
-            $body .= '<div class="bgc-shipstate bgc-stage-' . esc_attr(sanitize_html_class($stage ?: 'transit')) . '">'
-                . '<span class="bgc-shipstate-lbl" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '">'
+            $final = BGCouriers_Tracking::is_final($stage);
+            $when  = (int) $order->get_meta('_bgcouriers_track_updated');
+            $times = $order->get_meta('_bgcouriers_track_times');
+            $times = is_array($times) ? $times : [];
+            // The stage's own date when we have it (the courier's clock), else the last change we saw.
+            $since = (int) ($times[$stage] ?? 0) ?: $when;
+
+            // Newest first. Ties (several stages stamped in the same second) fall back to the lifecycle
+            // order, reversed, so the later step still reads as the later one.
+            $steps = [];
+            foreach (BGCouriers_Tracking::STAGE_ORDER as $rank => $st) {
+                $at = (int) ($times[$st] ?? 0);
+                if ($at > 0) { $steps[] = [$at, $rank, $st]; }
+            }
+            usort($steps, static function (array $x, array $y): int { return [$y[0], $y[1]] <=> [$x[0], $x[1]]; });
+
+            // The tip carries the long label and the courier's own words. The "unchanged for" part is left
+            // out of a final stage's: it would only say how long ago the parcel was handed over.
+            $tip  = BGCouriers_Tracking::stage_tip($stage, $text, $final ? 0 : $when);
+            $head = '<span class="bgc-shipstate-lbl" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '">'
                 // The SAME indicator the orders list draws - same glyph, same colour, same place at the
-                // head of the line. This was a coloured dot, so the two screens drew the same stage
-                // differently (owner, 2026-10-09).
+                // head of the line.
                 . BGCouriers_Order_Columns::stage_icon($stage)
-                . '<strong>' . esc_html(BGCouriers_Tracking::stage_label_short($stage)) . '</strong></span>'
-                . ($when > 0
+                . '<strong>' . esc_html(BGCouriers_Tracking::stage_label_short($stage)) . '</strong></span>';
+            if ($since > 0) {
+                $head .= '<time class="bgc-ss-date" datetime="' . esc_attr(gmdate('c', $since)) . '">'
+                    . esc_html(date_i18n('j M', $since) . ' ' . date_i18n('H:i', $since)) . '</time>';
+            }
+            if (!$final) {
+                // ONE clock glyph and the duration alone; the sentence around it is on the hint.
+                if ($when > 0) {
                     /* translators: %s: human-readable time difference, e.g. "2 hours" */
-                    ? '<span class="bgc-shipstate-when" data-tip="' . esc_attr(sprintf(__('unchanged for %s', 'bg-couriers'), human_time_diff($when, time()))) . '">'
-                        . BGCouriers_Icons::clock() . '<span>' . esc_html(human_time_diff($when, time())) . '</span></span>'
-                    : '')
-                . (BGCouriers_Labels::is_locked($order)
-                    ? '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>'
-                    : '')
+                    $head .= '<span class="bgc-shipstate-when" data-tip="' . esc_attr(sprintf(__('unchanged for %s', 'bg-couriers'), human_time_diff($when, time()))) . '">'
+                        . BGCouriers_Icons::clock() . '<span>' . esc_html(human_time_diff($when, time())) . '</span></span>';
+                }
+                if (BGCouriers_Labels::is_locked($order)) {
+                    $head .= '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>';
+                }
                 // Ask the courier again, for THIS order, without waiting for the next scheduled poll -
                 // which is what someone standing on this screen actually wants.
-                . '<button type="button" class="bgc-ship-refresh" data-id="' . (int) $id . '"'
-                . ' data-tip="' . esc_attr__('Update from the courier now', 'bg-couriers') . '"'
-                . ' aria-label="' . esc_attr__('Update from the courier now', 'bg-couriers') . '">'
-                . '<span class="dashicons dashicons-update"></span></button>'
-                . '</div>';
-        }
-
-        // WHEN it happened, not just where it is now. The order notes carry every change already, but they
-        // carry the stock movements, the delivery-date plugin and everything else alongside, and the
-        // question being asked here is a short one: when did this go out, when did it arrive, when did it
-        // come back (owner, 2026-10-05).
-        $times = $order->get_meta('_bgcouriers_track_times');
-        if (is_array($times) && $times) {
-            // A grid, so every date starts at the same place: a column of dates is read down, and
-            // ragged ones are read word by word instead (owner, 2026-10-09). The stage is the short
-            // label for the same reason - the long one pushed the dates a different distance on every
-            // line. The full wording is on the hover hint.
-            $steps = [];
-            foreach (BGCouriers_Tracking::STAGE_ORDER as $st) {
-                $when = (int) ($times[$st] ?? 0);
-                if ($when <= 0) { continue; }
-                // The day and the clock time are separate cells, so the TIME starts at the same place on
-                // every line: with them in one cell "29 сеп." pushed its time further right than "9 окт."
-                // did, and a column read down jumped left and right (owner, 2026-10-09). The <time>
-                // element still wraps both - it is the machine-readable one - and gives up its box to
-                // the grid (display:contents) so its two halves are cells in their own right.
-                $steps[] = '<span class="bgc-tl-k" data-tip="' . esc_attr(BGCouriers_Tracking::stage_label($st)) . '">'
-                    . BGCouriers_Order_Columns::stage_icon($st, '', 13)
-                    . '<span>' . esc_html(BGCouriers_Tracking::stage_label_short($st)) . '</span></span>'
-                    . '<time class="bgc-tl-v" datetime="' . esc_attr(gmdate('c', $when)) . '">'
-                    . '<span class="bgc-tl-d">' . esc_html(date_i18n('j M', $when)) . '</span>'
-                    . '<span class="bgc-tl-t">' . esc_html(date_i18n('H:i', $when)) . '</span></time>';
+                $head .= '<button type="button" class="bgc-ship-refresh" data-id="' . (int) $id . '"'
+                    . ' data-tip="' . esc_attr__('Update from the courier now', 'bg-couriers') . '"'
+                    . ' aria-label="' . esc_attr__('Update from the courier now', 'bg-couriers') . '">'
+                    . '<span class="dashicons dashicons-update"></span></button>';
             }
-            if ($steps) {
-                $body .= '<div class="bgc-timeline">' . implode('', $steps) . '</div>';
+
+            $cls = 'bgc-shipstate bgc-stage-' . esc_attr(sanitize_html_class($stage ?: 'transit')) . ($final ? ' bgc-final' : '');
+            // One entry is the title itself, so there is nothing to open: a plain row, no chevron.
+            if (count($steps) > 1) {
+                // A grid, so every date starts at the same place: a column of dates is read down, and
+                // ragged ones are read word by word instead (owner, 2026-10-09). The day and the clock
+                // time are separate cells so the TIME starts at the same place on every line; the <time>
+                // element still wraps both and gives up its box to the grid (display:contents).
+                $rows = '';
+                foreach ($steps as [$at, , $st]) {
+                    $rows .= '<span class="bgc-tl-k" data-tip="' . esc_attr(BGCouriers_Tracking::stage_label($st)) . '">'
+                        . BGCouriers_Order_Columns::stage_icon($st, '', 13)
+                        . '<span>' . esc_html(BGCouriers_Tracking::stage_label_short($st)) . '</span></span>'
+                        . '<time class="bgc-tl-v" datetime="' . esc_attr(gmdate('c', $at)) . '">'
+                        . '<span class="bgc-tl-d">' . esc_html(date_i18n('j M', $at)) . '</span>'
+                        . '<span class="bgc-tl-t">' . esc_html(date_i18n('H:i', $at)) . '</span></time>';
+                }
+                $body .= '<details class="' . $cls . '"><summary class="bgc-ss-head">' . $head . '</summary>'
+                    . '<div class="bgc-timeline">' . $rows . '</div></details>';
+            } else {
+                $body .= '<div class="' . $cls . '"><div class="bgc-ss-head">' . $head . '</div></div>';
             }
         }
 
@@ -247,10 +262,14 @@ class BGCouriers_Order_Metabox {
 
     /** Allowed tags/attributes for the shipment-panel body passed through wp_kses. */
     const PANEL_TAGS = [
-        'div'    => ['class' => true, 'style' => true],
+        // data-tip / aria-label: the door-price chip carries its full sentence on the hint.
+        'div'    => ['class' => true, 'style' => true, 'data-tip' => true, 'aria-label' => true],
         'span'   => ['class' => true, 'style' => true, 'data-wb' => true, 'data-tip' => true, 'role' => true, 'tabindex' => true, 'aria-label' => true],
         'strong' => ['class' => true],
         'b'      => [],
+        // The stage panel: the current stage is the <summary> and the journey is what it opens.
+        'details' => ['class' => true, 'open' => true],
+        'summary' => ['class' => true],
         // The timeline's dates. Without this on the list kses dropped the element (keeping the text),
         // so the dates could not be styled as a column - and the machine-readable datetime was lost.
         'time'   => ['class' => true, 'datetime' => true],

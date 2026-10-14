@@ -242,4 +242,17 @@ final class TrackingStageTest extends TestCase {
         // Nothing heard yet: the stage still has to show.
         $this->assertSame(['Ready for collection', ''], BGCouriers_Tracking::stage_headline('ready', ''));
     }
+
+    /**
+     * The stages nobody asks about again. 'returning' and 'unclaimed' stay out on purpose: the parcel is
+     * still moving, or still at the office where it can turn into a return.
+     */
+    public function test_final_stages(): void {
+        foreach (['delivered', 'cancelled', 'returned'] as $st) {
+            $this->assertTrue(BGCouriers_Tracking::is_final($st), $st);
+        }
+        foreach (['', 'registered', 'transit', 'ready', 'unclaimed', 'returning', 'nonsense'] as $st) {
+            $this->assertFalse(BGCouriers_Tracking::is_final($st), $st === '' ? '(empty)' : $st);
+        }
+    }
 }

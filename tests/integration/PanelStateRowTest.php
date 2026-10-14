@@ -121,6 +121,112 @@ final class PanelStateRowTest extends WP_UnitTestCase {
         // Short labels here too: "Създадена товарителница 24 сеп." is the line this replaced.
         $this->assertStringContainsString('>' . BGCouriers_Tracking::stage_label_short('ready') . '<', $html);
     }
+
+    /** The current stage is the title of a collapsible panel; the journey it opens is newest first. */
+    public function test_the_stage_is_a_collapsible_title_over_the_journey_newest_first(): void {
+        $t = time() - 3 * DAY_IN_SECONDS;
+        $html = $this->panel($this->order([
+            '_bgcouriers_track_stage' => 'delivered',
+            '_bgcouriers_track_text'  => 'Доставена',
+            '_bgcouriers_track_updated' => $t + 7200,
+            '_bgcouriers_track_times' => ['registered' => $t, 'transit' => $t + 3600, 'delivered' => $t + 7200],
+        ]));
+        $this->assertMatchesRegularExpression('/<details class="bgc-shipstate [^"]*"><summary class="bgc-ss-head">/', $html);
+        $this->assertStringNotContainsString('<details class="bgc-shipstate bgc-stage-delivered bgc-final" open', $html, 'collapsed by default');
+        // The title: icon, name and the date of THIS stage, all inside the summary.
+        preg_match('#<summary.*?</summary>#s', $html, $sum);
+        $this->assertNotEmpty($sum);
+        $this->assertStringContainsString('bgc-stage-delivered', $sum[0]);
+        $this->assertStringContainsString(BGCouriers_Tracking::stage_label_short('delivered'), $sum[0]);
+        $this->assertStringContainsString(date_i18n('j M', $t + 7200) . ' ' . date_i18n('H:i', $t + 7200), $sum[0]);
+        // Inside: newest first.
+        preg_match('#<div class="bgc-timeline">.*?</div>#s', $html, $tl);
+        preg_match_all('#<span class="bgc-tl-k"[^>]*>.*?<span>([^<]+)</span></span>#s', $tl[0], $names);
+        $this->assertSame([
+            BGCouriers_Tracking::stage_label_short('delivered'),
+            BGCouriers_Tracking::stage_label_short('transit'),
+            BGCouriers_Tracking::stage_label_short('registered'),
+        ], $names[1], 'reverse chronological order, as the stages changed');
+    }
+
+    /** A final stage prints no clock, no lock and no refresh button, and the hint has no "unchanged for". */
+    public function test_a_final_stage_has_no_clock_no_refresh_and_no_lock(): void {
+        foreach (['delivered', 'cancelled', 'returned'] as $stage) {
+            $html = $this->panel($this->order([
+                '_bgcouriers_track_stage'   => $stage,
+                '_bgcouriers_track_text'    => 'x',
+                '_bgcouriers_handover'      => 'yes',
+                '_bgcouriers_track_updated' => time() - 3600,
+                '_bgcouriers_track_times'   => [$stage => time() - 3600],
+            ]));
+            $this->assertStringContainsString('bgc-final', $html, $stage);
+            $this->assertStringNotContainsString('bgc-ship-refresh', $html, "$stage: nothing to ask the courier");
+            $this->assertStringNotContainsString('bgc-clock-ico', $html, "$stage: no age clock");
+            $this->assertStringNotContainsString('bgc-shipstate-when', $html, $stage);
+            $this->assertStringNotContainsString('bgc-lock dashicons', $html, "$stage: no padlock on the state row");
+            $this->assertStringNotContainsString('unchanged for', $html, $stage);
+        }
+    }
+
+    /** Unclaimed and returning are NOT final: the parcel can still move, so the clock and the button stay. */
+    public function test_a_stage_that_can_still_change_keeps_the_clock_and_the_refresh_button(): void {
+        foreach (['registered', 'transit', 'ready', 'unclaimed', 'returning'] as $stage) {
+            $html = $this->panel($this->order([
+                '_bgcouriers_track_stage'   => $stage,
+                '_bgcouriers_track_text'    => 'x',
+                '_bgcouriers_track_updated' => time() - 3600,
+                '_bgcouriers_track_times'   => [$stage => time() - 3600],
+            ]));
+            $this->assertStringNotContainsString('bgc-final', $html, $stage);
+            $this->assertStringContainsString('bgc-ship-refresh', $html, $stage);
+            $this->assertStringContainsString('bgc-clock-ico', $html, $stage);
+        }
+    }
+
+    /** With no dated history there is nothing to open: a plain title row, no <details>. */
+    public function test_without_a_journey_the_title_is_not_collapsible(): void {
+        $html = $this->panel($this->order([
+            '_bgcouriers_track_stage' => 'transit', '_bgcouriers_track_text' => 'x', '_bgcouriers_track_updated' => time() - 60,
+        ]));
+        $this->assertStringContainsString('bgc-shipstate', $html);
+        $this->assertStringNotContainsString('<details', $html);
+        $this->assertStringContainsString('bgc-ship-refresh', $html);
+    }
+
+    /** A history of one step is the title again: nothing to open. */
+    public function test_a_single_step_history_is_not_collapsible(): void {
+        $html = $this->panel($this->order([
+            '_bgcouriers_track_stage' => 'registered', '_bgcouriers_track_text' => 'x', '_bgcouriers_track_updated' => time() - 60,
+            '_bgcouriers_track_times' => ['registered' => time() - 60],
+        ]));
+        $this->assertStringNotContainsString('<details', $html);
+        $this->assertStringNotContainsString('bgc-timeline', $html);
+        $this->assertSame(1, substr_count($html, 'bgc-ss-date'), 'the date is still on the title');
+    }
+
+    /** What the courier collects at the door is one short chip, not the sentence. */
+    public function test_the_door_price_is_one_short_chip(): void {
+        $o = new WC_Order();
+        $o->update_meta_data('_bgcouriers_courier', 'stateprobe');
+        $o->update_meta_data('_bgcouriers_method', 'office');
+        $o->update_meta_data('_bgcouriers_waybill', '63740000100');
+        $item = new WC_Order_Item_Shipping();
+        $item->set_method_id('bgcouriers_stateprobe');
+        $item->set_total(0);
+        $item->update_meta_data('_bgcouriers_info_price', 3.0);
+        $o->add_item($item);
+        $o->save();
+        $html = $this->panel($o);
+        preg_match('#<div class="bgc-door-price".*?</div>#s', $html, $m);
+        $this->assertNotEmpty($m, 'the chip is there');
+        $shown = trim(wp_strip_all_tags($m[0]));
+        $this->assertStringContainsString('~', $shown);
+        $this->assertStringContainsString('3', $shown);
+        $this->assertStringContainsString(__('At the door', 'bg-couriers'), $shown);
+        $this->assertStringNotContainsString('paid to the courier', $shown, 'the sentence is on the hint, not on the line');
+        $this->assertLessThan(24, mb_strlen($shown), 'short enough for one line at any width the panel gets');
+        $this->assertMatchesRegularExpression('/data-tip="[^"]*paid to the courier on delivery[^"]*"/', $m[0]);
+    }
 }
 
 final class BGCouriers_State_Probe extends BGCouriers_Abstract_Courier {

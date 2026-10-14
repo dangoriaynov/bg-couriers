@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.30
+Stable tag: 0.4.31
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,15 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.31 =
+* Changed: **the shipment panel on the order screen is compact, and its current stage is a panel that opens.** The stage ("Delivered") is the title; opening it lists the journey so far, newest first, one line per step. What the courier collects at the door is one short line ("At the door ~3,00 €") instead of a sentence, and on a narrow card the title takes two lines and each step one.
+* Changed: **a delivered, cancelled or returned parcel is no longer timed or asked about.** Its panel shows no "unchanged for" clock and no refresh button, and the background check closes such an order without calling the courier.
+* Fixed: **choosing a city now fills in the only office at once.** In a town with a single office the dropdown stayed empty after the town was picked, and a customer had to open it and click the one row. The office list is now asked for first and the only office is chosen from the same list the dropdown shows.
+* Fixed: **"Choose" on the map now selects the office at checkout.** The map closed but the office was not set, because the checkout recalculation wiped it. The choice is saved first and restored if the recalculation clears it, and the town, delivery type and courier rate follow the pick.
+* Fixed: **the chosen office is shown in full.** A long office name was cut to one line ending in an ellipsis, so two offices of one town could not be told apart. The name now wraps to up to three lines, on a phone too.
+* Fixed: the town and office dropdowns are never narrower than the field they open from.
+* Changed: the checkout asks for the office list before the delivery recalculation instead of after it, and prefetching the other couriers waits until the recalculation has finished, so the customer's own town is no longer queued behind it.
 
 = 0.4.30 =
 * Fixed: **a customer who opens "To office" in a town with a single office of that courier no longer has to click it.** The checkout showed a dropdown with one row in it, the customer saw the office, did not select it, and the order was refused with "choose an office", so no order existed at all (reported by a Bulgarian shop: Speedy has one counter and one locker in Белослав). The tab the customer is on now decides: one office on "To office", or one locker on "To locker", is chosen for them. Two or more on a tab are still theirs to pick, and the other tab is one click away.
