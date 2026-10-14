@@ -49,6 +49,11 @@ class BGCouriers_Icons {
         return self::svg('bgc-clock-ico', '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', $size);
     }
 
+    /** A banknote: money the courier collects at the door. */
+    public static function cash(int $size = 14): string {
+        return self::svg('bgc-cash-ico', '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01"/><path d="M18 12h.01"/>', $size);
+    }
+
     /** Inline SVG for a delivery method (office/address/automat); '' for anything else. */
     public static function method(string $m, int $size = 16): string {
         if (!isset(self::PATHS[$m])) { return ''; }
