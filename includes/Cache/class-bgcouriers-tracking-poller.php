@@ -52,10 +52,21 @@ class BGCouriers_Tracking_Poller {
             foreach ($orders as $order) {
                 if (!$order instanceof \WC_Order) { continue; }
                 $seen[] = $order->get_id();
+                // Already final on the order but never marked (it predates the mark): close it here
+                // instead of asking the courier about a parcel that cannot change.
+                if (self::close_if_final($order)) { continue; }
                 self::poll_one($order, $advance);
                 if (microtime(true) >= $deadline) { return; } // the rest waits for the next run
             }
         } while (count($orders) === self::BATCH);
+    }
+
+    /** Mark an order whose recorded stage is final as done, without a courier call. True when it was final. */
+    private static function close_if_final(\WC_Order $order): bool {
+        if (!BGCouriers_Tracking::is_final((string) $order->get_meta('_bgcouriers_track_stage'))) { return false; }
+        $order->update_meta_data('_bgcouriers_track_done', 'yes');
+        $order->save();
+        return true;
     }
 
     /**
@@ -200,7 +211,7 @@ class BGCouriers_Tracking_Poller {
         // long-finished orders were re-polled on every run, forever, crowding out the live ones.
         // 'returning' is deliberately NOT terminal: the parcel is still moving, just the other way, and
         // marking it done froze the order on "coming back" while it was already back on the counter.
-        if (in_array($stage, ['delivered', 'cancelled', 'returned'], true)
+        if (BGCouriers_Tracking::is_final($stage)
             && (string) $order->get_meta('_bgcouriers_track_done') !== 'yes') {
             $order->update_meta_data('_bgcouriers_track_done', 'yes');
             $dirty = true;
