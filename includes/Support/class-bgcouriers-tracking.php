@@ -221,7 +221,12 @@ class BGCouriers_Tracking {
      * @var string[]
      */
     private const READY_PHRASES = ['известие за пратка', 'готова за получаване', 'готова за взимане',
-        'подготовка за предаване', 'ready for pickup', 'ready for collection', 'available for pickup'];
+        'подготовка за предаване', 'ready for pickup', 'ready for collection', 'available for pickup',
+        // Sameday, a locker delivery: "loaded into the OOH" (its name for the easybox) is the moment the
+        // parcel starts waiting for the customer. Read as "in transit" until a live order (11279,
+        // 2026-09-29) stood in a locker for two days, expired and came back without the orders list
+        // ever having shown it as waiting - so the clock that flags "nobody came" never started.
+        'заредена в ooh'];
 
     /** Speedy operations that mean the same thing, checked before any text. @var string[] */
     public const READY_CODES = ['134', '1134'];
@@ -236,6 +241,14 @@ class BGCouriers_Tracking {
      */
     private const UNCLAIMED_PHRASES = ['непотърсен', 'изтекъл срок на съхранение', 'изтекъл престой',
         'unclaimed', 'not collected in time'];
+
+    /**
+     * The same verdict said with the words the other way round: Sameday writes "Срокът за съхранение
+     * на пратката е изтекъл." - the storage period, then that it expired - which the phrase above (the
+     * expiry first) never matched, so a locker parcel nobody came for stayed "in transit" (live order
+     * 11279, 2026-10-01). Either order of the two stems means the same thing.
+     */
+    private const UNCLAIMED_PATTERN = '/изтек\S*\s[^.]*съхран|съхран[^.]*изтек/u';
 
     /**
      * Does this status line mean the shipment is cancelled?
@@ -260,8 +273,11 @@ class BGCouriers_Tracking {
         // its way back (Speedy 111, "returning to the sender"), and the parcel is BACK - handed over to
         // the sender (124, "handed back to the sender"). Calling the second one "coming back" told a
         // merchant a box was still travelling when it was already sitting on their counter.
+        // "Върната на подател" is Sameday's last word on a return (live order 11279, 2026-10-05): the
+        // parcel is handed back. Without it the generic stem below read it as still coming back, and
+        // the "when returned, set order to" rule never ran - the order stayed Shipped for good.
         foreach (['обратно на подател', 'обратно към подател', 'върната пратка', 'предадена на подателя',
-                  'returned to sender', 'back with sender'] as $k) {
+                  'върната на подател', 'returned to sender', 'back with sender'] as $k) {
             if (strpos($s, $k) !== false) { return 'returned'; }
         }
         foreach (['върн', 'връщ', 'return', 'към подателя', 'back to sender'] as $k) {
@@ -277,6 +293,7 @@ class BGCouriers_Tracking {
         // whose storage period has expired is still sitting in the same office and some couriers keep
         // saying so in the same breath.
         foreach (self::UNCLAIMED_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'unclaimed'; } }
+        if (preg_match(self::UNCLAIMED_PATTERN, $s) === 1) { return 'unclaimed'; }
         // Arrived and waiting to be collected - checked after the terminal verdicts so a delivered or
         // cancelled parcel can never be reported as merely waiting.
         foreach (self::READY_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'ready'; } }

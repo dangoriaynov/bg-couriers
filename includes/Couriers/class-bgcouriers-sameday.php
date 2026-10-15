@@ -722,7 +722,24 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $status  = (string) ($cur['status'] ?? ($events ? $events[count($events) - 1]['name'] : 'unknown'));
         // Sameday states the outcome outright, so the verdict does not depend on reading Bulgarian prose.
         $phase = !empty($summary['delivered']) ? 'DELIVERED' : (!empty($summary['canceled']) ? 'CANCELLED' : '');
-        return new BGCouriers_Tracking($waybill, $status, $events, $phase, null, true);
+        return new BGCouriers_Tracking($waybill, $status, $events, $phase, self::handover($status), true);
+    }
+
+    /**
+     * Whether the courier holds the parcel, as far as the status line says. Sameday has no field for it,
+     * but two of its wordings are explicit that the parcel is STILL WITH THE SENDER: the fresh waybill
+     * ("Създадена товарителница") and a collection the driver put off ("Отложено взимане от подател").
+     * On live order 11279 (2026-09-25) that postponed collection was the second history entry, and a
+     * second entry is what the shipped rule takes as "the parcel moved" when the courier does not say -
+     * so the order went to Shipped while the box was still on the shop's counter. null means "not said"
+     * and leaves the rule to count events, as before, for every other wording.
+     */
+    public static function handover(string $status): ?bool {
+        $s = function_exists('mb_strtolower') ? mb_strtolower($status) : strtolower($status);
+        foreach (['взимане от подател', 'създадена товарителница'] as $k) {
+            if (strpos($s, $k) !== false) { return false; }
+        }
+        return null;
     }
 
     /**
