@@ -3,20 +3,12 @@ defined('ABSPATH') || exit;
 
 class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     const BG_COUNTRY_ID = 100;
-    /**
-     * Speedy's own country ids, by ISO-3166 alpha-2, read off /location/country?isoAlpha2=XX.
-     *
-     * Only countries Speedy publishes a full site nomenclature for are here (`siteNomen: 1`), because a
-     * town-and-office picker is the only checkout this plugin has. Greece is `siteNomen: 2` - post-code
-     * addressing, no office list - and everything else nearby is `0`: free text, no towns, no offices.
-     * Measured 2026-08-19; the unfiltered /location/country call answers with ten countries, all 0, and
-     * must not be used to decide this.
-     */
+    /** Speedy's country ids by ISO alpha-2; only countries with a full site nomenclature (siteNomen 1). */
     const COUNTRY_IDS = ['BG' => 100, 'RO' => 642];
     const BASE = 'https://api.speedy.bg/v1'; // Speedy has no separate demo/sandbox host
-    /** Operation code of "delivery to the customer" - the operation logged when the customer receives it. */
+    /** Operation code of "delivery to the customer". */
     const OP_DELIVERED = '-14';
-    /** Operations that mean the parcel is physically with Speedy: accepted from sender / by a courier. */
+    /** Operations meaning the parcel is physically with Speedy. */
     const OPS_PICKED_UP = ['39', '11'];
 
     private string $user; private string $pass; private string $base; private array $sender;
@@ -29,8 +21,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     private function sender_block(): array {
-        // No clientId: Speedy derives the sender from the authenticated API user's own client.
-        // Sending an explicit (often inactive) clientId triggers "Sender client not found".
+        // No clientId: Speedy derives the sender from the API user; an explicit one triggers "Sender client not found".
         $sender = [];
         $s = $this->sender;
         if (!empty($s['name']))  { $sender['contactName'] = $s['name']; }
@@ -41,28 +32,12 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return $sender;
     }
 
-    /**
-     * The Speedy office the shop hands its parcels in at; 0 = a courier collects from the shop's address.
-     *
-     * `sender.dropoffOfficeId` is the field on both the price calculation and the shipment (the
-     * schema's own spelling - lower-case "off"). Without it Speedy quotes and books a courier pickup
-     * from the account's own address, whatever the shop has arranged with its Speedy office in person:
-     * a shop that walked every parcel to an office asked why its quotes looked like address prices.
-     * Measured 2026-09-18 on the live account: the id alone is enough on /calculate (no clientId, no
-     * `dropoff` flag - `dropoff: true` by itself is refused, "siteId required"), and the price
-     * breakdown carries the two lines a contract would move, addressPickupSurcharge and
-     * dropOffDiscount. On that account both are 0, so the number did not change; on a contract that
-     * charges for the pickup, this is where the difference shows.
-     */
+    /** The office the shop hands parcels in at; 0 = a courier collects. Without it Speedy prices a pickup. */
     public static function dropoff_office(): int {
         return function_exists('get_option') ? max(0, (int) get_option('bgcouriers_speedy_dropoff_office', 0)) : 0;
     }
 
-    /**
-     * Whether Speedy takes parcels handed in at this office: true/false from its record, null when
-     * Speedy could not be asked (no credentials, no answer). Read off /location/office/{id}, which is
-     * the one place the flag lives - the cached office list does not carry it.
-     */
+    /** true/false from /location/office/{id}, null when Speedy could not be asked; the cached list lacks the flag. */
     public function office_takes_dropoff(int $office_id): ?bool {
         if ($office_id <= 0) { return false; }
         try {
@@ -74,17 +49,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return !empty($r['office']['dropOffAllowed']);
     }
 
-    /**
-     * The recipient's address as Speedy wants it.
-     *
-     * The street goes by its id when the order carries one, else by type + name, else by name alone.
-     * Speedy matches a bare name against its own street list for the town, and refuses it when the
-     * town has more than one street of that name: measured on 2026-09-13 against /validation/address,
-     * Sofia's "ВИТОША" alone is refused ("За избраното населено място се изисква ул./бул. от
-     * номенклатура") while "ЦАРИГРАДСКО ШОСЕ" alone passes - there is one бул. and one ул. ВИТОША, and
-     * one ЦАРИГРАДСКО ШОСЕ. Either streetId 1314 or streetType "ул." + the name passes for ВИТОША.
-     * The checkout offered both ВИТОША rows off Speedy's own list and posted the bare name for either.
-     */
+    /** The address as Speedy wants it; a bare street name is refused when the town has several, so id or type + name go first. */
     public static function build_address(int $site_id, array $fields, string $country = ''): array {
         $addr = ['countryId' => self::dest_country_id($country), 'siteId' => $site_id];
         $map = ['complex' => 'complexName', 'street' => 'streetName', 'street_no' => 'streetNo',
@@ -105,24 +70,11 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return $addr;
     }
 
-    /**
-     * Which street of that name - looked up on Speedy's list when the order does not say.
-     *
-     * Orders placed before the checkout started recording the street's id, typed streets and streets
-     * taken off the map carry a name only (and possibly a type). One live lookup settles it: exactly one
-     * street of that name in the town, or one of the stored type, gives its id; none leaves the name as
-     * it is (a village outside Speedy's street list is delivered by name); more than one, with no type
-     * to tell them apart, is refused HERE with the choice spelled out, instead of by Speedy with a
-     * sentence about nomenclature. The lookup failing is not a reason to refuse the label: the name goes
-     * as it is and Speedy answers for itself, exactly as before.
-     */
+    /** Looks the street id up on Speedy's list when the order has none; several of that name with no type is refused here. */
     public function resolve_street(int $site_id, array $fields, string $country = ''): array {
         $name = trim((string) ($fields['street'] ?? ''));
         if ((int) ($fields['street_id'] ?? 0) > 0 || $name === '' || $site_id <= 0) { return $fields; }
-        // Speedy's search answers a name with the type in it - "бул. Княз Александър Дондуков", which is
-        // how the address map writes a street - with nothing at all (measured 2026-09-13); the name
-        // alone finds it. So the search goes by the bare name, and the type the text carried, or the
-        // one stored with the order, picks among several of that name.
+        // Speedy's search finds nothing for a name with the type in it, so search by the bare name.
         $split = BGCouriers_Street::split($name);
         try {
             $rows = $this->search_streets($site_id, $split['name'], $country);
@@ -150,8 +102,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public function id(): string { return 'speedy'; }
     public function label(): string { return 'Speedy'; }
 
-    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
-    public function ppp_payout_by_default(): bool { return true; } // pays cash on delivery out by postal money order as standard
+    public function ppp_payout_by_default(): bool { return true; }
 
     public function credential_hint(): array {
         return [
@@ -168,12 +119,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         ];
     }
 
-    /**
-     * Romania, and for now only Romania.
-     *
-     * Not a limit of the API but of what has been proven: a real BG->RO waybill was created, printed and
-     * cancelled on 2026-08-19 (service 202, payer SENDER). Nothing else has been.
-     */
+    /** Only Romania has been proven end to end. */
     public function intl_countries(): array { return ['RO']; }
 
     /** Speedy's numeric country id for an ISO code; 0 when Speedy is not asked to deliver there. */
@@ -181,12 +127,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return self::COUNTRY_IDS[strtoupper(trim($iso))] ?? 0;
     }
 
-    /**
-     * The country id to send for a destination. '' is the shop's own country, which is what every
-     * domestic caller passes; an unknown country is refused rather than quietly turned into Bulgaria.
-     * Falling back would attach countryId 100 to a foreign site id and Speedy would answer about some
-     * Bulgarian village with the same number - a wrong price nobody can see is wrong.
-     */
+    /** '' is the shop's own country; an unknown one is refused rather than turned into Bulgaria. */
     private static function dest_country_id(string $iso): int {
         $c = strtoupper(trim($iso));
         if ($c === '' || $c === 'BG') { return self::BG_COUNTRY_ID; }
@@ -198,18 +139,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return $id;
     }
 
-    /**
-     * Speedy's parcel service per destination country. Measured 2026-08-19 against /calculate with a
-     * 1 kg parcel: 505 for Bulgaria, 202 (SPEEDY CEE ECONOMY) for Romania. The two are DISJOINT - 202
-     * to a Bulgarian office and 505 to a Romanian one are both refused with
-     * sla.serviceId.allowed_service_validator.service-not-allowed - so this is a lookup, not a default
-     * with an exception, and a country that is not in it has no answer at all.
-     *
-     * /services/destination is the general form of this and is deliberately not used yet: it needs a
-     * full sender+recipient pair, which puts a live call inside the checkout path that the price cache
-     * exists to avoid, and with two countries it can only ever answer with these same two numbers. When
-     * a third country is added, discovery earns its place.
-     */
+    /** Parcel service per destination: 505 Bulgaria, 202 Romania; the two are disjoint. */
     const SERVICE_IDS = ['BG' => 505, 'RO' => 202];
 
     /** The service id for a destination country; '' = the shop's own. Unknown countries are refused. */
@@ -223,7 +153,6 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return self::SERVICE_IDS[$c];
     }
 
-    /** Is this destination outside the country the shop ships from? */
     private static function is_abroad(string $iso): bool {
         $c = strtoupper(trim($iso));
         return $c !== '' && $c !== 'BG';
@@ -231,28 +160,20 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote', 'pickup']; }
 
     private function auth(array $body): array {
-        // Default all Speedy API content to Bulgarian (labels, tracking operation names, error messages). A
-        // per-call 'language' in $body still wins. Ref: https://api.speedy.bg/web-api.html (language BG|EN).
+        // Default language BG; a per-call 'language' in $body wins.
         return array_merge(['userName' => $this->user, 'password' => $this->pass, 'language' => 'BG'], $body);
     }
 
     public function check_credentials(): bool {
-        // Not caught here: "Invalid username or password" and "HTTP 503" are different things to tell a
-        // merchant, and both used to read "Invalid credentials".
         $r = $this->post_json($this->base . '/location/site', $this->auth(['countryId' => self::BG_COUNTRY_ID, 'name' => 'Sofia']));
         if (!empty($r['error'])) { self::refuse($r); }
         return !empty($r['sites']);
     }
 
-    /**
-     * @param string $country ISO alpha-2; '' = the shop's own country. /location/site/csv/642 answers in
-     *                        exactly the same CSV shape as /100, so the parser below is country-blind.
-     */
+    /** /location/site/csv/{countryId} answers the same CSV shape for every country. */
     public function fetch_cities(string $country = ''): array {
-        // The CSV export returns ALL sites; plain /location/site returns only a small default set.
+        // The CSV export returns ALL sites; plain /location/site returns a small default set.
         $res = $this->http_post($this->base . '/location/site/csv/' . self::dest_country_id($country), $this->auth(['language' => 'BG']));
-        // A fetch that did not happen is not "a country with no towns": read as one, it left the
-        // settings screen saying "0 cities" in green over a refused login (measured 2026-09-12).
         if (is_wp_error($res)) {
             /* translators: %s: the transport error. */
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The request failed: %s', 'bg-couriers'), $res->get_error_message())));
@@ -265,15 +186,9 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return self::parse_sites_csv((string) wp_remote_retrieve_body($res));
     }
 
-    /**
-     * Speedy's city export is ordinary RFC-4180 CSV, so the escape argument is passed explicitly and
-     * empty. PHP's default is a backslash - a proprietary escaping mechanism that is not part of CSV,
-     * and PHP 8.4 deprecates relying on it; leaving it to the default made every parse raise on 8.5.
-     * Empty is both the standards-correct reading and what PHP will default to in future.
-     */
+    /** The escape argument is explicitly empty: Speedy's CSV is RFC-4180 and PHP 8.4 deprecates the backslash default. */
     public static function parse_sites_csv(string $csv): array {
-        // Speedy refuses with HTTP 200 and a JSON error where the CSV should be - the one thing this
-        // endpoint ever answers in JSON. That is a refusal, in its words, not an empty country.
+        // Speedy refuses with HTTP 200 and a JSON error where the CSV should be.
         if (strncmp(ltrim($csv), '{', 1) === 0) {
             $j = json_decode($csv, true);
             if (is_array($j) && !empty($j['error'])) { self::refuse($j); }
@@ -342,8 +257,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     public static function parse_offices(array $resp): array {
-        // The same refusal, on the office list: HTTP 200, an `error` node, no offices. Read as "none",
-        // it made a wrong password look like a courier with no network.
+        // A refusal is HTTP 200 with an `error` node and no offices.
         if (!empty($resp['error'])) { self::refuse($resp); }
         $out = [];
         foreach (($resp['offices'] ?? []) as $o) {
@@ -362,7 +276,6 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return $out;
     }
 
-    // Filled in Tasks 6-7:
     public function quote(array $shipment): BGCouriers_Quote {
         $resp = $this->post_json($this->base . '/calculate', $this->auth(self::build_calculate_body($shipment)));
         return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
@@ -373,16 +286,12 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         $recipient = ['privatePerson' => true];
         if (($s['method'] ?? 'address') === 'address') {
             $recipient['addressLocation'] = ['countryId' => self::dest_country_id($country), 'siteId' => (int) $s['site_id']];
-        } else { // office or automat
+        } else {
             $recipient['pickupOfficeId'] = (int) $s['office_id'];
         }
         $service = ['autoAdjustPickupDate' => true, 'serviceIds' => [self::service_id($country)]];
         if (!empty($s['cod_amount'])) {
-            // The SAME processing type the label will use: Speedy prices cash and a postal money
-            // transfer differently, so a quote that always said CASH answered for a shipment the label
-            // was not going to create. ppp_payout_reaches() is the shop's own declaration of how this
-            // courier pays out, and whether that arrangement reaches the destination at all - abroad it
-            // does not, and a quote that asked for one came back with no price whatsoever.
+            // The same processingType the label will use; Speedy prices CASH and POSTAL_MONEY_TRANSFER differently.
             $service['additionalServices']['cod'] = [
                 'amount'         => (float) $s['cod_amount'],
                 'processingType' => (class_exists('BGCouriers_Settings') && BGCouriers_Settings::ppp_payout_reaches('speedy', $country))
@@ -390,20 +299,14 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             ];
         }
         $body = [
-            // No 'sender' on a price calc unless there is something to say: Speedy expects an object,
-            // and PHP's [] serialises to a JSON array, which Speedy rejects ("Cannot deserialize
-            // CalculationSender from Array").
+            // No 'sender' unless there is something to say: an empty [] serialises to a JSON array, which Speedy rejects.
             'recipient' => $recipient,
             'service'   => $service,
             'content'   => ['parcelsCount' => 1, 'totalWeight' => (float) ($s['weight_kg'] ?? 2.0)],
-            // RECIPIENT is what a domestic quote asks for. Abroad it is refused outright
-            // (payment.csPayment.payerRole.service-payer-validator.payer-not-allowed-for-service on 202,
-            // measured 2026-08-19): an international parcel is the sender's to pay for, and the shop
-            // charges the customer for it at the checkout instead.
+            // Abroad a RECIPIENT payer is refused on service 202, so the sender pays.
             'payment'   => ['courierServicePayer' => self::is_abroad($country) ? 'SENDER' : 'RECIPIENT'],
         ];
-        // The one thing worth saying about the sender: where the parcel starts. The quote must start
-        // where the shipment will, or the checkout prices a courier pickup the shop never books.
+        // The quote must start where the shipment will.
         $office = self::dropoff_office();
         if ($office > 0) { $body['sender'] = ['dropoffOfficeId' => $office]; }
         return $body;
@@ -423,16 +326,9 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     /**
-     * Did Speedy actually apply the cash-on-delivery we asked for?
+     * Did Speedy apply the COD? A dropped COD leaves codPremium at zero.
      *
-     * The COD service is sent with `ignoreIfNotApplicable`, which means Speedy is entitled to drop it and
-     * still accept the shipment - the waybill then prints with nothing to collect and the goods leave for
-     * free. Speedy charges a premium for COD, so its presence in the price breakdown is the proof that the
-     * service was applied; a dropped COD leaves codPremium at zero.
-     *
-     * @param array $body The request we sent (before auth is merged in).
-     * @param array $resp Speedy's create response.
-     * @return string[] Problems, empty when everything we asked for was applied.
+     * @return string[]
      */
     public static function check_applied(array $body, array $resp): array {
         $want = (float) ($body['service']['additionalServices']['cod']['amount'] ?? 0);
@@ -447,9 +343,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         $plain = $this->build_shipment_body($order);
         $body  = $this->auth($plain);
         $resp  = $this->post_json($this->base . '/shipment', $body);
-        // Speedy reports validation failures as HTTP 200 + an `error` object (e.g. parcel size vs the
-        // APS compartment) - surface it instead of letting an empty waybill through (same 200+error
-        // contract cancel_label already handles).
+        // Validation failures are HTTP 200 + an `error` object.
         if (!empty($resp['error'])) {
             throw new BGCouriers_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message']
                 ?? __('the shipment was rejected', 'bg-couriers'))));
@@ -463,22 +357,17 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     private function build_shipment_body(\WC_Order $order): array {
-        // How many boxes this order actually is. parcelsCount used to be the literal 1, so a shop sending
-        // three got one waybill for one box - see BGCouriers_Order::parcels(). Speedy wants the count AND
-        // an entry per parcel, and the entries' weights must add back up to totalWeight.
         $parcel_n = BGCouriers_Order::parcels($order);
         $method  = (string) $order->get_meta('_bgcouriers_method') ?: 'address';
         $site_id = (int) $order->get_meta('_bgcouriers_site_id');
         $office  = (int) $order->get_meta('_bgcouriers_office_id');
-        // Where it is going decides the service, the payer and which extras are allowed at all.
         $country = BGCouriers_Settings::order_country($order);
         $abroad  = self::is_abroad($country);
-        // trim() so an empty shipping name ("" joined = " ", which is truthy) still falls back to billing.
+        // trim() so an empty shipping name (" ") still falls back to billing.
         $recipient = [
             'privatePerson' => true,
             'clientName'    => trim($order->get_formatted_shipping_full_name()) ?: trim($order->get_formatted_billing_full_name()),
-            // Domestic: exactly the number the customer typed, which is what has always worked. Abroad a bare
-            // 07xx says nothing about which country it rings, so it goes in full international form.
+            // Abroad the phone goes in full international form.
             'phone1'        => ['number' => $abroad
                 ? (BGCouriers_Phone::e164((string) $order->get_billing_phone(), BGCouriers_Phone::cc_for($country)) ?: (string) $order->get_billing_phone())
                 : $order->get_billing_phone()],
@@ -500,18 +389,14 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         } else {
             $recipient['pickupOfficeId'] = $office;
         }
-        // Abroad the shop pays and bills it on: Speedy refuses a RECIPIENT payer on the international
-        // service, so "the customer pays the courier" is not on offer there whatever the settings say.
+        // Speedy refuses a RECIPIENT payer on the international service.
         $payer   = $abroad ? 'sender' : self::service_payer('speedy', $order);
         $package = in_array(get_option('bgcouriers_speedy_package', 'BOX'), ['BOX', 'ENVELOPE', 'PALLET'], true)
             ? (string) get_option('bgcouriers_speedy_package', 'BOX')
             : 'BOX';
         $contents = BGCouriers_Settings::shipment_contents();
         $dims     = BGCouriers_Settings::box_dims($order);
-        // One entry per box, weights adding back up to totalWeight - a courier that re-weighs at the
-        // depot bills the difference, so "roughly" is not good enough. Every box gets the configured
-        // size: the plugin knows one box shape, and claiming per-box dimensions it does not have would
-        // be worse than repeating the one it does.
+        // One entry per box, weights adding back up to totalWeight.
         $parcels = [];
         foreach (BGCouriers_Order::parcel_weights(self::order_weight_kg($order), $parcel_n) as $i => $kg) {
             $parcels[] = ['seqNo' => $i + 1, 'weight' => $kg,
@@ -522,46 +407,30 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             'service'   => ['autoAdjustPickupDate' => true, 'serviceId' => self::service_id($country)],
             'content'   => ['parcelsCount' => $parcel_n, 'contents' => $contents, 'package' => $package,
                             'totalWeight' => self::order_weight_kg($order),
-                            // ShipmentParcelSize {width,height,depth} cm (schema-confirmed); lockers must fit.
+                            // ShipmentParcelSize {width,height,depth} cm.
                             'parcels'     => $parcels],
             'payment'   => ['courierServicePayer' => $payer === 'recipient' ? 'RECIPIENT' : 'SENDER'],
-            // Printed on the waybill as the merchant's own reference, so it is read by Bulgarian staff and
-            // the recipient - translatable rather than a hardcoded English "ORDER".
             /* translators: %s: order number, printed on the waybill as the sender's reference */
             'ref1'      => sprintf(__('Order %s', 'bg-couriers'), $order->get_order_number()),
         ];
-        // COD only for orders actually paid cash-on-delivery (never re-collect on a prepaid order). Speedy
-        // pays the collected amount out per the merchant's Speedy contract (postal money transfer / bank).
+        // Only for orders actually paid cash-on-delivery.
         if ($order->get_payment_method() === 'cod') {
             $cod = self::cod_for_payer($order, $payer);
             if ($cod > 0) {
-                // Abroad this is always CASH, whatever the merchant's Speedy contract says at home: the
-                // postal money transfer is a Bulgarian instrument and Speedy refuses it for a foreign
-                // address (see BGCouriers_Settings::ppp_payout_reaches). Asking for one there is not a
-                // worse label - it is no label, and before that no price and no courier on offer at all.
+                // Abroad always CASH: the postal money transfer is refused for a foreign address.
                 $processing_type = BGCouriers_Settings::ppp_payout_reaches('speedy', $country) ? 'POSTAL_MONEY_TRANSFER' : 'CASH';
-                // NO ignoreIfNotApplicable here, deliberately. That flag lets Speedy accept the shipment
-                // and silently drop the cash on delivery - the waybill then prints with nothing to
-                // collect and the goods leave for free, which nobody notices until the money is missing.
-                // Failing to create the label is the cheaper outcome: it stops one parcel instead of
-                // losing its value. (The open-before-payment service below keeps the flag - it costs
-                // nothing if the courier cannot offer it.)
+                // No ignoreIfNotApplicable: it lets Speedy drop the COD and still accept the shipment.
                 $body['service']['additionalServices']['cod'] = [
                     'amount'         => $cod,
                     'processingType' => $processing_type,
                 ];
-                // Per-delivery-option "card payment for COD" toggle: ON sends nothing (the Speedy
-                // account default applies), OFF forbids it (ShipmentCODAdditionalService.cardPaymentForbidden).
+                // ON sends nothing (account default); OFF sets cardPaymentForbidden.
                 if (get_option('bgcouriers_speedy_' . $method . '_card_payment', 'yes') !== 'yes') {
                     $body['service']['additionalServices']['cod']['cardPaymentForbidden'] = true;
                 }
             }
         }
-        // Open-before-payment (OBPD): allow/test inspection before the customer pays. Never sent for
-        // locker (automat) deliveries - there is no courier at an APT to supervise an inspection, so the
-        // field stays at the API's own default there.
-        // Nor abroad: obpd is a FORBIDDEN additional service on the international service, and sending a
-        // forbidden one is refused outright rather than ignored.
+        // Never for lockers (no courier to supervise) nor abroad (forbidden on the international service).
         $obpd_val = BGCouriers_Settings::open_before_pay();
         if (!$abroad && $method !== 'automat' && ($obpd_val === 'open' || $obpd_val === 'test')) {
             $body['service']['additionalServices']['obpd'] = [
@@ -571,36 +440,16 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
                 'ignoreIfNotApplicable'   => true,
             ];
         }
-        /*
-         * Insurance and the prepaid return waybill, both read off Speedy's OWN schema rather than
-         * guessed (api.speedy.bg/v1/schema):
-         *   service.additionalServices.declaredValue   { amount, fragile, ignoreIfNotApplicable }
-         *   service.additionalServices.returns.returnVoucher { serviceId, payer, validityPeriod, ... }
-         * with payer a plain ShipmentRole enum - SENDER | RECIPIENT | THIRD_PARTY.
-         *
-         * ignoreIfNotApplicable is deliberately NOT sent on the declared value, for the same reason it
-         * was removed from cod: it lets Speedy drop the service and hand back a clean-looking label, so
-         * the merchant would believe a parcel was insured when it was not. Better to fail.
-         */
+        // declaredValue is sent without ignoreIfNotApplicable, for the same reason as cod.
         $insured = BGCouriers_Order::insurance($order);
-        // Off unless the merchant has said otherwise, and 'cod' takes the number from what the courier
-        // is already collecting rather than asking anyone to type it twice. Speedy charges a premium on
-        // a declared value and pays out only against documents most shops cannot produce, so declaring
-        // by default would be spending the merchant's money for nothing.
         if ($insured <= 0 && get_option('bgcouriers_speedy_declared_value', 'no') === 'cod') {
-            // Read out of the body being built, NOT recomputed. Recomputing gave 6.00 while the cod in
-            // the same request said 8.52 - the two are not the same sum, because whether the delivery
-            // fee rides in the collected amount is a setting. A "declare the cash-on-delivery amount"
-            // option that declares a different number is worse than no option.
+            // Read out of the body, not recomputed: whether the delivery fee rides in the COD is a setting.
             $insured = (float) ($body['service']['additionalServices']['cod']['amount'] ?? 0);
         }
         if ($insured > 0) {
             $body['service']['additionalServices']['declaredValue'] = ['amount' => $insured];
         }
-        // Paid by the SENDER - the shop. A return waybill the customer has to pay for is not a return
-        // waybill, it is a leaflet.
-        // Also forbidden on the international service - there is no return voucher to print for a parcel
-        // that leaves the country, so the shipment is created without one instead of failing.
+        // Paid by the SENDER; not abroad, where the return voucher is forbidden.
         if (!$abroad && BGCouriers_Settings::return_voucher('speedy')) {
             $body['service']['additionalServices']['returns']['returnVoucher'] =
                 ['serviceId' => self::service_id($country), 'payer' => 'SENDER'];
@@ -616,8 +465,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
 
     public static function build_print_body(array $parcel_ids, string $paper_size): array {
         return [
-            // Print the label in Bulgarian (the /print API defaults to the account language, which was giving
-            // English text). BG couriers/recipients -> BG. Ref: https://api.speedy.bg/web-api.html (language BG|EN).
+            // Print in Bulgarian; the /print default is the account language.
             'language'  => 'BG',
             'paperSize' => in_array($paper_size, ['A6', 'A4', 'A4_4xA6'], true) ? $paper_size : 'A6',
             'parcels'   => array_values(array_map(static fn($id) => ['parcel' => ['id' => (string) $id]], $parcel_ids)),
@@ -625,21 +473,14 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         ];
     }
 
-    /**
-     * Speedy prints multiple waybills in one native call - on A4 it lays them out itself (landscape, up to a
-     * few per sheet), which is exactly how Speedy prints them 1-by-1. Used for batch printing so we DON'T
-     * re-pack A6 stickers ourselves. Returns one PDF for all the given waybills.
-     */
+    /** Speedy prints several waybills in one call and lays them out itself. */
     public function has_native_batch(): bool { return true; }
 
     public function batch_label_pdf(array $waybills, string $format = ''): string {
         $paper = in_array($format, ['A6', 'A4'], true) ? $format : BGCouriers_Settings::label_paper_size('speedy');
         $ids   = array_values(array_filter(array_map('strval', $waybills)));
         if ($paper !== 'A4') { return $this->print_labels($ids, $paper); }
-        // A4 batch = how the merchant already prints them one by one: Speedy's plain 'A4' renders ONE
-        // full-size waybill form in the LEFT half of a landscape sheet - so fetch those native pages
-        // and pair them two-up (left + mirrored right) onto single sheets, never scaling. If the
-        // bundled FPDI can't combine them, fall back to Speedy's own 'A4_4xA6' grid (4 A6 per page).
+        // Speedy's plain A4 renders one waybill in the left half of a landscape sheet; pair them two-up, else fall back to A4_4xA6.
         $pdf = $this->print_labels($ids, 'A4');
         $res = BGCouriers_Label_Packer::compose_a4([$pdf]);
         if ($res['pdf'] !== '') { return $res['pdf']; }
@@ -653,9 +494,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s could not print the label.', 'bg-couriers'), 'Speedy')));
         }
         $body = (string) wp_remote_retrieve_body($res);
-        // A 200 whose body is not a PDF is Speedy's JSON error payload (same 200+error contract as
-        // /shipment), and that payload says WHY - which is worth more than the shared message, so this
-        // one answers for itself rather than calling assert_pdf().
+        // A 200 whose body is not a PDF is Speedy's JSON error, which says why.
         if (strncmp($body, '%PDF', 4) !== 0) {
             $j = json_decode($body, true);
             /* translators: 1: courier name, 2: the courier's own error text. */
@@ -666,13 +505,10 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
 
-    /** Measured: a parcel count and a declared value reach the shipment and change its price. */
     public function multi_parcel(): bool { return true; }
     public function label_formats(): array { return ['A6', 'A4']; }
 
     public function get_label_pdf(string $waybill, string $format = ''): string {
-        // Ask Speedy's /print for the requested size, so the courier returns the correctly-sized native PDF
-        // (no scaling on our side). Empty/invalid falls back to the merchant's configured size, not hardcoded.
         $paper = in_array($format, ['A6', 'A4'], true) ? $format : BGCouriers_Settings::label_paper_size('speedy');
         return $this->print_labels([$waybill], $paper);
     }
@@ -682,60 +518,37 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         return self::parse_tracking($resp);
     }
 
-    /**
-     * Parse a /track response. Field names are Speedy's own (api.speedy.bg/v1/schema): TrackedParcel
-     * {parcelId, operations, trackPhase} and TrackedParcelOperation {operationCode, dateTime, description,
-     * comment, place}. There is no `name`, `date` or `id` on the response side - reading those left every
-     * event unnamed, so order notes printed the bare numeric operationCode ("Speedy tracking update: 148")
-     * and BGCouriers_Tracking::classify() never saw the Bulgarian text it matches on. The REQUEST side does use
-     * `id` (TrackShipmentParcelRef) - that part was right.
-     */
+    /** /track: TrackedParcel {parcelId, operations, trackPhase}, operations {operationCode, dateTime, description, comment}. */
     public static function parse_tracking(array $resp): BGCouriers_Tracking {
         $parcel = $resp['parcels'][0] ?? [];
         $ops = $parcel['operations'] ?? [];
         $events = array_map(static fn($o) => [
             'code' => (string) ($o['operationCode'] ?? ''),
-            // description is the operation name (Bulgarian - auth() defaults language=BG); comment is the
-            // next-best text. Both empty leaves the name blank and human() falls back to the code.
+            // description is the operation name (BG); comment is the next-best text.
             'name' => (string) (($o['description'] ?? '') ?: ($o['comment'] ?? '')),
             'date' => (string) ($o['dateTime'] ?? ''),
         ], $ops);
         $status = $events ? end($events)['code'] : 'UNKNOWN';
-        // trackPhase is an unambiguous lifecycle enum, but Speedy omits it on every parcel we have seen -
-        // pass it through when it IS there, and otherwise fall back to the operation code, which is still
-        // a machine value rather than prose: -14 is "delivery to the customer" and is the last operation on
-        // every delivered parcel on this account. Only then does BGCouriers_Tracking read the text.
+        // trackPhase is usually omitted; fall back to the operation code.
         $codes = array_map(static fn($e) => (string) $e['code'], $events);
         $phase = (string) ($parcel['trackPhase'] ?? '');
-        // Search the WHOLE history, not just the last event: on parcel 63682912875 Speedy appended
-        // operation 195 ("inspection/testing refused") one second AFTER -14, so the delivery was no
-        // longer the final entry and testing only the last event would have missed it.
+        // Search the whole history: later document operations can follow -14.
         if ($phase === '' && in_array(self::OP_DELIVERED, $codes, true)) { $phase = 'DELIVERED'; }
-        // Handed to the courier: accepted from the sender (39) or collected by a courier/clerk (11).
-        // 148 - the first operation - only means the label was registered; nothing has been collected.
+        // 148 (label registered) means nothing has been collected yet.
         $handover = (bool) array_intersect(self::OPS_PICKED_UP, $codes);
         return new BGCouriers_Tracking((string) ($parcel['parcelId'] ?? ''), $status, $events, $phase, $handover);
     }
 
     public function cancel_label(string $waybill): bool {
-        // Speedy: POST /shipment/cancel {shipmentId, comment}; a 200 with no `error` means cancelled.
         $resp = $this->post_json($this->base . '/shipment/cancel', $this->auth(['shipmentId' => $waybill, 'comment' => 'Cancelled from WooCommerce']));
-        if (!empty($resp['error'])) { self::refuse($resp); } // in Speedy's words - "already picked up" is worth reading
+        if (!empty($resp['error'])) { self::refuse($resp); }
         return true;
     }
 
-    /**
-     * Already cancelled if /track shows the "Canceled" operation (code 128) - so a refused cancel is a no-op.
-     *
-     * Asked TWICE, a second apart, before it answers no. Speedy posts that operation a moment after it
-     * accepts the cancel: measured 2026-08-18 on a real waybill, the shipment was cancelled at 16:38:25
-     * and operation 128 appeared at 16:38:26. This question is only ever asked when cancel_label() came
-     * back refused, and answering it from a feed that has not caught up yet tells the merchant their
-     * shipment is still live when it is already dead - the one wrong answer that matters here.
-     */
+    /** Operation 128 is "Canceled"; it appears about a second after the cancel, so ask twice. */
     public function is_cancelled(string $waybill): bool {
         for ($attempt = 0; $attempt < 2; $attempt++) {
-            if ($attempt > 0) { sleep(1); } // the operation feed lags the cancel by about a second
+            if ($attempt > 0) { sleep(1); }
             try {
                 $resp = $this->post_json($this->base . '/track', $this->auth(['parcels' => [['id' => $waybill]]]));
                 foreach (($resp['parcels'][0]['operations'] ?? []) as $op) {
@@ -749,20 +562,9 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     // ── Pickup request ───────────────────────────────────────────────────────
 
     /**
-     * Body for POST /pickup. The scope is EXPLICIT_SHIPMENT_ID_LIST because that is the only honest one
-     * here: the merchant ticked particular orders, and the courier must come for those, not for whatever
-     * else the account happens to have open (ALL_CREATED_BY_LOGGED_USER and friends would do that).
-     *
-     * autoAdjustPickupDate stays FALSE deliberately. Letting Speedy move the date to the next it can
-     * manage would answer "booked" for a day the merchant did not choose and will not be packing for.
-     *
-     * pickupDateTime carries the shop's zone: Speedy reads it as yyyy-MM-dd'T'HH:mm:ssZ and refuses one
-     * without the offset with an HTTP 400 before it has looked at anything else - "Cannot deserialize
-     * value of type java.util.Date from String "2026-09-13T14:00:00"", measured 2026-09-12. The courier
-     * comes to the shop, so it is the shop's zone that is written, whatever the server's clock is set to.
+     * Body for POST /pickup. pickupDateTime must carry the shop's zone offset or Speedy answers HTTP 400.
      *
      * @param string[] $waybills
-     * @param array    $opts date (Y-m-d), from/to (H:i), contact, phone
      */
     public static function build_pickup_body(array $waybills, array $opts): array {
         $date = (string) ($opts['date'] ?? '');
@@ -780,16 +582,13 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         ];
     }
 
-    /**
-     * Speedy answers HTTP 200 with an `error` node when it refuses; this turns one into an exception
-     * carrying Speedy's own words. @throws BGCouriers_Api_Exception always
-     */
+    /** Speedy refuses with HTTP 200 and an `error` node; this throws it in Speedy's words. */
     private static function refuse(array $resp): void {
         throw new BGCouriers_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message']
             ?? __('the request was refused', 'bg-couriers'))));
     }
 
-    /** PickupResponse -> the order id, as a string. Speedy answers 200 with an `error` node on refusal. */
+    /** PickupResponse -> the order id. */
     public static function parse_pickup_id(array $resp): string {
         if (!empty($resp['error'])) {
             throw new BGCouriers_Api_Exception(esc_html('Speedy: ' . (string) ($resp['error']['message']
@@ -810,8 +609,7 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     /**
-     * The cut-offs Speedy still accepts for a date. Read-only - it books nothing - so the checkout can
-     * offer the courier's real hours instead of a guess. startingDate is a UNIX timestamp, per the schema.
+     * The cut-offs Speedy still accepts for a date; read-only.
      *
      * @return string[]
      */
@@ -820,22 +618,17 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         if (!$ts) { return []; }
         try {
             $resp = $this->post_json($this->base . '/pickup/terms', $this->auth([
-                // MILLISECONDS. The schema says "integer" and says no more, and seconds are rejected with
-                // "the collection start date must not be earlier than today" - the value is read as
-                // 1970 and refused for being in the past. Verified live 2026-08-18: seconds fail,
-                // milliseconds answer with the real cut-offs.
+                // MILLISECONDS: seconds are read as 1970 and refused.
                 'startingDate' => $ts * 1000,
-                // Required: without it the answer is "a service id is required". 505 is the
-                // domestic service - this asks when a courier can come to the SHOP, which is in Bulgaria
-                // whatever the parcels' destinations are.
+                // Required; 505 because the courier comes to the shop, which is in Bulgaria.
                 'serviceId'    => 505,
             ]));
         } catch (\Exception $e) { return []; }
-        if (!empty($resp['error'])) { return []; } // Speedy answers 200 with an error node
+        if (!empty($resp['error'])) { return []; }
         return array_values(array_filter(array_map('strval', (array) ($resp['cutoffs'] ?? []))));
     }
 
-    /** The request /pickup/terms takes, kept separate so the millisecond rule is testable without a call. */
+    /** Kept separate so the millisecond rule is testable. */
     public static function build_pickup_terms_body(string $date): array {
         $ts = strtotime($date . ' 00:00:00');
         return ['startingDate' => $ts ? $ts * 1000 : 0, 'serviceId' => 505];
