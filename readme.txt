@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.31
+Stable tag: 0.4.32
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,10 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.32 =
+* Fixed: **a Sameday locker parcel nobody collected now moves the order along.** Three of Sameday's status lines were read as "in transit": "Заредена в OOH" (the parcel is in the locker, waiting), "Срокът за съхранение на пратката е изтекъл." (the storage period is over, nobody came) and "Върната на подател" (handed back to you). So the orders list never showed the parcel as waiting or as not collected, the "when not collected" and "when returned" rules never ran, and the order stayed on Shipped for weeks after the box was back on the counter. They now read as waiting, not collected and back with you, and an order already sitting on "coming back" is moved by the next check.
+* Fixed: **"Отложено взимане от подател" no longer marks a Sameday order as shipped.** The driver postponing the collection means the parcel is still with you; it was counted as the parcel moving.
 
 = 0.4.31 =
 * Changed: **the shipment panel on the order screen is compact, and its current stage is a panel that opens.** The stage ("Delivered") is the title; opening it lists the journey so far, newest first, one line per step. What the courier collects at the door is one short line ("At the door ~3,00 €") instead of a sentence, and on a narrow card the title takes two lines and each step one.
