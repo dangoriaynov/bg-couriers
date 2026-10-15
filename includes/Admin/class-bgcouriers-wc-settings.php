@@ -3,12 +3,7 @@ defined('ABSPATH') || exit;
 
 if (!class_exists('WC_Settings_Page')) { return; }
 
-/**
- * WooCommerce → Settings → "BG Couriers" tab.
- * Level 1 (WP nav-tabs): courier sections (General + Speedy).
- * Level 2 (WP nav-tabs, JS-switched, no reload): per delivery method (office/address/automat).
- * See feedback-settings-architecture - every future courier follows this shape.
- */
+/** WooCommerce settings tab "BG Couriers": General, one section per courier, About. */
 class BGCouriers_WC_Settings extends WC_Settings_Page {
 
     private static $method_labels = [];
@@ -25,7 +20,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         parent::__construct();
     }
 
-    /** Static stylesheet + behaviors of our settings tab, enqueued on the WC settings screen. */
     public function enqueue_assets(): void {
         $screen = function_exists('get_current_screen') ? get_current_screen() : null;
         if (!$screen || $screen->id !== 'woocommerce_page_wc-settings') { return; }
@@ -36,8 +30,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         wp_localize_script('bgc-settings-admin', 'BGCOURIERS_SET', [
             'i18n' => [
                 'unsaved' => __('Unsaved changes', 'bg-couriers'),
-                // Browsers show their own wording for the leave-page prompt and ignore this; it is here
-                // for the few that still honour a custom message.
                 'leave'   => __('You have unsaved changes in the BG Couriers settings. Leave without saving?', 'bg-couriers'),
             ],
         ]);
@@ -47,13 +39,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WooCommerce's own documented filter pattern for a WC_Settings_Page (woocommerce_get_sections_<page id>), required for WC extensions to hook our sections.
     public function get_sections() { return apply_filters('woocommerce_get_sections_' . $this->id, $this->sections()); }
 
-    /**
-     * "Auto-generate labels" on a courier's own tab: follow the general setting, or overrule it here.
-     *
-     * The same row on every tab rather than one written out six times - and it is a three-state select,
-     * not a checkbox, because "I have not said" and "no" are different answers: a shop that turns the
-     * general setting on later should get it for the couriers it never spoke about.
-     */
+    /** Three-state select, not a checkbox: "not said" and "no" are different answers. */
     private static function autolabel_row(string $courier): array {
         return ['type' => 'select', 'id' => 'bgcouriers_' . $courier . '_autolabel',
             'title' => __('Auto-generate labels', 'bg-couriers'),
@@ -66,75 +52,32 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             'default' => '', 'autoload' => false];
     }
 
-    /**
-     * The courier ids that get a settings tab of their own, in tab order - the courier registry's
-     * order, which is the order they are registered in BGCouriers_Plugin.
-     *
-     * One list, because there were three of them: sections() below, the field builder and output().
-     * The one in output() was a seven-branch if/elseif with a final else, and the About tab landed in
-     * that else - so the About tab rendered the General tab's 38 fields. A courier that is on the tab
-     * row can no longer be missing from either of the other two. And it is the registry's list rather
-     * than one written out here, so a courier registered is a courier with a tab.
-     *
-     * @return string[]
-     */
+    /** @return string[] Courier ids that get a tab, in registry order. */
     private static function courier_sections(): array { return array_keys(BGCouriers_Couriers::all()); }
 
-    /** The tab row: General, one tab per registered courier under its own name (brand names are not translated), About. */
     private function sections(): array {
         return ['' => __('General', 'bg-couriers')] + BGCouriers_Couriers::all() + ['about' => __('About', 'bg-couriers')];
     }
 
-    /** Full field set for the section - used by save() (save_settings_for_current_section). */
     public function get_settings($section = '') {
         return self::no_autofill($this->build_settings($section));
     }
 
-    /**
-     * Keep the browser's password manager out of every courier credential field.
-     *
-     * It fills a blank "Client ID" with the merchant's own e-mail and a blank "API password" with their
-     * site password, and a Save then writes those over the real credentials - which is exactly what
-     * happened to the live BOX NOW account. Locking saved credentials behind the ✕ covers a courier that
-     * is already configured; this covers the rest, including a courier being set up for the first time.
-     *
-     * Applied to the finished field list rather than to each declaration, so it holds for every courier
-     * and for any added later without anyone having to remember.
-     *
-     * @param array<int,array<string,mixed>> $fields
-     * @return array<int,array<string,mixed>>
-     */
-    /**
-     * Print a field list.
-     *
-     * Everything this page puts on screen goes through here, because no_autofill() below used to be
-     * applied by get_settings() alone - and get_settings() is the SAVE path. The courier tabs build
-     * and print their own field lists, so not one credential box on screen ever carried the guard:
-     * measured on dev, every one of them came back readonly=false, autocomplete=null. The guard is on
-     * the printing now, where it cannot be left off a screen.
-     */
+    /** Everything printed on this page goes through here, so no_autofill() cannot be skipped. */
     private static function print_fields(array $fields): void {
         WC_Admin_Settings::output_fields(self::no_autofill($fields));
     }
 
     private static function no_autofill(array $fields): array {
         foreach ($fields as &$f) {
-            // Every kind of secret, not just the login pair: BOX NOW's webhook secret and the Google
-            // Maps key are text fields a password manager will happily fill too.
-            // A field listed here must either render its stored value or keep it on a blank save
-            // (sanitize_keep / sanitize_password) - readonly submits whatever was rendered, so a field
-            // that renders blank without a keep-on-blank sanitizer would be cleared by an untouched save.
+            // A field matched here must keep its stored value on a blank save: readonly submits whatever was rendered.
             if (!is_array($f) || !preg_match('/^bgcouriers_[a-z0-9_]*(username|password|secret|key)$/', (string) ($f['id'] ?? ''))) {
                 continue;
             }
             $attrs = (isset($f['custom_attributes']) && is_array($f['custom_attributes'])) ? $f['custom_attributes'] : [];
-            // 'new-password', not 'off': Chrome ignores 'off' on anything it reads as a login field, and
-            // these are labelled "API username" / "Client ID" - precisely what it offers to fill.
+            // 'new-password', not 'off': Chrome ignores 'off' on anything it reads as a login field.
             $attrs['autocomplete'] = 'new-password';
-            // Autofill lands while the page is still loading, before any script of ours runs, and a
-            // readonly field is passed over. bgc-settings-admin.js drops this on focus, so the field can
-            // still be typed into; readonly (unlike disabled) also still submits, so a field nobody
-            // touches posts blank and sanitize_keep() holds on to the stored value.
+            // readonly so autofill skips the field; the JS drops it on focus, and readonly (unlike disabled) still submits.
             $attrs['readonly']         = 'readonly';
             $attrs['data-bgc-nofill']  = '1';
             $f['custom_attributes']    = $attrs;
@@ -150,9 +93,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 ['type' => 'sectionend', 'id' => 'bgcouriers_about'],
             ];
         }
-        // Every courier is built the same way: its own section, then the per-delivery-option groups.
-        // BOX NOW is the exception and says why: it is locker-only and flat-rate, so there is nothing
-        // to price per delivery option.
+        // BOX NOW is locker-only and flat-rate: no per-delivery-option groups.
         if (in_array($section, self::courier_sections(), true)) {
             $f = $this->{$section . '_courier_fields'}();
             if ($section === 'boxnow') { return $f; }
@@ -166,9 +107,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
 
     protected function get_settings_for_section_core($section_id) { return $this->get_settings($section_id); }
 
-    /** Custom output: WP nav-tab section nav + (for Speedy) per-method sub-tabs. */
-    // Suppress WooCommerce's default section nav (the "subsubsub" link row) - we render our own
-    // nicer nav-tabs in output(); otherwise the General/Speedy row shows twice.
+    // WooCommerce's own section nav is suppressed; section_nav() renders ours.
     public function output_sections() {}
 
     public function output() {
@@ -180,20 +119,10 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         if (in_array($current_section, self::courier_sections(), true)) {
             $this->output_courier((string) $current_section);
         } else {
-            // Whatever the tab row offers that is not a courier - General, About - is the field list
-            // the builder makes for that section. Printing general_fields() here whatever the tab is
-            // what put the General tab's 38 rows under the About tab.
             self::print_fields($this->build_settings((string) $current_section));
         }
         echo '</div></div>';
 
-        /*
-         * One quiet line at the foot of the plugin's OWN settings screen. Not a notice, not dismissible,
-         * not on any other admin page, no image and no second ask - a merchant who has a question should
-         * not have to go looking for where to ask it, and the donation link is the same one readme.txt
-         * declares to the directory. Deliberately says the money changes nothing about support, because
-         * a plugin that hints otherwise is not free in any sense that matters.
-         */
         echo wp_kses_post('<p class="bgc-settings-foot">' . sprintf(
             /* translators: 1: link reading "support forum", 2: link reading "support its development" */
             esc_html__('BG Couriers is free and open source. Questions and problems: %1$s. If it saves you work you can %2$s - entirely voluntary, and it changes nothing about the support you get.', 'bg-couriers'),
@@ -203,13 +132,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 . esc_html__('support its development', 'bg-couriers') . '</a>'
         ) . '</p>');
 
-        // Turn every field description into a small (i) that sits inline right after the field label. Text /
-        // select / number fields print their description as a <span class="description"> in the value cell; a
-        // checkbox prints it as a raw text node inside its <label>. Pull that text out into a (i) on the label
-        // and drop the inline copy. Descriptions with a link or <code> (e.g. the webhook URL) are left inline.
-        // (implemented in assets/js/bgc-settings-admin.js)
-
-        // AJAX "Save changes" - save without a page reload, with a top-right toast (green ok / red error).
         $save_nonce = esc_js(wp_create_nonce('bgcouriers_save'));
         $ajaxurl    = esc_js(admin_url('admin-ajax.php'));
         $sect       = esc_js((string) $current_section);
@@ -222,7 +144,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . "        var t=\$('<div class=\"bgc-toast bgc-toast-'+type+'\">'+'</div>').text(msg).appendTo(c);\n"
             . "        requestAnimationFrame(function(){ t.addClass('show'); });\n"
             . "        setTimeout(function(){ t.removeClass('show'); setTimeout(function(){ t.remove(); }, 320); }, ms||3000); }\n"
-            // One toast implementation on the page, reused by anything else that needs to say something.
             . "    window.bgcToast = toast;\n"
             . "    var form=\$('#mainform'); if(!form.length){ return; }\n"
             . "    function busy(save,on){ save.prop('disabled',on).toggleClass('is-busy',on); }\n"
@@ -239,39 +160,18 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         );
     }
 
-    /** Brand colour per courier - original, trademark-safe (not the couriers' logos). */
-    /**
-     * The country choices for a courier's "Also deliver to" - what the COURIER can do, named the way
-     * WooCommerce names countries so the merchant reads one vocabulary across the two screens. Never a
-     * free list of the world: a country not in here has not been measured, and offering it would promise
-     * a delivery the plugin cannot price.
-     *
-     * @return array<string,string> ISO alpha-2 => country name.
-     */
+    /** @return array<string,string> ISO alpha-2 => country name, only countries the courier supports. */
     private static function intl_country_options(string $courier): array {
         $co = class_exists('BGCouriers_Couriers') ? BGCouriers_Couriers::get($courier) : null;
         $iso = ($co && method_exists($co, 'intl_countries')) ? $co->intl_countries() : [];
-        // WC_Countries directly rather than WC()->countries: this list is built while the settings page
-        // is assembled, which happens in contexts (and tests) where the WC() singleton is not up yet.
+        // WC_Countries directly: WC() may not be up yet when the settings page is built (tests).
         $names = class_exists('WC_Countries') ? (array) (new WC_Countries())->get_countries() : [];
         $out = [];
         foreach ($iso as $c) { $out[$c] = (string) ($names[$c] ?? $c); }
         return $out;
     }
 
-    /**
-     * What the merchant has to know before switching a country on, and only what is true for THIS shop.
-     *
-     * Three things beyond the tick decide whether a parcel can actually go: a WooCommerce shipping zone
-     * that carries this courier, the towns and offices that arrive with the next Sync, and - for a shop
-     * whose cash-on-delivery is legal only because the courier does the PPP - a prepaid way to pay, since
-     * no courier's PPP crosses the border. The last sentence is left out where it does not apply: a shop
-     * with a cash register is not warned about an arrangement it does not use.
-     *
-     * @param string $courier Courier id.
-     * @param string $name    The courier's own name, as it reads in the sentence.
-     * @return string
-     */
+    /** Description for "Also deliver to", with the no-prepaid-gateway warning when it applies. */
     private static function intl_countries_desc(string $courier, string $name): string {
         $desc = sprintf(
             /* translators: %s: courier name */
@@ -282,13 +182,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             && BGCouriers_Settings::cod_fiscalization() === 'ppp'
             && BGCouriers_Settings::courier_ppp_payout($courier)) {
             $desc .= ' ' . __('Cash on delivery does not travel: ППП is a Bulgarian postal money transfer and the courier refuses it for a foreign address, so international orders here can only be prepaid ones. Add a card or bank-transfer payment method, or they will have no way to pay.', 'bg-couriers');
-            // Said as a warning rather than as advice once it is no longer hypothetical: countries are
-            // chosen here, and with nothing to prepay with they are chosen for nothing - the checkout
-            // offers no delivery price for them at all. A merchant who reads this field is the one who
-            // can fix it, and finding out from a customer's empty checkout instead is how it went.
-            // The merchant's own choice, read straight from the option rather than through
-            // BGCouriers_Settings::intl_countries(): that one intersects with what the courier supports
-            // via the registry, and what matters here is only that something was picked.
+            // Read straight from the option: intl_countries() intersects with the registry, here only "something was picked" matters.
             $picked = get_option('bgcouriers_' . $courier . '_intl_countries', []);
             if (!BGCouriers_Settings::has_prepaid_gateway() && is_array($picked) && $picked) {
                 $desc .= ' <strong>' . esc_html__('Your shop has no prepaid payment method enabled right now, so orders to these countries cannot be paid for at all: no delivery price is offered for them at checkout.', 'bg-couriers') . '</strong>';
@@ -302,10 +196,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         return $map[$id] ?? '#6b7280';
     }
 
-    /**
-     * Courier brand logo shown before the name on its tab. Uses the bundled logo when present,
-     * and falls back to an original brand-coloured parcel badge otherwise.
-     */
     private static function courier_icon(string $id): string {
         $url = BGCouriers_Couriers::logo_url($id);
         if ($url !== '') {
@@ -322,8 +212,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     private function nav_pill(string $id, string $label, string $current, bool $courier): string {
         $url    = admin_url('admin.php?page=wc-settings&tab=bg_couriers' . ($id ? '&section=' . $id : ''));
         $active = $current === $id ? ' nav-tab-active' : '';
-        // Green when the courier is enabled AND usable; red when disabled OR currently unusable (e.g. it can't
-        // do PPP and the shop has no prepaid method, so it won't appear at checkout).
         $tint = '';
         if ($id !== '') {
             $on       = get_option('bgcouriers_' . $id . '_enabled', 'no') === 'yes';
@@ -340,7 +228,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $sections = $this->sections();
         echo '<nav class="nav-tab-wrapper woo-nav-tab-wrapper bgc-section-nav">';
         if (array_key_exists('', $sections)) { echo wp_kses($this->nav_pill('', $sections[''], $current, false), BGCouriers_Kses::admin_actions()); }
-        echo '<span class="bgc-courier-tabs">'; // draggable couriers, in the saved order
+        echo '<span class="bgc-courier-tabs">';
         foreach (BGCouriers_Settings::courier_order() as $cid) {
             if (isset($sections[$cid])) { echo wp_kses($this->nav_pill($cid, $sections[$cid], $current, true), BGCouriers_Kses::admin_actions()); }
         }
@@ -351,9 +239,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         BGCouriers_Settings_Admin::inline_js("\n"
             . "jQuery(function(\$){\n"
             . "    var c = \$('.bgc-courier-tabs'); if (!c.length || !\$.fn.sortable) { return; }\n"
-            // Not on a touch screen: see the same guard, and the same reason, in bgc-settings-admin.js.
-            // A sortable that starts and never stops leaves every tab dead until the page is reloaded,
-            // and these tabs are how a phone reaches a courier's settings at all.
+            // Not on touch screens: a sortable that never stops leaves every tab dead (same guard in bgc-settings-admin.js).
             . "    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) { return; }\n"
             . "    var dragged = false;\n"
             . "    c.sortable({ items: '> .bgc-courier-tab', distance: 6, cursor: 'move', tolerance: 'pointer', opacity: .85,\n"
@@ -368,9 +254,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . "});\n"
         );
 
-        // A square refresh button beside the tracking schedule: the schedule answers "how often,
-        // unattended", this answers "I want to know now". Built in JS because WooCommerce renders the
-        // select itself and there is no field type for "a control glued to another control".
         $t_now  = esc_js(__('Update tracking now', 'bg-couriers'));
         $t_done = esc_js(__('Tracking updated', 'bg-couriers'));
         $t_fail = esc_js(__('Could not update - please try again.', 'bg-couriers'));
@@ -391,16 +274,10 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         );
     }
 
-    /**
-     * Render the courier settings section (courier fields + per-method sub-tabs).
-     * Works for any courier id (speedy, econt, …).
-     */
     private function output_courier(string $courier_id): void {
         $fields    = $this->{$courier_id . '_courier_fields'}();
         $enable_id = 'bgcouriers_' . $courier_id . '_enabled';
-        // The enable toggle, the PPP notice and the API-credentials hint all render as prominent FULL-WIDTH
-        // blocks at the top of the tab (outside the form-table, which otherwise auto-sizes them narrow), so
-        // pull them out of the field list here and echo them directly below.
+        // Rendered full-width above the form-table, so pulled out of the field list.
         $fields = array_values(array_filter($fields, static function ($f) use ($enable_id) {
             if (isset($f['id']) && $f['id'] === $enable_id) { return false; }
             $type = $f['type'] ?? '';
@@ -414,9 +291,9 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . '<label class="bgc-switch"><input type="checkbox" name="' . esc_attr($enable_id) . '" value="1"' . checked($on, true, false) . '><span class="bgc-slider"></span></label>'
             . '<span class="bgc-enable-text"><strong>' . esc_html($label) . '</strong> - <span class="bgc-enable-state">' . esc_html($on ? $on_t : $off_t) . '</span></span>'
             . '</div>';
-        BGCouriers_Settings_Admin::ppp_notice_block($courier_id); // full-width, escaped internally
-        BGCouriers_Settings_Admin::readiness_block($courier_id);  // what is still missing, once it is switched ON
-        BGCouriers_Settings_Admin::cred_hint_block($courier_id);  // full-width, escaped internally
+        BGCouriers_Settings_Admin::ppp_notice_block($courier_id);
+        BGCouriers_Settings_Admin::readiness_block($courier_id);
+        BGCouriers_Settings_Admin::cred_hint_block($courier_id);
         self::print_fields($fields);
         $c_id    = esc_js($courier_id);
         $c_ajax  = esc_js(admin_url('admin-ajax.php'));
@@ -427,16 +304,12 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         $i_intro = esc_js(__('Customers will not see it at the checkout until:', 'bg-couriers'));
         $i_fix   = esc_js(__('How to fix:', 'bg-couriers'));
         $i_close = esc_js(__('Close', 'bg-couriers'));
-        // Same wording as the Save button's own failure, so a shop sees one message for one thing.
         $i_nosave = esc_js(__('Could not save - please try again.', 'bg-couriers'));
         BGCouriers_Settings_Admin::inline_js("\n"
             . "(function(\$){\n"
             . "    var courier='" . $c_id . "', ajaxurl='" . $c_ajax . "', saveNonce='" . $c_save . "', adminNonce='" . $c_admin . "', section='" . $c_id . "';\n"
             . "    function esc(s){ return \$('<i>').text(s==null?'':s).html(); }\n"
-            // The callback is told whether the save actually LANDED. It used to be handed nothing at all,
-            // from .always(), so a save that failed - a 500, a session that had quietly expired, an answer
-            // of success:false - looked exactly like one that worked: the toggle went green, the option was
-            // never written, and there was no message on the screen for the merchant to act on or send on.
+            // cb is told whether the save landed, so a failed save cannot show as success.
             . "    function saveForm(cb){ var f=\$('#mainform'); if(!f.length){ if(cb){cb(false);} return; }\n"
             . "        var ok=false;\n"
             . "        \$.post(ajaxurl, f.serialize()+'&action=bgcouriers_save_settings&bgcouriers_nonce='+saveNonce+'&bgcouriers_section='+encodeURIComponent(section))\n"
@@ -453,19 +326,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . "        var m=\$(h).appendTo('body');\n"
             . "        m.on('click',function(e){ if(e.target===this||\$(e.target).hasClass('bgc-enable-close')){ m.remove(); } });\n"
             . "    }\n"
-            // Switching a courier ON saved it OFF, and had done since the toggle was written.
-            //
-            // The guard against a second click was `cb.prop('disabled',true)`, set BEFORE the form was
-            // sent - and jQuery leaves a disabled control out of .serialize() (serializeArray filters on
-            // `!is(":disabled")`). So the POST carried no `bgcouriers_<courier>_enabled` field at all, and
-            // WooCommerce reads a checkbox missing from the payload as "no": the shop asked for the
-            // courier to be on and the plugin wrote off, every time, for every courier. Measured on the
-            // live shop 2026-09-03 - Express One had no `_enabled` row at all and its enable_problems()
-            // was empty, so nothing was refusing it; nothing was ever being asked.
-            //
-            // The guard is a class on the row now. It keeps the double click out (the CSS takes the
-            // pointer events with it) without touching the one property that decides whether the field is
-            // part of the form.
+            // The busy guard is a class, not disabled: jQuery leaves a disabled checkbox out of .serialize(), which WooCommerce reads as "no".
             . "    \$(document).on('change','.bgc-enable-toggle input[type=checkbox]',function(){\n"
             . "        var cb=\$(this), on=this.checked, box=cb.closest('.bgc-enable-toggle');\n"
             . "        if(box.hasClass('bgc-busy')){ cb.prop('checked',!on); return; }\n"
@@ -473,11 +334,8 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . "        if(!on){ saveForm(); return; }\n"
             . "        box.addClass('bgc-busy');\n"
             . "        saveForm(function(saved){\n"
-            // A courier cannot be enabled on the strength of a save that did not happen: the toggle goes
-            // back where it was and the failure has already said so.
             . "            if(!saved){ cb.prop('checked',false); setVis(box,false); box.removeClass('bgc-busy'); return; }\n"
-            // The courier stays ON whatever comes back. The check validates credentials that have been
-            // saved but never tried, and then says what is still missing - it does not veto the decision.
+            // The check reports what is missing; it does not veto the ON.
             . "            \$.post(ajaxurl,{action:'bgcouriers_enable_check',nonce:adminNonce,courier:courier}).done(function(r){\n"
             . "                var pr=(r&&r.data&&r.data.problems)||[];\n"
             . "                if(pr.length){ showProblems(pr); }\n"
@@ -487,18 +345,14 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             . "})(jQuery);\n"
         );
 
-        // Delivery-method sub-tabs - only the methods this courier actually offers (available_methods() =
-        // capabilities pruned by real synced point counts, so e.g. Pigeon shows no "to APS" tab: no lockers).
-        // Skip entirely for single-method / flat-rate couriers (e.g. BoxNow = locker only, one flat price).
+        // Only the methods this courier offers; a single-method courier gets no sub-tabs.
         $c       = BGCouriers_Couriers::get($courier_id);
         $caps    = $c ? array_values(array_diff($c->available_methods(), ['live_quote'])) : array_keys(self::$method_labels);
         $methods = array_filter(self::$method_labels, static function ($m) use ($caps) { return in_array($m, $caps, true); }, ARRAY_FILTER_USE_KEY);
-        // Show the tabs (and panels) in the merchant's saved drag order.
         $ordered = [];
         foreach (BGCouriers_Settings::method_order($courier_id) as $m) { if (isset($methods[$m])) { $ordered[$m] = $methods[$m]; } }
         if ($ordered) { $methods = $ordered; }
         if (count($methods) > 1) {
-            // Level-2 nav-tabs for delivery methods - drag to reorder (saves bgcouriers_<courier>_method_order); JS-switched panels.
             echo '<h2 class="nav-tab-wrapper bgc-method-nav" data-courier="' . esc_attr($courier_id)
                 . '" data-nonce="' . esc_attr(wp_create_nonce('bgcouriers_admin')) . '" style="margin-top:1.5em;">';
             $first = true;
@@ -514,7 +368,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
 
             $first = true;
             foreach ($methods as $m => $label) {
-                // Only the price field renders in the panel - the enable control is the tab toggle (still saved via get_settings()).
                 $en = 'bgcouriers_' . $courier_id . '_' . $m . '_enabled';
                 $mf = array_values(array_filter($this->method_fields($courier_id, $m, $label), static function ($f) use ($en) {
                     return !(isset($f['id']) && $f['id'] === $en);
@@ -525,18 +378,13 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 $first = false;
             }
         }
-        // (method-nav styles + behaviors live in assets/css|js/bgc-settings-admin.*)
     }
 
     private function general_fields(): array {
         $statuses = function_exists('wc_get_order_statuses') ? wc_get_order_statuses() : ['wc-processing' => 'Processing'];
-        // From the courier REGISTRY, not from sections() - those are the settings TABS, and skipping only
-        // '' (General) let the "About" tab through as a selectable default courier. The registry is the
-        // single source of truth, so a new courier appears here on its own and no tab can leak in again.
+        // From the registry, not sections(): the About tab is not a courier.
         $courier_opts = ['' => __('Automatic (first / cheapest)', 'bg-couriers')];
         foreach (BGCouriers_Couriers::all() as $cid => $clabel) { $courier_opts[$cid] = $clabel; }
-        // One colour picker per courier for the orders-list row tint, generated from the registry so a new
-        // courier gets its field automatically. Defaults live on BGCouriers_Order_Columns (single source of truth).
         $row_colors = [];
         foreach (BGCouriers_Couriers::all() as $cid => $clabel) {
             $row_colors[] = ['type' => 'color', 'id' => 'bgcouriers_' . $cid . '_row_color',
@@ -704,52 +552,18 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         ];
     }
 
-    /**
-     * One courier's settings page.
-     *
-     * Every one of the seven has the same four blocks in the same order - the account (notice, hint,
-     * enable, credentials, the validate button), "Delivery & label" ending in the auto-label row,
-     * "Pricing" starting with the two rows every courier has, and "Cash on delivery" ending in the PPP
-     * row - and each was written out in full, seven times. That is how the Econt tab came to render its
-     * API username as a filled-in box while every other courier's was blank behind "leave blank to
-     * keep": nobody was comparing them, because there was nothing to compare them against.
-     *
-     * So the skeleton is here and each courier supplies only what is its own. The ids are unchanged and
-     * have to stay unchanged - a merchant's saved value lives under one, and a renamed id loses it in
-     * silence. bin/settings-snapshot is what proves that: it dumps every id, type, default and autoload
-     * flag this page builds, from the dev site, and the dump before this refactor and after it are the
-     * same file.
-     *
-     * @param string $id    Courier id.
-     * @param string $label The courier's name, translated.
-     * @param array  $parts Courier-specific rows only:
-     *   creds        => [[suffix, type, title, desc?], ...] - rendered blank, "leave blank to keep"
-     *   account      => rows after the validate button, still inside the account block
-     *   delivery     => rows in "Delivery & label", above the auto-label row
-     *   pricing_head => false to replace the standard ship-in-total + free-threshold pair (BOX NOW,
-     *                   which is always in the total and has no per-option thresholds)
-     *   pricing      => rows after (or instead of) the pair
-     *   cod          => rows in "Cash on delivery", above the PPP row
-     *   ppp          => ['default' => 'yes'|'no', 'desc' => '...'] for the PPP row itself
-     */
-    /**
-     * The placeholder for a box that is drawn empty because its value is a secret.
-     *
-     * Dots when something IS stored - the same dots bgc-settings-admin.js puts there once it locks the
-     * field - and nothing when the field has never been filled, where "leave blank to keep" would be a
-     * lie about a box with nothing behind it.
-     *
-     * It is a TOP-LEVEL key, not one inside custom_attributes: WooCommerce prints its own
-     * placeholder="" before the custom attributes, and a browser keeps the first of two identical
-     * attribute names - so the declaration's placeholder had never once reached the screen. Nobody saw
-     * it, because on the credential pair the lock script overwrote it a moment later anyway.
-     */
+    /** Top-level 'placeholder', not custom_attributes: WooCommerce prints its own placeholder="" first and browsers keep the first. */
     private static function secret_placeholder(string $option): string {
         return ((string) get_option($option, '')) !== '' ? '••••••••' : '';
     }
 
+    /**
+     * One courier's settings page: account, "Delivery & label", "Pricing", "Cash on delivery".
+     * @param array $parts creds => [[suffix, type, title, desc?], ...]; account, delivery, pricing, cod => extra rows;
+     *   pricing_head => false drops the ship-in-total + free-threshold pair; ppp => ['default' => 'yes'|'no', 'desc' => '...']
+     */
     private function courier_section(string $id, array $parts): array {
-        $label = BGCouriers_Couriers::all()[$id] ?? ucfirst($id); // the courier's own name, as registered
+        $label = BGCouriers_Couriers::all()[$id] ?? ucfirst($id);
         $p     = 'bgcouriers_' . $id . '_';
         $cur  = get_woocommerce_currency();
 
@@ -760,10 +574,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             /* translators: %s: courier name, e.g. "Speedy" */
             ['type' => 'checkbox', 'id' => $p . 'enabled', 'title' => sprintf(__('Enable %s', 'bg-couriers'), $label), 'default' => 'no'],
         ];
-        // Credentials are never shown back: they are stored encrypted, and sanitize_keep()/
-        // sanitize_password() keep what is stored when the field is posted blank. The placeholder is
-        // what says so, and it has to be on EVERY one of them - Econt's username had neither, so that
-        // one field printed the shop's API username into the page.
+        // Credentials render blank; sanitize_keep()/sanitize_password() keep the stored value on a blank save.
         foreach ((array) ($parts['creds'] ?? []) as $c) {
             $row = ['type' => $c[1], 'id' => $p . $c[0], 'title' => $c[2],
                     'value' => '', 'placeholder' => self::secret_placeholder($p . $c[0]), 'autoload' => false];
@@ -809,11 +620,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         return array_merge($account, $delivery, $pricing, $cod);
     }
 
-    /**
-     * "Open before payment" - ONE setting for the whole shop, printed on both the Speedy and the Econt
-     * page because they are the couriers that offer it. Changing it on either page changes both: it is
-     * a promise made at checkout and cannot differ per courier.
-     */
+    /** One shop-wide setting, printed on both the Speedy and Econt tabs. */
     private static function open_before_pay_row(): array {
         return ['type' => 'select', 'id' => 'bgcouriers_open_before_pay', 'title' => __('Open before payment', 'bg-couriers'),
             'desc' => __('What the recipient may do before paying. ONE setting for the whole shop, shown here because Speedy and Econt are the couriers that offer it - changing it on either page changes both, because it is a promise made at checkout and cannot differ per courier. Never applied to locker deliveries: there is nobody there to supervise.', 'bg-couriers'),
@@ -825,7 +632,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             'default' => 'no'];
     }
 
-    /** A6/A4, for the couriers whose API takes a paper size. */
     private static function paper_size_row(string $id, string $default): array {
         return ['type' => 'select', 'id' => 'bgcouriers_' . $id . '_label_paper_size', 'title' => __('Label paper size', 'bg-couriers'),
             'options' => ['A6' => __('A6 (label printer)', 'bg-couriers'), 'A4' => __('A4 (office printer)', 'bg-couriers')],
@@ -833,11 +639,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     private function speedy_courier_fields(): array {
-        // "Also deliver to" is left out of the page entirely while international delivery is off (see
-        // BGCouriers_Settings::intl_enabled()) - not rendered empty. WooCommerce saves every field the
-        // page declares, and a multiselect with no options posts nothing: showing it would quietly wipe
-        // the merchant's saved countries on their next Save, and those are meant to survive until the
-        // feature is finished.
+        // Not rendered while intl is off: a multiselect with no options posts nothing and a Save would wipe the saved countries.
         $intl = BGCouriers_Settings::intl_enabled() ? [
             ['type' => 'multiselect', 'id' => 'bgcouriers_speedy_intl_countries', 'title' => __('Also deliver to', 'bg-couriers'),
                 'options' => self::intl_country_options('speedy'), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
@@ -858,11 +660,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                         'PALLET'   => __('Pallet', 'bg-couriers'),
                     ],
                     'default' => 'BOX'],
-                // The office the shop hands parcels in at. Sent as the sender's drop-off office on every
-                // quote and every shipment (BGCouriers_Speedy::dropoff_office()): without it Speedy
-                // prices and books a courier pickup from the account's address, whatever the shop does
-                // in practice. The list is the synced office nomenclature, so it is empty until the
-                // first sync - and says so.
                 ['type' => 'select', 'id' => 'bgcouriers_speedy_dropoff_office', 'title' => __('Send parcels from', 'bg-couriers'),
                     'desc' => __('The Speedy office you hand parcels in at. Speedy then prices and books every shipment as handed in there and sends no courier for it; whether that is cheaper depends on your contract. Leave empty when a courier collects from your address.', 'bg-couriers'),
                     'options' => self::speedy_dropoff_options(), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
@@ -964,7 +761,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         ]);
     }
 
-    /** Sameday - office/address/easyBox + live quote. Needs a pickup point + per-type service IDs from the contract. */
     private function sameday_courier_fields(): array {
         return $this->courier_section('sameday', [
             'creds' => [
@@ -987,15 +783,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         ]);
     }
 
-    /**
-     * Express One - office/address/EXOBOX locker + live quote, and a courier it can call.
-     *
-     * The one field that is its own: where the parcel is collected FROM. Express One calls those the
-     * account's "objects" and the test account holds eighteen of them; the id goes on every waybill as
-     * SEND_OFFICE_ID, so a mistyped one is a courier sent to the wrong warehouse. It is a list read from
-     * the account, never a number to type - and it stays empty and disabled until the credentials work,
-     * because there is nothing to read it from before that.
-     */
     private function expressone_courier_fields(): array {
         return $this->courier_section('expressone', [
             'creds' => [
@@ -1013,14 +800,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         ]);
     }
 
-    /**
-     * Speedy's offices as a picker, "TOWN - office", every office in the shop's country. Offices only:
-     * an automat takes no parcels handed in. Empty until the nomenclature has been synced, and says so
-     * rather than showing a blank list. The one office already chosen stays in the list even when the
-     * sync has not run yet on this install, so a saved choice never reads as "nothing".
-     *
-     * @return array<string,string>
-     */
+    /** @return array<string,string> */
     private static function speedy_dropoff_options(): array {
         $out  = ['' => __('- my address: a courier collects -', 'bg-couriers')];
         $rows = class_exists('BGCouriers_Nomenclature') ? BGCouriers_Nomenclature::all_offices('speedy', 'office') : [];
@@ -1036,13 +816,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         return $out;
     }
 
-    /**
-     * The account's own addresses, as a picker. Empty until the credentials work - and it says so rather
-     * than showing a blank list, because a merchant looking at an empty dropdown cannot tell "not fetched
-     * yet" from "you have none".
-     *
-     * @return array<string,string>
-     */
+    /** @return array<string,string> */
     private static function expressone_sender_options(): array {
         $out = ['' => __('- not chosen -', 'bg-couriers')];
         if (!class_exists('BGCouriers_Couriers')) { return $out; }
@@ -1056,23 +830,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         return $out;
     }
 
-    /**
-     * Evropat - office/address + live quote, one API key, and a courier it can call.
-     *
-     * Two fields here are its own, and neither is decoration:
-     *
-     *  - **Send parcels from.** Their `senderFileID` fills the sender's town, address, name, phone,
-     *    firm, client number and payment way from the merchant's own cabinet in one field - their words
-     *    for it - so this is a list read from the account rather than seven boxes to retype.
-     *  - **Parcels leave from.** Evropat's `deliveryType` encodes BOTH ends of the journey (office to
-     *    office, office to door, door to office, door to door), which no other courier here does, so the
-     *    sender's end has to be a
-     *    setting. It is not cosmetic: the same 1 kg parcel to Sofia was quoted 4.59 office-to-office
-     *    and 6.52 door-to-door on 2026-08-31. A shop that hands parcels over at a counter and is
-     *    quoted for a collection overcharges every customer it has.
-     *
-     * There is no API username field, because Evropat does not issue one - see credential_fields().
-     */
     private function evropat_courier_fields(): array {
         return $this->courier_section('evropat', [
             'creds' => [
@@ -1096,13 +853,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         ]);
     }
 
-    /**
-     * The account's own sending addresses, as a picker. Empty until the key works - and it says so
-     * rather than showing a blank list, because a merchant looking at an empty dropdown cannot tell
-     * "not fetched yet" from "you have none".
-     *
-     * @return array<string,string>
-     */
+    /** @return array<string,string> */
     private static function evropat_sender_options(): array {
         $out = ['' => __('- not chosen -', 'bg-couriers')];
         if (!class_exists('BGCouriers_Couriers')) { return $out; }
@@ -1116,7 +867,6 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
         return $out;
     }
 
-    /** BOX NOW - locker-only, flat-rate, OAuth2. Only the fields BoxNow actually uses (no dangling params). */
     private function boxnow_courier_fields(): array {
         $cur = get_woocommerce_currency();
         return $this->courier_section('boxnow', [
@@ -1129,12 +879,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     'desc' => __('On = the live BOX NOW production account. Off = the stage/test API (api-stage.boxnow.bg) with test credentials.', 'bg-couriers'),
                     'default' => 'yes', 'autoload' => false],
                 ['type' => 'text', 'id' => 'bgcouriers_boxnow_partner_id', 'title' => __('Partner ID', 'bg-couriers'), 'autoload' => false],
-                // Drawn empty like every other credential, and kept when saved blank (sanitize_keep, wired
-                // in BGCouriers_Settings). It is what an incoming message is checked against - in the
-                // header the shop asks BOX NOW to send, or as the key of a datasignature - and it was
-                // the one secret on these screens that printed its stored value into the page.
-                // It used to say "you receive it after you register the URL": nobody does, BOX NOW's
-                // guide hands a signing key out only on request, and the header is what they offer.
+                // Rendered blank and kept on a blank save (sanitize_keep), like every other credential.
                 ['type' => 'text', 'id' => 'bgcouriers_boxnow_webhook_secret', 'title' => __('Webhook secret', 'bg-couriers'),
                     'value' => '', 'placeholder' => self::secret_placeholder('bgcouriers_boxnow_webhook_secret'),
                     'desc' => esc_html__('Any value you choose. Ask the BOX NOW integration team (the e-mail above) to register this webhook URL for your account and to send this header with every message, with the secret as its value:', 'bg-couriers')
@@ -1153,8 +898,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     'default' => 'no'],
                 ['type' => 'checkbox', 'id' => 'bgcouriers_boxnow_allow_returns', 'title' => __('Allow returns', 'bg-couriers'), 'default' => 'no'],
             ],
-            // BOX NOW is always in the order total - its delivery-request payload has no recipient-pays
-            // field at all - and it has no per-delivery-option thresholds, so neither standard row fits.
+            // BOX NOW is always in the order total and has no per-option thresholds.
             'pricing_head' => false,
             'pricing' => [
                 ['type' => 'text', 'id' => 'bgcouriers_boxnow_flat_price', 'title' => __('Delivery price', 'bg-couriers') . ' (' . $cur . ')',
@@ -1169,9 +913,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
 
     private function method_fields(string $courier, string $m, string $label): array {
         $p = "bgcouriers_{$courier}_{$m}_";
-        // Only offer live pricing where the courier actually has a price endpoint. BOX NOW does not -
-        // its rates are contractual - and offering the choice invites a shop to pick a mode that can
-        // only ever fall back, then wonder why the fixed price is what shows.
+        // Live pricing only where the courier has a price endpoint.
         $c    = BGCouriers_Couriers::get($courier);
         $live = $c && in_array('live_quote', $c->capabilities(), true);
         $modes = $live
@@ -1188,17 +930,12 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
             ['type' => 'select', 'id' => $p . 'price_mode', 'title' => __('Delivery price', 'bg-couriers'),
                 'options' => $modes, 'default' => $live ? 'fallback' : 'fixed'],
             ['type' => 'text', 'id' => $p . 'price', 'title' => __('Fixed / default price', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
-                // The one place a merchant can get the net/gross question wrong in silence: this number is
-                // used as the rate's COST, which WooCommerce then taxes, so a figure typed as "what the
-                // customer pays" is charged 20% over. Every courier's own quote is handled the same way -
-                // see BGCouriers_Pricing::door_price() for how much trouble this distinction has caused.
                 'desc' => __('Used by the “fixed” and “fallback” delivery-price modes above. In the store currency and WITHOUT VAT: WooCommerce adds the shipping tax on top of it, exactly as it does to a live quote.', 'bg-couriers'), 'default' => ''],
             ['type' => 'text', 'id' => $p . 'free_threshold', 'title' => __('Free-shipping threshold', 'bg-couriers') . ' (' . get_woocommerce_currency() . ')',
                 'desc' => __('Free delivery for THIS option above this goods total (excluding shipping). Applies only while the courier-level threshold is empty; empty or 0 disables.', 'bg-couriers'),
                 'default' => '', 'autoload' => false, 'class' => 'bgc-method-free'],
         ];
-        // Only Speedy's API exposes a card-payment control on the COD service (cardPaymentForbidden);
-        // no dangling toggle for couriers that cannot honor it.
+        // Only Speedy's API has a card-payment control on COD.
         if ($courier === 'speedy') {
             $fields[] = ['type' => 'checkbox', 'id' => $p . 'card_payment', 'title' => __('Card payment for COD', 'bg-couriers'),
                 'desc' => __('Let the customer pay the cash-on-delivery amount by card at handover (your Speedy account default). Off explicitly forbids card payment for this delivery option.', 'bg-couriers'),
