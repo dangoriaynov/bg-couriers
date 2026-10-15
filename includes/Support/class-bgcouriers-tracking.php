@@ -2,30 +2,15 @@
 defined('ABSPATH') || exit;
 
 class BGCouriers_Tracking {
-    /**
-     * Courier lifecycle phases whose meaning we know, mapped to our stages. A phase is a machine value
-     * the courier itself publishes, so where there is one it beats reading the status text.
-     *
-     * Only the phases that our text rules would get WRONG need listing - an unrecognised phase falls back
-     * to 'transit' (see stage()), which is the safe verdict: it never ends tracking and never completes an
-     * order. Pigeon's codes are its own, from GET /v1/shipment-statuses.
-     *
-     * @var array<string,string>
-     */
+    /** @var array<string,string> Courier lifecycle phase -> our stage; only phases the text rules would get wrong. Unknown falls to 'transit'. */
     private const PHASES = [
-        // Speedy trackPhase values that really do end a shipment.
+        // Speedy trackPhase values that end a shipment.
         'DELIVERED'                => 'delivered',
-        // Couriers that state the outcome outright rather than in prose (Sameday's expeditionSummary
-        // has delivered and canceled as flags), so the verdict does not depend on reading Bulgarian.
+        // Sameday's expeditionSummary flags.
         'CANCELLED'                => 'cancelled',
         'RETURN_TO_SENDER'         => 'returned',
         'DELIVERED_BACK_TO_SENDER' => 'returned',
-        // BOX NOW's parcelState, from its webhook and its /parcels endpoint. Machine values, all of
-        // them, and until they were here the webhook wrote them to a key of their own that nothing read
-        // - so a BOX NOW order showed a blank where its tracking belonged and was never advanced on
-        // delivery. Prefixed like Express One's and Evropat's, so a plain word another courier might
-        // one day send as its phase cannot land on these. "lost" and "missing" are deliberately absent:
-        // neither is a stage this plugin has, and the word in the note is more honest than "in transit".
+        // BOX NOW parcelState (webhook and /parcels), prefixed so a plain word from another courier cannot land here.
         'boxnow_new'                  => 'registered',
         'boxnow_in-transit'           => 'transit',
         'boxnow_in-final-destination' => 'ready',
@@ -33,33 +18,21 @@ class BGCouriers_Tracking {
         'boxnow_returned'             => 'returned',
         'boxnow_expired-return'       => 'returned',
         'boxnow_canceled'             => 'cancelled',
-        // ...and the webhook's EVENT vocabulary (Webhook Guide v5: "rely on the event property"),
-        // which spells the same things differently and has three of its own. Unlisted, each fell to
-        // "transit": a parcel waiting in the locker, or one expired and on its way back, read as
-        // still on its way. "cancelled" is the /parcels spelling of the same verdict.
+        // BOX NOW webhook event vocabulary.
         'boxnow_final-destination'    => 'ready',
         'boxnow_expired'              => 'returned',
         'boxnow_in-depot'             => 'transit',
         'boxnow_accepted-to-locker'   => 'transit',
         'boxnow_accepted-for-return'  => 'returning',
         'boxnow_cancelled'            => 'cancelled',
-        // Pigeon. Still on the merchant's desk - the label exists, the parcel has not been collected.
-        // Pigeon words the second of these "awaiting loading by the courier", which the text rules read
-        // as movement (the Bulgarian for "awaiting" is in the in-flight list below), so the code is the
-        // only thing that keeps a printed label from announcing itself shipped.
+        // Pigeon: label exists, parcel not yet collected; its wording reads as movement to the text rules.
         'shipment_registered'              => 'registered',
         'shipment_awaiting_courier_pickup' => 'registered',
-        // Arrived at the pickup point and waiting for the customer. Pigeon words the first of these
-        // "delivered to an office/locker", which our text rules read as DELIVERED - that completes the order and,
-        // because delivered is terminal, stops the shipment ever being polled again while it is still
-        // sitting in a locker with nobody having touched it.
+        // Pigeon: at the pickup point; its wording reads as delivered to the text rules.
         'shipment_delivered_to_office'  => 'ready',
         'shipment_left_in_locker'       => 'ready',
         'shipment_held_by_sender'       => 'ready',
-        // Nobody came for it. The parcel is still at the office, so it is not moving and not returned
-        // either - keeping it non-terminal is what lets us see it turn into a return. A stage of its own
-        // rather than 'ready', because to the shop these two are not the same news at all: one is a
-        // parcel waiting for its customer, the other a sale about to come back.
+        // Pigeon: nobody came; non-terminal so it can turn into a return.
         'shipment_untracked'            => 'unclaimed',
         'shipment_locker_time_expired'  => 'unclaimed',
         'shipment_storage_expired'      => 'unclaimed',
@@ -67,46 +40,33 @@ class BGCouriers_Tracking {
         'shipment_cancelled'              => 'cancelled',
         'shipment_returning_to_sender'    => 'returning',
         'shipment_returned'               => 'returned',
-        // Express One's are numbers, so they are prefixed with the courier - "6" on its own would be
-        // anybody's. Read off 32 shipments on the test account 2026-08-25; the names are its own words.
-        'expressone_0'  => 'registered',   // waybill created - the label exists, the parcel does not move
+        // Express One's are numbers, prefixed with the courier.
+        'expressone_0'  => 'registered', // waybill created
         'expressone_1'  => 'registered',   // order created
         'expressone_2'  => 'transit',      // accepted by the courier
-        'expressone_3'  => 'ready',        // arrived at an office - waiting for the customer, not delivered
+        'expressone_3'  => 'ready', // arrived at an office
         'expressone_5'  => 'transit',      // handed to a courier
         'expressone_6'  => 'delivered',    // delivered
         'expressone_7'  => 'cancelled',    // cancelled
-        'expressone_8'  => 'transit',      // failed round - an attempt that failed; the parcel is still out
+        'expressone_8'  => 'transit', // failed delivery attempt
         'expressone_12' => 'returned',     // returned to the sender
-        // Evropat's are numbers too, and its history endpoint does not even send them - it sends the
-        // status NAME, which the adapter resolves back to an id against /shipment-statuses-nomenclature
-        // (41 statuses, read 2026-08-31). Only the ones our text rules would get WRONG are listed;
-        // everything else falls to 'transit', which never ends tracking and never completes an order.
-        'evropat_1'  => 'registered',   // created - the waybill exists, the parcel has not moved
-        'evropat_2'  => 'registered',   // printed - and still on the merchant's desk
+        // Evropat's are numbers too (the adapter resolves the status name to an id); only phases the text rules would get wrong.
+        'evropat_1'  => 'registered', // created
+        'evropat_2'  => 'registered', // printed
         'evropat_64' => 'ready',        // assigned to an office
-        'evropat_82' => 'unclaimed',    // unclaimed - at the office, nobody has come for it
-        'evropat_86' => 'ready',        // arrived at an office/depot - the Bulgarian reads as arrival, not delivery
+        'evropat_82' => 'unclaimed', // unclaimed
+        'evropat_86' => 'ready', // arrived at an office/depot
         'evropat_19' => 'delivered',    // delivered on the round
         'evropat_83' => 'returning',    // on its way back to the sender
         'evropat_10' => 'returned',     // returned to the sender
         'evropat_18' => 'cancelled',    // cancelled
-        // A refusal is not a cancellation: the parcel is still out and on its way back, and letting the
-        // text rules read "refused" as cancelled would close the order on a shipment still in the van.
+        // A refusal is not a cancellation: the parcel is still out and on its way back.
         'evropat_6'  => 'transit',      // refused
         'evropat_68' => 'transit',      // refused without payment
         'evropat_9'  => 'transit',      // cannot pay the delivery charge, the COD or the PPP
-        // 10, the accounting close, is deliberately absent. It says nothing about
-        // where the parcel is - it was observed both after a delivery and before a cancellation - so it
-        // falls through to 'transit', which never ends a shipment and never completes an order.
+        // 10 (accounting close) is deliberately absent: it says nothing about where the parcel is.
     ];
 
-    /**
-     * What a courier's own lifecycle phase means to us, or '' when it is not one we know.
-     *
-     * @param string $phase The courier's phase/status code.
-     * @return string One of our stages, or ''.
-     */
     public static function phase_stage(string $phase): string {
         return self::PHASES[$phase] ?? '';
     }
@@ -114,20 +74,10 @@ class BGCouriers_Tracking {
     public string $waybill;
     public string $status;
     public array $events;
-    /** Courier-supplied lifecycle phase, when the API has one ('' for couriers that don't). */
     public string $phase;
-    /**
-     * Has the courier physically taken the parcel? true/false when the API answers that outright
-     * (Econt's sendTime, Speedy's acceptance operations), null when it does not and the caller has to
-     * guess from the event history.
-     */
+    /** true/false when the API says outright, null when the caller must guess from the history. */
     public ?bool $handover;
-    /**
-     * Is `status` itself a sentence a merchant can read? Econt, Pigeon and Sameday publish a proper
-     * status line, while Speedy's is an operation code ("-14"). It matters because Econt's EVENTS are
-     * not statuses at all - they are place names and, on the last one, the recipient's name, so an
-     * Econt order was showing a person's name where its status belonged.
-     */
+    /** Whether `status` is a readable sentence; Speedy's is an operation code, Econt's events are place names. */
     public bool $status_is_human;
 
     public function __construct(string $waybill, string $status, array $events = [], string $phase = '', ?bool $handover = null, bool $status_is_human = false) {
@@ -139,7 +89,6 @@ class BGCouriers_Tracking {
         $this->status_is_human = $status_is_human;
     }
 
-    /** A readable status: the courier's own status line when it publishes one, else the last event's name. */
     public function human(): string {
         if ($this->status_is_human && trim($this->status) !== '') { return $this->status; }
         if (!empty($this->events)) {
@@ -150,26 +99,15 @@ class BGCouriers_Tracking {
         return $this->status;
     }
 
-    /**
-     * The shipment's lifecycle stage. Prefers the courier's own phase field, which is unambiguous, and falls
-     * back to reading the status text. Speedy publishes trackPhase in its schema but does NOT always send it
-     * (absent on every parcel we have observed), so the text path has to stay correct on its own.
-     * Cancellation has no trackPhase of its own, so that one verdict still comes from the text.
-     */
+    /** Lifecycle stage: the courier's phase when present, else the status text (Speedy does not always send trackPhase). */
     public function stage(): string {
         if ($this->phase === '') {
             $verdict = self::classify($this->human());
             if ($verdict === 'transit') {
-                // The last event's code is a machine value where the courier publishes one; Speedy's
-                // 134/1134 mean "waiting at the office/locker" however the description is worded. Checked
-                // FIRST: a parcel sitting in an office plainly did leave our hands.
+                // Speedy's 134/1134 mean waiting at the office however worded; checked first.
                 $last = $this->events ? end($this->events) : [];
                 if (in_array((string) ($last['code'] ?? ''), self::READY_CODES, true)) { return 'ready'; }
-                // Nothing has moved yet. Creating a waybill only hands the courier the DATA - the parcel
-                // is still on the merchant's desk, and every courier reports that state as an event of
-                // its own ("shipment information received", "Awaiting delivery to Econt"). Calling that
-                // "on its way" on an order placed minutes ago is simply wrong, and it is the state most
-                // orders sit in.
+                // Nothing has moved yet: a waybill only hands the courier the data.
                 if (!$this->collected()) { return 'registered'; }
             }
             return $verdict;
@@ -179,87 +117,34 @@ class BGCouriers_Tracking {
         return self::classify($this->human()) === 'cancelled' ? 'cancelled' : 'transit';
     }
 
-    /**
-     * Normalise a courier status string to a lifecycle stage: 'delivered' / 'cancelled' / 'returned' /
-     * 'transit'. Keyword-based (Bulgarian + English) so it works across couriers - Speedy operation names now
-     * come back in Bulgarian, and Econt/Pigeon/Sameday statuses are already Bulgarian.
-     */
-    /**
-     * Statuses that are still in flight even though they contain a word that looks terminal. Every one of
-     * these is a string a courier really sent us, not a hypothetical:
-     *   "Awaiting delivery to Econt"   Econt, first event - the parcel is still on the merchant's desk
-     *   "arranging the delivery"       Speedy 136
-     *   "being prepared for handover"  Speedy 134
-     *   "inspection/testing refused"   Speedy 195 - the customer declined to INSPECT it; this fires one
-     *                                  second before the actual delivery, so reading the Bulgarian for
-     *                                  "refusal" in it as a cancellation would end tracking right at the
-     *                                  finish line. That word is the first entry in the list below.
-     * @var string[]
-     */
+    /** @var string[] Still in flight despite a terminal-looking word: Econt's first event, Speedy 134/136/195 (inspection refused fires just before delivery). */
     private const IN_FLIGHT = [
         'отказ от преглед', 'очаква', 'awaiting', 'prepared',
         'за доставка', 'опит', 'for delivery', 'attempt',
         'недостав', 'not delivered', 'undelivered', 'unsuccessful', 'неуспешн',
     ];
 
-    /**
-     * Wordings that really do mean the receiver has the parcel. Couriers disagree on how to say it, and
-     * none of them says it the way the others do:
-     *   "delivery to the customer"    Speedy, operation -14
-     *   "collected by the recipient"  Pigeon (its API sends no events at all - the text is all there is)
-     *   "shipment delivered"          the participle, used by Speedy and Econt's Bulgarian feed
-     * @var string[]
-     */
+    /** @var string[] The receiver has the parcel: Speedy -14, Pigeon "collected by the recipient", the participle "shipment delivered". */
     private const DELIVERED_PHRASES = ['доставка на клиент', 'взета от получателя',
         'получена от получателя', 'предадена на получателя'];
 
-    /**
-     * Wordings that mean the parcel has ARRIVED and is waiting for the customer to collect it - the step
-     * between "on its way" and "handed over". Real strings: Speedy notifies the recipient that the parcel
-     * is at the office/locker (operation 1134) after preparing it for handover to the customer at the
-     * office (134).
-     * @var string[]
-     */
+    /** @var string[] Arrived and waiting for the customer: Speedy 1134 / 134. */
     private const READY_PHRASES = ['известие за пратка', 'готова за получаване', 'готова за взимане',
         'подготовка за предаване', 'ready for pickup', 'ready for collection', 'available for pickup',
-        // Sameday, a locker delivery: "loaded into the OOH" (its name for the easybox) is the moment the
-        // parcel starts waiting for the customer. Read as "in transit" until a live order (11279,
-        // 2026-09-29) stood in a locker for two days, expired and came back without the orders list
-        // ever having shown it as waiting - so the clock that flags "nobody came" never started.
+        // Sameday locker: "loaded into the OOH" is when the parcel starts waiting.
         'заредена в ooh'];
 
     /** Speedy operations that mean the same thing, checked before any text. @var string[] */
     public const READY_CODES = ['134', '1134'];
 
-    /**
-     * Wordings that mean the parcel arrived, waited and NOBODY CAME. Only Pigeon and Evropat publish a
-     * code for this (see PHASES); the rest say it in prose or not at all, and these three phrases are
-     * unambiguous enough to read: "unclaimed", "storage period expired", "locker stay expired". None of
-     * them contains a word the delivered or cancelled rules would match, so the order of the checks below
-     * is not what keeps them apart.
-     * @var string[]
-     */
+    /** @var string[] Arrived, waited, nobody came: Pigeon and Evropat wording; no delivered/cancelled word inside. */
     private const UNCLAIMED_PHRASES = ['непотърсен', 'изтекъл срок на съхранение', 'изтекъл престой',
         'unclaimed', 'not collected in time'];
 
-    /**
-     * The same verdict said with the words the other way round: Sameday writes "Срокът за съхранение
-     * на пратката е изтекъл." - the storage period, then that it expired - which the phrase above (the
-     * expiry first) never matched, so a locker parcel nobody came for stayed "in transit" (live order
-     * 11279, 2026-10-01). Either order of the two stems means the same thing.
-     */
+    /** Sameday says the same thing with the stems the other way round. */
     private const UNCLAIMED_PATTERN = '/изтек\S*\s[^.]*съхран|съхран[^.]*изтек/u';
 
-    /**
-     * Does this status line mean the shipment is cancelled?
-     *
-     * Asked by the couriers' own is_cancelled() as well as by the orders list, and that is the point.
-     * Each courier used to keep its own handful of words - Sameday looked for the Bulgarian for
-     * "cancelled" and for "cancel", Pigeon also for "refusal" - so the same shipment could read Cancelled
-     * in the orders column and NOT cancelled to the code deciding whether a dead waybill may be cleared.
-     * Sameday's own "collection from the sender refused" fell in exactly that gap, on a live order
-     * (2026-08-26).
-     */
+    /** Is this status line a cancellation? Shared by the couriers' is_cancelled() and the orders list so they agree. */
     public static function reads_cancelled(string $status): bool {
         return self::classify($status) === 'cancelled';
     }
@@ -269,13 +154,7 @@ class BGCouriers_Tracking {
         // Guards first: these phrases contain words the rules below would otherwise match.
         foreach (self::IN_FLIGHT as $k) { if (strpos($s, $k) !== false) { return 'transit'; } }
         foreach (['отказ', 'анулир', 'cancel'] as $k) { if (strpos($s, $k) !== false) { return 'cancelled'; } }
-        // A return has two distinct moments and they are NOT the same thing to a shop: the parcel is on
-        // its way back (Speedy 111, "returning to the sender"), and the parcel is BACK - handed over to
-        // the sender (124, "handed back to the sender"). Calling the second one "coming back" told a
-        // merchant a box was still travelling when it was already sitting on their counter.
-        // "Върната на подател" is Sameday's last word on a return (live order 11279, 2026-10-05): the
-        // parcel is handed back. Without it the generic stem below read it as still coming back, and
-        // the "when returned, set order to" rule never ran - the order stayed Shipped for good.
+        // Returning (Speedy 111) and returned (Speedy 124, Sameday "Върната на подател") are different news to a shop.
         foreach (['обратно на подател', 'обратно към подател', 'върната пратка', 'предадена на подателя',
                   'върната на подател', 'returned to sender', 'back with sender'] as $k) {
             if (strpos($s, $k) !== false) { return 'returned'; }
@@ -284,39 +163,23 @@ class BGCouriers_Tracking {
             if (strpos($s, $k) !== false) { return 'returning'; }
         }
         foreach (self::DELIVERED_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'delivered'; } }
-        // The Bulgarian participle ("delivered") and the English one, never the noun. A substring test
-        // for the stem alone also matched the noun "delivery" in both languages, which is how an order was
-        // completed while its parcel had not left the shop.
+        // The participle only, never the noun: the stem alone matched "delivery".
         if (preg_match('/достав(ен|ена|ено|ени)/u', $s) === 1) { return 'delivered'; }
         if (preg_match('/\bdelivered\b/', $s) === 1) { return 'delivered'; }
-        // Arrived, waited, and nobody came - checked before the plain "waiting" rules, because a parcel
-        // whose storage period has expired is still sitting in the same office and some couriers keep
-        // saying so in the same breath.
+        // Before the plain waiting rules: an expired parcel is still in the same office.
         foreach (self::UNCLAIMED_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'unclaimed'; } }
         if (preg_match(self::UNCLAIMED_PATTERN, $s) === 1) { return 'unclaimed'; }
-        // Arrived and waiting to be collected - checked after the terminal verdicts so a delivered or
-        // cancelled parcel can never be reported as merely waiting.
+        // After the terminal verdicts so a delivered or cancelled parcel is never merely waiting.
         foreach (self::READY_PHRASES as $k) { if (strpos($s, $k) !== false) { return 'ready'; } }
         return 'transit';
     }
 
-    /**
-     * Has the courier physically taken the parcel? Uses the courier's own answer where there is one, and
-     * otherwise falls back to "the history has grown past the single registration event".
-     */
+    /** The courier's own answer where there is one, else whether the history grew past the single registration event. */
     private function collected(): bool {
         if ($this->handover !== null) { return $this->handover; }
         return count($this->events) > 1;
     }
 
-    /**
-     * What to call a stage in the admin. The raw verdicts are internal; these are what the merchant reads
-     * on the order and in the orders list.
-     *
-     * @param string $stage One of registered|transit|ready|unclaimed|delivered|returning|returned|cancelled.
-     * @return string Translated label.
-     */
-    /** Lower-cased, trimmed, without the punctuation a courier ends a status line with. */
     private static function fold(string $s): string {
         $s = trim($s);
         $s = function_exists('mb_strtolower') ? mb_strtolower($s) : strtolower($s);
@@ -324,49 +187,28 @@ class BGCouriers_Tracking {
     }
 
     /**
-     * Where the shipment is, as the two things a screen shows: what to put in bold, and the courier's own
-     * words beside it - empty when they would only say it again.
-     *
-     * On a Bulgarian shop the stage label and the courier's status line are frequently the same words -
-     * Pigeon answers "Непотърсена" and our label for that stage is "Непотърсена" - so the panel read
-     * `Непотърсена Непотърсена` and the orders-list hint said it twice too (owner, 2026-10-09). So:
-     * identical, or one contained in the other, means one of them says everything, and the longer one
-     * is the one kept - the courier's "Върната" disappears into our "Върната при вас", our "Непотърсена"
-     * into its "Непотърсена пратка". Only a sentence that says something DIFFERENT keeps both.
-     *
-     * @return array{0:string,1:string} [headline, the courier's own words or '']
+     * [headline, courier's own words or '']; the words go when they repeat the stage label (either contains the other).
+     * @return array{0:string,1:string}
      */
     public static function stage_headline(string $stage, string $human): array {
         $label = self::stage_label($stage);
         $human = trim($human);
-        // Orders polled before the poller learned to refuse an unreadable answer still carry the word
-        // "UNKNOWN" where their status should be. It is not a status and it is not Bulgarian either, so
-        // no screen prints it: those orders show their stage until the next poll overwrites the word.
+        // "UNKNOWN" was written by older polls; it is not a status, so no screen prints it.
         if ($human === '' || strcasecmp($human, 'UNKNOWN') === 0) { return [$label, '']; }
         $h   = self::fold($human);
         $len = static function (string $s): int { return function_exists('mb_strlen') ? mb_strlen($s) : strlen($s); };
-        // Against BOTH wordings of the stage: the courier's "Върната" is the short label to the letter
-        // and the opening of the long one, and either way it is not news beside it.
         foreach ([$label, self::stage_label($stage), self::stage_label_short($stage)] as $cand) {
             $c = self::fold($cand);
             if ($c === '') { continue; }
             if ($h === $c) { return [$label, '']; }
-            // Short enough to be a coincidence is not a repetition: only whole words of some length are
-            // matched this way, never a two-letter fragment that happens to appear in the other.
+            // Only whole words of some length count as repetition, never a two-letter fragment.
             if ($len($c) >= 4 && strpos($h, $c) !== false) { return [$human, '']; }
             if ($len($h) >= 4 && strpos($c, $h) !== false) { return [$label, '']; }
         }
         return [$label, $human];
     }
 
-    /**
-     * The order note for a change of status: "<courier> - <stage>: "<what the courier said>"" - or, when
-     * the courier's own words already say the stage, "<courier> - <what it said>" and no quote.
-     * Sameday's status for a fresh AWB is "Създадена товарителница", which is also the Bulgarian for
-     * "Label created": the note read `Sameday - Създадена товарителница: „Създадена товарителница“` on
-     * every Sameday order (prod, 2026-09-13). The quote is there to carry information the label does
-     * not; when it carries none, it goes.
-     */
+    /** Order note for a status change; the quote goes when the courier's words already say the stage. */
     public static function status_note(string $courier_label, string $stage, string $human): string {
         [$headline, $detail] = self::stage_headline($stage, $human);
         if ($detail === '') {
@@ -377,51 +219,28 @@ class BGCouriers_Tracking {
         return sprintf(__('%1$s - %2$s: "%3$s"', 'bg-couriers'), $courier_label, $headline, $detail);
     }
 
-    /**
-     * When an event happened, as a unix timestamp - 0 when the courier's date cannot be read.
-     *
-     * Every courier words its date differently and one of them does not word it at all: Econt sends
-     * milliseconds, Speedy and Pigeon an ISO-ish string, Express One its own format. Milliseconds are
-     * recognised by their size - a seconds timestamp that large would be in the year 50,000 - and the
-     * rest is left to strtotime, which is the only thing that reads all of them.
-     *
-     * @param array $event ['code'=>..,'name'=>..,'date'=>..]
-     */
+    /** Event time as unix timestamp, 0 when unreadable; Econt sends milliseconds, recognised by size. */
     public static function event_time(array $event): int {
         $raw = trim((string) ($event['date'] ?? ''));
         if ($raw === '') { return 0; }
         if (ctype_digit($raw)) {
             $n = (int) $raw;
-            return $n > 100000000000 ? (int) round($n / 1000) : $n;   // ms vs s
+            return $n > 100000000000 ? (int) round($n / 1000) : $n;
         }
         $ts = strtotime($raw);
         return $ts ? (int) $ts : 0;
     }
 
-    /** The order the stages happen in, for showing them as a line rather than a heap. */
     public const STAGE_ORDER = ['registered', 'transit', 'ready', 'unclaimed', 'delivered', 'returning', 'returned', 'cancelled'];
 
-    /**
-     * Stages after which the courier has nothing more to say, so nobody asks again and no screen counts
-     * how long it has stood there. 'returning' and 'unclaimed' are deliberately absent: the parcel is
-     * still moving, or still at the office where it can turn into a return.
-     */
+    /** Stages after which nothing changes; 'returning' and 'unclaimed' are deliberately absent. */
     public const FINAL_STAGES = ['delivered', 'cancelled', 'returned'];
 
-    /** Is this a stage the shipment never leaves? */
     public static function is_final(string $stage): bool {
         return in_array($stage, self::FINAL_STAGES, true);
     }
 
-    /**
-     * The same stage in ONE word, for the places that are read at a glance rather than read: the state
-     * row on the order and its timeline. "Създадена товарителница 24 сеп., 17:56" is a sentence per line
-     * where the merchant is scanning a column of dates (owner, 2026-10-09) - "Създадена" says it, and
-     * the full wording is one hover away. Separate msgids with a context of their own, because the short
-     * Bulgarian is not a shortening of the long one in every case.
-     *
-     * @param string $stage One of registered|transit|ready|unclaimed|delivered|returning|returned|cancelled.
-     */
+    /** One-word stage label; separate msgids because the short Bulgarian is not always a shortening of the long one. */
     public static function stage_label_short(string $stage): string {
         switch ($stage) {
             case 'registered': return _x('Created', 'short stage label', 'bg-couriers');
@@ -435,11 +254,7 @@ class BGCouriers_Tracking {
         }
     }
 
-    /**
-     * Everything known about where the shipment is, as one line for a hover hint: the stage, the
-     * courier's own words when they add something, and how long it has stood still. Built in one place
-     * so the orders list and the order screen cannot word it differently.
-     */
+    /** One-line hover hint (stage, courier's words, time standing still), built here so both screens agree. */
     public static function stage_tip(string $stage, string $human, int $updated = 0): string {
         [$headline, $detail] = self::stage_headline($stage, $human);
         $tip = $headline . ($detail !== '' ? ' - ' . $detail : '');
