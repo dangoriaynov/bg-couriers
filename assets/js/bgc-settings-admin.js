@@ -1,21 +1,14 @@
-/* Static behaviors of the BG Couriers settings tab. Dynamic per-render config (nonces, courier ids,
-   current values) stays in small wp_add_inline_script snippets; everything here is self-contained. */
+/* Static behaviours of the BG Couriers settings tab. */
 
-/* Credential fields are rendered readonly so the browser's password manager skips them - it fills a
-   blank "Client ID" with the merchant's own e-mail, and a Save writes that over the real credential.
-   Readonly is released the moment the merchant actually means to type, so the field still works
-   normally; by then the page has loaded and the autofill pass is long over. */
+/* Credential fields stay readonly until focused so the password manager does not autofill them. */
 (function ($) {
     $(document).on('focus mousedown', 'input[data-bgc-nofill]', function () {
         var f = $(this);
-        if (!f.prop('disabled')) { f.removeAttr('readonly'); }   // a locked field stays locked
+        if (!f.prop('disabled')) { f.removeAttr('readonly'); }
     });
 })(jQuery);
 
-/* Turn every field description into a small (i) that sits inline right after the field label. Text /
-   select / number fields print their description as a <span class="description"> in the value cell; a
-   checkbox prints it as a raw text node inside its <label>. Pull that text out into a (i) on the label
-   and drop the inline copy. Descriptions with a link or <code> (e.g. the webhook URL) are left inline. */
+/* Turn each field description into a (i) on its label; descriptions with a link or <code> stay inline. */
 (function ($) {
     $(function () {
         $('#wpbody .bgc-settings table.form-table > tbody > tr').each(function () {
@@ -40,9 +33,7 @@
     });
 })(jQuery);
 
-/* Delivery-method sub-tabs: JS-switched panels, drag-to-reorder (saves via bgcouriers_save_order with the
-   nonce/courier carried on the nav's data- attributes), per-method enable toggle tinting, and the
-   courier-level free threshold greying out the per-option ones. */
+/* Delivery-method sub-tabs: panel switching, drag-to-reorder, enable tinting, free-threshold greying. */
 (function ($) {
     $(function () {
         var mn = $('.bgc-method-nav');
@@ -51,15 +42,7 @@
             $('.bgc-method-panel').hide().filter('[data-bgc-panel="' + t + '"]').show();
         }
         var dragged = false;
-        // Drag-to-reorder is a MOUSE gesture, and on a touch screen it is worse than absent: jQuery UI's
-        // sortable listens for mouse events, which a phone only ever gets as the compatibility events the
-        // browser synthesises after a tap - and it does not synthesise them for a touch that moved, which
-        // every real finger does. A sortable that has seen `start` and never sees `stop` leaves `dragged`
-        // true, and from then on the handler below swallows every tap on a tab: the sub-tabs simply stop
-        // switching until the page is reloaded. Reported from a phone, 2026-09-25.
-        //
-        // So on a coarse pointer the tabs are left alone: they are tabs first and a sortable second, and
-        // reordering couriers is something the shop does once, at a desk.
+        // No sortable on a coarse pointer: jQuery UI never sees `stop` for a moved touch and the tabs stop switching.
         var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
         if (mn.length && $.fn.sortable && !coarse) {
             mn.sortable({ items: '> .bgc-method-tab', distance: 6, tolerance: 'pointer', cursor: 'move', opacity: .85,
@@ -70,13 +53,12 @@
                 }
             });
         }
-        mn.on('click', '.nav-tab', function (e) { e.preventDefault(); if (dragged) { return; } switchTo($(this).data('bgc-tab')); }); // a drag isn't a tab switch
+        mn.on('click', '.nav-tab', function (e) { e.preventDefault(); if (dragged) { return; } switchTo($(this).data('bgc-tab')); });
         $(document).on('change', '.bgc-method-tab input[type=checkbox]', function () {
             var on = this.checked;
             $(this).closest('.bgc-method-tab').toggleClass('bgc-tab-on', on).toggleClass('bgc-tab-off', !on);
         });
-        // A courier-level free-shipping threshold overrides the per-option ones: while it holds a positive
-        // value, grey the per-option fields out (readonly, not disabled, so their saved values survive a save).
+        // readonly, not disabled, so the per-option values survive a save.
         function bgcFreeSync() {
             var lvl = $('input[id$="_free_threshold"]').not('.bgc-method-free').first();
             if (!lvl.length) { return; }
@@ -91,36 +73,22 @@
     });
 })(jQuery);
 
-/* Unsaved-changes indicator for the settings form.
-   WooCommerce only un-disables its Save button on the first change and then latches a leave-page warning
-   that never clears - undo every edit and it still nags, and the button gives no real signal that
-   something is pending. This compares the form against a snapshot instead, so the state is the TRUTH:
-   revert your edits and the highlight and the warning both go away. */
+/* Unsaved-changes indicator: compares the form against a snapshot, so reverting edits clears it. */
 (function ($) {
     $(function () {
         var C = (window.BGCOURIERS_SET || {}).i18n || {};
         var $form = $('form#mainform');
-        if (!$form.length || !$('.bgc-settings').length) { return; } // only our settings tab
+        if (!$form.length || !$('.bgc-settings').length) { return; }
         var $save = $form.find('.woocommerce-save-button, button[name="save"]').first();
         if (!$save.length) { return; }
 
         var base = $form.serialize();
         var dirty = false;
-        var touched = false; // has the merchant actually interacted yet?
+        var touched = false;
         var $pill = $('<span class="bgc-unsaved" aria-live="polite"></span>')
             .text(C.unsaved || 'Unsaved changes').insertBefore($save);
 
-        /*
-         * WooCommerce sets window.onbeforeunload ITSELF, and that is what was actually prompting.
-         *
-         * Verified in the browser on a courier tab: our own state said clean - no dirty class, no pill,
-         * the save button not lit - and window.onbeforeunload was still a function. wc-settings.js binds
-         * it on any change to the form, and the credential fields locking is such a change. So every fix
-         * I made to OUR tracking was in the wrong place; ours was already right.
-         *
-         * We share the property deliberately (one prompt, not two), so the last word has to be ours:
-         * after any change has been handled - WooCommerce's handler included - re-assert the verdict.
-         */
+        /* WooCommerce sets window.onbeforeunload itself on any change, so our verdict is re-asserted after its handler. */
         function enforce() {
             setTimeout(function () { if (!dirty) { window.onbeforeunload = null; } }, 0);
         }
@@ -131,70 +99,41 @@
             $save.toggleClass('bgc-dirty', dirty);
             if (dirty) { $save.removeAttr('disabled'); }
             $form.toggleClass('bgc-has-unsaved', dirty);
-            // Same property WooCommerce uses, so there is one prompt, not two - and clearing it here is
-            // what lets a reverted form stop warning.
             window.onbeforeunload = dirty ? function () { return C.leave || 'You have unsaved changes.'; } : null;
         }
 
         function check() {
-            // Before the first real interaction, any change is the page setting itself up (select2
-            // pre-selects, the pickup-office loader filling in its value) - re-baseline instead of
-            // reporting unsaved changes on a form nobody has touched.
+            // Before the first interaction, changes are the page setting itself up: re-baseline.
             if (!touched) { base = $form.serialize(); apply(false); return; }
             apply($form.serialize() !== base);
         }
 
         $(document).on('pointerdown keydown', function (e) {
-            // select2 renders its dropdown outside the form, so watch the document, not just the form.
+            // select2 renders outside the form, so watch the document.
             if (e.type === 'keydown' && (e.key === 'Tab' || e.key === 'Shift')) { return; }
             touched = true;
         });
-        /*
-         * A change fired by CODE is not an edit, and `touched` cannot tell the difference.
-         *
-         * `touched` goes true on the first pointerdown anywhere on the page and stays true - so every
-         * later programmatic change was read as an unsaved edit. That is why opening a courier tab,
-         * clicking anything at all and leaving raised "unsaved changes" on a form nobody had typed into:
-         * select2 settling, the office loader filling itself in, or the credential fields locking would
-         * fire a change after that first click.
-         *
-         * jQuery's .trigger('change') produces an event with NO originalEvent; a real interaction always
-         * has one. That is the discriminator. A programmatic change re-baselines instead of dirtying -
-         * the page changed itself, so its new state becomes the reference and only a person can make the
-         * form dirty from here.
-         */
+        /* A change with no originalEvent came from code, not the person: re-baseline instead of dirtying. */
         $form.on('change input', function (e) {
             if (!e.originalEvent) { base = $form.serialize(); apply(false); enforce(); return; }
             touched = true;
             check();
             enforce();
         });
-        // select2 reports a genuine choice through its own events - those ARE the person, even though the
-        // underlying change is triggered in code.
+        // select2's own events are the person, even though the underlying change is triggered in code.
         $(document).on('select2:select select2:unselect', function () { touched = true; check(); });
         $(document).on('click', '.iris-picker', function () { touched = true; setTimeout(check, 0); });
 
-        // The save is AJAX: the page never reloads, so the baseline taken at load stays behind and every
-        // saved value keeps comparing unequal - the pill sat there for good after the first save. Take a
-        // fresh baseline from the form the moment the save reports success.
-        // `touched` is deliberately NOT reset: the merchant has been editing, and the next change after a
-        // save is a real change, not the page settling in.
+        // The save is AJAX, so take a fresh baseline when it succeeds.
         $(document).on('bgc:saved', function () { base = $form.serialize(); apply(false); });
 
-        // Re-baseline once everything has finished settling itself. The credential fields LOCK after the
-        // page is ready - render_actions() disables them and blanks their value - and jQuery does not
-        // serialize a disabled field at all, so the form legitimately differs from the baseline taken a
-        // moment earlier. The result was "unsaved changes" on a courier tab nobody had typed into: the
-        // owner opened Pigeon Express, changed nothing, and was challenged on the way out.
-        // Guarded on a REAL edit, not on `touched` - `touched` is set by any pointerdown anywhere on the
-        // page, including the click on the courier tab that is trying to leave.
+        // Credential fields lock after load and disabled fields are not serialized: re-baseline after load unless really edited.
         var edited = false;
         $form.on('change input', function () { if (touched) { edited = true; } });
         $(window).on('load', function () {
             setTimeout(function () { if (!edited) { base = $form.serialize(); apply(false); } enforce(); }, 0);
         });
 
-        // Saving (or any submit) is leaving on purpose - never prompt for that.
         $form.on('submit', function () { window.onbeforeunload = null; });
         $form.find('.submit :input, button[name="save"]').on('click', function () { window.onbeforeunload = null; });
     });

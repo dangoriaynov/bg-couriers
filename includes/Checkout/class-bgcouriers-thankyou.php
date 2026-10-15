@@ -1,24 +1,10 @@
 <?php
 defined('ABSPATH') || exit;
 
-/**
- * Order summary for the "thank you" step.
- *
- * Two surfaces share the same renderers:
- *  - WC's native order-received page gets a delivery card (courier logo, delivery option, exact
- *    office/APS/address) via the woocommerce_thankyou hook - WC already prints the order number,
- *    items and totals there, so only the card is added.
- *  - The [bgcouriers_order_summary] shortcode renders the FULL summary (thank-you heading with the order
- *    number, items, totals, delivery card) for shops whose thank-you page is a custom WP page.
- *    It reads the order id + key from the URL WC passes along (?order=<id>&key=wc_order_...) and
- *    shows nothing unless the key matches the order, so a guessed order id reveals nothing.
- *    Attributes: heading="no" drops the heading, heading="number" shows just "Order #N · date"
- *    (for pages whose own title already says thank-you), items="no" drops the items/totals block,
- *    delivery="no" drops the delivery card - so one page can split the summary across sections.
- */
+/** Delivery card on WC's order-received page, plus the [bgcouriers_order_summary] shortcode for custom thank-you pages. */
 class BGCouriers_Thankyou {
     public function __construct() {
-        add_action('woocommerce_thankyou', [$this, 'native_card'], 4); // before WC's own details table
+        add_action('woocommerce_thankyou', [$this, 'native_card'], 4);
         add_shortcode('bgcouriers_order_summary', [$this, 'shortcode']);
     }
 
@@ -49,7 +35,6 @@ class BGCouriers_Thankyou {
         return wp_kses($html, self::TAGS);
     }
 
-    /** The order WC linked to: ?order=<id>&key=wc_order_... (also WC's own order-received query vars). */
     private static function order_from_request(): ?\WC_Order {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only render; the order key IS the credential.
         $id  = absint(wp_unslash($_GET['order'] ?? ($_GET['order-received'] ?? 0)));
@@ -64,7 +49,6 @@ class BGCouriers_Thankyou {
         return $order;
     }
 
-    /** Items + WC's canonical totals rows (subtotal / shipping / payment method / total). */
     private static function items_block(\WC_Order $order): string {
         $html = '<div class="bgc-ty-box bgc-ty-items"><div class="bgc-ty-title">' . esc_html__('Your order', 'bg-couriers') . '</div>';
         foreach ($order->get_items() as $item) {
@@ -87,7 +71,6 @@ class BGCouriers_Thankyou {
         return $html . '</div>';
     }
 
-    /** Where the parcel goes: courier logo + delivery option + the exact point (from the order address). */
     private static function delivery_card(\WC_Order $order): string {
         $courier = (string) $order->get_meta('_bgcouriers_courier');
         $method  = (string) $order->get_meta('_bgcouriers_method');
@@ -111,7 +94,6 @@ class BGCouriers_Thankyou {
         return $html . '</div>';
     }
 
-    /** Card styles: enqueued when the first block renders (late enqueue - WP prints it in the footer). */
     private static function styles(): void {
         static $done = false;
         if ($done) { return; }
@@ -120,7 +102,6 @@ class BGCouriers_Thankyou {
         wp_enqueue_style('bgc-thankyou', BGCOURIERS_URL . 'assets/css/bgc-thankyou.css', [], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
     }
 
-    /** Allowed markup for the summary (incl. wc_price spans/bdi and the courier logo img). */
     private const TAGS = [
         'div'    => ['class' => true],
         'h2'     => ['class' => true],

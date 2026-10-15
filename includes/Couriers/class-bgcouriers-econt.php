@@ -16,8 +16,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     public function id(): string { return 'econt'; }
     public function label(): string { return 'Econt'; }
 
-    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
-    public function ppp_payout_by_default(): bool { return true; } // pays cash on delivery out by postal money order as standard
+    public function ppp_payout_by_default(): bool { return true; }
 
     public function credential_hint(): array {
         return [
@@ -47,30 +46,20 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     /**
-     * Does the CHOSEN pay-out agreement actually match what the shop believes it is getting?
-     *
-     * Econt marks each agreement with `moneyTransfer`: true is a PPP (the Bulgarian postal money order a
-     * shop with no cash register may receipt cash through), false is a plain transfer. The shop separately
-     * declares, per courier, whether that courier pays out by PPP -
-     * and the whole cash-on-delivery fiscalisation rests on that declaration: with "I rely on the
-     * courier's PPP", a courier said not to do PPP is dropped from checkout entirely. Nothing compared
-     * the two, so this account was collecting cash on delivery under a bank-transfer agreement while the
-     * setting claimed PPP, and the money came back as an ordinary pay-out.
+     * Is the chosen pay-out agreement still on the profile?
      *
      * @return array<int,array{msg:string,fix:string}>
      */
     public function payout_problems(): array {
         $chosen = (string) get_option('bgcouriers_econt_cd_num', '');
         if ($chosen === '') { return []; }
-        // Cached: this is asked every time the settings screen paints a courier tab, and the answer
-        // changes only when the merchant signs a new agreement with Econt.
         $key  = 'bgcouriers_econt_cd_raw';
         $opts = get_transient($key);
         if (!is_array($opts)) {
             try {
                 $resp = $this->post_json($this->base . '/Profile/ProfileService.getClientProfiles.json', []);
             } catch (\Exception $e) {
-                return []; // connection problems are reported elsewhere; do not invent a payout warning
+                return [];
             }
             $opts = (array) ($resp['profiles'][0]['cdPayOptions'] ?? []);
             set_transient($key, $opts, HOUR_IN_SECONDS);
@@ -86,14 +75,11 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
                 'fix' => __('Pick one of the agreements your profile currently has, below.', 'bg-couriers'),
             ]];
         }
-        // Deliberately NOT judged here: which agreement is "the right one" is the merchant's call with
-        // Econt, and Econt's moneyTransfer flag does not map onto it the way it looks. CD139925 is marked
-        // moneyTransfer=false yet is exactly what this shop selects in Econt's own UI as its pay-out
-        // method. Reading that flag as "not a PPP" put a red error on a correctly configured shop.
+        // Not judged further: Econt's moneyTransfer flag does not map onto "is a PPP".
         return [];
     }
 
-    /** Econt uses HTTP Basic, not a body credential - override the transport. */
+    /** Econt uses HTTP Basic, not a body credential. */
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [
             'timeout' => 20,
@@ -104,8 +90,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     public function check_credentials(): bool {
-        // A refusal arrives as HTTP 517 with Econt's message, which post_json() throws - and the
-        // settings screen now shows it instead of "Invalid credentials".
+        // A refusal is HTTP 517 with Econt's message, thrown by post_json().
         $r = $this->post_json($this->base . '/Profile/ProfileService.getClientProfiles.json', []);
         return isset($r['profiles']);
     }
@@ -117,7 +102,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         $rows = self::parse_offices($this->post_json($this->base . '/Nomenclatures/NomenclaturesService.getOffices.json', ['countryCode' => 'BGR']));
         return $city_id > 0 ? array_values(array_filter($rows, static function ($o) use ($city_id) { return $o['city_id'] === $city_id; })) : $rows;
     }
-    /** $country is accepted so every courier answers the same call; Econt delivers in Bulgaria only. */
     public function search_streets(int $city_id, string $term, string $country = ''): array {
         $rows = $this->streets_of($city_id);
         if ($term === '') { return $rows; }
@@ -128,16 +112,8 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     /**
-     * A town's whole street list, kept for a day.
-     *
-     * getStreets answers with the town's whole list and takes no term - Sofia's is 4047 rows, 411 ms
-     * (measured 2026-09-13) - and it was fetched again on every keystroke in the street box, on every
-     * address label, and on every map pick. The list changes at the pace a town's streets do.
-     *
-     * The key carries the nomenclature generation, like the per-town office lists (see
-     * BGCouriers_Ajax::city_offices): "Sync now" retires it, because a transient cannot be deleted by
-     * prefix and on a shop with an object cache it is not even in the database. And the API host, since
-     * the demo and the live nomenclatures are two.
+     * A town's whole street list, cached for a day; getStreets takes no term. The key carries the
+     * nomenclature generation so "Sync now" retires it.
      *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
@@ -187,14 +163,11 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     // ── Quote (calculate mode) ──────────────────────────────────────────────
 
     /**
-     * Fetch the sender profile from Econt's ProfileService and cache it for one day.
-     * A sender is REQUIRED by Econt's createLabel API (it answers with a "sender" error otherwise).
+     * The sender profile, cached for a day; createLabel requires a sender.
      *
      * @return array{client:array,address:array}
      */
     private function sender_profile(): array {
-        // The ship-from address is chosen in settings (bgcouriers_econt_sender_address); the cache key includes it
-        // so changing the setting takes effect immediately instead of waiting for a stale transient.
         $chosen = (string) get_option('bgcouriers_econt_sender_address', '');
         $key    = 'bgcouriers_econt_sender_' . ($chosen !== '' ? $chosen : 'auto');
         $cached = get_transient($key);
@@ -205,7 +178,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         $profile  = $resp['profiles'][0] ?? [];
         $client   = $profile['client'] ?? [];
         $addrs    = $profile['addresses'] ?? [];
-        $address  = $addrs[0] ?? []; // default: first profile address
+        $address  = $addrs[0] ?? [];
         if ($chosen !== '') {
             foreach ($addrs as $a) { if ((string) ($a['id'] ?? '') === $chosen) { $address = $a; break; } }
         }
@@ -219,8 +192,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     /**
-     * Ship-from addresses from the client profile as id => human label, for the settings dropdown.
-     * Cached for a day; empty on API failure (the setting then just offers "automatic").
+     * Ship-from addresses as id => label for the settings dropdown; cached for a day, empty on failure.
      *
      * @return array<string,string>
      */
@@ -246,7 +218,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return $out;
     }
 
-    /** CD (cash on delivery) pay-out agreements from the client profile - `num` => human label. Cached. */
+    /** CD pay-out agreements from the profile, `num` => label; cached. */
     public function cd_pay_options(): array {
         $cached = get_transient('bgcouriers_econt_cd_options');
         if (is_array($cached)) { return $cached; }
@@ -266,11 +238,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return $out;
     }
 
-    /**
-     * Resolve the Econt office string code (e.g. "1000") from a numeric office_id.
-     * Uses BGCouriers_Nomenclature::office_by_id which returns a row with a 'code' key
-     * (populated if the schema has been extended; returns '' otherwise).
-     */
     private function office_code(int $site_id, int $office_id): string {
         if ($office_id <= 0) { return ''; }
         if (class_exists('BGCouriers_Nomenclature')) {
@@ -280,12 +247,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return '';
     }
 
-    /**
-     * Build the request body for createLabel in calculate mode.
-     *
-     * @param array $s      Shipment descriptor (method, site_id, office_code, weight_kg, street_name, street_no …)
-     * @param array $sender Sender profile as returned by sender_profile(): {client, address}
-     */
     public static function build_calculate_body(array $s, array $sender): array {
         $label = [
             'senderClient'  => [
@@ -309,21 +270,15 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             'shipmentDescription' => BGCouriers_Settings::shipment_contents(),
         ];
 
-        // Cash on delivery, on the QUOTE as well as the label. Econt's fee for collecting the money is
-        // part of the price it answers with (measured 2026-08-18: 5.06 -> 6.60 for a 50 EUR collection,
-        // with shipmentNumber null, so nothing was created). Quoting without it told the customer a
-        // price the shipment could never cost. Field names per Econt's own OpenAPI, ShippingLabelServices.
+        // COD on the quote too: Econt's collection fee is part of the price.
         $cd = (float) ($s['cod_amount'] ?? 0);
         if ($cd > 0 && get_option('bgcouriers_econt_cod_enabled', 'no') === 'yes') {
             $label['services'] = [
                 'cdAmount'   => $cd,
-                'cdType'     => 'get', // collect from the receiver, as the label does
+                'cdType'     => 'get',
                 'cdCurrency' => (string) ($s['currency'] ?? 'EUR'),
             ];
-            // The pay-out agreement, because the fee is quoted AGAINST it. Econt charges 1.54 EUR to
-            // collect 50 without one and 0.78 with this shop's (the agreement carries a discount), so a
-            // quote that omitted it would have overcharged by 0.76 for a shipment the label creates at
-            // the lower price. The label sends the same option - the two must ask the same question.
+            // The pay-out agreement changes the fee, so the quote must send what the label sends.
             $tpl = (string) get_option('bgcouriers_econt_cd_num', '');
             if ($tpl !== '') { $label['services']['cdPayOptionsTemplate'] = $tpl; }
         }
@@ -341,28 +296,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return ['mode' => 'calculate', 'label' => $label];
     }
 
-    /**
-     * Parse the createLabel calculate response into a BGCouriers_Quote.
-     *
-     * **`totalPrice` is the MONEY, not a net rate** - and this line said the opposite for months.
-     *
-     * Calculate mode returns no VAT figure at all: the price side is totalPrice, senderDueAmount,
-     * receiverDueAmount, otherDueAmount, discountAmount and the two cd* fields, and there is no
-     * totalPriceWithVAT anywhere in the fifty-odd keys (re-checked live 2026-08-31). The old reading
-     * leaned on Econt's documentation calling totalPrice "without VAT" and made the tax 0, which meant
-     * WooCommerce added 20% on top of it.
-     *
-     * The waybill says otherwise. A shipment quoted at 5.06 printed
-     *
-     *     Courier service: 5.06 EUR     PAYMENT - Total: collect 5.17 EUR    (translated off the print)
-     *
-     * so what Econt actually collects for that shipment is 5.17 - two percent above the quote, not
-     * twenty. A net 5.06 would have been collected as 6.07. (The 0.11 is some further service on the
-     * waybill and is not modelled here; it is not VAT, which is the question this answers.)
-     *
-     * So the quote is split like Express One's and Evropat's. If an account ever DOES return
-     * totalPriceWithVAT, that is the courier speaking about itself and it wins.
-     */
+    /** totalPrice is GROSS and calculate mode returns no VAT figure; totalPriceWithVAT wins when present. */
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
         $total    = (float) ($resp['label']['totalPrice'] ?? 0);
         $withVat  = (float) ($resp['label']['totalPriceWithVAT'] ?? 0);
@@ -378,9 +312,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return new BGCouriers_Quote($net, $tax, $cur, 'live');
     }
 
-    /**
-     * Fetch a live shipping quote via Econt's createLabel in calculate mode.
-     */
     public function quote(array $shipment): BGCouriers_Quote {
         if (($shipment['method'] ?? 'address') !== 'address') {
             $shipment['office_code'] = $this->office_code(
@@ -397,18 +328,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
 
     // ── Label creation ──────────────────────────────────────────────────────
 
-    /**
-     * Build the request body for createLabel in create mode (issues a real waybill).
-     *
-     * Uses the order's billing name/phone for receiverClient and the order's
-     * delivery method meta (_bgcouriers_method) to set either receiverOfficeCode or
-     * receiverAddress.  Adds senderAgent for juridical-entity senders.
-     *
-     * @param \WC_Order $order       The WooCommerce order.
-     * @param array     $sender      Sender profile as returned by sender_profile(): {client, address}.
-     * @param string    $office_code Econt string office code (e.g. "1009") for office/automat orders.
-     * @return array                 Full request body suitable for the Econt createLabel endpoint.
-     */
     public static function build_label_body(\WC_Order $order, array $sender, string $office_code): array {
         $label = [
             'senderClient'  => [
@@ -425,24 +344,17 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             'receiverClient' => array_filter([
                 'name'   => $order->get_formatted_billing_full_name(),
                 'phones' => [$order->get_billing_phone()],
-                'email'  => BGCouriers_Settings::label_email($order), // empty unless sharing is enabled
+                'email'  => BGCouriers_Settings::label_email($order),
             ], static function ($v) { return $v !== ''; }),
             'packCount'           => 1,
             'weight'              => max(0.1, self::order_weight_kg($order)),
             'shipmentType'        => 'pack',
             'shipmentDescription' => BGCouriers_Settings::shipment_contents(),
-            // The shop's own order number, so a parcel in Econt's panel can be matched back to the order
-            // it came from. Econt was the ONE courier never told this: left unsent, the field shows the
-            // waybill number, which is the number the merchant already had and cannot look anything up
-            // with. Speedy has carried it as ref1 all along, BOX NOW as orderNumber, Pigeon as
-            // external_reference. Field read off Econt's own OpenAPI spec
-            // (ee.econt.com/services/openapi.yaml -> ShippingLabel.orderNumber, string), not guessed.
+            // The shop's order number, so a parcel in Econt's panel can be matched to the order.
             'orderNumber'         => (string) $order->get_order_number(),
         ];
 
-        // Econt was the one courier we never told how big the parcel is. It prices on volumetric weight
-        // and on sizeUnder60cm, so leaving all three blank makes it assume rather than measure - and the
-        // shop's own default (a flat 10x10x2 box) is the smallest thing it can honestly be told.
+        // Econt prices on volumetric weight and sizeUnder60cm; blank dimensions make it assume.
         $dims = BGCouriers_Settings::box_dims($order);
         $label['shipmentDimensionsL'] = (float) $dims['length'];
         $label['shipmentDimensionsW'] = (float) $dims['width'];
@@ -453,14 +365,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         if ($method === 'office' || $method === 'automat') {
             $label['receiverOfficeCode'] = $office_code;
         } else {
-            // Address delivery. Econt only accepts a street+num pair when the street matches its OWN
-            // nomenclature; our checkout street is free text, so it errors ExInvalidAddress ("insufficient,
-            // add street+num OR quarter+other"). We therefore also pass the full free-text address as
-            // quarter+other, which Econt falls back to when the street is not recognised.
-            // Address delivery. Econt validates the receiver address against the city; street+num is accepted
-            // as long as the CITY is correct (verified via validateAddress: even a loosely-spelled street
-            // validates 'normal' in the right city, and fails only when the city is wrong). We also pass the
-            // building details in `other` and the complex as `quarter`, mirroring Econt's own address shape.
+            // Street+num is accepted when the city is right; building details go in `other`, the complex in `quarter`.
             $street = (string) $order->get_meta('_bgcouriers_street_name');
             $num    = (string) $order->get_meta('_bgcouriers_street_no');
             $other  = self::receiver_other($order);
@@ -473,7 +378,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $label['receiverAddress'] = $addr;
         }
 
-        // Juridical senders require senderAgent (authorised person / MOL).
+        // Juridical senders require senderAgent (MOL).
         if (!empty($sender['client']['juridicalEntity'])) {
             $mol = (string) ($sender['client']['molName'] ?? '');
             if ($mol === '') {
@@ -485,7 +390,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             ];
         }
 
-        // Optional services (SMS, e-mail, pay-after-accept) - applied regardless of COD.
         $services = [];
         if (get_option('bgcouriers_econt_sms_notification', 'no') === 'yes') {
             $services['smsNotification'] = true;
@@ -494,24 +398,14 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         if ($notify_email !== '') {
             $services['emailOnDelivery'] = $notify_email;
         }
-        // "inspect before you pay" needs a courier at handover - never sent for Econtomat (automat)
-        // deliveries; the API default applies there.
+        // Never for Econtomat (automat): inspection needs a courier at handover.
         $inspect = BGCouriers_Settings::open_before_pay();
         if ($method !== 'automat' && $inspect !== 'no') {
             $services['payAfterAccept'] = true;
-            // Econt splits the two: seeing the parcel and trying it out. "test" is the stronger promise
-            // and includes looking at it, so both flags go together.
             if ($inspect === 'test') { $services['payAfterTest'] = true; }
         }
 
-        // Cash on delivery + packing list - only when enabled in the Econt settings AND the order is
-        // actually paid cash-on-delivery (so a prepaid order is never charged again on delivery).
-        // Who pays the courier fee. Econt CAN charge the recipient - paymentReceiverMethod with the amount
-        // as a percentage - which was verified live against ee.econt.com: the whole fee moves from
-        // senderDueAmount to receiverDueAmount. paymentSenderMethod is still never set: 'credit' makes
-        // Econt demand a payer client number the profile does not carry (they answer "wrong payer client
-        // number for the sender"), and leaving it unset already means "bill the API client", which is what we want when
-        // the merchant pays.
+        // paymentSenderMethod is never set: 'credit' demands a payer client number the profile lacks; unset bills the API client.
         $payer = self::service_payer('econt', $order);
         if ($payer === 'recipient') {
             $label['paymentReceiverMethod']          = 'cash';
@@ -519,34 +413,22 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $label['paymentReceiverAmount']          = 100;
         }
 
-        // Cash on delivery + packing list - only when enabled in the Econt settings AND the order is
-        // actually paid cash-on-delivery (so a prepaid order is never charged again on delivery).
+        // Only for orders actually paid cash-on-delivery, so a prepaid order is never charged again.
         if (get_option('bgcouriers_econt_cod_enabled', 'no') === 'yes' && $order->get_payment_method() === 'cod') {
-            // Goods-only when the recipient pays the courier at the door (they must not be charged the
-            // delivery twice - once in the COD and again as the courier's own fee); the full total when
-            // the merchant already charged shipping at checkout.
             $cod = self::cod_for_payer($order, $payer);
             $services['cdAmount']             = $cod;
-            $services['cdType']               = 'get'; // collect from the receiver
+            $services['cdType']               = 'get';
             $services['cdCurrency']           = $order->get_currency();
             $services['cdPayOptionsTemplate'] = (string) get_option('bgcouriers_econt_cd_num', '');
-            // Econt totals the contents list as sum(price x count) and REJECTS the label unless it equals cdAmount,
-            // so the list has to balance to whatever we are collecting, not to the order total.
+            // Econt rejects the label unless the contents list totals cdAmount.
         }
 
-        // Partial delivery: the recipient may open the parcel at the counter and keep only part of it.
-        // Econt reconciles what is kept against the packing list above, which is why this is only offered
-        // alongside cash on delivery - without a collection there is nothing to settle at the door. The
-        // merchant decides (Drusoft's plugin turns it on for every COD order; here it is a setting,
-        // because the unkept half travels back at the merchant's expense).
+        // Partial delivery only alongside COD: Econt reconciles what is kept against the packing list.
         if (get_option('bgcouriers_econt_partial_delivery', 'no') === 'yes' && isset($services['cdAmount'])) {
             $label['partialDelivery'] = true;
         }
 
-        // The contents list says what is IN the parcel, which has nothing to do with how it is paid for - it used
-        // to be built inside the cash-on-delivery block, so a prepaid shipment left with no itemised list
-        // at all. With COD it must total exactly the collected amount (Econt rejects the label otherwise);
-        // without one there is nothing to balance against, so the items stand on their own.
+        // The contents list goes on every shipment; with COD it must total the collected amount.
         $lines = self::packing_list($order, isset($services['cdAmount']) ? (float) $services['cdAmount'] : null);
         if ($lines) {
             $label['packingListType'] = 'digital';
@@ -560,7 +442,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return ['mode' => 'create', 'label' => $label];
     }
 
-    /** Building details for Econt's `other` field: block/entrance/floor/apt plus any note (street+num are separate). */
+    /** Building details for Econt's `other` field; street+num are separate. */
     private static function receiver_other(\WC_Order $order): string {
         $parts = [];
         foreach (['_bgcouriers_block' => 'бл.', '_bgcouriers_entrance' => 'вх.', '_bgcouriers_floor' => 'ет.', '_bgcouriers_apartment' => 'ап.'] as $meta => $lbl) {
@@ -573,10 +455,8 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     /**
-     * Order line items as Econt PackingListElement[] - seq #, name, weight (kg), qty, price.
-     * Econt totals the contents list as sum(price x count), so price + weight are PER UNIT (tax-inclusive).
-     * Econt requires that contents-list total to equal the cash on delivery (cdAmount = order total), so any
-     * remainder (shipping, fees, rounding) is folded into one balancing line.
+     * PackingListElement[]: price and weight per unit; with COD the list must total cdAmount,
+     * so a balancing line absorbs the remainder.
      */
     private static function packing_list(\WC_Order $order, ?float $cod_total): array {
         $out = []; $i = 0; $sum = 0.0;
@@ -586,20 +466,16 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             $weight  = ($product && $product->get_weight() !== '') ? (float) wc_get_weight((float) $product->get_weight(), 'kg') : 0.0;
             $qty     = max(1, (int) $item->get_quantity());
             $sku     = $product ? (string) $product->get_sku() : '';
-            $unit    = round(((float) $item->get_total() + (float) $item->get_total_tax()) / $qty, 2); // per-unit, tax-incl
+            $unit    = round(((float) $item->get_total() + (float) $item->get_total_tax()) / $qty, 2);
             $sum    += $unit * $qty;
             $out[] = [
                 'inventoryNum' => $sku !== '' ? $sku : (string) $i,
                 'description'  => (string) $item->get_name(),
-                'weight'       => round($weight, 3), // per unit; Econt scales by count
+                'weight'       => round($weight, 3),
                 'count'        => $qty,
                 'price'        => $unit,
             ];
         }
-        // Whatever is left between the item lines and the amount actually being collected: the delivery
-        // and any fees when the merchant charged them, or just rounding when the recipient pays the
-        // courier directly and only the goods are collected. With nothing being collected there is no
-        // total to reconcile with, so the list is simply what is in the box.
         if ($cod_total === null) { return $out; }
         $remainder = round($cod_total - $sum, 2);
         if (abs($remainder) >= 0.01) {
@@ -614,19 +490,10 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return $out;
     }
 
-    /**
-     * Extract the waybill number from a createLabel response.
-     *
-     * @param array $resp Decoded JSON response from the Econt createLabel endpoint.
-     * @return string     The shipment number (waybill), or '' if not present.
-     */
     public static function parse_shipment_id(array $resp): string {
         return (string) ($resp['label']['shipmentNumber'] ?? '');
     }
 
-    /**
-     * Issue a real waybill for the given order.  Live - do NOT call in tests.
-     */
     public function create_label(\WC_Order $order): BGCouriers_Label {
         $sender = $this->sender_profile();
         $office_code = $this->office_code(
@@ -635,7 +502,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         );
         $body = self::build_label_body($order, $sender, $office_code);
         $resp = $this->post_json($this->base . '/Shipments/LabelService.createLabel.json', $body);
-        // The create response already carries the label PDF URL, so hand it back and skip a second call.
+        // The create response already carries the PDF URL, so no second call.
         return new BGCouriers_Label(
             self::parse_shipment_id($resp),
             (string) ($resp['label']['pdfURL'] ?? ''),
@@ -644,16 +511,9 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     /**
-     * Compare what Econt ACTUALLY put on the shipment against what we asked for.
+     * What Econt actually applied vs what was asked: the COD is the service row of type 'CD', whose `count` is the amount.
      *
-     * Econt echoes the applied services back on create - each one a {type, description, count, price,
-     * paymentSide} row - so the cash-on-delivery can be confirmed without a second call: it is the row
-     * with type 'CD', whose `count` is the amount to collect. A waybill printing a COD line of 0.00 has no
-     * such row, and that is exactly the failure nobody notices until the parcel is already gone.
-     *
-     * @param array $body The request we sent.
-     * @param array $resp Econt's create response.
-     * @return string[] Problems, empty when everything we asked for was applied.
+     * @return string[]
      */
     public static function check_applied(array $body, array $resp): array {
         $problems = [];
@@ -670,7 +530,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             /* translators: 1: requested amount, 2: amount the courier applied */
             $problems[] = sprintf(__('Cash on delivery mismatch: %1$s requested, %2$s on the waybill.', 'bg-couriers'), (string) $want_cd, (string) $got_cd);
         }
-        // Who pays the courier. Econt states it per service row and again as the due amounts.
         $want_recipient = !BGCouriers_Settings::ship_in_total('econt');
         $receiver_due   = (float) ($resp['label']['receiverDueAmount'] ?? 0);
         if ($want_recipient && $receiver_due <= 0) {
@@ -679,9 +538,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return $problems;
     }
 
-    /**
-     * Fetch label PDF bytes for a given waybill.  Live - do NOT call in tests.
-     */
     public function label_formats(): array { return ['A4']; } // Econt labels are A4-landscape; no size param in the API
 
     public function get_label_pdf(string $waybill, string $format = ''): string {
@@ -694,18 +550,11 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             /* translators: %s: courier name. */
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no label link in its answer.', 'bg-couriers'), 'Econt')));
         }
-        // Through the shared fetch: this one used to return whatever came back, unchecked, so an error
-        // page from the link would have been saved and printed as a label.
         return $this->fetch_pdf($url, [], 'Econt');
     }
 
     // ── Tracking ────────────────────────────────────────────────────────────
 
-    /**
-     * Parse a getShipmentStatuses response into a BGCouriers_Tracking object.
-     *
-     * Event mapping: destinationType → code, destinationDetailsEn → name, time(ms) → date.
-     */
     public static function parse_tracking(array $resp): BGCouriers_Tracking {
         $st     = $resp['shipmentStatuses'][0]['status'] ?? [];
         $events = array_map(static function (array $e): array {
@@ -716,26 +565,19 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             ];
         }, $st['trackingEvents'] ?? []);
 
-        // Bulgarian first: this is what the merchant reads. The English variant stays the fallback.
         $status = (string) ($st['shortDeliveryStatus'] ?? $st['shortDeliveryStatusEn'] ?? '');
         if ($status === '') {
             $last   = end($events);
             $status = $last ? (string) ($last['name'] ?? 'UNKNOWN') : 'UNKNOWN';
         }
 
-        // Econt answers both questions outright, so neither has to be guessed from prose: sendTime is
-        // stamped when the parcel is handed over, deliveryTime when the receiver has it. Both are null
-        // for the whole journey up to their moment - the status text meanwhile says things like
-        // "Awaiting delivery to Econt" while the parcel is still sitting on the merchant's desk.
+        // sendTime is set at handover, deliveryTime when the receiver has it; both null until then.
         $phase    = ((string) ($st['deliveryTime'] ?? '')) !== '' ? 'DELIVERED' : '';
         $handover = ((string) ($st['sendTime'] ?? '')) !== '' || $phase === 'DELIVERED';
 
         return new BGCouriers_Tracking((string) ($st['shipmentNumber'] ?? ''), $status, $events, $phase, $handover, true);
     }
 
-    /**
-     * Fetch live tracking info for a waybill.  Live - do NOT call in tests.
-     */
     public function track(string $waybill): BGCouriers_Tracking {
         $resp = $this->post_json(
             $this->base . '/Shipments/ShipmentService.getShipmentStatuses.json',
@@ -744,33 +586,16 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return self::parse_tracking($resp);
     }
 
-    /**
-     * Return the public Econt tracking URL for a waybill.
-     */
     public function tracking_url(string $waybill): string {
         return 'https://www.econt.com/en/services/track-shipment/' . rawurlencode($waybill);
     }
 
-    /**
-     * Cancel/delete a waybill.  Live - do NOT call in tests.
-     * The owner cancels test waybills manually; this is implemented for completeness.
-     */
     // ── Pickup request ───────────────────────────────────────────────────────
 
     /**
-     * Body for ShipmentService.requestCourier.json.
-     *
-     * Two formats matter and neither is obvious from the schema, which says only "date-time":
-     *  - the times are `Y-m-d H:i:s`, NOT ISO 8601 (Econt's parser rejects the T);
-     *  - attachShipments takes the 13-digit waybill numbers as strings.
-     * Both are visible in Drusoft's Econt plugin, which has been calling this endpoint in production.
-     *
-     * The sender comes from the account profile, exactly as the label does - the courier is being sent
-     * to the address the shipments are going out from, and there is only one of those.
+     * Body for requestCourier: times are `Y-m-d H:i:s`, not ISO 8601, and attachShipments takes the waybills as strings.
      *
      * @param string[] $waybills
-     * @param array    $opts   date (Y-m-d), from/to (H:i), weight_kg, packs
-     * @param array    $sender The profile from sender_profile().
      */
     public static function build_pickup_body(array $waybills, array $opts, array $sender): array {
         $date = (string) ($opts['date'] ?? '');
@@ -796,7 +621,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         ];
     }
 
-    /** RequestCourierResponse -> courierRequestID. */
     public static function parse_pickup_id(array $resp): string {
         return (string) ($resp['courierRequestID'] ?? '');
     }
@@ -816,17 +640,12 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
 
     public function cancel_label(string $waybill): bool {
-        // A refusal is thrown with Econt's words, from here or from post_json() - the merchant reads
-        // "handed to the driver" rather than a bare "did not cancel".
         $resp = $this->post_json(
             $this->base . '/Shipments/LabelService.deleteLabels.json',
             ['shipmentNumbers' => [$waybill]]
         );
         if (!empty($resp['error'])) { throw new BGCouriers_Api_Exception(esc_html('Econt: ' . self::words($resp['error']))); }
-            // deleteLabels reports per-shipment results. "shipment ... not found" is not a failure: the
-            // shipment is not there any more, which is exactly what cancelling was for - a second attempt
-            // (or a cancel of something Econt already dropped) must not report failure and leave the
-            // merchant unable to re-issue. Anything else IS a failure.
+            // "not found" is not a failure: the shipment is already gone.
             foreach (($resp['results'] ?? []) as $res) {
                 if (empty($res['error'])) { continue; }
                 $m = mb_strtolower((string) ($res['error']['message'] ?? ''));
@@ -836,7 +655,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return true;
     }
 
-    /** An Econt error node as words: its message, else its type, else nothing. @param mixed $err */
+    /** An Econt error node as words. @param mixed $err */
     private static function words($err): string {
         if (is_string($err)) { return trim($err); }
         if (!is_array($err)) { return ''; }
@@ -849,7 +668,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         try {
             $resp = $this->post_json($this->base . '/Shipments/ShipmentService.getShipmentStatuses.json', ['shipmentNumbers' => [$waybill]]);
             $st = $resp['shipmentStatuses'][0] ?? [];
-            if (!empty($st['error'])) { return true; } // not found -> gone
+            if (!empty($st['error'])) { return true; }
             $status = mb_strtolower((string) ($st['status']['shortDeliveryStatus'] ?? '') . ' ' . (string) ($st['status']['shortDeliveryStatusEn'] ?? ''));
             if (BGCouriers_Tracking::reads_cancelled($status)) { return true; }
             foreach (($st['status']['trackingEvents'] ?? []) as $ev) {

@@ -1,23 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 class BGCouriers_Order {
-    /**
-     * Couriers whose parcel-count and insurance field names are VERIFIED - Speedy against its own
-     * schema (api.speedy.bg/v1/schema), Sameday against a payload we already send successfully.
-     *
-     * The order editor hides both boxes for anyone else. Econt, Pigeon and BOX NOW are not here because
-     * their names for these are unknown, and a field that accepts "3 parcels" and then ships one is a
-     * lie the merchant only discovers at the depot.
-     */
-    /**
-     * The couriers whose API takes a parcel count and a declared value, and applies them.
-     *
-     * Each courier answers for itself (multi_parcel()), so this is the registry's answer rather than a
-     * list written out here: a list in this file is one more place to remember when a courier is added,
-     * and it sat a file away from every courier it named.
-     *
-     * @return string[] courier ids, in registration order
-     */
+    /** @return string[] couriers whose API applies a parcel count and a declared value */
     public static function multi_parcel_couriers(): array {
         $out = [];
         foreach (array_keys(BGCouriers_Couriers::all()) as $id) {
@@ -40,41 +24,19 @@ class BGCouriers_Order {
         ];
     }
 
-    /**
-     * How many physical parcels this order is being sent as.
-     *
-     * One unless the merchant says otherwise. It used to be one FULL STOP - `parcelsCount => 1` was a
-     * literal in the Speedy body and `packageNumber => 1` in Sameday's - so a shop sending three boxes
-     * got one waybill for one box and had to make the other two by hand, outside the plugin.
-     *
-     * Capped at 99: the number comes from a human typing into a box, and a courier API answering an
-     * accidental 1000 with a thousand labels is not a failure anyone wants to discover afterwards.
-     */
+    /** Parcels the order ships as; capped at 99 so a typo never prints a thousand labels. */
     public static function parcels(\WC_Order $order): int {
         $n = (int) $order->get_meta('_bgcouriers_parcels');
         return $n > 1 ? min($n, 99) : 1;
     }
 
-    /**
-     * The value to insure this shipment for, in the order's own currency; 0 means no insurance.
-     *
-     * Deliberately NOT defaulted to the order total. Insurance costs the sender money on most tariffs,
-     * so it is opt-in per order - a plugin that quietly insured everything would be spending the
-     * merchant's money on their behalf.
-     */
+    /** Declared value to insure, 0 = none; opt-in per order, never defaulted to the total. */
     public static function insurance(\WC_Order $order): float {
         $v = (float) $order->get_meta('_bgcouriers_insurance');
         return $v > 0 ? round($v, 2) : 0.0;
     }
 
-    /**
-     * One entry per parcel, each carrying its share of the weight.
-     *
-     * Split evenly and the remainder given to the first, so the parts always add back up to the total -
-     * a courier that re-weighs at the depot bills the difference, and "roughly" is not good enough.
-     *
-     * @return array<int,float> per-parcel weight in kg, in sequence
-     */
+    /** @return array<int,float> even split, remainder on the first so the parts add up to the total */
     public static function parcel_weights(float $total_kg, int $parcels): array {
         $parcels = max(1, $parcels);
         $total   = max(0.1, $total_kg);

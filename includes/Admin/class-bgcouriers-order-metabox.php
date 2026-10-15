@@ -4,25 +4,21 @@ defined('ABSPATH') || exit;
 /** Renders the shipment panel (waybill + generate/print/track) at the TOP of a BG Couriers order. */
 class BGCouriers_Order_Metabox {
     public function __construct() {
-        // The order-data panel (after the shipping address) - visible at the top, both HPOS + legacy.
         add_action('woocommerce_admin_order_data_after_shipping_address', [$this, 'render'], 10, 1);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_panel_style']);
     }
 
-    /** Panel stylesheet, enqueued early (head) on the order screens so the panel never flashes unstyled. */
     public function enqueue_panel_style(): void {
         $screen = function_exists('get_current_screen') ? get_current_screen() : null;
         if (!$screen || !in_array($screen->id, ['woocommerce_page_wc-orders', 'shop_order'], true)) { return; }
         $css = BGCOURIERS_PATH . 'assets/css/bgc-order-panel.css';
         wp_enqueue_style('bgc-order-panel', BGCOURIERS_URL . 'assets/css/bgc-order-panel.css', [], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
-        // The stage colours, from the same generator the orders list uses - one source for both screens.
-        // Without this the panel's stage icons would all be the stylesheet's neutral grey.
         wp_add_inline_style('bgc-order-panel', BGCouriers_Order_Columns::stage_color_css());
-        BGCouriers_Tips::enqueue(); // the panel's hover hints (data-tip)
+        BGCouriers_Tips::enqueue();
     }
 
     public function render($order): void {
-        $courier = BGCouriers_Labels::order_courier($order); // any BG Couriers order, not just Speedy
+        $courier = BGCouriers_Labels::order_courier($order);
         if (!$courier) { return; }
         $id      = $order->get_id();
         $waybill = (string) $order->get_meta('_bgcouriers_waybill');
@@ -34,22 +30,15 @@ class BGCouriers_Order_Metabox {
         $nonce_url = static function (string $action, string $nonce) use ($base, $id): string {
             return esc_url(wp_nonce_url($base . '?action=' . $action . '&order_id=' . $id, $nonce . $id));
         };
-        // Icon-only action button: an <a> for links, a <button> for JS-driven actions. Each carries a
-        // data-tip hover hint (see CSS) instead of visible text.
         $act = static function (string $tag, string $icon, string $tip, string $attrs, string $extra_class = ''): string {
             $cls = trim('bgc-act ' . $extra_class);
             return '<' . $tag . ' class="' . esc_attr($cls) . '" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '" ' . $attrs . '>'
                 . '<span class="dashicons dashicons-' . esc_attr($icon) . '"></span></' . $tag . '>';
         };
         $edit_tip = __('Edit delivery details', 'bg-couriers');
-        // Once the courier holds the parcel, cancelling / re-issuing / editing are refused by the server
-        // anyway - so they are shown dimmed and inert rather than left to be clicked and turned down. The
-        // hint on each says why AND how to get them back, because the way out is not obvious: put the
-        // order back to Processing or Pending payment. Print and Track stay live: reading is always fine.
+        // Locked once the courier holds the parcel; the server refuses these actions anyway.
         $locked     = BGCouriers_Labels::is_locked($order);
         $locked_msg = BGCouriers_Labels::locked_message();
-        // How the waybill stands against the order and the printer - the same call the orders list makes,
-        // so the two screens agree. Read once here: it colours the print tile and picks the banner below.
         $lstate     = $waybill !== '' ? BGCouriers_Labels::label_state($order) : '';
         $unprinted  = $lstate === BGCouriers_Labels::LABEL_STATE_UNPRINTED;
         $off        = $locked ? ' bgc-off' : '';
@@ -58,11 +47,7 @@ class BGCouriers_Order_Metabox {
             return $locked ? $locked_msg : $tip;
         };
 
-        // Header: courier logo + delivery-type label + (when issued) the waybill number, which is itself the
-        // copy button - clicking the field copies the number (see bgc-order-admin.js).
         $logo = BGCouriers_Couriers::logo_url($courier->id());
-        // Icon-only action group (no text): Generate when unlabelled, else print/track; plus edit, and cancel
-        // last when a waybill exists. All go on the SAME row as the logo/type/waybill.
         if ($waybill === '') {
             $gen = $nonce_url('bgcouriers_generate_label', 'bgcouriers_generate_label_');
             $actions = $act('a', 'tag', __('Generate label', 'bg-couriers'), 'href="' . $gen . '"', 'bgc-primary')
@@ -72,22 +57,13 @@ class BGCouriers_Order_Metabox {
             $print  = esc_url(wp_nonce_url($base . '?action=bgcouriers_print_batch&order_id=' . $id . '&paper=' . $paper, 'bgcouriers_print_batch'));
             $track  = $nonce_url('bgcouriers_track', 'bgcouriers_track_');
             $cancel = $nonce_url('bgcouriers_cancel_label', 'bgcouriers_cancel_label_');
-            // Re-issue: one click voids the current waybill and issues a fresh one from the order's CURRENT
-            // details/settings (weights, parcel dims, contents), instead of cancel-then-generate. Sits first
-            // in the action group so it follows the waybill-copy button. JS confirms (bgc-order-admin.js).
             $regen  = $nonce_url('bgcouriers_regenerate', 'bgcouriers_regenerate_');
-            // The URLs are withheld while locked, not just hidden behind a class: the JS handlers read
-            // them, so a control with nothing to act on cannot fire even if the styling is overridden.
+            // URLs are withheld while locked, not just styled: the JS handlers read them.
             $regen_attr  = 'type="button"' . ($locked ? '' : ' data-regen-url="' . $regen . '"') . $off_attrs;
             $cancel_attr = 'type="button"' . ($locked ? '' : ' data-cancel-url="' . $cancel . '"') . $off_attrs;
             $actions = $act('button', 'update', $tip_of(__('Re-issue waybill (voids the current one)', 'bg-couriers')), $regen_attr, 'bgc-regen' . $off)
-                // Green while nobody has printed this waybill: the tile is the signal, the same as in the
-                // orders list. The click turns it back (bgc-order-admin.js); the PDF opens in a new tab.
                 . $act('a', 'printer', BGCouriers_Labels::print_tip($unprinted), 'href="' . $print . '" target="_blank"', 'bgc-primary' . ($unprinted ? ' bgc-unprinted' : ''))
-                // Only where there is somewhere to send them. Evropat has no public tracking page - its
-                // site is the cabinet, and nothing there shows one waybill to somebody not signed in - so
-                // the button would open a redirect to nowhere. The waybill number above is still the thing
-                // that identifies the parcel, and it is still one click to copy.
+                // Evropat has no public tracking page, so no track button.
                 . ($courier->tracking_url($waybill) !== ''
                     ? $act('a', 'location', __('Track shipment', 'bg-couriers'), 'href="' . $track . '" target="_blank"')
                     : '')
@@ -95,7 +71,6 @@ class BGCouriers_Order_Metabox {
                 . $act('button', 'no-alt', $tip_of(__('Cancel (void) label', 'bg-couriers')), $cancel_attr, 'bgc-danger bgc-cancel' . $off);
         }
 
-        // ONE row, icons only: courier logo (hint) + delivery-type icon (hint) + waybill copy + action icons.
         $body = '<div class="bgc-hd">'
             . ($logo
                 ? '<span class="bgc-tile bgc-logo-tile" data-tip="' . esc_attr($courier->label()) . '"><img class="bgc-logo" src="' . esc_url($logo) . '" alt="' . esc_attr($courier->label()) . '"></span>'
@@ -111,10 +86,6 @@ class BGCouriers_Order_Metabox {
         }
         $body .= '<span class="bgc-hd-acts">' . $actions . '</span></div>';
 
-        // What the courier collects at the door, on the screen the shop opens to look at ONE order. The
-        // shipping line there reads 0,00 - correct (the shop charges nothing) and unreadable: it looks
-        // like a delivery nobody is paying for. The customer's copy says it too, in the totals; this is
-        // the same sentence, so the two never disagree.
         if (!BGCouriers_Settings::ship_in_total($courier->id())) {
             $door = 0.0;
             foreach ($order->get_items('shipping') as $sitem) {
@@ -126,8 +97,6 @@ class BGCouriers_Order_Metabox {
                 $price = html_entity_decode(wp_strip_all_tags(wc_price($door, ['currency' => $order->get_currency()])), ENT_QUOTES, 'UTF-8');
                 /* translators: %s: the delivery price, e.g. "3,06 EUR" */
                 $full = sprintf(__('~%s paid to the courier on delivery', 'bg-couriers'), $price);
-                // One short chip, not the sentence: the label and the amount are what is scanned, and the
-                // whole sentence (the same one the checkout uses) is on the hint.
                 $body .= '<div class="bgc-door-price" data-tip="' . esc_attr($full) . '" aria-label="' . esc_attr($full) . '">'
                     . BGCouriers_Icons::cash(14)
                     . '<span class="bgc-door-lbl">' . esc_html__('At the door', 'bg-couriers') . '</span>'
@@ -135,9 +104,6 @@ class BGCouriers_Order_Metabox {
             }
         }
 
-        // Red banner right under the header when the order has outgrown its waybill (changed, not
-        // re-issued). "Not printed yet" has no banner any more: it is the green print tile above, the
-        // same way the orders list shows it - one signal in the place the merchant will click.
         if ($lstate === BGCouriers_Labels::LABEL_STATE_STALE) {
             $lmsg = BGCouriers_Labels::label_state_message($order, $lstate);
             $body .= '<div class="bgc-wb-state bgc-wb-' . esc_attr($lstate) . '" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;background:#fcf0f1;border:1px solid #e6a2a5;color:#8a1f2b;">'
@@ -145,11 +111,6 @@ class BGCouriers_Order_Metabox {
                 . esc_html($lmsg) . '</div>';
         }
 
-        // Where the shipment actually is, on the order itself. It used to live only in the orders list, so
-        // the one screen a merchant opens to look at a single order was the one place that did not say.
-        // The current stage is the TITLE of a collapsible panel; the journey so far, newest first, is
-        // what it opens onto. A final stage (delivered, cancelled, returned) prints no clock and no
-        // refresh button: nothing will change, so there is nothing to wait for or to ask about.
         $stage = (string) $order->get_meta('_bgcouriers_track_stage');
         $text  = trim((string) $order->get_meta('_bgcouriers_track_text'));
         if ($stage !== '' || $text !== '') {
@@ -157,11 +118,9 @@ class BGCouriers_Order_Metabox {
             $when  = (int) $order->get_meta('_bgcouriers_track_updated');
             $times = $order->get_meta('_bgcouriers_track_times');
             $times = is_array($times) ? $times : [];
-            // The stage's own date when we have it (the courier's clock), else the last change we saw.
             $since = (int) ($times[$stage] ?? 0) ?: $when;
 
-            // Newest first. Ties (several stages stamped in the same second) fall back to the lifecycle
-            // order, reversed, so the later step still reads as the later one.
+            // Newest first; same-second ties fall back to reversed lifecycle order.
             $steps = [];
             foreach (BGCouriers_Tracking::STAGE_ORDER as $rank => $st) {
                 $at = (int) ($times[$st] ?? 0);
@@ -169,12 +128,8 @@ class BGCouriers_Order_Metabox {
             }
             usort($steps, static function (array $x, array $y): int { return [$y[0], $y[1]] <=> [$x[0], $x[1]]; });
 
-            // The tip carries the long label and the courier's own words. The "unchanged for" part is left
-            // out of a final stage's: it would only say how long ago the parcel was handed over.
             $tip  = BGCouriers_Tracking::stage_tip($stage, $text, $final ? 0 : $when);
             $head = '<span class="bgc-shipstate-lbl" data-tip="' . esc_attr($tip) . '" aria-label="' . esc_attr($tip) . '">'
-                // The SAME indicator the orders list draws - same glyph, same colour, same place at the
-                // head of the line.
                 . BGCouriers_Order_Columns::stage_icon($stage)
                 . '<strong>' . esc_html(BGCouriers_Tracking::stage_label_short($stage)) . '</strong></span>';
             if ($since > 0) {
@@ -182,7 +137,6 @@ class BGCouriers_Order_Metabox {
                     . esc_html(date_i18n('j M', $since) . ' ' . date_i18n('H:i', $since)) . '</time>';
             }
             if (!$final) {
-                // ONE clock glyph and the duration alone; the sentence around it is on the hint.
                 if ($when > 0) {
                     /* translators: %s: human-readable time difference, e.g. "2 hours" */
                     $head .= '<span class="bgc-shipstate-when" data-tip="' . esc_attr(sprintf(__('unchanged for %s', 'bg-couriers'), human_time_diff($when, time()))) . '">'
@@ -191,8 +145,6 @@ class BGCouriers_Order_Metabox {
                 if (BGCouriers_Labels::is_locked($order)) {
                     $head .= '<span class="bgc-lock dashicons dashicons-lock" data-tip="' . esc_attr(BGCouriers_Labels::locked_message()) . '"></span>';
                 }
-                // Ask the courier again, for THIS order, without waiting for the next scheduled poll -
-                // which is what someone standing on this screen actually wants.
                 $head .= '<button type="button" class="bgc-ship-refresh" data-id="' . (int) $id . '"'
                     . ' data-tip="' . esc_attr__('Update from the courier now', 'bg-couriers') . '"'
                     . ' aria-label="' . esc_attr__('Update from the courier now', 'bg-couriers') . '">'
@@ -200,12 +152,7 @@ class BGCouriers_Order_Metabox {
             }
 
             $cls = 'bgc-shipstate bgc-stage-' . esc_attr(sanitize_html_class($stage ?: 'transit')) . ($final ? ' bgc-final' : '');
-            // One entry is the title itself, so there is nothing to open: a plain row, no chevron.
             if (count($steps) > 1) {
-                // A grid, so every date starts at the same place: a column of dates is read down, and
-                // ragged ones are read word by word instead (owner, 2026-10-09). The day and the clock
-                // time are separate cells so the TIME starts at the same place on every line; the <time>
-                // element still wraps both and gives up its box to the grid (display:contents).
                 $rows = '';
                 foreach ($steps as [$at, , $st]) {
                     $rows .= '<span class="bgc-tl-k" data-tip="' . esc_attr(BGCouriers_Tracking::stage_label($st)) . '">'
@@ -222,11 +169,7 @@ class BGCouriers_Order_Metabox {
             }
         }
 
-        // The waybill was created but the courier did not apply everything asked of it - Speedy's COD
-        // carries ignoreIfNotApplicable by design, so a shipment can print with nothing to collect.
-        // generate() records this on the order "and keeps a flag the admin screens can show", and no
-        // screen ever showed it: the note was there, the flag was written and deleted and never read.
-        // It stays until the waybill is re-issued, because the parcel it describes is the one on the desk.
+        // Speedy's COD carries ignoreIfNotApplicable, so a shipment can print with nothing to collect.
         $warn = trim((string) $order->get_meta('_bgcouriers_label_warning'));
         if ($waybill !== '' && $warn !== '') {
             $body .= '<div class="bgc-warn" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;background:#fff7e6;border:1px solid #e6c27a;color:#7a4b00;">'
@@ -234,8 +177,6 @@ class BGCouriers_Order_Metabox {
                 . esc_html(sprintf(__('Check this shipment before handing it over: %s', 'bg-couriers'), $warn)) . '</div>';
         }
 
-        // A waybill put down for the order's dispatch day: the merchant sees an unlabelled order with a
-        // Generate button, and this says why nothing has happened yet and when it will.
         $auto_at = (int) $order->get_meta('_bgcouriers_autolabel_at');
         if ($waybill === '' && $auto_at > time()) {
             $body .= '<div class="bgc-auto-at" style="margin:8px 0 0;padding:8px 10px;border-radius:6px;background:#f0f6fc;border:1px solid #a7c7e7;color:#1d4b7a;">'
@@ -244,8 +185,6 @@ class BGCouriers_Order_Metabox {
                     wp_date(get_option('date_format') . ' ' . get_option('time_format'), $auto_at))) . '</div>';
         }
 
-        // Surface the last action's error (the admin-post handlers store the whole sentence - what
-        // failed, and the courier's words - in a transient, then redirect here).
         $err = get_transient('bgcouriers_admin_error_' . $id);
         if ($err) {
             delete_transient('bgcouriers_admin_error_' . $id);
@@ -255,29 +194,24 @@ class BGCouriers_Order_Metabox {
         }
 
         echo '<div class="bgc-order-panel">';
-        echo wp_kses($body, self::PANEL_TAGS); // each field escaped above; kses is the output-escaping gate
+        echo wp_kses($body, self::PANEL_TAGS);
         $this->render_editor($order);
         echo '</div>';
     }
 
-    /** Allowed tags/attributes for the shipment-panel body passed through wp_kses. */
     const PANEL_TAGS = [
-        // data-tip / aria-label: the door-price chip carries its full sentence on the hint.
         'div'    => ['class' => true, 'style' => true, 'data-tip' => true, 'aria-label' => true],
         'span'   => ['class' => true, 'style' => true, 'data-wb' => true, 'data-tip' => true, 'role' => true, 'tabindex' => true, 'aria-label' => true],
         'strong' => ['class' => true],
         'b'      => [],
-        // The stage panel: the current stage is the <summary> and the journey is what it opens.
         'details' => ['class' => true, 'open' => true],
         'summary' => ['class' => true],
-        // The timeline's dates. Without this on the list kses dropped the element (keeping the text),
-        // so the dates could not be styled as a column - and the machine-readable datetime was lost.
+        // Without <time> on the list kses drops the element and its datetime.
         'time'   => ['class' => true, 'datetime' => true],
         'img'    => ['class' => true, 'src' => true, 'alt' => true, 'data-tip' => true],
         'a'      => ['class' => true, 'href' => true, 'target' => true, 'rel' => true, 'aria-label' => true, 'data-tip' => true],
         'button' => ['type' => true, 'class' => true, 'aria-label' => true, 'data-tip' => true, 'data-wb' => true, 'data-cancel-url' => true, 'data-regen-url' => true, 'data-id' => true,
-                        // The dimmed state of a blocked control: without these on the allowlist kses strips
-                        // them at output and the button looks disabled while still being focusable.
+                        // Without these kses strips them and the button looks disabled while still focusable.
                         'aria-disabled' => true, 'tabindex' => true],
         'svg'    => ['class' => true, 'viewbox' => true, 'width' => true, 'height' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'aria-hidden' => true],
         'path'   => ['d' => true],
@@ -286,14 +220,12 @@ class BGCouriers_Order_Metabox {
         'circle' => ['cx' => true, 'cy' => true, 'r' => true],
     ];
 
-    /** Allowed tags/attributes for the delivery editor passed through wp_kses. */
     const EDITOR_TAGS = [
         'div'    => ['class' => true, 'style' => true],
         'p'      => ['class' => true, 'style' => true],
         'label'  => ['class' => true, 'aria-hidden' => true],
         'br'     => [],
-        // `disabled` is on every control's list, not just the button's: it is what makes a locked editor
-        // read-only (see disable_controls), and kses drops an attribute it was not told about in silence.
+        // `disabled` on every control, not just the button: kses silently drops unknown attributes.
         'select' => ['class' => true, 'style' => true, 'data-current' => true, 'disabled' => true],
         'option' => ['value' => true, 'selected' => true],
         'input'  => ['type' => true, 'class' => true, 'value' => true, 'style' => true, 'disabled' => true],
@@ -301,27 +233,11 @@ class BGCouriers_Order_Metabox {
         'span'   => ['class' => true],
     ];
 
-    /**
-     * Turn every control in the editor's markup inert.
-     *
-     * Applied to the whole form rather than field by field, because a lock that has to be remembered at
-     * each of nineteen controls is a lock that will be half-applied - it already was. What stood in for
-     * this was a stylesheet naming `select` and `input`, and city, street and office are the three that
-     * selectWoo replaces with a span of its own: no rule reached them, so a collected parcel could be
-     * re-addressed - dropdowns, clear ×, map picker and all - inside a form whose Save was greyed out.
-     * One rule over the finished markup cannot miss a field, and covers whatever is added later.
-     *
-     * Safe as a regex because it runs on markup this class has just built, in which every merchant-supplied
-     * value has already been through esc_attr() - so no `<` survives inside an attribute to be matched.
-     *
-     * @param string $html The editor's markup, as built by render_editor().
-     * @return string The same markup with `disabled` on every select, input and button.
-     */
+    /** Adds `disabled` to every select, input and button; one rule over the finished markup cannot miss a field. */
     public static function disable_controls(string $html): string {
         return (string) preg_replace('/<(select|input|button)(?=[\s>])/i', '<$1 disabled', $html);
     }
 
-    /** Collapsible checkout-like editor for the order's delivery details (courier switch, city/office/address). */
     private function render_editor(\WC_Order $order): void {
         $cur_courier = (string) $order->get_meta('_bgcouriers_courier');
         $cur_method  = (string) $order->get_meta('_bgcouriers_method');
@@ -329,13 +245,10 @@ class BGCouriers_Order_Metabox {
         $office_id   = (int) $order->get_meta('_bgcouriers_office_id');
         $has_waybill = (string) $order->get_meta('_bgcouriers_waybill') !== '';
 
-        // Enabled couriers (+ the order's current one even if now disabled), with their delivery options.
         $caps = []; $opts = '';
         foreach (BGCouriers_Couriers::all() as $cid => $clabel) {
             if (get_option('bgcouriers_' . $cid . '_enabled', 'no') !== 'yes' && $cid !== $cur_courier) { continue; }
             $co = BGCouriers_Couriers::get($cid);
-            // available_methods() prunes types the courier has no synced points for (e.g. Pigeon APS), so the
-            // delivery-option dropdown can't offer something the courier doesn't actually do.
             $caps[$cid] = $co ? array_values(array_diff($co->available_methods(), ['live_quote'])) : ['office', 'address', 'automat'];
             $opts .= '<option value="' . esc_attr($cid) . '"' . selected($cid, $cur_courier, false) . '>' . esc_html($clabel) . '</option>';
         }
@@ -348,8 +261,6 @@ class BGCouriers_Order_Metabox {
         if ($office_id && ($o = BGCouriers_Nomenclature::office_by_id($cur_courier, $office_id))) {
             $office_opt = '<option value="' . esc_attr($office_id) . '" selected>' . esc_html($o['name'] ?? '') . '</option>';
         }
-        // The box's value is the bare street name; its type and the courier's id for it sit in two hidden
-        // fields beside it, filled when the street is picked off the list (see the checkout's street box).
         $street = (string) $order->get_meta('_bgcouriers_street_name');
         $stype  = (string) $order->get_meta('_bgcouriers_street_type');
         $street_opt = $street !== '' ? '<option value="' . esc_attr($street) . '" selected>' . esc_html(trim($stype . ' ' . $street)) . '</option>' : '';
@@ -359,9 +270,6 @@ class BGCouriers_Order_Metabox {
 
         wp_enqueue_style('select2');
         wp_enqueue_script('selectWoo');
-        // Leaflet (bundled) + the checkout CSS (for the .bgc-map-* modal styles) so the editor can offer the
-        // same office/APS + address map picker as checkout. The checkout rules are class-scoped to .bgc-fields
-        // and don't touch the admin editor; only the fixed-overlay map modal is reused.
         wp_enqueue_style('bgc-leaflet', BGCOURIERS_URL . 'assets/lib/leaflet/leaflet.css', [], '1.9.4');
         wp_enqueue_script('bgc-leaflet', BGCOURIERS_URL . 'assets/lib/leaflet/leaflet.js', [], '1.9.4', true);
         wp_enqueue_style('bgc-checkout-map', BGCOURIERS_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet'], BGCOURIERS_VERSION);
@@ -370,20 +278,16 @@ class BGCouriers_Order_Metabox {
         wp_localize_script('bgc-order-admin', 'BGCOURIERS_ED', [
             'ajax'    => admin_url('admin-ajax.php'),
             'nonce'   => wp_create_nonce('bgcouriers_order_delivery'),
-            // Separate nonce: the tracking refresh is an admin action, not part of saving delivery details.
             'adminNonce' => wp_create_nonce('bgcouriers_admin'),
             'orderId' => $order->get_id(),
-            // Where this order is going. Every nomenclature lookup the editor makes is a question about a
-            // country - a courier's towns and offices are per-country - and without it the editor asked
-            // about the shop's own. A Romanian order then offered Bulgarian towns to move it to, and the
-            // office list for the town it is actually going to came back empty.
+            // The order's country, not the shop's: towns and offices are per-country.
             'country' => BGCouriers_Settings::order_country($order),
             'caps'    => $caps,
             'leaflet_images' => BGCOURIERS_URL . 'assets/lib/leaflet/images/',
             'methodLabels' => ['office' => __('To office', 'bg-couriers'), 'address' => __('To address', 'bg-couriers'), 'automat' => __('To APS', 'bg-couriers')],
             'i18n'    => ['city' => __('City', 'bg-couriers'), 'office' => __('Office / APS', 'bg-couriers'), 'street' => __('Street', 'bg-couriers'),
                           'saving' => __('Saving…', 'bg-couriers'), 'err' => __('Could not save.', 'bg-couriers'),
-                          'print' => BGCouriers_Labels::print_tip(false), // the print tile's hint once clicked
+                          'print' => BGCouriers_Labels::print_tip(false),
                           'saved' => __('Saved.', 'bg-couriers'),
                           'copied' => __('Copied to clipboard', 'bg-couriers'),
                           'trackRefreshing' => __('Asking the courier…', 'bg-couriers'),
@@ -410,16 +314,9 @@ class BGCouriers_Order_Metabox {
                           'no_automat'  => __('This courier has no APS/locker in this city - pick another city or delivery option.', 'bg-couriers')],
         ]);
 
-        // A collected parcel cannot be re-addressed, so the form is shown READ-ONLY rather than hidden:
-        // the merchant still needs to see where the box is going while they ring the courier about it.
-        // Read-only means every control carries `disabled` (disable_controls, applied to the finished
-        // markup below) - not merely a greyer stylesheet, which a keyboard walks straight past. Saving is
-        // refused by the server too, whatever the browser does.
+        // A collected parcel is shown read-only (disabled controls), not hidden.
         $locked = BGCouriers_Labels::is_locked($order);
         $ins = BGCouriers_Order::insurance($order);
-        // The hover says WHICH couriers honour the two boxes below, and says it from the same list the
-        // row hides itself by - a sentence naming two couriers went on saying "Speedy and Sameday"
-        // after a third had joined them.
         $all  = BGCouriers_Couriers::all();
         $able = array_map(static function ($id) use ($all) { return (string) ($all[$id] ?? $id); },
             BGCouriers_Order::multi_parcel_couriers());
@@ -447,14 +344,7 @@ class BGCouriers_Order_Metabox {
             . '</div>'
             . '<div class="bgc-ed-fld"><label>' . esc_html__('Note', 'bg-couriers') . '</label><input class="bgc-ed-note" value="' . $v('address_note') . '"></div>'
             . '</div>'
-            // Not address fields - they are facts about the SHIPMENT, so they sit on their own row after
-            // the address and before Save, where they read as "and how is it going" rather than "where".
-            // Only the couriers whose field names are verified against a payload we actually send honour
-            // these. The row hides for the rest rather than accepting a number and dropping it - a box
-            // that takes "3" and ships one parcel is worse than no box at all.
             . '<div class="bgc-ed-row bgc-ed-shipfacts" data-couriers="' . esc_attr(implode(',', BGCouriers_Order::multi_parcel_couriers())) . '">'
-            // The row already hides for couriers that ignore these, but the hover says WHICH they are -
-            // a merchant who never sees the row on Econt should not have to guess whether that is a fault.
             . '<div class="bgc-ed-fld" title="' . esc_attr($shipfacts_tip) . '">'
             . '<label>' . esc_html__('Parcels', 'bg-couriers') . '</label>'
             . '<input type="number" min="1" max="99" step="1" class="bgc-ed-parcels" value="' . esc_attr((string) BGCouriers_Order::parcels($order)) . '"></div>'
@@ -472,6 +362,6 @@ class BGCouriers_Order_Metabox {
         $form .= '</div></div>';
         if ($locked) { $form = self::disable_controls($form); }
 
-        echo wp_kses($form, self::EDITOR_TAGS); // every value escaped above; kses is the output-escaping gate
+        echo wp_kses($form, self::EDITOR_TAGS);
     }
 }

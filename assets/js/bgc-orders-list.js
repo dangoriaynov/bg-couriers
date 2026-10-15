@@ -1,5 +1,4 @@
-/* Orders-list waybill actions: copy to clipboard + AJAX cancel (custom confirm, no page reload),
-   plus the bulk "Cancel waybils" confirmation. Config/i18n come from BGCOURIERS_LIST (wp_localize_script). */
+/* Orders-list waybill actions: copy, AJAX cancel, re-issue and bulk confirmations. */
 (function () {
   var C = window.BGCOURIERS_LIST || {};
   var M = C.i18n || {};
@@ -23,7 +22,6 @@
     ov.addEventListener('click', function (e) { if (e.target === ov) { close(); } });
     ov.querySelector('.bgc-lyes').addEventListener('click', function () { close(); if (o.onYes) { o.onYes(); } });
   }
-  // Share the dialog + toast so other admin scripts can reuse them.
   window.bgcConfirmDialog = window.bgcConfirmDialog || confirmDlg;
   window.bgcToast = window.bgcToast || toast;
   function doCancel(x) {
@@ -38,9 +36,8 @@
           var g = AP + '?action=bgcouriers_generate_label&order_id=' + encodeURIComponent(id) + '&_wpnonce=' + encodeURIComponent(gn);
           var gen = '<a class="button button-small bgc-gen" href="' + g + '">' + esc(M.gen) + '</a>';
           var rows = cell.querySelectorAll ? cell.querySelectorAll('.bgc-row') : [];
-          if (rows.length > 1) { rows[rows.length - 1].innerHTML = gen; } // row 1 (logo+pencil) stays
+          if (rows.length > 1) { rows[rows.length - 1].innerHTML = gen; }
           else { cell.innerHTML = gen; }
-          // Re-issue lives in row 1 and only makes sense with a waybill - drop it now that there is none.
           var rg = cell.querySelector ? cell.querySelector('.bgc-regen') : null;
           if (rg) { rg.remove(); }
           toast(M.cancelled);
@@ -48,10 +45,7 @@
       })
       .catch(function () { x.style.pointerEvents = ''; toast(M.err); });
   }
-  // A print tile turning back to plain: the PDF opens in a new tab (or, for the bulk action, replaces
-  // this page until Back) and the list never reloads, so the green "not printed yet" would outlive the
-  // print it announces. The server clears the flag as it streams the PDF, so a reload agrees; this only
-  // keeps the screen in step. (A failed print shows its error in that other tab.)
+  // The list never reloads after a print, so the tile turns plain here; the server clears the flag itself.
   function printed(tile) {
     if (!tile) { return; }
     tile.classList.remove('bgc-unprinted');
@@ -61,10 +55,8 @@
     return document.querySelector('.bgc-primary.bgc-unprinted[href*="order_id=' + orderId + '&"]');
   }
   document.addEventListener('click', function (e) {
-    // One row's print tile.
     var p = e.target.closest('.bgc-primary.bgc-unprinted');
-    if (p) { printed(p); return; } // the link itself still opens
-    // The "Print N on A4 / A6" links after a bulk generate or re-issue: they name their orders.
+    if (p) { printed(p); return; }
     var b = e.target.closest('a[data-ids]');
     if (b) { (b.getAttribute('data-ids') || '').split(',').forEach(function (id) { printed(tileOf(id)); }); return; }
     var c = e.target.closest('.bgc-copy');
@@ -74,7 +66,6 @@
       if (wb && navigator.clipboard) { navigator.clipboard.writeText(wb).then(function () { toast(M.copied); }); }
       return;
     }
-    // Re-issue: confirm, then follow the admin-post link (voids the waybill and issues a fresh one).
     var r = e.target.closest('.bgc-regen');
     if (r) {
       e.preventDefault(); e.stopPropagation();
@@ -89,21 +80,16 @@
     confirmDlg({ title: M.confirmTitle, body: M.confirmBody, yes: M.yes, no: M.no, onYes: function () { doCancel(x); } });
   });
 
-  // Gather our four bulk actions under one labelled <optgroup>, so they read as a section of the
-  // dropdown instead of four loose entries among WooCommerce's. WordPress builds that <select> from
-  // the bulk_actions-* filter, which is a flat value => label map with no way to express a group, so
-  // the optgroup has to be assembled client-side - the same approach Print Invoices/Packing Lists
-  // takes. Only the nesting changes: the option values stay identical, so the bulk-cancel confirm
-  // below (and WP's own submit handling) keep matching on select.value.
+  // WP builds the bulk <select> flat, so the optgroup is assembled client-side; option values stay the same.
   (function () {
     var G = C.group || {}, vals = G.actions || [];
     if (!vals.length || !G.label) { return; }
     function group() {
-      var sels = document.querySelectorAll('.bulkactions select'); // top AND bottom selectors
+      var sels = document.querySelectorAll('.bulkactions select');
       for (var i = 0; i < sels.length; i++) {
         var sel = sels[i];
-        if (sel.querySelector('optgroup.bgc-optgroup')) { continue; } // already grouped
-        // Snapshot before moving anything - sel.options is live. DOM order == registration order.
+        if (sel.querySelector('optgroup.bgc-optgroup')) { continue; }
+        // Snapshot before moving: the option collection is live.
         var mine = Array.prototype.filter.call(sel.querySelectorAll('option'), function (o) {
           return vals.indexOf(o.value) !== -1;
         });
@@ -111,7 +97,7 @@
         var og = document.createElement('optgroup');
         og.className = 'bgc-optgroup';
         og.setAttribute('label', G.label);
-        for (var k = 0; k < mine.length; k++) { og.appendChild(mine[k]); } // appendChild MOVES the option
+        for (var k = 0; k < mine.length; k++) { og.appendChild(mine[k]); }
         sel.appendChild(og);
       }
     }
@@ -119,17 +105,14 @@
     else { group(); }
   })();
 
-  // Bulk actions that void live shipments (Cancel / Re-issue): intercept the Apply click and only
-  // submit once the merchant confirms. Driven by BGCOURIERS_LIST.confirmBulk, keyed by action value - an
-  // action that is not listed there submits normally, so adding one here is a PHP-side change.
+  // Bulk actions listed in confirmBulk submit only after the merchant confirms.
   (function () {
     var MAP = C.confirmBulk || {}, going = false;
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('#doaction, #doaction2');
       if (!btn || going) { return; }
       var sel = document.getElementById(btn.id === 'doaction' ? 'bulk-action-selector-top' : 'bulk-action-selector-bottom');
-      // The bulk print streams its PDF into THIS tab; on Back the browser may show the list from its
-      // cache, so the checked rows' tiles turn plain before the form goes.
+      // Bulk print streams into this tab; on Back the cached list must already show the tiles plain.
       if (sel && (C.printActions || []).indexOf(sel.value) !== -1) {
         document.querySelectorAll('tbody .check-column input:checked').forEach(function (cb) {
           var row = cb.closest('tr');

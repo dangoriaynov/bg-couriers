@@ -17,8 +17,6 @@ class BGCouriers_Bulk_Labels {
         add_action('admin_notices', [$this, 'notice']);
     }
 
-    /** Our bulk-action values, in the order they are registered (drives the dropdown grouping in JS). */
-    /** The two bulk actions that end in a PDF - the list script needs to know them apart from the rest. */
     public static function print_actions(): array { return [self::PRINT_A4, self::PRINT_A6]; }
 
     public static function actions(): array {
@@ -35,9 +33,6 @@ class BGCouriers_Bulk_Labels {
         return $actions;
     }
 
-    // The bulk "Cancel waybils" confirmation lives in assets/js/bgc-orders-list.js (enqueued with
-    // its config by BGCouriers_Order_Columns::enqueue_assets on the same screens).
-
     public static function summary(array $results): array {
         $c = ['generated' => 0, 'reused' => 0, 'skipped' => 0, 'failed' => 0];
         foreach ($results as $r) { if (isset($c[$r])) { $c[$r]++; } }
@@ -45,8 +40,6 @@ class BGCouriers_Bulk_Labels {
     }
 
     public function handle($redirect, $action, $ids) {
-        // Not booked from here. Sending a courier is a real visit at an hour somebody has to choose, so
-        // the selection is carried to the confirm screen and nothing happens until it is confirmed.
         if ($action === self::PICKUP) { return BGCouriers_Pickup::url(array_map('intval', (array) $ids)); }
         if ($action === self::PRINT_A4) { $this->handle_print('A4', $ids); }
         if ($action === self::PRINT_A6) { $this->handle_print('A6', $ids); }
@@ -58,10 +51,7 @@ class BGCouriers_Bulk_Labels {
         foreach (array_map('intval', (array) $ids) as $oid) {
             $order = wc_get_order($oid);
             if (!$order || !BGCouriers_Labels::order_courier($order)) { $results[] = 'skipped'; continue; }
-            // An order that already has a waybill is LEFT ALONE - counted as 'reused' and included in the
-            // print set, never re-issued. Re-issuing is the separate 'Re-issue waybils' action, so this
-            // one can never void a live shipment. (BGCouriers_Labels::generate() also early-returns on an
-            // existing waybill, so a missed guard here still could not double-create.)
+            // An order with a waybill is reused, never re-issued: this action can never void a live shipment.
             if ((string) $order->get_meta('_bgcouriers_waybill') !== '') { $results[] = 'reused'; $print_ids[] = $oid; continue; }
             try { BGCouriers_Labels::generate($oid); $results[] = 'generated'; $print_ids[] = $oid; }
             catch (\Exception $e) {
@@ -75,18 +65,11 @@ class BGCouriers_Bulk_Labels {
         return $redirect;
     }
 
-    /**
-     * Hand the bulk result to the admin notice through a ONE-SHOT transient rather than query args.
-     * Query args survive a page refresh and get copied into the list table's pagination / filter links, so
-     * the same "9 re-issued" notice kept reappearing and read as if the action had run again - it had not,
-     * because the action only ever runs on the POSTed form (WooCommerce redirects to the plain referer,
-     * which carries neither `action` nor `id[]`). Read once, then deleted.
-     */
+    /** One-shot transient, not query args: those survive a refresh and get copied into pagination links. */
     private static function stash_notice(array $payload): void {
         set_transient('bgcouriers_bulk_notice_' . get_current_user_id(), $payload, 5 * MINUTE_IN_SECONDS);
     }
 
-    /** @return array|null the pending bulk result, consumed so it can never render twice */
     private static function take_notice(): ?array {
         $key     = 'bgcouriers_bulk_notice_' . get_current_user_id();
         $payload = get_transient($key);
@@ -95,19 +78,13 @@ class BGCouriers_Bulk_Labels {
         return $payload;
     }
 
-    /**
-     * Bulk print: generate any missing labels for the selected orders, then pack them onto A4 (many per
-     * sheet) or A6 (one per page) and stream the PDF directly. WooCommerce runs the bulk handler before any
-     * output, so we can emit the PDF and exit instead of redirecting.
-     */
+    /** Bulk print: generate missing labels, pack onto A4/A6 and stream the PDF (WC runs this before output). */
     private function handle_print(string $paper, $ids): void {
         if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         $ok = [];
         foreach (array_map('intval', (array) $ids) as $oid) {
             $order = wc_get_order($oid);
             if (!$order || !BGCouriers_Labels::order_courier($order)) { continue; }
-            // Only the MISSING labels are created; an order that already has a waybill keeps it and is
-            // simply printed. Printing never re-issues - that is the 'Re-issue waybils' action.
             if ((string) $order->get_meta('_bgcouriers_waybill') === '') {
                 try { BGCouriers_Labels::generate($oid); }
                 catch (\Exception $e) {
@@ -118,16 +95,10 @@ class BGCouriers_Bulk_Labels {
             }
             $ok[] = $oid;
         }
-        // Each courier lays out its own sheet the way it prints 1-by-1 (Speedy = its native A4 landscape
-        // layout), then the sheets are concatenated - no re-packing or scaling on our side.
         $out = BGCouriers_Labels::batch_pdf($ok, $paper);
         if ($out === '') { wp_die(esc_html__('No labels to print (none could be generated).', 'bg-couriers')); }
-        // A PDF byte stream is the one thing that must NOT be escaped - escaping it corrupts the file. So
-        // instead of trusting it, refuse to stream anything that is not actually a PDF: that makes the raw
-        // echo below safe by construction rather than by convention.
+        // Refuse anything that is not a PDF: that makes the raw echo below safe by construction.
         if (strncmp($out, '%PDF', 4) !== 0) { wp_die(esc_html__('The generated file is not a valid PDF.', 'bg-couriers')); }
-        // These waybills are printed now - the same bookkeeping the per-order print does. Left out here
-        // until 2026-09-22, which kept every batch-printed waybill "not printed yet" for good.
         BGCouriers_Labels::mark_printed($ok);
         nocache_headers();
         header('Content-Type: application/pdf');
@@ -136,15 +107,7 @@ class BGCouriers_Bulk_Labels {
         exit;
     }
 
-    /**
-     * Bulk re-issue: EVERY selected order ends up with a fresh waybill. Where one already exists it is
-     * voided with the courier first, then a new one is issued from the order's current delivery details,
-     * products and settings; an order with no waybill simply gets one. Only orders that are not ours (no
-     * BGCOURIERS courier) are skipped, since there is nothing to issue them with.
-     *
-     * A cancel that succeeds but whose generate then fails leaves that order unlabelled - counted as
-     * failed, with the courier's message on the order, and running this (or Generate) again recovers it.
-     */
+    /** Bulk re-issue: every selected order ends up with a fresh waybill; orders without a BG Couriers courier are skipped. */
     private function handle_regen($redirect, $ids) {
         $c = ['regenerated' => 0, 'generated' => 0, 'skipped' => 0, 'failed' => 0];
         $print_ids = [];
@@ -153,7 +116,7 @@ class BGCouriers_Bulk_Labels {
             if (!$order || !BGCouriers_Labels::order_courier($order)) { $c['skipped']++; continue; }
             $had = (string) $order->get_meta('_bgcouriers_waybill') !== '';
             try {
-                if ($had) { BGCouriers_Labels::cancel($oid); } // void the old one before issuing its replacement
+                if ($had) { BGCouriers_Labels::cancel($oid); }
                 BGCouriers_Labels::generate($oid);
                 $c[$had ? 'regenerated' : 'generated']++;
                 $print_ids[] = $oid;
@@ -168,7 +131,6 @@ class BGCouriers_Bulk_Labels {
         return $redirect;
     }
 
-    /** Bulk-cancel each selected order's waybill (via BGCouriers_Labels::cancel, which voids + clears it). */
     private function handle_cancel($redirect, $ids) {
         $c = ['cancelled' => 0, 'skipped' => 0, 'failed' => 0];
         foreach (array_map('intval', (array) $ids) as $oid) {
@@ -185,18 +147,12 @@ class BGCouriers_Bulk_Labels {
         return $redirect;
     }
 
-    /**
-     * "Print N on A4 / A6 stickers" buttons for the batch just generated or re-issued (the order ids are
-     * in the bgcouriers_print_batch transient). Returns pre-escaped HTML, or '' when there is nothing to print.
-     */
     private function print_links(bool $offer, int $total): string {
         if (!$offer || $total <= 0) { return ''; }
         $base = admin_url('admin-post.php?action=bgcouriers_print_batch');
         $a4   = esc_url(wp_nonce_url($base . '&paper=a4', 'bgcouriers_print_batch'));
         $a6   = esc_url(wp_nonce_url($base . '&paper=a6', 'bgcouriers_print_batch'));
-        // The batch's order ids ride on the links (the same transient the print handler reads), so the
-        // list script can turn those rows' green "not printed yet" tiles back on the click: the PDF opens
-        // in another tab and this page never reloads. data-ids is on the kses allow-list for that.
+        // The batch ids ride on the links so the list script can reset those rows' print tiles; data-ids is kses-allowed.
         $ids  = implode(',', array_filter(array_map('intval', (array) get_transient('bgcouriers_print_batch_' . get_current_user_id()))));
         $data = $ids !== '' ? ' data-ids="' . esc_attr($ids) . '"' : '';
         return ' <a class="button button-primary" target="_blank" href="' . $a4 . '"' . $data . '>'
@@ -205,11 +161,6 @@ class BGCouriers_Bulk_Labels {
             . ' <a class="button" target="_blank" href="' . $a6 . '"' . $data . '>' . esc_html__('A6 stickers', 'bg-couriers') . '</a>';
     }
 
-    /**
-     * Render the result of the last bulk action, exactly once. The payload comes from a transient that is
-     * consumed on read, so refreshing the page (or paging / filtering, which used to carry the counters
-     * along in the URL) no longer replays a notice that reads like the action ran again.
-     */
     public function notice(): void {
         $p = self::take_notice();
         if ($p === null) { return; }

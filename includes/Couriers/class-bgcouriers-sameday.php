@@ -1,27 +1,13 @@
 <?php
 defined('ABSPATH') || exit;
 
-/**
- * Sameday courier adapter.
- *
- * Auth mechanism (confirmed from SamedayClient.php + SamedayAuthenticateRequest.php in
- * https://github.com/sameday-courier/php-sdk):
- *   POST /api/authenticate
- *   Headers: X-Auth-Username: <username>, X-Auth-Password: <password>
- *   Body: remember_me=true (application/x-www-form-urlencoded)
- *   Response JSON: { "token": "<string>", "expire_at": "YYYY-MM-DD HH:MM" }
- *   Token is passed on subsequent requests as header: X-AUTH-TOKEN
- */
+/** Sameday courier adapter: X-Auth-Username/X-Auth-Password login, X-AUTH-TOKEN header on every call. */
 class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interface {
-    // Bulgarian instance hosts (per-country envs, from the official samedaycourier-shipping plugin's
-    // env map: BG prod api.sameday.bg, BG demo sameday-api-bg.demo.zitec.com; the .ro pair is Romania's).
     const PROD = 'https://api.sameday.bg';
     const DEMO = 'https://sameday-api-bg.demo.zitec.com';
 
-    /** @var array */
     private $config;
 
-    /** @var string */
     private $base;
 
     public function __construct(array $config) {
@@ -34,7 +20,6 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     public function id(): string { return 'sameday'; }
     public function label(): string { return 'Sameday'; }
 
-    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
     public function credential_hint(): array {
         return [
             'intro' => __('Sameday issues API credentials (username + password) to clients after a business contract.', 'bg-couriers'),
@@ -51,21 +36,10 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote']; }
 
-    /**
-     * Yes - and there is no request to make: Sameday has no pickup API at all. The AWB itself is what
-     * puts the parcel in the day's collection list for its pickup point. Measured on order 11260:
-     * waybill 09:44:04, and by 11:45 it had come back "collection from the sender refused" - the courier had
-     * been and gone while the parcel was still on the shelf, three hours after the order was placed.
-     */
     public function books_pickup_on_create(): bool { return true; }
 
-    /** Stable Sameday service codes per delivery type (24H home / Locker NextDay / PUDO). */
     const SERVICE_CODES = ['address' => '24', 'automat' => 'LN', 'office' => 'PP'];
 
-    /**
-     * The account's service id for a delivery type, discovered from /api/client/services by its stable
-     * serviceCode (cached a day). The merchant never types ids - Sameday's own plugin imports them too.
-     */
     public function service_id(string $type): int {
         $ckey = $this->cache_key('services');
         $map  = get_transient($ckey);
@@ -79,7 +53,6 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return (int) ($map[self::SERVICE_CODES[$type] ?? ''] ?? 0);
     }
 
-    /** The sender pickup point: the option when set, else the account's DEFAULT pickup point (cached a day). */
     public function pickup_point_id(): int {
         $opt = (int) get_option('bgcouriers_sameday_pickup_point', 0);
         if ($opt > 0) { return $opt; }
@@ -88,7 +61,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         if ($id > 0) { return $id; }
         foreach ($this->get_paged('/api/client/pickup-points') as $pp) {
             if (!empty($pp['defaultPickupPoint'])) { $id = (int) ($pp['id'] ?? 0); break; }
-            if (!$id) { $id = (int) ($pp['id'] ?? 0); } // fall back to the first one
+            if (!$id) { $id = (int) ($pp['id'] ?? 0); }
         }
         if ($id > 0) { set_transient($ckey, $id, DAY_IN_SECONDS); }
         return $id;
@@ -96,15 +69,13 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     public function enable_problems(): array {
         $p = parent::enable_problems();
-        // Reported before the credential check: this one is about the contract, not the connection, and
-        // it is fatal - with it unresolved Sameday creates no waybill at all for any order.
         if (get_option(self::NO_RECIPIENT_PAY, '') === 'yes' && !BGCouriers_Settings::ship_in_total('sameday')) {
             $p[] = [
                 'msg' => __('Sameday does not support “the recipient pays the delivery” on this account - no waybill can be created while that is how it is set.', 'bg-couriers'),
                 'fix' => __('Turn on “Delivery in the order total” for Sameday, or ask Sameday to allow recipient payment on your contract.', 'bg-couriers'),
             ];
         }
-        try { if (!$this->check_credentials()) { return $p; } } // creds problems are already reported by the parent
+        try { if (!$this->check_credentials()) { return $p; } }
         catch (BGCouriers_Api_Exception $e) { return $p; }
         $labels = [
             'office'  => __('to office', 'bg-couriers'),
@@ -126,33 +97,18 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
                     'fix' => __('Ask Sameday to enable that service on your contract, or disable the delivery type.', 'bg-couriers'),
                 ];
             }
-        } catch (\Exception $e) { /* API hiccup - credential/API problems surface elsewhere */ }
+        } catch (\Exception $e) { /* reported elsewhere */ }
         return $p;
     }
 
     // ── Auth ─────────────────────────────────────────────────────────────────
 
-    /**
-     * Cache key for anything that belongs to ONE account on ONE environment - the auth token, the
-     * discovered service map, the default pickup point. Without the account+host in the key, switching
-     * the credentials or flipping Live mode kept serving the previous account's cached values: the old
-     * token went to the new host and every call came back HTTP 401, and the service ids / pickup point
-     * silently stayed those of the other account. Changing either now simply misses the cache.
-     */
+    /** Cache key scoped to account + host, so switching credentials or Live mode misses the cache. */
     private function cache_key(string $suffix): string {
         $who = $this->base . '|' . (string) ($this->config['username'] ?? '');
         return 'bgcouriers_sameday_' . $suffix . '_' . substr(md5($who), 0, 12);
     }
 
-    /**
-     * Return a valid X-Auth-Token, fetching a new one when absent/expired.
-     *
-     * Request shape confirmed from SDK:
-     *   SamedayAuthenticateRequest::buildRequest() - headers X-Auth-Username / X-Auth-Password,
-     *   body 'remember_me=true' (URL-encoded form).
-     * Response shape confirmed from SamedayAuthenticateResponse:
-     *   JSON { "token": "...", "expire_at": "YYYY-MM-DD HH:MM" }
-     */
     protected function auth_token(): string {
         $key = $this->cache_key('token');
         $tok = get_transient($key);
@@ -178,14 +134,11 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $body = json_decode($raw, true);
         $tok  = (string) ($body['token'] ?? '');
         if ($tok === '') {
-            // With Sameday's own words where it gave any - {"error":{"code":401,"message":"Invalid
-            // credentials."}} - so the screen can tell a wrong password from a courier that is down.
             $words = self::error_words($raw);
             /* translators: %s: courier name. */
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'Sameday')
                 . ($words !== '' ? ' (' . $words . ')' : '')));
         }
-        // expire_at is "YYYY-MM-DD HH:MM"; token TTL ~1h, refresh 10 min early.
         set_transient($key, $tok, 50 * MINUTE_IN_SECONDS);
         return $tok;
     }
@@ -208,16 +161,6 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return $this->decode($r);
     }
 
-    /**
-     * Flatten Sameday's nested validation errors into "field: reason" lines.
-     *
-     * The shape is {errors: {children: {awbRecipient: {children: {phoneNumber: {errors: ["..."]}}}}}} -
-     * arbitrarily deep, and only the leaves carry the message that says what to fix.
-     *
-     * @param array  $node  An `errors` node (or any `children` node below it).
-     * @param string $path  Field path accumulated so far.
-     * @return string[]     One entry per leaf error.
-     */
     public static function field_errors(array $node, string $path = ''): array {
         $out = [];
         foreach ((array) ($node['errors'] ?? []) as $e) {
@@ -238,14 +181,11 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $code = (int) wp_remote_retrieve_response_code($r);
         $raw  = (string) wp_remote_retrieve_body($r);
         $data = json_decode($raw, true);
-        // Sameday returns 4xx/5xx with a JSON error body; without a status check those would be treated as a
-        // successful (empty) response and produce a blank waybill. Throw so the caller surfaces the real error.
+        // 4xx/5xx carry a JSON error body; without the status check they would read as an empty success.
         if ($code < 200 || $code >= 300) {
             $msg = is_array($data) ? ($data['message'] ?? $data['error'] ?? $raw) : $raw;
-            if (!is_scalar($msg)) { $msg = wp_json_encode($msg); } // nested field errors arrive as arrays
-            // Sameday answers a rejected shipment with a bare "Validation Failed" and puts the actual
-            // reason in errors.children.<field>.errors[] - without digging that out, the merchant is told
-            // only that something was wrong, and there is no way to tell WHICH field the courier rejected.
+            if (!is_scalar($msg)) { $msg = wp_json_encode($msg); }
+            // The real reason hides in errors.children.<field>.errors[] behind a bare "Validation Failed".
             $fields = is_array($data) ? self::field_errors((array) ($data['errors'] ?? [])) : [];
             $msg = substr((string) $msg, 0, 300) . ($fields ? ' (' . implode('; ', array_slice($fields, 0, 6)) . ')' : '');
             /* translators: 1: courier name, 2: HTTP status code, 3: the courier's own error text. */
@@ -254,17 +194,14 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return is_array($data) ? $data : [];
     }
 
-    // ── BGCouriers_Courier_Interface stubs (to be filled in later tasks) ─────────────
+    // ── Credentials ──────────────────────────────────────────────────────────
 
     public function check_credentials(): bool {
-        return $this->auth_token() !== ''; // a refusal is thrown with the reason, for the screen
+        return $this->auth_token() !== '';
     }
 
     // ── Nomenclature ─────────────────────────────────────────────────────────
-    // Shapes LIVE-CONFIRMED on the BG demo env (sameday-api-bg.demo.zitec.com, 2026-07-23):
-    // paginated {total,currentPage,pages,perPage,data:[...]}; lockers carry lockerId, OOH points oohId.
 
-    /** Merge every page of a paginated listing into one data[] array. */
     protected function get_paged(string $path): array {
         $sep = strpos($path, '?') === false ? '?' : '&';
         $out = [];
@@ -279,11 +216,9 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     public function fetch_cities(): array {
-        // 5398 BG localities, paginated (a bare GET returns only the first page).
         return self::parse_cities($this->get_paged('/api/geolocation/city'));
     }
 
-    /** cities -> framework rows ['city_id','name','post_code','region'] (Sameday cities live under counties). */
     public static function parse_cities(array $resp): array {
         $out = [];
         foreach (($resp['data'] ?? $resp) as $c) {
@@ -305,11 +240,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             : $rows;
     }
 
-    /**
-     * easyBox lockers -> 'automat', out-of-home points -> 'office'. Framework row shape.
-     * Live shapes: lockers carry `lockerId`, OOH points `oohId` (no plain `id`), and the OOH listing
-     * INCLUDES the easyboxes - those are deduped away so only true PUDO points become 'office'.
-     */
+    /** Lockers -> 'automat', OOH points -> 'office'; the OOH listing includes the easyboxes, so they are deduped. */
     public static function parse_offices(array $lockers, array $ooh): array {
         $out = [];
         $seen = [];
@@ -335,32 +266,18 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return $out;
     }
 
-    // ── easyBox availability (LIVE free compartments) ────────────────────────
-    // Sameday is the one courier whose locker listing reports how full each easyBox is: every locker
-    // row carries `availableBoxes` [{size,number}] - the FREE compartments by size (also occupiedBoxes,
-    // reservedBoxes, occupancyLevel). Measured on the live account 2026-09-14: 1721 lockers, e.g.
-    // {"size":"S","number":25},{"size":"M","number":4},{"size":"L","number":10}. This is live data (it
-    // moves as parcels come and go), so it is fetched fresh, never stored in the weekly office sync.
+    // ── easyBox availability ─────────────────────────────────────────────────
 
-    /** easyBox sizes, smallest first. A parcel needing one size fits that compartment OR any larger. */
+    /** easyBox sizes, smallest first; a parcel fits its size or any larger. */
     public const BOX_SIZES = ['S', 'M', 'L'];
 
-    /**
-     * Free compartments per locker, by size, LIVE from /api/client/lockers.
-     *
-     * @return array<int,array<string,int>> lockerId => ['S'=>n,'M'=>n,'L'=>n] (only the sizes present)
-     */
+    /** @return array<int,array<string,int>> lockerId => size => free count */
     public function fetch_locker_availability(): array {
         $out = [];
         foreach ($this->get_paged('/api/client/lockers') as $l) {
             $id = (int) ($l['lockerId'] ?? $l['id'] ?? 0);
             if (!$id) { continue; }
-            // Only a real easyBox has COMPARTMENTS. The lockers listing also returns staffed "SAMEDAY
-            // point" counters (measured 2026-09-14: ~half of them, name "SAMEDAY point ...", all three
-            // box lists empty) - a person takes the parcel there, so there is no compartment to be full
-            // of, and they are left out of the availability question entirely (the map shows them as
-            // usual, never greyed). A genuinely FULL easyBox is kept: its availableBoxes is empty but
-            // its occupiedBoxes is not, so it still counts as a compartment locker and reads as full.
+            // Staffed "SAMEDAY point" counters have no compartments and are left out; a full easyBox is kept.
             $has_compartments = !empty($l['availableBoxes']) || !empty($l['occupiedBoxes']) || !empty($l['reservedBoxes']);
             if (!$has_compartments) { continue; }
             $free = [];
@@ -374,29 +291,14 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * The easyBox compartment envelope as a filterable table: the compartment opening (max parcel
-     * length x width laid on the cell floor) and the height that tops out each of Sameday's S/M/L
-     * sizes, all in centimetres.
-     *
-     * These are Sameday's OWN published cell sizes, from the easyBox national-postal-service terms on
-     * sameday.bg: a storage column holds 10 cells - 5 small at 445 x 100 x 470 mm, 3 medium at
-     * 445 x 200 x 470 mm, 2 large at 445 x 390 x 470 mm (width x height x depth; the five cell heights
-     * stack to the column). So the opening is 44.5 x 47 cm for every size and the height is what tells
-     * them apart: S 10, M 20, L 39 cm. The API itself never returns these - it reports only the size
-     * label and a free count per locker, no dimensions (probed 2026-09-14: every box-type/detail
-     * endpoint 404s), which is why the numbers are taken from the published terms rather than a live
-     * read. A shop whose lockers measure differently corrects the table through the
-     * `bgcouriers_sameday_box_dims` filter - no code change, and box_size_for() follows it - as
-     * `bgcouriers_courier_vat_rate` lets a shop set an off-standard VAT rate. The size KEYS must stay
-     * Sameday's own 'S'/'M'/'L' (that is what availableBoxes reports and locker_fits() compares against).
-     *
+     * easyBox compartment envelope in cm, from Sameday's published cell sizes (the API has none); keys must stay S/M/L.
      * @return array{max_length:float,max_width:float,heights:array<string,float>}
      */
     public static function box_dims_table(): array {
         $t = apply_filters('bgcouriers_sameday_box_dims', [
-            'max_length' => 47.0,  // easyBox cell depth, 470 mm
-            'max_width'  => 44.5,  // easyBox cell width, 445 mm
-            'heights'    => ['S' => 10.0, 'M' => 20.0, 'L' => 39.0], // cell heights 100 / 200 / 390 mm
+            'max_length' => 47.0,
+            'max_width'  => 44.5,
+            'heights'    => ['S' => 10.0, 'M' => 20.0, 'L' => 39.0],
         ]);
         $heights = (is_array($t) && !empty($t['heights']) && is_array($t['heights'])) ? array_map('floatval', $t['heights']) : ['S' => 10.0, 'M' => 20.0, 'L' => 39.0];
         return [
@@ -406,14 +308,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         ];
     }
 
-    /**
-     * The smallest easyBox size a parcel of these dimensions needs, from box_dims_table().
-     *
-     * A parcel wider than the compartment opening, or taller than the tallest compartment, maps to the
-     * largest size (never "fits nothing"), leaving a true misfit for Sameday's own limits to reject.
-     *
-     * @param array $dims ['length'=>cm,'width'=>cm,'height'=>cm] - the shop's box_dims().
-     */
+    /** The smallest easyBox size a parcel (cm) needs; a misfit maps to the largest, never to "fits nothing". */
     public static function box_size_for(array $dims): string {
         $t = self::box_dims_table();
         $l = (float) ($dims['length'] ?? 0);
@@ -421,7 +316,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $h = (float) ($dims['height'] ?? 0);
         if ($l <= $t['max_length'] && $w <= $t['max_width']) {
             $heights = $t['heights'];
-            asort($heights); // smallest-fitting size first, even if a filter listed the sizes out of order
+            asort($heights);
             foreach ($heights as $size => $max) {
                 if ($h <= (float) $max) { return (string) $size; }
             }
@@ -429,13 +324,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return 'L';
     }
 
-    /**
-     * Does this locker have a free compartment the parcel fits into? A parcel needing size X fits a free
-     * box of X or of any LARGER size, so the answer is "any free box from the required size upward".
-     *
-     * @param array<string,int> $free_boxes size => free count (as fetch_locker_availability() returns)
-     * @param string            $required   the size box_size_for() asked for
-     */
+    /** @param array<string,int> $free_boxes size => free count */
     public static function locker_fits(array $free_boxes, string $required): bool {
         $from = array_search($required, self::BOX_SIZES, true);
         if ($from === false) { return false; }
@@ -448,21 +337,15 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     // ── Quote (live, weight-based) ───────────────────────────────────────────
 
     public function quote(array $shipment): BGCouriers_Quote {
-        // Service + pickup point come from the ACCOUNT (auto-discovered), not from typed-in settings.
         $shipment['service_id']   = $this->service_id((string) ($shipment['method'] ?? 'address'));
         $shipment['pickup_point'] = $this->pickup_point_id();
         $resp = $this->post_json('/api/awb/estimate-cost', self::build_estimate_body($shipment));
         return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
 
-    /**
-     * Estimate body - field names LIVE-CONFIRMED against the BG demo env (its 400 names each field):
-     * packageNumber + thirdPartyPickup are required, and the recipient takes `city` (an id, NOT `cityId`)
-     * plus `county`/`countyString` (the county resolves from countyString = our stored region name).
-     */
+    /** Recipient takes `city` (an id, not cityId) plus countyString; packageNumber and thirdPartyPickup are required. */
     public static function build_estimate_body(array $s): array {
-        // From the shipment array, never from an order: this is also called at checkout, where no order
-        // exists yet. BGCouriers_Order::shipment_from_order() puts both in for the order-side callers.
+        // From the shipment array, never from an order: also called at checkout, before any order exists.
         $parcel_n = max(1, (int) ($s['parcels'] ?? 1));
         $insured  = max(0.0, (float) ($s['insurance'] ?? 0));
         $type = $s['method'] ?? 'address';
@@ -478,12 +361,8 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             'packageType'     => 0,
             'packageNumber'   => $parcel_n,
             'packageWeight'   => $w,
-            'awbPayment'      => 1, // client (sender) pays the delivery
-            // The amount the courier collects at the door. Sameday charges for collecting it and the
-            // charge is in the estimate, so a quote that always said 0 under-quoted every COD order
-            // (measured: 1.30 -> 1.80 on a 50 EUR collection). The vendor's own SDK sends it on the
-            // estimation request too - SamedayPostAwbEstimationRequest has cashOnDelivery beside
-            // insuredValue.
+            'awbPayment'      => 1,
+            // Sameday charges for collecting COD, and the charge is in the estimate.
             'cashOnDelivery'  => max(0.0, (float) ($s['cod_amount'] ?? 0)),
             'insuredValue'    => $insured,
             'thirdPartyPickup'=> 0,
@@ -496,38 +375,12 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return $body;
     }
 
-    /**
-     * estimate-cost -> BGCouriers_Quote. LIVE shape: {"amount":15.81,"currency":"Ron","time":96} (amount, not cost).
-     * Only a quote already in the store's own currency is usable; anything else (the shared demo
-     * tarifficator prices in RON) throws, so the pricing pipeline falls back to the reference/fixed
-     * price instead of charging a foreign number.
-     */
-    /**
-     * The parcel's dimensions in Sameday's field names (width/length/height, cm). With an order in hand
-     * they are measured from it; without one - a quote, before there is an order - the configured
-     * default is all there is.
-     */
     protected static function parcel_dims(?\WC_Order $order = null): array {
         $d = BGCouriers_Settings::box_dims($order);
         return ['width' => $d['width'], 'length' => $d['length'], 'height' => $d['height']];
     }
 
-    /**
-     * Net or gross? **Net - and an invoice says so.**
-     *
-     * Neither the API nor the waybill would answer it: Sameday's AWB prints no service price at all,
-     * only the cash-on-delivery and declared-value boxes, and /api/awb/estimate-cost answers
-     * `{"amount":1.3,"currency":"EUR","time":48}` and nothing else. Three of the seven couriers here
-     * turned out to quote gross while looking exactly like net, so the question was left open on
-     * 2026-08-31 with the one thing that would settle it written down: a line on a Sameday invoice.
-     *
-     * That line arrived on 2026-09-01. Order 11260 was quoted **1.37** at the checkout and Sameday
-     * invoiced **1.66** for waybill 1CJALN20743532 - `amount` plus 20%, and not `amount`. So the tax is
-     * put on the quote here rather than left for WooCommerce, which is what the shop it was written for
-     * had never been doing: the live shop calculates no tax at all, so nothing was ever added and the
-     * shop paid the VAT out of its own pocket on every Sameday order. See
-     * BGCouriers_Pricing::rate_cost() for the half of that fault which was not Sameday's alone.
-     */
+    /** Sameday's `amount` is net (an invoice confirmed it); VAT is added here. A foreign-currency quote throws. */
     public static function parse_price(array $resp, string $currency): BGCouriers_Quote {
         $amount = (float) ($resp['amount'] ?? $resp['cost'] ?? 0);
         $cur    = strtoupper((string) ($resp['currency'] ?? $currency));
@@ -542,7 +395,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     // ── Label ────────────────────────────────────────────────────────────────
 
-    /** Set once Sameday has refused a recipient-paid shipment, so the settings screen can warn up front. */
+    /** Set once Sameday has refused a recipient-paid shipment, so the settings screen can warn. */
     const NO_RECIPIENT_PAY = 'bgcouriers_sameday_no_recipient_pay';
 
     public function create_label(\WC_Order $order): BGCouriers_Label {
@@ -551,11 +404,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         try {
             $resp = $this->post_json('/api/awb', self::build_awb_body($order, $this->service_id($method), $this->pickup_point_id()));
         } catch (BGCouriers_Api_Exception $e) {
-            // Not every Sameday contract allows the delivery to be charged to the recipient. When it does
-            // not, the API rejects awbPayment outright and NO waybill is created - every order with this
-            // courier simply fails. Remember it, so the settings screen can flag the courier before the
-            // merchant discovers it one unshippable order at a time, and say which setting causes it
-            // instead of passing on Sameday's "The selected choice is invalid".
+            // A contract without recipient payment rejects awbPayment and creates no waybill; remember it for the settings screen.
             if (strpos($e->getMessage(), 'awbPayment') !== false) {
                 update_option(self::NO_RECIPIENT_PAY, 'yes');
                 throw new BGCouriers_Api_Exception(esc_html__(
@@ -565,16 +414,11 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             }
             throw $e;
         }
-        // It worked with the recipient paying, so whatever we learned before no longer holds - a contract
-        // can be extended, and a stale warning is its own kind of wrong.
         if ($recipient_pays && get_option(self::NO_RECIPIENT_PAY, '') !== '') { delete_option(self::NO_RECIPIENT_PAY); }
         return new BGCouriers_Label(self::parse_awb_id($resp));
     }
 
     public static function build_awb_body(\WC_Order $order, int $service_id = 0, int $pickup_point = 0): array {
-        // How many boxes, and what they are insured for. Both were literals - 1 and 0 - so a shop sending
-        // three parcels got one waybill for one, and insurance was unreachable however much the goods
-        // were worth. See BGCouriers_Order.
         $parcel_n = BGCouriers_Order::parcels($order);
         $insured  = BGCouriers_Order::insurance($order);
         $method = (string) $order->get_meta('_bgcouriers_method');
@@ -594,22 +438,15 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
             'cashOnDelivery' => $is_cod ? self::cod_for_payer($order, $payer) : 0,
             'insuredValue'   => $insured,
             'thirdPartyPickup' => 0,
-            // Sameday's free-text remark on the AWB - the only place it takes a contents description
-            // (POST /api/awb has observation/priceObservation/clientObservation and no contents field).
-            // Same shop-wide description Speedy and Econt print.
+            // The AWB remark is the only place Sameday takes a contents description.
             'observation'    => BGCouriers_Settings::shipment_contents(),
-            // AWBs must carry a unique clientInternalReference - even a CANCELLED one keeps its reference
-            // forever, so a bare order id would break regeneration; suffix with a timestamp.
-            // The ORDER NUMBER, not the post id: they are the same on a plain shop, but a shop numbering
-            // its orders through a plugin shows the merchant the number this reference is meant to be
-            // matched against. Every other courier already carries get_order_number() for this reason.
+            // clientInternalReference must be unique forever, even across cancelled AWBs, hence the timestamp.
             'clientInternalReference' => $order->get_order_number() . '-' . time(),
             'awbRecipient'   => array_filter([
                 'name'        => $order->get_formatted_billing_full_name(),
                 'phoneNumber' => (string) $order->get_billing_phone(),
-                'email'       => BGCouriers_Settings::label_email($order), // empty unless sharing is enabled
+                'email'       => BGCouriers_Settings::label_email($order),
                 'personType'  => 0, // individual
-                // LIVE-CONFIRMED names (the API's own 400 details): `city` id + county via countyString.
                 'city'         => $sid,
                 'countyString' => $county,
                 'address'      => $addr !== '' ? $addr : '-',
@@ -631,14 +468,10 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
 
-    /** Measured: a parcel count and a declared value reach the shipment and change its price. */
     public function multi_parcel(): bool { return true; }
     public function label_formats(): array { return ['A6', 'A4']; }
 
     public function get_label_pdf(string $waybill, string $format = ''): string {
-        // Sameday's AWB download supports a paper type; request it when a size is asked for. When $format is
-        // empty we send NO type param so the native download is unchanged. (Format param per the official
-        // php-sdk; not live-verified here - no Sameday account yet.)
         $url = $this->base . '/api/awb/download/' . rawurlencode($waybill);
         if (in_array($format, ['A6', 'A4'], true)) { $url = add_query_arg('type', $format, $url); }
         return $this->fetch_pdf($url, ['X-AUTH-TOKEN' => $this->auth_token()], 'Sameday');
@@ -654,31 +487,18 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         }
         $code = (int) wp_remote_retrieve_response_code($r);
         if ($code < 300) { return true; }
-        // A shipment Sameday does not have is a shipment nobody is coming for, which is the whole point
-        // of cancelling - so 404 counts as done, the way Econt's "not found" already does. Without
-        // this, cancelling an AWB that was cancelled earlier (or lives on the demo stack) reported
-        // "the courier did not cancel it" and left a dead number stuck on the order.
+        // 404 counts as done: a shipment Sameday does not have is one nobody is coming for.
         if ($code === 404) { return true; }
-        // Anything else is a refusal, in Sameday's words where it gave any.
         /* translators: %s: the courier's own error text, or the HTTP status. */
         throw new BGCouriers_Api_Exception(esc_html(sprintf(__('The request failed: %s', 'bg-couriers'), 'HTTP ' . $code . ': ' . self::error_text((string) wp_remote_retrieve_body($r)))));
     }
 
-    /**
-     * Sameday's own view: gone (404) or carrying a cancelled status. Asked when cancel_label() refuses,
-     * to tell "already done" apart from "still live" - the abstract's default says false to everything,
-     * which made every second cancel look like a failure.
-     */
     public function is_cancelled(string $waybill): bool {
         try {
             $t = $this->track($waybill);
         } catch (\Exception $e) {
-            // 404 from the status endpoint means Sameday has no such AWB any more.
             return strpos($e->getMessage(), '404') !== false;
         }
-        // Sameday says it outright in expeditionSummary.canceled, which parse_tracking now carries as
-        // the phase; the wording is the fallback, and it is read with the same vocabulary the orders
-        // list uses rather than a shorter one of this class's own.
         return $t->stage() === 'cancelled' || BGCouriers_Tracking::reads_cancelled($t->human());
     }
 
@@ -688,11 +508,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return self::parse_tracking($this->get_json('/api/client/awb/' . rawurlencode($waybill) . '/status'), $waybill);
     }
 
-    /**
-     * LIVE shape (BG demo, 2026-07-23): { expeditionSummary:{delivered,canceled,...},
-     * expeditionStatus:{statusId,status(BG),statusLabel(RO),statusState,statusDate,...},
-     * expeditionHistory:[{statusId,status,statusDate,...}] }. `status` is already localised Bulgarian.
-     */
+    /** expeditionStatus.status is already localised Bulgarian; expeditionSummary carries the delivered/canceled flags. */
     public static function parse_tracking(array $resp, string $waybill): BGCouriers_Tracking {
         $events = [];
         foreach ((array) ($resp['expeditionHistory'] ?? $resp['awbHistory'] ?? []) as $h) {
@@ -703,15 +519,11 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
                 'date' => (string) ($h['statusDate'] ?? $h['date'] ?? ''),
             ];
         }
-        // Sameday returns its history NEWEST FIRST. Everything downstream - human(), classify(), the status
-        // shown in the orders list - reads the LAST entry as the current one, so an unsorted list reports
-        // the moment the label was created forever: a cancelled shipment still read "created
-        // waybill". Sort ascending so the newest really is last.
+        // Sameday returns history newest first; everything downstream reads the last entry as current.
         usort($events, static function ($a, $b) {
             return strcmp((string) $a['date'], (string) $b['date']) ?: 0;
         });
-        // Same-second entries (a create and its cancellation can share a timestamp) keep API order, which
-        // is newest-first - so reverse those back. Compare on the statusId, which grows with the lifecycle.
+        // Same-second entries keep API order (newest first), so break ties on statusId, which grows with the lifecycle.
         usort($events, static function ($a, $b) {
             $d = strcmp((string) $a['date'], (string) $b['date']);
             return $d !== 0 ? $d : ((int) $a['code'] <=> (int) $b['code']);
@@ -720,20 +532,11 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $cur     = (array) ($resp['expeditionStatus'] ?? []);
         $summary = (array) ($resp['expeditionSummary'] ?? []);
         $status  = (string) ($cur['status'] ?? ($events ? $events[count($events) - 1]['name'] : 'unknown'));
-        // Sameday states the outcome outright, so the verdict does not depend on reading Bulgarian prose.
         $phase = !empty($summary['delivered']) ? 'DELIVERED' : (!empty($summary['canceled']) ? 'CANCELLED' : '');
         return new BGCouriers_Tracking($waybill, $status, $events, $phase, self::handover($status), true);
     }
 
-    /**
-     * Whether the courier holds the parcel, as far as the status line says. Sameday has no field for it,
-     * but two of its wordings are explicit that the parcel is STILL WITH THE SENDER: the fresh waybill
-     * ("Създадена товарителница") and a collection the driver put off ("Отложено взимане от подател").
-     * On live order 11279 (2026-09-25) that postponed collection was the second history entry, and a
-     * second entry is what the shipped rule takes as "the parcel moved" when the courier does not say -
-     * so the order went to Shipped while the box was still on the shop's counter. null means "not said"
-     * and leaves the rule to count events, as before, for every other wording.
-     */
+    /** Whether the courier holds the parcel: two wordings say it is still with the sender; null means not said. */
     public static function handover(string $status): ?bool {
         $s = function_exists('mb_strtolower') ? mb_strtolower($status) : strtolower($status);
         foreach (['взимане от подател', 'създадена товарителница'] as $k) {
@@ -742,12 +545,6 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return null;
     }
 
-    /**
-     * The page a customer can open. sameday.bg/status-na-pratkata/?awb= is Sameday's tracking page
-     * with the number filled in (measured 2026-09-13: it asks api.sameday.bg for that AWB's history
-     * and shows it; the homepage's #awb= form redirects there). www.sameday.bg/track-awb?awb=, which
-     * this used to link, is a 404 page - so every Sameday order's tracking link was dead.
-     */
     public function tracking_url(string $waybill): string {
         return 'https://sameday.bg/status-na-pratkata/?awb=' . rawurlencode($waybill);
     }

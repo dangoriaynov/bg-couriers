@@ -1,39 +1,16 @@
 <?php
 defined('ABSPATH') || exit;
 
-/**
- * The "Shipped" order status.
- *
- * WooCommerce ships processing / on-hold / completed / cancelled / refunded / failed - there is no state
- * for "the courier has the parcel and it is on its way", which is exactly the window a merchant wants to
- * see. Registering it here makes it a first-class status: selectable on the order screen, listed in the
- * status filter row above the orders table, and settable in bulk.
- *
- * The status is always registered (harmless, and an order already in it must keep rendering); what the
- * separate setting gates is the AUTOMATIC transition - see BGCouriers_Tracking_Poller.
- */
+/** The custom "Shipped" order status; the setting only gates the automatic transition. */
 class BGCouriers_Order_Status {
-    /**
-     * Full status key, as WooCommerce stores it.
-     *
-     * MUST fit 20 characters: HPOS stores the status in wp_wc_orders.status, a varchar(20), and MySQL
-     * truncates anything longer WITHOUT complaining. The first version of this was
-     * 'wc-bgcouriers-shipped' - 21 characters - so every order marked Shipped was written as
-     * 'wc-bgcouriers-shippe', a value that matches no registered status: those orders vanished from
-     * wc_get_orders() (the tracking poller stopped seeing them and they froze mid-journey) and showed up
-     * as nothing recognisable anywhere that reads statuses. Keep this short.
-     */
+    /** Must fit 20 chars: HPOS stores it in a varchar(20) and MySQL truncates silently. */
     const STATUS = 'wc-bgc-shipped';
-    /** The same key without WooCommerce's `wc-` prefix, which is what WC_Order::get_status() returns. */
     const SLUG = 'bgc-shipped';
-    /** What the truncated first version left in the database, so it can be recognised and repaired. */
     const LEGACY_STATUS = 'wc-bgcouriers-shippe';
 
     public function __construct() {
         add_action('init', [$this, 'register']);
         add_filter('wc_order_statuses', [$this, 'add_to_list']);
-        // Orders in this status are still "live" work, so keep the row actions and reports treating them
-        // like processing rather than like a finished order.
         add_filter('woocommerce_reports_order_statuses', [$this, 'add_to_reports']);
         foreach (['woocommerce_page_wc-orders', 'edit-shop_order'] as $screen) {
             add_filter("bulk_actions-{$screen}", [$this, 'add_bulk_action'], 20);
@@ -53,25 +30,18 @@ class BGCouriers_Order_Status {
         ]);
     }
 
-    /** Insert right after "processing" - that is where it belongs in the order's life. */
     public function add_to_list(array $statuses): array {
         $out = [];
         foreach ($statuses as $key => $label) {
             $out[$key] = $label;
             if ($key === 'wc-processing') { $out[self::STATUS] = _x('Shipped', 'Order status', 'bg-couriers'); }
         }
-        // Defensive: if this WooCommerce ever drops wc-processing, still offer the status.
         if (!isset($out[self::STATUS])) { $out[self::STATUS] = _x('Shipped', 'Order status', 'bg-couriers'); }
         return $out;
     }
 
     /**
-     * Legacy Reports > Sales by date passes `false` here for its refund sub-queries ("no status clause,
-     * filter on the parent order instead") - a strict `array` type on this parameter took the whole
-     * report page down (reported by a WP.org user, 2026-09-22). The false has to come back untouched:
-     * turning it into [shipped] would put a status clause into a query that deliberately has none, and
-     * the report would count zero refunds.
-     *
+     * Legacy reports pass `false` for refund sub-queries; it must come back untouched.
      * @param array|false $statuses
      * @return array|false
      */
@@ -81,10 +51,7 @@ class BGCouriers_Order_Status {
         return $statuses;
     }
 
-    /**
-     * WooCommerce hardcodes its own four "Change status to ..." bulk actions, so a custom status has none.
-     * The `mark_<slug>` name is the convention WC's own handler understands, so adding the entry is enough.
-     */
+    /** `mark_<slug>` is the name WC's own bulk handler understands. */
     public function add_bulk_action(array $actions): array {
         $actions['mark_' . self::SLUG] = _x('Change status to shipped', 'Order bulk action', 'bg-couriers');
         return $actions;
