@@ -1,12 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-/**
- * BOX NOW - locker (APM) courier. OAuth2 client-credentials + X-PartnerID header. No price API
- * (flat rate via BGCouriers_Pricing). Delivery is to an APM the customer picks in the same town +
- * locker block every other courier has; the towns are BOX NOW's own, read off its lockers (fetch_cities).
- * Shapes live-verified against the stage API (api-stage.boxnow.bg), Partner API 1.72, 2026-07-07.
- */
+/** BOX NOW locker (APM) courier: OAuth2 client credentials, flat rate, towns derived from its lockers. */
 class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interface {
     const PROD  = 'https://api-production.boxnow.bg';
     const STAGE = 'https://api-stage.boxnow.bg';
@@ -18,8 +13,8 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     private $warehouse_id;
 
     public function __construct(array $config) {
-        $this->client_id     = (string) ($config['username'] ?? '');   // stored as bgcouriers_boxnow_username (= Client ID)
-        $this->client_secret = (string) ($config['password'] ?? '');   // stored as bgcouriers_boxnow_password (= Client secret, encrypted)
+        $this->client_id     = (string) ($config['username'] ?? '');
+        $this->client_secret = (string) ($config['password'] ?? '');
         $this->base          = rtrim((string) ($config['api_url'] ?? self::PROD), '/');
         $this->partner_id    = (string) ($config['partner_id'] ?? '');
         $this->warehouse_id  = (string) ($config['warehouse_id'] ?? '');
@@ -28,7 +23,6 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     public function id(): string { return 'boxnow'; }
     public function label(): string { return 'BOX NOW'; }
 
-    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
     public function credential_hint(): array {
         return [
             'intro' => __('BOX NOW issues OAuth2 credentials through its integration team.', 'bg-couriers'),
@@ -42,9 +36,9 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             'url'       => 'https://www.boxnow.bg',
         ];
     }
-    public function capabilities(): array { return ['automat']; } // locker-only
-    public function pushes_tracking(): bool { return true; }       // its webhook, see BGCouriers_Boxnow_Webhook
-    public function recipient_can_pay_delivery(): bool { return false; } // no field for it: the fee is the merchant's by contract
+    public function capabilities(): array { return ['automat']; }
+    public function pushes_tracking(): bool { return true; }
+    public function recipient_can_pay_delivery(): bool { return false; }
 
     public function enable_problems(): array {
         $p = parent::enable_problems();
@@ -54,8 +48,6 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         $this->need_option($p, 'bgcouriers_boxnow_warehouse_id',
             __('No Warehouse ID is set.', 'bg-couriers'),
             __('Enter the origin Warehouse ID parcels ship from (from BOX NOW).', 'bg-couriers'));
-        // Without a sender phone BOX NOW refuses every shipment, and it says so only as {"code":"P405"} -
-        // at label time, one order at a time. Better to declare the courier unusable up front.
         $phone = trim((string) get_option('bgcouriers_boxnow_sender_phone', ''));
         if ($phone === '') {
             $p[] = [
@@ -77,7 +69,6 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return $p;
     }
 
-    /** Cached OAuth2 bearer token (BoxNow expires_in 3600s → refresh at 55 min). */
     protected function token(): string {
         $tok = get_transient('bgcouriers_boxnow_token');
         if (is_string($tok) && $tok !== '') { return $tok; }
@@ -98,7 +89,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         $body = json_decode($raw, true);
         $tok  = is_array($body) ? (string) ($body['access_token'] ?? '') : '';
         if ($tok === '') {
-            $words = self::error_words($raw); // BOX NOW's own words, where it gave any
+            $words = self::error_words($raw);
             /* translators: %s: courier name. */
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s did not return an access token, so the credentials were refused.', 'bg-couriers'), 'BOX NOW')
                 . ($words !== '' ? ' (' . $words . ')' : '')));
@@ -128,7 +119,6 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return $data;
     }
 
-    /** POST a path (not a full URL) with the BoxNow auth headers. */
     private function bn_post(string $path, array $body): array {
         $res = wp_remote_post($this->base . $path, ['timeout' => 40, 'headers' => $this->headers(true), 'body' => wp_json_encode($body)]);
         if (is_wp_error($res)) {
@@ -142,10 +132,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             /* translators: 1: courier name, 2: HTTP status code, 3: the courier's own error text. */
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s answered HTTP %2$d: %3$s', 'bg-couriers'), 'BOX NOW', $code, self::refusal_text($raw))));
         }
-        // A 2xx with no body is a success with nothing to say - which is exactly how :cancel answers.
-        // Demanding JSON of it made every BOX NOW cancellation report failure while the parcel HAD been
-        // cancelled: the waybill stayed on the order, and re-issue (cancel then generate) silently did
-        // nothing, because generate() hands back the waybill that was never cleared.
+        // A 2xx with an empty body is a success (that is how :cancel answers).
         if (trim($raw) === '') { return []; }
         if (!is_array($data)) {
             /* translators: 1: courier name, 2: HTTP status code. */
@@ -155,18 +142,10 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     }
 
     public function check_credentials(): bool {
-        return $this->token() !== ''; // a refusal is thrown with the reason, for the screen
+        return $this->token() !== '';
     }
 
-    /**
-     * A BOX NOW refusal in words.
-     *
-     * BOX NOW answers a bad request with {"code":"P411","status":400} and nothing else - no message, no
-     * field - and the shared error_text() could only hand that JSON to the screen as it was. The codes
-     * ARE documented (API Integration Partner API manual, chapter 5 "Troubleshooting"), so the ones a
-     * shipment from this plugin can meet are said here in words the merchant can act on. The code is
-     * kept on the end for BOX NOW support. A code the manual does not list falls back to what it was.
-     */
+    /** A BOX NOW refusal in words: its error codes come with no message, so the documented ones are spelled out. */
     public static function refusal_text(string $raw): string {
         $words = self::error_words($raw);
         if ($words !== '') { return $words; }
@@ -191,7 +170,6 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return self::error_text($raw);
     }
 
-    /** The destinations answer, read once per instance: the towns and the lockers both come from it. */
     private $destinations = null;
     private function destinations(): array {
         if ($this->destinations === null) {
@@ -200,21 +178,10 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return is_array($this->destinations) ? $this->destinations : [];
     }
 
-    /**
-     * BOX NOW publishes no town list, and for a year the checkout worked around that with BOX NOW's own
-     * map widget in an iframe - a different window from every other courier, centred on Athens, asking
-     * the browser for a location, and unable to take the town the customer had already named for the
-     * other couriers or on the combined map (owner, 2026-09-12). Every locker BOX NOW returns does carry
-     * its town (addressLine2: "София", "Харманли") and a postal code, so the towns are read off the
-     * lockers: one per town name, and the locker rows carry that town's id like any courier's offices.
-     * The town then behaves like everyone else's - carried across couriers, preloaded, on the map.
-     */
+    /** BOX NOW publishes no town list; towns are read off its lockers (addressLine2). */
     public function fetch_cities(): array {
         $towns = self::towns_of(self::parse_destinations($this->destinations()));
-        // The code a town is listed under is the one the shop's other couriers use for it, when they
-        // list it: a locker's own code is a district code as often as not (Sofia's lockers start at
-        // 1111; everyone else says 1000), and the combined map and the carry between couriers key a
-        // town by name and code. The lowest locker code stays for a town only BOX NOW serves.
+        // Key a town by the code the other couriers list it under; a locker's own code is often a district code.
         if (class_exists('BGCouriers_Nomenclature')) {
             foreach ($towns as &$t) {
                 $pc = BGCouriers_Nomenclature::post_code_by_name($t['name'], (string) $t['country'], ['boxnow']);
@@ -225,36 +192,18 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return $towns;
     }
 
-    /**
-     * BoxNow APM lockers, each with the id of its town (see fetch_cities): every locker for the sync
-     * (city_id 0), or one town's when the checkout asks for a town - BOX NOW has no per-town query, so
-     * the whole list is read and the town's lockers picked out of it. Without the pick, a customer who
-     * chose Бургас was offered all 930 lockers in the country, Sofia first (measured 2026-09-13).
-     */
     public function fetch_offices(int $city_id = 0): array {
         $rows = self::parse_destinations($this->destinations());
         if ($city_id <= 0) { return $rows; }
         return array_values(array_filter($rows, static function ($o) use ($city_id) { return (int) ($o['city_id'] ?? 0) === $city_id; }));
     }
 
-    /**
-     * A stable id for a town BOX NOW never numbered: a hash of its name. The nomenclature keys a city by
-     * (courier, city_id), every order stores the id, and a resync must give the same town the same id -
-     * so it is derived from the name, not from the position in a list that changes with every locker
-     * BOX NOW opens. Case-folded, because "СОФИЯ" and "София" are one town.
-     */
     public static function town_id(string $name): int {
         $key = function_exists('mb_strtolower') ? mb_strtolower(trim($name), 'UTF-8') : strtolower(trim($name));
         return (crc32($key) & 0x7fffffff) ?: 1;
     }
 
-    /**
-     * The towns in a set of locker rows: one row per town name, with the LOWEST postal code seen among
-     * its lockers. Bulgarian codes give a town's centre the round number (София 1000, Пловдив 4000) and
-     * its districts the higher ones (1407, 1528), and the round number is the one the other couriers
-     * list the town under - which is what lets a town chosen for Speedy carry over to BOX NOW by its
-     * code, and the name is there for when it does not.
-     */
+    /** One row per town name, with the lowest postal code seen among its lockers (the town centre's). */
     public static function towns_of(array $offices): array {
         $towns = [];
         foreach ($offices as $o) {
@@ -262,8 +211,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             if ($name === '') { continue; }
             $id = (int) ($o['city_id'] ?? 0);
             $pc = (string) ($o['post_code'] ?? '');
-            // Only a code that is one. Three Sofia lockers carry "-1000" (measured 2026-09-12), and
-            // "-1000" sorts below "1000" - the town's code would have been a minus sign.
+            // Some lockers carry "-1000", which would sort below the real code.
             if (!preg_match('/^\d{4}$/', $pc)) { $pc = ''; }
             if (!isset($towns[$id])) {
                 $towns[$id] = ['city_id' => $id, 'name' => $name, 'post_code' => $pc, 'region' => '', 'country' => (string) ($o['country'] ?? 'BG')];
@@ -274,11 +222,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return array_values($towns);
     }
 
-    /**
-     * destinations[] -> office rows, each with the id of its town. A destination with no town is not a
-     * place a customer can choose - the one BOX NOW returns without one is "Any-APM", the wildcard it
-     * uses as an ORIGIN - so it is left out rather than listed under no town at all.
-     */
+    /** destinations[] -> office rows; a destination with no town (the "Any-APM" origin wildcard) is skipped. */
     public static function parse_destinations(array $resp): array {
         $rows = $resp['data'] ?? (isset($resp[0]) ? $resp : []);
         $out  = [];
@@ -311,10 +255,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
     }
 
     public function create_label(\WC_Order $order): BGCouriers_Label {
-        // BOX NOW refuses a delivery request whose orderNumber it has already seen - {"code":"P410"},
-        // with the earlier parcel ids echoed back - and CANCELLING the first one does not release the
-        // number. A re-issue (the customer moved to another locker, the address was corrected) therefore
-        // has to present a new one, or it fails while the order is left with no shipment at all.
+        // BOX NOW refuses a reused orderNumber (P410) even after cancel, so a re-issue needs a new suffix.
         $attempt = (int) $order->get_meta('_bgcouriers_boxnow_attempt') + 1;
         $order->update_meta_data('_bgcouriers_boxnow_attempt', $attempt);
         $order->save();
@@ -322,19 +263,11 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return new BGCouriers_Label(self::parse_parcel_id($resp));
     }
 
-    /**
-     * delivery-request body. destination.locationId = the chosen APM (_bgcouriers_office_id); origin.locationId
-     * = the merchant warehouse. COD when the order's payment method is cash-on-delivery. Values are
-     * strings with exactly 2 decimals; item value is tax-inclusive; compartmentSize required for APM.
-     */
     public static function build_delivery_request(\WC_Order $order, string $origin_id, int $attempt = 1): array {
         $total  = number_format((float) $order->get_total(), 2, '.', '');
         $is_cod = $order->get_payment_method() === 'cod';
 
-        // BOX NOW takes E.164 only. A Bulgarian shopper types 0888123456, and BOX NOW answers the whole
-        // request with {"code":"P405"} - no field named, no reason - so every order would have failed
-        // with a code nobody can act on. Converted here rather than at checkout: the other couriers are
-        // domestic and take the national form as typed.
+        // BOX NOW takes E.164 phone numbers only (P405 otherwise).
         $to_phone   = BGCouriers_Phone::e164((string) $order->get_billing_phone());
         $from_phone = BGCouriers_Phone::e164((string) get_option('bgcouriers_boxnow_sender_phone', ''));
         if ($to_phone === '') {
@@ -344,19 +277,9 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             throw new BGCouriers_Api_Exception(esc_html__('No sender phone is set for BOX NOW. Enter it in the BOX NOW settings - BOX NOW rejects a shipment without one.', 'bg-couriers'));
         }
         return [
-            // The first request carries the plain order number, which is what the merchant and BOX NOW
-            // support will both look for; only a re-issue needs to differ.
             'orderNumber'         => $attempt > 1
                 ? $order->get_order_number() . '-' . $attempt
                 : (string) $order->get_order_number(),
-            // The value declared to BOX NOW for the contents. On a cash-on-delivery parcel it is the
-            // amount being collected and there is no choice about it. On a PREPAID one there is: BOX
-            // NOW's own plugin sends "0" (box-now-delivery.php:687), and we sent the order total on every
-            // shipment. Which is right depends on whether they price liability off it, and they publish
-            // no spec that says - /api/v1/openapi.json and /api/v1/docs are 404 even with a valid token.
-            // So it follows the house rule for anything a courier might charge for: OFF by default,
-            // matching the carrier's own plugin, and the merchant turns it on if they want the value
-            // declared. See docs/courier-api-notes.md.
             'invoiceValue'        => ($is_cod || get_option('bgcouriers_boxnow_declare_value', 'no') === 'yes')
                 ? $total : '0.00',
             'paymentMode'         => $is_cod ? 'cod' : 'prepaid',
@@ -365,8 +288,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             'origin'              => [
                 'contactName'   => get_bloginfo('name'),
                 'contactEmail'  => (string) get_option('admin_email'),
-                // The origin is the SENDER (merchant warehouse) - use the merchant's own contact phone, NOT the
-                // buyer's (which belongs on the destination). Matches the official plugin's boxnow_mobile_number.
+                // The origin is the sender: merchant phone, not the buyer's.
                 'contactNumber' => $from_phone,
                 'locationId'    => $origin_id,
             ],
@@ -380,19 +302,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         ];
     }
 
-    /**
-     * ONE entry, describing the single parcel the order ships in.
-     *
-     * BOX NOW turns every items[] entry into its OWN PARCEL with its own id. Sending a line per product
-     * meant a two-product order became two parcels while the plugin recorded only `parcels[0]` - so the
-     * second one was never printed, never tracked, and crucially was NOT cancelled when the order was:
-     * it kept travelling and kept being billed, invisibly. Verified on the stage API: order #237, two
-     * lines, one request -> parcels 3539518244 AND 7934933088.
-     *
-     * This shop packs an order into one box (the 10x10x2 default), so the request now describes one:
-     * the goods total as its value, the order's weight, and the LARGEST compartment any product needs -
-     * a compartment has to fit everything in the box, so the biggest wins.
-     */
+    /** ONE items[] entry: BOX NOW turns every entry into its own parcel, and only parcels[0] is recorded. */
     private static function items(\WC_Order $order): array {
         $value = 0.0;
         $size  = 0;
@@ -403,10 +313,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             $value  += (float) $item->get_total() + (float) $item->get_total_tax();
             $size    = max($size, self::compartment_size($product));
         }
-        // The compartment is for the PARCEL, not for its largest item: five flat sachets in one bag are
-        // taller than any one of them, and the biggest-item reading booked a small box for a parcel that
-        // no longer fits it. BGCouriers_Settings::box_dims() measures the whole order (when the setting
-        // is on) and otherwise returns the shop default, which is where this started.
+        // The compartment is for the whole parcel, not its largest item.
         $box  = BGCouriers_Settings::box_dims($order);
         $size = max($size, self::compartment_for((float) $box['length'], (float) $box['width'], (float) $box['height']));
         if ($lines === 0) { $value = (float) $order->get_total(); }
@@ -415,22 +322,12 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             /* translators: %s: order number */
             'name'   => sprintf(__('Order %s', 'bg-couriers'), (string) $order->get_order_number()),
             'value'  => number_format($value, 2, '.', ''),
-            // The plugin-wide answer, which falls back to the shop default and clamps at 0.1 kg -
-            // couriers reject a parcel lighter than that, and weightless products used to send 0.001.
             'weight' => round(max(0.1, self::order_weight_kg($order)), 3),
             'compartmentSize' => $size > 0 ? $size : 2,
         ]];
     }
 
-    /**
-     * BOX NOW locker compartment for a product, matching the official plugin: the footprint must fit
-     * 60 x 45 cm and the HEIGHT picks the size - <=8cm Small(1), <=17cm Medium(2), <=36cm Large(3). No
-     * dimensions -> Medium (the default). Anything larger falls back to Large (BOX NOW rejects if truly
-     * oversized). WC dimensions are converted to cm first.
-     *
-     * @param \WC_Product|null $product
-     * @return int 1=S, 2=M, 3=L
-     */
+    /** Compartment for a product, as in the official plugin: footprint within 60x45 cm, height picks 1/2/3. */
     private static function compartment_size($product): int {
         $l = $w = $h = 0.0;
         if ($product) {
@@ -438,9 +335,7 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
             $w = (float) $product->get_width();
             $h = (float) $product->get_height();
         }
-        // No dimensions on the product: use the shop's default parcel rather than assuming "Medium".
-        // The compartment is what BOX NOW reserves and charges for, so guessing one size too big is paid
-        // for on every such order - and most products here carry no dimensions at all.
+        // No dimensions: use the shop default parcel, not a guessed Medium (the compartment is charged for).
         if ($l <= 0 && $w <= 0 && $h <= 0) {
             $d = BGCouriers_Settings::box_dims();
             return self::compartment_for((float) $d['length'], (float) $d['width'], (float) $d['height']);
@@ -452,21 +347,13 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         return self::compartment_for($l, $w, $h);
     }
 
-    /**
-     * BOX NOW compartment for a box in centimetres: 1 small, 2 medium, 3 large.
-     *
-     * @param float $l Length in cm.
-     * @param float $w Width in cm.
-     * @param float $h Height in cm.
-     * @return int Compartment size.
-     */
     private static function compartment_for(float $l, float $w, float $h): int {
         if ($l <= 60.0 && $w <= 45.0) {
             if ($h <= 8.0)  { return 1; }
             if ($h <= 17.0) { return 2; }
             if ($h <= 36.0) { return 3; }
         }
-        return 3; // oversized footprint/height -> largest compartment; let BOX NOW reject if it truly won't fit
+        return 3;
     }
 
     public static function parse_parcel_id(array $resp): string {
@@ -493,27 +380,18 @@ class BGCouriers_Boxnow extends BGCouriers_Abstract_Courier implements BGCourier
         foreach (($parcel['events'] ?? []) as $e) {
             $events[] = ['name' => (string) ($e['type'] ?? ''), 'time' => (string) ($e['createTime'] ?? '')];
         }
-        // The state is a machine value ("in-final-destination"), so it travels as the PHASE, which is
-        // what BGCouriers_Tracking reads a stage from outright; the merchant's wording of it is the
-        // status, marked human so the list shows "in the locker - ready for pickup" and not the code.
         $labels = BGCouriers_Boxnow_Webhook::state_labels();
         $human  = $labels[$state] ?? ($state !== '' ? $state : __('unknown', 'bg-couriers'));
         return new BGCouriers_Tracking($waybill, $human, $events, $state !== '' ? 'boxnow_' . $state : '', null, true);
     }
 
-    /**
-     * The page a customer can open. boxnow.bg/track is the tracking page and ?track= prefills the parcel
-     * number on it (measured 2026-09-13: the field arrives filled and the page's own script starts from
-     * it; t.boxnow.bg/?track= is the same page, and BOX NOW's own plugin links t.boxnow.gr/?track=).
-     * "tracker.boxnow.bg", which this used to link, does not exist - NXDOMAIN - so every BOX NOW order's
-     * tracking link was dead.
-     */
+    /** boxnow.bg/track?track= prefills the parcel number; tracker.boxnow.bg does not exist. */
     public function tracking_url(string $waybill): string {
         return 'https://boxnow.bg/track?track=' . rawurlencode($waybill);
     }
 
     public function cancel_label(string $waybill): bool {
-        $this->bn_post('/api/v1/parcels/' . rawurlencode($waybill) . ':cancel', []); // a refusal is thrown with BOX NOW's words
+        $this->bn_post('/api/v1/parcels/' . rawurlencode($waybill) . ':cancel', []);
         return true;
     }
 }
