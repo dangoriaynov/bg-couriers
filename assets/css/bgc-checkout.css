@@ -1,37 +1,20 @@
 /* BG Couriers - checkout fields */
 .bgc-fields { position: relative; margin: 10px 0; }
-/* Reveal a courier's delivery fields only once they are fully initialised (select2 built, tabs + availability
-   ready), so the checkout shows the courier list first and the current courier's fields fade/slide in smoothly
-   instead of flashing raw <select>s while the page is still loading. */
 .bgc-fields { opacity: 0; transform: translateY(6px); transition: opacity .28s ease, transform .28s ease; }
 .bgc-fields.bgc-ready { opacity: 1; transform: none; }
 .bgc-fields, .bgc-fields * { box-sizing: border-box; }
 
-/* Kill theme list bullets / markers that leak into our rows */
 .bgc-fields ul, .bgc-fields li, .bgc-fields p, .bgc-fields label, .bgc-fields .bgc-field { list-style: none !important; }
 .bgc-fields p::before, .bgc-fields p::marker,
 .bgc-fields label::before, .bgc-fields label::marker,
 .bgc-fields .bgc-field::before, .bgc-fields .bgc-field::marker { content: none !important; display: none !important; }
 
-/* The delivery block moved up under the customer's details (bgc-checkout.js relocateDelivery()).
-   In the order-review table the couriers sit in a cell that gives them their spacing; standing in the
-   form they need their own, and a rule above them so the block reads as a section of the form rather
-   than as part of the e-mail field above it. Empty until the browser fills it, so a page with no
-   courier rates shows nothing at all. */
 .bgc-delivery-host:empty { display: none; }
 .bgc-delivery-host { margin: 18px 0 6px; padding-top: 14px; border-top: 1px solid #e2e6ea; }
 .bgc-delivery-host > ul#shipping_method { margin: 0; }
 .bgc-delivery-host > .bgc-fields { margin: 0; }
-/* The rows the block came from. Hidden rather than emptied: WooCommerce rebuilds them on every
-   recalculation, and a stray empty "Delivery" line in the totals is the table saying the parcel has no
-   price. `!important` because a theme may set its own display on the shipping row. */
 tr.bgc-moved-away { display: none !important; }
 
-/* Before the move: the rows are already in the page, and the browser paints them where WooCommerce put
-   them - to the right, in the totals - a blink before the script carries them to the left. Hidden from
-   the first paint, so the block appears once, where it belongs. Scoped to the review table: the copy
-   that lands in the host is no longer inside it and stays visible. `bgc-relocating` is set by the
-   script that does the moving (see render_delivery_host), never by the page itself. */
 html.bgc-relocating .woocommerce-checkout-review-order tr.bgc-allmap-open,
 html.bgc-relocating .woocommerce-checkout-review-order tr.woocommerce-shipping-totals,
 html.bgc-relocating .woocommerce-checkout-review-order tr.shipping { display: none !important; }
@@ -45,62 +28,36 @@ html.bgc-relocating .woocommerce-checkout-review-order tr.shipping { display: no
 .bgc-tab .bgc-mtype-ico { flex: 0 0 auto; }
 .bgc-tab:hover { border-color: #b9c2cc; box-shadow: 0 2px 6px rgba(0,0,0,.10); }
 .bgc-tab.active { border-color: #2271b1; color: #2271b1; background: #f3f8fd; box-shadow: 0 3px 10px rgba(34,113,177,.18); }
-/* Greyed-out + disabled when the chosen city has no office/APS of that type. */
 .bgc-tab.bgc-tab-na { background: #f3f4f5; color: #a7aaad; border-color: #e2e6ea; cursor: not-allowed;
   box-shadow: none; opacity: .7; text-decoration: line-through; pointer-events: none; }
 
-/* "cash on delivery is not available here" - shown under the tabs for a delivery kind the courier
-   collects no money at (Express One's EXOBOX lockers). A note, not an error: nothing is wrong yet.
-   The street note is the same voice: the map found a street this courier does not list, pick one. */
 .bgc-nocod, .bgc-street-note { margin: -4px 0 10px; padding: 8px 11px; border: 1px solid #f0d9a8; border-radius: 8px;
   background: #fdf6e6; color: #6b5314; font-size: 13px; line-height: 1.45; }
 .bgc-street-note { margin-top: 6px; }
 
-/* The field a refusal at the top of the page is about (bgc-checkout.js paints it from the notice's
-   data-id): the same red WooCommerce uses on its own required fields, so the two read as one form. */
 .bgc-field.bgc-invalid > label { color: #b32d2e; }
 .bgc-field.bgc-invalid input,
 .bgc-field.bgc-invalid .select2-selection { border-color: #b32d2e !important; box-shadow: 0 0 0 3px rgba(179,45,46,.14); }
 
-/* Panel + compact fields */
 .bgc-panel { display: flex; flex-direction: column; gap: 10px; }
-/* The address rows are a plain block inside the panel, so the panel's gap never reached them and
-   each label sat straight on the box above it. Same rhythm as the panel. */
 .bgc-address-rows { display: flex; flex-direction: column; gap: 10px; }
 .bgc-field { display: flex; flex-direction: column; min-width: 0; }
 .bgc-field > label { font-size: 12px; font-weight: 600; color: #555; margin: 0 0 3px; }
 .bgc-field input { width: 100%; height: 38px; padding: 6px 10px; border: 1px solid #d8dde3; border-radius: 8px; }
 .bgc-grid { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
 .bgc-grid-4 { grid-template-columns: repeat(4, 1fr); }
-/* Street row with a small map-pin icon next to No. (instead of a full-width "Choose on map" button). */
 .bgc-grid-map { grid-template-columns: 1fr 84px 46px; }
 .bgc-addr-map-cell { justify-content: flex-end; }
 .bgc-addr-map-icon { width: 100%; height: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid #d8dde3; border-radius: 8px; background: #fff; color: #2271b1; cursor: pointer; }
 .bgc-addr-map-icon:hover { border-color: #2271b1; background: #f3f8fd; }
 
-/* select2 (city + office) sizing to match inputs */
 .bgc-fields .select2-container { width: 100% !important; }
-/* A shop where selectWoo never loaded keeps plain <select>s, and a plain <select> is as wide as its
-   longest option - "Офис Дружба, бул. Христофор Колумб 64" is 280px of it. That is the same fault the
-   rendered box below had, from the other direction, so it gets the same answer: no minimum offered to
-   the table, full width in the field. */
 .bgc-fields select:not(.select2-hidden-accessible) { width: 0; min-width: 100%; }
 .bgc-fields .select2-selection { min-height: 38px !important; border: 1px solid #d8dde3 !important; border-radius: 8px !important; display: flex; align-items: center; }
-/* `width: 0` + `min-width: 100%` is not decoration - it is what keeps this checkout on a phone.
-   These fields sit inside a cell of WooCommerce's review-order table, and a table cell is never
-   narrower than the widest thing in it that cannot shrink. select2 draws the chosen town or office as
-   one nowrap line, so the cell insisted on ~350px (measured on the dev checkout with the office tab
-   open) - more than the content area of a 360px phone once the theme keeps a label column beside it.
-   The table then grew wider than the screen and the courier menu was cut off at the edge; with the
-   address tab open the same arithmetic squeezed the street box down to ~70px. `width: 0` leaves the
-   table no minimum to honour, `min-width: 100%` still fills the field the box is in - and the cell's
-   minimum drops from 350px to 143px, which fits anywhere. */
+/* width: 0 + min-width: 100% is load-bearing: it keeps this checkout on a phone */
 .bgc-fields .select2-selection__rendered { line-height: 36px !important; padding-left: 8px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 0; min-width: 100%; }
 .bgc-fields .select2-selection__arrow { height: 36px !important; }
-/* The search box inside the dropdown (city / office / street). The dropdown is appended to <body>, so it
-   is reached through the dropdownCssClass we set in bgc-checkout.js, not by nesting. Without this it keeps
-   select2's own small height and looks squashed under our 38px fields. */
 .select2-container--open .bgc-drop .select2-search--dropdown { padding: 8px; }
 .select2-container--open .bgc-drop .select2-search--dropdown .select2-search__field {
   height: 38px; min-height: 38px; box-sizing: border-box; padding: 0 10px;
@@ -109,24 +66,15 @@ html.bgc-relocating .woocommerce-checkout-review-order tr.shipping { display: no
   border-color: #2271b1; outline: none; }
 .select2-container--open .bgc-drop .select2-results__option { padding: 9px 10px; }
 
-/* Loader overlay shown while a tab's data + price load */
-.bgc-loader { display: none; } /* WooCommerce's own blockUI spinner covers recalculation - avoid a second spinner */
-/* Grey out + disable the fields while recalculating. No CSS filter: it creates a containing block that
-   mispositions select2's dropdown. Opacity is safe. */
+.bgc-loader { display: none; }
+/* no CSS filter: it creates a containing block */
 .bgc-fields.bgc-loading .bgc-panel, .bgc-fields.bgc-loading .bgc-tabs { opacity: .5; pointer-events: none; }
 
-/* Unselected courier's price/label dimmed - visible for comparison, but clearly not what you'll pay. */
 label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactive .woocommerce-Price-amount { color: #9aa0a6 !important; }
 .bgc-spinner { width: 26px; height: 26px; border: 3px solid #cfd8e3; border-top-color: #2271b1; border-radius: 50%; animation: bgc-spin .7s linear infinite; }
 @keyframes bgc-spin { to { transform: rotate(360deg); } }
 
 /* Emergency help modal */
-/* All three of these are modals, and all three sat below things they had to cover. WooCommerce's own
-   admin stylesheet puts select2 at z-index 999999, so on the order screen the ORDER STATUS and customer
-   selects - and the delivery editor's own city/office fields - were painted straight through the office
-   map. On the checkout the same 100000 lost to the shop's chat bubble. The maximum a z-index can hold is
-   the honest answer for a modal: it is either covering the page or it is not. Nothing here touches those
-   other elements; they simply lose while a dialog is open, and come back when it closes. */
 .bgc-emerg-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .bgc-emerg-box { position: relative; background: #fff; border-radius: 12px; max-width: 420px; width: 100%; padding: 28px 26px; box-shadow: 0 12px 40px rgba(0,0,0,.25); text-align: center; }
 .bgc-emerg-close { position: absolute; top: 8px; right: 12px; border: 0; background: none; font-size: 26px; line-height: 1; color: #888; cursor: pointer; }
@@ -134,31 +82,13 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 .bgc-emerg-tel { display: inline-block; font-size: 22px; font-weight: 700; text-decoration: none; padding: 12px 22px; border-radius: 10px; background: #2271b1; color: #fff !important; }
 .bgc-emerg-tel:hover { background: #135e96; }
 
-/* Courier brand logo outside a rate row (free-shipping notices and the like); inside the rate list
-   bgc-rates.css takes over. */
 .bgc-ship-logo { width: 16px; height: 16px; object-fit: contain; vertical-align: -3px; margin-right: 5px; display: inline-block; }
-/* Notices sit on a theme-colored panel and the theme picks a legible text color for it - force every
-   nested span (the theme-styled .woocommerce-Price-amount) to inherit that color instead of its own
-   accent, which may match the panel background (e.g. blue-on-blue).
-   The DESCENDANTS only. This rule once named `.bgc-free-notice` itself as well, and `inherit` on the
-   element takes the page's body colour, not the theme's panel colour - with !important it beat the
-   theme's white, and a shop on Razzi read dark grey on blue and asked which setting the colour was. */
 .bgc-free-notice * { color: inherit !important; }
 
 /* Office / APS map picker (Leaflet) */
 .bgc-office-pick { display: flex; gap: 6px; align-items: stretch; max-width: 100%; }
-/* min-width:0 + width:auto let the select shrink so the Map button stays inside the row (overrides the
-   global .select2-container width:100% !important, hence the more specific selector).
-   The `:not(.select2-hidden-accessible)` is what stops this from breaking the page. select2 hides the
-   original <select> with `position:absolute; width:1px !important` - and this rule's `width:auto`, being
-   more specific, won that fight and blew the hidden select back up to the width of its longest option.
-   It is out of flow, so nothing moved; it simply stuck out past the right edge and gave the whole
-   checkout a horizontal scrollbar (measured: a 320px viewport scrolled to 419px). The <select> half of
-   this selector is only here for a shop where selectWoo never ran, and there is nothing to override. */
 .bgc-office-pick .bgc-office:not(.select2-hidden-accessible) { flex: 1 1 auto; min-width: 0; }
 .bgc-office-pick .select2-container { flex: 1 1 auto; min-width: 0; width: auto !important; }
-/* Neutral, theme-agnostic button: transparent with a currentColor border + icon, so it looks right on
-   both light and dark sites (no theme accent colour, no emoji). */
 .bgc-map-btn { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;
   box-sizing: border-box; height: 38px; padding: 0 12px;
   background: transparent; color: inherit; font: inherit; line-height: 1;
@@ -180,21 +110,12 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 .leaflet-container { font: inherit; }
 .bgc-map-actions .bgc-map-hint { flex: 1 1 auto; }
 .bgc-map-actions .bgc-addr-use { flex: 0 0 auto; }
-/* office map with a searchable side list (BOX NOW-style) */
 .bgc-map-box-wide { width: min(1060px, 96vw); }
 .bgc-map-body { display: flex; height: 64vh; min-height: 340px; }
 .bgc-map-side { width: 360px; max-width: 46%; display: flex; flex-direction: column; background: #fafbfc; border-right: 1px solid #e5e7eb; }
-/* The row the search shares with the locate button. The geometry is forced because themes style bare
-   inputs with their own padding and box-sizing, and Shoptimizer's flattened the 38px that keeps the
-   magnifier off the placeholder - the icon sat on top of the words. */
 .bgc-map-searchrow { display: flex; align-items: center; gap: 8px; margin: 12px; }
 .bgc-map-side .bgc-map-searchrow .bgc-map-search { flex: 1 1 auto; min-width: 0; margin: 0 !important;
   box-sizing: border-box !important; padding: 10px 12px 10px 38px !important; height: auto !important; }
-/* Locate: an icon with a hint, the same square as the map's own controls, instead of a full-width
-   green bar at the bottom of the dialog competing with the office list for attention. */
-/* Scoped to the search row on PURPOSE. The address pickers - one at checkout, one in the admin - keep
-   a full-width labelled button in their footer, and they share this stylesheet: an unscoped rule turned
-   that button into a 38px square with a sentence inside it. */
 .bgc-map-searchrow .bgc-map-locate,
 .bgc-allmap-searchrow .bgc-map-locate { flex: 0 0 auto; width: 38px; height: 38px; padding: 0; border: 1px solid #d8dde3;
   border-radius: 10px; background: #fff no-repeat center / 18px 18px; cursor: pointer; position: relative;
@@ -216,99 +137,52 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
   .bgc-map-body { flex-direction: column; height: auto; }
   .bgc-map-side { width: auto; max-width: none; max-height: 28vh; border-right: 0; border-bottom: 1px solid #e5e7eb; }
   .bgc-map-body .bgc-map-canvas { height: 46vh; }
-  /* The address picker's footer is three things in a row - locate button, the hint (or the address
-     the pin is on), use button - and a phone has room for one of them. Measured on a 390px screen:
-     the hint wrapped a word to a line and "Use this address" was cut off past the right edge. The
-     hint takes a line of its own on top, the two buttons share the one below. */
   .bgc-map-actions { flex-wrap: wrap; flex-shrink: 0; }
   .bgc-map-actions .bgc-map-hint { flex: 1 1 100%; order: -1; }
   .bgc-map-actions .bgc-map-locate, .bgc-map-actions .bgc-addr-use { flex: 1 1 auto; }
   .bgc-map-box { width: min(860px, 100vw - 24px); }
-  /* A short screen (an iPhone SE is 568px tall) has no room for a 300px map under that footer: the
-     "Use this address" button fell below the dialog's edge, and the dialog clips. The map gives way
-     first, and if the screen is shorter still the dialog scrolls rather than hides its own button. */
   .bgc-map-canvas { height: 42vh; min-height: 180px; }
   .bgc-map-box { overflow-y: auto; }
 }
 
-/* The courier rate rows themselves (list, hidden radio, logo, price, chosen-row card) and the (i) hint
-   live in bgc-rates.css - the cart renders the same list, so those rules have to load on both pages. */
-
-/* select2's clear sits immediately after the text, so on a wide field it floats in the middle of the
-   box with nothing around it and reads as part of the town's name - "СОФИЯ (1000)✕". Moved to the
-   right-hand end, just inside the arrow, which is where every other control on this checkout keeps it.
-   Scoped to our own fields so no other select2 on the page is touched. */
 .bgc-fields .select2-container--default .select2-selection--single { position: relative; }
 .bgc-fields .select2-container--default .select2-selection--single .select2-selection__clear {
   position: absolute; right: 26px; top: 50%; transform: translateY(-50%); margin: 0;
   float: none; padding: 0 4px; font-size: 18px; line-height: 1; color: #6b7280; }
 .bgc-fields .select2-container--default .select2-selection--single .select2-selection__clear:hover { color: #1d2327; }
-/* ...and the text stops before it, rather than running underneath. */
 .bgc-fields .select2-container--default .select2-selection--single .select2-selection__rendered { padding-right: 48px; }
 
-/* ── Narrow screens, and narrow columns ────────────────────────────────────────────────────────────
-   Two different questions, so two different tools.
-
-   HOW MUCH ROOM the fields have is not a property of the phone. This widget is dropped into a cell of
-   somebody else's totals table, and how wide that cell ends up depends on the theme: the same 390px
-   screen leaves it 171px on one shop and 280px on another, and in the cart or a wide sidebar it has
-   plenty. A viewport media query cannot see any of that; a container query is asking the right thing.
-
-   HOW BIG A TARGET has to be IS a property of the input device, and that is the media query at the end.
-
-   Containment is safe here: all three of this plugin's overlays are appended to <body>, so nothing
-   position:fixed lives inside .bgc-fields to be caught by it. */
+/* Narrow screens, and narrow columns */
 @supports (container-type: inline-size) {
   .bgc-fields { container-type: inline-size; container-name: bgcfields; }
 }
 
-/* The chosen office is the one thing on its row worth reading. The one-line ellipsis above cut it to
-   "СОФИЯ - СОМАТ - гр. СОФ..." on every screen, not just narrow ones - the name of the office gone, and
-   with it the way to tell two offices of one town apart. It wraps to three lines at any width; the box
-   grows to fit and the arrow stays centred on it. */
 .bgc-fields .bgc-office-row .select2-selection__rendered { white-space: normal; line-height: 1.3 !important;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
-/* Padding goes on the box, not on the text: line-clamp cuts at the text's content edge while
-   overflow:hidden cuts at its padding edge, so a padded text let the top of the next line peek through. */
 .bgc-fields .bgc-office-row .select2-selection--single { height: auto !important; padding-top: 6px; padding-bottom: 6px; }
 .bgc-fields .bgc-office-row .select2-selection__arrow { top: 0; bottom: 0; height: auto !important; }
-/* The list drops from the field's own edge and is never narrower than the field. */
 .select2-container--open .select2-dropdown.bgc-drop { box-sizing: border-box; min-width: 100%; }
 
 @container bgcfields (max-width: 360px) {
   .bgc-tabs { gap: 6px; }
-  /* Let a tab be as wide as its own words. The 92px floor is what forced one tab per line in a column
-     this narrow, and three full-width bars for three short phrases reads as three separate decisions. */
   .bgc-tab { min-width: 0; padding: 10px 8px; }
-  /* The office row stays one line, and the office NAME is what has to be readable on it - so the Map
-     button drops its word and becomes the same pin square the address row already uses. The word only
-     moves: it stays in the title and the aria-label. */
   .bgc-office-pick .bgc-map-btn { width: 44px; padding: 0; justify-content: center; }
   .bgc-office-pick .bgc-map-btn span { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
     overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-  /* Street name above the house number instead of beside it. Sharing one line here left the street
-     eight characters wide, and a street cut to eight characters is not a street.
-     The map pin goes beside the STREET, not the number: it is the other way of naming the street, and
-     next to a 120px number box it left a hand's width of nothing between the two. */
   .bgc-grid { grid-template-columns: minmax(0, 1fr); }
   .bgc-grid-map { grid-template-columns: minmax(0, 1fr) 44px; }
   .bgc-grid-map > .bgc-street-field { grid-column: 1; grid-row: 1; }
   .bgc-grid-map > .bgc-addr-map-cell { grid-column: 2; grid-row: 1; }
   .bgc-grid-map > .bgc-streetno-field { grid-column: 1 / -1; grid-row: 2; max-width: 120px; }
-  /* Block / entrance / floor / apartment, two and two: four across gives each of them less width than
-     the word standing above it. */
   .bgc-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Touch. Sizes here are about the finger, not the column. */
+/* Touch: sizes here are about the finger, not the column */
 @media (pointer: coarse) {
-  /* 16px is the size below which iOS zooms the page the instant a field is focused - and a checkout
-     that jumps and has to be pinched back is the twin of the bug this file already fixes once. */
+  /* 16px: below it iOS zooms the page when a field is focused */
   .bgc-fields input,
   .bgc-fields .select2-selection__rendered,
   .select2-container--open .bgc-drop .select2-search--dropdown .select2-search__field { font-size: 16px; }
-  /* 44px is the smallest target a thumb hits reliably. !important because the sizes it is raising are
-     themselves !important - they exist to beat the theme, and this exists to beat them. */
   .bgc-fields input { min-height: 44px; }
   .bgc-fields .select2-selection { min-height: 44px !important; }
   .bgc-fields .select2-selection__rendered { line-height: 42px !important; }
@@ -318,6 +192,5 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
   .select2-container--open .bgc-drop .select2-search--dropdown .select2-search__field { height: 44px; min-height: 44px; line-height: 42px; }
   .select2-container--open .bgc-drop .select2-results__option { padding: 12px 10px; }
   .bgc-tab, .bgc-map-btn, .bgc-addr-map-icon { min-height: 44px; }
-  /* The address picker's footer buttons are theme buttons, not ours, so the rule above misses them. */
   .bgc-map-actions .button { min-height: 44px; }
 }

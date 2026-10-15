@@ -1,7 +1,5 @@
 (function ($) {
   function esc(s) { return $('<div>').text(s == null ? '' : String(s)).html(); }
-  // Bulgarian Cyrillic -> Latin transliteration, so a customer can type the city/office/APS in Latin letters
-  // and still match the Cyrillic-named entries (the official Bulgarian transliteration ordinance).
   var BGCOURIERS_TR = { 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
     'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
     'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sht', 'ъ': 'a', 'ь': 'y', 'ю': 'yu', 'я': 'ya' };
@@ -10,29 +8,15 @@
     for (var i = 0; i < l.length; i++) { out += (BGCOURIERS_TR[l[i]] !== undefined ? BGCOURIERS_TR[l[i]] : l[i]); }
     return out;
   }
-  /* A lookup answers with a list, and everything here treats what comes back as one - .map, .filter,
-     .forEach. So one place decides whether it IS one, rather than every caller writing `rows || []`,
-     which keeps null out and lets everything else through.
-
-     What comes through otherwise is not hypothetical: admin-ajax answers a bare 0 when the action is
-     gone from under an open page, which a plugin update does, and a login wall answers HTML. Either is
-     truthy, so `|| []` hands it straight on and the field dies with "rows.map is not a function" - the
-     whole dropdown, not just this one answer. Nothing to show is the right outcome; a dead field is not.
-     (A refused request never reaches here at all: the limiter answers 429 and jQuery skips the success
-     handler. This is for the answers no status code warns about.) */
+  // admin-ajax answers a bare 0 (truthy) when the action is missing, so only a real array passes
   function bgcList(rows) { return Array.isArray(rows) ? rows : []; }
 
-  // True if `text` matches an already-lowercased `term` directly (Cyrillic) or via its Latin transliteration.
   function bgcTextMatch(text, term) {
     if (!term) { return true; }
     var t = (text == null ? '' : String(text)).toLowerCase();
     return t.indexOf(term) !== -1 || bgcTranslit(t).indexOf(term) !== -1;
   }
-  // How well `text` matches the term: 0 = it starts with it, 1 = a word in it starts with it, 2 = the term
-  // is somewhere inside, -1 = no match. Cyrillic and the Latin transliteration both count; the best wins.
-  // The town list used to be shown in the order it was stored, so "Ст" listed Костенец, Кюстендил and
-  // Силистра (which merely contain it) before every town that begins with it - Стара Загора was not in
-  // the first five - and for Sameday the first answer was "Алеко Константиново". Measured 2026-09-13.
+  // 0 = starts with the term, 1 = a word in it starts with it, 2 = contains it, -1 = no match
   function bgcMatchRank(text, term) {
     if (!term) { return 0; }
     var t = (text == null ? '' : String(text)).toLowerCase(), forms = [t, bgcTranslit(t)], best = -1;
@@ -44,15 +28,11 @@
     }
     return best;
   }
-  // select2 renders its dropdown at the end of <body>, outside .bgc-fields, so our stylesheet cannot
-  // reach it by nesting. Tag every dropdown we open with a class of our own and style that - otherwise
-  // the search box inside keeps select2's default height and looks squashed next to our 38px fields.
+  // select2 draws its dropdown on <body>, outside .bgc-fields, so it gets a class of its own to style
   function sel2($el, opts) {
     opts = $.extend({ dropdownCssClass: 'bgc-drop', language: s2lang() }, opts || {});
     var inst = ($.fn.selectWoo ? $el.selectWoo(opts) : $el.select2(opts));
-    // The list is drawn on <body>, so a theme rule, a re-layout after it opened (the review table is
-    // rebuilt under it) or a field inside a flex row can leave it narrower than the field it belongs to
-    // Its width is pinned to the field's own box every time it opens; its position stays select2's.
+    // pin the dropdown width to the field: drawn on <body>, a re-layout can leave it narrower
     $el.on('select2:open', function () {
       var $box = $el.next('.select2-container');
       var fit = function () {
@@ -65,18 +45,9 @@
     });
     return inst;
   }
-  /**
-   * select2 writes its own sentences into the dropdown, and the copy WooCommerce loads here is the
-   * English one - so a Bulgarian checkout answered "Please enter 2 or more characters" under the street
-   * box, which is where a customer is already unsure what to type. There is no point shipping select2's
-   * language packs for five lines: they come from the plugin's own catalogue like every other string on
-   * this page, and follow whatever language the shop is in.
-   */
   function s2lang() {
     var t = (BGCOURIERS && BGCOURIERS.i18n) || {};
     return {
-      // Said while the box holds fewer characters than the search needs. select2 passes the minimum and
-      // what has been typed so far; the customer only needs to know how many it takes.
       inputTooShort: function (a) { return (t.s2_short || 'Type at least %d characters').replace('%d', a.minimum); },
       noResults:     function () { return t.s2_none || 'Nothing found'; },
       searching:     function () { return t.s2_searching || 'Searching\u2026'; },
@@ -93,8 +64,6 @@
   }
 
   function courier($wrap) { return $wrap.attr('data-courier') || 'speedy'; }
-  // Where the parcel is going. The select only exists on a shop that delivers to more than one country;
-  // everywhere else the attribute the server rendered is the answer.
   function country($wrap) {
     var $c = $wrap.find('.bgc-country');
     return ($c.length && $c.val()) || $wrap.attr('data-country') || BGCOURIERS.homeCountry || 'BG';
@@ -123,32 +92,22 @@
     $wrap.find('.bgc-tabs').html(html);
   }
 
-  // Delivery kinds this courier collects no cash at (server-rendered; empty on a shop with no cash on
-  // delivery to lose). Express One carries no cash on delivery to an EXOBOX locker.
   function noCod($wrap) {
     return ($wrap.attr('data-nocod') || '').split(',').filter(function (t) { return t !== ''; });
   }
 
-  // Keep the visible panel (tabs / office label / address rows) in sync with the method.
   function syncMethodUI($wrap) {
     var m = method($wrap), isAddr = m === 'address';
     $wrap.find('.bgc-tab').each(function () { $(this).toggleClass('active', $(this).data('method') === m); });
     $wrap.find('.bgc-address-rows').toggle(isAddr);
     $wrap.find('.bgc-office-row').toggle(!isAddr);
     if (!isAddr) { $wrap.find('.bgc-office-label').text(officeLabel(m)); }
-    // The payment box below is re-rendered by the recalculation this tab triggers, and cash on delivery
-    // simply vanishes from it. Said here, beside the tab that caused it, rather than left to be noticed.
     var gone = noCod($wrap).indexOf(m) !== -1;
     $wrap.find('.bgc-nocod').toggle(gone);
     if ($wrap.is(':visible')) { hideCodRows(gone); }
   }
 
-  // Take the cash-on-delivery rows off the payment box with the tab that made them impossible.
-  //
-  // The server has already removed the gateway (an order carrying it is refused), but that only reaches
-  // the page when WooCommerce's payment fragment is replaced - and on this checkout it is not. Leaving
-  // the radio there put the note and the thing it says is unavailable side by side, and pushed the
-  // refusal all the way to the Order button.
+  // the server already dropped the gateway, but this checkout never refreshes the payment fragment
   function hideCodRows(hide) {
     var ids = BGCOURIERS.codGateways || [];
     if (!ids.length) { return; }
@@ -158,7 +117,6 @@
       $li.toggle(!hide);
       var $radio = $li.find('input[name="payment_method"]');
       $radio.prop('disabled', hide);
-      // A hidden radio that is still the chosen one would post anyway - move to the first row left.
       if (hide && $radio.is(':checked')) {
         $('.wc_payment_method:visible input[name="payment_method"]').first().prop('checked', true).trigger('click');
       }
@@ -178,22 +136,11 @@
     streetNote($wrap, '');
     $wrap.find('.bgc-street-no').val('');
   }
-  /**
-   * Which street of that name. The box's value is the bare name - that is what every courier's label
-   * reads - and the courier's own id and the type (ул./бул.) ride beside it in two hidden fields, filled
-   * when a street is chosen off the list and emptied for a typed or map-picked one: a name alone does not
-   * say which of two same-named streets is meant, and Speedy refuses it in a town that has both.
-   */
   function setStreetPick($wrap, d) {
     $wrap.find('.bgc-street-id').val((d && d.sid) || 0);
     $wrap.find('.bgc-street-type').val((d && d.stype) || '');
   }
-  /**
-   * "This courier does not list the street the map found" - said under the street box, kept per
-   * courier and put back on every re-render: the block lives inside the order-review table, which
-   * update_checkout replaces wholesale, so a note written into it is gone at the next recalculation
-   * (the same reason the red marks are kept in invalidIds). Cleared the moment a street is chosen.
-   */
+  // kept per courier and re-applied: the block lives in the order-review table, which update_checkout replaces
   var streetNotes = {};
   function streetNote($wrap, text) {
     var id = courier($wrap);
@@ -211,22 +158,17 @@
     syncMethodUI($wrap);
     if (m !== 'address') { resetOffice($wrap); }
     showLoader($wrap);
-    pushSelection($wrap); // saves method + recalc; loader cleared on updated_checkout
+    pushSelection($wrap);
     if (m !== 'address') { preloadOffices($wrap); }
   }
 
-  // Per-city availability: grey out + disable a delivery option the chosen city has none of.
   var availCache = {};
   function methodOk(av, m) { return m === 'address' || (m === 'office' && av.office) || (m === 'automat' && av.automat); }
-  // The preloaded city index is built for ONE country - the shop's own, or whichever the page was
-  // rendered for. It is not merely incomplete for another country, it is empty of it: every lookup comes
-  // back "no such town, no offices here", which is indistinguishable from an answer. So abroad the index
-  // is not consulted at all and the original AJAX path answers instead.
+  // the preloaded index covers one country only; abroad it is empty, not incomplete, so it is not consulted
   function indexUsable($wrap) {
     return !!BGCOURIERS.preloadCities
       && country($wrap) === (BGCOURIERS.cityIndexCountry || BGCOURIERS.homeCountry || 'BG');
   }
-  // Derive availability from the preloaded index (no AJAX) when the switch is on; else null -> AJAX below.
   function cityAvailLocal($wrap, city) {
     if (!indexUsable($wrap)) { return null; }
     var idx = BGCOURIERS.cityIndex && BGCOURIERS.cityIndex[courier($wrap)];
@@ -243,11 +185,7 @@
       if (local) { availCache[key] = local; }
       else {
         $.get(BGCOURIERS.ajax, { action: 'bgcouriers_city_avail', courier: courier($wrap), country: country($wrap), city_id: city }, function (res) {
-          // Only a real answer is worth remembering. A refusal is an HTTP 429 and never reaches
-          // here at all; what does reach here is admin-ajax's bare "0" when the action is not
-          // registered - a plugin update on an open page - and reading .office off that gives false,
-          // which is NOT "this town has neither". Cached, it greys out both delivery options for the
-          // rest of the page and tells the customer their town is not served when it is.
+          // only a real object is cached: admin-ajax's bare "0" is not "neither"
           if (!res || typeof res !== 'object') { return; }
           availCache[key] = { office: !!(res && res.office), automat: !!(res && res.automat) };
           applyAvail($wrap);
@@ -259,12 +197,7 @@
     var settled = $wrap.data('bgc-availed');
     $wrap.find('.bgc-tab').each(function () {
       var $t = $(this), m = $t.data('method'), ok = methodOk(av, m);
-      // Marked unavailable WITHOUT the disabled property. A disabled button receives no mouse events, so
-      // the browser never shows its title - the explanation was being attached to the one element that
-      // could not deliver it, and the tab simply looked as though this courier does not do lockers at
-      // all rather than "not in this town". The click handler already ignores .bgc-tab-na, so nothing
-      // was relying on `disabled` to stop the press; aria-disabled carries the state for assistive
-      // technology, which the class alone would not.
+      // not the disabled property: a disabled button gets no mouse events, so its title never shows
       $t.toggleClass('bgc-tab-na', !ok)
         .prop('disabled', false)
         .attr('aria-disabled', ok ? null : 'true')
@@ -272,17 +205,13 @@
       if (ok && firstOk === null) { firstOk = m; }
     });
     if (methodOk(av, method($wrap)) || !firstOk) { $wrap.data('bgc-availed', true); return; }
-    // The active delivery option is not available here, so move to one that is. On the FIRST render this
-    // fires while the checkout is still settling and setMethod() would trigger a second full
-    // update_checkout - a second spinner and a second round of live courier price calls, which is the
-    // long wait customers were seeing. Nothing is priced yet at that point anyway (no city chosen), so
-    // switch the UI and save the choice quietly; the price is recalculated as soon as a city is picked.
+    // on the first render switch quietly: setMethod() would start a second update_checkout
     if (settled) {
-        setMethod($wrap, firstOk);            // a later, user-driven change: recalculate as usual
+        setMethod($wrap, firstOk);
     } else {
         $wrap.attr('data-method', firstOk);
         syncMethodUI($wrap);
-        saveSelection($wrap);                  // remember it without a checkout round-trip
+        saveSelection($wrap);
     }
     $wrap.data('bgc-availed', true);
   }
@@ -295,9 +224,6 @@
       width: '100%', allowClear: true, placeholder: (BGCOURIERS.i18n && BGCOURIERS.i18n.city_ph) || '', minimumInputLength: 0,
       ajax: {
         url: BGCOURIERS.ajax, dataType: 'json', delay: 250,
-        // When "preload cities" is on (default) + we have the index, office/automat searches the preloaded
-        // cities-with-offices locally (instant, no AJAX). Otherwise - and always for address - the original
-        // AJAX path (noAbortTransport) runs unchanged.
         transport: function (params, success, failure) {
           var m = method($wrap), cour = courier($wrap);
           var idx = BGCOURIERS.cityIndex && BGCOURIERS.cityIndex[cour];
@@ -305,11 +231,6 @@
             var term = ((params.data && params.data.term) || '').toLowerCase(), rows = idx[m], out = [];
             for (var i = 0; i < rows.length; i++) {
               var a = rows[i]; // [city_id, name, post_code, name_lat]
-              // Match the Cyrillic name (and its Latin transliteration), the official Latin name, or postcode -
-              // so a Latin spelling, the Cyrillic one and the post code all find the same town. Ranked: a
-              // town that BEGINS with what was typed comes before one that merely contains it, and the
-              // list is cut to 200 only after ranking, so a late-alphabet town that begins with the term
-              // is never pushed out by two hundred that contain it.
               var r = bgcMatchRank(a[1], term);
               if (r !== 0 && a[3]) { var lp = String(a[3]).toLowerCase().indexOf(term); if (lp === 0) { r = 0; } else if (lp > 0 && r === -1) { r = 2; } }
               if (r !== 0 && String(a[2]).indexOf(term) === 0) { r = 0; }
@@ -319,14 +240,13 @@
             out = out.slice(0, 200).map(function (o) { return { city_id: o.city_id, name: o.name, post_code: o.post_code }; });
             success(out); return { abort: function () {} };
           }
-          return noAbortTransport(params, success, failure); // original AJAX path, untouched
+          return noAbortTransport(params, success, failure);
         },
         data: function (params) { return { action: 'bgcouriers_search_cities', courier: courier($wrap), country: country($wrap), term: params.term || '' }; },
         processResults: function (raw) {
           var rows = bgcList(raw), counts = {};
           rows.forEach(function (r) { counts[r.name] = (counts[r.name] || 0) + 1; });
           return { results: rows.map(function (r) {
-            // Postcode in the label: lets people search/pick by it and tells apart same-named villages.
             var text = r.name + (r.post_code ? ' (' + r.post_code + ')' : '');
             if (counts[r.name] > 1 && !r.post_code && r.region) { text += ' - ' + r.region; }
             return { id: r.city_id, text: text, post_code: r.post_code };
@@ -338,33 +258,17 @@
       var d = e.params && e.params.data; if (d && d.post_code) { $wrap.find('.bgc-postcode').val(d.post_code); }
       $wrap.find('.bgc-map-btn').prop('disabled', false).attr('title', '');
       resetOffice($wrap); resetStreet($wrap);
-      // The town's own office list is asked for FIRST: it is the slow one (a live call to the courier),
-      // and the recalculation that follows the save needs a PHP worker of its own. Both start at once
-      // either way, but the list must not be the one queued behind the other.
+      // office list first: it is the slow request and must not queue behind the recalculation
       var cour = courier($wrap), city = $wrap.find('.bgc-city').val() || 0, m = method($wrap);
       var listReq = preloadOffices($wrap);
       var saved = $.Deferred();
       pushSelection($wrap).always(function () { saved.resolve(); });
-      // Only after the save has landed - an office written earlier is overwritten by it - and the one
-      // office of a small town goes straight in.
       $.when(listReq, saved).done(function (rows) { autoPickFromList(cour, city, m, rows); });
-      // The other couriers' lists wait for the recalculation to be over: asked during it, they are three
-      // more slow requests competing with the one the customer is waiting for.
       $(document.body).one('updated_checkout', function () {
         idle(function () { prefetchOtherCouriers(city, m, country($wrap)); });
       });
     });
-    // Clearing the city must re-run availability (re-enable the greyed options) + recalc.
-    //
-    // Bound to select2:unselect, NOT select2:clear. WooCommerce's selectWoo is a fork of Select2 4.0.3,
-    // and that build relays exactly eight events - open, opening, close, closing, select, selecting,
-    // unselect, unselecting - so a select2:clear handler on this page never ran once. Its clear
-    // button fires unselect (still holding the old value) and then a plain change. Measured on dev
-    // and prod, 2026-09-12: the X emptied the town on screen and nothing else happened - the office
-    // stayed, the session kept the town and the office, the price row kept quoting for it, and the
-    // next save sent the office WITHOUT its town. That is the state the owner saw: one office, greyed
-    // out, no town, no list. A newer Select2 fires unselect too, after clearing - so the value is put
-    // to null here first and the handler reads the same either way.
+    // select2:unselect, not select2:clear: selectWoo (Select2 4.0.3) never fires clear, and unselect still holds the old value
     $city.on('select2:unselect', function () {
       $city.val(null);
       $wrap.find('.bgc-postcode').val('');
@@ -374,9 +278,6 @@
     });
   }
 
-  // A town, an office and a street all belong to the country they were chosen in: an id from one country
-  // means a different place - or nothing at all - in the other. So changing it clears them rather than
-  // carrying them over, and asks the server for a fresh price.
   $(document).on('change', '.bgc-fields .bgc-country', function () {
     var $wrap = $(this).closest('.bgc-fields');
     $wrap.attr('data-country', $(this).val() || '');
@@ -385,61 +286,40 @@
     $wrap.find('.bgc-postcode').val('');
     resetOffice($wrap); resetStreet($wrap);
     $wrap.find('.bgc-map-btn').prop('disabled', true);
-    $wrap.removeData('bgc-availed');       // availability was worked out for the other country
-    // WooCommerce's own country field goes with it, so the order that is finally posted says where it is
-    // going. Namespaced trigger: it repaints the select without firing WooCommerce's own change handler,
-    // which would recalculate the checkout a second time on top of the one below.
+    $wrap.removeData('bgc-availed');
+    // namespaced trigger: repaints WooCommerce's country select without its change handler recalculating again
     var $wc = $('#shipping_country, #billing_country');
     if ($wc.length) { $wc.val($(this).val()).trigger('change.select2'); }
     showLoader($wrap); pushSelection($wrap);
   });
 
-  // Office / automat - preloaded per city+method, cached client-side until refresh; search is then local.
-  var officeCache = {}; // 'courier:city:type' -> all office rows for that city+type
+  var officeCache = {};
 
-  /* Office lists are cached per TAB in sessionStorage, not preloaded for the whole country: every city
-     for every courier is ~137 KB gzipped, which no shopper needs - they pick one city. Caching what was
-     actually fetched means going back to a city, or reloading the checkout, costs no request at all, and
-     sessionStorage bounds how stale it can get (it dies with the tab; the server also caches 6h). */
   var OFFICE_STORE = 'bgcouriers_off:';
   function cacheGet(key) {
     if (officeCache[key] !== undefined) { return officeCache[key]; }
     try {
       var raw = window.sessionStorage && sessionStorage.getItem(OFFICE_STORE + key);
       if (raw) { officeCache[key] = JSON.parse(raw); return officeCache[key]; }
-    } catch (e) { /* private mode / bad JSON - fall through to a fetch */ }
+    } catch (e) { }
     return undefined;
   }
-  /* Only a real list is remembered, and everything that caches an office list comes through here - which
-     is why the check lives here and not at the four call sites, one of which never had one.
-
-     What is being kept out is an answer that is not the list it stands in for: the shop refusing a burst
-     (HTTP 429, so nothing should reach here at all), admin-ajax's bare "0" when the action is gone from
-     under an open page, a login wall answering HTML. Stored, any of those is worse than a failed lookup:
-     it goes into sessionStorage, so it outlives the page, and cacheGet then answers from it forever -
-     the town stays broken after the shop is perfectly willing to answer for it. Returns what is now
-     cached, or nothing at all, so a caller can tell the difference. */
+  // only a real array is cached: a cached "0" or HTML page would outlive the page in sessionStorage
   function cacheSet(key, rows) {
     if (!Array.isArray(rows)) { return undefined; }
     officeCache[key] = rows;
     try { window.sessionStorage && sessionStorage.setItem(OFFICE_STORE + key, JSON.stringify(rows)); }
-    catch (e) { /* quota or private mode - the in-memory cache still does its job */ }
+    catch (e) { }
     return rows;
   }
   function idle(fn) {
     if (window.requestIdleCallback) { requestIdleCallback(fn, { timeout: 2000 }); } else { setTimeout(fn, 400); }
   }
 
-  // Every office lookup names the country. A courier's office list is per-country, and one asked without
-  // it answers for its home country - which for a foreign town is an empty list, not an error. The cache
-  // key carries it for the same reason: an empty answer under a key that does not say which country was
-  // asked about is a wrong answer that outlives the question.
   function officeKey($wrap, city, m) { return courier($wrap) + ':' + country($wrap) + ':' + city + ':' + m; }
   function preloadOffices($wrap) {
     var city = $wrap.find('.bgc-city').val() || 0, m = method($wrap), cour = courier($wrap);
     if (!city || m === 'address') { return $.Deferred().resolve().promise(); }
-    // Warm the live locker-availability overlay for Sameday automats off the critical path - this fires on
-    // every city change and method pick, so the dropdown has the answer in hand the moment it is opened.
     if (cour === 'sameday' && m === 'automat') { warmAvail(country($wrap), city); }
     var key = officeKey($wrap, city, m);
     var hit = cacheGet(key);
@@ -450,14 +330,6 @@
     return d.promise();
   }
 
-  /**
-   * A town with exactly one office needs no choosing - and the answer is the very list the dropdown shows.
-   *
-   * The server decides this too (render_fields), but only from what it has cached by the time the
-   * recalculation renders, and the list is a live call to the courier that is often still on its way
-   * then. So the browser finishes the job the moment the list is here: put the office in the field, tell
-   * the session, and look once more afterwards in case the block was re-rendered in between.
-   */
   function pickSingleOffice(cour, city, m, rows) {
     var list = bgcList(rows || []);
     if (list.length !== 1) { return false; }
@@ -474,24 +346,14 @@
     saveSelection($w).always(function () { pickSingleOffice(cour, city, m, rows) && saveSelection($('.bgc-fields[data-courier="' + cour + '"]')); });
   }
 
-  /* Sameday easyBox free-compartment availability, per city: 'lockerId -> can the shop's parcel fit'.
-     This is LIVE (compartments fill and empty by the minute), so it is kept OUT of the office cache,
-     which lives for the tab and can be hours old - baking it in would freeze it. Cached here only
-     briefly (under the server's own 60s), so reopening the same city's dropdown costs no request; the
-     map polls the same endpoint on a timer for the same reason. A failure hands back null and the list
-     renders as usual - an availability hiccup must never hide a locker a customer could actually use. */
-  var availStore = {};    // 'country:city' -> { at: ms, map: { lockerId: canFit } }
-  var availInflight = {}; // key -> true while a request is on the wire, so a burst of opens makes one
+  // live Sameday locker availability: kept out of the office cache and cached only briefly
+  var availStore = {};
+  var availInflight = {};
   var AVAIL_TTL = 45000;
-  // A FRESH cached answer, or null - never a request. The dropdown renders off this and so never waits.
   function availHit(ctry, city) {
     var h = availStore[ctry + ':' + city];
     return (h && (Date.now() - h.at) < AVAIL_TTL) ? h.map : null;
   }
-  // Warm the cache in the background, fire-and-forget. The list is drawn at once from availHit() and greys
-  // itself on the NEXT open, exactly as a failed fetch leaves it fully selectable - the owner asked for the
-  // freshness to be invisible and never to make the checkout wait ("непомітно щоб без підвисань"). One
-  // upstream crawl covers every locker in the city; a burst of opens while it is on the wire waits for none.
   function warmAvail(ctry, city) {
     var key = ctry + ':' + city;
     if (availHit(ctry, city) !== null || availInflight[key]) { return; }
@@ -501,35 +363,21 @@
       .always(function () { delete availInflight[key]; });
   }
 
-  /**
-   * Store the office the SERVER chose when a town turned out to have exactly one.
-   *
-   * The choosing happens in render_fields, not here: this block is re-rendered on every recalculation,
-   * so a selection made in the browser was made and then wiped by the very next round - the same race
-   * that has caught this file before. The server renders it as the selected option and marks the field
-   * data-auto; all that is left is to put it in the session once, so the ORDER carries what the customer
-   * can plainly see in the field. Saved without a recalculation, exactly as picking one by hand is.
-   */
+  // the server picks the single office in render_fields; here it is only written to the session once
   function autoPickSingle($wrap) {
     var $o = $wrap.find('.bgc-office');
     if (!$o.length || $o.attr('data-auto') !== '1') { return; }
     if (String($o.val() || '') === '') { return; }
-    $o.removeAttr('data-auto');      // once per render; the session now has it
+    $o.removeAttr('data-auto');
     saveSelection($wrap);
   }
 
-  /* Once a city is known, quietly fetch the SAME city for the other couriers on the page, so switching
-     courier is instant instead of costing a round-trip. Runs at idle, one request at a time, and skips
-     anything already cached - it is a nicety, never allowed to compete with what the shopper is doing. */
   function prefetchOtherCouriers(city, m, ctry) {
     if (!city || m === 'address') { return; }
     var seen = {}, queue = [];
     $('.bgc-fields').each(function () {
       var $o = $(this), c = $o.attr('data-courier');
       if (!c || seen[c]) { return; }
-      // Only a courier the parcel could actually go to this same country with. The town id belongs to one
-      // country's nomenclature, and warming another country's courier with it would cache an empty list
-      // against a town that is simply not theirs.
       if (country($o) !== ctry) { return; }
       seen[c] = 1;
       if (cacheGet(c + ':' + ctry + ':' + city + ':' + m) === undefined) { queue.push(c); }
@@ -543,30 +391,11 @@
     })();
   }
 
-  /**
-   * The map needs a city before it can plot anything, so its button follows the city field.
-   *
-   * It used to be decided ONCE, while the block was being built. That is fine when a person picks the
-   * city themselves - the block is rebuilt afterwards and the answer comes out right - but not when
-   * the city arrives from the combined map: the block re-renders, this runs before the city has
-   * landed in it, and the button stays greyed out for good with a city plainly sitting above it.
-   * Bound to the field instead, so it can never disagree with what the field says.
-   */
   function syncMapBtn($wrap) {
     var hasCity = !!$wrap.find('.bgc-city').val();
     $wrap.find('.bgc-map-btn:not(.bgc-addr-map-btn)').prop('disabled', !hasCity)
       .attr('title', hasCity ? '' : ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || ''));
   }
-  /**
-   * And the office field follows the city the same way, for the same reason. Its enabled state was
-   * decided ONCE, while the block was built: a recalculation that rendered the block before the
-   * session held the town left the select disabled, and the map hand-over (applyPick) then wrote the
-   * town and the office into it from the browser - a single office, greyed out, with a town plainly
-   * sitting above it, and no list to open, until the next courier switch re-rendered the block from
-   * the session (owner, 2026-09-12). The hand-over runs several recalculations at once and its own
-   * save can land after one of them, so a render without the town is a matter of timing, not a bug
-   * in the render; what must not depend on timing is the field disagreeing with the one above it.
-   */
   function syncOffice($wrap) {
     $wrap.find('.bgc-office').prop('disabled', !$wrap.find('.bgc-city').val());
   }
@@ -578,7 +407,7 @@
   function initOffice($wrap) {
     var $office = $wrap.find('.bgc-office');
     var hasCity = !!$wrap.find('.bgc-city').val();
-    syncMapBtn($wrap); syncOffice($wrap); // no office search until a city is chosen
+    syncMapBtn($wrap); syncOffice($wrap);
     if ($office.hasClass('select2-hidden-accessible')) { return; }
     sel2($office, {
       width: '100%', allowClear: true, minimumInputLength: 0, placeholder: hasCity ? ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_ph) || '') : ((BGCOURIERS.i18n && BGCOURIERS.i18n.office_need_city) || ''),
@@ -588,24 +417,19 @@
           var d = params.data, key = d.courier + ':' + d.country + ':' + d.city_id + ':' + d.type, term = (d.term || '').toLowerCase();
           function done(rows) {
             var out = term ? rows.filter(function (o) {
-              // Office names/addresses are Cyrillic only - also match their Latin transliteration so a
-              // Latin-typed term (e.g. "mladost", "metro") finds them.
               return bgcTextMatch(o.name, term) || (String(o.office_id).indexOf(term) !== -1) || bgcTextMatch(o.address, term);
             }) : rows;
-            // Sameday automats carry a LIVE free-compartment answer - overlay it so a full easyBox shows
-            // greyed and unpickable, the same as on the map. Only here: every other courier/method has no
-            // such answer and the list renders unchanged. The flag goes on a COPY, never into the cached
-            // office rows, and a null overlay (fetch failed) leaves the list fully selectable.
+            // Sameday automats: overlay live fullness on a copy, never into the cached rows
             if (d.courier === 'sameday' && d.type === 'automat' && d.city_id) {
-              var map = availHit(d.country, d.city_id); // fresh cache or null - the render NEVER waits on a fetch
+              var map = availHit(d.country, d.city_id);
               success(map ? out.map(function (o) { return $.extend({}, o, { full: map[o.office_id] === false }); }) : out);
-              if (!map) { warmAvail(d.country, d.city_id); } // cold: list shows selectable now, greys on the next open
+              if (!map) { warmAvail(d.country, d.city_id); }
             } else {
               success(out);
             }
           }
           var hit = cacheGet(key);
-          if (hit !== undefined) { done(hit); return { abort: function () {} }; } // cached: no request at all
+          if (hit !== undefined) { done(hit); return { abort: function () {} }; }
           var req = $.get(BGCOURIERS.ajax, { action: 'bgcouriers_offices', courier: d.courier, country: d.country, city_id: d.city_id, type: d.type, all: 1 });
           req.done(function (rows) { done(cacheSet(key, rows) || []); });
           req.fail(function (x, status) { if (status !== 'abort') { failure(); } });
@@ -617,22 +441,17 @@
         processResults: function (rows) {
           var fullTxt = (BGCOURIERS.i18n && BGCOURIERS.i18n.allmap_full) || 'Full';
           return { results: bgcList(rows).map(function (o) {
-            var full = o.full === true; // a full easyBox: greyed, labelled, and unselectable (select2 honours disabled)
+            var full = o.full === true;
             return { id: o.office_id, text: o.name + ' - ' + o.address + (full ? ' (' + fullTxt + ')' : ''), disabled: full };
           }) };
         }
       }
     });
-    // Picking/clearing a specific office in the same city doesn't change the price (it's per city+weight),
-    // so save it without a recalc/loader - no more blinking on this "elementary" action.
     $office.on('select2:select', function () { saveSelection($wrap); });
-    // unselect, not clear - see the city above. This select2 build has no clear event, so the X on the
-    // office never reached the session: the order still carried the office the customer had removed.
+    // unselect, not clear: see the city box above
     $office.on('select2:unselect', function () { $office.val(null); saveSelection($wrap); });
   }
 
-  // Shared with the ADDRESS map picker below, which is a different feature and stays: it drops a pin
-  // to fill in a street address, rather than choosing a pickup point.
   var mapIconsSet = false, bgcMap = null;
   function setMapIcons() {
     if (mapIconsSet || !window.L) { return; }
@@ -644,12 +463,6 @@
   function closeMap() { $('#bgc-map-overlay').remove(); if (bgcMap) { bgcMap.remove(); bgcMap = null; } }
 
   // ── Office / APS map ─────────────────────────────────────────────────────────
-  // There used to be a second, per-courier map here. It answered a narrower question than the
-  // combined one - this courier's offices, when the customer's real question is "where can I collect
-  // this" - and keeping two maps meant every fix landed twice and they drifted apart anyway. The
-  // button now opens the SAME dialog, filtered to this courier and seeded with the city already
-  // chosen here; the customer can switch the other couriers on from its legend, and choosing one of
-  // their points moves the whole selection over exactly as it does from the map's own button.
   $(document).on('click', '.bgc-map-btn:not(.bgc-addr-map-btn)', function (e) {
     e.preventDefault();
     var $wrap = $(this).closest('.bgc-fields');
@@ -676,14 +489,7 @@
       if (geo.number) { $wrap.find('.bgc-street-no').val(geo.number); }
       resetOffice($wrap);
       if (!geo.street) { showLoader($wrap); pushSelection($wrap); return; }
-      // The street the geocoder names, as the courier lists it - asked before anything is saved, so
-      // the one save carries the street with its id and type. The geocoder writes "бул. Княз
-      // Александър Дондуков" for one point and "Кърниградска" for the next; Speedy refuses the typed
-      // form at label time when the town has two of that name, Express One and Европът refuse a
-      // street that is not off their list at all. One row that IS this street: it goes in with its
-      // id. None, or several with nothing to tell them apart: the text stays for a courier that takes
-      // one (the label-time lookup has another go), and the box is left for the customer to fill for
-      // a courier that lists its streets - a typed street there is an order nobody can label.
+      // ask the courier for this exact street first, so the one save carries its id and type
       showLoader($wrap);
       var listOnly = ((BGCOURIERS.streetListOnly || []).indexOf(courier($wrap)) !== -1);
       var $street = $wrap.find('.bgc-street');
@@ -702,16 +508,13 @@
             $street.val(null);
             setStreetPick($wrap, null);
           }
-          $street.trigger('change'); // select2 redraws - and a change on the street box clears any red mark on it
+          $street.trigger('change');
           if (hits.length !== 1 && listOnly) {
-            // Said where it happened, and the field painted like a refused one (after the change above,
-            // which would have wiped the mark): an empty box after a map pick would otherwise be
-            // explained only at "Place order".
             var who = ($wrap.attr('data-label') || courier($wrap));
             streetNote($wrap, (BGCOURIERS.i18n && BGCOURIERS.i18n.street_unlisted || '%1$s: %2$s').replace('%1$s', who).replace('%2$s', geo.street));
             invalidIds.push($wrap.find('.bgc-street-field').attr('id')); markInvalid();
           }
-          pushSelection($wrap); // recalc for the (possibly new) city
+          pushSelection($wrap);
         });
     }
     function findCity(term, cb) {
@@ -720,14 +523,12 @@
         cb((rows && rows.length) ? rows[0] : null);
       });
     }
-    // The city NAME is the reliable key into the courier nomenclature; a map point's specific postcode is
-    // often not the city's representative postcode, so it is only a fallback. Never keep the previously
-    // chosen city - that leaves city, postcode and street disagreeing (e.g. Plovdiv with a Sofia postcode).
+    // the city name is the reliable key; a map point's postcode is only a fallback
     findCity(geo.city, function (r) {
       if (r) { pickCity(r); fields(geo.postcode || r.post_code || ''); return; }
       findCity(geo.postcode, function (r2) {
         if (r2) { pickCity(r2); fields(geo.postcode || r2.post_code || ''); }
-        else { $city.val('').trigger('change'); fields(geo.postcode || ''); } // no match - clear so the customer picks the city
+        else { $city.val('').trigger('change'); fields(geo.postcode || ''); }
       });
     });
   }
@@ -759,13 +560,8 @@
     bgcMap.on('click', function (e) { place(e.latlng); });
     function locate() { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(function (pos) { var here = L.latLng(pos.coords.latitude, pos.coords.longitude); bgcMap.setView(here, 15); place(here); }); } }
     $ov.find('.bgc-map-locate').on('click', locate);
-    locate(); // auto-locate + drop a pin on open
-    // ...and, while that permission is being asked for (or after it was refused, which is what a
-    // headless browser and a customer who tapped "Block" have in common), the town the customer has
-    // ALREADY named is where the map goes. It used to open on the whole country until a fix arrived,
-    // and without one it stayed there, the customer left to find their street from 400 km up. The
-    // middle of the couriers' pickup points there stands in for the town's centre - the combined map
-    // knows it, and shares it. A geolocation fix that lands first wins: it has placed a pin by then.
+    locate();
+    // meanwhile open on the town already named; a geolocation fix that lands first wins
     var town = $wrap.find('.bgc-city option:selected').text().match(/^(.*?)\s*(?:\((\d+)\))?\s*$/);
     if (town && town[1] && window.BGCouriersAllMap && BGCouriersAllMap.centreOf) {
       BGCouriersAllMap.centreOf(town[1], town[2] || '', function (c) {
@@ -778,12 +574,7 @@
   }
   $(document).on('click', '.bgc-addr-map-btn', function (e) { e.preventDefault(); openAddressMap($(this).closest('.bgc-fields')); });
 
-  // Street (autocomplete via the chosen courier's own street list).
-  //
-  // Free typing stays on for the couriers that deliver to an address written as text - most of them -
-  // and is switched OFF for one that cannot: Express One refuses a street it was not given an id for,
-  // and an id only exists for a street off its list. Letting a customer type one there produces an
-  // order nobody can print a waybill for, and the refusal arrives at the packing table.
+  // free typing is off for a courier that refuses a street without an id (Express One)
   function initStreet($wrap) {
     var $street = $wrap.find('.bgc-street');
     if (!$street.length || $street[0].tagName !== 'SELECT' || $street.hasClass('select2-hidden-accessible')) { return; }
@@ -793,30 +584,24 @@
       ajax: {
         url: BGCOURIERS.ajax, dataType: 'json', delay: 250, transport: noAbortTransport,
         data: function (params) { return { action: 'bgcouriers_streets', courier: courier($wrap), country: country($wrap), city_id: $wrap.find('.bgc-city').val() || 0, term: params.term || '' }; },
-        // Each row's id is the courier's LABEL for the street - "бул. ВИТОША" and "ул. ВИТОША" are two
-        // rows, not one. With the bare name as the id they were the same row to select2: whichever the
-        // customer clicked, the box kept the first one, and once one was chosen the other showed as
-        // already selected and a click on it merely closed the list. The bare name goes into the box's
-        // value on select (below), so what the session and the label read is unchanged.
+        // id is the courier's label, not the bare name: "бул. X" and "ул. X" must stay two rows
         processResults: function (rows) { return { results: bgcList(rows).map(function (s) { return { id: s.label || s.name, text: s.label || s.name, sname: s.name, sid: s.id || 0, stype: s.type || '' }; }) }; }
       },
       createTag: function (params) {
-        if (listOnly) { return null; }   // this courier delivers only to streets it lists
+        if (listOnly) { return null; }
         var t = (params.term || '').trim();
         return t ? { id: t, text: t } : null;
       }
     });
     $street.on('select2:select', function (e) {
       var d = (e.params && e.params.data) || {};
-      // Rebuild the one chosen option: value = the bare name (a typed street IS its name), text = the label.
       $street.find('option').not('[value=""]').remove();
       $street.append(new Option(d.text || '', d.sname || d.id || '', true, true)).trigger('change.select2');
       setStreetPick($wrap, d);
       streetNote($wrap, '');
       saveSelection($wrap);
     });
-    // The × fires this BEFORE select2 empties the box (the office's handler does the same), so the
-    // value is emptied here or the save would carry the street that was just cleared.
+    // the clear button fires this before select2 empties the box, so the value is cleared here
     $street.on('select2:unselect', function () { $street.val(null); setStreetPick($wrap, null); saveSelection($wrap); });
   }
 
@@ -835,37 +620,19 @@
     };
   }
   function pushSelection($wrap) { showLoader($wrap); return $.post(BGCOURIERS.ajax, selectionData($wrap), function () { $(document.body).trigger('update_checkout'); }); }
-  function saveSelection($wrap) { return $.post(BGCOURIERS.ajax, selectionData($wrap)); } // save without recalc (address details don't change price)
+  function saveSelection($wrap) { return $.post(BGCOURIERS.ajax, selectionData($wrap)); }
 
-  /**
-   * Nothing is ordered until what the customer typed has actually reached the session.
-   *
-   * Every one of these fields is saved by a fire-and-forget POST, and the server validates the order
-   * against the SESSION, not against the form - our fields are not WooCommerce fields and are not
-   * submitted with it. So typing a house number and pressing the button straight after ordered against
-   * a session that had not been told yet, and the customer was refused for leaving blank the very thing
-   * they had just filled in. Reproduced exactly: press 60ms after typing and the order comes back with
-   * "please choose a town" AND "please enter a street and number" - both of which were on screen.
-   *
-   * Caught on the form's own submit, in the CAPTURE phase. WooCommerce's `checkout_place_order` hook
-   * would have been the polite place for this and it is never reached on this shop - the checkout here
-   * posts the form outright rather than over AJAX, so no WooCommerce JS runs at all. Capture is ahead of
-   * every listener and of the native submit, so it holds whichever way the order is being sent.
-   *
-   * The order is held for one flush and then sent again; `resubmitting` is what stops that second pass
-   * from holding it forever, and the timer is there because a save that never answers must not cost the
-   * customer their order - the server will refuse it on its own terms if the data really is missing.
-   */
+  // flush the pending save before the form posts: the server validates against the session, not the form; capture phase, ahead of WooCommerce
   var resubmitting = false;
   document.addEventListener('submit', function (e) {
     var form = e.target;
     if (!form || !form.classList || !form.classList.contains('checkout')) { return; }
-    if (resubmitting) { resubmitting = false; return; }   // our own second pass
+    if (resubmitting) { resubmitting = false; return; }
     var $wrap = $('.bgc-fields[data-courier="' + chosenCourier() + '"]').first();
-    if (!$wrap.length) { return; }                        // not one of ours - nothing to flush
+    if (!$wrap.length) { return; }
     e.preventDefault();
     e.stopImmediatePropagation();
-    clearTimeout(addrT);                                  // anything still on the debounce goes now
+    clearTimeout(addrT);
     var done = false;
     var go = function () {
       if (done) { return; }
@@ -875,14 +642,9 @@
     };
     saveSelection($wrap).always(go);
     setTimeout(go, 5000);
-  }, true);   // CAPTURE: ahead of WooCommerce's own submit handler, and of the native submit
+  }, true);
 
-  /**
-   * The same flush, for a checkout that does not submit a form: the checkout BLOCK places the order
-   * over the Store API from a button, and bgc-blocks.js holds that order on this until the session has
-   * what the fields hold (its onCheckoutValidation observer). Resolves either way - a save that never
-   * answers must not cost the customer their order, the server refuses on its own terms.
-   */
+  // the same flush for the checkout block (bgc-blocks.js onCheckoutValidation)
   window.BGCOURIERS.flushSelection = function () {
     clearTimeout(addrT);
     var $wrap = $('.bgc-fields[data-courier="' + chosenCourier() + '"]').first();
@@ -896,7 +658,6 @@
   };
 
   // Wiring ------------------------------------------------------------------
-  // The chosen bgcouriers_<id> shipping method's courier id (each courier renders its own .bgc-fields).
   function chosenCourier() {
     var v = $('input[name^="shipping_method"]:checked').val()
          || $('input[name^="shipping_method"][type="hidden"]').val() || '';
@@ -904,34 +665,13 @@
     return m ? m[1] : '';
   }
 
-  // Dim the label + price of the shipping methods that aren't selected (you only pay for the chosen one).
   function dimRates() {
     $('input[name^="shipping_method"]').each(function () {
       $('label[for="' + this.id + '"]').toggleClass('bgc-rate-inactive', !this.checked);
     });
   }
 
-  /**
-   * Move the WHOLE delivery block up under the customer's own details, when the shop asks for that
-   * (BGCouriers_Settings::delivery_position).
-   *
-   * The whole block, never the fields alone. Moving only the pickers left a town and an office box
-   * standing under the e-mail field with no courier name, no price and nothing to say what they were
-   * for, while the courier they belonged to stayed at the bottom of the page: the two halves of one
-   * question, a screen apart. WooCommerce already renders each courier as a row that CONTAINS its own
-   * fields (woocommerce_after_shipping_rate puts them inside the rate's <li>), so moving the list moves
-   * every label and price with it and keeps the fields inside the row they belong to.
-   *
-   * What moves: the map shortcut, the courier list, and WooCommerce's own "delivering to" note - every
-   * row the order review gives to delivery. The rows they came from are hidden, not emptied, because
-   * the table rebuilds them on the next recalculation.
-   *
-   * Done BEFORE the fields are built: selectWoo measures the box it is initialised in, and a dropdown
-   * initialised inside a table cell and then moved opens at the width of the cell.
-   */
-  // The rows are hidden from the first paint by `html.bgc-relocating` (set next to the host, see
-  // render_delivery_host). Giving up that class puts them back where WooCommerce drew them: whenever the
-  // move cannot happen, the customer must still have somewhere to choose delivery.
+  // html.bgc-relocating hides the rows from first paint; drop it whenever the move cannot happen
   function stopHiding() {
     document.documentElement.className =
       document.documentElement.className.replace(/(^|\s)bgc-relocating(\s|$)/, ' ');
@@ -942,45 +682,24 @@
     var $host = $('#bgcouriers-delivery-host');
     if (!$host.length) { stopHiding(); return; }
     var $rows = $('tr.bgc-allmap-open, tr.woocommerce-shipping-totals, tr.shipping');
-    // No such rows: a theme that lays its checkout out some other way than WooCommerce's totals table.
-    // Nothing is moved and the block stays where it was rendered, which is a working checkout.
     if (!$rows.length) { stopHiding(); return; }
     var $moving = $rows.children('td').children();
-    // Nothing to move means the table has not been rebuilt since the last move and everything is in the
-    // host already - emptying it here would delete the only copy there is.
+    // nothing to move means it is already in the host; emptying would delete the only copy
     if ($moving.length) { $host.empty().append($moving); }
     $rows.addClass('bgc-moved-away');
   }
 
 
-  // Fade the chosen courier's fields in once they are fully built, instead of flashing raw selects on load.
-  // Only reveals the first time (persists across totals refreshes); re-reveals when you switch couriers.
   function reveal($wrap) {
     if ($wrap.hasClass('bgc-ready')) { return; }
     window.requestAnimationFrame(function () { $wrap.addClass('bgc-ready'); });
   }
 
-  /**
-   * Give the courier box the whole row on a phone.
-   *
-   * It lives in a cell of the theme's totals table, and that table keeps a label column beside it - on a
-   * 320px screen roughly 130 of them, for a heading this row does not even have. BGCouriers_Checkout
-   * prints the package name empty on purpose, so the cell next to the couriers is blank, and the
-   * couriers are squeezed into what is left. No stylesheet can tell a cell to span its row, which is
-   * why this is done here and not in bgc-checkout.css.
-   *
-   * Deliberately timid, because it is somebody else's table:
-   *  - only a row shaped exactly as WooCommerce writes it, one <th> and one <td>;
-   *  - only while that <th> is EMPTY - a theme that puts "Delivery" there means it, and keeps it;
-   *  - the span is however many columns the widest row of that table actually has, not an assumed two;
-   *  - undone above the breakpoint, so a window dragged wider gets its layout back.
-   */
+  // a cell cannot span its row from CSS; only a WooCommerce-shaped row with an empty <th> is touched
   function spanShippingRow() {
     var wide = window.matchMedia('(min-width: 783px)').matches;
     $('tr.woocommerce-shipping-totals, tr.shipping').each(function () {
       var $tr = $(this), $th = $tr.children('th'), $td = $tr.children('td');
-      // Moved out from under the table: the row is hidden and empty, and giving it a colspan is work
-      // done on a row nobody sees.
       if ($tr.hasClass('bgc-moved-away')) { return; }
       if ($th.length !== 1 || $td.length !== 1 || $.trim($th.text()) !== '') { return; }
       var cols = 0;
@@ -1000,24 +719,10 @@
   });
 
   // ── The field a refusal is about, painted red where it stands ─────────────────────────────────
-  //
-  // WooCommerce prints "Please choose an office/APS for Speedy" at the top of the page and scrolls
-  // there; the field it means is a screen further down, and on a phone the customer arrived at it
-  // with nothing marked. Each of the plugin's refusals now carries the id of its field (see
-  // BGCouriers_Checkout::validate), which WooCommerce passes on as data-id on the notice - so the
-  // sentence is already a link to the field, and this paints the field to match.
-  //
-  // Kept as a list of ids rather than as a class on the element, because the element does not
-  // survive: the delivery fields live inside the order-review table, which update_checkout replaces
-  // wholesale - and WooCommerce asks for exactly that refresh right after some refusals. The marks
-  // are put back on every updated_checkout and taken off when the field is filled in.
+  // kept as ids: the fields live in the order-review table, which update_checkout replaces
   var invalidIds = [];
-  /** Does this field's box hold an answer now - a chosen town, office or street, a typed number, a
-   *  locker id? Asked on every re-apply, because not every way of filling a field fires a change on
-   *  it: the map's Choose writes the office straight into the select and lets the server re-render. */
   function filled($f) {
     var yes = false;
-    // Not the hidden ones: the street box carries its id and type in two, and "0" is not an answer.
     $f.find('select, input').not('[type=hidden]').each(function () { if (String($(this).val() || '').trim() !== '') { yes = true; } });
     return yes;
   }
@@ -1025,7 +730,7 @@
     $('.bgc-fields .bgc-invalid').removeClass('bgc-invalid');
     invalidIds = invalidIds.filter(function (id) {
       var $f = $('#' + id).filter('.bgc-field');
-      if ($f.length && filled($f)) { return false; }   // answered since - by whichever route
+      if ($f.length && filled($f)) { return false; }
       $f.addClass('bgc-invalid');
       return true;
     });
@@ -1033,7 +738,7 @@
   function clearInvalid(el) {
     var $f = $(el).closest('.bgc-field.bgc-invalid');
     if (!$f.length) { return; }
-    $f.removeClass('bgc-invalid').removeAttr('aria-invalid aria-describedby'); // WooCommerce set those from the same notice
+    $f.removeClass('bgc-invalid').removeAttr('aria-invalid aria-describedby');
     invalidIds = invalidIds.filter(function (id) { return id !== $f.attr('id'); });
   }
   $(document.body).on('checkout_error', function (e, html) {
@@ -1057,8 +762,8 @@
     $('.bgc-fields').each(function () {
       var $wrap = $(this);
       var mine = $wrap.attr('data-courier') === chosen;
-      if (!mine) { $wrap.hide().removeClass('bgc-ready'); return; } // hide (and re-arm) the other couriers' fields
-      $wrap.show(); // show only the chosen courier's fields (multiple couriers can share a zone)
+      if (!mine) { $wrap.hide().removeClass('bgc-ready'); return; }
+      $wrap.show();
       renderTabs($wrap); initCity($wrap); initOffice($wrap); initStreet($wrap); syncMethodUI($wrap); applyAvail($wrap); autoPickSingle($wrap); hideLoader($wrap);
       reapplyStreetNote($wrap);
       reveal($wrap);
@@ -1067,21 +772,15 @@
 
   $(document.body).on('click', '.bgc-tab', function (e) {
     e.preventDefault();
-    if ($(this).hasClass('bgc-tab-na') || this.disabled) { return; } // unavailable for this city
+    if ($(this).hasClass('bgc-tab-na') || this.disabled) { return; }
     var $wrap = $(this).closest('.bgc-fields');
-    // Clicking the tab you are already on is a no-op. It used to run the full switch: the office was
-    // cleared, the whole list re-fetched and the checkout recalculated - so a customer who tapped
-    // "To office" a second time, or hit it while already there, silently lost the office they had
-    // chosen. Nothing about the delivery type has changed, so nothing should happen.
+    // the same tab again is a no-op: a full switch would clear the chosen office
     if (String($(this).data('method')) === method($wrap)) { return; }
     setMethod($wrap, $(this).data('method'));
   });
 
   $(document.body).on('change', 'input[name^="shipping_method"]', dimRates);
 
-  // Let the WHOLE courier row select it, not just the name - a much bigger target, which matters most
-  // on a phone. The row of the CHOSEN courier also contains its delivery form, so any click on a real
-  // control (or on the label/radio, where the browser already does the right thing) is left alone.
   $(document.body).on('click', 'ul#shipping_method > li', function (e) {
     var $radio = $(this).find('> input[name^="shipping_method"]').first();
     if (!$radio.length || $radio.prop('checked') || $radio.prop('disabled')) { return; }
@@ -1094,17 +793,13 @@
     var $wrap = $(this).closest('.bgc-fields');
     clearTimeout(addrT); addrT = setTimeout(function () { saveSelection($wrap); }, 600);
   });
-  // The debounce above is there so every keystroke does not post, but it leaves a 600ms window in
-  // which a recalculation started by something else re-renders this block from a session that has not
-  // been told what was typed - and the house number the customer just entered is simply gone. Leaving
-  // the field commits it at once, which is the moment they stop typing and reach for something else.
+  // commit on leaving the field: a recalculation inside the debounce window would re-render from a stale session
   $(document.body).on('change blur', '.bgc-address-rows input', function () {
     var $wrap = $(this).closest('.bgc-fields');
     clearTimeout(addrT);
     saveSelection($wrap);
   });
 
-  // Emergency help: after repeated checkout failures, show a one-time help box with a phone link.
   (function () {
     var e = (window.BGCOURIERS && BGCOURIERS.emergency) || {};
     if (!e.phone) { return; }
@@ -1132,41 +827,22 @@
   })();
 
   // ── The one thing the combined map dialog (bgc-allmap.js) can see ─────────────
-  // That dialog is a separate script and everything in here is private to this IIFE, so this is the
-  // entire contract between them: hand over a chosen point and let the ordinary flow do the rest -
-  // pick the courier's rate, switch its tab, set city and office, save, recalculate. Nothing about
-  // what the order records lives in the other file.
-  // Left over from an in-flight applyPick's step 4 below, if one hasn't finished yet - kept here (not a
-  // closure-local) so a NEW applyPick can find and retire it instead of leaving it listening forever.
+  // module-level so a new applyPick can retire a listener an earlier one left behind
   var pendingOfficeApply = null;
 
   window.BGCouriersCheckout = {
-    // Shared with bgc-allmap.js so its city box can filter the preloaded index the same way this one
-    // does - a Latin spelling, the Cyrillic one and the post code all finding the same town. Exposed
-    // rather than copied: a second
-    // transliteration table would drift from this one the first time either was corrected.
     textMatch: bgcTextMatch,
     applyPick: function (pick) {
       var $wrap = $('.bgc-fields[data-courier="' + pick.courier + '"]');
-      if (!$wrap.length) { return false; }               // that courier is not offered for this cart
-      // 1. the courier's own rate row - this is what WooCommerce charges for
-      // WooCommerce rate values carry an instance id ("bgcouriers_speedy:5"), and some do not, so an
-      // exact-value selector silently matches nothing on a real checkout. Match the courier segment
-      // and let the colon end it - no courier id is a prefix of another.
+      if (!$wrap.length) { return false; }
+      // rate values may carry an instance id ("bgcouriers_speedy:5"): match the courier segment
       var want = 'bgcouriers_' + pick.courier;
       var $radio = $('input[name^="shipping_method"]').filter(function () {
         var v = String(this.value || '');
         return v === want || v.indexOf(want + ':') === 0;
       });
-      // The rate is ticked WITHOUT its change event: WooCommerce answers that with a recalculation of its
-      // own, which raced the save below and let a stale round overwrite the office. One recalculation,
-      // started after the save has landed, reads the ticked rate just the same.
+      // ticked without a change event: WooCommerce's own recalculation raced the save
       if ($radio.length) { $radio.prop('checked', true); dimRates(); }
-      // Everything the pick says is written into the block first - town, post code (the only
-      // courier-agnostic handle on a place, so it travels with the town), type, office - and then saved
-      // in ONE request that carries all of it. The earlier version saved once per step and rebuilt the
-      // office after the server's re-render in up to three guesses; the answer depended on which request
-      // the server finished last.
       var $city = $wrap.find('.bgc-city');
       var newTown = String($city.val() || '') !== String(pick.cityId);
       $wrap.find('.bgc-postcode').val(pick.postCode || '');
@@ -1192,16 +868,14 @@
         return $w;
       };
       saveSelection($wrap).always(function () {
-        // One check on the re-rendered block, armed only now that the save is in: a render the server
-        // built from a session that did not hold the pick is put right once and saved quietly. It never
-        // loops - this is a safety net, not a second way to do the job.
+        // one re-check after the save lands; a safety net, never a loop
         var check = function () {
           $(document.body).off('updated_checkout', check);
           pendingOfficeApply = null;
           var $w = $('.bgc-fields[data-courier="' + pick.courier + '"]');
           if (!$w.length || String($w.find('.bgc-office').val() || '') === String(pick.officeId)) { return; }
           var checkedVal = String($('input[name^="shipping_method"]:checked').val() || '');
-          if (checkedVal !== want && checkedVal.indexOf(want + ':') !== 0) { return; } // the customer moved on
+          if (checkedVal !== want && checkedVal.indexOf(want + ':') !== 0) { return; }
           $w = restore();
           if ($w) { saveSelection($w); }
         };
