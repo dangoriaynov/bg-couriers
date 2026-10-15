@@ -3,21 +3,15 @@
   var C = window.BGCOURIERS_ED || {};
   var I = C.i18n || {};
 
-  /* A lookup answers with a list, and everything here treats it as one - .map, .filter, .forEach.
-     `rows || []` keeps null out and lets everything else through, and what comes through is real:
-     admin-ajax answers a bare 0 when the action is gone from under an open page, which a plugin
-     update does. Truthy, so the field dies with "rows.map is not a function" - the whole dropdown,
-     on the merchant's own order screen. See the fuller note in bgc-checkout.js. */
+  // admin-ajax answers a bare 0 (truthy) when the action is missing, so only a real array passes
   function bgcList(rows) { return Array.isArray(rows) ? rows : []; }
 
-  // Delivery is edited through our panel's "Edit delivery details", so hide WooCommerce's native SHIPPING
-  // address editor (its pencil + inline form live in the same column as our panel) - it conflicts with our
-  // panel and edits fields the courier doesn't use. Billing keeps its native editor.
+  // Hide WooCommerce's native shipping address editor: delivery is edited through our panel.
   (function () {
     var $panel = $('.bgc-order-panel');
     if (!$panel.length) { return; }
     var $col = $panel.closest('.order_data_column');
-    if ($col.length) { $col.find('.edit_address').hide(); } // WC uses .edit_address for BOTH the pencil <a> and the form <div>
+    if ($col.length) { $col.find('.edit_address').hide(); }
   })();
 
   // --- small UI helpers: toast + custom confirm dialog ------------------------------------------
@@ -25,7 +19,6 @@
   function toast(msg) {
     if (!$toast) { $toast = $('<div class="bgc-toast"></div>').appendTo('body'); }
     $toast.stop(true, true).text(msg);
-    // position near the last click, falling back to bottom-centre
     var e = toast._e;
     if (e) { $toast.css({ left: Math.min(e.clientX + 12, window.innerWidth - 180) + 'px', top: (e.clientY + 14) + 'px', right: 'auto', bottom: 'auto' }); }
     else { $toast.css({ left: '50%', bottom: '32px', top: 'auto', right: 'auto', transform: 'translateX(-50%)' }); }
@@ -62,15 +55,11 @@
     $m.find('.bgc-m-yes').focus();
   }
 
-  // --- print: the tile is green until it is clicked ----------------------------------------------
-  // The PDF opens in a new tab and this page stays, so the "not printed yet" colour would outlive the
-  // print. The server clears the flag as it streams the PDF; this only keeps the screen in step.
   $(document).on('click', '.bgc-order-panel .bgc-primary.bgc-unprinted', function () {
     $(this).removeClass('bgc-unprinted');
     if (I.print) { $(this).attr({ 'data-tip': I.print, 'aria-label': I.print }); }
   });
 
-  // --- copy the waybill number (the number field itself is the copy button) ---------------------
   $(document).on('click', '.bgc-wb-copy', function (e) {
     e.preventDefault();
     var $b = $(this), wb = String($b.data('wb') || '');
@@ -79,7 +68,6 @@
     else { var $t = $('<input>').val(wb).appendTo('body'); $t[0].select(); try { document.execCommand('copy'); ok(); } catch (x) {} $t.remove(); }
   });
 
-  // --- cancel (void) the waybill, behind a custom confirmation ----------------------------------
   $(document).on('click', '.bgc-cancel', function (e) {
     e.preventDefault();
     var url = String($(this).data('cancel-url') || '');
@@ -93,8 +81,6 @@
     });
   });
 
-  // --- re-issue the waybill (void the current one + generate a fresh one) in one click -----------
-  // Behind the same confirmation as cancel: this really does void a shipment at the courier.
   $(document).on('click', '.bgc-regen', function (e) {
     e.preventDefault();
     var url = String($(this).data('regen-url') || '');
@@ -108,7 +94,6 @@
     });
   });
 
-  // --- toggle the delivery-details editor (icon lives in the panel, form lives in .bgc-ed) -------
   $(document).on('click', '.bgc-ed-toggle', function (e) {
     e.preventDefault();
     var $form = $('.bgc-ed-form');
@@ -116,7 +101,6 @@
     if ($form.is(':visible')) { $form[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
   });
 
-  // Opened via the orders-list pencil (#bgc-edit): auto-open the editor, no second click needed.
   if (window.location.hash === '#bgc-edit') {
     var $auto = $('.bgc-ed-form');
     if ($auto.length) {
@@ -128,18 +112,11 @@
   // --- the editor itself ------------------------------------------------------------------------
   var $panel = $('.bgc-ed');
   if (!$panel.length) { return; }
-  // The shipment is with the courier: PHP has rendered every control `disabled`. This flag is the ONE
-  // place the browser asks about that, so nothing here can hand back what the server refused.
   var LOCKED = $panel.find('.bgc-ed-form').hasClass('bgc-ed-locked');
-  // Belt and braces. A disabled button fires no click, but every handler in here is delegated off the
-  // panel, so one guard bound first covers the map pickers, Save, and anything wired later.
   if (LOCKED) {
     $panel.on('click', 'button, .button', function (e) { e.preventDefault(); e.stopImmediatePropagation(); });
   }
-  // select2 is skipped entirely rather than enhanced-then-disabled: it replaces the <select> with a span
-  // of its own, which no disabled attribute reaches, and that span is exactly how city, street and office
-  // stayed live - clear ×, dropdown and all - inside a form that was supposed to be locked. A plain
-  // disabled <select> showing the current value is inert by construction, and matches the selects above it.
+  // select2 is skipped while locked: its own span ignores the disabled attribute
   function sel2($el, opts) { if (LOCKED) { return; } if ($.fn.selectWoo) { $el.selectWoo(opts); } else if ($.fn.select2) { $el.select2(opts); } }
 
   var $courier = $panel.find('.bgc-ed-courier'),
@@ -149,14 +126,9 @@
       $street  = $panel.find('.bgc-ed-street');
 
   function courier() { return $courier.val(); }
-  // Where this order is going. Every nomenclature lookup below is a question about a country - towns and
-  // offices are per-country, and a courier asked without one answers for its home country, which for a
-  // foreign order is an empty list rather than an error.
   function country() { return C.country || 'BG'; }
   function resetOffice() { $office.val(null).trigger('change'); }
   function resetStreet() { $street.val(null).trigger('change'); setStreetPick(null); }
-  // The courier's id and the type (ул./бул.) of the street chosen off the list, beside the bare name the
-  // box holds; emptied for a typed or map-picked street. Same shape as the checkout's street box.
   function setStreetPick(d) {
     $panel.find('.bgc-ed-street-id').val((d && d.sid) || 0);
     $panel.find('.bgc-ed-street-type').val((d && d.stype) || '');
@@ -171,13 +143,8 @@
   }
   function updateMode() {
     var m = $method.val();
-    // Parcels + insurance only for the couriers that honour them; the server puts the list in the
-    // markup so there is one source of truth for it, not a second copy here.
     var $facts = $panel.find('.bgc-ed-shipfacts');
     $facts.toggle(($facts.attr('data-couriers') || '').split(',').indexOf(courier()) !== -1);
-    // BOX NOW used to have its own three text boxes here (locker id, name, address), because it had
-    // no town list to pick from. Its towns are read off its lockers now, so it is edited like every
-    // other courier: a town, then a locker from the list or the map.
     $panel.find('.bgc-ed-city-row').show();
     $panel.find('.bgc-ed-office-row').toggle(m !== 'address');
     $panel.find('.bgc-ed-address').toggle(m === 'address');
@@ -192,16 +159,10 @@
   });
   $city.on('select2:select', function (e) { var d = e.params.data; if (d && d.post_code) { $panel.find('.bgc-ed-postcode').val(d.post_code); } });
 
-  // Office/APS: preload the city's offices into the <select> (robust - works even if select2 isn't
-  // enhancing, and doesn't depend on select2 firing an AJAX on open). select2 then just adds local search.
   sel2($office, { width: '100%', allowClear: true, placeholder: I.office });
-  var officeRows = []; // full rows (with lat/lng) for the current city+method - reused by the map (instant open)
-  // Same guard as checkout: if the chosen office/APS type has NONE in this city, warn and block Save. We
-  // already fetched the offices for the select, so a 0-length result means the type isn't available here.
+  var officeRows = [];
   function updateAvail() {
-    // Nothing here may touch Save while the shipment is locked. This runs on every load, `none` is false
-    // for any ordinary city, and the line below would hand the button straight back - undoing the
-    // disabled state PHP had just printed. The form then looked saveable while the server refused it.
+    // never touch Save while locked: this runs on every load and would re-enable it
     if (LOCKED) { return; }
     var m = $method.val(), city = parseInt($city.val() || 0, 10);
     var needs = (m === 'office' || m === 'automat');
@@ -211,8 +172,6 @@
   }
   function loadOffices() {
     var c = courier(), city = $city.val() || 0, m = $method.val();
-    // A locked editor keeps the office PHP printed: there is nothing to choose between, and re-filling
-    // the list would only be a chance to replace the one the parcel is actually travelling to.
     if (LOCKED) { return; }
     if (!city || m === 'address') { officeRows = []; updateAvail(); return; }
     $.get(C.ajax, { action: 'bgcouriers_offices', courier: c, country: country(), city_id: city, type: m, all: 1 }, function (rows) {
@@ -231,26 +190,22 @@
   sel2($street, { width: '100%', allowClear: true, tags: true, placeholder: I.street, minimumInputLength: 0,
     ajax: { url: C.ajax, dataType: 'json', delay: 250,
       data: function (params) { return { action: 'bgcouriers_streets', courier: courier(), city_id: $city.val() || 0, term: params.term || '' }; },
-      // One row per street, keyed by the courier's label ("бул. ВИТОША" and "ул. ВИТОША" are two): keyed by
-      // the bare name they were one row, and the merchant could not tell them apart or pick the second.
+      // id is the courier's label, not the bare name: "бул. X" and "ул. X" must stay two rows
       processResults: function (rows) { return { results: bgcList(rows).map(function (s) { return { id: s.label || s.name, text: s.label || s.name, sname: s.name, sid: s.id || 0, stype: s.type || '' }; }) }; }
     }
   });
   $street.on('select2:select', function (e) {
     var d = (e.params && e.params.data) || {};
-    // The box keeps the bare name as its value (what every courier's label reads) and shows the label.
     $street.find('option').not('[value=""]').remove();
     $street.append(new Option(d.text || '', d.sname || d.id || '', true, true)).trigger('change.select2');
     setStreetPick(d);
   });
   $street.on('select2:unselect', function () { setStreetPick(null); });
 
-  // The selected city's id belongs to the PREVIOUS courier's nomenclature; when the courier changes we
-  // re-look-up the same city name in the new courier's list so its offices/APS resolve (otherwise the
-  // office select shows "No results found" - e.g. Econt Sofia id 68134 is not Speedy's Sofia).
+  // a city id belongs to one courier's nomenclature; look the same name up again for the new courier
   function cityName() {
     var t = ($city.find('option:selected').text() || '').trim();
-    return t.replace(/\s*\(\d+\)\s*$/, ''); // drop the " (1000)" postcode suffix
+    return t.replace(/\s*\(\d+\)\s*$/, '');
   }
   function reResolveCity() {
     var name = cityName();
@@ -276,7 +231,7 @@
   $courier.on('change', function () { fillMethods(); resetOffice(); resetStreet(); reResolveCity(); });
   $method.on('change', function () { updateMode(); resetOffice(); loadOffices(); });
   fillMethods();
-  loadOffices(); // populate the office/APS list for the order's current city + method
+  loadOffices();
 
   // ── Map picker (office/APS + address) - same UX as checkout, adapted to the editor fields ────────
   var mapIconsSet = false, edMap = null;
@@ -300,7 +255,6 @@
   }
   function openMap() {
     if (!window.L) { return; }
-    // Reuse the offices already loaded into the select (instant); only fetch if not loaded yet.
     if (officeRows && officeRows.length) { renderOfficeMap(officeRows); } else { officesFor(renderOfficeMap); }
   }
   function renderOfficeMap(rows) {
@@ -309,9 +263,6 @@
         + '<div class="bgc-map-head"><strong>' + escM(I.map_title || 'Map') + '</strong>'
         + '<button type="button" class="bgc-map-close" aria-label="' + escM(I.close || 'Close') + '">×</button></div>'
         + '<div class="bgc-map-body"><div class="bgc-map-side">'
-        // Search and locate share a row, and locate is an icon with a hint. The shop's own office
-        // picker looks like this, and this dialog is styled from the SAME stylesheet - the checkout's -
-        // so leaving the old full-width button here left a button with a label inside a 38px square.
         + '<div class="bgc-map-searchrow">'
         + '<input type="text" class="bgc-map-search" placeholder="' + escM(I.office_ph || '') + '">'
         + '<button type="button" class="bgc-map-locate" title="' + escM(I.map_locate || '')
@@ -365,7 +316,6 @@
       showMe();
       setTimeout(function () { if (edMap) { edMap.invalidateSize(); } }, 60);
   }
-  // Address map: click/drag a pin -> reverse-geocode -> fill the editor's city/street/№.
   var geoT;
   function reverseGeocode(lat, lng, cb) { clearTimeout(geoT); geoT = setTimeout(function () { $.get(C.ajax, { action: 'bgcouriers_geocode', lat: lat, lng: lng }, function (r) { cb(r || {}); }); }, 350); }
   function fillEditorAddress(geo) {
@@ -373,9 +323,6 @@
       if (pc) { $panel.find('.bgc-ed-postcode').val(pc); }
       if (geo.number) { $panel.find('.bgc-ed-streetno').val(geo.number); }
       if (!geo.street) { return; }
-      // The street the geocoder names, as the courier lists it - the same question the checkout's map
-      // asks (exact=1): one row that IS this street goes in with its id and type; otherwise the text
-      // stays, and the label-time lookup, or the merchant, has another go.
       $.get(C.ajax, { action: 'bgcouriers_streets', courier: courier(), country: country(), city_id: $city.val() || 0, term: geo.street, exact: 1 })
         .always(function (rows) {
           var hits = bgcList(rows);
@@ -447,7 +394,6 @@
       complex: $panel.find('.bgc-ed-complex').val() || '', block: $panel.find('.bgc-ed-block').val() || '',
       entrance: $panel.find('.bgc-ed-entrance').val() || '', floor: $panel.find('.bgc-ed-floor').val() || '',
       apartment: $panel.find('.bgc-ed-apartment').val() || '', address_note: $panel.find('.bgc-ed-note').val() || '',
-      // How many boxes, and what to insure them for. Blank means the defaults - one parcel, uninsured.
       parcels: $panel.find('.bgc-ed-parcels').val() || 1,
       insurance: $panel.find('.bgc-ed-insurance').val() || 0
     };
@@ -458,10 +404,6 @@
   });
 })(jQuery);
 
-/* Ask the courier about THIS shipment right now.
-   The scheduled poll runs a few times a day; someone looking at one order wants the answer now, not at
-   the next run. Reloads on success rather than patching the block in place: the refresh can change the
-   stage, the lock, and the order status itself, and half-updating a screen is worse than redrawing it. */
 jQuery(function ($) {
     $(document).on('click', '.bgc-ship-refresh', function () {
         var b = $(this), id = b.data('id');
@@ -482,8 +424,7 @@ jQuery(function ($) {
     });
 });
 
-  // A control the server will refuse is dimmed with .bgc-off; stop the click here too, so nothing
-  // depends on the styling alone. Capture phase, before the handlers above get a look at it.
+  // a .bgc-off control is refused server-side; stop the click too, in the capture phase
   document.addEventListener('click', function (e) {
     var off = e.target && e.target.closest ? e.target.closest('.bgc-off') : null;
     if (off) { e.preventDefault(); e.stopPropagation(); }

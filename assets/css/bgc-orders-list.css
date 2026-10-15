@@ -1,25 +1,15 @@
 /* Orders-list Waybill column: two-row tile cell + toast + confirm modal (BGC_Order_Columns). */
-/* Two fixed rows (logo+pencil / actions), each wrapping inside the fixed-width Waybill column. */
 .bgc-cell{display:flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:100%;}
 .bgc-cell .bgc-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px;max-width:100%;}
-/* Same tile look as the order-screen shipment panel (.bgc-act), just compact for the list table.
-   Geometry is !important: other plugins' admin CSS styles bare <button> elements (the copy tile is
-   the one BUTTON among anchors) and was blowing its size/spacing up on some installs. */
 .bgc-ico{display:inline-flex!important;align-items:center;justify-content:center;width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important;padding:0!important;margin:0!important;border:1px solid #c9ced6!important;border-radius:6px!important;background:#fff;color:#2b3440;cursor:pointer;text-decoration:none;box-shadow:none;transition:all .12s;flex:0 0 auto;box-sizing:border-box!important;line-height:1!important;vertical-align:middle;-webkit-appearance:none;appearance:none;}
 .bgc-ico:hover{background:#f4f6f9;border-color:#a2acb8!important;box-shadow:0 1px 2px rgba(0,0,0,.07);color:#2b3440;}
 .bgc-ico:focus{outline:none;box-shadow:0 0 0 2px rgba(34,113,177,.35);}
 .bgc-ico .dashicons{font-size:14px!important;width:14px!important;height:14px!important;line-height:1!important;margin:0!important;padding:0!important;}
-/* Courier logo tile (hover hint carries the courier name), like the shipment-panel header. */
 .bgc-ltile{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #c9ced6;border-radius:6px;background:#fff;box-sizing:border-box;cursor:default;flex:0 0 auto;}
 .bgc-clogo{max-width:17px;max-height:17px;width:auto;height:auto;object-fit:contain;display:block;}
-/* data-tip hover hints are drawn by assets/js/bgc-tip.js into one bubble on <body> (see bgc-tip.css),
-   so a hint on the last tile of the Waybill column can no longer be cut off by the edge of the table. */
 .bgc-cell,.bgc-cell .bgc-row{overflow:visible;}
 .bgc-ico.bgc-primary{background:#2271b1;border-color:#2271b1!important;color:#fff;}
 .bgc-ico.bgc-primary:hover{background:#1c5d92;border-color:#1c5d92!important;color:#fff;}
-/* A waybill nobody has printed yet: the print tile itself is green (no separate badge - it read as one
-   more action). The class comes off on the click (bgc-orders-list.js), so the row answers at once even
-   though the PDF opens in another tab and this page never reloads. */
 .bgc-ico.bgc-primary.bgc-unprinted{background:#2e9e4f;border-color:#2e9e4f!important;}
 .bgc-ico.bgc-primary.bgc-unprinted:hover{background:#25813f;border-color:#25813f!important;}
 .bgc-ico.bgc-danger{color:#b32d2e;border-color:#e6a2a5!important;}
@@ -38,21 +28,10 @@
 .bgc-lmodal .bgc-lyes:hover{background:#8a1f2b!important;border-color:#8a1f2b!important;}
 
 
-/* The courier's own last word about the shipment, under the waybill actions. Scanned, not read: the
-   coloured dot carries the verdict (moving / delivered / returned) so a row reads at a glance. */
-/* Where the shipment is, as one tile in the button row - same square as the icons beside it so the row
-   reads as one strip. It is an INDICATOR, not a button: no hover lift, no pointer, just the hint.
-   The colour is per stage and comes from BGCouriers_Order_Columns::stage_color_css(), because a class
-   survives the kses this column is printed through and an inline style does not. */
 .bgc-track-ico { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;
   width:26px; height:26px; border:1px solid #e2e6ea; border-radius:6px; background:#fff;
   color:#6b7280; cursor:help; }
 .bgc-track-ico svg { display:block; }
 
-/* An action the plugin will refuse: dimmed, and stripped of its href so a click cannot go anywhere.
-   Pointer events stay ON so the hover hint can still explain why - which is the whole reason the
-   padlock that used to sit here could be dropped: a disabled control says it where the eye already is.
-   That explanation only became legible when the hint moved out of this element: as a ::after it
-   inherited the .4 below, so the reason an action was blocked was itself printed grey on grey. */
 .bgc-ico.bgc-off { opacity:.4; cursor:not-allowed; }
 .bgc-ico.bgc-off:hover { background:#fff; border-color:#e2e6ea; }

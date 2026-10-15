@@ -1,5 +1,4 @@
-/* The parcel block on the customer's own order page. Quiet - it sits under the order table and is read
-   once, when they are looking for the tracking number and nothing else. */
+/* The parcel block on the customer's order page. */
 .bgc-track-box { margin: 20px 0; padding: 14px 16px; border: 1px solid #e0e4ea; border-radius: 6px;
   background: #f7f9fb; }
 .bgc-track-title { margin: 0 0 6px; font-weight: 700; }
