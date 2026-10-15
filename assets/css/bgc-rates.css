@@ -1,86 +1,41 @@
-/**
- * The courier rate list - ONE stylesheet for both the cart calculator and the checkout review panel.
- *
- * Both pages render the very same <ul id="shipping_method">, so the row layout has to live in a file both
- * of them load. It used to sit in bgc-checkout.css scoped to .woocommerce-checkout, which is why the cart
- * looked broken: the rules were not merely inactive there, the file was never enqueued on the cart at all.
- *
- * What the theme does to this markup (measured on Shoptimizer, cart + checkout, 390px and 1200px):
- *   - input[type=radio] -> position:absolute, so it does not sit in the row's flow
- *   - label::before      -> a 7x7 inline-block that pushes the first line along
- *   - .bgc-ship-logo     -> display:block (img{display:block}), which broke the label onto its own line
- *   - .woocommerce-Price-amount -> display:block + float:right, inside the label
- *   - tr.shipping > td   -> 15-22px side padding, which is what made the rows narrower than the panel
- * Every rule below answers one of those.
- */
+/* The courier rate list, shared by the cart calculator and the checkout review panel. */
 
-/* Full panel width. The totals table pads its cell, so the courier rows started ~21px inside the panel
-   while "Total" in the same table started at its edge - the arbitrary-looking indent. The row keeps its
-   own padding, so the text still has breathing room; only the wasted outer inset goes.
-   !important because this is a fight with whatever table padding the active theme ships (Shoptimizer
-   uses 15-22px depending on breakpoint) and we cannot out-specify every theme by hand. Scoped to the
-   shipping row, so no other cell in the totals table is affected. */
 tr.woocommerce-shipping-totals > td,
 tr.shipping > td { padding-left: 0 !important; padding-right: 0 !important; }
 
-/* The package heading is empty on purpose (see BGCouriers_Checkout::package_name) - collapse the space
-   the theme still reserves for it, otherwise an invisible label keeps pushing the couriers down. */
+/* The package heading is empty on purpose (BGCouriers_Checkout::package_name) */
 tr.woocommerce-shipping-totals > th:empty,
 tr.shipping > th:empty { padding: 0; margin: 0; border: 0; height: 0; line-height: 0; font-size: 0; }
 
 ul#shipping_method { margin: 0; padding: 0; list-style: none; }
-/* The row is a COLUMN: the courier's name on one line, its delivery fields on the next, whatever the
-   theme had in mind for this <li>. Themes commonly lay it out as a flex ROW so the radio and the label
-   share a line - and then the chosen courier's fields become the label's neighbour and the two split
-   the width between them: the name floating in the left half, the town and office squeezed into the
-   right, "5,12 €Град" run together (reported with a screenshot, 2026-09-11, and reproduced on dev
-   with exactly that one rule). A column flex stacks every child full-width, and the hidden radio is
-   out of flow, so nothing else moves. !important because the theme's rule is written as
-   `.checkout-wrapper #shipping_method > li` and outranks this selector on specificity, not on order. */
 ul#shipping_method > li {
   display: flex !important; flex-direction: column !important; align-items: stretch;
   list-style: none; margin: 0; padding: 8px 12px; box-sizing: border-box;
-  /* Botiga keeps 100px on the right of every row for the price it pins in the corner; with the price
-     back in flow (below) that strip is empty, and the prices of the unchosen rows stop 100px short. */
   padding-right: 12px !important;
   border: 1px solid transparent; border-radius: 10px; line-height: 1.4;
   cursor: pointer; transition: background-color .12s; -webkit-tap-highlight-color: transparent;
 }
 
-/* The radio circle is dropped on purpose: it decorated the row without adding information, since the
-   chosen courier is already the bold one in a raised card. The input STAYS in the DOM - it is what
-   WooCommerce reads on submit and what the click handler toggles - just visually hidden rather than
-   display:none, so it keeps its place in the tab order for keyboard users. */
 ul#shipping_method > li > input.shipping_method {
   position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; border: 0;
   clip: rect(0 0 0 0); clip-path: inset(50%); overflow: hidden; white-space: nowrap;
 }
-ul#shipping_method > li > label::before { display: none; } /* theme's 7px marker before the logo */
+ul#shipping_method > li > label::before { display: none; }
 
-/* One line per courier: logo + name (+ the (i) hint) packed left, price hard right.
-   The label is the flex container because that is where the theme puts the price, and a float is ignored
-   inside a flex container - so margin-left:auto, not float, decides where the price sits. */
 ul#shipping_method > li > label {
   display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px;
   width: 100%; margin: 0; padding: 0; line-height: inherit; cursor: pointer;
-  grid-column: 1 / -1; /* a theme that wins the row back as a GRID still gets one child per line */
+  grid-column: 1 / -1;
 }
 ul#shipping_method .bgc-ship-logo {
   display: block; flex: 0 0 auto; width: 16px; height: 16px; object-fit: contain; margin: 0;
 }
-/* order:9 moves the price to the end of the row whatever its position in the markup, so the (i)
-   stays next to the courier name instead of trailing the price.
-   position:static, and forced: Botiga pins the price with `position:absolute; right:0; top:0` on a
-   `.checkout-wrapper #shipping_method .woocommerce-Price-amount` selector, which outranks this one -
-   and a pinned price lands in the card's top corner, above the name it belongs to. In flow it sits on
-   the name's own line, right-aligned, on every theme. */
 ul#shipping_method > li > label > .woocommerce-Price-amount {
   order: 9; float: none; position: static !important; margin-left: auto; white-space: nowrap;
 }
 ul#shipping_method > li > label > .bgc-info-tip { flex: 0 0 auto; }
 
-/* The CHOSEN courier and its delivery fields sit together in one raised card, so it is obvious the
-   fields belong to that courier. Padding compensates for the border, keeping every row the same height. */
+/* The chosen courier and its delivery fields in one card */
 ul#shipping_method > li:hover { background: #f4f6f9; }
 ul#shipping_method > li:has(> input.shipping_method:checked) {
   border-color: #dbe1e8; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.06);
@@ -88,24 +43,14 @@ ul#shipping_method > li:has(> input.shipping_method:checked) {
 }
 ul#shipping_method > li:has(> input.shipping_method:checked):hover { background: #fff; }
 ul#shipping_method > li:has(> input.shipping_method:checked) > label { font-weight: 600; cursor: default; }
-/* With the radio hidden there is nothing left to show keyboard focus - put it on the row itself. */
 ul#shipping_method > li:has(> input.shipping_method:focus-visible) { outline: 2px solid #2271b1; outline-offset: 1px; }
-/* The chosen courier's fields take the full width under the label - the column above is what keeps
-   them there; this only says what the fields themselves are. */
 ul#shipping_method > li > .bgc-fields { display: block; width: 100%; flex: 0 0 auto; grid-column: 1 / -1; cursor: default; }
 
-/* Round (i) hint carrying whatever needs saying about this rate - what the price covers, or that it is
-   paid to the courier. The sentence itself is drawn by bgc-tip.js, the same bubble the admin screens
-   use: one element on <body>, measured and kept inside the window. It used to be a ::after on this
-   dot, anchored to the dot's right edge - and on a phone the dot sits a hand's width from the LEFT
-   edge, so the bubble grew leftwards and its first words were cut off by the screen. */
+/* Round (i) hint on a rate */
 .bgc-info-tip{display:inline-block;box-sizing:border-box;width:15px;height:15px;border-radius:50%;background:#c3c8ce;color:#fff;font:italic 700 10px/15px Georgia,serif;text-align:center;vertical-align:middle;cursor:help;position:relative;}
 .bgc-info-tip::before{content:"i";}
 .bgc-info-tip:hover,.bgc-info-tip:focus{background:#2271b1;outline:none;}
 
-/* Which way the delivery is paid, said by the icon instead of a generic "i" nobody hovers.
-   Drawn as a CSS mask so it inherits the pill's colour and follows it on hover/focus, and so no <svg>
-   has to survive wp_kses_post - which it would not: rate labels are printed through it. */
 .bgc-info-tip.bgc-pay-courier::before,
 .bgc-info-tip.bgc-pay-total::before { content:""; display:block; width:100%; height:100%;
   background:currentColor; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
@@ -113,14 +58,10 @@ ul#shipping_method > li > .bgc-fields { display: block; width: 100%; flex: 0 0 a
 .bgc-info-tip.bgc-pay-courier::before { -webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%222%22%20y%3D%226%22%20width%3D%2220%22%20height%3D%2212%22%20rx%3D%222%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%222.5%22%2F%3E%3C%2Fsvg%3E"); mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%222%22%20y%3D%226%22%20width%3D%2220%22%20height%3D%2212%22%20rx%3D%222%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%222.5%22%2F%3E%3C%2Fsvg%3E"); }
 .bgc-info-tip.bgc-pay-total::before   { -webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%207h12l-1%2013H7z%22%2F%3E%3Cpath%20d%3D%22M9%207V5a3%203%200%200%201%206%200v2%22%2F%3E%3C%2Fsvg%3E");   mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%207h12l-1%2013H7z%22%2F%3E%3Cpath%20d%3D%22M9%207V5a3%203%200%200%201%206%200v2%22%2F%3E%3C%2Fsvg%3E"); }
 
-/* Touch: the courier rows and the (i) beside them. */
+/* Touch: the courier rows and the (i) beside them */
 @media (pointer: coarse) {
-  /* A row is the target for choosing that courier, so it is worth a thumb's height. */
   ul#shipping_method > li { padding-top: 11px; padding-bottom: 11px; }
   ul#shipping_method > li:has(> input.shipping_method:checked) { padding-top: 10px; padding-bottom: 10px; }
-  /* The (i) is the only way to the sentence saying whether this delivery is paid to the courier at the
-     door or is already in the total - and a touch screen has no hover, so a tap on it is that sentence's
-     only door. A 15px dot is not a target; 21px is one a thumb can find. */
   .bgc-info-tip { width: 21px; height: 21px; font-size: 13px; line-height: 21px; }
   .bgc-info-tip.bgc-pay-courier::before,
   .bgc-info-tip.bgc-pay-total::before { -webkit-mask-size: 15px 15px; mask-size: 15px 15px; }

@@ -1,66 +1,28 @@
 /* Shipment panel on the order edit screen (BGC_Order_Metabox). */
-/* ONE size for every control in the header row. The logo tile, the delivery-type tile, the waybill-copy
-   button and the action buttons were three different sizes, and with 8 controls they no longer fitted the
-   narrow order sidebar, so the row wrapped and the second line jumped right. Everything below derives from
-   these two custom properties - change the size in one place, not four. */
 .bgc-order-panel{overflow:visible;box-sizing:border-box;max-width:100%;margin-top:8px;padding:10px 11px;border:1px solid #e6e9ec;border-radius:9px;background:#fff;
   --bgc-tile:28px;--bgc-gap:4px;}
-/* The panel measures ITSELF for the rules that depend on how much room it has - the order screen gives
-   it a third of the page on a desktop and a sliver in a narrow column, and the viewport says nothing
-   about which. */
 .bgc-order-panel { container-type:inline-size; }
-/* WHERE THE BUTTONS ARE DOES NOT CHANGE: identity on the left (courier logo, delivery type, the
-   waybill-copy button), actions on the right, in the order they have always been in. People reach for
-   them without looking and a release that moves them is a release that makes them look (owner,
-   2026-10-09). The only thing fixed here is what used to happen when they did not FIT: with
-   flex-wrap:nowrap the last tile - the red "cancel the waybill" - was drawn OUTSIDE the panel's own
-   border, and with plain wrapping the action group broke away as a block and left one button hanging
-   on a line of its own under a half-empty first line. So the row still wraps, and only when the panel
-   is too narrow for one row at all does it become a tidy grid of tile-wide columns - see below. */
 .bgc-order-panel .bgc-hd{overflow:visible;display:flex;flex-wrap:wrap;align-items:center;gap:var(--bgc-gap);margin:0 0 8px;min-width:0;}
 .bgc-order-panel .bgc-hd b{font-size:13px;color:#1d2327;}
 .bgc-order-panel .bgc-logo{max-width:18px;max-height:18px;width:auto;height:auto;object-fit:contain;display:block;}
-/* Logo + delivery-type icon share the SAME 31x31 tile as the action buttons, so the whole row is one size. */
 .bgc-order-panel .bgc-tile{width:var(--bgc-tile);height:var(--bgc-tile);min-width:var(--bgc-tile);flex:0 0 auto;padding:0;border:1px solid #c9ced6;border-radius:7px;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;cursor:default;}
 .bgc-order-panel .bgc-hd-acts{margin-left:auto;display:inline-flex;align-items:center;gap:var(--bgc-gap);flex-wrap:wrap;justify-content:flex-end;min-width:0;}
-/* An order with a waybill carries eight tiles and eight need 252px. Below that the row stops being a
-   row: the tiles fall into a grid of equal columns that fits as many as the width allows - six, then
-   five, then four as the window narrows, one at a time, and back up again as it widens. The columns
-   are 1fr wide so the slack is shared out between them instead of piling up on the right, and every
-   tile sits under the tile above it, so a last row of one or two reads as part of the grid rather than
-   as something left hanging. The ORDER is untouched - the same tiles, left to right, simply wrapped.
-   The action group gives up its own box (display:contents) so its buttons are tiles in that grid like
-   the rest, and the header items that carry text rather than a glyph take a row to themselves instead
-   of being crushed into one tile's column. */
-/* First, the tiles themselves give a little: every size in this panel derives from --bgc-tile, so a
-   couple of pixels off each keeps all eight on ONE line down to a 220px card instead of breaking the
-   row in two. Fewer rows is the whole point of a wider window. */
-/* The property is set on the ROW, not on the panel: a container query styles the container's
-   descendants, never the container itself. */
+/* set on the row, not the panel: a container query cannot style its own container */
 @container (min-width:220px) and (max-width:251px) { .bgc-order-panel .bgc-hd{--bgc-tile:24px;} }
-/* Below that they cannot share a line however small they are, so they fall into four columns: eight
-   tiles read as four and four, seven (a courier with no tracking page) as four and three - never one
-   on a line by itself. The columns are 1fr, so they spread across the card as it widens rather than
-   huddling at the left, and every tile sits under the tile above it. */
 @container (max-width:219px) {
   .bgc-order-panel .bgc-hd{display:grid;grid-template-columns:repeat(4,minmax(var(--bgc-tile),1fr));justify-items:start;}
   .bgc-order-panel .bgc-hd-acts{display:contents;}
   .bgc-order-panel .bgc-hd > .bgc-chip,.bgc-order-panel .bgc-hd > b,.bgc-order-panel .bgc-hd .bgc-act.bgc-gen{grid-column:1 / -1;justify-self:start;}
 }
-/* A card too narrow even for four: three, and the last row still has two on it. */
 @container (max-width:131px) { .bgc-order-panel .bgc-hd{grid-template-columns:repeat(3,minmax(var(--bgc-tile),1fr));} }
-/* The delivery-type chip is the one control in the row with TEXT in it ("До офис/автомат"), so it is
-   the one that can grow with the translation. It gives way first rather than pushing the buttons out. */
 .bgc-order-panel .bgc-chip{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 9px;border-radius:999px;background:#eef2f7;color:#3c434a;font-size:12px;font-weight:600;}
-/* The waybill number IS the copy button: clicking the field copies it to the clipboard. */
-/* Geometry is !important: other plugins' admin CSS styles bare <button> elements (this copy */
-/* chip and the .bgc-act buttons) and was blowing their size/spacing up on some installs. */
+/* Geometry is !important: other plugins' admin CSS styles bare <button> elements */
 .bgc-order-panel .bgc-mtype .bgc-mtype-ico{display:block;color:#3c434a;}
 .bgc-order-panel .bgc-wb{display:inline-flex!important;align-items:center;justify-content:center;width:var(--bgc-tile)!important;height:var(--bgc-tile)!important;min-width:var(--bgc-tile)!important;min-height:var(--bgc-tile)!important;padding:0!important;margin:0!important;border-radius:7px!important;background:#f0f6fc;border:1px solid #d7e3f1!important;color:#2271b1;cursor:pointer;transition:all .12s;box-sizing:border-box!important;line-height:1!important;vertical-align:middle;-webkit-appearance:none;appearance:none;}
 .bgc-order-panel .bgc-wb .dashicons{font-size:16px!important;width:16px!important;height:16px!important;line-height:1!important;margin:0!important;padding:0!important;}
 .bgc-order-panel .bgc-wb:hover{border-color:#9fb6cf!important;background:#e9f2fb;}
 .bgc-order-panel .bgc-wb.copied{border-color:#8fcea5!important;background:#eaf7ee;color:#1a7f37;}
-/* One cohesive row of icon-only actions (print / track / edit / cancel), 40px squares. */
+/* Icon-only action row (print / track / edit / cancel) */
 .bgc-order-panel .bgc-la{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
 .bgc-order-panel .bgc-act{display:inline-flex!important;align-items:center;justify-content:center;width:var(--bgc-tile)!important;height:var(--bgc-tile)!important;min-width:var(--bgc-tile)!important;min-height:var(--bgc-tile)!important;padding:0!important;margin:0!important;border:1px solid #c9ced6!important;border-radius:7px!important;background:#fff;color:#2b3440;cursor:pointer;text-decoration:none;box-shadow:none;transition:all .12s;box-sizing:border-box!important;line-height:1!important;vertical-align:middle;-webkit-appearance:none;appearance:none;}
 .bgc-order-panel .bgc-act:hover{background:#f4f6f9;border-color:#a2acb8!important;box-shadow:0 1px 2px rgba(0,0,0,.07);}
@@ -68,31 +30,19 @@
 .bgc-order-panel .bgc-act .dashicons{font-size:16px!important;width:16px!important;height:16px!important;line-height:1!important;margin:0!important;padding:0!important;}
 .bgc-order-panel .bgc-act.bgc-primary{background:#2271b1;border-color:#2271b1!important;color:#fff;}
 .bgc-order-panel .bgc-act.bgc-primary:hover{background:#1c5d92;border-color:#1c5d92!important;}
-/* Green while the waybill has not been printed - the same signal as the orders list; the click turns
-   it back (bgc-order-admin.js). */
 .bgc-order-panel .bgc-act.bgc-primary.bgc-unprinted{background:#2e9e4f;border-color:#2e9e4f!important;}
 .bgc-order-panel .bgc-act.bgc-primary.bgc-unprinted:hover{background:#25813f;border-color:#25813f!important;}
 .bgc-order-panel .bgc-act.bgc-danger{color:#b32d2e;border-color:#e6a2a5!important;}
 .bgc-order-panel .bgc-act.bgc-danger:hover{background:#fcecec;border-color:#cf6a6f!important;color:#8a1f2b;}
 .bgc-order-panel .bgc-act.bgc-gen{width:auto!important;padding:0 11px!important;gap:6px;font-size:12px;font-weight:600;}
-/* Hover hints (data-tip) are drawn by assets/js/bgc-tip.js into one bubble on <body> - see bgc-tip.css.
-   They used to be a ::after on the hovered control itself, which put every hint inside the panel: clipped
-   by it, dimmed with the control, centred by whatever the control's text-align happened to be. Nothing
-   about a hint is styled from here any more; the containers below still refuse to clip, because the
-   editor's select2 dropdowns open out of them too. */
 .bgc-order-panel,.bgc-order-panel .bgc-hd,.bgc-order-panel .bgc-hd-acts{overflow:visible;}
 .bgc-order-panel .bgc-ed{margin-top:8px;}
-/* Editor form: force a uniform 32px height on native selects + select2 + inputs (WC/theme give */
-/* the native selects a taller height, so !important + the .bgc-order-panel prefix are needed). */
+/* Editor form: uniform control height; !important because WC/theme style the native selects */
 .bgc-order-panel .bgc-ed-form p{margin:0 0 7px;}
 .bgc-order-panel .bgc-ed-form label{color:#50575e;font-weight:600;font-size:12px;}
 .bgc-order-panel .bgc-ed-form select,.bgc-order-panel .bgc-ed-form input[type=text],.bgc-order-panel .bgc-ed-form input:not([type]){height:32px!important;min-height:32px!important;box-sizing:border-box!important;margin:0!important;padding:0 8px!important;font-size:13px!important;line-height:1.2!important;vertical-align:middle;}
-/* The four full-row dropdowns (courier / option / city / office) all fill the form width so their */
-/* widths match - the native courier/option selects were narrower than the full-width select2 */
-/* city/office (which already init at width:100%). Scoped so the inline street+No. row is untouched. */
 .bgc-order-panel .bgc-ed-form .bgc-ed-courier,.bgc-order-panel .bgc-ed-form .bgc-ed-method{width:100%!important;min-width:0!important;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-city-row .select2-container{width:100%!important;}
-/* Office row: leave room for the inline map icon so it sits to the RIGHT of the select, not below. */
 .bgc-order-panel .bgc-ed-form .bgc-ed-office-row .select2-container{width:calc(100% - 42px)!important;display:inline-block!important;}
 .bgc-order-panel .bgc-ed-form .select2-container{vertical-align:middle;min-height:32px;margin:0!important;}
 .bgc-order-panel .bgc-ed-form .select2-selection--single{height:32px!important;min-height:32px!important;box-sizing:border-box!important;}
@@ -100,13 +50,8 @@
 .bgc-order-panel .bgc-ed-form .select2-selection--single .select2-selection__arrow{height:30px!important;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn{height:32px!important;min-height:32px!important;width:34px!important;min-width:34px!important;padding:0!important;margin:0 0 0 4px!important;vertical-align:middle;display:inline-flex!important;align-items:center;justify-content:center;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-mapbtn .dashicons{font-size:17px;width:17px;height:17px;line-height:1;}
-/* inline-FLEX, not inline-block: the height is fixed at 34px with no vertical padding, so with
-   inline-block the label is placed by its line-height and sits low in the button. Centring it in a
-   flex box makes the text sit where the eye expects whatever the theme's line-height happens to be. */
 .bgc-order-panel .bgc-ed-form .bgc-ed-save.button-primary{height:34px!important;min-height:34px!important;width:auto!important;min-width:0!important;max-width:100%;display:inline-flex!important;align-items:center;justify-content:center;line-height:1!important;flex:none;box-sizing:border-box;margin-top:10px!important;border-radius:7px!important;padding:0 22px!important;font-weight:600;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-avail{display:none;margin:2px 0 0;color:#b32d2e;font-size:12px;}
-/* Address block: label-above-input fields (bgc-ed-fld) that never wrap raggedly; the small */
-/* Bl./Entr./Floor/Apt. sit in an even 4-column grid, and Street+No.+map share one aligned row. */
 .bgc-order-panel .bgc-ed-form .bgc-ed-fld{display:flex;flex-direction:column;min-width:0;margin:0 0 7px;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-fld > label{margin:0 0 3px;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-fld > input,.bgc-order-panel .bgc-ed-form .bgc-ed-fld > select{width:100%!important;min-width:0!important;}
@@ -114,17 +59,13 @@
 .bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-grow{flex:1 1 auto;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-no{width:66px;flex:0 0 66px;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-street-row .select2-container{width:100%!important;}
-/* Map button sits in its own cell with a hidden spacer label, so it lines up with the No. INPUT */
-/* (not the taller select2 street field) - the row aligns cell bottoms and every cell is label+control. */
 .bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-mapcell{flex:0 0 34px;align-items:flex-start;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-mapcell > label{visibility:hidden;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-street-row .bgc-ed-mapbtn{margin:0!important;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end;}
 .bgc-order-panel .bgc-ed-form .bgc-ed-grid4 .bgc-ed-fld{margin:0;}
 .bgc-order-panel .bgc-ed-form .description{margin:6px 0 0;font-size:12px;color:#646970;}
-/* Copied-to-clipboard toast + custom cancel confirmation dialog (global, not panel-scoped). */
-/* Above everything on the order screen. 100000 was not enough - some control on that page stacks higher
-   and showed THROUGH the dimmed overlay. */
+/* Toast + confirm dialog (global, not panel-scoped) */
 .bgc-toast{position:fixed;z-index:1000001;background:#1d2327;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;}
 .bgc-toast.show{opacity:1;transform:translateY(0);}
 .bgc-modal-ov{position:fixed;inset:0;background:rgba(20,24,28,.5);z-index:1000000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
@@ -139,11 +80,7 @@
 .bgc-modal .bgc-btn-danger{background:#b32d2e!important;border-color:#b32d2e!important;color:#fff!important;box-shadow:none!important;}
 .bgc-modal .bgc-btn-danger:hover{background:#8a1f2b!important;border-color:#8a1f2b!important;}
 
-/* Where the shipment is, on the order screen itself. The current stage is the TITLE of a collapsible
-   panel (<details>): its icon, its one-word name and its date stay visible, and opening it lists the
-   journey so far, newest first. The summary is one flex row - chevron, stage, date, then (only while
-   the shipment can still change) the age, the lock and the refresh button - so the panel is exactly as
-   wide as the rows inside it, and a final stage simply has fewer things on the line. */
+/* Where the shipment is: the stage list */
 .bgc-shipstate { box-sizing:border-box; max-width:100%; margin:8px 0 0; overflow:hidden;
   border:1px solid #e2e6ea; border-radius:8px; background:#fafbfc; font-size:12px; line-height:1.4; }
 .bgc-shipstate .bgc-ss-head { box-sizing:border-box; display:flex; flex-wrap:wrap; align-items:center; gap:3px 8px;
@@ -151,33 +88,20 @@
 .bgc-shipstate > summary.bgc-ss-head { cursor:pointer; }
 .bgc-shipstate > summary.bgc-ss-head::-webkit-details-marker { display:none; }
 .bgc-shipstate > summary.bgc-ss-head:focus-visible { outline:2px solid rgba(34,113,177,.55); outline-offset:-2px; border-radius:7px; }
-/* The chevron leads the line, so the date keeps the right edge to itself and lines up with the dates in
-   the list below. It is drawn, not a glyph, so no font decides its size. */
 .bgc-shipstate > summary.bgc-ss-head::before { content:""; flex:0 0 auto; width:6px; height:6px; margin:0 0 0 1px;
   border-right:2px solid #8c8f94; border-bottom:2px solid #8c8f94; transform:rotate(-45deg); transition:transform .12s; }
 .bgc-shipstate[open] > summary.bgc-ss-head::before { transform:rotate(45deg); }
 .bgc-shipstate[open] > summary.bgc-ss-head { border-bottom:1px solid #e2e6ea; }
-/* The stage, in one word. The long wording and the courier's own sentence are on the hint - this row is
-   scanned, not read. It takes the slack, so everything after it sits against the right edge. */
 .bgc-shipstate .bgc-shipstate-lbl { display:inline-flex; align-items:center; gap:6px; flex:1 1 auto; min-width:0; cursor:help; }
 .bgc-shipstate .bgc-shipstate-lbl strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
-/* The stage indicator, the same glyph the orders list draws, coloured by its own stage class (the
-   rules come from BGCouriers_Order_Columns::stage_color_css(), added to this stylesheet at enqueue). */
-/* In this panel the indicator is the bare glyph, not the 26px bordered tile the orders list uses: a tile
-   per line made every line of the journey 35px tall and pushed its text 56px from the edge, which on a
-   narrow card left no room for the words. */
 .bgc-shipstate .bgc-track-ico,.bgc-timeline .bgc-track-ico { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;
   width:16px; height:16px; border:0; border-radius:0; background:transparent; color:#6b7280; }
 .bgc-shipstate .bgc-track-ico svg,.bgc-timeline .bgc-track-ico svg { display:block; width:16px; height:16px; }
 .bgc-timeline .bgc-track-ico,.bgc-timeline .bgc-track-ico svg { width:14px; height:14px; }
 .bgc-shipstate .bgc-ss-date { flex:0 0 auto; color:#1d2327; font-weight:600; white-space:nowrap; }
-/* How long it has stood still: a clock and the duration, never the sentence around it. Not printed for
-   a final stage - the date says when, and nothing is going to change. */
 .bgc-shipstate-when { display:inline-flex; align-items:center; gap:3px; flex:0 0 auto; color:#8c8f94; white-space:nowrap; cursor:help; }
 .bgc-shipstate-when .bgc-clock-ico { flex:0 0 auto; }
-/* The padlock that says the courier has the parcel. */
 .bgc-shipstate .bgc-lock { flex:0 0 auto; font-size:15px; width:15px; height:15px; color:#8c8f94; cursor:help; }
-/* Ask-the-courier-now button, last on the line while the shipment can still change. */
 .bgc-shipstate .bgc-ship-refresh { flex:0 0 auto; margin:0; padding:0;
   width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
   border:1px solid #dcdcde; border-radius:5px; background:#fff; color:#787c82; cursor:pointer;
@@ -188,32 +112,13 @@
 .bgc-ship-refresh.bgc-busy .dashicons { animation:bgc-spin 1s linear infinite; }
 @keyframes bgc-spin { to { transform:rotate(360deg); } }
 
-/* Кога се е случило всяко нещо: един ред под състоянието, а не четене на бележките. */
-/* TWO COLUMNS, so the dates line up under each other. As a wrapping row of "<stage> <date>" pairs the
-   dates started wherever the stage before them ended, and a column of dates is read down (owner,
-   2026-10-09). The first column is as wide as the longest stage word and no wider; the second takes the
-   rest, so nothing can push a date out of the card. */
-/* Three columns across the WHOLE card: the stage takes the slack on the left, the day and the clock
-   time sit against the right edge. Sized to their content they huddled on the left and left a lake of
-   empty space on the right of the card (owner, 2026-10-09) - and the slack has to go somewhere, so it
-   goes where the words are, not between the two halves of a date. */
 .bgc-timeline { box-sizing:border-box; max-width:100%; display:grid;
   grid-template-columns:minmax(min-content,1fr) minmax(min-content,max-content) minmax(min-content,max-content);
   gap:5px 10px; margin:0; padding:7px 9px 7px 26px; background:#f6f7f7; font-size:12px; color:#50575e; }
-/* The <time> is the machine-readable wrapper; the grid lays out its two halves. */
 .bgc-timeline .bgc-tl-v { display:contents; }
 .bgc-timeline .bgc-tl-d,.bgc-timeline .bgc-tl-t { color:#1d2327; font-weight:600; white-space:nowrap; }
 .bgc-timeline .bgc-tl-k { display:inline-flex; align-items:center; gap:6px; min-width:0; overflow-wrap:break-word; cursor:help; }
 
-/* Below about 235px of room INSIDE the panel (a container query measures the content box, and the
-   panel is the container - the order screen gives this card a third of the page or a sliver depending
-   on where it sits, and the viewport says nothing about which) the stage word and its date cannot
-   share a line: squeezed, the date broke into "17:5 / 6" and the stage into "Непотърсен / а", two
-   letters on a line (owner, phone screenshot, 2026-10-09). The stage takes the line above instead and
-   the date and time keep their own columns underneath, so they still line up. */
-/* The glyph is bare now, so the indent that put the list under the title's icon is gone on a narrow card
-   and every line of the journey stays ONE line: stage, day, time. The title takes two lines at most: the
-   stage and the button on the first, the date and the age under it. */
 @container (max-width:310px) {
   .bgc-shipstate .bgc-lock,.bgc-shipstate .bgc-ship-refresh { order:2; }
   .bgc-shipstate .bgc-ss-date { order:3; }
@@ -228,45 +133,28 @@
   .bgc-timeline .bgc-tl-k { min-width:0; }
   .bgc-timeline .bgc-tl-k > span:last-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 }
-/* So narrow that a stage word, a day and a time cannot share a line (the date broke into "17:5 / 6",
-   owner, 2026-10-09): the stage takes the line and the day and time sit under it. */
 @container (max-width:165px) {
   .bgc-timeline { grid-template-columns:max-content minmax(min-content,1fr); gap:0 8px; }
   .bgc-timeline .bgc-tl-k { grid-column:1 / -1; }
   .bgc-timeline .bgc-tl-d { margin:0 0 4px 22px; }
   .bgc-timeline .bgc-tl-t { margin:0 0 4px; justify-self:end; }
 }
-/* Blocked while the courier has the parcel.
-   Dimmed and inert, NOT removed: a control that vanishes leaves the merchant wondering where it went,
-   and one that still works leaves them wondering why it refused. Pointer events stay ON so the hint can
-   explain itself and name the way back (put the order into Processing or Pending payment); the click is
-   stopped in bgc-order-admin.js, and the server refuses it regardless. */
+/* Blocked while the courier has the parcel */
 .bgc-order-panel .bgc-act.bgc-off { opacity:.4; cursor:not-allowed; box-shadow:none; }
 .bgc-order-panel .bgc-act.bgc-off:hover { border-color:#dcdcde; color:inherit; background:#fff; }
 .bgc-order-panel .bgc-act.bgc-danger.bgc-off:hover { border-color:#f0c7c7; }
 
-/* The delivery editor stays readable while it is locked - only the controls go quiet.
-   Keyed off [disabled], which IS the lock (every control gets it - see disable_controls), so what looks
-   refused and what is refused cannot drift apart. It used to be the other way round: these rules named
-   `select` and `input` and enforced with pointer-events, so the three fields selectWoo replaces with a
-   span of its own were neither dimmed nor stopped - and pointer-events never stopped a keyboard anyway.
-   Nothing here enforces anything now; it only shows what the attribute has already settled. */
+/* The locked delivery editor */
 .bgc-ed-form.bgc-ed-locked [disabled] { opacity:.55; cursor:not-allowed; }
-/* A disabled Save has to LOOK disabled even against .button-primary's own colours, or the form says
-   "you may save this" while the server has already decided it will not. */
 .bgc-order-panel .bgc-ed-form .bgc-ed-save[disabled] { opacity:.45!important; cursor:not-allowed; }
 .bgc-ed-lockmsg { color:#8a6d00; }
 
-/* What the courier collects at the door: a single pill - banknote, a short label, the amount - on the
-   header's own scale, not a sentence. Discreet because it is not part of the order total (the reason it
-   is a small line under "Shipping" in the customer's email too); the whole sentence is on the hint. */
+/* Cash-on-delivery pill */
 .bgc-order-panel .bgc-door-price { box-sizing:border-box; display:flex; align-items:center; gap:6px; width:fit-content; max-width:100%; margin:0;
   padding:3px 10px 3px 8px; border-radius:999px; background:#eef2f7; color:#3c434a; font-size:12px; line-height:1.4; white-space:nowrap; cursor:help; }
 .bgc-order-panel .bgc-door-price .bgc-cash-ico { flex:0 0 auto; display:block; color:#50575e; }
 .bgc-order-panel .bgc-door-price .bgc-door-lbl { min-width:0; overflow:hidden; text-overflow:ellipsis; color:#50575e; }
 .bgc-order-panel .bgc-door-price strong { flex:0 0 auto; color:#1d2327; font-weight:600; }
-/* On a narrow card the banknote is what goes, so the words and the amount keep their whole line. After the
-   base rules above, not beside the other container rules: the same specificity, so the later one wins. */
 @container (max-width:235px) {
   .bgc-order-panel .bgc-door-price { padding:3px 10px; }
   .bgc-order-panel .bgc-door-price .bgc-cash-ico { display:none; }

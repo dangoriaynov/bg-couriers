@@ -1,17 +1,10 @@
-/* The combined office/APS map dialog. Its own file: the per-courier picker in bgc-checkout.css is a
-   different component and has to keep working exactly as it does. */
-/* Full width of the summary column, and shallow: it sits between the order total and the courier
-   rows, where a tall button would push the thing it belongs to off the screen. */
+/* The combined office/APS map dialog. */
 .bgc-allmap-open td { padding: 2px 0 6px !important; }
 .bgc-allmap-btn { display: flex; width: 100%; box-sizing: border-box; align-items: center;
   justify-content: center; gap: 7px; padding: 6px 12px; border: 1px solid #c9ced6; border-radius: 7px;
   background: #fff; color: #2b3440; font-size: 13px; line-height: 1.2; cursor: pointer; }
 .bgc-allmap-btn:hover { border-color: #2271b1; color: #2271b1; }
-/* Shallow is for a mouse. Under a thumb the row keeps the height every other target here has; what it
-   costs in scrolling it repays in not opening a courier row instead of the map. */
 @media (pointer: coarse) { .bgc-allmap-btn { min-height: 44px; } }
-/* The couriers' marks sit inside the button, ahead of its text and matched to its cap height, so the
-   row reads as one line rather than a button with a picture stuck on it. */
 .bgc-allmap-marks { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; }
 .bgc-allmap-mark { width: auto; height: 1.15em; max-width: 22px; object-fit: contain; display: block; }
 .bgc-allmap-ico { width: 16px; height: 16px; flex: 0 0 auto; background: currentColor;
@@ -19,63 +12,28 @@
   -webkit-mask-image: var(--bgc-pin); mask-image: var(--bgc-pin); }
 :root { --bgc-pin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E"); }
 
-/* Anchored to the TOP, not centred, so the box can rise on its own terms: align-items cannot be
-   animated, a margin can. Before there is a map the box sits near the middle of the screen; when one
-   arrives it travels up and the map unrolls beneath it. */
-/* The maximum a z-index can hold, deliberately. This is a full-screen modal, and the things that sit
-   above 100000 on a WooCommerce shop are chat bubbles, cookie bars and back-to-top buttons - all of
-   which were painted over the map, and none of which anybody is going to use while choosing an office.
-   Nothing here touches those elements: the dialog simply outranks them, and they come back the moment
-   it closes. A widget claiming this same value loses on document order, because the dialog is appended
-   to the body at open time - after every script that loaded with the page. */
 .bgc-allmap-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 2147483647;
   display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; }
-/* position:relative + overflow:visible are BOTH load-bearing for the city picker. select2 hangs its
-   dropdown inside this box, and positions it absolutely - without a positioned ancestor it lands at the
-   far end of the overlay instead of under the field, and with overflow:hidden it would be clipped
-   instead. The rounded corners that overflow:hidden used to provide are done by the body below. */
-/* Two sizes, not one. Before there is a map the dialog holds a single question - which town - so it is
-   the size of that question and sits in the middle of the screen. It used to open at its full 1240px
-   whatever it contained, which put the city field alone against the left edge of a white slab nearly a
-   thousand pixels wide, with the empty sidebar and search box of a list that did not exist yet. The
-   width animates alongside the margin, so choosing a place opens the dialog out rather than replacing
-   one layout with another. */
 .bgc-allmap-box { position: relative; background: #fff; border-radius: 12px; width: min(560px, 94vw);
   max-height: 94vh; display: flex; flex-direction: column; overflow: visible;
   margin-top: max(16px, calc(50vh - 110px));
   transition: margin-top .35s cubic-bezier(.22,.61,.36,1), width .35s cubic-bezier(.22,.61,.36,1); }
 .bgc-has-map .bgc-allmap-box { margin-top: 16px; width: min(1240px, 96vw); }
-/* Three columns so the caption is centred on the BOX, not on the space left over beside the close
-   button - with space-between it sat visibly left of centre. */
 .bgc-allmap-head { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center;
   padding: 12px 16px; border-bottom: 1px solid #e6e9ec; }
 .bgc-allmap-head strong { grid-column: 2; text-align: center; }
 .bgc-allmap-head .bgc-allmap-close { grid-column: 3; justify-self: end; }
 .bgc-allmap-close { border: 0; background: none; font-size: 24px; line-height: 1; cursor: pointer; color: #50575e; }
-/* One row: the place on the left, who to show on the right. A label above the field said "City" over
-   a box whose placeholder already says it, and the couriers on a line of their own pushed the map a
-   whole row further down the screen for no information at all. */
 .bgc-allmap-form { padding: 10px 14px; display: flex; align-items: flex-start; gap: 12px; }
 .bgc-allmap-form .bgc-allmap-cityrow { flex: 0 0 auto; width: min(300px, 42%); }
-/* With no map yet the field IS the dialog's content, so it takes the width rather than hugging the
-   left edge with nothing beside it. The legend is still empty at this point (it carries the couriers
-   found for a place), so there is nothing for it to share the row with. */
 .bgc-allmap-overlay:not(.bgc-has-map) .bgc-allmap-form { padding: 14px; }
 .bgc-allmap-overlay:not(.bgc-has-map) .bgc-allmap-form .bgc-allmap-cityrow { flex: 1 1 auto; width: auto; }
 
-/* Waiting, before there is anything to wait ON. Sits under the city field at the dialog's own width,
-   so the wait is where the eye already is instead of a lone circle in an empty pane. */
 .bgc-allmap-wait { display: flex; align-items: center; justify-content: center; gap: 9px;
   padding: 0 14px 16px; color: #50575e; font-size: 13px; }
 
-/* Which colour is whose, and a filter in the same control: on a map carrying four couriers the first
-   question is what the dots mean and the second is "show me only this one". */
-/* Wraps to two short rows beside the field rather than one long line under it. */
-/* Legend on top, the answer under it. The chips fill about 23px of a 60px-tall form row, and the
-   answer used to be a full-width band below the whole thing; this puts it in the space that was
-   already there. */
+/* Legend: which colour is whose, and a filter */
 .bgc-allmap-legendcol { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-/* Nothing to show it beside yet, and an empty flex child would take half the row from the town field. */
 .bgc-allmap-overlay:not(.bgc-has-map) .bgc-allmap-legendcol { display: none; }
 .bgc-allmap-legend { flex: 0 0 auto; min-width: 0; display: flex; flex-wrap: wrap;
   align-content: flex-start; gap: 5px; }
@@ -86,16 +44,13 @@
 .bgc-allmap-swatch { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
 .bgc-allmap-chip img { width: 13px; height: 13px; object-fit: contain; flex: 0 0 auto; }
 
-/* The city suggest. Anchored to its own input, so nothing computes a position from the page scroll -
-   which is what put select2's dropdown at the bottom of the screen inside this fixed overlay. */
+/* The city suggest list */
 .bgc-allmap-cityrow { position: relative; }
 .bgc-allmap-cityinput { width: 100%; box-sizing: border-box; height: 38px; padding: 0 12px;
   border: 1px solid #c9ced6; border-radius: 7px; font-size: 14px; }
 .bgc-allmap-cityres { position: absolute; z-index: 5; top: calc(100% + 2px); left: 0; right: 0;
   margin: 0; padding: 0; list-style: none; max-height: 240px; overflow-y: auto; background: #fff;
   border: 1px solid #c9ced6; border-radius: 7px; box-shadow: 0 6px 18px rgba(0,0,0,.15); }
-/* The city box is waiting on the server. Normally never seen: the list is filtered out of the index the
-   page already carries, and only a shop with city preloading switched off has to ask. */
 .bgc-allmap-cityrow.bgc-loading::after { content: ""; position: absolute; right: 11px; top: 50%;
   width: 15px; height: 15px; margin-top: -8px; border-radius: 50%;
   border: 2px solid #c9ced6; border-top-color: #2271b1; animation: bgc-allmap-spin .7s linear infinite; }
@@ -104,17 +59,11 @@
   .bgc-allmap-cityrow.bgc-loading::after { animation-duration: 2.4s; }
 }
 .bgc-allmap-cityopt { padding: 8px 12px; cursor: pointer; font-size: 14px; }
-/* is-active is the same highlight the mouse gives, for the arrow keys and for the town already
-   chosen: opening the list on a place should point AT it, not at the top of a few thousand others. */
 .bgc-allmap-cityopt:hover, .bgc-allmap-cityopt.is-active { background: #f0f6fc; color: #2271b1; }
-/* Office or locker, said on the point itself - the two share one map, because a customer looking for
-   somewhere to collect from does not think in those categories until they see what is nearby. */
 .bgc-allmap-kind { display: inline-flex; vertical-align: -2px; margin-right: 5px; color: #6b7280; }
 .bgc-allmap-kind svg { display: block; width: 13px; height: 13px; }
 .bgc-allmap-show[disabled] { opacity: .5; cursor: not-allowed; }
 
-/* Unrolls from under the city field rather than appearing whole: max-height animates, height does
-   not, and the map only ever needs to grow into the space the box already has. */
 .bgc-allmap-body { display: flex; border-top: 1px solid #e6e9ec; overflow: hidden;
   border-radius: 0 0 12px 12px; max-height: 0; opacity: 0;
   transition: max-height .4s cubic-bezier(.22,.61,.36,1), opacity .3s ease .1s; }
@@ -126,12 +75,6 @@
 }
 .bgc-allmap-side { width: 340px; flex: 0 0 auto; overflow-y: auto; border-right: 1px solid #e6e9ec;
   display: flex; flex-direction: column; }
-/* Searching the list, the same way the per-courier picker does it. Sticky, because the list it
-   filters is hundreds of rows long and a search box you have to scroll back up to is not one. */
-/* Search and locate share a row, in the same place as the per-courier picker's, so the two dialogs
-   are the same dialog as far as the customer is concerned. */
-/* padding-left matches .bgc-allmap-form's, so the city box and the office search share one left
-   edge - two inputs an inch apart on the vertical read as two unrelated things. */
 .bgc-allmap-searchrow { position: sticky; top: 0; z-index: 2; flex: 0 0 auto; display: flex;
   align-items: center; gap: 8px; padding: 8px 8px 8px 14px; background: #fff;
   border-bottom: 1px solid #e6e9ec; }
@@ -144,28 +87,17 @@
 .bgc-allmap-searchrow .bgc-map-locate { width: 34px; height: 34px; border-radius: 8px; }
 .bgc-allmap-list { list-style: none; margin: 0; padding: 0; }
 .bgc-allmap-canvas { flex: 1 1 auto; }
-/* The wait, in the space the map is about to fill. .bgc-spinner is the plugin's own, defined in
-   bgc-checkout.css, so this looks like every other wait in the checkout rather than a second style. */
 .bgc-allmap-busy { position: absolute; inset: 0; display: flex; align-items: center;
   justify-content: center; background: rgba(255,255,255,.75); z-index: 4; }
 .bgc-allmap-body { position: relative; }
 
-/* Leaflet paints its CONTROLS (z-index 800) above its POPUPS (700), so a popup opening near the
-   top-left corner gets the +/- buttons printed across its first two lines - which is exactly where the
-   courier's name and the office name are. Inside this dialog the popup wins: it is what the customer
-   is reading and it carries the button they have to press, while the zoom buttons are back the instant
-   it closes. autoPanPaddingTopLeft in the JS keeps the two apart in the first place; this is the net
-   for a map too short to pan far enough, which is every phone held sideways. */
 .bgc-allmap-canvas .leaflet-popup-pane { z-index: 900; }
 
-/* Courier pins: a filled dot, coloured per courier by the JS. A muted one belongs to a courier that
-   cannot carry this order - it is still shown, because a missing pin reads as "no office here". */
+/* Courier pins */
 .bgc-allmap-pin span { display:block; width:14px; height:14px; margin:2px; border-radius:50%;
   border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.4); }
 .bgc-allmap-pin.bgc-na span { opacity:.4; }
-/* A count bubble standing in for the pins too close together to tell apart at this zoom: the
-   courier's colour round the edge (a pie of them when it holds several couriers), the number on a
-   white disc so it reads on any of those colours. The JS sets the colour inline, as with the pins. */
+/* Count bubble for pins too close together at this zoom */
 .bgc-allmap-cluster span { display:flex; align-items:center; justify-content:center; box-sizing:border-box;
   width:100%; height:100%; border-radius:50%; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35);
   cursor:pointer; }
@@ -174,8 +106,6 @@
   font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
 .bgc-allmap-cluster.bgc-na span { opacity:.45; }
 
-/* border-left-width/style are the base; the JS sets only border-left-color per courier inline, so the
-   list's left edge reads as the same colour as that point's pin on the map. */
 .bgc-allmap-item { display: flex; gap: 8px; align-items: flex-start; padding: 9px 12px;
   border-bottom: 1px solid #f0f0f1; border-left: 3px solid transparent; cursor: pointer; font-size: 13px; }
 .bgc-allmap-item:hover, .bgc-allmap-item.active { background: #f6f7f7; }
@@ -184,63 +114,32 @@
 .bgc-allmap-item .a { color: #50575e; display: block; }
 .bgc-allmap-item .p { margin-left: auto; white-space: nowrap; font-weight: 600; }
 
-/* A courier that cannot carry THIS order still shows its points - their absence is what would make a
-   customer wonder where the locker they walk past every day went - but they cannot be chosen. */
 .bgc-allmap-item.bgc-na { opacity: .5; cursor: default; }
 .bgc-allmap-item.bgc-na:hover { background: none; }
 .bgc-allmap-na-note { color: #b32d2e; font-size: 12px; display: block; margin-top: 3px; }
 
-/* The map/list switch. Off on any screen with room for both panes - there is nothing to switch
-   between - and turned on by the narrow-screen block at the foot of this file. Declared here, ahead
-   of that block, because a media query adds no specificity: the later rule is the one that wins. */
+/* The map/list switch */
 .bgc-allmap-switch { display: none; }
 .bgc-allmap-switch button { border: 0; background: none; border-radius: 999px; padding: 8px 18px;
   font-size: 13px; line-height: 1; color: #50575e; cursor: pointer; white-space: nowrap; }
 .bgc-allmap-switch button.on { background: #2271b1; color: #fff; }
 
-/* The pin popup: whose it is, what it is called, where it is - then the one thing to do about it.
-   The button is centred on its own line because it is the point of the popup, not a footnote to the
-   address it happened to follow. */
-/* Centred, because a popup is a small card about ONE place rather than a column of a list: ragged
-   left-aligned lines inside a box this narrow read as an unfinished paragraph. */
+/* The pin popup */
 .bgc-allmap-pop { position: relative; min-width: 210px; text-align: center;
   font-size: 13px; line-height: 1.4; }
-/* Row 1 - whose it is and how it is collected, which is the pair that decides whether this point is any
-   use to you, with the price small at the end of the same line. The price is a fact worth having, not
-   the headline, so it stays quiet and out of the reading order. */
-/* One line, and it stays one: "To a locker" is longer than "To an office", and wrapped mid-phrase under a
-   courier name set in a different size it read as three separate things rather than one sentence. The
-   popup is allowed to widen instead (see bindPopup's minWidth/maxWidth), which is the cheaper of the
-   two - a slightly wider card against a broken line. */
 .bgc-allmap-pop-c { display: flex; align-items: center; justify-content: center; gap: 6px;
   margin-bottom: 4px; flex-wrap: nowrap; white-space: nowrap; }
 .bgc-allmap-pop-c img { width: 16px; height: 16px; object-fit: contain; flex: 0 0 auto; }
-/* Same size for both halves of the line - only weight and colour separate them. They used to inherit
-   two different sizes, which is what made the row look like a collage. */
 .bgc-allmap-pop-c .c { font-weight: 600; font-size: 13px; }
 .bgc-allmap-pop-c .t { color: #50575e; font-weight: 400; font-size: 13px; }
-/* The glyph carries its own right margin for the list rows; in this row the flex gap does that job. */
 .bgc-allmap-pop-c .bgc-allmap-kind { margin-right: 0; }
 .bgc-allmap-pop-price { flex: 0 0 auto; padding: 1px 6px; border-radius: 6px;
   background: #f0f2f4; color: #3c434a; font-size: 11px; font-weight: 600; line-height: 1.5;
   white-space: nowrap; }
-/* Row 2 - which one of them this is. */
-/* The name IS the heading of this card, so it is the one thing set larger. */
 .bgc-allmap-pop-n { font-weight: 600; font-size: 14px; line-height: 1.3; white-space: normal; }
-/* Row 3 - where it is, a step quieter: by this point you know which place you are looking at. */
 .bgc-allmap-pop-a { color: #50575e; font-size: 12px; line-height: 1.4; margin-bottom: 8px; }
-/* Inline, deliberately - and this was tried as a flex row first, which is worse. Flex makes the address
-   ONE item, so the distance and the arrow can only sit beside the whole block or drop underneath it;
-   inline lets them follow the last word, which is where they belong. What flex was reaching for is the
-   two of them staying together, and nowrap gives that on its own: the pair moves down as a pair, and
-   the arrow is never left alone on a line below a distance that stayed up. */
 .bgc-pop-meta { display: inline-block; white-space: nowrap; vertical-align: middle; margin-left: 6px; }
 .bgc-pop-meta > * + * { margin-left: 6px; }
-/* Small on purpose: getting there is a side question, and the point of the popup is still which place
-   this is. Sits on the address line because that is what it is about. */
-/* middle, not a pixel offset. It used to be nudged down 5px to look centred against a line of plain
-   text - and then the distance chip joined that line, made it taller, and the arrow was left sitting
-   below everything. Aligning to the line's middle is right whatever else ends up on it. */
 .bgc-allmap-dir { display: inline-flex; align-items: center; justify-content: center; width: 20px;
   height: 20px; vertical-align: middle; border: 1px solid #c9ced6; border-radius: 6px;
   color: #2271b1; background: #fff; text-decoration: none; }
@@ -249,9 +148,7 @@
 .bgc-allmap-pop .bgc-allmap-pick { display: block; margin: 0 auto; }
 .bgc-allmap-pop-na { display: block; text-align: center; color: #b32d2e; }
 
-/* The point this courier already has selected. It keeps its courier's colour - taking a hue for
-   "chosen" would break the legend, which is the one thing on the map that must stay true - and says
-   so with movement instead: two rings breathing out of it, which nothing else on the map does. */
+/* The point already selected */
 .bgc-allmap-pin.bgc-chosen span { box-shadow: 0 0 0 3px rgba(255,255,255,.95), 0 1px 4px rgba(0,0,0,.5); }
 .bgc-allmap-pin.bgc-chosen::before,
 .bgc-allmap-pin.bgc-chosen::after {
@@ -265,7 +162,6 @@
   70%  { transform: scale(2.6); opacity: 0; }
   100% { transform: scale(2.6); opacity: 0; }
 }
-/* Its row in the list, so the two halves agree about which one it is. */
 .bgc-allmap-item.bgc-chosen { background: #f0f6fc; }
 .bgc-allmap-item.bgc-chosen .n::after { content: " ✓"; color: #00814f; }
 
@@ -273,82 +169,49 @@
   .bgc-allmap-pin.bgc-chosen::before, .bgc-allmap-pin.bgc-chosen::after { animation: none; opacity: .6; }
 }
 
-/* ── Phones, and anything else too short to hold both panes ───────────────────────────────────────
-   The desktop layout is list-beside-map, and each pane carries a 440px floor so neither can collapse
-   into a strip. Stacked on a phone those two floors add up to more than the screen has, the body
-   clips them at 72vh, and what reaches the customer is a few dozen pixels of map - the whole dialog
-   reduced to the one part of it that is useless at that size.
-
-   So a small screen gets ONE pane and the whole screen to put it in, with a floating pill to swap
-   between them: the shape every map on a phone already has. Nothing is removed - the search, the
-   legend, the prices and the list are all still there - they take turns with the map instead of
-   fighting it for the same 600px.
-
-   The height condition matters as much as the width: a phone held sideways is ~840px wide and ~390px
-   tall, so it clears the width test and is the worst case of all for the stacked layout. */
+/* Phones, and anything else too short to hold both panes */
 @media (max-width: 720px), (max-height: 520px) {
 
-  /* Edge to edge. 16px of dimmed backdrop each side of a dialog that is short of room is 32px spent
-     on decoration. 100dvh, not 100vh: the dynamic unit shrinks when the URL bar is on screen, and a
-     100vh box inside it would push the pill and the last list row underneath that bar. */
   .bgc-allmap-overlay { padding: 0; overflow: hidden; height: 100vh; height: 100dvh; }
   .bgc-allmap-box, .bgc-has-map .bgc-allmap-box { width: 100%; max-width: none; height: 100%;
     max-height: none; margin-top: 0; border-radius: 0; }
   .bgc-allmap-head { padding: 10px 12px; }
 
-  /* One row of couriers, always, scrolling sideways: wrapped, a fifth courier silently costs a
-     second row of height - and height is the thing this whole block is buying back. */
   .bgc-allmap-form { padding: 8px 12px; gap: 8px; }
   .bgc-allmap-legend { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .bgc-allmap-legend::-webkit-scrollbar { display: none; }
   .bgc-allmap-chip { flex: 0 0 auto; padding: 6px 10px; }
 
-  /* 16px is the threshold below which iOS Safari zooms the page to meet the field - which on a
-     full-screen dialog scrolls half of it out of reach, with no way back but rotating the phone. */
   .bgc-allmap-cityinput { height: 42px; font-size: 16px; }
   .bgc-allmap-side .bgc-allmap-searchrow .bgc-allmap-search { height: 40px !important; font-size: 16px; }
   .bgc-allmap-searchrow .bgc-map-locate { width: 40px; height: 40px; }
   .bgc-allmap-cityopt { padding: 11px 12px; font-size: 15px; }
 
-  /* Everything the header and the city row leave over goes to the pane. The 440px floor and the 72vh
-     ceiling are both desktop rules, and here they are precisely what squeezed the map flat. */
   .bgc-has-map .bgc-allmap-body { max-height: none; }
   .bgc-allmap-body { flex: 1 1 auto; min-height: 0; flex-direction: column; border-radius: 0; }
   .bgc-allmap-body > * { min-height: 0; }
   .bgc-allmap-side { width: auto; max-height: none; border-right: 0; }
   .bgc-allmap-canvas { flex: 1 1 auto; min-height: 0; }
 
-  /* Map mode keeps the search row and drops only the list: that row filters the PINS too, and the
-     locate button in it is a map control. List mode gives the list the whole pane. */
   .bgc-mode-map .bgc-allmap-side { flex: 0 0 auto; overflow: visible; }
   .bgc-mode-map .bgc-allmap-list { display: none; }
   .bgc-mode-list .bgc-allmap-side { flex: 1 1 auto; }
   .bgc-mode-list .bgc-allmap-canvas { display: none; }
   .bgc-allmap-item { padding: 12px; }
-  /* Room under the last office for the pill that floats over it - otherwise the row at the bottom of
-     a list of two hundred is the one that cannot be tapped. */
   .bgc-mode-list .bgc-allmap-list { padding-bottom: 58px; }
 
-  /* Over the pane, not above it: a row of its own would cost the map the height this block exists to
-     give it. Above Leaflet's own controls, which sit at z-index 1000. */
   .bgc-allmap-switch { display: inline-flex; position: absolute; z-index: 1200; left: 50%;
     bottom: 14px; transform: translateX(-50%); padding: 3px; border-radius: 999px; background: #fff;
     box-shadow: 0 2px 10px rgba(0,0,0,.28); }
 }
 
-/* Narrow, specifically: the place goes on a line of its own, because a city field given 42% of a
-   phone's width is four characters wide. A screen that is merely SHORT is usually a phone held
-   sideways - 844px across - and there the two sit side by side as they do on a desktop, which is one
-   whole row of height the map gets to keep. */
 @media (max-width: 720px) {
   .bgc-allmap-form { flex-direction: column; }
   .bgc-allmap-form .bgc-allmap-cityrow { width: 100%; }
   .bgc-allmap-legend, .bgc-allmap-legendcol { width: 100%; }
 }
 
-/* Short screens - a phone on its side has about 390px of height for everything. Every row of chrome
-   is taken out of the map, so they all get thinner. */
 @media (max-height: 520px) {
   .bgc-allmap-head { padding: 6px 12px; }
   .bgc-allmap-form { padding: 6px 12px; }
@@ -356,10 +219,7 @@
   .bgc-allmap-switch { bottom: 8px; }
 }
 
-/* "You are here". Deliberately a different SHAPE from every courier pin rather than just a different
-   colour: those are all filled circles, so a blue circle for the customer's own position read as one
-   more office - and on a city carrying nine hundred of them it was simply lost. The ring breathes
-   underneath, which nothing else on this map does apart from the point already chosen. */
+/* "You are here" pin */
 .bgc-allmap-me { pointer-events: none; }
 .bgc-allmap-me svg { position: relative; z-index: 2; display: block;
   filter: drop-shadow(0 1px 3px rgba(0,0,0,.45)); }
@@ -378,19 +238,14 @@
   .bgc-allmap-me .bgc-me-ring { animation: none; opacity: .55; transform: scale(1.6); }
 }
 
-/* Clearing the town, in the place every other field on this checkout puts it: the right-hand end of
-   the box. Retyping over a filled field to start again is a small friction that a × removes entirely. */
+/* Clearing the town */
 .bgc-allmap-cityclear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
   width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: none;
   color: #6b7280; font-size: 19px; line-height: 1; cursor: pointer; }
 .bgc-allmap-cityclear:hover, .bgc-allmap-cityclear:focus { background: #f0f2f4; color: #1d2327; }
-/* The field makes room for it, and gives way entirely to the spinner while one is running. */
 .bgc-allmap-cityinput { padding-right: 34px; }
 .bgc-allmap-cityrow.bgc-loading .bgc-allmap-cityclear { display: none; }
 
-/* The arrow, in the ×'s slot - the two are never both wanted, since an empty field has nothing to
-   clear and a filled one has already been answered. Without it the box looked like somewhere to type
-   a name from memory, when behind it there was always a list to pick from. */
 .bgc-allmap-citycaret { position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
   width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: none;
   cursor: pointer; }
@@ -401,32 +256,17 @@
 .bgc-allmap-citycaret:hover::before { border-color: #1d2327; }
 .bgc-allmap-cityrow.bgc-loading .bgc-allmap-citycaret { display: none; }
 
-/* "Find me" beside the town field, for the state before there is a map - the other one lives inside
-   the map's panel, which does not exist yet. Hidden again the moment the map arrives, so there is
-   never a second copy of the same control on screen. */
 .bgc-allmap-citylocate { position: absolute; right: 36px; top: 50%; transform: translateY(-50%);
   width: 28px; height: 28px; }
 .bgc-has-map .bgc-allmap-citylocate { display: none; }
 .bgc-allmap-overlay:not(.bgc-has-map) .bgc-allmap-cityinput { padding-right: 70px; }
 
-/* The dialog keeps its own scrolling to itself. Reaching the end of the office list handed the wheel
-   to the checkout underneath, so the page slid away behind a modal that was still open - and on the
-   map pane, where there is nothing to scroll at all, every wheel turn moved the page instead. */
 .bgc-allmap-overlay, .bgc-allmap-box, .bgc-allmap-body,
 .bgc-allmap-side, .bgc-allmap-list, .bgc-allmap-cityres { overscroll-behavior: contain; }
 
-/* Nothing behind the dialog scrolls while it is open, on any screen. overscroll-behavior above stops
-   the wheel chaining out of the list once it reaches the end; this covers the rest - the map pane,
-   where there is nothing to scroll at all and every wheel turn used to move the checkout instead.
-   It was mobile-only before, on the reasoning that a desktop should keep its scrollbar; being able to
-   scroll the page out from under an open modal is the worse of the two. */
 html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
 
-/* "Closest to you" - the one line the whole distance feature exists to produce. It sits between the
-   town and the map because that is the reading order of the decision: where am I, what is nearest,
-   and is it worth not paying for the door. Only present once a position is known. */
-/* A strip in the header rather than a band across the dialog, so it needs an edge of its own or it
-   reads as a third row of chips. Text-sized, not control-sized: it is a sentence that can be pressed. */
+/* "Closest to you" line */
 .bgc-allmap-near { display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
   width: 100%; box-sizing: border-box; padding: 4px 9px; border: 1px solid #dde3ea; border-radius: 8px;
   background: #f6f9fc; font: inherit; font-size: 12.5px; line-height: 1.5; color: #1d2327;
@@ -440,39 +280,27 @@ html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
 .bgc-near-d { font-weight: 600; padding: 1px 7px; border-radius: 999px; background: #e3edf7;
   color: #135e96; cursor: help; }
 .bgc-near-p { font-weight: 600; }
-/* The comparison, pushed to the far end: it is the counter-argument, not the headline. */
 .bgc-near-vs { margin-left: auto; color: #50575e; }
 .bgc-allmap-near .bgc-allmap-kind { color: #50575e; margin-right: 0; }
 
-/* Per-row distance, at the end of the address line where it reads as part of the place. */
 .bgc-allmap-dist { margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #f0f2f4;
   color: #3c434a; font-size: 11px; font-weight: 600; white-space: nowrap; }
-/* Each courier's own nearest, on its legend chip - the chips are already where couriers get compared. */
 .bgc-chip-d { margin-left: 4px; padding: 0 5px; border-radius: 999px; background: #eef1f4;
   color: #3c434a; font-weight: 600; }
 
 @media (max-width: 720px), (max-height: 520px) {
-  /* Two short lines rather than one squeezed off the end - the answer, then what it saves. Together
-     with the padding they come to ~48px, which is also the height a finger needs: the strip IS the
-     tap target, so it must not be a single 19px line. */
   .bgc-allmap-near { padding: 5px 9px; gap: 5px; }
   .bgc-near-vs { margin-left: 0; flex-basis: 100%; }
-  /* The courier's name gives way first if a long one meets a long distance - never the distance or
-     the price, which are the two numbers being weighed. */
   .bgc-near-c { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
-/* The number the customer is actually weighing: green, because it is the reason to walk. */
 .bgc-near-save { margin-left: 6px; padding: 1px 7px; border-radius: 999px;
   background: #e6f4ea; color: #14663a; font-weight: 600; }
 
-/* How far this particular point is - only once the customer has given a position. The line above the
-   map names the closest one; every other pin then has to be worth comparing against it. */
 .bgc-allmap-pop-d { display: inline-block; vertical-align: middle; padding: 0 6px; border-radius: 999px;
   background: #e3edf7; color: #135e96; font-size: 11px; font-weight: 600; white-space: nowrap;
   cursor: help; }
 
-/* Asked for by name - from the answer line, or from a row in the list. Two beats of a ring around the
-   pin, so the eye can find it among two hundred identical dots before the popup covers it. */
+/* Pin flash when a point is asked for by name */
 .bgc-pin-flash { animation: bgc-pin-flash 1.1s ease-out 2; }
 @keyframes bgc-pin-flash {
   0%   { filter: drop-shadow(0 0 0 rgba(34, 113, 177, .85)); }
