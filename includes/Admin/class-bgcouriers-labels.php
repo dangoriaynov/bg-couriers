@@ -2,10 +2,8 @@
 defined('ABSPATH') || exit;
 
 class BGCouriers_Labels {
-    /** Cron hook that re-attempts an automatic label after a courier was unreachable. */
     const RETRY_HOOK = 'bgcouriers_retry_autolabel';
 
-    /** The registered courier for a BGCOURIERS order, or null if it isn't one of ours. */
     public static function order_courier($order): ?BGCouriers_Courier_Interface {
         if (!$order instanceof \WC_Order) { return null; }
         $id = (string) $order->get_meta('_bgcouriers_courier');
@@ -28,22 +26,13 @@ class BGCouriers_Labels {
         add_action('woocommerce_order_status_changed', [__CLASS__, 'on_status_changed'], 20, 4);
         add_action(self::RETRY_HOOK, [__CLASS__, 'attempt_auto_label'], 10, 1);
         add_action('woocommerce_order_refunded', [$this, 'maybe_cancel_on_refund'], 20, 2);
-        // Editing an order can invalidate a waybill that is already at the courier - a different address,
-        // a different COD amount, different contents/weight. Both hooks are needed: the Update button and
-        // the AJAX line-item editor are separate paths.
+        // Both hooks: the Update button and the AJAX line-item editor are separate paths.
         add_action('woocommerce_process_shop_order_meta', [$this, 'maybe_regenerate_on_change'], 90, 1);
         add_action('woocommerce_saved_order_items', [$this, 'maybe_regenerate_on_change'], 90, 1);
-        // An order waiting for its dispatch day whose day was just edited: the appointment follows it.
         add_action('woocommerce_process_shop_order_meta', [__CLASS__, 'maybe_move_dispatch'], 91, 1);
     }
 
-    /**
-     * The automatic waybill is put down for the day the order says it ships (attempt_auto_label). That
-     * day can be edited on the order afterwards, and an appointment left where it was would be right
-     * for a day moved later (it fires, finds a future day, and waits again) and late for a day moved
-     * earlier (it fires on the old day, finds the new one gone by, and issues the waybill then). So a
-     * save of an order that holds an appointment is a reason to look at the day again.
-     */
+    /** The dispatch-day appointment follows an edited ship day. */
     public static function maybe_move_dispatch($order_id): void {
         $order = wc_get_order((int) $order_id);
         if (!$order || (string) $order->get_meta('_bgcouriers_waybill') !== '') { return; }
@@ -51,55 +40,26 @@ class BGCouriers_Labels {
         self::attempt_auto_label((int) $order_id);
     }
 
-    /** Auto-generate a label when an order reaches the configured status - if THIS courier is set to. */
     public function maybe_auto_generate($order_id, $old_status, $new_status, $order): void {
         $cfg = BGCouriers_Settings::autolabel();
         if ('wc-' . $new_status !== $cfg['status']) { return; }
-        if (!self::order_courier($order)) { return; } // any BGCOURIERS courier, not just Speedy
-        // Per courier, because a waybill does not mean the same thing to each of them - see
-        // BGCouriers_Settings::autolabel_for(). A shop that packs in the evening needs it off for the
-        // couriers that come for the parcel as soon as one exists, and on for the rest.
+        if (!self::order_courier($order)) { return; }
         if (!BGCouriers_Settings::autolabel_for((string) $order->get_meta('_bgcouriers_courier'))) { return; }
         if ($order->get_meta('_bgcouriers_waybill') !== '') { return; }
         self::attempt_auto_label((int) $order_id);
     }
 
-    /** Minutes to wait before each retry. A courier outage is usually over long before the last one. */
     const AUTOLABEL_RETRIES = [5, 20, 60, 180];
 
-    /**
-     * Try to issue the automatic label, and if the courier could not be reached, schedule another go.
-     *
-     * A courier API returning 503 for a minute used to lose the label silently: the order sat with no
-     * waybill until somebody noticed. Retrying is safe because generate() refuses to act when a waybill
-     * already exists, so a late retry can never produce a second shipment.
-     */
-    /** The hour of the dispatch day, in the site's zone, at which the automatic waybill is issued. */
+    /** Hour of the dispatch day (site zone) at which the automatic waybill is issued. */
     const DISPATCH_HOUR = 7;
 
-    /**
-     * The moment this order's parcel is meant to go out - or 0 when the order does not say.
-     *
-     * A waybill issued the moment an order is paid is a live shipment at the courier from that moment:
-     * Sameday sends its courier for it the same day, Speedy's clock on an unhanded label starts, and the
-     * customer's page says "track this parcel" about a parcel that does not exist yet. Measured on prod
-     * on 2026-09-12: four waybills registered on 4, 6, 9 and 11 September, all "information received"
-     * a week later, for orders that all said they ship on 2 October - a closure the shop had set.
-     *
-     * The day is read from the order. The Order Delivery Date plugin - "Изпращане в" on the shop that
-     * this was measured on - stamps the chosen day as the unix time of its midnight, and that stamp is
-     * understood here; any other source answers through the bgcouriers_dispatch_time filter, which sees
-     * what was read and the order. The hour is the morning of that day, before any courier's round.
-     * Whether the automatic waybill WAITS for it is the shop's setting, BGCouriers_Settings::autolabel_wait().
-     */
+    /** When this order's parcel is meant to go out, or 0 when the order does not say (filter: bgcouriers_dispatch_time). */
     public static function dispatch_time(\WC_Order $order): int {
         $ts    = 0;
         $orddd = (int) $order->get_meta('_orddd_timestamp');
         if ($orddd > 0) {
-            // The stamp is a midnight - a UTC one on the shop this was measured on (1790899200 for
-            // "2 October", 00:00:00 UTC, which is 03:00 in Sofia), and whichever midnight it is, the
-            // day it names is the UTC day it is nearest to: read in the site's zone it would name the
-            // day before anywhere west of Greenwich. Then the hour is set in the site's zone.
+            // The orddd stamp is a midnight in some zone: round to the nearest UTC day, then set the hour in the site's zone.
             $day  = gmdate('Y-m-d', (int) round($orddd / DAY_IN_SECONDS) * DAY_IN_SECONDS);
             $hour = max(0, min(23, (int) apply_filters('bgcouriers_dispatch_hour', self::DISPATCH_HOUR)));
             $at   = date_create_immutable($day . ' ' . sprintf('%02d:00:00', $hour), wp_timezone());
@@ -108,10 +68,6 @@ class BGCouriers_Labels {
         return max(0, (int) apply_filters('bgcouriers_dispatch_time', $ts, $order));
     }
 
-    /**
-     * Put the automatic waybill down for the dispatch day, once. The same appointment on a later run is
-     * left alone; a moved day moves it; the order is told the first time and whenever the day changes.
-     */
     private static function wait_for_dispatch(\WC_Order $order, int $at): void {
         $id   = $order->get_id();
         $next = wp_next_scheduled(self::RETRY_HOOK, [$id]);
@@ -126,13 +82,7 @@ class BGCouriers_Labels {
         }
     }
 
-    /**
-     * Statuses in which nothing is going to ship, or has already shipped without us: the appointment
-     * for the dispatch day can fire weeks after the status change that made it, and an order that was
-     * cancelled, paid back, never paid, or completed by hand in between must not get a shipment booked
-     * for it. The trigger status itself is never in the way, whatever it is - a shop that labels its
-     * on-hold orders chose that.
-     */
+    /** Statuses in which nothing will ship: the dispatch-day appointment must not book a shipment for them. */
     const NO_SHIP_STATUSES = ['cancelled', 'refunded', 'failed', 'trash', 'completed', 'pending', 'on-hold', 'checkout-draft'];
 
     public static function attempt_auto_label(int $order_id): void {
@@ -140,7 +90,6 @@ class BGCouriers_Labels {
         if (!$order || (string) $order->get_meta('_bgcouriers_waybill') !== '') { return; }
         $trigger = preg_replace('/^wc-/', '', (string) BGCouriers_Settings::autolabel()['status']);
         if (!$order->has_status($trigger) && $order->has_status(self::NO_SHIP_STATUSES)) {
-            // The panel promised a day; that promise is withdrawn with the shipment.
             if ((string) $order->get_meta('_bgcouriers_autolabel_at') !== '') {
                 $order->delete_meta_data('_bgcouriers_autolabel_at');
                 $order->save();
@@ -159,11 +108,7 @@ class BGCouriers_Labels {
             $order->save();
             return;
         } catch (BGCouriers_Claimed_Exception $e) {
-            // Another request is issuing it this very moment and will have it saved by the time it is
-            // done. Not an attempt that failed: no retry counter, no "failed, retrying" note on the
-            // order for what is a success elsewhere. The status hook will not fire again for it, and
-            // if the other request dies half-way the merchant sees the order without a waybill, which
-            // is exactly what they saw before auto-label existed.
+            // Another request is issuing it right now: not a failure, no retry.
             return;
         } catch (\Exception $e) {
             $try  = (int) $order->get_meta('_bgcouriers_autolabel_try');
@@ -184,34 +129,7 @@ class BGCouriers_Labels {
                 $e->getMessage(), $wait));
         }
     }
-    /**
-     * The one place a waybill is made, and it makes at most one per order.
-     *
-     * A waybill is a shipment on a live courier account: it costs money, it can book a pickup, and it
-     * carries the customer's address. The only thing standing between an order and a second one used
-     * to be a read of the order's meta BEFORE a multi-second call to the courier. Two requests inside
-     * that window - the payment webhook's auto-label and the merchant clicking "generate" on the order
-     * they have just watched appear - both passed the read and both booked. So the order is claimed
-     * first, in the database where a second PHP process can see it, and read again once it is ours:
-     * whoever held the claim before us has saved their waybill by the time they let go of it.
-     */
-    /**
-     * Re-quote what the courier will collect at the door, and write it on the order's shipping line.
-     *
-     * Only for a shop whose delivery is NOT in the order total: there the customer pays the courier and
-     * the number is the whole point - the order shows no shipping amount of its own (see
-     * BGCouriers_Checkout::order_shipping_row). Where delivery IS charged with the order, WooCommerce
-     * already prints the amount it charged and there is nothing to add.
-     *
-     * Asked again rather than taken from the courier's own answer to "create this shipment": that answer
-     * carries a price for Speedy, in a shape nobody here has measured for the other six. One quote of the
-     * SAME shipment works for all of them and costs one call per waybill.
-     *
-     * Failure leaves the previous figure alone. A door price from the checkout is a day old at worst; a
-     * cleared one is a customer asking how much to bring and nobody able to say. For the same reason
-     * cancelling a waybill does not touch it either: what the courier will charge does not change
-     * because the shop voided a label (owner, 2026-09-26).
-     */
+    /** Re-quote what the courier collects at the door (delivery not in the order total only); failure leaves the old figure. */
     public static function refresh_door_price(\WC_Order $order): void {
         $courier_id = (string) $order->get_meta('_bgcouriers_courier');
         if ($courier_id === '' || BGCouriers_Settings::ship_in_total($courier_id)) { return; }
@@ -225,12 +143,7 @@ class BGCouriers_Labels {
                 'order' => $order->get_id(), 'courier' => $courier_id, 'err' => $e->getMessage()]);
             return;
         }
-        // ONLY a live answer. BGCouriers_Pricing::quote() never refuses - it cannot, the checkout has to
-        // print something - so a courier that is down comes back as the configured default or the flat
-        // 6.99 last resort. Writing that over a figure the courier itself gave would replace a real
-        // number with a placeholder, and the customer would be told to bring the wrong money. Caught by
-        // DoorPriceTest, which expected the old figure to survive a refused quote and got 6.99.
-        // (BGCouriers_Pricing::reference_for_weight refuses non-live answers for the same reason.)
+        // Only a live answer: quote() never refuses, so a fallback price would overwrite a real figure with a placeholder.
         if ($quote->source !== 'live') {
             BGCouriers_Logger::debug('door price: not a live quote, keeping the old one', [
                 'order' => $order->get_id(), 'courier' => $courier_id, 'source' => $quote->source]);
@@ -246,6 +159,7 @@ class BGCouriers_Labels {
         }
     }
 
+    /** The one place a waybill is made: at most one per order, guarded by claim(). */
     public static function generate(int $order_id): BGCouriers_Label {
         $order = wc_get_order($order_id);
         if (!$order) { throw new BGCouriers_Api_Exception(esc_html__('Order not found.', 'bg-couriers')); }
@@ -265,22 +179,7 @@ class BGCouriers_Labels {
         }
     }
 
-    /**
-     * The claim: a MySQL named lock, because it is the one primitive here that is atomic across
-     * requests without a row to clean up. It belongs to the connection, so a request that dies
-     * half-way - a fatal, a timeout - drops it on its way out and nothing is left wedged. A transient
-     * would not do: get-then-set is the race it is meant to prevent, and with an object cache the
-     * write may not even reach the database another process reads. Inside one request it is held in
-     * memory too, because MySQL hands the same connection its own lock again, and a hook that fires
-     * twice in one request is the same connection twice.
-     *
-     * Belt and braces, not the guarantee. The lock is lost if $wpdb silently reconnects, which it
-     * will do on a dropped connection - and a twenty-second courier call is exactly when one drops.
-     * What actually keeps an order at one waybill is issue() saving it the moment the courier
-     * answers, so that even a request that slips past the lock re-reads the order and finds it.
-     *
-     * @var array<int,true>
-     */
+    /** @var array<int,true> In-request claims; across requests the claim is a MySQL named lock, re-granted to the same connection. */
     private static array $issuing = [];
     private static function claim(int $order_id): bool {
         if (isset(self::$issuing[$order_id])) { return false; }
@@ -298,16 +197,11 @@ class BGCouriers_Labels {
         $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', 'bgcouriers_label_' . $order_id));
     }
 
-    /** Create the shipment at the courier and record it - called with the order claimed and known to have none. */
     private static function issue(\WC_Order $order): BGCouriers_Label {
         $courier_id = (string) $order->get_meta('_bgcouriers_courier');
         $courier = $courier_id ? BGCouriers_Couriers::get($courier_id) : null;
         if (!$courier) { throw new BGCouriers_Api_Exception(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
-        // Money the courier cannot collect where this parcel is going. Express One carries no cash on
-        // delivery to an EXOBOX locker, and its API takes the COD field there quite happily - so a waybill
-        // booked from an order edited in the admin, or placed before this rule existed, would print,
-        // travel, and be handed over collecting nothing. Refused once, here, in the single place every
-        // label is made, rather than in each courier that ever grows such a rule.
+        // Refused once here for every courier: e.g. Express One takes a COD field for an EXOBOX locker but cannot collect there.
         $ship_method = (string) $order->get_meta('_bgcouriers_method');
         if ($order->get_payment_method() === 'cod'
             && in_array($ship_method, BGCouriers_Settings::no_cod_methods($courier_id), true)) {
@@ -317,38 +211,20 @@ class BGCouriers_Labels {
                 $courier->label(), BGCouriers_Icons::method_label($ship_method))));
         }
         $label = $courier->create_label($order);
-        // Never store an empty waybill: a courier API that "succeeded" without returning a shipment id
-        // did NOT create a shipment (guards every courier against 200-with-error-body responses).
+        // A "success" with no shipment id created no shipment.
         if ((string) $label->waybill === '') {
             throw new BGCouriers_Api_Exception(esc_html__('The courier returned no waybill number.', 'bg-couriers'));
         }
         $order->update_meta_data('_bgcouriers_waybill', $label->waybill);
-        // This is a NEW shipment, so any reopening of the previous one is spent: the fresh parcel gets to
-        // lock the order on its own terms once a courier collects it.
         self::reset_shipment_state($order);
-        // The shipment's stage is known the moment the waybill exists: it has been registered with the
-        // courier and nothing has moved. Recording it here rather than waiting for the tracking poll -
-        // which runs twice a day - is what keeps the orders list from showing a blank for hours on the
-        // newest orders, which are exactly the ones being looked at.
         $order->update_meta_data('_bgcouriers_track_stage', 'registered');
         $order->update_meta_data('_bgcouriers_track_updated', time());
-        // Saved NOW, before the courier is asked for anything else. The shipment exists from this
-        // moment whatever happens next, and the two calls below for the label PDF are calls to the
-        // same API that can fail seconds after this one succeeded. When they did, the exception left
-        // here with the shipment created and NOT on the order; the automatic retry found no waybill
-        // and created another, and the first was never heard of again. The PDF is a convenience -
-        // printing fetches it on demand - and it is treated as one below.
+        // Saved before the PDF is fetched: a PDF failure must not leave a created shipment off the order (the retry would book a second).
         $order->save();
 
-        // The waybill is the moment the delivery price stops being an estimate: the parcel, the town and
-        // the office are settled now, not as the customer guessed them at the checkout. See
-        // refresh_door_price() - it never clears what it cannot renew.
         self::refresh_door_price($order);
 
-        // A courier can accept a shipment and quietly drop part of it (Speedy's COD carries
-        // ignoreIfNotApplicable by design). The waybill then prints with nothing to collect, and since
-        // nobody re-reads a printed label the shop only finds out when the goods are already gone. Record
-        // it on the order, loudly, and keep a flag the admin screens can show.
+        // A courier can accept a shipment and quietly drop part of it (Speedy's COD): record it loudly.
         if ($label->problems) {
             $order->update_meta_data('_bgcouriers_label_warning', implode(' ', $label->problems));
             $order->add_order_note(sprintf(
@@ -361,14 +237,8 @@ class BGCouriers_Labels {
             $order->delete_meta_data('_bgcouriers_label_warning');
         }
 
-        // The format the PRIMARY stored label should be in - the merchant's per-courier size setting for
-        // size-aware couriers (Speedy/Sameday), else the courier's single native format, else '' (no choice).
         $primary = self::courier_primary_format($courier);
-        // Get the label PDF bytes. Three cases, in order:
-        //  - the create response returned a URL  (Econt) -> download it;
-        //  - the create response returned the PDF inline (Pigeon has no separate label endpoint) -> use as-is;
-        //  - otherwise fetch the label by waybill IN THE CONFIGURED SIZE (Speedy/Sameday request it, so the
-        //    courier returns a correctly-sized native PDF and we never scale it).
+        // URL from the create response (Econt), inline PDF (Pigeon), else fetched by waybill in the configured size.
         $pdf = '';
         try {
             if ($label->pdf !== '' && strpos($label->pdf, 'http') === 0) {
@@ -379,30 +249,22 @@ class BGCouriers_Labels {
                 $pdf = $courier->get_label_pdf($label->waybill, $primary);
             }
         } catch (\Exception $e) {
-            // Not a failed label: the shipment is booked and saved above. A note so the merchant knows
-            // why there is nothing to print yet; printing fetches the PDF again when they ask for it.
+            // Not a failed label: the shipment is booked; printing fetches the PDF again.
             BGCouriers_Logger::debug('label: the PDF could not be fetched after the shipment was created', [
                 'courier' => $courier_id, 'waybill' => $label->waybill, 'err' => $e->getMessage()]);
             /* translators: 1: courier name, 2: waybill number, 3: error message */
             $order->add_order_note(sprintf(__('%1$s issued waybill %2$s, but the label PDF could not be fetched yet: %3$s. Print will fetch it again.', 'bg-couriers'),
                 $courier->label(), $label->waybill, $e->getMessage()));
         }
-        // Only store real PDF bytes. The shipment already exists at the courier, so on a bad/empty body
-        // we keep the waybill and leave the URL empty - printing re-fetches the label on demand.
         $url = '';
         if (strncmp($pdf, '%PDF', 4) === 0) {
             $url = self::store_label_file($courier->id(), (string) $label->waybill, $pdf);
             $order->update_meta_data('_bgcouriers_label_url', $url);
         }
         $order->update_meta_data('_bgcouriers_label_paper_size', $primary);
-        // Snapshot what this label was built from, so a later edit can tell whether it still matches.
         $order->update_meta_data('_bgcouriers_label_fp', self::label_fingerprint($order));
-        // A new waybill - fresh or re-issued - is a document nobody has printed yet: flag it so the order
-        // screen and the list show it green until it is printed. Keyed on the waybill, not the fingerprint,
-        // so a re-issue of an unchanged order (same fingerprint, new document) is flagged all the same.
+        // Keyed on the waybill, not the fingerprint: a re-issue of an unchanged order is a new, unprinted document.
         $order->update_meta_data('_bgcouriers_label_needs_print', '1');
-        // The first moment of the shipment's timeline, stamped here rather than waiting for a poll: the
-        // waybill exists from now, and "when did this go out" starts being answerable at once.
         if (class_exists('BGCouriers_Tracking_Poller')) {
             BGCouriers_Tracking_Poller::remember_stage_time($order, 'registered');
         }
@@ -412,10 +274,6 @@ class BGCouriers_Labels {
         return new BGCouriers_Label($label->waybill, $url);
     }
 
-    /**
-     * The paper format a courier's PRIMARY label is stored in: the merchant's per-courier size setting when
-     * the courier supports choosing (label_formats), else its single native format, else '' (no size concept).
-     */
     private static function courier_primary_format(BGCouriers_Courier_Interface $courier): string {
         $fmts = $courier->label_formats();
         if (!$fmts) { return ''; }
@@ -423,11 +281,7 @@ class BGCouriers_Labels {
         return in_array($set, $fmts, true) ? $set : (string) $fmts[0];
     }
 
-    /**
-     * Write label PDF bytes to a non-guessable file in uploads/bgc-labels and return its public URL. A random
-     * token keeps the URL unguessable (the PDF carries the recipient's name/address/phone - a predictable path
-     * would leak PII). Reused for the primary label and for cached alternate-size variants.
-     */
+    /** Random token in the file name: the PDF carries the recipient's PII, so the path must not be guessable. */
     private static function store_label_file(string $courier_id, string $waybill, string $pdf): string {
         $up  = wp_upload_dir();
         $dir = trailingslashit($up['basedir']) . 'bgc-labels';
@@ -435,7 +289,7 @@ class BGCouriers_Labels {
         self::protect_label_dir($dir);
         $safe_waybill = preg_replace('/[^A-Za-z0-9\-]/', '', $waybill);
         $prefix = preg_replace('/[^a-z0-9]/', '', $courier_id) ?: 'bgc';
-        $token  = wp_generate_password(24, false); // [A-Za-z0-9] only
+        $token  = wp_generate_password(24, false);
         $name   = $prefix . '-' . $safe_waybill . '-' . $token . '.pdf';
         file_put_contents($dir . '/' . $name, $pdf);
         return trailingslashit($up['baseurl']) . 'bgc-labels/' . $name;
@@ -449,13 +303,11 @@ class BGCouriers_Labels {
         return (string) wp_remote_retrieve_body($r);
     }
 
-    /** Drop an empty index.html into the label dir so the folder can't be directory-listed. */
     private static function protect_label_dir(string $dir): void {
         $index = $dir . '/index.html';
         if (!file_exists($index)) { @file_put_contents($index, ''); }
     }
 
-    /** Delete the on-disk label PDF for a saved _bgcouriers_label_url (only inside uploads/bgc-labels). */
     private static function delete_label_file(string $url): void {
         if ($url === '') { return; }
         $up = wp_upload_dir();
@@ -482,8 +334,6 @@ class BGCouriers_Labels {
         if (!wc_get_order($id)) { wp_die(esc_html__('Order not found.', 'bg-couriers')); }
         try { self::generate($id); }
         catch (\Exception $e) {
-            // The whole sentence, so the panel says what failed: it used to prefix "Label generation
-            // failed" to whatever was stored here, a cancel's refusal included.
             /* translators: %s: error message from the courier */
             set_transient('bgcouriers_admin_error_' . $id, sprintf(__('Label generation failed: %s', 'bg-couriers'), $e->getMessage()), 60);
             if ($o = wc_get_order($id)) {
@@ -494,21 +344,10 @@ class BGCouriers_Labels {
         wp_safe_redirect(wp_get_referer() ?: admin_url('edit.php?post_type=shop_order'));
         exit;
     }
-    /**
-     * Everything on an order that a waybill actually depends on, as one comparable string. Recorded when a
-     * label is issued and re-checked when the order is edited, so "has this changed?" is answered by the
-     * data itself rather than by guessing which hook fired.
-     *
-     * Deliberately narrow: the order status, notes, dates and internal flags are NOT in here - changing
-     * them must never void a live shipment.
-     */
+    /** Everything a waybill depends on, as one md5; status, notes and dates are deliberately not in it. */
     public static function label_fingerprint(\WC_Order $order): string {
         $parts = [];
-        // boxnow_name / boxnow_addr are retired: BOX NOW's widget wrote them and nothing writes them
-        // since 0.4.8 (the locker is read off the nomenclature by office_id, which is in here). They
-        // STAY in this list all the same. The fingerprint is an md5 recorded on every order with a live
-        // waybill, and dropping a key would change it for all of them at once - the next edit of any
-        // such order would then void and re-issue a waybill that nothing about the order had changed.
+        // boxnow_name / boxnow_addr are retired but stay: dropping a key would change the md5 on every live waybill.
         foreach (['courier', 'method', 'site_id', 'office_id', 'post_code', 'street_name', 'street_no',
                   'complex', 'block', 'entrance', 'floor', 'apartment', 'address_note',
                   'boxnow_name', 'boxnow_addr', 'weight_kg', 'parcels', 'insurance'] as $k) {
@@ -516,7 +355,6 @@ class BGCouriers_Labels {
         }
         $parts[] = 'name=' . $order->get_formatted_billing_full_name();
         $parts[] = 'phone=' . $order->get_billing_phone();
-        // What the courier collects, and what it carries.
         $parts[] = 'pay=' . $order->get_payment_method();
         $parts[] = 'total=' . wc_format_decimal($order->get_total(), 2);
         $parts[] = 'ship=' . wc_format_decimal($order->get_shipping_total(), 2);
@@ -527,48 +365,21 @@ class BGCouriers_Labels {
         return md5(implode('|', $parts));
     }
 
-    /** A waybill that stands against its order and against the printer: nothing to flag. */
     public const LABEL_STATE_OK = '';
-    /** The order changed after the waybill was issued and nothing re-issued it: shown red. */
     public const LABEL_STATE_STALE = 'stale';
-    /** The current waybill has not been printed yet: shown green. */
     public const LABEL_STATE_UNPRINTED = 'unprinted';
 
-    /**
-     * How the waybill on this order stands, for the two admin screens that show it - one source of
-     * truth, so the orders list and the order screen never disagree.
-     *
-     * 'stale' (red): a waybill exists and the order's fingerprint no longer matches the one it was issued
-     * for. The amount or the address changed and nothing re-issued it - the merchant turned auto re-issue
-     * off, or the courier already holds the parcel, or the change arrived from outside the order screen
-     * where the re-issue hook does not fire (a payment gateway, an automation). It is read from the order
-     * as it stands now, so it catches the change however it came.
-     *
-     * 'unprinted' (green): the waybill matches the order but has not been printed - a fresh auto-label, an
-     * automatic re-issue, or one generated by hand and not yet opened. Any print route clears it.
-     */
+    /** 'stale' (red): the order's fingerprint no longer matches the waybill's; 'unprinted' (green): no print route has run yet. */
     public static function label_state(\WC_Order $order): string {
         if ((string) $order->get_meta('_bgcouriers_waybill') === '') { return self::LABEL_STATE_OK; }
-        // Red is order-vs-waybill: the fingerprint the waybill was issued for against the order as it
-        // stands. '' means the waybill predates the fingerprint - nothing to compare, so not red.
+        // '' means the waybill predates the fingerprint: nothing to compare, so not red.
         $issued = (string) $order->get_meta('_bgcouriers_label_fp');
         if ($issued !== '' && $issued !== self::label_fingerprint($order)) { return self::LABEL_STATE_STALE; }
-        // Green is document identity, not order state: generate() flags each new waybill, print clears
-        // it. So a re-issue of an unchanged order is green (new document), and a label printed long
-        // before this feature is not (it carries no flag).
         if ((string) $order->get_meta('_bgcouriers_label_needs_print') === '1') { return self::LABEL_STATE_UNPRINTED; }
         return self::LABEL_STATE_OK;
     }
 
-    /**
-     * Printing clears a waybill's "not printed yet" (green) flag - from EVERY print route. This used to
-     * live inside the per-order print alone, and the bulk "Print labels" action never touched the flag,
-     * so a merchant who prints in batches saw every waybill stay green for good, reload or not (reported
-     * 2026-09-22). A stale label (the order changed since it was issued) is a separate signal and stays
-     * flagged: printing the old document does not make it match the order.
-     *
-     * @param int[] $order_ids
-     */
+    /** Clears the "not printed yet" flag from every print route; a stale waybill stays flagged. @param int[] $order_ids */
     public static function mark_printed(array $order_ids): void {
         foreach ($order_ids as $oid) {
             $o = wc_get_order((int) $oid);
@@ -579,18 +390,10 @@ class BGCouriers_Labels {
         }
     }
 
-    /**
-     * The print tile's hover text, on both admin screens. A waybill nobody has printed yet says so on the
-     * tile itself (which is also green) - the JS puts the plain wording back the moment it is clicked.
-     */
     public static function print_tip(bool $unprinted): string {
         return $unprinted ? __('Print label (not printed yet)', 'bg-couriers') : __('Print label', 'bg-couriers');
     }
 
-    /**
-     * The one line each state tells the merchant - the hover in the list, the banner on the order. Takes
-     * the state where the caller already worked it out, so the fingerprint is not computed twice a row.
-     */
     public static function label_state_message(\WC_Order $order, ?string $state = null): string {
         switch ($state ?? self::label_state($order)) {
             case self::LABEL_STATE_STALE:
@@ -604,43 +407,34 @@ class BGCouriers_Labels {
         }
     }
 
-    /**
-     * Re-issue the waybill when an edit actually changed something the courier needs. Off unless the
-     * merchant enables it (default on): it voids a real shipment, so it must never fire on a save that
-     * changed nothing - hence the fingerprint rather than "the order was saved".
-     */
+    /** Re-issue the waybill when an edit changed something the courier needs (fingerprint, not "saved"). */
     public function maybe_regenerate_on_change($order_id): void {
         static $running = false;
-        if ($running) { return; }                                        // generate() saves the order again
+        if ($running) { return; }
         if (get_option('bgcouriers_autoregen_on_change', 'yes') !== 'yes') { return; }
         $order = wc_get_order((int) $order_id);
-        if (!$order || (string) $order->get_meta('_bgcouriers_waybill') === '') { return; } // nothing to re-issue
+        if (!$order || (string) $order->get_meta('_bgcouriers_waybill') === '') { return; }
         if (!self::order_courier($order)) { return; }
-        // Once the courier holds the parcel, re-issuing would void a waybill that is travelling with it -
-        // the courier keeps delivering against the original either way. Say so rather than silently
-        // skipping, because the merchant just changed something believing the label would follow.
+        // Once the courier holds the parcel, re-issuing would void a travelling waybill: say so instead.
         if (self::is_locked($order)) {
             $fp = self::label_fingerprint($order);
             if ((string) $order->get_meta('_bgcouriers_label_fp') !== $fp
                 && (string) $order->get_meta('_bgcouriers_change_noted_fp') !== $fp) {
                 $order->add_order_note(__('⚠ The order changed, but the waybill was NOT re-issued: the courier already collected this shipment. Arrange the change with the courier.', 'bg-couriers'));
-                // Note the change once WITHOUT moving the issued fingerprint: the mismatch stays visible
-                // (red) on the order and the list until it is dealt with, but the note fires once per change.
+                // Noted once per change without moving the issued fingerprint, so the red flag stays.
                 $order->update_meta_data('_bgcouriers_change_noted_fp', $fp);
                 $order->save();
             }
             return;
         }
 
-        // A parcel the courier collected and the merchant then reopened by hand (is_locked() is false
-        // again): do not auto-void a waybill that may be physically on the parcel. The red "changed"
-        // flag shows the mismatch; re-issuing it is the merchant's own call, with the button.
+        // Reopened by hand after collection: the waybill may be on the parcel, re-issuing is the merchant's call.
         if ((string) $order->get_meta('_bgcouriers_reopened') === 'yes') { return; }
 
         $now  = self::label_fingerprint($order);
         $were = (string) $order->get_meta('_bgcouriers_label_fp');
         if ($were === '' || $were === $now) {
-            // No stored fingerprint means the label predates this feature - record it and change nothing.
+            // No stored fingerprint: the label predates this feature, record it and change nothing.
             if ($were === '') { $order->update_meta_data('_bgcouriers_label_fp', $now); $order->save(); }
             return;
         }
@@ -662,31 +456,19 @@ class BGCouriers_Labels {
         $running = false;
     }
 
-    /** Void the courier waybill and clear it from the order (throws on courier failure). */
     public static function cancel(int $order_id): void {
         $order = wc_get_order($order_id);
         if (!$order) { throw new BGCouriers_Api_Exception(esc_html__('Order not found.', 'bg-couriers')); }
         $waybill = (string) $order->get_meta('_bgcouriers_waybill');
-        if ($waybill === '') { return; } // nothing to cancel
+        if ($waybill === '') { return; }
         $courier = self::order_courier($order);
         if (!$courier) { throw new BGCouriers_Api_Exception(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
-        // If the courier refuses the cancel, it may be because the waybill is ALREADY cancelled/gone there -
-        // in which case the desired end state is reached, so clear our record. Only surface a failure when
-        // the shipment is still live (never silently drop an active shipment).
         $already = false;
-        // The courier's reason, where it gave one: "already picked up", "handed to the driver", a login it
-        // turned down. It used to be thrown away for a bare false, and the merchant read the same "did not
-        // cancel" whatever had happened.
         $why = '';
         try { $ok = $courier->cancel_label($waybill); }
         catch (BGCouriers_Api_Exception $e) { $ok = false; $why = $e->getMessage(); }
         if (!$ok) {
-            // A refused cancel is only a failure while the shipment is still alive. One the courier has
-            // already killed itself is precisely what the merchant is trying to clear, and refusing to
-            // clear it leaves a shop unable to re-issue a label for a parcel nobody is coming for - which
-            // is what "Re-issue waybill" exists to do, and it must not depend on the dead one's consent.
-            // The courier's own answer is asked first; where it has none, or misreads its own wording,
-            // what the tracking poll has ALREADY recorded on this order counts as the answer.
+            // A refused cancel is a failure only while the shipment is alive: the courier's answer first, then the recorded stage.
             $stage = (string) $order->get_meta('_bgcouriers_track_stage');
             if (!$courier->is_cancelled($waybill) && $stage !== 'cancelled') {
                 throw new BGCouriers_Api_Exception($why !== ''
@@ -696,9 +478,7 @@ class BGCouriers_Labels {
             }
             $already = true;
         }
-        // Remove the PII PDFs for the voided shipment - the primary AND every alternate-size variant
-        // label_pdf_for_print() may have cached (_bgcouriers_label_url_A4 / _A6). Missing the variants let a
-        // later print of that size serve the OLD waybill number from cache on a re-issued shipment.
+        // Every alternate-size variant too, or a later print would serve the old waybill from cache.
         self::delete_label_file((string) $order->get_meta('_bgcouriers_label_url'));
         foreach ($courier->label_formats() as $fmt) {
             $key = '_bgcouriers_label_url_' . $fmt;
@@ -707,10 +487,7 @@ class BGCouriers_Labels {
         }
         $order->delete_meta_data('_bgcouriers_waybill');
         $order->delete_meta_data('_bgcouriers_label_url');
-        // And everything that described the shipment that no longer exists. The stage in particular:
-        // it is written the moment a waybill is issued, and it stayed behind when the waybill went, so
-        // the orders list kept showing "registered" for an order with nothing registered. Nothing about
-        // a voided shipment is worth keeping on the order; the note below is its record.
+        // The stage would otherwise stay behind and the list would keep showing "registered".
         self::reset_shipment_state($order);
         $order->delete_meta_data('_bgcouriers_track_stage');
         $order->delete_meta_data('_bgcouriers_track_updated');
@@ -722,15 +499,11 @@ class BGCouriers_Labels {
         $order->save();
     }
 
-    /**
-     * When an order is FULLY refunded, void its courier waybill (best effort) so a refunded shipment is not
-     * still delivered + billed. Partial refunds are left alone. Fires on woocommerce_order_refunded.
-     */
     public function maybe_cancel_on_refund($order_id, $refund_id): void {
         $order = wc_get_order($order_id);
         if (!$order) { return; }
-        if ((string) $order->get_meta('_bgcouriers_waybill') === '') { return; }        // nothing to void
-        if ((float) $order->get_remaining_refund_amount() > 0) { return; }        // partial refund -> keep the waybill
+        if ((string) $order->get_meta('_bgcouriers_waybill') === '') { return; }
+        if ((float) $order->get_remaining_refund_amount() > 0) { return; }
         try { self::cancel((int) $order_id); }
         catch (\Exception $e) {
             /* translators: %s: error message from the courier */
@@ -739,90 +512,42 @@ class BGCouriers_Labels {
     }
 
     private function fail_note(int $id, string $msg, string $context): void {
-        set_transient('bgcouriers_admin_error_' . $id, $context . ': ' . $msg, 60); // the panel prints this as it is
+        set_transient('bgcouriers_admin_error_' . $id, $context . ': ' . $msg, 60);
         if ($o = wc_get_order($id)) { $o->add_order_note($context . ': ' . $msg); }
     }
 
-    /**
-     * Has the courier already taken this parcel? Once it has, the waybill is a document in someone else's
-     * hands and a physical parcel on a van: voiding it, re-issuing it or editing the address changes only
-     * OUR copy, while the courier keeps delivering against the original. So those actions stop here.
-     *
-     * A cancelled shipment is deliberately NOT locked - that one is void and re-issuing is the way out.
-     *
-     * @param \WC_Order $order The order to test.
-     * @return bool True when the waybill must no longer be changed.
-     */
+    /** True once the courier has the parcel: voiding, re-issuing or editing would change only our copy. Cancelled is not locked. */
     public static function is_locked(\WC_Order $order): bool {
-        // The merchant has taken this order back in hand (see maybe_reopen) - their call, not ours.
         if ((string) $order->get_meta('_bgcouriers_reopened') === 'yes') { return false; }
         return self::shipment_locked($order);
     }
 
-    /** The shipment's own answer, with no regard for whether the merchant has reopened the order. */
     private static function shipment_locked(\WC_Order $order): bool {
         $stage = (string) $order->get_meta('_bgcouriers_track_stage');
-        // Checked BEFORE the handover flag, which stays set for good: a parcel that has come all the way
-        // back is on the merchant's own counter, and a voided one never left. Both waybills are spent, a
-        // second attempt needs a fresh one - locking them left the shop holding a box it could not re-send.
+        // Before the handover flag, which stays set for good: a returned or voided parcel needs a fresh waybill.
         if (in_array($stage, ['returned', 'cancelled'], true)) { return false; }
         if ((string) $order->get_meta('_bgcouriers_handover') === 'yes') { return true; }
         return in_array($stage, ['delivered', 'returning'], true);
     }
 
-    /** Statuses that mean the merchant is working on this order again. */
     private const REOPEN_STATUSES = ['processing', 'pending'];
 
-    /**
-     * The way out of the lock: putting a locked order back to Processing or Pending payment reopens
-     * everything - cancel the waybill, change the address, change the courier.
-     *
-     * It keys off the TRANSITION rather than the status, and that is the whole point. Processing is where
-     * an ordinary paid order already sits, so a shop that leaves the automatic "Shipped" status switched
-     * off keeps its orders in Processing for the entire journey - reading the status alone would mean the
-     * lock never engaged there at all. A transition INTO Processing while the parcel is already collected
-     * is something only a person does, and it says plainly what they mean.
-     *
-     * @param \WC_Order $order The order whose status changed.
-     * @param string    $from  Status it left (kept for the hook signature; the destination is what counts).
-     * @param string    $to    Status it entered.
-     */
+    /** Reopens a locked order put back to Processing or Pending; keyed on the transition, since paid orders already sit in Processing. */
     public static function maybe_reopen(\WC_Order $order, string $from, string $to): void {
         if (!in_array($to, self::REOPEN_STATUSES, true)) { return; }
-        // Nothing is locked yet -> nothing to reopen. Without this the ordinary payment -> Processing
-        // transition would leave a flag behind that unlocks the parcel once it IS collected.
+        // Nothing locked yet: the ordinary payment -> Processing transition must not leave a flag behind.
         if (!self::shipment_locked($order)) { return; }
         $order->update_meta_data('_bgcouriers_reopened', 'yes');
         $order->add_order_note(__('BG Couriers: the order was put back in hand, so the waybill can be cancelled, re-issued and edited again - even though the courier has the parcel. Arrange the change with the courier as well.', 'bg-couriers'));
         $order->save();
     }
 
-    /**
-     * WooCommerce hands the hook an id and (usually) the order; take the object when it is there and look
-     * it up when it is not, then let maybe_reopen() decide.
-     *
-     * @param int    $order_id The order.
-     * @param string $from     Previous status.
-     * @param string $to       New status.
-     * @param mixed  $order    The order object, when WooCommerce passed one.
-     */
     public static function on_status_changed($order_id, $from, $to, $order = null): void {
         if (!$order instanceof \WC_Order) { $order = wc_get_order((int) $order_id); }
         if ($order instanceof \WC_Order) { self::maybe_reopen($order, (string) $from, (string) $to); }
     }
 
-    /**
-     * Forget everything we knew about the PREVIOUS parcel, because this order now has a new one.
-     *
-     * The handover flag in particular was never cleared anywhere - it did not matter while a collected
-     * parcel could not be re-issued at all, but it closes the way out behind the merchant the moment it
-     * can: reopen the order, cancel, issue a fresh waybill, and the flag left by the parcel that is long
-     * gone locks everything again on the spot. The courier's last words go too, or the panel shows a
-     * brand-new waybill under the old parcel's status line.
-     *
-     * `_bgcouriers_shipped_marked` deliberately stays: it records that the ORDER was already advanced to
-     * the Shipped status once, and clearing it would move the order again behind the merchant's back.
-     */
+    /** Forget the previous parcel (a stale handover flag would lock the fresh waybill); _bgcouriers_shipped_marked stays. */
     public static function reset_shipment_state(\WC_Order $order): void {
         foreach (['_bgcouriers_reopened', '_bgcouriers_handover', '_bgcouriers_track_done',
                   '_bgcouriers_track_first', '_bgcouriers_track_status', '_bgcouriers_track_text'] as $k) {
@@ -830,12 +555,10 @@ class BGCouriers_Labels {
         }
     }
 
-    /** The one sentence every blocked action says, so the reason reads the same wherever it surfaces. */
     public static function locked_message(): string {
         return __('The courier has already collected this shipment - the waybill can no longer be cancelled, re-issued or edited. To work on this order again, set it back to Processing or Pending payment.', 'bg-couriers');
     }
 
-    /** @return \WC_Order|null The order when the action may proceed; null when it is locked. */
     private static function unlocked_order(int $id): ?\WC_Order {
         $order = wc_get_order($id);
         return ($order && !self::is_locked($order)) ? $order : null;
@@ -855,7 +578,6 @@ class BGCouriers_Labels {
         exit;
     }
 
-    /** Void the existing waybill and issue a fresh one from the order's current delivery details. */
     public function handle_regenerate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
@@ -870,7 +592,6 @@ class BGCouriers_Labels {
         exit;
     }
 
-    /** Cancel the order (and void its label first, best effort). */
     public function handle_cancel_order(): void {
         if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
@@ -887,7 +608,6 @@ class BGCouriers_Labels {
         exit;
     }
 
-    /** Save edited delivery details onto an order; void the old waybill and issue a fresh matching one. */
     public function handle_save_delivery(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do that.', 'bg-couriers')]); }
         check_ajax_referer('bgcouriers_order_delivery', 'nonce');
@@ -898,10 +618,7 @@ class BGCouriers_Labels {
         $courier = sanitize_key(wp_unslash($_POST['courier'] ?? ''));
         if ($courier === '' || !BGCouriers_Couriers::get($courier)) { wp_send_json_error(['msg' => __('Choose a courier.', 'bg-couriers')]); }
 
-        // A pre-existing waybill must be voided FIRST, while the order still carries its ORIGINAL courier -
-        // cancel() resolves the courier from the order, so after an Econt->Speedy switch it would otherwise
-        // try to void the Econt waybill through Speedy's API. Reload afterwards so apply_delivery/save don't
-        // resurrect the cleared waybill meta.
+        // Void FIRST, while the order still carries its original courier: cancel() resolves the courier from the order.
         $had_waybill = (string) $order->get_meta('_bgcouriers_waybill') !== '';
         if ($had_waybill) {
             try { self::cancel($id); }
@@ -910,8 +627,6 @@ class BGCouriers_Labels {
             $order = wc_get_order($id);
         }
 
-        // Nonce is verified at the top of this handler (check_ajax_referer); the reads inside this closure
-        // can't be traced back to it by the linter, so ignore the false-positive nonce warning here.
         $t = static function ($k) { return isset($_POST[$k]) ? sanitize_text_field(wp_unslash($_POST[$k])) : ''; }; // phpcs:ignore WordPress.Security.NonceVerification.Missing
         BGCouriers_Checkout::apply_delivery($order, [
             'courier' => $courier, 'method' => sanitize_key(wp_unslash($_POST['method'] ?? '')),
@@ -921,20 +636,13 @@ class BGCouriers_Labels {
             'complex' => $t('complex'), 'block' => $t('block'), 'entrance' => $t('entrance'),
             'floor' => $t('floor'), 'apartment' => $t('apartment'), 'address_note' => $t('address_note'),
         ]);
-        // Not part of the delivery ADDRESS, so written here rather than through apply_delivery(): the
-        // checkout has no notion of either, and this editor is the only place a merchant sets them.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by check_ajax_referer above
         $order->update_meta_data('_bgcouriers_parcels', max(1, min(99, absint(wp_unslash($_POST['parcels'] ?? 1)))));
-        // floatval() rather than the (float) cast this used to be. The cast is exactly as safe - it turns
-        // anything a text box can hold into a number - but it is not on the list of sanitisers Plugin
-        // Check recognises, so it reported the line as unsanitised input and bin/release-wporg refuses to
-        // publish while it does. Same number, and the read side clamps it again anyway.
+        // floatval(), not (float): Plugin Check only recognises listed sanitisers.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by check_ajax_referer above
         $order->update_meta_data('_bgcouriers_insurance', max(0, round(floatval(wp_unslash($_POST['insurance'] ?? 0)), 2)));
         $order->save();
 
-        // Issue a fresh waybill from the new details (only if one existed before - a plain save on an order
-        // without a waybill just stores the details).
         $regenerated = false;
         if ($had_waybill) {
             try { self::generate($id); $regenerated = true; }
@@ -946,7 +654,6 @@ class BGCouriers_Labels {
         ]);
     }
 
-    /** AJAX: void a waybill from the Orders list without reloading the page. */
     public function ajax_cancel_label(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do that.', 'bg-couriers')]); }
         $id = absint(wp_unslash($_POST['order_id'] ?? 0));
@@ -967,8 +674,7 @@ class BGCouriers_Labels {
         $courier = $this->courier_for($order);
         if (!$courier) { wp_die(esc_html__('Unknown courier for this order.', 'bg-couriers')); }
         $url  = $courier->tracking_url($waybill);
-        // A courier may publish no public tracking page at all (Evropat does not). wp_safe_redirect('')
-        // sends the merchant to a blank screen with no clue why, so say it instead.
+        // Some couriers publish no tracking page; wp_safe_redirect('') would show a blank screen.
         if ($url === '') {
             wp_die(esc_html(sprintf(
                 /* translators: 1: courier name, 2: the waybill number */
@@ -991,19 +697,16 @@ class BGCouriers_Labels {
         $paper = (isset($_GET['paper']) && strtoupper(sanitize_text_field(wp_unslash($_GET['paper']))) === 'A6') ? 'A6' : 'A4';
         try {
             if (count($order_ids) === 1) {
-                // Individual print in the courier's configured size ($paper is that setting, from the metabox).
                 $pdfs = self::collect_label_pdfs($order_ids, $paper);
                 $out  = $pdfs[0] ?? '';
             } else {
-                // Batch: each courier lays out its own sheet natively, then the sheets are concatenated.
                 $out = self::batch_pdf($order_ids, $paper);
             }
         }
         /* translators: %s: error message */
         catch (\Exception $e) { wp_die(esc_html(sprintf(__('Print failed: %s', 'bg-couriers'), $e->getMessage()))); }
         if ($out === '') { wp_die(esc_html__('No labels to print.', 'bg-couriers')); }
-        // See the note in BGCouriers_Bulk_Labels::handle_print - a PDF must be streamed unescaped, so the
-        // payload is verified to BE a PDF first.
+        // Streamed unescaped below, so verify it IS a PDF first.
         if (strncmp($out, '%PDF', 4) !== 0) { wp_die(esc_html__('The generated file is not a valid PDF.', 'bg-couriers')); }
 
         self::mark_printed($order_ids);
@@ -1015,12 +718,6 @@ class BGCouriers_Labels {
         exit;
     }
 
-    /**
-     * Combined PDF for printing MANY orders' labels, grouped by courier so each courier lays out its OWN sheet
-     * the way it prints 1-by-1: a courier with a native multi-label endpoint (Speedy - landscape, its own
-     * per-A4 layout) produces one native sheet; the rest use their stored labels. Courier sheets are then
-     * concatenated at native size (no re-packing, no scaling). $format = the requested paper size (A4/A6).
-     */
     public static function batch_pdf(array $order_ids, string $format = ''): string {
         $groups = []; // courier_id => [ order_id => waybill ]
         foreach ($order_ids as $oid) {
@@ -1037,21 +734,15 @@ class BGCouriers_Labels {
             $courier = BGCouriers_Couriers::get($cid);
             if (!$courier) { continue; }
             if ($courier->has_native_batch()) {
-                // On A4 fetch Speedy's RAW half-sheet pages so they can be composed below TOGETHER
-                // with other couriers' sticker labels (a leftover half column gets filled instead
-                // of wasting a nearly-empty sheet on one sticker).
+                // On A4, Speedy's raw half-sheet pages are composed together with other couriers' stickers.
                 if ($a4 && $courier instanceof BGCouriers_Speedy) {
                     try { $halfs[] = $courier->print_labels(array_values($map), 'A4'); continue; }
                     catch (\Exception $e) { /* fall through to the courier's own batch */ }
                 }
-                // The courier lays out the whole batch itself.
                 try { $b = $courier->batch_label_pdf(array_values($map), $format); if ($b !== '') { $sheets[] = $b; } }
                 catch (\Exception $e) { /* skip this courier */ }
             } else {
-                // Stored per-label files (no re-fetch - Pigeon can't re-fetch). On A4 the labels are
-                // PLACED on real A4 pages at native size (a sticker-sized PDF page would otherwise be
-                // blown up to the paper by the print dialog); labels larger than A4 keep their own
-                // native page. On A6 (sticker roll) the native pages pass through unchanged.
+                // Stored files (Pigeon cannot re-fetch); on A4 placed on real A4 pages at native size, on A6 passed through.
                 $per = self::collect_label_pdfs(array_keys($map), $format);
                 if (!$per) { continue; }
                 if ($a4) { foreach ($per as $p) { $smalls[] = $p; } continue; }
@@ -1072,10 +763,6 @@ class BGCouriers_Labels {
         return count($sheets) === 1 ? $sheets[0] : BGCouriers_Label_Packer::concat($sheets);
     }
 
-    /**
-     * Collect each order's label PDF bytes in the desired paper $format ('' = each label's stored/native
-     * format). The couriers' own PDFs are returned unscaled; the packer arranges them at native size.
-     */
     public static function collect_label_pdfs(array $order_ids, string $format = ''): array {
         $pdfs = [];
         foreach ($order_ids as $oid) {
@@ -1087,19 +774,12 @@ class BGCouriers_Labels {
         return $pdfs;
     }
 
-    /**
-     * The label PDF bytes for one order in the desired paper $format. Serves the stored primary file when it
-     * already matches (or the courier has a single fixed format). Only when the courier can actually PRODUCE a
-     * different requested size do we fetch it from the courier once and CACHE it to a per-format file - so the
-     * next print of that size is instant and we never scale a label to fake a size it wasn't made in.
-     */
+    /** Stored primary when it matches; a different courier-supported size is fetched once and cached per format, never scaled. */
     private static function label_pdf_for_print(\WC_Order $o, string $format): string {
         $courier = self::order_courier($o);
         $wb      = (string) $o->get_meta('_bgcouriers_waybill');
         $primary = (string) $o->get_meta('_bgcouriers_label_paper_size');
         $fmts    = $courier ? $courier->label_formats() : [];
-        // Only switch away from the stored primary when the courier can truly make the requested (different)
-        // size; otherwise serve what we already have.
         $want = ($format !== '' && in_array($format, $fmts, true)) ? $format : $primary;
 
         if ($want === '' || $want === $primary) {
@@ -1111,7 +791,6 @@ class BGCouriers_Labels {
             return '';
         }
 
-        // A different, courier-supported size: cached variant file first, else fetch + cache it.
         $meta_key = '_bgcouriers_label_url_' . $want;
         $cached   = self::read_stored_url($o, (string) $o->get_meta($meta_key));
         if ($cached !== '') { return $cached; }
@@ -1126,11 +805,9 @@ class BGCouriers_Labels {
                 }
             } catch (\Exception $e) {}
         }
-        // Variant unavailable - fall back to the stored primary rather than fail the print.
         return self::read_stored_url($o, (string) $o->get_meta('_bgcouriers_label_url'));
     }
 
-    /** Read the bytes of a stored label file from its uploads URL, or '' if it isn't a readable local file. */
     private static function read_stored_url(\WC_Order $o, string $url): string {
         if ($url === '') { return ''; }
         $up = wp_upload_dir();
