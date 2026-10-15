@@ -25,18 +25,7 @@ define('BGCOURIERS_URL', plugin_dir_url(__FILE__));
 require_once BGCOURIERS_PATH . 'includes/class-bgcouriers-autoloader.php';
 BGCouriers_Autoloader::register();
 
-// Translations. WordPress loads them just-in-time from /languages (bg_BG ships there), and on a healthy
-// install that is enough - the call below is the fallback, not the mechanism.
-//
-// It exists because just-in-time needs the plugin's Domain Path to be REGISTERED, and a shop can end up
-// without that registration: a folder renamed on upload (bg-couriers-main), a stale plugin cache after a
-// manual copy, a string asked for before `init` on WP 6.7+. Then every string comes out in English on a
-// site whose WordPress, WooCommerce and theme are all Bulgarian - which is exactly what two shops
-// reported, one with a screenshot of a Bulgarian checkout full of "To office" and "City" (2026-09-28).
-// load_plugin_textdomain() does not depend on that registry: it resolves the path from THIS file.
-//
-// On `init` at priority 0, because that is the earliest point where WordPress considers translations
-// fair game, and the checkout builds its labels later. Loading an already-loaded domain is a no-op.
+// Fallback for shops where just-in-time loading fails (renamed plugin folder, stale plugin cache).
 add_action('init', static function () {
     load_plugin_textdomain('bg-couriers', false, dirname(plugin_basename(__FILE__)) . '/languages');
 }, 0);
@@ -47,10 +36,6 @@ register_activation_hook(__FILE__, function () {
     BGCouriers_Schema::create();
 });
 
-// A plugin that is switched off must not go on running from WP-Cron: measured on 2026-09-13, the
-// weekly sync, the daily rates and the tracking poll all stayed scheduled after deactivation, and
-// WordPress keeps re-scheduling a recurring event from the interval stored in it. Everything is put
-// back by the schedule() calls on the next init after re-activation.
 register_deactivation_hook(__FILE__, function () {
     BGCouriers_Plugin::clear_cron();
 });
@@ -63,20 +48,13 @@ add_action('before_woocommerce_init', function () {
 
 add_action('plugins_loaded', function () {
     if (!class_exists('WooCommerce')) { return; }
-    // Whether this site had the plugin before THIS request - asked here because the next few lines are
-    // what stops it being answerable afterwards, and a migration that has to tell a fresh install from
-    // an existing one has no other way to know (see BGCouriers_Plugin::pin_who_pays_delivery()).
+    // Must be asked before the db_version write below makes it unanswerable.
     if (!defined('BGCOURIERS_NEW_INSTALL')) {
         define('BGCOURIERS_NEW_INSTALL', get_option('bgcouriers_db_version', '') === '');
     }
-    // Run schema upgrades on version change (dbDelta is idempotent - adds new columns like office lat/lng
-    // to existing installs, since the activation hook doesn't fire on a plugin update).
     if (get_option('bgcouriers_db_version') !== BGCOURIERS_VERSION) {
         BGCouriers_Schema::create();
         update_option('bgcouriers_db_version', BGCOURIERS_VERSION);
-        // And the nomenclature is refreshed once, soon: a version can read a courier's lists differently
-        // (0.4.8 gives BOX NOW towns), and the weekly run may be days away. Not on a fresh install - it
-        // has no couriers set up yet, and the first "Sync now" is part of setting one up.
         if (!BGCOURIERS_NEW_INSTALL) { BGCouriers_Sync::schedule_once(); }
     }
     BGCouriers_Plugin::instance();

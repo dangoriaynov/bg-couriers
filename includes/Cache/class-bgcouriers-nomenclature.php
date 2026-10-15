@@ -1,21 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-// Dedicated data-access layer for the plugin's OWN custom tables (wp_bgcouriers_cities / wp_bgcouriers_offices). Every
-// query uses $wpdb->prepare() with $wpdb->prefix table names (interpolated table names cannot be bound as
-// placeholders); these tables ARE the local cache of the couriers' nomenclatures (synced, transient-wrapped
-// where hot), so object-cache layering adds nothing. Silence the custom-table DB sniffs for this file.
-//
-// UnfinishedPrepare belongs to the same list for a reason of its own: a read here builds its WHERE with
-// country_sql() and then prepares "$sql . ' LIMIT 1'", so the placeholders are in the variable and the
-// literal handed to prepare() has none of them. The sniff reads only the literal and calls that a
-// prepare with arguments and nothing to bind - it cannot see the query it is judging. The arguments are
-// appended in the same order the clauses are, by the one helper that adds either.
-//
-// upsert() is the same shape once more and for the same reason: its VALUES list is one placeholder
-// tuple repeated as many times as there are rows in the batch, so the count is only known at runtime.
-// The tuple and the column list are literals in this file - never anything a request can reach - and
-// every value is bound.
+// Own custom tables: table names cannot be bound, and the WHERE/VALUES placeholders live in variables the sniffs cannot see.
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 class BGCouriers_Nomenclature {
@@ -25,53 +11,17 @@ class BGCouriers_Nomenclature {
         return preg_match('/^[A-Z]{2}$/', $c) ? $c : 'BG';
     }
 
-    /**
-     * `AND country=%s`, or nothing at all.
-     *
-     * Every read below takes an OPTIONAL country: '' means "wherever it is", which is what a shop that
-     * ships to one country wants and what every existing caller passes. The filter is only ever added
-     * for a shop that has switched a second country on.
-     *
-     * @param string $country ISO alpha-2, or '' for no filter.
-     * @param array  $args    Query args, appended to in place.
-     * @param string $col     Column reference, prefixed when the query joins.
-     */
+    /** `AND country=%s` appended to $args, or nothing for ''. */
     private static function country_sql(string $country, array &$args, string $col = 'country'): string {
         if ($country === '') { return ''; }
         $args[] = self::iso($country);
         return " AND {$col}=%s";
     }
 
-    /**
-     * How many rows go into one INSERT.
-     *
-     * A nomenclature sync is thousands of rows and they were sent one statement at a time: Speedy's
-     * 5,323 towns and 1,302 offices cost 6,627 round trips and 18.00 seconds on dev, measured
-     * 2026-09-12, and the weekly cron does that for every courier the shop has.
-     *
-     * 200 is chosen for the packet, not for the clock. An office row carries a name and an address, so
-     * a batch is a few tens of kilobytes even at their longest - comfortably inside a 1MB
-     * max_allowed_packet, which is the smallest a shared host is likely to give us. Sending more rows
-     * per statement buys very little beyond this and risks a packet nobody can debug from a cron log.
-     */
+    /** Rows per INSERT; sized for max_allowed_packet (1MB on shared hosts), not for speed. */
     private const UPSERT_CHUNK = 200;
 
-    /**
-     * INSERT ... ON DUPLICATE KEY UPDATE, several hundred rows per statement.
-     *
-     * Both nomenclature tables are written exactly this way and differed only in their columns, so the
-     * statement is built once here. Returns the number of rows the database ACCEPTED, which is the
-     * number the caller must check: a batch that fails takes 200 rows with it rather than one, and the
-     * sync prunes whatever this run did not write. Losing a batch and then deleting the rows it should
-     * have refreshed is the one way this could go badly wrong, so the count is the caller's guard.
-     *
-     * @param string   $table  Full table name.
-     * @param string[] $cols   Column names, in the order the value tuples supply them.
-     * @param string   $tuple  The placeholder tuple, ending in the literal NOW() for updated_at.
-     * @param string[] $update Columns to overwrite when the row is already there.
-     * @param array[]  $rows   One flat argument list per row, matching $tuple.
-     * @return int Rows written.
-     */
+    /** INSERT ... ON DUPLICATE KEY UPDATE in batches; returns the rows the database accepted, which the caller must check before pruning. */
     private static function upsert(string $table, array $cols, string $tuple, array $update, array $rows): int {
         global $wpdb;
         if (!$rows) { return 0; }
@@ -84,8 +34,6 @@ class BGCouriers_Nomenclature {
             foreach ($chunk as $r) { foreach ($r as $v) { $args[] = $v; } }
             $sql = $head . implode(',', array_fill(0, count($chunk), $tuple)) . $tail;
             if ($wpdb->query($wpdb->prepare($sql, ...$args)) === false) {
-                // Said out loud rather than counted quietly: the caller decides what to do about it, and
-                // what it decides is to leave the table unpruned.
                 BGCouriers_Logger::debug('nomenclature: a batch was refused', [
                     'table' => $table, 'rows' => count($chunk), 'err' => $wpdb->last_error]);
                 continue;
@@ -95,17 +43,12 @@ class BGCouriers_Nomenclature {
         return $n;
     }
 
-    /**
-     * @param array  $rows Each row may carry 'country' (ISO alpha-2); rows without one are Bulgarian,
-     *                     which is what every row was before the plugin could ship anywhere else.
-     * @return int Rows written - fewer than were offered means a batch was refused.
-     */
+    /** @return int Rows written; fewer than offered means a batch was refused. Rows without 'country' are Bulgarian. */
     public static function upsert_cities(string $courier, array $rows, string $run): int {
         global $wpdb;
         $args = [];
         foreach ($rows as $r) {
-            // Not every courier supplies every column - Sameday's city rows carry no Latin name and
-            // no region, and reading them unguarded filled the sync log with PHP warnings.
+            // Not every courier supplies every column (Sameday city rows have no Latin name or region).
             $args[] = [$courier, self::iso($r['country'] ?? ''), $r['city_id'], $r['name'], $r['name_lat'] ?? '',
                        $r['post_code'] ?? '', $r['region'] ?? '', $run];
         }
@@ -123,8 +66,7 @@ class BGCouriers_Nomenclature {
         global $wpdb;
         $args = [];
         foreach ($rows as $r) {
-            // city_id defaults to 0: a geo-based courier (BOX NOW) has lockers but no city
-            // nomenclature to tie them to, and its rows carry no city_id at all.
+            // city_id 0: a geo-based courier (BOX NOW) has lockers with no city nomenclature.
             $args[] = [$courier, self::iso($r['country'] ?? ''), $r['office_id'], (string) ($r['code'] ?? ''),
                        (int) ($r['city_id'] ?? 0), (string) ($r['type'] ?? ''), (string) ($r['name'] ?? ''),
                        (string) ($r['address'] ?? ''), (float) ($r['lat'] ?? 0), (float) ($r['lng'] ?? 0), $run];
@@ -137,14 +79,7 @@ class BGCouriers_Nomenclature {
             $args
         );
     }
-    /**
-     * Drop rows this sync run did not touch.
-     *
-     * Each table is pruned only if this run actually refreshed it. Pruning a table whose fetch returned
-     * nothing deletes everything the courier has - which is what would happen to BOX NOW's lockers on
-     * every single run, since it has no cities to refresh, and to any courier the one time one of its
-     * two endpoints times out.
-     */
+    /** Drop rows this run did not touch, only in tables this run actually refreshed: an empty fetch must not wipe a courier. */
     public static function prune(string $courier, string $run, bool $cities = true, bool $offices = true,
                                 array $city_countries = [], array $office_countries = []): int {
         global $wpdb;
@@ -158,14 +93,7 @@ class BGCouriers_Nomenclature {
         return $n;
     }
 
-    /**
-     * @param string[] $countries Countries this run actually refreshed; [] = all of them.
-     *
-     * A country is the same half-failure the flags above guard against, one level down. A sync that
-     * refreshed Bulgaria and then had Romania time out has a full, current Bulgarian table and a stale
-     * Romanian one - and pruning everything the run did not touch would delete every Romanian town the
-     * shop has. So the delete is confined to the countries that answered.
-     */
+    /** @param string[] $countries Countries this run refreshed, [] = all; the delete is confined to those that answered. */
     private static function prune_table(string $table, string $courier, string $run, array $countries): int {
         global $wpdb;
         $args = [$courier, $run];
@@ -183,11 +111,7 @@ class BGCouriers_Nomenclature {
     }
 
     /**
-     * How many offices of each point-type this courier has synced - drives which delivery options to OFFER
-     * (a type with zero points is not shown). Returns ['office'=>N,'automat'=>M,'total'=>sum]; 'total' 0 means
-     * this courier syncs no points here (BOX NOW widget / un-synced Sameday), so callers should NOT prune off
-     * declared capabilities. Cached 6h and cleared by a sync run.
-     *
+     * Synced offices per point-type; 'total' 0 means this courier syncs no points here, so do not prune declared capabilities. Cached 6h.
      * @return array{office:int,automat:int,total:int}
      */
     public static function type_counts(string $courier): array {
@@ -216,27 +140,14 @@ class BGCouriers_Nomenclature {
     }
     public static function city_by_postcode(string $courier, string $code, string $country = ''): ?array {
         global $wpdb;
-        // Post codes are only unique inside a country: 1000 is Sofia in Bulgaria and a Bucharest sector
-        // in Romania. Without the filter the first row wins, which is how a Romanian order would be
-        // quoted against a Bulgarian town.
+        // Post codes are only unique inside a country: 1000 is Sofia and also a Bucharest sector.
         $args = [$courier, $code];
         $sql  = "SELECT city_id,country,name,name_lat,post_code,region FROM {$wpdb->prefix}bgcouriers_cities WHERE courier=%s AND post_code=%s";
         $sql .= self::country_sql($country, $args);
         $row = $wpdb->get_row($wpdb->prepare($sql . ' LIMIT 1', ...$args), ARRAY_A);
         return $row ?: null;
     }
-    /**
-     * One PLACE, as a given courier numbers it. City ids in this plugin belong to the courier that
-     * issued them, so the combined office map carries a name and a post code and asks each courier what
-     * it calls that. Name AND post code first because neither is unique on its own - about a thousand
-     * cities per courier share a post code with another, and names repeat across regions - then each
-     * alone, because a courier that spells or codes a small town differently should still be found.
-     *
-     * @param string $courier   Courier id.
-     * @param string $name      City name as another courier spells it.
-     * @param string $post_code Post code, '' when unknown.
-     * @return array|null The courier's own row, or null when it does not list the place.
-     */
+    /** The courier's own row for a place: name and post code first (neither is unique alone), then each alone. */
     public static function match_city(string $courier, string $name, string $post_code, string $country = ''): ?array {
         global $wpdb;
         $t = $wpdb->prefix . 'bgcouriers_cities';
@@ -259,14 +170,7 @@ class BGCouriers_Nomenclature {
         }
         return null;
     }
-    /**
-     * The post code the OTHER couriers list a town under - the most common one among their rows of
-     * that name, or '' when none of them lists it. A courier that publishes no town list (BOX NOW) has
-     * its towns read off its lockers, and a locker's own code is a district code as often as not:
-     * Sofia's lockers start at 1111 where every other courier says 1000. The combined map keys a place
-     * by name and code, and the carry between couriers goes by code first, so a town that agrees with
-     * its neighbours on the code is one town everywhere, not one town and a twin.
-     */
+    /** Most common post code the other couriers list a town under, '' when none does; locker codes (BOX NOW) are often district codes. */
     public static function post_code_by_name(string $name, string $country = '', array $except = []): string {
         global $wpdb;
         $t = $wpdb->prefix . 'bgcouriers_cities';
@@ -295,11 +199,7 @@ class BGCouriers_Nomenclature {
             $courier, $office_id), ARRAY_A);
         return $row ?: null;
     }
-    /**
-     * Every office of a type, with its town, in one list ordered by town then name - for a settings
-     * picker of "the office I hand parcels in at". Rows are [office_id, name, city]. Home country
-     * unless told otherwise: the shop stands in one country, whatever it delivers to.
-     */
+    /** [office_id, name, city] rows ordered by town then name; home country unless told otherwise. */
     public static function all_offices(string $courier, string $type, string $country = ''): array {
         global $wpdb; $o = $wpdb->prefix . 'bgcouriers_offices'; $c = $wpdb->prefix . 'bgcouriers_cities';
         $args = [$courier, $type];
@@ -318,17 +218,7 @@ class BGCouriers_Nomenclature {
         return $wpdb->get_results($wpdb->prepare($sql, ...$args), ARRAY_A);
     }
 
-    /**
-     * First office of a type, in the alphabetically-first city that has one (reference origin for
-     * office/automat). With a country, the first one THERE - a reference price for Romania quoted
-     * against a Bulgarian office is a Bulgarian price with a Romanian label on it.
-     *
-     * $exclude_city is how the price zones keep their routes apart (BGCouriers_Zones): the "outside Sofia"
-     * reference must not be measured to an office IN Sofia, and offices sort by city name, so the capital
-     * can perfectly well come first - it does for every courier whose city list starts alphabetically
-     * above it. Without this the country zone and the Sofia zone would cache the same journey twice and
-     * the cheaper price would be advertised to the whole country.
-     */
+    /** First office of a type in the alphabetically-first city; $exclude_city keeps the country zone's reference out of Sofia. */
     public static function first_office(string $courier, string $type, string $country = '', int $exclude_city = 0): ?array {
         global $wpdb; $o = $wpdb->prefix . 'bgcouriers_offices'; $c = $wpdb->prefix . 'bgcouriers_cities';
         $args = [$courier, $type];
@@ -342,8 +232,7 @@ class BGCouriers_Nomenclature {
     }
 
     /**
-     * Compact list of cities that HAVE this courier's offices, per type - for preloading the checkout city
-     * dropdown (office/automat) so it needs no AJAX. Rows are [city_id, name, post_code]. Cached (a day).
+     * Cities that have offices of each type, [city_id, name, post_code, name_lat] rows, cached a day.
      * @return array{office:array<int,array>,automat:array<int,array>}
      */
     public static function city_index(string $courier, string $country = ''): array {
@@ -359,7 +248,6 @@ class BGCouriers_Nomenclature {
                  WHERE o.courier=%s AND o.type=%s";
             $sql .= self::country_sql($country, $args, 'o.country');
             $rows = $wpdb->get_results($wpdb->prepare($sql . ' ORDER BY c.name', ...$args), ARRAY_A);
-            // Row: [city_id, name, post_code, name_lat] - name_lat lets the checkout match a Latin-typed search.
             foreach ($rows as $r) { $out[$type][] = [(int) $r['city_id'], $r['name'], (string) $r['post_code'], (string) $r['name_lat']]; }
         }
         set_transient($key, $out, DAY_IN_SECONDS);
