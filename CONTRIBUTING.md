@@ -203,3 +203,6 @@ are kept **privately, outside this repository**. Never in it.
 - **Real-account label tests create real waybills.** They are logged privately, outside this
   repository, for the owner to cancel.
 - **Clean-room:** original code only. Nothing is copied from another plugin.
+- **Comments are the minimum.** One line per class, a docblock only where the name does not say it,
+  one short "why" for a real gotcha. No dates, order numbers, measurements, incident stories or
+  "used to be": that history belongs in the commit message and `docs/CHANGELOG.md`.
