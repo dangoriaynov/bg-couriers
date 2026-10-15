@@ -1,82 +1,39 @@
 <?php
 defined('ABSPATH') || exit;
 
-/**
- * Evropat (Evropat-2000, Bulgaria) courier adapter.
- *
- * Measured against the shop's own live account on 2026-08-31. The shapes below are what the API
- * answered, not what its documentation says - and the two disagree in the places that matter most:
- *
- *   - api.evropat.com serves its OWN apiDoc at the root, and that documentation is behind the live
- *     service. /calculateprice refused the documented parameter list with INVALID_FROM_DESTINATION_ID
- *     for `fromDestID`, a field the docs do not list at all; asking with `method` 1 (pay by account)
- *     then refused again for `clientNumber`, also unlisted. Every required field here was found by
- *     being refused, the way Express One's were.
- *   - The same field is spelled differently by different endpoints: /calculateprice wants `fromDestID`,
- *     /getshipmentprice wants `fromDestinationID`. They are not interchangeable.
- *
- * Two rules run through the whole class:
- *  - EVERY answer is HTTP 200. Success is {"error":null,"response":…}, failure {"error":"CODE",
- *    "errorMessage":"…in Bulgarian…","response":null}, so the HTTP code decides nothing and unwrap()
- *    decides everything.
- *  - The account decides what the courier will accept. PPP (postalMoneyOrder) is silently DROPPED -
- *    priced at 0.00, no error, no flag - on an account whose /getclientaddresses says
- *    allowedPostalMoneyOrder "0". A waybill built on that answer would travel with no money to
- *    collect, so it is refused here instead (see ppp_allowed()).
- *
- * Measured prices, Sofia -> Sofia, 1 kg parcel, sender pays by account (EUR, GROSS - their price
- * includes VAT; see parse_price()):
- *   office -> office 4.5885 | office -> door 5.4389 | door -> door 6.5150
- * So `deliveryType` - which encodes BOTH ends of the journey - moves the price by 40%, which is why
- * the sender's end is a setting and not an assumption. Sofia -> Varna quoted identically to
- * Sofia -> Sofia: the tariff is by zone, and both are zone 1.
- */
+/** Evropat (Evropat-2000, Bulgaria) courier adapter: every answer is HTTP 200, the `error` node decides. */
 class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interface {
     const BASE = 'https://api.evropat.com';
 
-    /** Their public tracking page. Takes no waybill - see tracking_url(). */
+    /** Public tracking page; it cannot be deep-linked. */
     const TRACK_URL = 'https://evropat.bg/track/';
 
-    /** Their `deliveryType`, keyed [sender end][recipient end]. 1..4 = office-office, office-door,
-     *  door-office, door-door. */
+    /** Their `deliveryType`, keyed [sender end][recipient end]. */
     const DELIVERY_TYPE = [
         'office' => ['office' => 1, 'address' => 2],
         'door'   => ['office' => 3, 'address' => 4],
     ];
 
-    /** `shipmentType`: 1 documents in an A4 envelope, 2 one or more parcels, 3 a pallet. A shop ships 2. */
+    /** `shipmentType`: 1 documents, 2 parcels, 3 pallet. */
     const SHIPMENT_PARCEL = 2;
 
-    /** Their own volumetric divisor, from the module manual: width x length x height (cm) / 6000. */
     const VOLUMETRIC_DIVISOR = 6000;
 
-    /** @var string The one credential this courier has: an API key generated in the merchant's cabinet. */
     private $key;
 
     public function __construct(array $config) {
-        // The plugin's credential pair is username+password; Evropat issues ONE key and no username,
-        // so it lives in the password slot (encrypted at rest) and credential_fields() tells the rest
-        // of the plugin not to ask for the other half.
+        // Evropat issues one key and no username, so it lives in the password slot.
         $this->key = (string) ($config['password'] ?? '');
     }
 
     public function id(): string { return 'evropat'; }
     public function label(): string { return 'Европът'; }
 
-    /**
-     * No lockers, and that is a fact about Bulgaria rather than about the courier.
-     *
-     * Their API does have them - /get-boxes, and `deliveryType` 5 and 6 deliver to one - but
-     * /getcountries answers `countryBoxDeliveryAvailable: "0"` for BG, so there is nothing to offer
-     * here. The day that flag turns to "1", 'automat' belongs in this list and box_delivery() below is
-     * what should decide it.
-     */
+    /** No lockers: /getcountries answers countryBoxDeliveryAvailable "0" for BG. */
     public function capabilities(): array { return ['address', 'office', 'live_quote', 'pickup']; }
 
-    /** One key, no username - so the settings tab asks for one field and creds_present() checks one. */
     public function credential_fields(): array { return ['password']; }
 
-    /** How a merchant gets these credentials - shown on the settings tab; see BGCouriers_Abstract_Courier::credential_hint(). */
     public function credential_hint(): array {
         return [
             'intro' => __('Европът issues the API key to you - you generate it yourself in your own online cabinet, without waiting on anybody.', 'bg-couriers'),
@@ -94,31 +51,13 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     // ── The envelope ─────────────────────────────────────────────────────────
 
-    /**
-     * The `response` of a successful answer, or an exception carrying what the courier objected to.
-     *
-     * A refusal arrives as HTTP 200 with an `error` code, so a caller that trusted the HTTP code would
-     * read their "invalid locality" error as an empty success and quote a price of nothing.
-     *
-     * @throws BGCouriers_Api_Exception
-     */
+    /** The `response` of a successful answer; a refusal is HTTP 200 with an `error` code. */
     public static function unwrap(array $resp): array {
         $d = self::payload($resp);
         return is_array($d) ? $d : [];
     }
 
-    /**
-     * The same, WITHOUT flattening the answer to an array.
-     *
-     * /testclientkey answers with a bare boolean, and it is the one endpoint whose entire job is saying
-     * whether the key works. Casting that to an array throws the answer away - which is how a dead key
-     * would have validated green: an invalid key is not an error here, it is `{"error":null,
-     * "response":false}` (measured 2026-08-31), and their own error list for that endpoint has no
-     * INVALID_CLIENT_KEY in it while every other endpoint's does.
-     *
-     * @return mixed
-     * @throws BGCouriers_Api_Exception
-     */
+    /** The same without casting to array: /testclientkey answers a bare boolean. @return mixed */
     public static function payload(array $resp) {
         $err = trim((string) ($resp['error'] ?? ''));
         if ($err !== '') {
@@ -130,16 +69,11 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     // ── Calling ──────────────────────────────────────────────────────────────
 
-    /** Transient key for this account, so two shops on one host never share a cache. */
+    /** Transient key per account. */
     private function ckey(string $what): string {
         return 'bgcouriers_ev_' . $what . '_' . substr(md5($this->key), 0, 12);
     }
 
-    /**
-     * One call, unwrapped. The key goes on every request - there is no session and no token.
-     *
-     * @throws BGCouriers_Api_Exception
-     */
     protected function call(string $path, array $body = []): array {
         if ($this->key === '') {
             /* translators: %s: courier name. */
@@ -148,36 +82,22 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return self::unwrap($this->post_json(self::BASE . $path, array_merge(['clientKey' => $this->key], $body)));
     }
 
-    /**
-     * Does this key work? Their answer is a boolean, and only a boolean true is a yes.
-     *
-     * Deliberately not routed through call(): that returns an array, and this endpoint's whole answer
-     * is the scalar it would discard.
-     */
+    /** Only a boolean true is a yes; not routed through call(), which would discard the scalar. */
     public function check_credentials(): bool {
         if ($this->key === '') { return false; }
-        // A dead key answers {"error":null,"response":false} - no words, so false; a transport failure
-        // or an error node is thrown with its reason, for the screen.
         return self::payload($this->post_json(self::BASE . '/testclientkey', ['clientKey' => $this->key])) === true;
     }
 
     // ── Nomenclature ─────────────────────────────────────────────────────────
 
-    /**
-     * Every town, in one call. `limit: -1` turns their default 20-row cap off - documented, and the only
-     * way to get the whole list; there is no paging here.
-     */
+    /** `limit: -1` turns their default 20-row cap off; there is no paging. */
     public function fetch_cities(string $country = ''): array {
         self::assert_home($country);
         return self::parse_cities($this->call('/getdestinations', ['limit' => -1]));
     }
 
     /**
-     * Towns -> framework rows.
-     *
-     * `destinationServicingOfficeID` is the office that serves the town, which is what makes an office
-     * delivery possible for a town with no counter of its own - it is kept so resolve_office() has
-     * something to fall back to rather than refusing the delivery.
+     * Towns -> framework rows; office_id is the office serving the town, for towns with no counter.
      *
      * @return array<int,array{city_id:int,name:string,post_code:string,region:string,office_id:int}>
      */
@@ -199,7 +119,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $out;
     }
 
-    /** Every office in the country in one call, filtered here - there is no per-town office endpoint. */
+    /** Every office in one call, filtered here; there is no per-town endpoint. */
     public function fetch_offices(int $city_id, string $country = ''): array {
         self::assert_home($country);
         $rows = self::parse_offices($this->call('/getoffices', ['limit' => -1]));
@@ -210,8 +130,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * Offices -> framework rows. Every one of them is a counter with a person behind it: this courier
-     * has no lockers in Bulgaria, so nothing here is ever an 'automat'.
+     * Offices -> framework rows; no lockers here, so nothing is ever an 'automat'.
      *
      * @return array<int,array{office_id:int,code:string,city_id:int,type:string,name:string,address:string,lat:float,lng:float}>
      */
@@ -240,20 +159,11 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $out;
     }
 
-    /**
-     * A street must come from their list.
-     *
-     * /getaddresses hands back an `addressID` per street, and the waybill takes that id. A typed street
-     * is not a street this courier knows, and the refusal would arrive at the packing table hours after
-     * the customer has gone - the same fault Express One taught us.
-     */
+    /** The waybill takes an addressID; a typed street is refused. */
     public function street_list_only(): bool { return true; }
 
     /**
-     * A town's whole street list, kept for a day.
-     *
-     * Their search takes a `prefix`, but the checkout filters as the customer types and a request per
-     * keystroke is a request per keystroke. One town, one download, one day.
+     * A town's whole street list, cached for a day.
      *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
@@ -267,11 +177,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * Streets -> the shape the checkout's street box reads.
-     *
-     * `address` is the street on its own and `addressFull` carries their type prefix ("ul.", "zh.k."),
-     * which is what a customer recognises - so the prefix is what is shown and the bare name is what is
-     * matched on.
+     * Streets -> the checkout's rows; `addressFull` carries the type prefix, `address` is the bare name.
      *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
@@ -293,11 +199,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $out;
     }
 
-    /**
-     * Streets of one town matching what the customer has typed so far.
-     *
-     * @return array<int,array{id:int,name:string,type:string,label:string}>
-     */
+    /** @return array<int,array{id:int,name:string,type:string,label:string}> */
     public function search_streets(int $city_id, string $term, string $country = ''): array {
         self::assert_home($country);
         if ($city_id <= 0) { return []; }
@@ -310,18 +212,12 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return array_slice($hits, 0, 50);
     }
 
-    /**
-     * The street id for a street written on an order, plus whether the town has more than one of them.
-     *
-     * @return array{id:int,label:string,ambiguous:bool}
-     */
+    /** @return array{id:int,label:string,ambiguous:bool} */
     public function street_match(int $city_id, string $name, string $type = '', int $street_id = 0): array {
         $want = self::fold($name);
         if ($city_id <= 0 || ($want === '' && $street_id <= 0)) { return ['id' => 0, 'label' => '', 'ambiguous' => false]; }
         $rows = $this->streets_of($city_id);
-        // The street's own id off this list, recorded by the checkout since the pick started being kept:
-        // Sofia has four "витоша" (бул., кв., ул., жк.) and the id says which. An id that is not on
-        // this town's list is ignored and the name decides, as it did for every order before.
+        // The checkout's own street id wins; one not on this town's list is ignored and the name decides.
         if ($street_id > 0) {
             foreach ($rows as $s) {
                 if ((int) $s['id'] === $street_id && ($want === '' || self::fold($s['name']) === $want)) {
@@ -329,18 +225,13 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
                 }
             }
         }
-        // The name as written, the label as written, or the name with its type taken off the front
-        // ("булевард Витоша" off the map is "бул. витоша" here) - see BGCouriers_Street::exact().
         $exact = BGCouriers_Street::exact($rows, $name);
-        // Several of that name and a type to choose by ("ул" and "ул." are one type - the dot is the
-        // list's habit): keep the ones of that type.
         if (count($exact) > 1 && trim($type) !== '') {
             $of_type = array_values(array_filter($exact, static function ($s) use ($type) { return BGCouriers_Street::same_type((string) $s['type'], $type); }));
             if ($of_type) { $exact = $of_type; }
         }
         if (!$exact) {
-            // Nothing spelled exactly that; fall back to the single street that CONTAINS it, if there is
-            // exactly one - two would be a guess about where somebody's parcel goes.
+            // Fall back to the single street that contains the name; two would be a guess.
             $near = $this->search_streets($city_id, BGCouriers_Street::split($name)['name']);
             if (count($near) !== 1) { return ['id' => 0, 'label' => '', 'ambiguous' => false]; }
             $exact = $near;
@@ -348,13 +239,13 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return ['id' => (int) $exact[0]['id'], 'label' => (string) $exact[0]['label'], 'ambiguous' => count($exact) > 1];
     }
 
-    /** Case and spacing are not part of a street's identity; their own list is not consistent about either. */
+    /** Case and spacing are not part of a street's identity. */
     private static function fold(string $s): string {
         $s = trim(preg_replace('/\s+/u', ' ', $s));
         return function_exists('mb_strtolower') ? mb_strtolower($s, 'UTF-8') : strtolower($s);
     }
 
-    /** Bulgaria only: delivery abroad is switched off plugin-wide, and their international waybill is a separate endpoint. */
+    /** Bulgaria only; their international waybill is a separate endpoint. */
     private static function assert_home(string $iso): void {
         $c = strtoupper(trim($iso));
         if ($c !== '' && $c !== 'BG') {
@@ -366,13 +257,9 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     // ── The sender ───────────────────────────────────────────────────────────
 
     /**
-     * The account's own sending addresses, for the "send parcels from" setting.
+     * The account's sending addresses for the "send parcels from" setting; cached for a day.
      *
-     * One of these is what fills the sender half of every waybill: `senderFileID` carries the town, the
-     * address, the name, the phone, the client number and the payment way in one field, so a merchant
-     * picks a line here instead of retyping six. Cached for a day - it changes when their contract does.
-     *
-     * @return array<int,string> fileID => a line a human can pick out.
+     * @return array<int,string> fileID => label.
      */
     public function sender_files(): array {
         $k = $this->ckey('senders');
@@ -381,7 +268,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         $out = [];
         foreach ($this->client_addresses() as $a) {
             $id = (int) ($a['fileID'] ?? 0);
-            // fileID -1 is the account's registered address, which is a real, usable choice.
+            // fileID -1 is the account's registered address, a real choice.
             if (!isset($a['fileID'])) { continue; }
             $firm = trim((string) ($a['firmName'] ?? ''));
             $addr = trim((string) ($a['address'] ?? ''));
@@ -391,7 +278,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $out;
     }
 
-    /** The raw client-address records, cached for a day. @return array<int,array<string,mixed>> */
+    /** @return array<int,array<string,mixed>> */
     private function client_addresses(): array {
         $k = $this->ckey('senderrows');
         $c = get_transient($k);
@@ -401,7 +288,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $rows;
     }
 
-    /** The chosen sending address, or the first one the account has. @return array<string,mixed> */
+    /** @return array<string,mixed> */
     private function sender_record(): array {
         $want = get_option('bgcouriers_evropat_sender_file', '');
         $rows = $this->client_addresses();
@@ -413,42 +300,25 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $rows ? $rows[0] : [];
     }
 
-    /**
-     * Is this account allowed to collect money as PPP, the Bulgarian postal money order?
-     *
-     * Their API does not refuse a PPP it cannot do - it prices it at 0.00 and books the shipment without
-     * one (measured: postalMoneyOrder 50 came back with pppPrice 0.00000 and the same total as a
-     * shipment collecting nothing). So the account's own answer is the only thing that knows, and it is
-     * read here rather than hardcoded: another shop's Evropat account may well have PPP switched on,
-     * since they activate it per account on request.
-     */
+    /** A PPP the account may not do is priced at 0.00 and silently dropped, so the account flag decides. */
     public function ppp_allowed(): bool {
         $rec = $this->sender_record();
         return (string) ($rec['allowedPostalMoneyOrder'] ?? '0') === '1';
     }
 
-    /** The town the parcel is sent FROM - one half of every price this courier quotes. */
     private function sender_dest_id(): int {
         return (int) ($this->sender_record()['destinationID'] ?? 0);
     }
 
-    /** The account's client number (e.g. E1862XX), required whenever the sender pays against the account. */
     private function client_number(): string {
         return trim((string) ($this->sender_record()['clientNumber'] ?? ''));
     }
 
-    /** Which end the parcel starts at: the merchant drops it at a counter, or a courier collects it. */
     public static function sender_end(): string {
         return get_option('bgcouriers_evropat_sender_end', 'office') === 'door' ? 'door' : 'office';
     }
 
-    /**
-     * Their `deliveryType`, which encodes BOTH ends of the journey in one number.
-     *
-     * This is the field that makes a sender-end setting necessary rather than decorative: the same 1 kg
-     * parcel to Sofia was quoted 4.59 office-to-office and 6.52 door-to-door, so a shop that hands its
-     * parcels over at a counter and is quoted for a collection overcharges every customer it has.
-     */
+    /** `deliveryType` encodes both ends of the journey, so the sender end is a setting. */
     public static function delivery_type(string $method): int {
         $to = ($method === 'address') ? 'address' : 'office';
         return self::DELIVERY_TYPE[self::sender_end()][$to];
@@ -461,21 +331,11 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return self::parse_price($data, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
 
-    /**
-     * What to ask a price for.
-     *
-     * `fromDestID` and `clientNumber` are both absent from their published parameter list and both are
-     * refused when missing - the first always, the second whenever `method` is 1. Sending the money to
-     * be collected is not optional either: a 50 EUR collection cost 0.61 and lifted the fuel surcharge
-     * with it (the surcharge is a percentage of the whole service, not of the base rate), so a quote
-     * without it is a quote the shop pays the difference on. That was the 0.3.6 fault, for every courier.
-     */
+    /** `fromDestID` and `clientNumber` are unlisted in their docs but refused when missing; the COD amount changes the price. */
     public function build_calculate_body(array $s): array {
         $method = (string) ($s['method'] ?? 'address');
         $payer  = ((string) ($s['payer'] ?? '')) === 'recipient' ? 2 : 1;
         $client = $this->client_number();
-        // Payment method: against the account's invoice when the SENDER pays and there is an account to
-        // bill, cash otherwise - the recipient at the door has no client number to charge.
         $pay_by_account = ($payer === 1 && $client !== '');
         $body = [
             'fromDestID'   => $this->sender_dest_id(),
@@ -490,22 +350,13 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         if ($pay_by_account) { $body['clientNumber'] = $client; }
         $cod = round((float) ($s['cod_amount'] ?? 0), 2);
         if ($cod > 0) {
-            // A PPP and a plain COD are mutually exclusive here ("When this is passed COD is not allowed!"),
-            // and
-            // which one this is depends on how the SHOP fiscalises its cash - and on whether the account
-            // may do a PPP at all.
+            // PPP and plain COD are mutually exclusive here.
             $body[$this->cod_field()] = $cod;
         }
         return $body;
     }
 
-    /**
-     * Whether the money is collected as a PPP (a postal money order) or as plain cash on delivery.
-     *
-     * PPP only when the shop asked for it AND the account can actually do one. Without the second half
-     * the amount is accepted, priced at nothing and quietly dropped, and the parcel goes out with no
-     * money to collect.
-     */
+    /** PPP only when the shop asked for it AND the account may do one; otherwise the amount is silently dropped. */
     private function cod_field(): string {
         $ppp = class_exists('BGCouriers_Settings')
             && BGCouriers_Settings::cod_fiscalization() === 'ppp'
@@ -513,13 +364,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return ($ppp && $this->ppp_allowed()) ? 'postalMoneyOrder' : 'cashOnDelivery';
     }
 
-    /**
-     * The weight this courier charges on: the greater of what the parcel weighs and what it displaces.
-     *
-     * Their tariff weight is volumetric where volume rules - width x length x height / 6000, from their
-     * own module manual - and the API takes ONE `weight`. Sending only the real weight quotes a big
-     * light parcel at a price the invoice will not match, so the larger of the two is what is asked for.
-     */
+    /** The greater of real and volumetric weight; the API takes ONE `weight`. */
     public static function tariff_weight(array $s): float {
         $real = (float) ($s['weight_kg'] ?? 1);
         $dims = class_exists('BGCouriers_Settings') ? BGCouriers_Settings::box_dims() : [];
@@ -533,26 +378,8 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * Their total, in the currency the shop sells in, with the VAT taken back out of it.
-     *
-     * Two separate traps live in this one answer.
-     *
-     * **The currency.** The same figure comes back twice - `price` in `mainCurrency` and
-     * `priceSecondCurrency` in `secondCurrency` - and which of the two is EUR belongs to the ACCOUNT,
-     * not to us: this account answers EURO/BGN while their own documented example answers BGN/EURO.
-     * Reading `price` blindly is a 1.95583x error waiting for the first shop set up the other way.
-     *
-     * **The tax.** Their price is GROSS, and nothing in the API says so - there is not one mention of
-     * VAT in any request, response, example or error, and `price` is the exact sum of the parts listed
-     * beside it (3.313 service + 1.27551 fuel = 4.5885), which reads exactly like a net total. The
-     * printed waybill is what settles it: its price block is headed **"price with VAT"** and its
-     * total is that same 4.59 EUR - the amount the payer actually hands over at the door (waybill
-     * 9107785603, 2026-08-31). Every quote in this plugin is net, because the rate is added with
-     * `taxes => ''` and WooCommerce puts the shipping tax on top; passing this figure through would tax
-     * it twice, which is the fault 0.3.5 shipped and had to fix for the whole plugin.
-     *
-     * The split uses the shop's own shipping tax rates - the very ones WooCommerce is about to re-add -
-     * so the round trip is exact whatever the shop's tax setup, including no shipping tax at all.
+     * Their total, net of VAT. Which of price/priceSecondCurrency is EUR depends on the account,
+     * and the price is GROSS although nothing in the API says so.
      */
     public static function parse_price(array $data, string $currency): BGCouriers_Quote {
         $want   = strtoupper(trim($currency));
@@ -570,7 +397,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return new BGCouriers_Quote($net, $tax, $currency, 'live');
     }
 
-    /** Their word for the currency to an ISO code - they write EURO where the world writes EUR. */
+    /** They write EURO where ISO writes EUR. */
     private static function iso_currency(string $c): string {
         $c = strtoupper(trim($c));
         return $c === 'EURO' ? 'EUR' : $c;
@@ -596,8 +423,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
                     __('More than one street in this town is called that; the parcel goes to "%s".', 'bg-couriers'), $hit['label']);
             }
         }
-        // Said out loud rather than discovered on the invoice: the shop asked for a PPP, the account
-        // cannot do one, and the API would take the amount and drop it.
+        // The shop asked for a PPP the account cannot do: say so rather than let the API drop it.
         if ($s['cod_amount'] > 0 && $this->cod_field() === 'cashOnDelivery'
             && class_exists('BGCouriers_Settings') && BGCouriers_Settings::cod_fiscalization() === 'ppp'
             && BGCouriers_Settings::courier_ppp_payout('evropat')) {
@@ -607,11 +433,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return self::parse_created($data, $problems);
     }
 
-    /**
-     * What the order says about where its parcel is going, in the keys the body builder reads.
-     *
-     * @return array<string,mixed>
-     */
+    /** @return array<string,mixed> */
     private function shipment_of(\WC_Order $order): array {
         $payer = self::service_payer('evropat', $order);
         $sid   = (int) $order->get_meta('_bgcouriers_site_id');
@@ -621,7 +443,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
             'office_id'    => (int) $order->get_meta('_bgcouriers_office_id'),
             'office_name'  => self::office_line((int) $order->get_meta('_bgcouriers_office_id')),
             'street'       => (string) $order->get_meta('_bgcouriers_street_name'),
-            'street_type'  => (string) $order->get_meta('_bgcouriers_street_type'), // which street of that name, when chosen off the list
+            'street_type'  => (string) $order->get_meta('_bgcouriers_street_type'),
             'street_id'    => (int) $order->get_meta('_bgcouriers_street_id'),
             'street_no'    => (string) $order->get_meta('_bgcouriers_street_no'),
             'weight_kg'    => self::order_weight_kg($order),
@@ -632,17 +454,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         ];
     }
 
-    /**
-     * The shipment as Evropat wants it.
-     *
-     * `senderFileID` does the work of six fields: their own note on it is that it "actually fills the
-     * following parameters when they are not passed: senderDestID, senderAddress, senderName,
-     * senderPhone, senderFirm, clientNumber, paymentWay". So the sender half of the waybill is the
-     * merchant's chosen address from their own cabinet, not something this plugin retypes.
-     *
-     * @param array          $s     The shipment (see shipment_of()).
-     * @param \WC_Order|null $order The order, when there is one - only its recipient details are read.
-     */
+    /** `senderFileID` fills senderDestID, senderAddress, senderName, senderPhone, senderFirm, clientNumber and paymentWay. */
     public function build_shipment_body(array $s, ?\WC_Order $order = null): array {
         $method = (string) ($s['method'] ?? 'address');
         $body = [
@@ -652,9 +464,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
             'shipmentType'        => self::SHIPMENT_PARCEL,
             'paymentWay'          => self::payment_way((string) ($s['payer'] ?? 'sender')),
             'shipmentDescription' => BGCouriers_Settings::shipment_contents(),
-            // NOT `weight`. /calculateprice takes `weight`; this one takes `shipmentWeight`, and its
-            // published parameter list does not mention a weight field at all - the API refuses without
-            // one (INVALID_SHIPMENT_WEIGHT, measured 2026-08-31).
+            // `shipmentWeight` here, not `weight` as on /calculateprice.
             'shipmentWeight'      => self::tariff_weight($s),
             'parcelCount'         => max(1, min(10, (int) ($s['parcels'] ?? 1))),
             'shipmentMoreInfo'    => (string) ($s['order_number'] ?? ''),
@@ -673,8 +483,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         }
         if ($method !== 'address') {
             $body['recipientOfficeID'] = (int) ($s['office_id'] ?? 0);
-            // Their own warning: with an office delivery type the recipient address is replaced by the
-            // office's. It is still required, so it is sent as the office it is going to.
+            // recipientAddress is required even for an office delivery; their side replaces it with the office's.
             $body['recipientAddress'] = (string) ($s['office_name'] ?? 'офис');
         } else {
             $body['recipientAddress']       = trim((string) ($s['street'] ?? ''));
@@ -686,11 +495,9 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
             $field = $this->cod_field();
             $body[$field] = $cod;
             if ($field === 'cashOnDelivery') {
-                // Their direction is mandatory and it is not a default worth trusting: 0 collects from
-                // the recipient and pays the sender, which is the only direction a shop ever wants.
+                // 0 = collect from the recipient, pay the sender.
                 $body['cashOnDeliveryDirection'] = 0;
             }
-            // One promise made at the checkout, kept on the waybill.
             if (in_array(get_option('bgcouriers_open_before_pay', 'no'), ['open', 'test'], true)) {
                 $body['allowShipmentCheck'] = true;
             }
@@ -698,20 +505,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $body;
     }
 
-    /**
-     * Their `paymentWay`: who pays the courier, and how.
-     *
-     * 1 sender/cash, 2 recipient/cash, 3 sender/account, 4 recipient/account, 5 third party/account.
-     * A shop billed on contract pays against its client number; a recipient paying at the door pays
-     * cash, because the door has no account to charge.
-     */
-    /**
-     * The office an office delivery is going to, as a line of text.
-     *
-     * `recipientAddress` is required whatever the delivery type, and with an office type their own note
-     * says the office's own data replaces it. Sending the synced office's name and address rather than
-     * the bare Bulgarian word for "office" costs nothing and means the field says something true if kept.
-     */
     private static function office_line(int $office_id): string {
         if ($office_id <= 0 || !class_exists('BGCouriers_Nomenclature')) { return 'офис'; }
         $o = BGCouriers_Nomenclature::office_by_id('evropat', $office_id);
@@ -725,10 +518,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * The created shipment.
-     *
-     * With `extendedResponse` it is an object carrying the whole waybill back; without it, a plain array
-     * of barcodes. Both shapes are read, because one of them is what a shop on an older account gets.
+     * The created shipment: an object with `extendedResponse`, a plain array of barcodes without.
      *
      * @param string[] $problems
      */
@@ -739,45 +529,16 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
             /* translators: %s: courier name. */
             throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%s sent no waybill number in its answer.', 'bg-couriers'), 'Европът')));
         }
-        // The label is a separate call here - /createshipment returns the record, not the document.
+        // The label is a separate call; /createshipment returns the record, not the document.
         return new BGCouriers_Label($waybill, '', $problems);
     }
 
-    /**
-     * No choice of paper, whatever their documentation says.
-     *
-     * `format` is documented as A4 / A6 / sticker. Measured on one waybill 2026-08-31: all three
-     * returned a link ending `format=A4`, and all three documents were the same 93819 bytes. The
-     * parameter is read and ignored, so a paper-size select on the settings tab would be a control that
-     * changes nothing - the kind of decoration the Express One audit went looking for. It is not sent.
-     */
+    /** `format` is read and ignored by their API, so no choice is offered. */
     public function label_formats(): array { return []; }
 
     /**
-     * The label, from an endpoint their documentation does not name correctly.
-     *
-     * The published Print_Document group calls it POST /print taking a `barcodes` ARRAY of up to 200.
-     * There is no /print - it answers SERVICE_NOT_FOUND - and the endpoint that does exist,
-     * `/printshipment`, reads a SINGLE `shipmentBarCode` (their capitalisation, the same as
-     * /getshipmenthistory uses). Both were found by reading the field name back out of the refusal:
-     * their errors echo the parameter the service actually looked at, which is how the spelling is
-     * knowable without guessing.
-     *
-     * Because it is one waybill per call, there is no native batch here - see has_native_batch().
-     */
-    /**
-     * The label, in two steps, and with a link that must not leave this method.
-     *
-     * /printshipment does NOT return the document: it returns its address, in the ordinary envelope -
-     * `{"error":null,"response":"https://api.evropat.com/printshipment?clientKey=…&barcode=…"}` - and
-     * that address is fetched here. Their success example says "Binary of PDF printout"; their own
-     * description one line above it says "get the URL of the PDF file", and the description is right.
-     *
-     * **That URL carries the account's API key in its query string.** It is fetched and dropped: never
-     * returned, never stored on the order, never logged, and never put in an exception message. A link
-     * that prints a waybill is a nuisance; a link that hands over the key to the whole account is not.
-     *
-     * @param string $format Ignored - see label_formats().
+     * /printshipment answers the PDF's URL, not the PDF, and that URL carries the API key:
+     * it is fetched here and never returned, stored or logged.
      */
     public function get_label_pdf(string $waybill, string $format = ''): string {
         $url = self::payload($this->post_json(self::BASE . '/printshipment', [
@@ -793,12 +554,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     // ── Cancelling ───────────────────────────────────────────────────────────
 
-    /**
-     * Void a waybill. Their answer is a bare `true` (measured 2026-08-31), so it is read rather than
-     * assumed - and a SECOND cancel of the same waybill is refused outright with INVALID_SHIPMENT_STATE
-     * rather than answering "already done". That refusal throws, which is why is_cancelled() below has
-     * to be able to tell "the courier would not touch it" from "the courier has already done it".
-     */
+    /** Their answer is a bare true; a second cancel is refused with INVALID_SHIPMENT_STATE, see is_cancelled(). */
     public function cancel_label(string $waybill): bool {
         return self::payload($this->post_json(
             self::BASE . '/cancelshipment',
@@ -806,13 +562,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         )) === true;
     }
 
-    /**
-     * Their own word for it, for the check that runs after a cancel the plugin is not sure about.
-     *
-     * 18 is the cancelled status in their nomenclature. A second cancel of an already-cancelled waybill
-     * refuses, and reading that refusal as "the courier did not cancel it" is how a merchant is told the
-     * wrong thing about a shipment that is gone - the fault fixed for Sameday in 0.3.6 and Speedy in 0.3.7.
-     */
+    /** 18 is the cancelled status; a second cancel refuses rather than saying "already done". */
     public function is_cancelled(string $waybill): bool {
         try {
             foreach ($this->history($waybill) as $e) {
@@ -829,12 +579,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * The parcel's history, with their status NAMES resolved back to numbers.
-     *
-     * /getshipmenthistory answers `{dateAndTime, stateName, additionalInformation}` and NO status id, so
-     * the only machine-readable handle on an event is the nomenclature: /shipment-statuses-nomenclature
-     * publishes id, name and description, and the history's `stateName` is the DESCRIPTION (the participle,
-     * "created") rather than the name (the verbal noun, "creation"). Both are indexed, so either resolves.
+     * The parcel's history, status names resolved to ids.
      *
      * @return array<int,array{code:int,name:string,date:string}>
      */
@@ -846,24 +591,17 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
             if (!is_array($e)) { continue; }
             $name = trim((string) ($e['stateName'] ?? ''));
             $more = trim((string) ($e['additionalInformation'] ?? ''));
-            // The live answer carries `statusID` even though their documented example does not, so the
-            // machine value is read straight off the event. The nomenclature is the fallback for an
-            // answer that omits it - the history's `stateName` is the nomenclature's DESCRIPTION
-            // (the participle) rather than its NAME (the verbal noun), so both spellings are indexed.
+            // statusID is on the live answer though not in their docs; stateName is the nomenclature's DESCRIPTION, not its NAME.
             $code = (int) ($e['statusID'] ?? 0);
             if ($code <= 0) { $code = (int) ($map[self::fold($name)] ?? 0); }
             $out[] = [
                 'code' => $code,
                 'name' => $more !== '' ? $name . ' - ' . $more : $name,
                 'date' => (string) ($e['dateAndTime'] ?? ''),
-                'seq'  => count($out),   // the order they arrived in, kept for the tie-break below
+                'seq'  => count($out),
             ];
         }
-        // Their timestamps collide: the test waybill's "created" and "cancelled from export" both read
-        // 2026-08-31 13:22:16, to the second. PHP's usort is not stable, so sorting on the date alone
-        // leaves two same-second events in an order that can differ between runs - and the last event is
-        // what decides the parcel's status wherever a terminal code is not involved. So equal timestamps
-        // fall back to the order the courier listed them in, which is the only other thing it tells us.
+        // Equal timestamps happen and usort is not stable, so fall back to arrival order.
         usort($out, static function ($a, $b) {
             return strcmp($a['date'], $b['date']) ?: ($a['seq'] <=> $b['seq']);
         });
@@ -871,8 +609,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * Their status vocabulary, folded name => id, cached for a day. Both the name and the description are
-     * indexed because the history quotes one and the nomenclature is keyed on the other.
+     * Folded status name => id, cached for a day; both name and description are indexed.
      *
      * @return array<string,int>
      */
@@ -895,13 +632,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     }
 
     /**
-     * What the history means.
-     *
-     * WHAT HAPPENED TO THE PARCEL OUTRANKS WHAT HAPPENED TO THE PAPERWORK, the rule Express One taught
-     * us: a delivered shipment can pick up later document events, and reading the newest one would file
-     * a parcel the customer is holding as something else. 19 (delivered on the round) and 10 (returned to
-     * the sender) are facts about the parcel, so either of them anywhere in the
-     * history is the verdict.
+     * A terminal parcel event (19 delivered, 10 returned) anywhere in the history outranks the newest event.
      *
      * @param array<int,array{code:int,name:string,date:string}> $events
      */
@@ -918,34 +649,12 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return new BGCouriers_Tracking($waybill, (string) ($found['name'] ?? ''), $events, $phase, null, true);
     }
 
-    /**
-     * Their public tracking page - which cannot be deep-linked, so it takes no waybill.
-     *
-     * evropat.bg/track/ has the lookup on it; evropat.com, which the API lives under, is the signed-in
-     * cabinet and shows nothing to anybody else. The form there is driven entirely by its own
-     * `ajaxCall()`: ?bCode=<waybill> changes nothing about what the page returns, so the number cannot
-     * ride in the URL the way it does for every other courier here.
-     *
-     * The link is still worth giving. Everywhere this appears - the order e-mail, the customer's order
-     * page - the waybill number is printed directly above it, so the number to paste is already in
-     * front of the person following the link.
-     */
+    /** Their public tracking page cannot be deep-linked, so the waybill is not in the URL. */
     public function tracking_url(string $waybill): string { return self::TRACK_URL; }
 
     // ── Collection ───────────────────────────────────────────────────────────
 
-    /**
-     * Ask a courier to come for the parcels.
-     *
-     * Their request is built around ONE waybill used as a template - `shipmentBarcode`, and their note
-     * that "when this parameter is passed, others optional parameters will not be used" - with the day
-     * and the window beside it. So the first waybill names the collection and the rest ride with it,
-     * which is how their own "request a courier" screen works.
-     *
-     * The cut-off is theirs and it is hard: after 17:30 on a full working day (12:00 on a short one) the
-     * request rolls to the next working day. The plugin does not try to be clever about that - it sends
-     * the date the merchant asked for and lets Evropat answer.
-     */
+    /** The first waybill names the collection and the rest ride with it. */
     public function request_pickup(array $waybills, array $opts): string {
         $codes = array_values(array_filter(array_map('strval', $waybills), static function ($w) { return $w !== ''; }));
         $body = [
@@ -956,15 +665,13 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         if ($date !== '') { $body['pickupDate'] = $date; }
         if ($codes) { $body['shipmentBarcode'] = $codes[0]; }
         $d = $this->call('/createcourierrequest', $body);
-        // Whatever they call the request; an empty answer is still a request they accepted, since a
-        // refusal arrives as an error and throws.
+        // An empty answer is still accepted; a refusal throws.
         foreach (['requestID', 'requestId', 'id', 'courierRequestID'] as $k) {
             if (!empty($d[$k])) { return (string) $d[$k]; }
         }
         return isset($d[0]) && is_scalar($d[0]) ? (string) $d[0] : '';
     }
 
-    /** The sending address is the one setting nothing else can stand in for. */
     public function enable_problems(): array {
         $problems = parent::enable_problems();
         if (trim((string) get_option('bgcouriers_evropat_sender_file', '')) === '') {

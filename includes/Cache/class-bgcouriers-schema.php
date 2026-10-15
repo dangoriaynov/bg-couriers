@@ -2,16 +2,7 @@
 defined('ABSPATH') || exit;
 
 class BGCouriers_Schema {
-    /**
-     * The tables the plugin owns. dbDelta is idempotent, so this doubles as the upgrade path (see the
-     * db-version check in bg-couriers.php).
-     *
-     * `country` (ISO-3166 alpha-2) filters the towns and offices a checkout may show; it is NOT part of
-     * any identity. A courier's own ids stay unique across countries on their own - Speedy prefixes a
-     * Romanian site id with the country id (642xxxxxxx) - so `UNIQUE KEY (courier, city_id)` and
-     * `(courier, office_id)` still hold, and every row that existed before this column is Bulgarian,
-     * which is exactly what the DEFAULT gives it.
-     */
+    /** The tables the plugin owns; dbDelta is idempotent, so this is also the upgrade path. */
     public static function create(): void {
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -69,16 +60,7 @@ class BGCouriers_Schema {
         self::retire_index($p . 'bgcouriers_standard_rates', 'courier_method');
     }
 
-    /**
-     * Drop an index this schema no longer describes.
-     *
-     * dbDelta adds what is missing and never removes what is not: given the table above it creates
-     * `courier_method_zone` and leaves the old `UNIQUE KEY (courier, method)` in place - which is the one
-     * key that makes the new one pointless, because it still allows a single row per courier and method.
-     * The second zone's price would replace the first zone's on every seeding run, silently, and the
-     * checkout would read back whichever zone was quoted last. Every row that predates the `zone` column
-     * takes its DEFAULT, 'country', which is what those figures were: quoted against a town outside Sofia.
-     */
+    /** dbDelta never drops an index, so a retired UNIQUE KEY has to go explicitly or it still forces one row per courier and method. */
     private static function retire_index(string $table, string $index): void {
         global $wpdb;
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.SchemaChange -- schema work on our own table; names are literals from this file

@@ -1,13 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-/**
- * The hover hints (data-tip): on the admin order screen, in the orders list, and beside the courier
- * rates on the cart and the checkout.
- *
- * One bubble on <body>, positioned in JS - see assets/js/bgc-tip.js for why it is not CSS any more.
- * Every screen enqueues through here so they never drift apart again.
- */
+/** The hover hints (data-tip); every screen enqueues them through here. */
 class BGCouriers_Tips {
     public static function enqueue(): void {
         $css = BGCOURIERS_PATH . 'assets/css/bgc-tip.css';

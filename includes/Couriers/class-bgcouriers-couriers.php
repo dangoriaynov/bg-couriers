@@ -1,8 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-/** Registry of couriers. Resolves the `bgcouriers_courier` filter so the rest of the plugin
- *  fetches a courier by id without knowing the concrete class. */
+/** Registry of couriers, resolved through the `bgcouriers_courier` filter. */
 final class BGCouriers_Couriers {
     /** @var array<string,array{label:string,factory:callable}> */
     private static $defs = [];
@@ -10,8 +9,7 @@ final class BGCouriers_Couriers {
     private static $built = [];
     private static $booted = false;
 
-    /** Register a courier. Re-registering the same id overrides it (last wins) - intentional, so a
-     *  site can swap in its own implementation of a courier. */
+    /** Re-registering an id overrides it (last wins), so a site can swap in its own implementation. */
     public static function register(string $id, string $label, callable $factory): void {
         self::$defs[$id] = ['label' => $label, 'factory' => $factory];
     }
@@ -29,11 +27,7 @@ final class BGCouriers_Couriers {
 
     public static function reset(): void { self::$defs = []; self::$built = []; self::$booted = false; }
 
-    /**
-     * Bundled brand-logo filename for a courier - assets/img/couriers/<id>.svg, else <id>.png - or ''
-     * when neither file is there. Read off the directory rather than off a list: a logo is added by
-     * dropping the file in, and a list here was one more place the eighth courier had to be told about.
-     */
+    /** Bundled logo filename (assets/img/couriers/<id>.svg, else .png), or '' when there is none. */
     public static function logo_file(string $id): string {
         if (!defined('BGCOURIERS_PATH') || preg_match('/[^a-z0-9_-]/', $id)) { return ''; }
         foreach (['svg', 'png'] as $ext) {
@@ -42,14 +36,12 @@ final class BGCouriers_Couriers {
         return '';
     }
 
-    /** Public URL of a courier's bundled logo, or '' when there is no readable file. */
     public static function logo_url(string $id): string {
         $f = self::logo_file($id);
         if ($f === '' || !defined('BGCOURIERS_URL')) { return ''; }
         return BGCOURIERS_URL . 'assets/img/couriers/' . $f;
     }
 
-    /** Wire the resolver hook once, at boot (idempotent - safe to call more than once). */
     public static function boot(): void {
         if (self::$booted) { return; }
         self::$booted = true;
