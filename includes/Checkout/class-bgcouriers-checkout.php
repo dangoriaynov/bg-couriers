@@ -2,114 +2,54 @@
 defined('ABSPATH') || exit;
 
 class BGCouriers_Checkout {
-    /**
-     * Shipping-method id prefix. Rate ids look like "bgcouriers_speedy:12", and the courier id is what
-     * follows it. NEVER hardcode the offset: it used to be substr($id, 4) for the old "bgc_" prefix, and
-     * when the prefix was renamed the number stayed behind - every rate then resolved to a courier that
-     * does not exist, and the checkout lost all of its shipping methods.
-     */
+    /** Shipping-method id prefix; the courier id is what follows it in a rate id like "bgcouriers_speedy:12". */
     const METHOD_PREFIX = 'bgcouriers_';
-    /** Length of METHOD_PREFIX, for substr() offsets. */
     private const PREFIX_LEN = 11;
 
-    /**
-     * What WooCommerce itself called each shipping package, noted before any other plugin has had a say.
-     *
-     * Recognising WooCommerce's own heading used to mean asking the WooCommerce catalogue for it from
-     * here, with its msgids kept in variables so they would not be extracted into this plugin's own
-     * catalogue. WordPress.org's scanner rejects both halves of that, and rightly: a plugin translates
-     * its own strings, not its neighbour's, and a translation call takes a literal. None of it is needed.
-     * The heading arrives at the filter already rendered in the site's language, so the plugin notes what
-     * arrived first and compares against that - which is also more honest, since it recognises the real
-     * default whatever the locale, WooCommerce version or wording.
-     *
-     * @var array<int,string>
-     */
+    /** @var array<int,string> What WooCommerce itself called each shipping package, before any other plugin had a say. */
     private $wc_package_names = [];
 
     public function __construct() {
         add_action('woocommerce_after_shipping_rate', [$this, 'render_fields'], 10, 2);
         add_action('woocommerce_review_order_before_shipping', [$this, 'render_allmap_button']);
-        // An empty anchor after the billing fields - the phone is the last of them on a shop using the
-        // plugin's own address fields. Printed only for the setting that asks for it, and filled by the
-        // browser, so a shop that leaves the block with the order review gets no extra markup at all.
         add_action('woocommerce_after_checkout_billing_form', [$this, 'render_delivery_host'], 5);
         add_action('wp_enqueue_scripts', [$this, 'assets']);
         add_action('woocommerce_after_checkout_validation', [$this, 'validate'], 10, 2);
         add_action('woocommerce_checkout_create_order', [$this, 'persist'], 10, 1);
-        // The delivery type onto the order's own shipping line. persist() cannot do it: it runs on
-        // woocommerce_checkout_create_order, and WooCommerce adds the shipping items after that.
+        // persist() runs before WooCommerce adds the shipping items, so the shipping line is named here.
         add_action('woocommerce_checkout_create_order_shipping_item', [$this, 'name_shipping_item'], 10, 4);
         add_filter('woocommerce_cart_shipping_packages', [$this, 'package_hash']);
         add_filter('woocommerce_package_rates', [$this, 'sort_rates'], 20);
-        // Two ends of the same filter: the first note what WooCommerce itself called the package, the
-        // second decides. The pair has to BRACKET every other listener - a plugin renaming the package
-        // below our recorder would have its name recorded as WooCommerce's and then removed - so the
-        // priorities are the extremes rather than a comfortable 1 and 999. See package_name() for why
-        // nothing here translates anything.
+        // The pair must bracket every other listener on this filter, hence the extreme priorities.
         add_filter('woocommerce_shipping_package_name', [$this, 'capture_package_name'], PHP_INT_MIN, 3);
         add_filter('woocommerce_shipping_package_name', [$this, 'package_name'], PHP_INT_MAX, 3);
-        add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']); // shipping estimate on the cart page
-        // Hide WC's generic cart shipping calculator (Country/Region/City/Postcode): it prices a delivery
-        // to a postcode, while every rate here is priced to the office, automat or street address the
-        // customer picks at checkout. The calculator is gated by an OPTION rather than a filter, so it is
-        // short-circuited; a CSS net (added inline in assets()) covers themes (e.g. Shoptimizer) that
-        // render it from a custom template regardless. Both ask the setting, not the constructor: a
-        // store that unticks it gets WooCommerce's calculator back on the very next page load.
+        add_action('woocommerce_after_cart_totals', [$this, 'cart_estimate']);
         add_filter('pre_option_woocommerce_enable_shipping_calc', [$this, 'hide_calculator_option']);
-        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_price_label'], 4, 2);     // "delivery not in the total": estimate instead of a price
-        add_filter('woocommerce_get_order_item_totals', [$this, 'order_shipping_row'], 10, 2);              // the same figure on the order, the e-mail and My account
-        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'logo_shipping_label'], 5, 2);  // courier brand logo before the name
-        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_tip_label'], 30, 2);      // (i) hover hint LAST, so the row stays one short line
-        // Our own delivery fields ARE the address, so WooCommerce's are dropped - unless the store also
-        // ships some other way and needs them (see BGCouriers_Settings::own_address_fields()).
+        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_price_label'], 4, 2);
+        add_filter('woocommerce_get_order_item_totals', [$this, 'order_shipping_row'], 10, 2);
+        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'logo_shipping_label'], 5, 2);
+        add_filter('woocommerce_cart_shipping_method_full_label', [$this, 'info_tip_label'], 30, 2);
         add_filter('woocommerce_checkout_fields', [$this, 'simplify_fields']);
-        // Free-shipping progress notice: render it in the checkout notice area + refresh it on every
-        // recalculation via WC's fragment mechanism (server computes the remaining; no DOM parsing).
         add_action('woocommerce_before_checkout_form', [$this, 'render_free_notice'], 5);
         add_filter('woocommerce_update_order_review_fragments', [$this, 'free_notice_fragment']);
         add_filter('woocommerce_shipping_chosen_method', [$this, 'default_courier'], 10, 3);
-        // COD fiscalisation (PPP) rules: gate the COD payment gateway / courier rates at runtime.
         add_filter('woocommerce_available_payment_gateways', [$this, 'cod_filter_gateways']);
         add_filter('woocommerce_package_rates', [$this, 'ppp_filter_rates'], 25, 2);
-        // A foreign address with nothing to choose from is a dead end unless it says why and offers the
-        // way out - see no_shipping_reason() and reset_country().
         add_filter('woocommerce_no_shipping_available_html', [$this, 'no_shipping_reason']);
         add_filter('woocommerce_cart_no_shipping_available_html', [$this, 'no_shipping_reason_cart']);
-        // ...and the payment box below it, which WooCommerce fills with its own "no available payment
-        // methods" when this plugin is the one that took them away - see no_payment_reason().
         add_filter('woocommerce_no_available_payment_methods_message', [$this, 'no_payment_reason']);
         add_action('template_redirect', [$this, 'reset_country']);
-        // Speed plugins that hold JavaScript back until the customer touches the page (WP Rocket's
-        // "delay JavaScript execution", perfmatters' equivalent) must not hold THIS page's back.
         add_filter('rocket_delay_js_exclusions', [$this, 'no_delayed_js']);
         add_filter('perfmatters_delay_js_exclusions', [$this, 'no_delayed_js']);
     }
 
-    /**
-     * Say why a parcel to another country has no delivery options, and offer the way back.
-     *
-     * WooCommerce's own sentence there is "please ensure that your address has been entered correctly",
-     * which is wrong twice over abroad: the address is fine, and there is nothing in it to correct. The
-     * customer is also STUCK - the country is chosen inside the delivery box, the delivery box is drawn
-     * against a shipping rate, and there are no rates - so without a way back the only escape from a
-     * country the shop cannot deliver to is to clear the site's cookies.
-     *
-     * Only ever replaces the message for a foreign destination. Domestically WooCommerce's sentence is
-     * the right one (the address really can be wrong) and is left exactly as it is.
-     *
-     * @param string $html
-     * @param bool   $cart Whether the totals block being filtered is the cart page's.
-     * @return string
-     */
+    /** Say why a foreign address has no delivery options, and offer the way back home. */
     public function no_shipping_reason($html, $cart = false) {
         if (!function_exists('WC') || !class_exists('BGCouriers_Pricing')) { return $html; }
         $country = BGCouriers_Pricing::destination_country();
         if (!BGCouriers_Settings::is_intl($country)) { return $html; }
         $names = WC()->countries ? (array) WC()->countries->get_countries() : [];
         $there = (string) ($names[$country] ?? $country);
-        // The one cause the plugin can name with certainty: it removed the rates itself, because a shop
-        // whose cash on delivery is legal only through the courier's PPP has no way to be paid abroad.
         if (BGCouriers_Settings::cod_fiscalization() === 'ppp' && !BGCouriers_Settings::has_prepaid_gateway()) {
             /* translators: %s: country name */
             $msg = sprintf(__('Delivery to %s can only be paid in advance, and this shop has no prepaid payment method at the moment.', 'bg-couriers'), $there);
@@ -120,16 +60,7 @@ class BGCouriers_Checkout {
         return '<span class="bgc-no-shipping">' . esc_html($msg) . ' ' . $this->home_link($cart) . '</span>';
     }
 
-    /**
-     * The link that puts the delivery country back home, ready to print.
-     *
-     * Built off a NAMED page rather than the current URL: the totals block and the payment box are both
-     * re-rendered inside WooCommerce's own AJAX refresh, where the request is /?wc-ajax=update_order_review
-     * - and a link built off that takes the customer to a page whose entire body is "-1".
-     *
-     * @param bool $cart Whether the block being filtered is the cart page's.
-     * @return string
-     */
+    /** The link back to the home country, built off a named page: inside the AJAX refresh the current URL is /?wc-ajax=... */
     private function home_link(bool $cart = false): string {
         $home  = BGCouriers_Settings::home_country();
         $names = WC()->countries ? (array) WC()->countries->get_countries() : [];
@@ -140,28 +71,9 @@ class BGCouriers_Checkout {
         return '<a href="' . esc_url($url) . '">' . esc_html($back) . '</a>';
     }
 
-    /**
-     * Say why the payment box is empty, when this plugin is the reason it is.
-     *
-     * Abroad, a shop whose cash on delivery is receipted through the courier's PPP has no way at all to be
-     * paid: no courier performs a PPP across the border, so the plugin removes cash on delivery - and on a
-     * shop with no prepaid method that leaves nothing. WooCommerce then prints "Sorry, it seems that there
-     * are no available payment methods", which says neither what happened nor how to get out of it, and on
-     * a Bulgarian shop it is in English besides. The customer already read the reason above the payment
-     * box; this replaces the stock sentence with the same way back, so the screen ends in an exit rather
-     * than in a dead stop.
-     *
-     * Only ever for a foreign destination and only under PPP. Any other empty payment box belongs to the
-     * shop, not to this plugin, and keeps WooCommerce's own wording.
-     *
-     * @param string $msg
-     * @return string
-     */
+    /** Say why the payment box is empty when this plugin emptied it: PPP abroad, or a courier that collects no cash at this kind. */
     public function no_payment_reason($msg) {
         if (!function_exists('WC') || !class_exists('BGCouriers_Pricing')) { return $msg; }
-        // The other way this box empties: a shop whose only way to be paid is cash, and a delivery the
-        // courier collects no cash at. Here the way out is not a different country - it is one box higher
-        // up the same page, so the sentence names it instead of offering a link somewhere else.
         $chosen = self::chosen_bgc_courier();
         if ($chosen !== '') {
             $kind = self::chosen_method($chosen);
@@ -183,24 +95,11 @@ class BGCouriers_Checkout {
         return '<span class="bgc-no-payment">' . esc_html($there) . ' ' . $this->home_link() . '</span>';
     }
 
-    /**
-     * The same message on the cart page, where the way back is the cart itself.
-     *
-     * @param string $html
-     * @return string
-     */
     public function no_shipping_reason_cart($html) {
         return $this->no_shipping_reason($html, true);
     }
 
-    /**
-     * The way back out of a country the shop cannot deliver to.
-     *
-     * The town and the office in the session were looked up in that country's own nomenclature, so they
-     * are dropped with it - keeping them would quote the next courier against a city id that means a
-     * different place at home. WooCommerce's own shipping country goes back too: it is what decides the
-     * shipping zone, and a customer left in a zone with no methods is exactly the state being escaped.
-     */
+    /** The way back out of a country the shop cannot deliver to: country, town and office are all reset. */
     public function reset_country(): void {
         if (!isset($_GET['bgcouriers_home']) || !function_exists('WC') || !WC()->session) { return; }
         $nonce = sanitize_text_field(wp_unslash($_GET['bgcouriers_home']));
@@ -213,10 +112,7 @@ class BGCouriers_Checkout {
         WC()->session->set('bgcouriers_sel_by_courier', []);
         if (WC()->customer) {
             WC()->customer->set_shipping_country($home);
-            // Billing only when the plugin owns the address fields - then the country box on screen is the
-            // hidden one it pins itself, and leaving it abroad would fail validation with nothing visible
-            // to correct. A shop that kept WooCommerce's own fields has a billing country the customer
-            // typed, which is theirs and none of this function's business.
+            // Billing only when the plugin owns the address fields; otherwise it is the customer's own.
             if (BGCouriers_Settings::own_address_fields()) { WC()->customer->set_billing_country($home); }
             WC()->customer->save();
         }
@@ -224,39 +120,12 @@ class BGCouriers_Checkout {
         exit;
     }
 
-    /**
-     * Take cash on delivery off the checkout while the delivery in front of us cannot carry it.
-     *
-     * Two reasons, and both are about THIS order rather than about the shop's preferences.
-     *
-     * The merchant's: when the merchant relies on the courier's PPP (has no cash register), a courier that
-     * does NOT offer PPP cannot legally take cash-on-delivery. So while such a courier is the chosen
-     * shipping method, the COD gateway goes - the order must be prepaid. Couriers that do PPP (or the
-     * cash-register mode) are unaffected. The same is true of every courier the moment the parcel leaves
-     * the country: PPP is a Bulgarian postal money transfer and the courier refuses it for a foreign
-     * address, so a shop whose cash-on-delivery is legal only BECAUSE the courier does the PPP has no
-     * such arrangement abroad. Its international orders are prepaid ones.
-     *
-     * The courier's: a courier may collect money from a person and not from a machine - Express One
-     * carries no cash on delivery to an EXOBOX locker (theirs, 2026-08-26), while BOX NOW's lockers and
-     * Econt's automats do. So the DELIVERY KIND is asked about too, per courier: the kind is read from
-     * BGCouriers_Pricing::selection_for(), the same per-courier memory the price row is quoted from,
-     * because the bare session key is one value shared by every courier the customer has opened.
-     *
-     * Nothing changes for a shop that ships at home only, with a cash register, to offices and addresses.
-     *
-     * @param array $gateways id => WC_Payment_Gateway
-     * @return array
-     */
+    /** Take cash on delivery off the checkout when the delivery cannot carry it: PPP abroad, or a kind the courier collects no cash at. */
     public function cod_filter_gateways($gateways) {
         if (!is_array($gateways)) { return $gateways; }
         $country = BGCouriers_Pricing::destination_country();
         $courier = self::chosen_bgc_courier();
-        // Abroad the destination alone decides, with no courier asked. The PPP is a Bulgarian postal money
-        // transfer and none of them performs one across the border, so there is nothing that could be
-        // chosen to bring it back. Waiting for a chosen courier is what left cash on delivery on screen
-        // beside a message saying the order could only be prepaid: every rate for the foreign address had
-        // been refused, so there was no chosen courier to ask about.
+        // Abroad the destination alone decides: with every rate refused there may be no chosen courier to ask.
         $strip = (BGCouriers_Settings::cod_fiscalization() === 'ppp' && BGCouriers_Settings::is_intl($country))
             || ($courier !== '' && !BGCouriers_Settings::cod_allowed_for($courier, self::chosen_method($courier)));
         if ($strip) {
@@ -267,19 +136,7 @@ class BGCouriers_Checkout {
         return $gateways;
     }
 
-    /**
-     * If the merchant relies on PPP AND the shop offers NO prepaid gateway at all, a courier that can't do PPP
-     * is unusable (COD only, no way to fiscalise) - so drop its shipping rates. When a prepaid gateway exists
-     * the courier stays (usable for prepaid; COD is just hidden for it by cod_filter_gateways above).
-     *
-     * A parcel leaving the country is the same case: no courier's PPP follows it, so such a shop cannot sell
-     * abroad at all until it offers a prepaid way to pay. Which is why the settings screen says so beside the
-     * countries themselves, rather than letting the merchant find out from an empty checkout.
-     *
-     * @param array $rates
-     * @param array $package
-     * @return array
-     */
+    /** Under PPP with no prepaid gateway, a courier whose PPP cannot reach the destination is unusable, so its rates go. */
     public function ppp_filter_rates($rates, $package) {
         if (BGCouriers_Settings::cod_fiscalization() !== 'ppp' || BGCouriers_Settings::has_prepaid_gateway()) { return $rates; }
         $country = BGCouriers_Pricing::destination_country($package);
@@ -290,18 +147,11 @@ class BGCouriers_Checkout {
         return $rates;
     }
 
-    /**
-     * The delivery kind (address/office/automat) the customer has chosen for THIS courier.
-     *
-     * Through the pricing's per-courier memory rather than the bare `bgcouriers_method` session key:
-     * that key holds one value for the whole session, so a customer who looked at Econt's locker and
-     * then chose Express One to an address would be judged on the locker they did not order.
-     */
+    /** The delivery kind chosen for THIS courier; the bare session key is one value shared by every courier. */
     private static function chosen_method(string $courier): string {
         return (string) (BGCouriers_Pricing::selection_for($courier)['method'] ?? '');
     }
 
-    /** The ids of the shop's enabled cash-on-delivery gateways, for the checkout script. @return string[] */
     private static function cod_gateway_ids(): array {
         $wc  = function_exists('WC') ? WC() : null;
         $out = [];
@@ -324,15 +174,7 @@ class BGCouriers_Checkout {
         return $k[$m] ?? $m;
     }
 
-    /**
-     * Delivery kinds to warn about inside this courier's own block: the ones it collects no cash at.
-     *
-     * Only on a shop that offers cash on delivery at all - where nobody can choose it, nothing
-     * disappears when the locker is picked and a note explaining the disappearance is a puzzle rather
-     * than an answer.
-     *
-     * @return string[]
-     */
+    /** Delivery kinds this courier collects no cash at, only on a shop that offers cash on delivery at all. */
     private static function nocod_for_ui(string $courier): array {
         $list = BGCouriers_Settings::no_cod_methods($courier);
         if (!$list) { return []; }
@@ -344,7 +186,6 @@ class BGCouriers_Checkout {
         return [];
     }
 
-    /** The courier id of the customer's chosen BGCOURIERS shipping method this session, or '' if none. */
     private static function chosen_bgc_courier(): string {
         $chosen = (function_exists('WC') && WC()->session) ? (array) WC()->session->get('chosen_shipping_methods') : [];
         foreach ($chosen as $m) {
@@ -354,16 +195,14 @@ class BGCouriers_Checkout {
         return '';
     }
 
-    /** 'bgcouriers_econt:8' / 'bgcouriers_econt' -> 'econt'; '' for non-BGCOURIERS method ids. */
     private static function courier_from_rate_id(string $id): string {
         if (strpos($id, self::METHOD_PREFIX) !== 0) { return ''; }
-        $mid = explode(':', $id)[0]; // strip the instance id
+        $mid = explode(':', $id)[0];
         return substr($mid, self::PREFIX_LEN);
     }
 
-    /** Pre-select the configured default courier when the customer hasn't chosen a shipping method yet. */
     public function default_courier($default, $rates, $chosen_method) {
-        if (!empty($chosen_method)) { return $default; } // respect an explicit choice
+        if (!empty($chosen_method)) { return $default; }
         $pref = (string) get_option('bgcouriers_default_courier', '');
         if ($pref !== '') {
             foreach ((array) $rates as $id => $rate) {
@@ -373,25 +212,15 @@ class BGCouriers_Checkout {
         return $default;
     }
 
-    /**
-     * What the (i) at the end of a courier row says. Every courier gets one, so the rows read the same
-     * way: the explanation is always in the same place instead of some couriers carrying an (i) and
-     * others a full sentence on a line of their own.
-     *
-     * @param \WC_Shipping_Rate $rate The rate being rendered.
-     * @return string Tip text, or '' for a rate that needs no explanation.
-     */
     private function rate_tip($rate): string {
         $meta = method_exists($rate, 'get_meta_data') ? (array) $rate->get_meta_data() : [];
-        // "Delivery in the order total" off: the row shows an estimate the courier collects at the door.
         if ((float) ($meta['_bgcouriers_info_price'] ?? 0) > 0) {
             return __('Paid to the courier on delivery.', 'bg-couriers');
         }
         $courier_id = substr((string) $rate->get_method_id(), self::PREFIX_LEN);
         $c = BGCouriers_Couriers::get($courier_id);
         if (!$c) { return ''; }
-        // On the cart nothing has been chosen yet, so say which delivery type the price is quoted for
-        // and whether it can still move. At checkout the choice is made and the price is already final.
+        // On the cart nothing is chosen yet; at checkout the price is already final.
         if (!function_exists('is_cart') || !is_cart()) {
             return __('Delivery is included in the order total.', 'bg-couriers');
         }
@@ -410,24 +239,7 @@ class BGCouriers_Checkout {
         return sprintf(__('Flat price %s.', 'bg-couriers'), $type);
     }
 
-    /**
-     * Say what the courier will collect, on the order itself - the e-mail, the order-received page and
-     * My account all print the same rows.
-     *
-     * With "Delivery in the order total" off the shipping line costs 0, and WooCommerce then renders the
-     * row as the method's NAME and nothing else (get_shipping_to_display: no amount when the total is
-     * zero). So an order that will cost the customer 2,98 EUR at the door said "Speedy: To office" and
-     * left them to guess. The amount is not added to the row's value but written under it, small: it is
-     * not part of the order total, and a number sitting beside "Total" that does not add up is worse
-     * than no number at all.
-     *
-     * The figure is the one recorded on the shipping line - quoted at the checkout and re-quoted when the
-     * waybill was created (BGCouriers_Labels::refresh_door_price), so it is what the courier is about to
-     * charge, not what the basket guessed a week ago.
-     *
-     * @param array $totals WooCommerce's rows: key => ['label' => .., 'value' => ..]
-     * @return array
-     */
+    /** With "Delivery in the order total" off the shipping row costs 0 and WooCommerce prints no amount, so the door price is written under it. */
     public function order_shipping_row($totals, $order) {
         if (!is_array($totals) || !isset($totals['shipping']) || !$order instanceof \WC_Order) { return $totals; }
         $courier = (string) $order->get_meta('_bgcouriers_courier');
@@ -446,34 +258,21 @@ class BGCouriers_Checkout {
         return $totals;
     }
 
-    /**
-     * "Delivery in the order total" off: the rate is 0 so WC would render the label alone (or "Free") -
-     * replace it with the informational estimate the customer will pay the courier on delivery.
-     * Runs BEFORE the logo (5) filter; rebuilding from get_label() drops whatever suffix WC appended
-     * for the zero cost.
-     */
+    /** "Delivery in the order total" off: replace the 0-cost label with the estimate paid to the courier. */
     public function info_price_label($label, $method) {
         if (!is_object($method) || !method_exists($method, 'get_meta_data')) { return $label; }
         $meta = (array) $method->get_meta_data();
         $info = (float) ($meta['_bgcouriers_info_price'] ?? 0);
         if ($info <= 0) { return $label; }
-        // Just "~price" here - the "paid to the courier on delivery" explanation lives in the (i)
-        // hover tip appended by info_tip_label, so the rate row never wraps into an ugly mess.
         return $method->get_label() . ': ~' . wc_price($info);
     }
 
-    /** A small (i) at the end of every courier rate label (checkout + cart); the explanation sits in its
-     *  hover/focus tooltip instead of bloating the row text or taking a line of its own. */
     public function info_tip_label($label, $method) {
         if (!is_object($method) || !method_exists($method, 'get_method_id')) { return $label; }
         if (strpos((string) $method->get_method_id(), self::METHOD_PREFIX) !== 0) { return $label; }
         $tip = $this->rate_tip($method);
         if ($tip === '') { return $label; }
-        // The icon SAYS which of the two it is instead of being a generic "i" the customer has to hover
-        // to learn anything at all: a banknote when they will hand the money to the courier at the door,
-        // a shopping bag when the delivery is already in what they are paying now. The drawing is a CSS
-        // background rather than inline SVG on purpose - rate labels are printed through wp_kses_post,
-        // which strips <svg> outright, while a class on a <span> survives (that is how this (i) lives).
+        // A CSS background, not inline SVG: rate labels go through wp_kses_post, which strips <svg>.
         $meta = method_exists($method, 'get_meta_data') ? (array) $method->get_meta_data() : [];
         $mode = (float) ($meta['_bgcouriers_info_price'] ?? 0) > 0 ? 'courier' : 'total';
         return $label . ' <span class="bgc-info-tip bgc-pay-' . esc_attr($mode) . '" tabindex="0" role="img"'
@@ -483,28 +282,7 @@ class BGCouriers_Checkout {
     public function render_free_notice(): void { echo wp_kses_post(self::free_notice_html()); }
     public function free_notice_fragment($fragments) { $fragments['.bgc-free-notice'] = self::free_notice_html(); return $fragments; }
 
-    /**
-     * The opener for the combined map, above the courier rows. The dialog asks for the city and the
-     * destination type itself, so unlike each courier's own Map button this one needs nothing chosen
-     * first - which is the whole point: it is for the customer who has not picked a courier yet.
-     *
-     * Rendered as a <tr>, not a <div>: this hook fires as a direct child of the review-order table's
-     * <tfoot>, outside any <tr>. A bare <div> there is not valid table content, so the HTML5 parser
-     * foster-parents it out - it would land above the WHOLE order table, not above the courier rows.
-     * The <tr> is what keeps it inside the table; the single colspan="2" cell (rather than the
-     * label/td pairs the rows around it use) is deliberate - this row holds one control, not a
-     * label and a value.
-     */
-    /**
-     * The couriers this cart can ACTUALLY be shipped with, read from the rates on offer.
-     *
-     * Not from the enabled-courier settings, which is a different question. A courier can be switched on
-     * and configured and still be absent from the checkout - BOX NOW is exactly that on a shop whose only
-     * gateway is cash on delivery, because it cannot do PPP and ppp_filter_rates drops it. Built from
-     * settings, the map button showed its mark above a list the customer could not find it in.
-     *
-     * @return array<string,true> courier id => true, for the couriers with a rate in this checkout.
-     */
+    /** @return array<string,true> Couriers with a rate in this checkout, which is not the same as the enabled ones. */
     private static function offered_couriers(): array {
         $out = [];
         if (!function_exists('WC') || !WC()->shipping()) { return $out; }
@@ -518,20 +296,12 @@ class BGCouriers_Checkout {
     }
 
     public function render_allmap_button(): void {
-        // The setting gates THIS button only. The dialog itself is what every courier's own Map button
-        // opens now - there is no second map any more - so switching this off removes the shortcut
-        // above the rates, not the ability to pick a point on a map.
         if (get_option('bgcouriers_allmap', 'yes') !== 'yes') { return; }
-        // Limited to the couriers actually on offer, so a cart that ends up with only "to address"
-        // couriers gets no button at all rather than one opening an empty map.
         if (!self::has_pickup_courier(array_keys(self::offered_couriers()))) { return; }
-        if (function_exists('is_cart') && is_cart()) { return; } // the pickers belong to checkout
-        // The couriers' own marks, in the order the rates are listed below - the button is a shortcut
-        // into a map of THESE couriers, and showing whose makes that concrete before it is opened.
+        if (function_exists('is_cart') && is_cart()) { return; }
         $marks = '';
         $offered = self::offered_couriers();
         foreach (BGCouriers_Settings::courier_order() as $cid) {
-            // On offer for THIS cart, not merely switched on in the settings.
             if (!isset($offered[$cid])) { continue; }
             $methods = BGCouriers_Settings::enabled_methods($cid);
             if (!in_array('office', $methods, true) && !in_array('automat', $methods, true)) { continue; }
@@ -539,9 +309,7 @@ class BGCouriers_Checkout {
             if ($logo === '') { continue; }
             $marks .= '<img class="bgc-allmap-mark" src="' . esc_url($logo) . '" alt="">';
         }
-        // A <tr> because this is emitted inside WooCommerce's order-review TABLE - a <div> there is
-        // foster-parented straight out of it by the HTML parser. The block checkout is not a table, so
-        // the button itself is built separately and wrapped only here.
+        // A <tr>: inside the order-review table a <div> is foster-parented out of it by the HTML parser.
         echo wp_kses(
             '<tr class="bgc-allmap-open"><td colspan="2">' . self::allmap_button_html($marks) . '</td></tr>',
             [
@@ -554,7 +322,6 @@ class BGCouriers_Checkout {
         );
     }
 
-    /** The map button on its own, with no table around it - what the block checkout needs. */
     public static function allmap_button_html(string $marks = ''): string {
         return '<button type="button" class="bgc-allmap-btn">'
             . '<span class="bgc-allmap-marks">' . $marks . '</span>'
@@ -562,15 +329,7 @@ class BGCouriers_Checkout {
             . '</button>';
     }
 
-    /**
-     * The same button, decided the same way, for a checkout that is not a table.
-     *
-     * Without it the block checkout had the map only through each courier's own Map button - which is
-     * DISABLED until a town is chosen, so the one feature that exists to let a customer choose by place
-     * rather than by courier had no way in at all.
-     *
-     * @return string '' when this cart has nothing to show on a map.
-     */
+    /** The same button for the block checkout, which is not a table; '' when there is nothing to map. */
     public static function allmap_button_for_blocks(): string {
         if (get_option('bgcouriers_allmap', 'yes') !== 'yes') { return ''; }
         $offered = self::offered_couriers();
@@ -587,7 +346,6 @@ class BGCouriers_Checkout {
         return '<div class="bgc-allmap-open">' . self::allmap_button_html($marks) . '</div>';
     }
 
-    /** Prepend the courier's brand logo to its shipping-method radio label (BGCOURIERS methods only). */
     public function logo_shipping_label($label, $method) {
         if (!is_object($method) || !method_exists($method, 'get_method_id')) { return $label; }
         $mid = (string) $method->get_method_id();
@@ -597,11 +355,7 @@ class BGCouriers_Checkout {
         return '<img class="bgc-ship-logo" src="' . esc_url($url) . '" alt="" aria-hidden="true" width="16" height="16"> ' . $label;
     }
 
-    /**
-     * Shipping-cost estimate on the cart page (per enabled courier + delivery option), so the customer
-     * sees prices before checkout. No-API (cached reference / configured default) - the exact, address-
-     * specific price is computed at checkout. Re-renders with the cart totals (WooCommerce refreshes them).
-     */
+    /** Shipping estimate per courier on the cart page, from cached reference or configured prices. */
     public function cart_estimate(): void {
         if (get_option('bgcouriers_cart_estimate_enabled', 'no') !== 'yes') { return; }
         if (!function_exists('WC') || !WC()->cart) { return; }
@@ -609,7 +363,7 @@ class BGCouriers_Checkout {
         $names  = BGCouriers_Couriers::all();
         $rows   = [];
         foreach (BGCouriers_Settings::courier_order() as $cid) {
-            if (!BGCouriers_Settings::courier_offerable($cid)) { continue; } // exactly what the checkout will offer
+            if (!BGCouriers_Settings::courier_offerable($cid)) { continue; }
             $parts = [];
             foreach (BGCouriers_Settings::enabled_methods($cid) as $m) {
                 $est = BGCouriers_Pricing::estimate($cid, $m);
@@ -621,13 +375,11 @@ class BGCouriers_Checkout {
             }
         }
         if (!$rows) { return; }
-        // wp_kses_post: the rows carry wc_price() markup (<span class="amount"><bdi>), which it allows.
         echo wp_kses_post('<div class="bgc-cart-estimate"><div class="bgc-cart-est-title">'
             . esc_html__('Estimated shipping (exact price at checkout)', 'bg-couriers') . '</div>'
             . implode('', $rows) . '</div>');
     }
 
-    /** Amount still needed to reach the Speedy free-shipping threshold (0 if disabled or already met). */
     public static function free_remaining(float $subtotal, array $cfg): float {
         if (empty($cfg['enabled']) || (float) ($cfg['threshold'] ?? 0) <= 0) { return 0.0; }
         return max(0.0, (float) $cfg['threshold'] - $subtotal);
@@ -636,8 +388,7 @@ class BGCouriers_Checkout {
     /** The progress notice HTML (always the .bgc-free-notice element so the fragment can swap it). */
     public static function free_notice_html(): string {
         $courier = self::chosen_courier();
-        if (!$courier) { return '<div class="bgc-free-notice"></div>'; } // no bgc courier chosen
-        // Nothing to earn when this courier's delivery isn't charged with the order.
+        if (!$courier) { return '<div class="bgc-free-notice"></div>'; }
         if (!BGCouriers_Settings::ship_in_total($courier)) { return '<div class="bgc-free-notice"></div>'; }
         $sel = BGCouriers_Pricing::selection_for($courier);
         $cfg = BGCouriers_Settings::free_shipping($courier, (string) ($sel['method'] ?? ''));
@@ -658,32 +409,20 @@ class BGCouriers_Checkout {
         return '<div class="bgc-free-notice woocommerce-info" style="margin-bottom:1em;">' . $msg . '</div>';
     }
 
-    /**
-     * The plugin collects the delivery address in its own fields, so the standard WC address
-     * fields are redundant. The documented way to drop checkout fields is to unset() them from
-     * the woocommerce_checkout_fields filter (classic checkout) - they are then never rendered
-     * and never validated (no flicker, no hidden DOM). persist() sets the order's address from
-     * our selection, and billing_country is kept so the Bulgaria shipping zone still matches.
-     */
+    /** Drop WooCommerce's own address fields; the plugin's delivery fields are the address. */
     public function simplify_fields($fields) {
-        // A store that also ships some other way keeps WooCommerce's fields - the courier's own city,
-        // office and address inputs then sit alongside them instead of replacing them.
         if (!BGCouriers_Settings::own_address_fields()) { return $fields; }
         foreach (['billing', 'shipping'] as $g) {
             foreach (['address_1', 'address_2', 'city', 'state', 'postcode'] as $f) {
                 unset($fields[$g][$g . '_' . $f]);
             }
         }
-        // A courier label needs a recipient phone, so require it. The e-mail is not the courier's business
-        // (it is only forwarded if the merchant opts to), so it is optional unless the SHOP asks for it -
-        // for its own order e-mails or invoices, which is a question about the shop and not about delivery.
+        // A courier label needs a phone; the e-mail is optional unless the shop asks for it.
         if (isset($fields['billing']['billing_phone'])) { $fields['billing']['billing_phone']['required'] = true; }
         if (isset($fields['billing']['billing_email'])) {
             $fields['billing']['billing_email']['required'] = BGCouriers_Settings::require_email();
         }
-        // When the country field is hidden, pin it to the country the delivery box is actually quoting
-        // for, so the hidden field still submits - and submits the right one. A shop that delivers
-        // nowhere else keeps sending its own country exactly as before.
+        // A hidden country field must still submit the country the delivery box is quoting for.
         if (get_option('bgcouriers_hide_country', 'no') === 'yes') {
             $country = BGCouriers_Pricing::destination_country();
             foreach (['billing', 'shipping'] as $g) {
@@ -693,11 +432,7 @@ class BGCouriers_Checkout {
         return $fields;
     }
 
-    /**
-     * The couriers whose street box may only offer what they list.
-     *
-     * @return string[] Courier ids.
-     */
+    /** @return string[] Courier ids whose street box may only offer what they list. */
     private static function street_list_only_couriers(): array {
         $out = [];
         foreach (array_keys(BGCouriers_Couriers::all()) as $id) {
@@ -707,55 +442,23 @@ class BGCouriers_Checkout {
         return $out;
     }
 
-    /**
-     * Short-circuit WooCommerce's "enable the cart shipping calculator" option to 'no' while the setting
-     * asks for it. Returning the incoming $pre unchanged means "do not short-circuit", so unticking the
-     * setting hands the option straight back to WooCommerce.
-     *
-     * @param mixed $pre Whatever an earlier pre_option filter decided (false = read the real option).
-     * @return mixed
-     */
+    /** Short-circuit WooCommerce's cart shipping calculator option to 'no'; $pre unchanged means do not short-circuit. */
     public function hide_calculator_option($pre = false) {
         return BGCouriers_Settings::hide_shipping_calculator() ? 'no' : $pre;
     }
 
-    /**
-     * First pass over the package heading, before every other listener: note what WooCommerce produced.
-     *
-     * @param string $name    The heading WooCommerce built ("Shipment", "Shipment", "Shipment 2", ...).
-     * @param int    $index   Package index.
-     * @param array  $package The package.
-     * @return string $name, untouched.
-     */
+    /** First pass over the package heading, before every other listener: note what WooCommerce produced. */
     public function capture_package_name($name, $index = 0, $package = []) {
         $this->wc_package_names[(int) $index] = (string) $name;
         return $name;
     }
 
-    /**
-     * Last pass, after every other listener: drop the heading above the shipping methods.
-     *
-     * WooCommerce 10.x renamed it from "Shipping" to "Shipment", and several locales - bg_BG among them -
-     * have no translation for the new string yet, so a fully Bulgarian checkout showed one English word
-     * directly above our courier picker. Removing it beats translating it: the picker underneath already
-     * says what the block is.
-     *
-     * @param string $name    The heading as it stands after every other plugin has had its say.
-     * @param int    $index   Package index.
-     * @param array  $package The package.
-     * @return string '' to drop the heading, or $name to leave it exactly as it is.
-     */
+    /** Last pass: drop the heading when it is still WooCommerce's own and the cart is one package. */
     public function package_name($name, $index = 0, $package = []) {
-        // Anything another plugin put here is that plugin's business, not ours.
         if (($this->wc_package_names[(int) $index] ?? null) !== (string) $name) { return $name; }
-        // Our courier picker sits directly under this heading and already says what it is, so the word
-        // above it is pure repetition eating vertical space - which matters most on a phone, where the
-        // shipping block can fill the screen. A cart split into several packages keeps its headings:
-        // "Shipment 1 / 2" is the only thing telling them apart.
         return $this->single_package() ? '' : $name;
     }
 
-    /** Whether the cart produced exactly one shipping package. Unknown (no WooCommerce yet) counts as one. */
     private function single_package(): bool {
         if (!function_exists('WC') || !WC() || !WC()->shipping()) { return true; }
         return count((array) WC()->shipping()->get_packages()) <= 1;
@@ -764,10 +467,7 @@ class BGCouriers_Checkout {
     public function package_hash($packages) {
         $s = WC()->session;
         if (!$s) { return $packages; }
-        // The payment method belongs in the key as much as the office does: cash on delivery costs the
-        // courier a collection fee and therefore changes the price. WooCommerce caches a package's rates
-        // against a hash of the package, so without this the shopper switching to cash on delivery would
-        // keep being shown the prepaid price that was cached before they switched.
+        // The payment method is in the key too: cash on delivery changes the price, and WooCommerce caches rates by this hash.
         $key = (string) $s->get('bgcouriers_method', '') . ':' . (int) $s->get('bgcouriers_site_id', 0)
              . ':' . (int) $s->get('bgcouriers_office_id', 0)
              . ':' . (string) $s->get('chosen_payment_method', '');
@@ -775,19 +475,17 @@ class BGCouriers_Checkout {
         return $packages;
     }
 
-    /** Order the courier shipping rates at checkout by the configured courier order (General settings). */
     public function sort_rates($rates) {
         if (!is_array($rates) || count($rates) < 2) { return $rates; }
         $pos = array_flip(BGCouriers_Settings::courier_order());
         $key = static function ($r) use ($pos) {
             $mid = (is_object($r) && method_exists($r, 'get_method_id')) ? (string) $r->get_method_id() : '';
-            return strpos($mid, self::METHOD_PREFIX) === 0 ? ($pos[substr($mid, self::PREFIX_LEN)] ?? 900) : 1000; // other plugins' rates keep to the end
+            return strpos($mid, self::METHOD_PREFIX) === 0 ? ($pos[substr($mid, self::PREFIX_LEN)] ?? 900) : 1000;
         };
         uasort($rates, static function ($a, $b) use ($key) { return $key($a) <=> $key($b); });
         return $rates;
     }
 
-    /** The courier id of the chosen bgcouriers_<id> shipping method, or null. */
     public static function chosen_courier(): ?string {
         $chosen = (function_exists('WC') && WC()->session) ? (array) WC()->session->get('chosen_shipping_methods') : [];
         foreach ($chosen as $m) {
@@ -800,14 +498,6 @@ class BGCouriers_Checkout {
         return $this->chosen_courier() !== null;
     }
 
-    /**
-     * Does anyone deliver to a pickup point? The combined map plots offices and APS lockers, so a store
-     * whose couriers all deliver to the door has nothing to show and gets no button.
-     *
-     * @param string[]|null $courier_ids Courier ids to consider; null = every registered courier. The
-     *                                   argument exists so the rule can be tested on its own.
-     * @return bool
-     */
     public static function has_pickup_courier(?array $courier_ids = null): bool {
         $ids = $courier_ids ?? array_keys(BGCouriers_Couriers::all());
         foreach ($ids as $cid) {
@@ -820,14 +510,10 @@ class BGCouriers_Checkout {
 
     public function validate($data, $errors): void {
         $courier = $this->chosen_courier();
-        if (!$courier) { return; } // a non-bgc shipping method - not ours to validate
+        if (!$courier) { return; }
         $names = BGCouriers_Couriers::all();
         $label = $names[$courier] ?? ucfirst($courier);
-        // Validate the phone FORMAT (it's already required elsewhere) so a malformed number is caught here
-        // with a friendly message, not as a cryptic courier API rejection after the order is placed. Bulgarian
-        // numbers: 0 + 8-9 digits (e.g. 0888123456) or +359 + 8-9 digits; separators are stripped first.
-        // Abroad the same rule would reject the recipient's own perfectly good number, so there the test is
-        // only that the number can be turned into something a courier will accept, in that country's code.
+        // Domestic numbers must match the Bulgarian format; abroad only that a courier will accept the number.
         $phone   = isset($data['billing_phone']) ? (string) $data['billing_phone'] : '';
         $country = BGCouriers_Pricing::destination_country();
         if ($phone !== '' && !BGCouriers_Settings::is_intl($country)) {
@@ -838,20 +524,11 @@ class BGCouriers_Checkout {
         } elseif ($phone !== '' && !BGCouriers_Phone::usable($phone, BGCouriers_Phone::cc_for($country))) {
             $errors->add('bgc', __('Please enter a valid phone number so the courier can reach the recipient.', 'bg-couriers'));
         }
-        // A phone is not optional here. It is how the courier reaches the recipient, and Express One will
-        // not carry a parcel to a locker without one (theirs, 2026-08-26). The classic checkout marks the
-        // field required itself (see the checkout_fields filter), so WooCommerce has already refused an
-        // empty one and saying it twice would only be noise - hence the look for its own error code. The
-        // BLOCK checkout takes the field's required-ness from WooCommerce's own phone setting instead, and
-        // on a shop where that is "optional" an order reached the courier carrying no number at all.
+        // The block checkout does not require the phone itself; skip when WooCommerce already refused an empty one.
         if (trim($phone) === '' && !in_array('billing_phone_required', (array) $errors->get_error_codes(), true)) {
             $errors->add('bgc', __('Please enter a phone number so the courier can reach the recipient.', 'bg-couriers'));
         }
-        // Cash on delivery this courier cannot collect for this kind of delivery. The gateway is already
-        // gone from the checkout while such a delivery is chosen (cod_filter_gateways), so this is the belt
-        // to those braces: a form rendered before the locker was picked, or a Store API request that never
-        // saw a payment box at all. Only the courier's own rule is answered here - a shop that cannot
-        // fiscalise cash is a different refusal, and WooCommerce makes it itself by having no such gateway.
+        // Belt to cod_filter_gateways' braces: a form rendered before the locker was picked, or a Store API request.
         $kind = self::chosen_method($courier);
         $pay  = isset($data['payment_method']) ? (string) $data['payment_method']
               : (string) (WC()->session ? WC()->session->get('chosen_payment_method', '') : '');
@@ -862,15 +539,8 @@ class BGCouriers_Checkout {
                 $label, self::kind_label($kind)));
         }
         $s = WC()->session;
-        // Each refusal below names the field it is about - the id of that field's box in this
-        // courier's block (see self::field_id) - and carries its OWN error code, because WooCommerce
-        // hands a WP_Error's data to wc_add_notice() per code. With the data on the notice, WooCommerce's
-        // checkout script turns the sentence at the top of the page into a link to the field, and
-        // bgc-checkout.js paints the field red, so the customer scrolling down finds what is missing.
-        // The id is safe to point at: every courier's block is in the DOM, hidden, but this runs for
-        // the CHOSEN courier only, and its block is the one showing.
+        // Each refusal carries its field's id and its own error code, so WooCommerce links the notice to the field.
         $at = function (string $field) use ($courier): array { return ['id' => self::field_id($courier, $field)]; };
-        // The saved selection must belong to the courier actually chosen - switching couriers voids the old pick.
         if ((string) $s->get('bgcouriers_selection_courier', '') !== $courier) {
             /* translators: %s: courier name */
             $errors->add('bgc_point', sprintf(__('Please choose your %s delivery point before placing the order.', 'bg-couriers'), $label),
@@ -884,10 +554,6 @@ class BGCouriers_Checkout {
             /* translators: %s: courier name */
             $errors->add('bgc_city', sprintf(__('Please choose a city for %s delivery.', 'bg-couriers'), $label), $at('city'));
         } elseif (!self::city_is_listed($courier, $site)) {
-            // The id reaches the session straight off the request (set_selection), and until now
-            // nothing asked whether it named a real place. It does not have to be malice: a tab left
-            // open while the nomenclature resynced is enough. The order used to be accepted with an
-            // empty shipping address and refused by the courier hours later.
             /* translators: %s: courier name */
             $errors->add('bgc_city', sprintf(__('That city is not on %s list any more. Please choose it again.', 'bg-couriers'), $label), $at('city'));
         }
@@ -908,29 +574,12 @@ class BGCouriers_Checkout {
         }
     }
 
-    /**
-     * The id of one field's box in a courier's block: `bgcouriers-office-speedy`. One per courier,
-     * because every courier's block is rendered at once (hidden until chosen), and an id has to be
-     * unique on the page. Shared by the markup (render_fields) and the refusals (validate) so that a
-     * notice's data-id and the box it points at cannot drift apart.
-     */
+    /** The id of one field's box in a courier's block, shared by the markup and the refusals so they cannot drift apart. */
     public static function field_id(string $courier, string $field): string {
         return 'bgcouriers-' . sanitize_html_class($field) . '-' . sanitize_html_class($courier);
     }
 
-    /**
-     * Does this courier actually list this city, and this office in it?
-     *
-     * Both ids arrive as bare integers on a request (BGCouriers_Ajax::set_selection) and were checked
-     * only for being above zero, while the plugin has had the courier's whole nomenclature in its own
-     * tables all along. An id naming nothing produced an order with an empty shipping address that
-     * looked complete and could not be turned into a waybill.
-     *
-     * Answered only where there IS an answer: a courier whose cities, or whose offices for this city,
-     * have not been synced yet gets a yes. Refusing an order on the strength of a table the shop has
-     * not filled would turn our own missing data into the customer's dead end, at the last step of the
-     * checkout, which is worse than the fault this closes.
-     */
+    /** A courier not yet synced gets a yes, so missing data is not the customer's dead end. */
     private static function city_is_listed(string $courier, int $city_id): bool {
         if (!class_exists('BGCouriers_Nomenclature') || BGCouriers_Nomenclature::count($courier) <= 0) { return true; }
         return BGCouriers_Nomenclature::city_by_id($courier, $city_id) !== null;
@@ -946,40 +595,16 @@ class BGCouriers_Checkout {
         return false;
     }
 
-    /**
-     * The shipping line's name, with the delivery type in it: "Speedy: До офис".
-     *
-     * The WooCommerce mobile app shows an order's shipping method and its address, and nothing else
-     * about the delivery - so an office order read as a name and a street with no word anywhere to say
-     * whether the parcel is going to that office, to a locker, or to the customer's own door. The
-     * address alone cannot say it: for an office it IS the office's ("ВАРНА - ДРАГОМАН" on line one,
-     * its street on line two), and that reads exactly like somebody's home address with a company
-     * above it (owner, with a screenshot, 2026-09-24).
-     *
-     * The type goes on the shipping line rather than into the address because that is the field the
-     * question is asked of - "which delivery method was this?" - and it reaches every screen that shows
-     * a shipping method: the app, the order screen, the customer's e-mail, the invoice.
-     *
-     * Composed from the base name, never appended to the current one: an order re-saved in the admin
-     * editor would otherwise read "Speedy: До офис: До офис", once per save.
-     */
+    /** The shipping line's name with the delivery type ("Speedy: До офис"), composed from the base name so re-saves do not stack it. */
     public static function shipping_item_name(string $base, string $method): string {
         $base  = trim($base);
         $label = BGCouriers_Icons::method_label($method);
-        // method_label() hands back the method id itself for anything it does not know: a name is not
-        // the place to print 'automat' at a customer, so an unknown type simply adds nothing.
+        // method_label() returns the id itself for an unknown method; do not print that.
         if ($base === '' || $label === '' || $label === $method) { return $base; }
         return $base . ': ' . $label;
     }
 
-    /**
-     * Write that name onto one shipping line, remembering what it was called first.
-     *
-     * The base name is kept in the item's own meta (underscore-prefixed, so WooCommerce keeps it out of
-     * the admin and the e-mails): the rate's label is what the shop configured, it can be edited, and
-     * re-deriving it by stripping a suffix off the current name would be a regex against a translated
-     * string - which stops working the day someone translates the catalogue differently.
-     */
+    /** Name one shipping line, keeping the base name in meta rather than re-deriving it from a translated string. */
     public static function label_shipping_item(\WC_Order_Item_Shipping $item, string $method): void {
         $base = (string) $item->get_meta('_bgcouriers_base_name', true);
         if ($base === '') {
@@ -989,15 +614,13 @@ class BGCouriers_Checkout {
         $item->set_name(self::shipping_item_name($base, $method));
     }
 
-    /** The classic checkout's shipping line, as WooCommerce builds it from the chosen rate. */
     public function name_shipping_item($item, $package_key = 0, $package = [], $order = null): void {
         if (!$item instanceof \WC_Order_Item_Shipping) { return; }
         $id = (string) $item->get_method_id();
         if (strpos($id, 'bgcouriers_') !== 0) { return; }
         $courier = substr($id, self::PREFIX_LEN);
         $s = WC()->session;
-        // BoxNow is locker-only, exactly as apply_delivery() reads it: a stale session method must not
-        // name a locker delivery something else.
+        // BoxNow is locker-only; a stale session method must not name it otherwise.
         $method = $courier === 'boxnow'
             ? 'automat'
             : (string) ($s ? $s->get('bgcouriers_method', '') : '');
@@ -1016,10 +639,7 @@ class BGCouriers_Checkout {
             'site_id'      => (int) $s->get('bgcouriers_site_id', 0),
             'office_id'    => (int) $s->get('bgcouriers_office_id', 0),
             'post_code'    => (string) $s->get('bgcouriers_post_code', ''),
-            // THIS courier's own quote, not whichever one WooCommerce happened to price last. There is
-            // deliberately no fallback to the old shared key: reading it is the very fault being fixed,
-            // and the worst it can cost is one order placed from a basket that was already open when the
-            // shop updated, losing a diagnostic number nothing reads back.
+            // THIS courier's own quote, not whichever one WooCommerce priced last.
             'quote_price'  => (float) $s->get('bgcouriers_quote_price_' . $courier, 0),
             'quote_source' => (string) $s->get('bgcouriers_quote_source_' . $courier, ''),
             'street_name'  => (string) $s->get('bgcouriers_addr_street_name', ''),
@@ -1035,11 +655,7 @@ class BGCouriers_Checkout {
         ]);
     }
 
-    /**
-     * Write a delivery selection ($d) onto an order: the _bgcouriers_* meta the label uses, plus the WC
-     * billing/shipping address for display. Shared by the checkout (from the session) and the admin
-     * order editor (from POST), so both produce identical order data.
-     */
+    /** Write a delivery selection onto an order: the _bgcouriers_* meta plus the WC address; shared by checkout and admin editor. */
     public static function apply_delivery(\WC_Order $order, array $d): void {
         $courier = (string) ($d['courier'] ?? '');
         if ($courier === '') { return; }
@@ -1049,9 +665,7 @@ class BGCouriers_Checkout {
             ? 'automat'
             : ((string) $g('method') ?: (BGCouriers_Settings::enabled_methods($courier)[0] ?? 'office'));
 
-        // The country is NOT defaulted to the shop's own here. The admin order editor posts a delivery
-        // without one, and defaulting would quietly move a Romanian order back to Bulgaria the first time
-        // someone opened it and pressed save - and with it the service the label is booked under.
+        // Not defaulted to the shop's country: the admin editor posts none, and defaulting would move a foreign order home.
         $country = strtoupper(trim((string) $g('country')));
         if ($country === '') { $country = BGCouriers_Settings::order_country($order); }
 
@@ -1062,10 +676,7 @@ class BGCouriers_Checkout {
         $order->update_meta_data('_bgcouriers_office_id', (int) $g('office_id', 0));
         $order->update_meta_data('_bgcouriers_post_code', (string) $g('post_code'));
         $order->update_meta_data('_bgcouriers_street_name', (string) $g('street_name'));
-        // Which street of that name, when the town has more than one: the courier's own id for it and
-        // its type (ул./бул.), as chosen from the list. Empty for a typed or map-picked street. Neither is
-        // part of BGCouriers_Labels::label_fingerprint() - the fingerprint is recorded on every order with
-        // a waybill and a new key would change it for all of them at once.
+        // Neither key is part of label_fingerprint(); adding one would change it for every order at once.
         $order->update_meta_data('_bgcouriers_street_id',   (int) $g('street_id', 0));
         $order->update_meta_data('_bgcouriers_street_type', (string) $g('street_type'));
         $order->update_meta_data('_bgcouriers_street_no',   (string) $g('street_no'));
@@ -1078,14 +689,12 @@ class BGCouriers_Checkout {
         if (array_key_exists('quote_price', $d))  { $order->update_meta_data('_bgcouriers_quote_price', (float) $d['quote_price']); }
         if (array_key_exists('quote_source', $d)) { $order->update_meta_data('_bgcouriers_quote_source', (string) $d['quote_source']); }
 
-        // Fill the WC order address from the selection (the label itself uses the _bgcouriers_* meta above).
         $city   = (int) $g('site_id', 0) ? BGCouriers_Nomenclature::city_by_id($courier, (int) $g('site_id', 0)) : null;
         $name   = (string) ($city['name'] ?? '');
         $post   = (string) $g('post_code') ?: (string) ($city['post_code'] ?? '');
         $region = (string) ($city['region'] ?? '');
         if ($method === 'address') {
-            // With its type when the street was chosen off the list: "ВИТОША 10" on an invoice or a
-            // customer's order page is either of two streets in Sofia, "ул. ВИТОША 10" is one.
+            // With its type: "ВИТОША 10" is either of two Sofia streets, "ул. ВИТОША 10" is one.
             $line1 = trim(trim((string) $g('street_type') . ' ' . (string) $g('street_name')) . ' ' . (string) $g('street_no'));
             $line2 = trim((string) $g('complex'));
         } else {
@@ -1104,10 +713,7 @@ class BGCouriers_Checkout {
         $order->set_shipping_first_name($order->get_billing_first_name());
         $order->set_shipping_last_name($order->get_billing_last_name());
 
-        // And the shipping line, when the order has one already: the admin editor changing an order from
-        // an office to an address, and the block checkout, whose order is built with its items before
-        // this runs. The classic checkout has no shipping item yet at this point - name_shipping_item()
-        // is what names it there.
+        // The shipping line, when the order already has one (admin editor, block checkout); the classic checkout names it in name_shipping_item().
         foreach ($order->get_items('shipping') as $item) {
             if ($item instanceof \WC_Order_Item_Shipping && strpos((string) $item->get_method_id(), 'bgcouriers_') === 0) {
                 self::label_shipping_item($item, $method);
@@ -1116,52 +722,34 @@ class BGCouriers_Checkout {
     }
     public function assets(): void {
         $on_cart     = function_exists('is_cart') && is_cart();
-        // ...or any page carrying the checkout BLOCK. is_checkout() is true only for the page WooCommerce
-        // has been told is the checkout; the block can be dropped anywhere.
+        // is_checkout() is false for a checkout block dropped on another page.
         $on_checkout = (function_exists('is_checkout') && is_checkout()) || BGCouriers_Blocks::is_block_checkout();
         if (!$on_cart && !$on_checkout) { return; }
-        // The courier rate rows are the same markup on both pages, so their stylesheet loads on both.
-        // Without this the cart had no row styling at all and the theme stacked radio, logo, name and
-        // price on separate lines.
         $rates_css = BGCOURIERS_PATH . 'assets/css/bgc-rates.css';
         wp_enqueue_style('bgc-rates', BGCOURIERS_URL . 'assets/css/bgc-rates.css', [], is_file($rates_css) ? (string) filemtime($rates_css) : BGCOURIERS_VERSION);
-        // The (i) beside each rate explains itself through the same bubble the admin screens use - one
-        // element on <body>, kept inside the window - because the CSS bubble it had ran off the left
-        // edge of a phone. Both pages print the (i), so both load it.
         BGCouriers_Tips::enqueue();
-        // Cart page: plus the small static stylesheet (the estimate box).
         if ($on_cart) {
             $cart_css = BGCOURIERS_PATH . 'assets/css/bgc-cart.css';
             wp_enqueue_style('bgc-cart', BGCOURIERS_URL . 'assets/css/bgc-cart.css', ['bgc-rates'], is_file($cart_css) ? (string) filemtime($cart_css) : BGCOURIERS_VERSION);
-            // The net for themes that render WooCommerce's calculator from their own template regardless
-            // of the option. Inline rather than in the stylesheet so that a store which unticks the
-            // setting gets no rule hiding a calculator it asked to keep.
+            // Themes may render the calculator from their own template regardless of the option.
             if (BGCouriers_Settings::hide_shipping_calculator()) {
                 wp_add_inline_style('bgc-cart', '.woocommerce-shipping-calculator{display:none!important;}');
             }
         }
         if (!$on_checkout) { return; }
         wp_enqueue_style('select2');
-        // Version by file mtime so every asset change busts the browser cache automatically.
         $css = BGCOURIERS_PATH . 'assets/css/bgc-checkout.css';
         $js  = BGCOURIERS_PATH . 'assets/js/bgc-checkout.js';
-        // Leaflet (bundled locally - no CDN, WP.org-safe) powers the office/APS map picker.
         wp_enqueue_style('bgc-leaflet', BGCOURIERS_URL . 'assets/lib/leaflet/leaflet.css', [], '1.9.4');
         wp_enqueue_script('bgc-leaflet', BGCOURIERS_URL . 'assets/lib/leaflet/leaflet.js', [], '1.9.4', true);
         wp_enqueue_style('bgc-checkout', BGCOURIERS_URL . 'assets/css/bgc-checkout.css', ['bgc-leaflet', 'bgc-rates'], is_file($css) ? (string) filemtime($css) : BGCOURIERS_VERSION);
         wp_enqueue_script('bgc-checkout', BGCOURIERS_URL . 'assets/js/bgc-checkout.js', ['jquery', 'selectWoo', 'bgc-leaflet'], is_file($js) ? (string) filemtime($js) : BGCOURIERS_VERSION, true);
-        // The combined map dialog. Separate files on purpose: bgc-checkout.js already carries the
-        // per-courier picker, and that one must keep working exactly as it does. Not loaded at all when
-        // the merchant has switched the map off - an unused script is still a script the customer waits for.
         if (self::has_pickup_courier()) {
             $allmap_css = BGCOURIERS_PATH . 'assets/css/bgc-allmap.css';
             $allmap_js  = BGCOURIERS_PATH . 'assets/js/bgc-allmap.js';
             wp_enqueue_style('bgc-allmap', BGCOURIERS_URL . 'assets/css/bgc-allmap.css', ['bgc-checkout'], is_file($allmap_css) ? (string) filemtime($allmap_css) : BGCOURIERS_VERSION);
             wp_enqueue_script('bgc-allmap', BGCOURIERS_URL . 'assets/js/bgc-allmap.js', ['bgc-checkout'], is_file($allmap_js) ? (string) filemtime($allmap_js) : BGCOURIERS_VERSION, true);
         }
-        // When enabled (default), preload each enabled courier's cities-with-offices (office/automat) so the
-        // checkout city dropdown needs no AJAX and availability is derived client-side. The AJAX path stays
-        // as the fallback + for address (all BG cities). Off => nothing preloaded, pure AJAX as before.
         $preload = get_option('bgcouriers_preload_cities', 'yes') === 'yes';
         $city_index = [];
         if ($preload) {
@@ -1176,41 +764,19 @@ class BGCouriers_Checkout {
             'nonce' => wp_create_nonce('bgcouriers_checkout'),
             'currency' => get_woocommerce_currency(),
             'preloadCities' => $preload,
-            // The shop's own country, and the one the preloaded city index was actually built for: pick
-            // another country and that index is a list of the wrong towns, so the browser stops using it.
             'homeCountry' => BGCouriers_Settings::home_country(),
             'cityIndexCountry' => BGCouriers_Pricing::destination_country(),
-            // "Closest to you" on the interactive map. A merchant can switch the whole comparison off:
-            // it asks the browser for a location, and a shop that would rather not ask at all should
-            // not have to disable the map to avoid it.
-            //
-            // 'yes'/'no' rather than a boolean, deliberately: wp_localize_script() casts every value to
-            // a string, so `false` arrives in JavaScript as '' - which is indistinguishable from a key
-            // that is not there at all. This setting defaults to ON, so those two cases have to be
-            // told apart, and the string is what tells them apart.
+            // 'yes'/'no', not a boolean: wp_localize_script() casts false to '', indistinguishable from a missing key.
             'allmapNearest' => get_option('bgcouriers_allmap_nearest', 'yes') === 'yes' ? 'yes' : 'no',
             'cityIndex' => $city_index,
-            // Couriers whose street box must not accept a typed street (see street_list_only()). A list
-            // rather than a flag per courier, so the browser can ask about whichever one is chosen.
             'streetListOnly' => self::street_list_only_couriers(),
-            // The cash-on-delivery payment rows, by gateway id. The server takes the gateway away for a
-            // delivery the courier collects no money at (cod_filter_gateways), but that only reaches the
-            // page if WooCommerce's payment fragment is actually replaced - and on this shop's checkout
-            // it is not. Without this the customer read "cash on delivery is not available" with the cash
-            // on delivery radio still sitting under it, chose it, and was refused after pressing Order.
+            // The server removes the COD gateway, but WooCommerce's payment fragment is not always replaced on the page.
             'codGateways' => self::cod_gateway_ids(),
             'addressMap' => get_option('bgcouriers_address_map', 'no') === 'yes',
-            // Where the delivery block is shown: with the order review, or moved up under the customer's
-            // own details (BGCouriers_Settings::delivery_position). It is RENDERED in the review table
-            // either way - it is stateful, and that table is what WooCommerce re-renders when anything
-            // changes - so the move is the browser's job, into the empty host below.
             'deliveryPosition' => BGCouriers_Settings::delivery_position(),
-            // The Google Maps key is deliberately NOT sent to the browser: nothing here loads a Google
-            // map, and the key is only ever used server-side, for the reverse geocode in
-            // BGCouriers_Ajax::geocode(). Localising it printed the merchant's key in the page source of
-            // every checkout, where anyone could spend their Geocoding quota with it.
-            'leaflet_images' => BGCOURIERS_URL . 'assets/lib/leaflet/images/', // bundled Leaflet marker icons
-            'icons' => BGCouriers_Icons::map(), // same delivery-type glyphs as the admin, shown with text on the tabs
+            // The Google Maps key is deliberately not sent to the browser; it is used server-side only.
+            'leaflet_images' => BGCOURIERS_URL . 'assets/lib/leaflet/images/',
+            'icons' => BGCouriers_Icons::map(),
             'emergency' => BGCouriers_Settings::emergency(),
             'i18n'  => [
                 'address'=>__('To address','bg-couriers'),'office'=>__('To office','bg-couriers'),'automat'=>__('To APS','bg-couriers'),
@@ -1222,9 +788,7 @@ class BGCouriers_Checkout {
                 'street_unlisted' => __('%1$s does not list a street called "%2$s" here. Pick yours from the list.', 'bg-couriers'),
                 'na_city' => __('Not available in this city','bg-couriers'),
                 'office_need_city' => __('Select a city first','bg-couriers'),
-                // select2's own messages. It ships English ones and WooCommerce loads no other, so
-                // without these the street box answered "Please enter 2 or more characters" on a
-                // Bulgarian checkout - see s2lang() in bgc-checkout.js.
+                // select2's own messages, which ship in English only.
                 /* translators: %d is how many characters the search needs before it will look. */
                 's2_short' => __('Type at least %d characters', 'bg-couriers'),
                 's2_none' => __('Nothing found', 'bg-couriers'),
@@ -1248,18 +812,11 @@ class BGCouriers_Checkout {
                 'allmap_cluster' => __('%d pickup points here - zoom in to tell them apart', 'bg-couriers'),
                 'allmap_choose' => __('Choose', 'bg-couriers'),
                 'allmap_city_ph' => __('Choose a city', 'bg-couriers'),
-                // The two halves of the phone-sized dialog, which shows one of them at a time.
                 'allmap_map' => __('Map', 'bg-couriers'),
                 'allmap_list' => __('List', 'bg-couriers'),
-                // Said while the couriers are being asked - a spinner alone in a large empty dialog
-                // reads as nothing happening.
                 'allmap_loading' => __('Loading the pickup points…', 'bg-couriers'),
-                // Opens Google Maps directions to the point. No origin is sent - Google uses wherever the
-                // customer is, which is the whole question they are asking.
                 'allmap_directions' => __('Directions', 'bg-couriers'),
                 'clear' => __('Clear', 'bg-couriers'),
-                // The nearest-office comparison on the map. Short by design: they sit on one line
-                // together with a distance and two prices.
                 'near_title' => __('Closest to you', 'bg-couriers'),
                 'near_to_address' => __('to your address', 'bg-couriers'),
                 'near_save' => __('you save', 'bg-couriers'),
@@ -1268,54 +825,21 @@ class BGCouriers_Checkout {
                 'near_drag' => __('Drag the pin to where you are', 'bg-couriers'),
                 'near_m' => __('m', 'bg-couriers'),
                 'near_km' => __('km', 'bg-couriers'),
-                // The answer line names a courier and a distance but not WHICH point it means; it is a
-                // button, and this says so.
                 'near_which' => __('Show this point on the map', 'bg-couriers'),
-                // On a point's own bubble, once the customer's location is known.
                 'near_from_you' => __('from you', 'bg-couriers'),
             ],
         ]);
 
-        // Hide configured checkout fields. The selectors are a merchant-entered setting printed into a
-        // stylesheet, so they go through hidden_field_selectors(), which validates each entry and drops
-        // anything that is not a plain selector.
+        // Merchant-entered selectors go through hidden_field_selectors(), which validates each one.
         $selectors = BGCouriers_Settings::hidden_field_selectors();
         if ($selectors !== '') {
             wp_add_inline_style('bgc-checkout', $selectors . '{display:none !important;}');
         }
-        // Hide the Country/Region field (BG-only store) when enabled in settings.
         if (get_option('bgcouriers_hide_country', 'no') === 'yes') {
             wp_add_inline_style('bgc-checkout', '#billing_country_field,#shipping_country_field{display:none !important;}');
         }
     }
-    /**
-     * The empty box the delivery block is moved into (see bgc-checkout.js).
-     *
-     * Empty on purpose. WooCommerce renders shipping rates inside the order-review table and replaces
-     * that table wholesale on every recalculation, and each rate carries the session's current
-     * selection - so the block is rendered there, as always, and moved here by the browser. Rendering
-     * it in both places would mean two of them, disagreeing about what is chosen.
-     */
-    /**
-     * Keep the checkout's own scripts out of "delay JavaScript until interaction".
-     *
-     * That optimisation is right for a landing page and wrong for a checkout. Here the delivery block is
-     * MOVED into place by script (see render_delivery_host), the town and office boxes are built by
-     * selectWoo, and the tabs answer clicks - so until the delay lifts the customer sees the delivery
-     * block at the bottom of the page where WooCommerce printed it, and the pickers as bare selects. On
-     * this shop's own checkout that is exactly what the owner reported: "the courier choice is at the
-     * bottom again", with the setting switched on and the code in place (measured 2026-09-25: WP Rocket
-     * with delay_js = 1).
-     *
-     * jQuery and selectWoo are on the list because ours depends on them: excluding a script whose
-     * dependency is still delayed is worse than delaying both - it runs first and dies.
-     *
-     * Only on the checkout. Everywhere else the shop's speed settings are the shop's business, and a
-     * courier plugin has no business opting a home page out of them.
-     *
-     * @param mixed $excluded The patterns the optimiser matches against script URLs.
-     * @return mixed
-     */
+    /** Keep the checkout's own scripts, and the jQuery/selectWoo they depend on, out of "delay JavaScript until interaction". */
     public function no_delayed_js($excluded) {
         if (!is_array($excluded)) { return $excluded; }
         $on_checkout = (function_exists('is_checkout') && is_checkout())
@@ -1334,18 +858,7 @@ class BGCouriers_Checkout {
         if (BGCouriers_Settings::delivery_position() !== 'details') { return; }
         if (function_exists('is_checkout') && !is_checkout()) { return; }
         echo '<div class="bgc-delivery-host" id="bgcouriers-delivery-host"></div>';
-        // The block is rendered by WooCommerce inside the order review and moved here by script, so for
-        // a moment it was visible on the right and then jumped left - on a slow first paint it read as
-        // the page tearing itself apart (owner, 2026-09-28). The rows are hidden BEFORE the review is
-        // printed instead; this hook runs before it.
-        //
-        // The class comes from script, not from the stylesheet, on purpose: with scripts off nothing
-        // moves anything, and a hidden shipping row would be a checkout with no way to choose delivery.
-        // The browser that hides the row is the one that will move it. bgc-checkout.js gives up the
-        // class again if there is nothing to move, or if the move has not happened within three seconds.
-        // Таймерът стои ТУК, а не в bgc-checkout.js: файлът може изобщо да не се зареди (оптимизатор,
-        // грешка по-нагоре, липсваща jQuery), а тогава редовете ще останат скрити завинаги и поръчката
-        // ще е без избор на доставка. Кодът, който крие, носи и връщането назад.
+        // Hidden by script, so with scripts off nothing is hidden; the timer lives here because bgc-checkout.js may never load.
         echo '<script>(function(d){var h=d.documentElement;h.className+=\' bgc-relocating\';'
             . 'setTimeout(function(){var n=d.getElementById(\'bgcouriers-delivery-host\');'
             . 'if(!n||!n.children.length){h.className=h.className.replace(/(^|\\s)bgc-relocating(\\s|$)/,\' \');}'
@@ -1354,24 +867,17 @@ class BGCouriers_Checkout {
 
     public function render_fields($method, $index): void {
         if (strpos((string) $method->get_method_id(), 'bgcouriers_') !== 0) { return; }
-        // The interactive pickers belong to checkout (their JS/CSS only load there). On the cart page keep
-        // the rate row clean - the customer picks the destination at checkout (the cart shows the estimate).
         if (function_exists('is_cart') && is_cart()) { return; }
-        $courier = substr((string) $method->get_method_id(), self::PREFIX_LEN); // 'bgcouriers_speedy' -> 'speedy'
+        $courier = substr((string) $method->get_method_id(), self::PREFIX_LEN);
         if (!BGCouriers_Couriers::get($courier)) { return; }
-        // Stateful: re-render the session selection so update_checkout recalcs don't wipe the fields.
-        // Only render a selection that was made for THIS courier - switching couriers must not show a
-        // stale city/office from another courier (whose ids are invalid here).
+        // Only a selection made for THIS courier; another courier's ids are invalid here.
         $s = WC()->session;
         $mine = $s && (string) $s->get('bgcouriers_selection_courier', '') === $courier;
         $sel_method = $mine ? (string) $s->get('bgcouriers_method', '') : '';
         $site_id    = $mine ? (int) $s->get('bgcouriers_site_id', 0) : 0;
         $office_id  = $mine ? (int) $s->get('bgcouriers_office_id', 0) : 0;
         $post_code  = $mine ? (string) $s->get('bgcouriers_post_code', '') : '';
-        // Not the current selection, but the customer HAS been in this courier before: show them back
-        // what they chose in it. The price row above is quoted from the same memory
-        // (BGCouriers_Pricing::selection_for), and a block showing "to address" over a locker's price is
-        // the two halves of one row disagreeing about what is being bought.
+        // The customer has been in this courier before: show what they chose, which the price row is also quoted from.
         if (!$mine && $s) {
             $remembered = (array) $s->get('bgcouriers_sel_by_courier', []);
             $r = isset($remembered[$courier]) && is_array($remembered[$courier]) ? $remembered[$courier] : null;
@@ -1383,17 +889,12 @@ class BGCouriers_Checkout {
                 }
             }
         }
-        // Carry the city across a courier switch: postcode is courier-agnostic, so if this courier has no
-        // selection yet but the customer already picked a city, pre-fill the same city (resolved for THIS
-        // courier). The office stays empty - office ids are courier-specific, so they pick that again.
+        // Carry the city across a courier switch by postcode; office ids are courier-specific, so not the office.
         if (!$mine && $s) {
             $carry_pc = (string) $s->get('bgcouriers_post_code', '');
             $country  = BGCouriers_Pricing::destination_country();
             $carry_city = $carry_pc !== '' ? BGCouriers_Nomenclature::city_by_postcode($courier, $carry_pc, $country) : null;
-            // The code is the courier-agnostic handle on a town - until a courier codes the town
-            // differently: BOX NOW lists Sofia under its lowest locker's code, which need not be the
-            // 1000 the others use. Then the NAME, as the courier the customer was in spells it, is
-            // asked for - never first, because a name alone can be two villages and the code cannot.
+            // By code first, then by name as the previous courier spells it (BOX NOW codes Sofia by its lowest locker).
             if (!$carry_city) {
                 $from    = (string) $s->get('bgcouriers_selection_courier', '');
                 $from_id = (int) $s->get('bgcouriers_site_id', 0);
@@ -1414,21 +915,13 @@ class BGCouriers_Checkout {
         }
         $office_option = '';
         $auto_office = false;
-        // The country the browser's own office lookups are made for (the same one data-country carries
-        // below) - the key of the cached list the dropdown shows.
         $off_country = BGCouriers_Pricing::destination_country();
         if (!in_array($off_country, BGCouriers_Settings::delivery_countries($courier), true)) { $off_country = BGCouriers_Settings::home_country(); }
-        // An office with no town is not a selection, it is half of one: a save that reached the session
-        // after the town was cleared in the browser held exactly that (the clear never reached the
-        // session, so the next save sent the office alone). Rendered, it was one office in a field
-        // the browser then disabled for want of a town, with no list to open. The town is what makes
-        // an office mean anything, so without it the office is not shown either.
+        // An office without a town is half a selection; do not show it.
         if (!$site_id) { $office_id = 0; }
         if ($office_id) {
             $office = BGCouriers_Nomenclature::office_by_id($courier, $office_id);
-            // Not in the synced table does not mean not in the dropdown: that list is the courier's live
-            // answer, which can hold an office the table does not. Without this look, such an office was
-            // saved, then rendered as an empty field by the very next recalculation.
+            // The dropdown's live list can hold an office the synced table does not.
             if (!$office && $site_id) {
                 foreach ((array) BGCouriers_Ajax::cached_city_offices($courier, $site_id, $off_country) as $row) {
                     if ((int) ($row['office_id'] ?? 0) === $office_id) { $office = $row; break; }
@@ -1438,22 +931,7 @@ class BGCouriers_Checkout {
                 $office_option = '<option value="' . esc_attr($office_id) . '" selected>' . esc_html($office['name'] . ' - ' . $office['address']) . '</option>';
             }
         } elseif ($site_id && $sel_method !== '' && $sel_method !== 'address') {
-            // A town with exactly ONE office - or one locker - is not a choice, and most towns are like
-            // that. Presenting a dropdown holding a single row and waiting to be told about it is work
-            // for the customer that answers itself.
-            //
-            // Decided HERE rather than in the browser because this block is re-rendered by the server on
-            // every recalculation: doing it in JS meant the selection was made and then wiped by the very
-            // next round, which is the same race that has bitten this file before. Rendered as the chosen
-            // option it simply IS the state, and cannot be lost.
-            //
-            // The tab the customer is on decides, not the whole town: Beloslav has one Speedy counter
-            // and a locker, and a customer who opened "To office" and saw a dropdown with one row in it,
-            // waited for it and still had to click it, ordered nothing (the order was refused with
-            // "choose an office"). The locker stays one tab away. This replaces the rule from Aytos,
-            // which counted every pickup type in the town before choosing for the customer.
-            // The list the dropdown shows decides when it is warm (see cached_city_offices); the synced
-            // table only while it is cold.
+            // A single office or locker on the chosen tab is pre-selected here, server-side, so a re-render cannot wipe it.
             $warm = BGCouriers_Ajax::cached_city_offices($courier, $site_id, $off_country);
             $only = $warm === null
                 ? BGCouriers_Nomenclature::offices($courier, $site_id, $sel_method)
@@ -1462,19 +940,13 @@ class BGCouriers_Checkout {
                 $one = $only[0];
                 $office_option = '<option value="' . esc_attr((string) $one['office_id']) . '" selected>'
                     . esc_html($one['name'] . ' - ' . $one['address']) . '</option>';
-                $auto_office = true;   // the JS stores it once, so the ORDER carries what the field shows
+                $auto_office = true;
             }
         }
-        // Office/automat picker shows for office+automat methods, hides for address.
         $office_style = ($sel_method === 'address') ? ' style="display:none;"' : '';
 
         $av = function ($k) use ($s, $mine) { return $mine ? esc_attr((string) $s->get('bgcouriers_addr_' . $k, '')) : ''; };
-        // The street box holds the bare NAME as its value (that is what every courier's label reads) and
-        // shows it with its type; the type and the courier's own id for it ride beside the box in two
-        // hidden fields. Two streets in one town can share a name - Sofia has a бул. ВИТОША and a ул.
-        // ВИТОША - and Speedy refuses the name alone in such a town (see BGCouriers_Speedy::build_address).
-        // WooCommerce re-renders this block from the session on every recalculation, so all three come
-        // back from the session or the next save would post an empty type over the one that was chosen.
+        // The street box holds the bare name; its type and the courier's id ride in hidden fields, all restored from the session.
         $sn  = $mine ? (string) $s->get('bgcouriers_addr_street_name', '') : '';
         $st  = $mine ? (string) $s->get('bgcouriers_addr_street_type', '') : '';
         $sid = $mine ? (int) $s->get('bgcouriers_addr_street_id', 0) : 0;
@@ -1486,9 +958,7 @@ class BGCouriers_Checkout {
             ? esc_html__('APS (locker)', 'bg-couriers')
             : esc_html__('Office', 'bg-couriers');
 
-        // Where this parcel is going. A shop that delivers only at home has one country and is shown no
-        // choice at all - the field would be a dropdown with a single entry, asking a question that has
-        // one answer. It renders as a data attribute regardless, so the browser always knows.
+        // One delivery country means no choice shown; the data attribute is rendered regardless.
         $countries = BGCouriers_Settings::delivery_countries($courier);
         $country   = BGCouriers_Pricing::destination_country();
         if (!in_array($country, $countries, true)) { $country = BGCouriers_Settings::home_country(); }
@@ -1504,19 +974,14 @@ class BGCouriers_Checkout {
                 . '<select class="bgc-country">' . $opts . '</select></div>';
         }
 
-        // Only the chosen courier's block is visible from the server - the others render hidden so the page
-        // doesn't briefly show every courier's fields expanded before the JS hides them. JS keeps this in sync.
+        // Only the chosen courier's block renders visible, so the page does not flash every courier's fields.
         $hide  = self::chosen_courier() !== $courier ? ' style="display:none;"' : '';
         $nocod = self::nocod_for_ui($courier);
-        // Built up first, then escaped once at output - every field inside is already esc_attr/esc_html'd,
-        // and wp_kses() restricts the result to the tags this form is made of.
         $html = '<div class="bgc-fields" data-courier="' . esc_attr($courier) . '" data-method="' . esc_attr($sel_method) . '"'
            . ' data-label="' . esc_attr((string) (BGCouriers_Couriers::all()[$courier] ?? $courier)) . '"'
            . ' data-methods="' . esc_attr(implode(',', BGCouriers_Settings::enabled_methods($courier))) . '"'
            . ' data-order="' . esc_attr(implode(',', BGCouriers_Settings::method_order($courier))) . '"'
            . ' data-country="' . esc_attr($country) . '"'
-           // Which tabs take the cash-on-delivery gateway away with them, so the note below can say so
-           // as the customer clicks rather than leaving them to notice that their payment method went.
            . ' data-nocod="' . esc_attr(implode(',', $nocod)) . '"' . $hide . '>'
            . '<div class="bgc-loader" aria-hidden="true"><span class="bgc-spinner"></span></div>'
            . '<div class="bgc-tabs" role="tablist"></div>'
@@ -1525,9 +990,6 @@ class BGCouriers_Checkout {
                . '</div>' : '')
            . '<div class="bgc-panel">'
            . $country_row
-           // The postcode rides along in the city label as "Name (1234)" (search + disambiguation); its value
-           // is kept in a hidden field - it's never sent to a courier, only used to carry the city across a
-           // courier switch and to set the order's postcode record.
            . '<div class="bgc-field bgc-city-field" id="' . esc_attr(self::field_id($courier, 'city')) . '"><label>' . esc_html__('City', 'bg-couriers') . '</label>'
            . '<select class="bgc-city"><option value=""></option>' . $city_option . '</select>'
            . '<input type="hidden" class="bgc-postcode" value="' . esc_attr($post_code) . '"></div>'
@@ -1541,15 +1003,12 @@ class BGCouriers_Checkout {
            . '<div class="bgc-field bgc-street-field" id="' . esc_attr(self::field_id($courier, 'street')) . '"><label>' . esc_html__('Street', 'bg-couriers') . ' *</label><select class="bgc-street"><option value=""></option>' . $street_option . '</select>' . $street_hidden . '</div>'
            . '<div class="bgc-field bgc-streetno-field" id="' . esc_attr(self::field_id($courier, 'streetno')) . '"><label>' . esc_html__('No.', 'bg-couriers') . ' *</label><input type="text" class="bgc-street-no" autocomplete="off" value="' . $av('street_no') . '"></div>'
            . (get_option('bgcouriers_address_map', 'no') === 'yes'
-               // Small map-pin icon next to No. (same generic style as the order editor), not a full-width button.
                ? '<div class="bgc-field bgc-addr-map-cell"><label aria-hidden="true">&nbsp;</label>'
                  . '<button type="button" class="bgc-map-btn bgc-addr-map-btn bgc-addr-map-icon" title="' . esc_attr__('Choose on map', 'bg-couriers') . '" aria-label="' . esc_attr__('Choose on map', 'bg-couriers') . '">'
                  . '<svg class="bgc-map-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
                  . '</button></div>'
                : '')
            . '</div>'
-           // Filled and shown by the map hand-over when the street it found is not on this courier's list
-           // and the courier takes no other (see fillAddress in bgc-checkout.js); hidden once a street is chosen.
            . '<div class="bgc-street-note" style="display:none;"></div>'
            . '<div class="bgc-field"><label>' . esc_html__('Quarter / complex', 'bg-couriers') . '</label><input type="text" class="bgc-complex" autocomplete="off" value="' . $av('complex') . '"></div>'
            . '<div class="bgc-grid bgc-grid-4">'
@@ -1565,5 +1024,4 @@ class BGCouriers_Checkout {
         echo wp_kses($html, BGCouriers_Kses::checkout_fields());
     }
 
-    /** BOX NOW checkout: a locker chosen on the BoxNow map widget (no city/office dropdowns). */
 }
