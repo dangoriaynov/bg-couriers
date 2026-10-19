@@ -202,15 +202,26 @@ jobs:
           SLUG: bg-couriers
           ASSETS_DIR: .wordpress-org
 
-      # --- Did it actually arrive ---------------------------------------------------------------------
-      # The directory takes a few minutes to serve a new tag. Not a failure if it has not yet - the
-      # commit is done - but worth saying, because "committed" and "served" were confused here before.
-      - name: The directory serves it
+      # --- Did the directory pick it up yet ------------------------------------------------------------
+      # Never fails: the SVN commit is done by now. A ::warning:: alone leaves a green tick, so the answer
+      # goes to the job summary.
+      - name: Did the directory pick it up yet
         run: |
           for i in 1 2 3 4 5 6; do
             GOT="$(curl -sS -m 20 "https://api.wordpress.org/plugins/info/1.0/${SLUG}.json" \
                    | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || true)"
-            [ "$GOT" = "$VERSION" ] && { echo "the directory serves ${VERSION}"; exit 0; }
-            echo "directory still on ${GOT:-?} (try $i)"; sleep 30
+            if [ "$GOT" = "$VERSION" ]; then
+              echo "### ✅ ${SLUG} ${VERSION} is published and the directory serves it" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "directory still on ${GOT:-?} (try $i)"
+            sleep 30
           done
-          echo "::warning::committed, but the directory still serves an older version - check in a few minutes"
+          {
+            echo "### ⏳ ${SLUG} ${VERSION} is published, the directory has not re-indexed yet"
+            echo ""
+            echo "The SVN commit is done: trunk and \`tags/${VERSION}\` carry it."
+            echo "The directory usually catches up within minutes - check"
+            echo "<https://wordpress.org/plugins/${SLUG}/>. Nothing to re-run here."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning::published, but the directory still serves ${GOT:-an older version}"
