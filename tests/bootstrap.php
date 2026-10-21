@@ -1,7 +1,7 @@
 <?php
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-$bgcouriers_is_integration = getenv('BGCouriers_SUITE') === 'integration'
+$bgcouriers_is_integration = getenv('BGC_SUITE') === 'integration'
     || (in_array('--testsuite', $_SERVER['argv'] ?? [], true) && in_array('integration', $_SERVER['argv'], true));
 
 // Unit suite: source files guard on ABSPATH (`defined('ABSPATH') || exit;`), so define it here to let the
