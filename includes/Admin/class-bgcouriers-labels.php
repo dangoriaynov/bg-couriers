@@ -29,6 +29,8 @@ class BGCouriers_Labels {
         // Both hooks: the Update button and the AJAX line-item editor are separate paths.
         add_action('woocommerce_process_shop_order_meta', [$this, 'maybe_regenerate_on_change'], 90, 1);
         add_action('woocommerce_saved_order_items', [$this, 'maybe_regenerate_on_change'], 90, 1);
+        // The WooCommerce mobile app edits orders through the REST API, which fires neither of the two above.
+        add_action('woocommerce_rest_insert_shop_order_object', [$this, 'maybe_regenerate_after_rest'], 90, 3);
         add_action('woocommerce_process_shop_order_meta', [__CLASS__, 'maybe_move_dispatch'], 91, 1);
     }
 
@@ -405,6 +407,11 @@ class BGCouriers_Labels {
             default:
                 return '';
         }
+    }
+
+    public function maybe_regenerate_after_rest($order, $request = null, $creating = false): void {
+        if ($creating || !$order instanceof \WC_Order) { return; }
+        $this->maybe_regenerate_on_change($order->get_id());
     }
 
     /** Re-issue the waybill when an edit changed something the courier needs (fingerprint, not "saved"). */
