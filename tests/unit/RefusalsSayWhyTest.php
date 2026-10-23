@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -23,12 +21,9 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.
  *
  * @group core
  */
-final class RefusalsSayWhyTest extends TestCase {
+final class RefusalsSayWhyTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('esc_html')->returnArg(1);
-        Functions\when('esc_html__')->returnArg(1);
+        parent::setUp();        Functions\when('esc_html__')->returnArg(1);
         Functions\when('get_option')->alias(static function ($n, $d = false) { return $d; });
         Functions\when('get_transient')->justReturn(false);
         Functions\when('set_transient')->justReturn(true);
@@ -38,7 +33,6 @@ final class RefusalsSayWhyTest extends TestCase {
         Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
         Functions\when('wp_remote_retrieve_headers')->justReturn([]);
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function answering(string $json): void {
         Functions\when('wp_remote_post')->justReturn(['body' => $json]);

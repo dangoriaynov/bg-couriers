@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-nomenclature.php';
 
@@ -15,12 +12,12 @@ require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-nomenclatur
  *
  * @group core
  */
-final class AllMapCityMatchTest extends TestCase {
+final class AllMapCityMatchTest extends BGCouriers_Unit_TestCase {
     /** The suite's own $wpdb, put back after each test: these swap in a stub that answers get_row and
      *  nothing else, and left in place it reached every later test that touches the database. */
     private $wpdb_was;
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); $this->wpdb_was = $GLOBALS['wpdb'] ?? null; }
-    protected function tearDown(): void { $GLOBALS['wpdb'] = $this->wpdb_was; Monkey\tearDown(); parent::tearDown(); }
+    protected function setUp(): void { parent::setUp(); $this->wpdb_was = $GLOBALS['wpdb'] ?? null; }
+    protected function tearDown(): void { $GLOBALS['wpdb'] = $this->wpdb_was; parent::tearDown(); }
 
     /** A tiny $wpdb that answers get_row from a fixed table of rows. */
     private function wpdb(array $rows): object {

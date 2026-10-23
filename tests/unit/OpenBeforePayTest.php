@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 
@@ -12,16 +10,8 @@ require_once dirname(__DIR__) . '/stubs/wc-order.php';
  *
  * @group core
  */
-final class OpenBeforePayTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); Functions\when('__')->returnArg(1); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class OpenBeforePayTest extends BGCouriers_Unit_TestCase {
 
-    /** @param array<string,mixed> $opts */
-    private function options(array $opts): void {
-        Functions\when('get_option')->alias(static function ($n, $d = false) use ($opts) {
-            return array_key_exists($n, $opts) ? $opts[$n] : $d;
-        });
-    }
 
     public function test_the_three_settings(): void {
         foreach (['no', 'open', 'test'] as $v) {

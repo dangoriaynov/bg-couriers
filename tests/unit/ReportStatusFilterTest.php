@@ -1,6 +1,4 @@
 <?php
-use Brain\Monkey;
-use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-status.php';
 
 /**
@@ -14,9 +12,7 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-statu
  *
  * @group core
  */
-final class ReportStatusFilterTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class ReportStatusFilterTest extends BGCouriers_Unit_TestCase {
 
     public function test_the_no_filter_marker_passes_through_untouched(): void {
         $this->assertFalse((new BGCouriers_Order_Status())->add_to_reports(false));

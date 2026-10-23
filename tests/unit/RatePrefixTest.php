@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-checkout.php';
 
@@ -23,12 +21,7 @@ if (!class_exists('BGCouriers_Fake_Rate')) {
  *
  * @group core
  */
-final class RatePrefixTest extends TestCase {
-    protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-    }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class RatePrefixTest extends BGCouriers_Unit_TestCase {
 
     /** The whole bug in one assertion: a real courier rate must survive the PPP filter. */
     public function test_ppp_filter_keeps_rates_whose_courier_pays_out(): void {

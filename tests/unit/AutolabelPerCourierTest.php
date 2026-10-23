@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -26,21 +24,14 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  *
  * @group core
  */
-final class AutolabelPerCourierTest extends TestCase {
+final class AutolabelPerCourierTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        BGCouriers_Couriers::reset();
+        parent::setUp();        BGCouriers_Couriers::reset();
         BGCouriers_Couriers::register('sameday', 'Sameday', static function () { return new BGCouriers_Sameday([]); });
         BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return new BGCouriers_Speedy([]); });
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
-    private function options(array $map): void {
-        Functions\when('get_option')->alias(static function ($name, $default = false) use ($map) {
-            return $map[$name] ?? $default;
-        });
-    }
 
     /**
      * The default a shop gets before it has thought about any of this - and the reason it is a fact

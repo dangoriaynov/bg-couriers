@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Brain\Monkey\Filters;
 
@@ -30,22 +28,15 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  *
  * @group core
  */
-final class NoCodAtLockerTest extends TestCase {
+final class NoCodAtLockerTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
-        Functions\when('__')->returnArg(1);
         BGCouriers_Couriers::reset();
         BGCouriers_Couriers::register('expressone', 'Express One', static function () { return new BGCouriers_Expressone([]); });
         BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return new BGCouriers_Speedy([]); });
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
-    private function options(array $map): void {
-        Functions\when('get_option')->alias(static function ($name, $default = false) use ($map) {
-            return $map[$name] ?? $default;
-        });
-    }
 
     public function test_express_one_declares_its_locker(): void {
         $this->assertSame(['automat'], (new BGCouriers_Expressone([]))->no_cod_methods());

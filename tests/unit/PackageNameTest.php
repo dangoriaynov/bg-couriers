@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-checkout.php';
 
@@ -16,9 +14,7 @@ require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-checkout
  *
  * @group core
  */
-final class PackageNameTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class PackageNameTest extends BGCouriers_Unit_TestCase {
 
     /** A checkout whose cart produced $count shipping packages. */
     private function cartWith(int $count): BGCouriers_Checkout {

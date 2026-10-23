@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 // The method classes extend WC_Shipping_Method; stub it so the files load without WooCommerce.
@@ -12,9 +10,7 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
 /**
  * @group speedy
  */
-final class FreeShippingTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class FreeShippingTest extends BGCouriers_Unit_TestCase {
 
     public function test_is_free_at_or_above_threshold(): void {
         $cfg = ['enabled' => true, 'threshold' => 50.0];

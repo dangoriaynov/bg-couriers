@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 
@@ -21,12 +19,7 @@ require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-tracking-po
  *
  * @group core
  */
-final class ShippedStatusTest extends TestCase {
-    protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-    }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class ShippedStatusTest extends BGCouriers_Unit_TestCase {
 
     private function opt(string $target): void {
         Functions\when('get_option')->alias(static function ($n, $d = false) use ($target) {
@@ -42,74 +35,49 @@ final class ShippedStatusTest extends TestCase {
         return new BGCouriers_Tracking('W1', $status, $e);
     }
 
-    public function test_off_by_default_does_nothing(): void {
-        $this->opt('');
-        $o = new WC_Order();
-        $this->assertFalse($this->call($o, $this->tracking('148', 3)));
-        $this->assertSame('processing', $o->status);
+    /** @return array<string,array{string,array,string,int,string,bool,string}> target, meta, status, last code, events, marks?, status after */
+    public static function transitions(): array {
+        $first = ['_bgcouriers_track_first' => '148'];
+        $ship  = 'wc-bgcouriers-shipped';
+        return [
+            'off by default'                 => ['', [], 'processing', '148', 3, false, 'processing'],
+            'registration event alone waits' => [$ship, [], 'processing', '148', 1, false, 'processing'],
+            'moved past the first status'    => [$ship, $first, 'processing', '2', 2, true, 'bgcouriers-shipped'],
+            'first sighting already moving'  => [$ship, [], 'processing', '2', 2, true, 'bgcouriers-shipped'],
+            'still at the first status'      => [$ship, $first, 'processing', '148', 1, false, 'processing'],
+            'already marked once'            => [$ship, $first + ['_bgcouriers_shipped_marked' => 'yes'], 'completed', '5', 4, false, 'completed'],
+            'completed left alone'           => [$ship, $first, 'completed', '9', 3, false, 'completed'],
+            'cancelled left alone'           => [$ship, $first, 'cancelled', '9', 3, false, 'cancelled'],
+            'refunded left alone'            => [$ship, $first, 'refunded', '9', 3, false, 'refunded'],
+            'failed left alone'              => [$ship, $first, 'failed', '9', 3, false, 'failed'],
+            'custom target status'           => ['wc-on-hold', $first, 'processing', '2', 2, true, 'on-hold'],
+        ];
     }
 
-    /** The registration event alone is NOT shipped - it only means the courier has the data. */
-    public function test_first_sighting_with_only_the_registration_event_waits(): void {
-        $this->opt('wc-bgcouriers-shipped');
+    /** @dataProvider transitions */
+    public function test_shipped_is_marked_once_the_status_moves_past_registration(
+        string $target, array $meta, string $status, string $code, int $events, bool $marks, string $after
+    ): void {
+        $this->opt($target);
         $o = new WC_Order();
-        $this->assertFalse($this->call($o, $this->tracking('148', 1)));
-        $this->assertSame('processing', $o->status);
-        $this->assertSame('148', $o->meta['_bgcouriers_track_first'], 'remembers where it started');
-        $this->assertArrayNotHasKey('_bgcouriers_shipped_marked', $o->meta);
-    }
-
-    /** Next poll, the status has moved on -> the courier has it. */
-    public function test_moving_past_the_first_status_marks_shipped(): void {
-        $this->opt('wc-bgcouriers-shipped');
-        $o = new WC_Order();
-        $o->meta['_bgcouriers_track_first'] = '148';
-        $this->assertTrue($this->call($o, $this->tracking('2', 2)));
-        $this->assertSame('bgcouriers-shipped', $o->status, 'the wc- prefix is stripped for update_status');
-        $this->assertSame('yes', $o->meta['_bgcouriers_shipped_marked']);
-    }
-
-    /** Polling twice a day, the history can already show movement the very first time we look. */
-    public function test_first_sighting_with_more_than_one_event_marks_immediately(): void {
-        $this->opt('wc-bgcouriers-shipped');
-        $o = new WC_Order();
-        $this->assertTrue($this->call($o, $this->tracking('2', 2)));
-        $this->assertSame('bgcouriers-shipped', $o->status);
-    }
-
-    /** Still sitting at the same registration status: not shipped, however often we poll. */
-    public function test_unchanged_registration_status_never_marks(): void {
-        $this->opt('wc-bgcouriers-shipped');
-        $o = new WC_Order();
-        $o->meta['_bgcouriers_track_first'] = '148';
-        $this->assertFalse($this->call($o, $this->tracking('148', 1)));
-        $this->assertSame('processing', $o->status);
-    }
-
-    public function test_marks_only_once(): void {
-        $this->opt('wc-bgcouriers-shipped');
-        $o = new WC_Order();
-        $o->meta['_bgcouriers_track_first']   = '148';
-        $o->meta['_bgcouriers_shipped_marked'] = 'yes';
-        $o->status = 'completed'; // merchant moved it on afterwards
-        $this->assertFalse($this->call($o, $this->tracking('5', 4)));
-        $this->assertSame('completed', $o->status, 'never dragged back to Shipped');
-    }
-
-    /** A finished or dead order must not be reopened by a late tracking event. */
-    public function test_terminal_statuses_are_left_alone(): void {
-        foreach (['completed', 'cancelled', 'refunded', 'failed'] as $st) {
-            $this->opt('wc-bgcouriers-shipped');
-            $o = new WC_Order();
-            $o->status = $st;
-            $o->meta['_bgcouriers_track_first'] = '148';
-            $this->assertFalse($this->call($o, $this->tracking('9', 3)), $st);
-            $this->assertSame($st, $o->status, $st);
+        $o->status = $status;
+        $o->meta = $meta;
+        $this->assertSame($marks, $this->call($o, $this->tracking($code, $events)));
+        $this->assertSame($after, $o->status);
+        if ($marks) {
+            $this->assertSame('yes', $o->meta['_bgcouriers_shipped_marked']);
         }
     }
 
-    /** Re-running against an order already in the target status is a no-op, not a second transition. */
-    public function test_already_in_the_target_status(): void {
+    public function test_the_first_status_seen_is_remembered(): void {
+        $this->opt('wc-bgcouriers-shipped');
+        $o = new WC_Order();
+        $this->call($o, $this->tracking('148', 1));
+        $this->assertSame('148', $o->meta['_bgcouriers_track_first']);
+        $this->assertArrayNotHasKey('_bgcouriers_shipped_marked', $o->meta);
+    }
+
+    public function test_an_order_already_in_the_target_status_is_not_transitioned_again(): void {
         $this->opt('wc-bgcouriers-shipped');
         $o = new WC_Order();
         $o->status = 'bgcouriers-shipped';
@@ -121,16 +89,10 @@ final class ShippedStatusTest extends TestCase {
     // ── Couriers that answer the handover question outright ─────────────────
 
     private function pigeon(string $fixture): BGCouriers_Tracking {
-        return BGCouriers_Pigeon::parse_tracking(
-            json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/pigeon/' . $fixture), true)
-        );
+        return BGCouriers_Pigeon::parse_tracking($this->fixture('pigeon', $fixture));
     }
 
-    /**
-     * Order 11244: Pigeon had accepted the parcel at the office two days earlier and the order was still
-     * sitting in Processing. Pigeon sends no event history that grows, so the count-the-events rule could
-     * never fire for it - its status_code is the answer.
-     */
+    /** Pigeon's history does not grow, so its status code decides handover. */
     public function test_pigeon_marks_shipped_once_the_courier_has_the_parcel(): void {
         $this->opt('wc-bgcouriers-shipped');
         $o = new WC_Order();
@@ -139,7 +101,6 @@ final class ShippedStatusTest extends TestCase {
         $this->assertSame('yes', $o->meta['_bgcouriers_shipped_marked']);
     }
 
-    /** And the reverse, which would be the worse bug: a printed label is not a shipped parcel. */
     public function test_pigeon_does_not_mark_a_freshly_printed_label(): void {
         $this->opt('wc-bgcouriers-shipped');
         $o = new WC_Order();
@@ -148,7 +109,6 @@ final class ShippedStatusTest extends TestCase {
         $this->assertArrayNotHasKey('_bgcouriers_shipped_marked', $o->meta);
     }
 
-    /** Any status may be chosen, not just ours. */
     public function test_a_custom_target_status_is_honoured(): void {
         $this->opt('wc-on-hold');
         $o = new WC_Order();

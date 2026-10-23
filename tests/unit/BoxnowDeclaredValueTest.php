@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/tests/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -23,12 +21,9 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow.p
  *
  * @group boxnow
  */
-final class BoxnowDeclaredValueTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class BoxnowDeclaredValueTest extends BGCouriers_Unit_TestCase {
 
     private function body(string $payment_method, string $declare): array {
-        Functions\when('__')->returnArg(1);
         Functions\when('esc_html__')->returnArg(1);
         Functions\when('get_bloginfo')->justReturn('Shop');
         Functions\when('wc_get_price_decimals')->justReturn(2);

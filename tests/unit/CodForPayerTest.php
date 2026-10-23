@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
@@ -33,9 +31,7 @@ abstract class BGC_CodForPayer_Exposer extends BGCouriers_Abstract_Courier {
  *
  * @group core
  */
-final class CodForPayerTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); Functions\when('__')->returnArg(1); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class CodForPayerTest extends BGCouriers_Unit_TestCase {
 
     private function order(float $total, float $shipping, float $ship_tax, float $subtotal, string $method = 'office'): WC_Order {
         $o = new WC_Order();

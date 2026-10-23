@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
@@ -24,13 +22,9 @@ require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-tracking-po
  *
  * @group sameday
  */
-final class SamedayReturnJourneyTest extends TestCase {
+final class SamedayReturnJourneyTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('_x')->returnArg(1);
-        Functions\when('esc_html')->returnArg(1);
-        Functions\when('get_option')->alias(static function ($n, $d = false) {
+        parent::setUp();        Functions\when('get_option')->alias(static function ($n, $d = false) {
             $o = [
                 'bgcouriers_autostatus_on_shipped'   => 'wc-bgc-shipped',
                 'bgcouriers_autostatus_on_unclaimed' => 'wc-failed',
@@ -40,7 +34,6 @@ final class SamedayReturnJourneyTest extends TestCase {
         });
         if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     /** The sentences Sameday really sent, in the order it sent them. */
     private const JOURNEY = [

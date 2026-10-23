@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-labels.php';
@@ -9,12 +7,7 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-colum
 /**
  * @group speedy
  */
-final class OrderColumnCellTest extends TestCase {
-    protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-    }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class OrderColumnCellTest extends BGCouriers_Unit_TestCase {
 
     public function test_waybill_shows_print_and_track(): void {
         Functions\when('esc_html')->alias('trim');

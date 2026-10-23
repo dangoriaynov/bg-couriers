@@ -1,258 +1,142 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 
 /**
- * BGCouriers_Tracking::classify()/stage() decide when the poller stops polling a waybill for good
- * (_bgcouriers_track_done is never cleared) and, with auto-status on, when an order is completed - so a
- * status read as terminal too early is expensive.
+ * classify()/stage() decide when polling stops for good and when an order is completed, so reading a
+ * status as terminal too early is the expensive mistake.
  *
  * @group core
  */
-final class TrackingStageTest extends TestCase {
-    protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
-    }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class TrackingStageTest extends BGCouriers_Unit_TestCase {
 
-    /** Real Speedy operation descriptions observed live on the account. */
-    public function test_observed_speedy_operations(): void {
-        $this->assertSame('transit', BGCouriers_Tracking::classify('Получена информация за пратка'));
-        $this->assertSame('cancelled', BGCouriers_Tracking::classify('Анулиране'));
-    }
-
-    /**
-     * Regression: the Bulgarian stem for "deliver", like 'deliver' itself, is a substring of phrasings
-     * that mean the parcel is still moving.
-     * Reading those as delivered would end tracking on a mere delivery attempt.
-     */
-    public function test_in_flight_delivery_phrasings_are_not_delivered(): void {
-        foreach (['Предадена за доставка', 'Опит за доставка', 'Готова за доставка',
-                  'Неуспешен опит за доставка', 'Out for delivery', 'Delivery attempt failed'] as $s) {
-            $this->assertSame('transit', BGCouriers_Tracking::classify($s), $s);
-        }
-    }
-
-    /**
-     * Regression, live incident: Econt's FIRST tracking event on order 11178 was "Awaiting delivery to
-     * Econt" (event code 'prepared') - the parcel had not even been handed to the courier. 'deliver'
-     * matched inside 'delivery', so the order was completed the day after it was placed and marked
-     * terminal, which also stopped it ever being polled again. Both languages, both real strings.
-     */
-    public function test_awaiting_handover_is_not_delivered(): void {
-        foreach (['Awaiting delivery to Econt', 'Очаква предаване към Еконт',
-                  'Awaiting delivery', 'Ready for delivery', 'Preparing for delivery',
-                  'Delivery scheduled for tomorrow', 'Очаква се доставка'] as $s) {
-            $this->assertSame('transit', BGCouriers_Tracking::classify($s), $s);
-        }
-    }
-
-    /** Every courier goes through classify(), so each one's real delivered wording has to pass. */
-    public function test_delivered_wording_of_each_courier(): void {
-        foreach (['Доставена пратка',            // Speedy
-                  'Доставка на клиент',           // Speedy, operation -14 - the real final event
-                  'Взета от получателя',          // Pigeon - its API sends no events, only this text
-                  'Delivered to office',          // Econt (English feed)
-                  'Доставена на получателя',      // Econt (Bulgarian feed)
-                  'delivered',                    // Pigeon / Sameday lowercase feeds
-                  'AWB delivered'] as $s) {
-            $this->assertSame('delivered', BGCouriers_Tracking::classify($s), $s);
-        }
-    }
-
-    /**
-     * The full operation list of two real Speedy parcels, in order. Only the last one is terminal - and
-     * "inspection/testing refused" (declining to INSPECT the parcel) fires one second before delivery, so
-     * reading the word "refusal" in it as a cancellation would end tracking right at the finish line.
-     */
-    public function test_a_whole_speedy_journey_reads_correctly(): void {
-        $journey = [
-            'Получена информация за пратка'                => 'transit',
-            'Приемане от подател'                          => 'transit',
-            'Приемане от куриер/служител'                  => 'transit',
-            'Изпращане от офис'                            => 'transit',
-            'Пристигане в офис'                            => 'transit',
-            // The parcel has arrived and the customer has been told to come for it - its own stage,
-            // between "on its way" and "handed over".
-            'Подготовка за предаване на клиент в офис'     => 'ready',
-            'Изпратено известие за пратка в офис/автомат'  => 'ready',
-            'Уточняване на доставка'                       => 'transit',
-            'Отказ от преглед/тестване'                    => 'transit',
-            'Доставка на клиент'                           => 'delivered',
+    /** @return array<string,array{string,string}> courier wording => stage */
+    public static function wordings(): array {
+        $cases = [
+            'transit' => [
+                // "deliver" inside a phrase that means the parcel is still moving
+                'Предадена за доставка', 'Опит за доставка', 'Готова за доставка', 'Неуспешен опит за доставка',
+                'Out for delivery', 'Delivery attempt failed',
+                // not even handed to the courier yet
+                'Awaiting delivery to Econt', 'Очаква предаване към Еконт', 'Awaiting delivery', 'Ready for delivery',
+                'Preparing for delivery', 'Delivery scheduled for tomorrow', 'Очаква се доставка',
+                // Econt place names and prose
+                'Travelling on line', 'Sofia - Sofia', 'Sofia Emil Markov Nov', 'Order № 260730044625 for: adding cash on delivery',
+                // negations
+                'Недоставена пратка', 'Not delivered', 'Undelivered - receiver absent', 'Unsuccessful delivery attempt',
+                // a whole Speedy journey; declining to INSPECT is not a refusal of the parcel
+                'Получена информация за пратка', 'Приемане от подател', 'Приемане от куриер/служител', 'Изпращане от офис',
+                'Пристигане в офис', 'Уточняване на доставка', 'Отказ от преглед/тестване',
+            ],
+            'ready' => [
+                'Подготовка за предаване на клиент в офис', 'Изпратено известие за пратка в офис/автомат',
+                'Готова за получаване', 'Ready for pickup',
+            ],
+            'delivered' => [
+                'Доставена пратка', 'Доставка на клиент', 'Взета от получателя', 'Delivered to office',
+                'Доставена на получателя', 'delivered', 'AWB delivered', 'Доставена', 'Доставено', 'Delivered',
+            ],
+            'returning' => ['Връщане към подателя', 'Върната обратно', 'Return to sender'],
+            'returned'  => ['Предаване обратно на подател', 'Върната пратка', 'Returned to sender'],
+            'cancelled' => ['Анулиране', 'Отказана от получателя'],
         ];
-        foreach ($journey as $text => $want) {
-            $this->assertSame($want, BGCouriers_Tracking::classify($text), $text);
+        $out = [];
+        foreach ($cases as $stage => $texts) {
+            foreach ($texts as $text) { $out[$text] = [$text, $stage]; }
         }
+        return $out;
     }
 
-    /** Econt's in-flight events are place names and prose; none of them may read as terminal. */
-    public function test_econt_in_flight_events_are_transit(): void {
-        foreach (['Awaiting delivery to Econt', 'Travelling on line', 'Sofia - Sofia',
-                  'Sofia Emil Markov Nov', 'Order № 260730044625 for: adding cash on delivery'] as $s) {
-            $this->assertSame('transit', BGCouriers_Tracking::classify($s), $s);
-        }
+    /** @dataProvider wordings */
+    public function test_classify_reads_the_courier_wording_as_its_stage(string $text, string $stage): void {
+        $this->assertSame($stage, BGCouriers_Tracking::classify($text));
     }
 
-    /** An explicit negation must never read as the positive it contains. */
-    public function test_negated_delivery_is_not_delivered(): void {
-        foreach (['Недоставена пратка', 'Not delivered', 'Undelivered - receiver absent',
-                  'Unsuccessful delivery attempt'] as $s) {
-            $this->assertSame('transit', BGCouriers_Tracking::classify($s), $s);
-        }
-    }
-
-    public function test_real_delivery_still_classifies_as_delivered(): void {
-        foreach (['Доставена пратка', 'Доставена', 'Доставено', 'Delivered'] as $s) {
-            $this->assertSame('delivered', BGCouriers_Tracking::classify($s), $s);
-        }
-    }
-
-    public function test_returns_and_cancellations(): void {
-        $this->assertSame('returned', BGCouriers_Tracking::classify('Върната пратка'));
-        $this->assertSame('cancelled', BGCouriers_Tracking::classify('Отказана от получателя'));
-    }
-
-    /** With no courier phase (Econt/Pigeon/Sameday/BoxNow), stage() is just the text verdict. */
     public function test_stage_without_a_phase_reads_the_text(): void {
         $t = new BGCouriers_Tracking('1', 'X', [['code' => 'X', 'name' => 'Доставена пратка', 'date' => '']]);
         $this->assertSame('delivered', $t->stage());
     }
 
-    /** Speedy's trackPhase wins when present - the text can no longer misfire. */
-    public function test_phase_overrides_the_text(): void {
-        $ev = [['code' => '1', 'name' => 'Предадена за доставка', 'date' => '']];
-        $this->assertSame('transit', (new BGCouriers_Tracking('1', '1', $ev, 'OUT_FOR_DELIVERY'))->stage());
-        $this->assertSame('delivered', (new BGCouriers_Tracking('1', '1', $ev, 'DELIVERED'))->stage());
-        $this->assertSame('returned', (new BGCouriers_Tracking('1', '1', $ev, 'RETURN_TO_SENDER'))->stage());
-        $this->assertSame('returned', (new BGCouriers_Tracking('1', '1', $ev, 'DELIVERED_BACK_TO_SENDER'))->stage());
-        $this->assertSame('transit', (new BGCouriers_Tracking('1', '1', $ev, 'IN_TRANSIT'))->stage());
+    /** @return array<string,array{string,string}> */
+    public static function phases(): array {
+        return [
+            'out for delivery'   => ['OUT_FOR_DELIVERY', 'transit'],
+            'delivered'          => ['DELIVERED', 'delivered'],
+            'return to sender'   => ['RETURN_TO_SENDER', 'returned'],
+            'delivered back'     => ['DELIVERED_BACK_TO_SENDER', 'returned'],
+            'in transit'         => ['IN_TRANSIT', 'transit'],
+        ];
     }
 
-    /** trackPhase has no cancelled member, so a cancellation still has to come from the text. */
-    public function test_cancellation_survives_a_non_terminal_phase(): void {
+    /** @dataProvider phases */
+    public function test_a_courier_phase_overrides_the_text(string $phase, string $stage): void {
+        $ev = [['code' => '1', 'name' => 'Предадена за доставка', 'date' => '']];
+        $this->assertSame($stage, (new BGCouriers_Tracking('1', '1', $ev, $phase))->stage());
+    }
+
+    public function test_cancellation_text_survives_a_non_terminal_phase(): void {
         $ev = [['code' => '128', 'name' => 'Анулиране', 'date' => '']];
         $this->assertSame('cancelled', (new BGCouriers_Tracking('1', '128', $ev, 'IN_TRANSIT'))->stage());
     }
 
-    /**
-     * The handover flag is what decides the shipped status, and it must be false while the label merely
-     * exists.
-     * Speedy's first operation (148 "shipment information received") and Econt's first event ("Awaiting
-     * delivery to Econt") both fire before anything is collected.
-     */
-    public function test_handover_is_unknown_by_default(): void {
-        $t = new BGCouriers_Tracking('1', 'X', [['code' => '148', 'name' => 'Получена информация за пратка', 'date' => '']]);
-        $this->assertNull($t->handover, 'couriers that do not say leave it unknown');
-    }
-
-    public function test_handover_can_be_stated_either_way(): void {
-        $this->assertFalse((new BGCouriers_Tracking('1', 'X', [], '', false))->handover);
-        $this->assertTrue((new BGCouriers_Tracking('1', 'X', [], '', true))->handover);
-    }
-
-    /** The middle stage: arrived, waiting for the customer. Never confused with delivered or cancelled. */
-    public function test_ready_for_collection_is_its_own_stage(): void {
-        foreach (['Изпратено известие за пратка в офис/автомат',
-                  'Подготовка за предаване на клиент в офис',
-                  'Готова за получаване',
-                  'Ready for pickup'] as $s) {
-            $this->assertSame('ready', BGCouriers_Tracking::classify($s), $s);
-        }
-        // ...and a delivered or cancelled parcel is never demoted back to "waiting".
-        $this->assertSame('delivered', BGCouriers_Tracking::classify('Доставка на клиент'));
-        $this->assertSame('cancelled', BGCouriers_Tracking::classify('Анулиране'));
-    }
-
-    /** Speedy states it with an operation code too, which must win over however the text reads. */
-    public function test_ready_from_the_operation_code(): void {
+    public function test_an_operation_code_decides_the_stage_over_unknown_text(): void {
         $ev = [['code' => '1134', 'name' => 'Some wording we have never seen', 'date' => '']];
         $this->assertSame('ready', (new BGCouriers_Tracking('1', '1134', $ev))->stage());
         $done = [['code' => '-14', 'name' => 'Доставка на клиент', 'date' => '']];
         $this->assertSame('delivered', (new BGCouriers_Tracking('1', '-14', $done))->stage());
     }
 
-    /** Every stage has a label a merchant can read - no raw verdicts leak into the admin. */
+    public function test_handover_is_unknown_unless_the_courier_states_it(): void {
+        $ev = [['code' => '148', 'name' => 'Получена информация за пратка', 'date' => '']];
+        $this->assertNull((new BGCouriers_Tracking('1', 'X', $ev))->handover);
+        $this->assertFalse((new BGCouriers_Tracking('1', 'X', [], '', false))->handover);
+        $this->assertTrue((new BGCouriers_Tracking('1', 'X', [], '', true))->handover);
+    }
+
     public function test_every_stage_has_a_label(): void {
         foreach (['transit', 'ready', 'delivered', 'returned', 'cancelled'] as $stage) {
             $this->assertNotSame('', BGCouriers_Tracking::stage_label($stage), $stage);
         }
     }
 
-    /**
-     * Regression, live: order 11182 came back - the customer refused it - and the admin still said the
-     * parcel was on its way, because Speedy words a return two ways and we knew only one. "Returning to
-     * the sender" (111) matched; "handed back to the sender" (124), which is what the last event said,
-     * did not.
-     */
-    public function test_both_speedy_wordings_for_a_return(): void {
-        // On its way back - the courier still has it.
-        foreach (['Връщане към подателя', 'Върната обратно', 'Return to sender'] as $s) {
-            $this->assertSame('returning', BGCouriers_Tracking::classify($s), $s);
-        }
-        // Back on the merchant's counter - the journey is over. Order 11182 sat on "coming back" while
-        // the box was already in the shop, because these two were treated as one thing.
-        foreach (['Предаване обратно на подател', 'Върната пратка', 'Returned to sender'] as $s) {
-            $this->assertSame('returned', BGCouriers_Tracking::classify($s), $s);
-        }
+    /** @return array<string,array{string,string,string,string}> */
+    public static function status_notes(): array {
+        return [
+            'adds something'     => ['Speedy', 'registered', 'Получена информация за пратка', 'Speedy - Label created: "Получена информация за пратка"'],
+            'same as the label'  => ['Sameday', 'registered', 'Label created', 'Sameday - Label created'],
+            'case and padding'   => ['Sameday', 'registered', '  label CREATED ', 'Sameday - Label created'],
+            'delivered'          => ['Econt', 'delivered', 'Доставена', 'Econt - Delivered: "Доставена"'],
+        ];
     }
 
-    /**
-     * The order note quotes the courier's own words after the stage - unless they ARE the stage label,
-     * in which case the quote says nothing twice. Sameday's "Създадена товарителница" is the Bulgarian
-     * of "Label created" to the letter, so every Sameday order used to read it twice (prod, 2026-09-13).
-     */
-    public function test_the_status_note_quotes_the_courier_only_when_it_adds_something(): void {
-        $this->assertSame('Speedy - Label created: "Получена информация за пратка"',
-            BGCouriers_Tracking::status_note('Speedy', 'registered', 'Получена информация за пратка'));
-        $this->assertSame('Sameday - Label created',
-            BGCouriers_Tracking::status_note('Sameday', 'registered', 'Label created'), 'the same words are not quoted back');
-        $this->assertSame('Sameday - Label created',
-            BGCouriers_Tracking::status_note('Sameday', 'registered', '  label CREATED '), 'case and padding do not make them different');
-        $this->assertSame('Econt - Delivered: "Доставена"',
-            BGCouriers_Tracking::status_note('Econt', 'delivered', 'Доставена'));
+    /** @dataProvider status_notes */
+    public function test_the_status_note_quotes_the_courier_only_when_it_adds_something(string $courier, string $stage, string $text, string $want): void {
+        $this->assertSame($want, BGCouriers_Tracking::status_note($courier, $stage, $text));
     }
 
-    /**
-     * The same thing, one level down, because two screens read it as well as the notes: what goes in
-     * bold and what goes beside it. On a Bulgarian shop the label and the courier's line are often the
-     * SAME word - Pigeon's "Непотърсена" is our label for that stage - and the panel printed both
-     * (owner, screenshot, 2026-10-09).
-     */
-    public function test_the_headline_never_says_one_thing_twice(): void {
-        // Identical: the label alone.
-        $this->assertSame(['Label created', ''], BGCouriers_Tracking::stage_headline('registered', 'Label created'));
-        $this->assertSame(['Label created', ''], BGCouriers_Tracking::stage_headline('registered', ' label CREATED. '));
-        // The courier's sentence CONTAINS our label: it is ours plus more, so it takes the bold alone.
-        $this->assertSame(['Not collected since 21 Aug', ''],
-            BGCouriers_Tracking::stage_headline('unclaimed', 'Not collected since 21 Aug'));
-        // ...and the other way round: our label is the longer of the two. Pigeon ends a return with
-        // "Върната" where our label is "Back with you" - in Bulgarian, "Върната при вас" (screenshot,
-        // 2026-10-09).
-        $this->assertSame(['Back with you', ''], BGCouriers_Tracking::stage_headline('returned', 'Back with'));
-        // A sentence that says something else keeps both - that is what the second line is for.
-        $this->assertSame(['On its way', 'Приемане от куриер'],
-            BGCouriers_Tracking::stage_headline('transit', 'Приемане от куриер'));
-        // The word our parsers fall back to is not a status: orders that already carry it from an older
-        // release must not print it at a merchant.
-        $this->assertSame(['On its way', ''], BGCouriers_Tracking::stage_headline('transit', 'UNKNOWN'));
-        // Nothing heard yet: the stage still has to show.
-        $this->assertSame(['Ready for collection', ''], BGCouriers_Tracking::stage_headline('ready', ''));
+    /** @return array<string,array{string,string,array{string,string}}> */
+    public static function headlines(): array {
+        return [
+            'identical'               => ['registered', 'Label created', ['Label created', '']],
+            'identical, loosely'      => ['registered', ' label CREATED. ', ['Label created', '']],
+            'courier text contains ours' => ['unclaimed', 'Not collected since 21 Aug', ['Not collected since 21 Aug', '']],
+            'ours contains courier text' => ['returned', 'Back with', ['Back with you', '']],
+            'different sentence'      => ['transit', 'Приемане от куриер', ['On its way', 'Приемане от куриер']],
+            'parser fallback word'    => ['transit', 'UNKNOWN', ['On its way', '']],
+            'nothing heard yet'       => ['ready', '', ['Ready for collection', '']],
+        ];
     }
 
-    /**
-     * The stages nobody asks about again. 'returning' and 'unclaimed' stay out on purpose: the parcel is
-     * still moving, or still at the office where it can turn into a return.
-     */
-    public function test_final_stages(): void {
+    /** @dataProvider headlines */
+    public function test_the_headline_never_says_one_thing_twice(string $stage, string $text, array $want): void {
+        $this->assertSame($want, BGCouriers_Tracking::stage_headline($stage, $text));
+    }
+
+    public function test_only_delivered_cancelled_and_returned_are_final(): void {
         foreach (['delivered', 'cancelled', 'returned'] as $st) {
             $this->assertTrue(BGCouriers_Tracking::is_final($st), $st);
         }
         foreach (['', 'registered', 'transit', 'ready', 'unclaimed', 'returning', 'nonsense'] as $st) {
-            $this->assertFalse(BGCouriers_Tracking::is_final($st), $st === '' ? '(empty)' : $st);
+            $this->assertFalse(BGCouriers_Tracking::is_final($st), "'$st'");
         }
     }
 }

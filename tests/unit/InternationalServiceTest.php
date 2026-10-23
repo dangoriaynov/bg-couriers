@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -21,15 +19,11 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  *
  * @group speedy
  */
-final class InternationalServiceTest extends TestCase {
+final class InternationalServiceTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
-        Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
-        Functions\when('esc_html')->returnArg(1); // exception messages are esc_html()'d (Plugin Check)
         Functions\when('get_option')->alias(static fn($n, $d = false) => $d); // no drop-off office: the plain body
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function body(string $country, string $method = 'address'): array {
         return BGCouriers_Speedy::build_calculate_body([

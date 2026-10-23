@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -25,20 +23,18 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-pickup.php'
  *
  * @group core
  */
-final class PickupSelectionTest extends TestCase {
+final class PickupSelectionTest extends BGCouriers_Unit_TestCase {
     /** @var array<int,WC_Order|null> */
     private array $orders = [];
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('get_option')->alias(static function ($n, $d = false) { return $d; });
+        parent::setUp();        Functions\when('get_option')->alias(static function ($n, $d = false) { return $d; });
         Functions\when('wc_get_order')->alias(function ($id) { return $this->orders[(int) $id] ?? null; });
         BGCouriers_Couriers::reset();
         BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return new BGCouriers_Speedy([]); });
         BGCouriers_Couriers::register('sameday', 'Sameday', static function () { return new BGCouriers_Sameday([]); });
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
     /** An order as the label generator leaves it: a waybill and the courier that issued it. */
     private function order(int $id, string $waybill = '', string $courier = ''): int {

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -51,33 +49,23 @@ final class Evropat_Fixture_Client extends BGCouriers_Evropat {
 }
 
 /**
- * Evropat's answers, held to what the shop's own account actually returned on 2026-08-31.
- *
- * Every fixture here is a real answer with the account scrubbed out of it. The ones that would cost a
- * shop money if they drifted are the delivery type (it moves the price by 40%), the currency the price
- * comes back in (the account decides which of the two is EUR), the collection fee reaching the quote,
- * and a PPP the account cannot do being turned into a cash on delivery instead of being dropped.
+ * Evropat parsers and request bodies against scrubbed live answers (2026-08-31).
  *
  * @group evropat
  */
-final class EvropatParsersTest extends TestCase {
+final class EvropatParsersTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
-        Functions\when('esc_html')->returnArg(1);   // exception messages are esc_html()'d (Plugin Check)
         Functions\when('wp_parse_url')->alias(function ($u, $c = -1) { return parse_url($u); });
         Functions\when('get_transient')->justReturn(false);
         Functions\when('set_transient')->justReturn(true);
         Functions\when('is_wp_error')->justReturn(false);
         Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
         Functions\when('wp_remote_retrieve_body')->alias(function ($r) { return is_array($r) ? ($r['body'] ?? '') : ''; });
-        Functions\when('__')->returnArg(1);
         if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
-
     private function fx(string $f): array {
-        return json_decode((string) file_get_contents(dirname(__DIR__) . '/fixtures/evropat/' . $f), true);
+        return $this->fixture('evropat', $f);
     }
 
     /** The `response` of a fixture - what call() hands back. */
@@ -94,7 +82,7 @@ final class EvropatParsersTest extends TestCase {
     // ── The envelope ─────────────────────────────────────────────────────────
 
     public function test_a_refusal_is_an_exception_even_though_it_arrived_as_a_success(): void {
-        // Their whole API answers HTTP 200. Reading this as an empty success is a price of nothing.
+        // Their whole API answers HTTP 200.
         $this->expectException(BGCouriers_Api_Exception::class);
         $this->expectExceptionMessage('Невалидно населено място');
         BGCouriers_Evropat::unwrap($this->fx('error-envelope.json'));
@@ -112,8 +100,6 @@ final class EvropatParsersTest extends TestCase {
     // ── The one field that moves the price ───────────────────────────────────
 
     public function test_delivery_type_encodes_both_ends_of_the_journey(): void {
-        // 4.59 office-to-office against 6.52 door-to-door for the same parcel: getting this wrong
-        // overcharges (or undercharges) every customer the shop has.
         Functions\when('get_option')->justReturn('office');
         $this->assertSame(1, BGCouriers_Evropat::delivery_type('office'));
         $this->assertSame(2, BGCouriers_Evropat::delivery_type('address'));
@@ -131,10 +117,7 @@ final class EvropatParsersTest extends TestCase {
     // ── Price ────────────────────────────────────────────────────────────────
 
     public function test_their_price_includes_vat_and_is_handed_over_net(): void {
-        // Nothing in the API says the price is gross - the printed waybill does, its price block
-        // headed "price with VAT" over the same 4.59. Every quote in this plugin is net because WooCommerce
-        // adds the shipping tax on top, so passing their figure through would tax it twice (the 0.3.5
-        // fault). The split must give the courier's own total back when the tax is re-applied.
+        // WooCommerce adds shipping tax on top, so a gross price passed through would be taxed twice.
         $d = $this->body('calculateprice-office.json');
         $gross = (float) $d['price'];
         $q = BGCouriers_Evropat::parse_price($d, 'EUR');
@@ -147,9 +130,6 @@ final class EvropatParsersTest extends TestCase {
     }
 
     public function test_taking_the_tax_out_and_putting_it_back_gives_the_couriers_own_figure(): void {
-        // The invariant that matters: the split uses the SAME rates WooCommerce re-adds, so whatever it
-        // takes out comes back. If these two ever disagree the customer is charged a price the courier
-        // never quoted - in one direction or the other.
         foreach ([4.5885, 6.515, 12.34, 0.99] as $gross) {
             list($net, $tax) = BGCouriers_Pricing::split_gross($gross);
             $back = $net + array_sum(WC_Tax::calc_shipping_tax($net, WC_Tax::get_shipping_tax_rates()));
@@ -158,19 +138,8 @@ final class EvropatParsersTest extends TestCase {
         }
     }
 
-    public function test_the_price_is_the_sum_of_the_parts_the_answer_lists(): void {
-        $d = $this->body('calculateprice-office.json');
-        $sum = (float) $d['mainServicePrice'] + (float) $d['fuelTaxPrice'] + (float) $d['cashOnDeliveryPrice'];
-        $this->assertEqualsWithDelta($sum, (float) $d['price'], 0.001);
-        // And the fuel surcharge really is that percentage of the service, not a flat addition.
-        $this->assertEqualsWithDelta(
-            (float) $d['mainServicePrice'] * (float) $d['fuelTaxValue'] / 100,
-            (float) $d['fuelTaxPrice'], 0.001);
-    }
-
     public function test_a_shop_selling_in_the_second_currency_is_quoted_in_it(): void {
-        // The account decides which of the two is EUR - this one answers EURO/BGN while their own
-        // documented example answers BGN/EURO. Reading `price` blindly is a 1.95583x error.
+        // The account decides which of `price`/`priceSecondCurrency` is EUR.
         $d = $this->body('calculateprice-office.json');
         $eur = BGCouriers_Evropat::parse_price($d, 'EUR');
         $bgn = BGCouriers_Evropat::parse_price($d, 'BGN');
@@ -185,20 +154,9 @@ final class EvropatParsersTest extends TestCase {
     }
 
     public function test_delivering_to_the_door_costs_more_than_delivering_to_an_office(): void {
-        // The fixtures are two real answers for the same parcel; if these ever converge, the delivery
-        // type has stopped reaching the quote.
         $office = BGCouriers_Evropat::parse_price($this->body('calculateprice-office.json'), 'EUR');
         $door   = BGCouriers_Evropat::parse_price($this->body('calculateprice-address.json'), 'EUR');
         $this->assertGreaterThan($office->price, $door->price);
-    }
-
-    public function test_collecting_money_is_priced_and_reaches_the_quote(): void {
-        // 0.61 on a 50 EUR collection, and it lifts the fuel surcharge with it. A quote without it is a
-        // quote the shop pays the difference on - the 0.3.6 fault, for every courier.
-        $plain = $this->body('calculateprice-office.json');
-        $cod   = $this->body('calculateprice-cod.json');
-        $this->assertGreaterThan(0, (float) $cod['cashOnDeliveryPrice']);
-        $this->assertGreaterThan((float) $plain['price'], (float) $cod['price']);
     }
 
     public function test_the_money_to_collect_is_sent_with_the_request_for_a_price(): void {
@@ -221,8 +179,7 @@ final class EvropatParsersTest extends TestCase {
     // ── Cash on delivery the account cannot actually do ──────────────────────
 
     public function test_a_ppp_the_account_is_not_allowed_becomes_a_plain_collection(): void {
-        // Their API prices a PPP it cannot do at 0.00 and books the shipment WITHOUT one - no error, no
-        // flag. A waybill built on that answer travels with no money to collect.
+        // Their API silently drops a PPP the account cannot do, so the collection must be asked for plainly.
         $c = $this->client(['/getclientaddresses' => $this->body('getclientaddresses.json')]);
         Functions\when('get_option')->alias(function ($k, $d = '') {
             if (strpos($k, 'cod_fiscalization') !== false) { return 'ppp'; }
@@ -283,11 +240,7 @@ final class EvropatParsersTest extends TestCase {
         $this->assertStringContainsString($s['type'], $s['label']);
     }
 
-    /**
-     * Sofia lists four "витоша" (бул., кв., ул., жк.) and one name cannot say which. An order that
-     * carries the street's own id off this list, or its type, is settled by it - the first of the
-     * four with a warning is what a bare name gets, as before.
-     */
+    /** Sofia has four "витоша": the order's street id or type settles it, a bare name gets the first with a warning. */
     public function test_the_id_or_the_type_the_order_carries_settles_a_name_the_town_has_four_times(): void {
         $co = new class ([]) extends BGCouriers_Evropat {
             public int $asked = 0;
@@ -371,28 +324,23 @@ final class EvropatParsersTest extends TestCase {
 
     // ── The account ──────────────────────────────────────────────────────────
 
-    public function test_this_courier_issues_one_key_and_no_username(): void {
-        // creds_present() would otherwise refuse to enable a courier that is perfectly configured.
-        $this->assertSame(['password'], (new BGCouriers_Evropat(['password' => 'k']))->credential_fields());
-    }
-
-    public function test_no_lockers_are_offered_because_bulgaria_has_none(): void {
-        $caps = (new BGCouriers_Evropat(['password' => 'k']))->capabilities();
+    public function test_the_account_is_one_key_with_counters_only_and_listed_streets(): void {
+        $c = new BGCouriers_Evropat(['password' => 'k']);
+        $this->assertSame(['password'], $c->credential_fields());
+        $this->assertTrue($c->street_list_only());
+        $this->assertSame([], $c->label_formats(), 'every paper size returns the same A4 document');
+        $this->assertFalse($c->has_native_batch());
+        $caps = $c->capabilities();
         $this->assertNotContains('automat', $caps);
         $this->assertContains('office', $caps);
         $this->assertContains('address', $caps);
         $this->assertContains('live_quote', $caps);
     }
 
-    public function test_a_street_must_come_from_their_own_list(): void {
-        $this->assertTrue((new BGCouriers_Evropat(['password' => 'k']))->street_list_only());
-    }
-
     // ── What the live account taught us that the documentation did not ───────
 
     public function test_the_waybill_declares_its_weight_under_the_name_this_endpoint_uses(): void {
-        // /calculateprice takes `weight`; /createshipment takes `shipmentWeight` and its published
-        // parameter list has no weight field at all. Sending the documented one is INVALID_SHIPMENT_WEIGHT.
+        // /calculateprice takes `weight`, /createshipment takes `shipmentWeight`.
         $c = $this->client(['/getclientaddresses' => $this->body('getclientaddresses.json')]);
         Functions\when('get_option')->alias(function ($k, $d = '') { return $d; });
         $body = $c->build_shipment_body(['method' => 'office', 'city_id' => 273, 'office_id' => 268, 'weight_kg' => 2.0]);
@@ -402,8 +350,6 @@ final class EvropatParsersTest extends TestCase {
     }
 
     public function test_the_label_arrives_as_a_link_that_is_then_fetched(): void {
-        // /printshipment returns the ADDRESS of the document, not the document - their own description
-        // says so even though their success example shows bytes.
         $c = $this->client();
         $c->envelopes['/printshipment'] = ['error' => null, 'response' => 'https://api.evropat.com/printshipment?clientKey=SECRET&barcode=9100000000&format=A4'];
         Functions\when('get_option')->alias(function ($k, $d = '') { return $d; });
@@ -419,7 +365,7 @@ final class EvropatParsersTest extends TestCase {
     }
 
     public function test_the_label_link_never_reaches_an_error_message(): void {
-        // That URL carries the account's API key in its query string. A failure must not quote it.
+        // The URL carries the account's API key.
         $c = $this->client();
         $c->envelopes['/printshipment'] = ['error' => null, 'response' => 'https://api.evropat.com/printshipment?clientKey=SUPERSECRET&barcode=1'];
         $c->pdf_bytes = '<html>not a pdf</html>';
@@ -433,20 +379,7 @@ final class EvropatParsersTest extends TestCase {
         }
     }
 
-    public function test_there_is_no_paper_size_to_choose(): void {
-        // A6, A4 and sticker all answered with the same A4 document, byte for byte. Offering a select
-        // would be a control that changes nothing.
-        $this->assertSame([], (new BGCouriers_Evropat(['password' => 'k']))->label_formats());
-    }
-
-    public function test_one_waybill_per_printout_means_no_native_batch(): void {
-        $this->assertFalse((new BGCouriers_Evropat(['password' => 'k']))->has_native_batch());
-    }
-
     public function test_a_cancel_reads_the_couriers_answer_rather_than_assuming_it(): void {
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
-        Functions\when('wp_remote_retrieve_body')->alias(function ($r) { return $r['body']; });
         $c = $this->client();
         $c->envelopes['/cancelshipment'] = ['error' => null, 'errorMessage' => null, 'response' => true];
         $this->assertTrue($c->cancel_label('9100000000'));
@@ -461,8 +394,6 @@ final class EvropatParsersTest extends TestCase {
     }
 
     public function test_the_history_reads_the_status_id_the_live_answer_carries(): void {
-        // Their documented example omits statusID; the live answer has it, and reading it beats matching
-        // Bulgarian status names.
         $c = $this->client([
             '/getshipmenthistory' => $this->body('getshipmenthistory-cancelled.json'),
             '/shipment-statuses-nomenclature' => $this->body('statuses.json'),
@@ -470,22 +401,11 @@ final class EvropatParsersTest extends TestCase {
         $t = $c->track('9100000000');
         $this->assertSame('evropat_18', $t->phase);
         $this->assertSame('cancelled', $t->stage());
-    }
-
-    public function test_a_cancelled_waybill_is_recognised_as_cancelled(): void {
-        // 18 is what an API cancel actually produced on the live account, which is what lets a repeated
-        // cancel - refused outright with INVALID_SHIPMENT_STATE - be told from a cancel that failed.
-        $c = $this->client([
-            '/getshipmenthistory' => $this->body('getshipmenthistory-cancelled.json'),
-            '/shipment-statuses-nomenclature' => $this->body('statuses.json'),
-        ]);
         $this->assertTrue($c->is_cancelled('9100000000'));
     }
 
     public function test_two_events_in_the_same_second_keep_the_order_the_courier_listed_them_in(): void {
-        // Measured: the test waybill's "created" and "cancelled from export" share a timestamp to the
-        // second. usort is not stable, so without a tie-break the last event - which decides the status
-        // wherever no terminal code is involved - could differ between two runs on identical data.
+        // The fixture's two events share a timestamp to the second.
         $c = $this->client([
             '/getshipmenthistory' => $this->body('getshipmenthistory-cancelled.json'),
             '/shipment-statuses-nomenclature' => $this->body('statuses.json'),

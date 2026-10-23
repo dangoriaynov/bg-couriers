@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
@@ -32,12 +30,7 @@ require_once dirname(__DIR__) . '/stubs/wc-tax.php';
  *
  * @group core
  */
-final class DoorPriceTest extends TestCase {
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
-    }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class DoorPriceTest extends BGCouriers_Unit_TestCase {
 
     /** The shop displays prices WITHOUT tax - the default, and what the live shop is set to. */
     private function shopShowsNetPrices(): void {

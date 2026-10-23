@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
@@ -15,7 +13,8 @@ require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-tracking-po
 /** A courier that answers track() with one prepared reply, or refuses to answer at all. */
 if (!class_exists('PollFakeCourier')) {
     final class PollFakeCourier implements BGCouriers_Courier_Interface {
-        public function __construct(private ?BGCouriers_Tracking $t) {}
+        private ?BGCouriers_Tracking $t;
+        public function __construct(?BGCouriers_Tracking $t) { $this->t = $t; }
         public function track(string $waybill): BGCouriers_Tracking {
             if ($this->t === null) { throw new BGCouriers_Api_Exception('the courier is down'); }
             return $this->t;
@@ -50,15 +49,12 @@ if (!class_exists('PollFakeCourier')) {
  *
  * @group core
  */
-final class PollWritesOnceTest extends TestCase {
+final class PollWritesOnceTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
-        Functions\when('get_option')->justReturn('');   // every auto-status feature off
+        parent::setUp();        Functions\when('get_option')->justReturn('');   // every auto-status feature off
         BGCouriers_Couriers::reset();
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
     /** An order already carrying a waybill, as the poller finds one, answered by this tracking. */
     private function poll(?BGCouriers_Tracking $t, array $meta = []): WC_Order {

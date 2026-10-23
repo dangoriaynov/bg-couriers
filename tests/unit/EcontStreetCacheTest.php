@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 /**
@@ -10,17 +8,15 @@ use Brain\Monkey\Functions;
  *
  * @group econt
  */
-final class EcontStreetCacheTest extends TestCase {
+final class EcontStreetCacheTest extends BGCouriers_Unit_TestCase {
     private array $store = [];
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        $store = &$this->store;
+        parent::setUp();        $store = &$this->store;
         Functions\when('get_transient')->alias(static function ($k) use (&$store) { return $store[$k] ?? false; });
         Functions\when('set_transient')->alias(static function ($k, $v, $ttl = 0) use (&$store) { $store[$k] = $v; return true; });
         Functions\when('get_option')->alias(static function ($k, $d = '') { return $d; });
         if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function econt(): BGCouriers_Econt {
         return new class([]) extends BGCouriers_Econt {

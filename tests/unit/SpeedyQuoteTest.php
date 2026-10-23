@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -13,12 +11,10 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-speedy.p
 /**
  * @group speedy
  */
-final class SpeedyQuoteTest extends TestCase {
+final class SpeedyQuoteTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('get_option')->alias(static fn($n, $d = false) => $d); // no settings: the plain body
+        parent::setUp();        Functions\when('get_option')->alias(static fn($n, $d = false) => $d); // no settings: the plain body
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     public function test_build_calculate_body_for_office(): void {
         $body = BGCouriers_Speedy::build_calculate_body([

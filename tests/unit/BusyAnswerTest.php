@@ -1,13 +1,14 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-ajax.php';
 
 /** Stands in for the die() at the end of every wp_send_json_*, so the handler stops where it really would. */
 final class BusySent extends \RuntimeException {
-    public function __construct(public string $fn, public $body, public int $status) { parent::__construct($fn); }
+    public string $fn;
+    public $body;
+    public int $status;
+    public function __construct(string $fn, $body, int $status) { $this->fn = $fn; $this->body = $body; $this->status = $status; parent::__construct($fn); }
 }
 
 /**
@@ -27,13 +28,12 @@ final class BusySent extends \RuntimeException {
  *
  * @group core
  */
-final class BusyAnswerTest extends TestCase {
+final class BusyAnswerTest extends BGCouriers_Unit_TestCase {
     /** @var array<string,mixed> */
     private array $store = [];
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        $this->store = [];
+        parent::setUp();        $this->store = [];
         $store = &$this->store;
         Functions\when('get_transient')->alias(static function ($k) use (&$store) { return $store[$k] ?? false; });
         Functions\when('set_transient')->alias(static function ($k, $v, $t = 0) use (&$store) { $store[$k] = $v; return true; });
@@ -48,7 +48,7 @@ final class BusyAnswerTest extends TestCase {
         $_SERVER['REMOTE_ADDR'] = '203.0.113.9';
         $_GET = [];
     }
-    protected function tearDown(): void { $_GET = []; unset($_SERVER['REMOTE_ADDR']); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { $_GET = []; unset($_SERVER['REMOTE_ADDR']); parent::tearDown(); }
 
     /** Spend the whole per-IP budget, so the next request through any handler is refused. */
     private function spend_the_budget(): void {

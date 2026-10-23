@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
@@ -21,7 +19,9 @@ require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.
 if (!class_exists('BrokenAdapter')) {
     final class BrokenAdapter implements BGCouriers_Courier_Interface {
         public int $asked = 0;
-        public function __construct(private string $cid, private bool $broken) {}
+        private string $cid;
+        private bool $broken;
+        public function __construct(string $cid, bool $broken) { $this->cid = $cid; $this->broken = $broken; }
         public function track(string $w): BGCouriers_Tracking {
             $this->asked++;
             if ($this->broken) { throw new \TypeError('count(): Argument #1 must be of type Countable|array, null given'); }
@@ -63,18 +63,14 @@ if (!class_exists('BrokenAdapter')) {
  *
  * @group core
  */
-final class OneBrokenAdapterTest extends TestCase {
+final class OneBrokenAdapterTest extends BGCouriers_Unit_TestCase {
     /** @var array<string,mixed> */
     private array $store = [];
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }   // run()'s age bound
+        parent::setUp();        if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }   // run()'s age bound
         $this->store = [];
         $store = &$this->store;
-        Functions\when('__')->returnArg(1);
-        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
-        Functions\when('esc_html')->returnArg(1);
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
         Functions\when('get_transient')->alias(static function ($k) use (&$store) { return $store[$k] ?? false; });
         Functions\when('set_transient')->alias(static function ($k, $v, $ttl = 0) use (&$store) { $store[$k] = $v; return true; });
@@ -82,7 +78,7 @@ final class OneBrokenAdapterTest extends TestCase {
         Functions\when('apply_filters')->returnArg(2);
         BGCouriers_Couriers::reset();
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
     /** An order with a waybill, as the poller finds one. */
     private function order(string $courier): WC_Order {

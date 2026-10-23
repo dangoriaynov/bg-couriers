@@ -1,5 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
 
 /**
  * The "track this parcel" link the customer is given, per courier - a page that exists, with the number
@@ -10,15 +9,13 @@ use PHPUnit\Framework\TestCase;
  *
  * @group core
  */
-final class TrackingLinksTest extends TestCase {
+final class TrackingLinksTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); \Brain\Monkey\setUp();
-        \Brain\Monkey\Functions\when('__')->returnArg(1);
+        parent::setUp();
         // Sameday's constructor reads a setting (which of its hosts to talk to); when another file has
         // already defined get_option for the process this passes anyway, which is not a reason to skip it.
         \Brain\Monkey\Functions\when('get_option')->alias(static function ($k, $d = '') { return $d; });
     }
-    protected function tearDown(): void { \Brain\Monkey\tearDown(); parent::tearDown(); }
 
     public function test_every_link_is_the_page_that_exists_with_the_number_in_it(): void {
         $this->assertSame('https://www.speedy.bg/en/track-shipment?shipmentNumber=63740770880', (new BGCouriers_Speedy([]))->tracking_url('63740770880'));

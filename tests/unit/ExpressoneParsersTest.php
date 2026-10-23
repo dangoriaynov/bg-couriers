@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -12,31 +10,21 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-expresso
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 
 /**
- * Express One's answers, held to what the live test account actually returned on 2026-08-25.
- *
- * Every fixture here is a real answer with the account scrubbed out of it. The three that would cost a
- * shop money if they drifted are the ones with the longest names: a town appearing once however many
- * postcodes it has, a price handed over net of its VAT, and a cancel that already happened still
- * reading as cancelled.
+ * Express One parsers and request bodies against scrubbed live answers (2026-08-25).
  *
  * @group expressone
  */
-final class ExpressoneParsersTest extends TestCase {
+final class ExpressoneParsersTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
-        Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
-        Functions\when('esc_html')->returnArg(1);   // exception messages are esc_html()'d (Plugin Check)
-        // The street list is cached for a day against the rate limit; a unit test always asks cold.
         Functions\when('get_transient')->justReturn(false);
         Functions\when('set_transient')->justReturn(true);
         Functions\when('get_option')->alias(static function ($k, $d = '') { return $d; }); // the nomenclature generation in the cache key
         if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function fx(string $f): array {
-        return json_decode((string) file_get_contents(dirname(__DIR__) . '/fixtures/expressone/' . $f), true);
+        return $this->fixture('expressone', $f);
     }
 
     // ── The envelope ─────────────────────────────────────────────────────────
@@ -47,11 +35,6 @@ final class ExpressoneParsersTest extends TestCase {
         BGCouriers_Expressone::unwrap($this->fx('error-envelope.json'));
     }
 
-    /**
-     * A refused login arrives as {"status":0,"message":{"password":["Incorrect username or password."]}}
-     * - the message is an object of field => messages, and cast to a string that reads "Array", which
-     * is what the settings screen showed for "Sync now" with a wrong password (measured 2026-09-12).
-     */
     public function test_a_refusal_whose_message_is_a_list_of_field_messages_is_read_out(): void {
         $this->expectException(BGCouriers_Api_Exception::class);
         $this->expectExceptionMessage('Express One: Incorrect username or password.');
@@ -106,10 +89,6 @@ final class ExpressoneParsersTest extends TestCase {
         $this->assertNotSame(0.0, $rows[0]['lat']);
     }
 
-    /**
-     * The picker stores `name` and shows `label` - that is how every courier's street list is rendered
-     * here - and the type is what tells "zh.k. Mladost" from "ul. Mladost".
-     */
     public function test_a_street_row_is_shaped_the_way_the_checkout_renders_one(): void {
         $rows = BGCouriers_Expressone::parse_streets($this->fx('list-street.json'));
         $this->assertSame(['id', 'name', 'type', 'label'], array_keys($rows[0]));
@@ -118,12 +97,7 @@ final class ExpressoneParsersTest extends TestCase {
         $this->assertSame('УЛ. 1', $rows[0]['label']);
     }
 
-    /**
-     * Express One refuses an address it was not given a street id for - "Please set RECEIVER_STREET_ID
-     * when sending RECEIVER_STREET", measured - and the order only carries the name. The id therefore
-     * has to be found again at the packing table, and a name the town does not know has to say so there
-     * rather than produce a waybill to nowhere.
-     */
+    /** The waybill needs RECEIVER_STREET_ID, so the id is looked up from the street name the order carries. */
     public function test_a_street_id_is_found_again_from_the_name_the_order_carries(): void {
         $co = new class ([]) extends BGCouriers_Expressone {
             public $asked = 0;
@@ -140,10 +114,6 @@ final class ExpressoneParsersTest extends TestCase {
         $this->assertSame(0, $co->street_match(0, '1')['id'], 'no town, no lookup');
     }
 
-    /**
-     * Since the checkout keeps which street was picked, the order carries the street's own id and its
-     * type beside the name - and either settles a name the town has twice, with no warning to give.
-     */
     public function test_the_id_or_the_type_the_order_carries_settles_a_name_the_town_has_twice(): void {
         $co = new class ([]) extends BGCouriers_Expressone {
             protected function call(string $path, array $body = []): array {
@@ -229,7 +199,6 @@ final class ExpressoneParsersTest extends TestCase {
     }
 
     public function test_the_town_name_travels_with_the_town_id(): void {
-        Functions\when('__')->returnArg(1);
         $b = BGCouriers_Expressone::build_shipment_body($this->shipment());
         $this->assertSame(68134, $b['RECEIVER_CITY_ID']);
         $this->assertSame('СОФИЯ', $b['RECEIVER_CITY'], 'the API refuses the id on its own: "RECEIVER_CITY cannot be empty"');
@@ -249,11 +218,6 @@ final class ExpressoneParsersTest extends TestCase {
     public function test_the_order_number_goes_on_the_shipment(): void {
         $b = BGCouriers_Expressone::build_shipment_body($this->shipment());
         $this->assertSame('11311', $b['CLIENT_REFERENCE'], 'the only way a waybill can be matched back to its order');
-    }
-
-    public function test_who_pays_the_delivery_is_said_the_way_the_courier_asks_it(): void {
-        $this->assertSame(0, BGCouriers_Expressone::build_shipment_body($this->shipment(['payer' => 'sender']))['PAYER']);
-        $this->assertSame(1, BGCouriers_Expressone::build_shipment_body($this->shipment(['payer' => 'recipient']))['PAYER']);
     }
 
     public function test_the_label_arrives_with_the_waybill_and_needs_no_second_call(): void {
@@ -287,11 +251,7 @@ final class ExpressoneParsersTest extends TestCase {
         $this->assertSame('returned', $ret->stage(), 'status 12 - Върната към подател - puts the goods back in stock');
     }
 
-    /**
-     * The real sequence off the test account: 0 booked, 3 at the office, 5 out, 6 DELIVERED, 10
-     * finalised, 7 CANCELLED. Every other courier here is read newest-event-first, and that reading
-     * would tell a customer holding their parcel that the shipment was cancelled - and cancel the order.
-     */
+    /** Codes 10 and 7 after 6 close the document, not the parcel. */
     public function test_a_delivered_parcel_stays_delivered_when_the_paperwork_is_closed_after_it(): void {
         $t = BGCouriers_Expressone::parse_tracking(
             BGCouriers_Expressone::unwrap($this->fx('track-bol-delivered-then-closed.json')), '1');
@@ -309,18 +269,7 @@ final class ExpressoneParsersTest extends TestCase {
             implode(' | ', array_column($t->events, 'name')), 'the substatus is where a 101 keeps its meaning');
     }
 
-    /**
-     * The checkout's street box must stop offering a typed street for this courier, because a typed one
-     * cannot become a waybill. Driven on dev before it was fixed: the picker offered "BUL. PROF. TSVETAN
-     * LAZAROV", select2's tag took the typed "Tsvetan Lazarov" instead, the order was placed happily, and
-     * the label refused hours later with nobody left to ask.
-     */
-    /**
-     * No paper size is offered, because the courier has none to give. Measured on one waybill: PDF_FORMAT
-     * 0, 1 and 2 came back byte-identical - the same 162045 bytes and the same 416.69 x 282.61 pt page -
-     * and only the two ZPL formats differed. A select on the tab would have been a control that changes
-     * nothing, so the label layout stays where the merchant set it, in their Express One account.
-     */
+    /** Every PDF_FORMAT returns the same document, so a paper-size setting would change nothing. */
     public function test_no_paper_size_is_offered_because_the_courier_has_none(): void {
         $this->assertSame([], (new BGCouriers_Expressone([]))->label_formats());
         $this->assertStringNotContainsString('bgcouriers_expressone_label_paper_size',
@@ -328,7 +277,6 @@ final class ExpressoneParsersTest extends TestCase {
             'a setting the courier cannot honour must not be on its tab');
     }
 
-    /** Who pays the delivery reaches the waybill as the field Express One reads it from. */
     public function test_who_pays_is_asked_for_in_the_courier_s_own_terms(): void {
         $sender = BGCouriers_Expressone::build_shipment_body($this->shipment(['payer' => 'sender']));
         $recip  = BGCouriers_Expressone::build_shipment_body($this->shipment(['payer' => 'recipient']));
@@ -337,15 +285,7 @@ final class ExpressoneParsersTest extends TestCase {
         $this->assertSame(0, $sender['PDF_FORMAT'], 'the account decides the layout, not the plugin');
     }
 
-    /**
-     * Every cash-on-delivery shipment carries a declared value - Express One's own rule, given by their
-     * integration developer, and NOT enforced by their API: it accepts a collection with no insurance
-     * quite happily, so a parcel would simply travel outside the terms the courier expects.
-     *
-     * It is a paid service, which is why the same rule has to reach the QUOTE. A price that leaves the
-     * insurance out is lower than the invoice that follows it, and the shop pays the difference on
-     * every order - the same fault cash on delivery itself had in 0.3.6.
-     */
+    /** Cash on delivery is always insured at least at its value (courier's rule), in the waybill and in the quote. */
     public function test_a_collection_at_the_door_is_always_declared_at_its_value(): void {
         $ship = BGCouriers_Expressone::build_shipment_body($this->shipment(['cod_amount' => 48.0]));
         $this->assertSame(48.0, $ship['COD']);
@@ -364,10 +304,7 @@ final class ExpressoneParsersTest extends TestCase {
         $this->assertArrayNotHasKey('INSURANCE', $prepaid);
     }
 
-    /**
-     * Three services their developer asked us not to offer. The API accepts all of them, so nothing but
-     * this test says they must not go.
-     */
+    /** Services the courier asked us not to send; their API would accept them. */
     public function test_the_services_the_courier_asked_us_not_to_send_are_not_sent(): void {
         foreach ([$this->shipment(['cod_amount' => 20.0]), $this->shipment(['insurance' => 50.0])] as $s) {
             $body = BGCouriers_Expressone::build_shipment_body($s);
@@ -406,13 +343,7 @@ final class ExpressoneParsersTest extends TestCase {
         $this->assertFalse($other->street_list_only(), 'a courier that takes an address as text keeps free typing');
     }
 
-    /**
-     * A pickup this courier accepted but gave no number for is still a courier coming.
-     *
-     * Measured four ways on the test account: /1/request-courier answers {"ERROR":0,"ERROR_MESSAGE":false}
-     * and nothing else - no REQUEST, whatever is sent. Throwing there would tell a merchant the courier
-     * refused a request it had accepted; returning a number that does not exist would be worse.
-     */
+    /** /1/request-courier accepts without a REQUEST number; that is still an accepted pickup. */
     public function test_a_pickup_with_no_reference_is_still_a_pickup(): void {
         $co = new class ([]) extends BGCouriers_Expressone {
             public array $sent = [];

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 /**
@@ -14,19 +12,15 @@ use Brain\Monkey\Functions;
  *
  * @group core
  */
-final class BoxnowEmptyBodyTest extends TestCase {
+final class BoxnowEmptyBodyTest extends BGCouriers_Unit_TestCase {
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('esc_html')->returnArg(1);
-        Functions\when('esc_html__')->returnArg(1);
+        parent::setUp();        Functions\when('esc_html__')->returnArg(1);
         Functions\when('get_transient')->justReturn('tok');
         Functions\when('set_transient')->justReturn(true);
         Functions\when('is_wp_error')->justReturn(false);
         Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function courier(int $status, string $body): BGCouriers_Boxnow {
         Functions\when('wp_remote_post')->justReturn(['response' => ['code' => $status], 'body' => $body]);

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-blocks.php';
@@ -20,10 +18,9 @@ require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-blocks.p
  *
  * @group core
  */
-final class BlockCheckoutDetectionTest extends TestCase {
+final class BlockCheckoutDetectionTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
         Functions\when('sanitize_text_field')->returnArg(1);
         Functions\when('wp_unslash')->returnArg(1);
         Functions\when('is_ssl')->justReturn(true);
@@ -40,7 +37,6 @@ final class BlockCheckoutDetectionTest extends TestCase {
 
     protected function tearDown(): void {
         unset($_SERVER['REQUEST_URI'], $_SERVER['HTTP_HOST']);
-        Monkey\tearDown();
         parent::tearDown();
     }
 
