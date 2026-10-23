@@ -50,10 +50,12 @@ if (!class_exists('WC_Order')) {
 }
 if (!class_exists('WC_Order_Item_Stub')) {
     class WC_Order_Item_Stub {
-        public function __construct(
-            private int $pid, private int $qty, private float $tot,
-            private float $tax = 0.0, private string $name = 'Продукт'
-        ) {}
+        private int $pid;
+        private int $qty;
+        private float $tot;
+        private float $tax;
+        private string $name;
+        public function __construct(int $pid, int $qty, float $tot, float $tax = 0.0, string $name = 'Продукт') { $this->pid = $pid; $this->qty = $qty; $this->tot = $tot; $this->tax = $tax; $this->name = $name; }
         public function get_product_id() { return $this->pid; }
         public function get_quantity() { return $this->qty; }
         public function get_total() { return $this->tot; }

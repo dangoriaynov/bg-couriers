@@ -27,7 +27,9 @@ final class LoggerRedactionTest extends BGCouriers_Unit_TestCase {
     /** What the logger would have written, without touching the real error log. */
     private function logged(array $ctx): string {
         // Private on purpose: the redaction is not an API, it is what debug() does on the way out.
-        return (string) json_encode((new ReflectionMethod('BGCouriers_Logger', 'redact'))->invoke(null, $ctx, 0));
+        $redact = new ReflectionMethod('BGCouriers_Logger', 'redact');
+        $redact->setAccessible(true); // required before PHP 8.1
+        return (string) json_encode($redact->invoke(null, $ctx, 0));
     }
 
     public function test_every_courier_spelling_of_a_credential_is_taken_out(): void {

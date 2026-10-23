@@ -19,7 +19,9 @@ require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.
 if (!class_exists('BrokenAdapter')) {
     final class BrokenAdapter implements BGCouriers_Courier_Interface {
         public int $asked = 0;
-        public function __construct(private string $cid, private bool $broken) {}
+        private string $cid;
+        private bool $broken;
+        public function __construct(string $cid, bool $broken) { $this->cid = $cid; $this->broken = $broken; }
         public function track(string $w): BGCouriers_Tracking {
             $this->asked++;
             if ($this->broken) { throw new \TypeError('count(): Argument #1 must be of type Countable|array, null given'); }

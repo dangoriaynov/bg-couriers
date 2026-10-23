@@ -5,10 +5,11 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
 
 /** A product as the measurement sees it: a type and three dimensions. */
 final class BGC_Product_Stub {
-    public function __construct(
-        private string $type = 'simple',
-        private float $l = 0.0, private float $w = 0.0, private float $h = 0.0
-    ) {}
+    private string $type;
+    private float $l;
+    private float $w;
+    private float $h;
+    public function __construct(string $type = 'simple', float $l = 0.0, float $w = 0.0, float $h = 0.0) { $this->type = $type; $this->l = $l; $this->w = $w; $this->h = $h; }
     public function get_type(): string { return $this->type; }
     public function get_length() { return $this->l; }
     public function get_width()  { return $this->w; }
@@ -17,7 +18,9 @@ final class BGC_Product_Stub {
 
 /** An order line pointing at one of those. */
 final class BGC_Item_Stub {
-    public function __construct(private $product, private int $qty = 1) {}
+    private $product;
+    private int $qty;
+    public function __construct($product, int $qty = 1) { $this->product = $product; $this->qty = $qty; }
     public function get_product() { return $this->product; }
     public function get_quantity() { return $this->qty; }
 }
