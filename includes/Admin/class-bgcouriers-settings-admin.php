@@ -164,9 +164,7 @@ jQuery(function($){
     processResults:function(d){ return {results:(d||[]).map(function(c){ return {id:c.city_id, text:(c.name||'')+(c.region?(' ('+c.region+')'):'')}; })}; }
   }});
   \$o.select2({ width:'300px', placeholder:'{$ph_off}' });
-  // The office select2 searches its OWN options (no ajax), so the list has to be in the DOM before the
-  // merchant types. Load it for the saved city on page load too - not only when a city is re-picked -
-  // otherwise the dropdown holds just the one saved office and every search says \"No results found\".
+  // select2 searches its OWN options (no ajax): load the saved city's offices on page load too.
   function loadOffices(cid, keep){
     if(!cid || cid==='0'){ return; }
     \$o.prop('disabled',true);
@@ -361,7 +359,7 @@ jQuery(function($){
         if (preg_match('/^bgcouriers_([a-z0-9]+)_password$/', $key, $mm)) { update_option('bgcouriers_' . $mm[1] . '_validated', 'no'); }
         return BGCouriers_Encryption::encrypt($raw_value);
     }
-    // ---- AJAX: validate credentials + sync nomenclature ----
+    // AJAX: validate credentials + sync nomenclature
 
     public function ajax_validate(): void {
         if (!current_user_can('manage_woocommerce')) { wp_send_json_error(['msg' => __('You are not allowed to do that.', 'bg-couriers')]); }

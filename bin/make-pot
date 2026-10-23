@@ -1,16 +1,9 @@
 #!/usr/bin/env bash
-# Rebuild languages/bg-couriers.pot from the source, then merge it into the Bulgarian catalogue.
-#
-# This exists because the keyword list drifted. The template was once built without -k_n_noop, so the
-# order status "Shipped (%s)" was never offered for translation and nobody noticed - and a string added
-# to the code without a matching template entry is invisible to the completeness check in bin/preflight,
-# which only ever looked at what was already IN the .po. One script, one keyword list, every time.
+# Rebuild languages/bg-couriers.pot from the source (one keyword list), then merge it into the Bulgarian catalogue.
 #
 #   bin/make-pot            # regenerate the template and merge (new entries are left empty)
 #   bin/make-pot --check    # touch nothing; say whether the catalogue still covers the code
-#
-# Filling the empty Bulgarian entries is a separate, human step. bin/preflight refuses a release while
-# any is still empty, and (through --check) while the code has a string the catalogue has never seen.
+# Filling the Bulgarian is a human step; bin/preflight refuses a release while any entry is empty.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -24,8 +17,7 @@ trap 'rm -rf "$TMP"' EXIT
 OUT="$POT"
 [ "$CHECK" = 1 ] && OUT="$TMP/check.pot"
 
-# Bundled third-party libraries (FPDF/FPDI) carry their own English exception text and are not ours to
-# translate; tests and the e2e suite are not shipped.
+# Bundled FPDF/FPDI and the test suites are not ours to translate.
 find . -name '*.php' \
   -not -path './vendor/*' -not -path './node_modules/*' -not -path './includes/lib/*' \
   -not -path './tests/*' -not -path './e2e/*' | sed 's|^\./||' | sort > "$TMP/files"
@@ -40,13 +32,8 @@ xgettext --from-code=UTF-8 --language=PHP \
   -o "$OUT" -f "$TMP/files" 2>/dev/null
 
 if [ "$CHECK" = 1 ]; then
-  # Every string the code offers for translation must already have an entry in the Bulgarian catalogue.
-  # What is in the template and NOT in the .po: merge the catalogue onto the fresh template without
-  # fuzzy guessing, and whatever comes out untranslated is a string the catalogue has never seen - a
-  # string a Bulgarian shop would read in English. A string the CODE has dropped becomes obsolete in
-  # the merge and is left out, which is the point: the first version of this used msgcomm --unique,
-  # which lists what is unique to EITHER file, so the day a string was removed from the code the gate
-  # refused a release over a translation nobody needed any more.
+  # Merge without fuzzy guessing: what comes out untranslated is a code string the catalogue has never seen;
+  # strings the code dropped go obsolete and are ignored.
   msgmerge -q --no-fuzzy-matching -o "$TMP/merged.po" "$PO" "$OUT" 2>/dev/null
   msgattrib --untranslated --no-obsolete -o "$TMP/missing.po" "$TMP/merged.po" 2>/dev/null || : > "$TMP/missing.po"
   N="$(grep -c '^msgid "' "$TMP/missing.po" 2>/dev/null || true)"
@@ -57,10 +44,7 @@ if [ "$CHECK" = 1 ]; then
     echo "  Run bin/make-pot, fill the Bulgarian, then msgfmt." >&2
     exit 1
   fi
-  # And nothing may be FUZZY. A plain msgmerge guesses a translation for a new string from a similar
-  # old one and marks it fuzzy; msgfmt leaves fuzzy entries out of the .mo, so the string ships in
-  # English - while the check above, which only looks for EMPTY translations, says all is well. Two
-  # "%s" strings were guessed from their placeholder-less neighbours that way on 2026-09-12.
+  # Nothing may be fuzzy: msgfmt leaves fuzzy entries out of the .mo, so they ship in English.
   msgattrib --only-fuzzy --no-obsolete -o "$TMP/fuzzy.po" "$TMP/merged.po" 2>/dev/null || : > "$TMP/fuzzy.po"
   F="$(grep -c '^msgid "' "$TMP/fuzzy.po" 2>/dev/null || true)"
   if [ "${F:-0}" -gt 1 ]; then
@@ -76,7 +60,6 @@ fi
 msgmerge --quiet --backup=none --update "$PO" "$POT"
 printf 'template: %s strings\n' "$(grep -c '^msgid ' "$POT")"
 printf 'untranslated: %s\n' "$(msgattrib --untranslated "$PO" | grep -c '^msgid "' || true)"
-# Guessed from a similar string and marked fuzzy: each is a translation to check, not one that is done.
 FZ="$(msgattrib --only-fuzzy --no-obsolete "$PO" | grep -c '^msgid "' || true)"
 if [ "${FZ:-0}" -gt 1 ]; then
   printf 'fuzzy (guessed - check them, then drop the "#, fuzzy" line): %s\n' "$((FZ - 1))"

@@ -1,16 +1,7 @@
-# Publish a tagged release to WordPress.org.
+# Publish a tagged release to WordPress.org (SVN credentials live only in this repo's secrets).
+# Gate: the build runs on the dev site and passes Plugin Check and both test suites here.
 #
-# Why this exists: the release used to be possible only from the owner's own machine, because that is
-# where the Subversion working copy and its cached WordPress.org credentials live. Anyone else - a
-# second machine, the dev box, an assistant - could prepare a release to the last comma and then not
-# ship it. The credentials belong in exactly one place that is not a laptop: this repository's secrets.
-#
-# The gate is DEV, not the shop (see bin/release-wporg): the build must be running on the dev site, and
-# it must pass Plugin Check and both test suites here, on a real WordPress with real WooCommerce. What
-# the shop is running is the owner's own business and no longer holds the directory up.
-#
-# Triggered by pushing an annotated tag `v<version>` - the tag IS the release decision, and it has to
-# agree with the version in the code or nothing happens:
+# Triggered by an annotated tag `v<version>` that must agree with the version in the code:
 #
 #   git tag -a v0.4.18 -m "0.4.18" && git push origin v0.4.18
 #
@@ -39,9 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --- The version is one number, in four places now: the tag is the fourth ----------------------
-      # 0.2.2 shipped with BGCOURIERS_VERSION left behind, which serves stale cached assets to every
-      # customer. A tag that disagrees with the code would publish something nobody named.
+      # One version in header, constant, stable tag and git tag.
       - name: Version agrees with the tag
         run: |
           VERSION="$(grep -m1 '^ \* Version:' ${SLUG}.php | awk '{print $3}')"
@@ -56,16 +45,7 @@ jobs:
           esac
           grep -q "^= ${VERSION} =" readme.txt || { echo "::error::readme.txt has no changelog entry for ${VERSION}"; exit 1; }
 
-      # --- Bulgarian, complete and compiled ----------------------------------------------------------
-      # A user-facing string added without its Bulgarian lands on a Bulgarian shop in English, and a .mo
-      # built from an older .po is a translation WordPress never reads.
-      #
-      # The staleness test is on CONTENT, not on file dates. bin/preflight compares mtimes, which is right
-      # on a working copy somebody has been editing - but a fresh clone has no mtimes worth comparing:
-      # git writes every file at checkout time, in whatever order it likes, so "the .po is newer than the
-      # .mo" was a coin toss. It came up heads on the first release run and tails on the second, which is
-      # how 0.4.19 got refused over a catalogue nobody had touched. Recompiling the .po and comparing the
-      # two catalogues as data answers the real question: does the shipped .mo say what the .po says?
+      # Bulgarian complete and compiled. Compared by CONTENT: a fresh clone's mtimes mean nothing.
       - name: Translations
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq gettext
@@ -73,8 +53,7 @@ jobs:
           PO=languages/${SLUG}-bg_BG.po
           MO=languages/${SLUG}-bg_BG.mo
           msgfmt -o "${RUNNER_TEMP}/fresh.mo" "$PO"
-          # POT-Creation-Date is a timestamp in the header, not a translation; msgfmt stamps the fresh one
-          # with today. Everything else must match.
+          # POT-Creation-Date is stamped with today on the fresh one; everything else must match.
           norm() { msgunfmt "$1" | msgattrib --translated --no-wrap | grep -v '^"POT-Creation'; }
           norm "${RUNNER_TEMP}/fresh.mo" > "${RUNNER_TEMP}/fresh.po"
           norm "$MO" > "${RUNNER_TEMP}/shipped.po"
@@ -83,8 +62,7 @@ jobs:
             diff "${RUNNER_TEMP}/fresh.po" "${RUNNER_TEMP}/shipped.po" | head -20
             exit 1
           fi
-          # And the THIRD file, the one WordPress actually reads first since 6.5: the PHP catalogue.
-          # A .l10n.php left behind by an older build would answer before the .mo and say something else.
+          # The .l10n.php, which WordPress 6.5+ reads before the .mo.
           php bin/make-php --check
           echo "translations: $(grep -c '^msgid' "${RUNNER_TEMP}/shipped.po") in the catalogue, .mo matches the .po"
           echo "untranslated: $(msgattrib --untranslated "$PO" | grep -c '^msgid "' || true)"
@@ -97,30 +75,16 @@ jobs:
       - name: Unit tests
         run: ./vendor/bin/phpunit --testsuite unit
 
-      # --- Real WordPress, real WooCommerce ----------------------------------------------------------
-      # The integration suite went unrun long enough once to collect seven failures that were nothing but
-      # stale fixtures, and a courier those tests never set up cannot be offered - so their negative
-      # assertions were passing for free. It is a release gate, and a slow runner is not a reason to ship.
-      # bin/wpenv-start, not `wp-env start` directly: Docker Hub rate-limits anonymous pulls per IP and
-      # GitHub's runners share them, so two release runs for 0.4.29 and the first for 0.4.28 died on
-      # `toomanyrequests` with nothing wrong in the build. The wrapper fetches the images first, waiting
-      # out a burst, and retries the start.
+      # Real WordPress + WooCommerce. bin/wpenv-start survives Docker Hub's pull rate limit.
       - name: Integration tests (wp-env)
         run: |
           bash bin/wpenv-start
           BGC_SUITE=integration npx @wordpress/env run tests-cli \
             --env-cwd=wp-content/plugins/${SLUG} -- ./vendor/bin/phpunit --testsuite integration
-          # Stopped before the next environment starts: wp-env binds fixed ports, and two of them in one
-          # job fight over 8888.
+          # wp-env binds fixed ports: stop before the next environment starts.
           npx @wordpress/env stop
 
-      # --- The package, built once and checked as it will be published --------------------------------
-      # Not the checkout. Plugin Check reads whatever is in the plugin folder, and the folder here carries
-      # the workbench: .wp-env.json and phpunit.xml.dist are "hidden files"/"application files" to it, and
-      # .github a directory that "should not be included" - all true of the repository and none of it true
-      # of the zip, which .distignore strips. Checking the checkout therefore failed the release over
-      # files that were never going to be published (first run of this workflow, 2026-09-25). This is the
-      # same thing bin/release-wporg does by checking the DEV SITE: a copy with the workbench gone.
+      # Plugin Check runs on the built package, not the checkout (whose workbench files it would refuse).
       - name: Build the package
         run: |
           bash bin/build-zip "${RUNNER_TEMP}/pkg"
@@ -129,20 +93,13 @@ jobs:
           echo "ZIP=$ZIP" >> "$GITHUB_ENV"
           mkdir -p "${RUNNER_TEMP}/pkgdir"
           unzip -q "$ZIP" -d "${RUNNER_TEMP}/pkgdir"
-          # The wp-env config lives BESIDE the package, never inside it: a .wp-env.json in the plugin
-          # folder is one more hidden file for Plugin Check to refuse.
+          # .wp-env.json beside the package, never inside it.
           cat > "${RUNNER_TEMP}/pkgdir/.wp-env.json" <<JSON
           { "core": null, "phpVersion": "8.1",
             "plugins": [ "https://downloads.wordpress.org/plugin/woocommerce.zip", "./${SLUG}" ] }
           JSON
 
-      # --- What Subversion actually receives ----------------------------------------------------------
-      # The zip above is NOT the published package. 10up's action rsyncs the WORKSPACE into SVN honouring
-      # .distignore, while bin/build-zip strips its own hard-coded list - and when the two disagreed, the
-      # difference was the shops' language: `languages` was in .distignore from 2026-07-28, so Plugin
-      # Check read a zip WITH the Bulgarian catalogue while the directory served a package without it, and
-      # every wordpress.org install read the plugin in English from 0.4.26 (shop owner, 2026-10-02).
-      # Nothing on the way to the directory had ever looked at the copy SVN gets. This step does.
+      # SVN gets the workspace filtered by .distignore (not the zip): it must carry the compiled catalogue.
       - name: Subversion gets the catalogue
         run: |
           rsync -rc --exclude-from=.distignore ./ "${RUNNER_TEMP}/svn/" --delete --delete-excluded
@@ -154,12 +111,9 @@ jobs:
       - name: Plugin Check, on the code that is about to ship
         working-directory: ${{ runner.temp }}/pkgdir
         run: |
-          # The package directory has its own .wp-env.json (written above); the wrapper is in the
-          # checkout, which is not the working directory here.
           bash "${GITHUB_WORKSPACE}/bin/wpenv-start"
           npx @wordpress/env run cli -- wp plugin install plugin-check --activate
-          # Warnings are not a release gate here (the directory's own review reads them, a human answers
-          # them); an ERROR is. --format=json so the verdict is a field, not a sentence that can be reworded.
+          # Only an ERROR gates; JSON so the verdict is a field, not a sentence.
           OUT="$( npx @wordpress/env run cli -- wp plugin check ${SLUG} --ignore-warnings --format=json 2>&1 )"
           echo "$OUT"
           if printf '%s' "$OUT" | grep -q '"type":"ERROR"'; then
@@ -168,9 +122,7 @@ jobs:
           fi
           npx @wordpress/env stop
 
-      # --- The dev site must already be running this build -------------------------------------------
-      # The rule this encodes: SVN last, DEV-verified builds only. Read from the readme the site serves,
-      # the same way bin/release-status and bin/release-wporg read it.
+      # SVN last, DEV-verified builds only (version from the readme dev serves).
       - name: Dev is on this version
         run: |
           DEV="$(curl -sS -m 20 -L -A 'bg-couriers release-ci' "${DEV_URL%/}/wp-content/plugins/${SLUG}/readme.txt" \
@@ -178,10 +130,7 @@ jobs:
           echo "dev (${DEV_URL}) is on ${DEV:-unknown}, this is ${VERSION}"
           [ "$DEV" = "$VERSION" ] || { echo "::error::deploy ${VERSION} to dev first"; exit 1; }
 
-      # --- Nothing private in the package ------------------------------------------------------------
-      # Host names, phone numbers, the dev address: the last thing between a private string and a public
-      # zip. Unset means there is nothing configured to look for, which is said out loud rather than
-      # passing quietly.
+      # Nothing private in the package; an unset pattern warns rather than passes quietly.
       - name: Leak check
         env:
           LEAKS: ${{ secrets.BGC_LEAK_PATTERNS }}
@@ -190,10 +139,7 @@ jobs:
           if unzip -p "$ZIP" '*' | grep -aEq "$LEAKS"; then echo "::error::the package contains a string that must never be published"; exit 1; fi
           echo "the package carries none of the configured private strings"
 
-      # --- The directory ------------------------------------------------------------------------------
-      # 10up's action is what does the Subversion work: trunk, the assets from .wordpress-org, and the
-      # tag, honouring .distignore exactly as bin/build-zip does. A tag that already exists is refused by
-      # WordPress.org itself, which is the behaviour we want: a published tag never changes.
+      # trunk + assets + tag via 10up; WordPress.org refuses an existing tag.
       - name: Publish
         uses: 10up/action-wordpress-plugin-deploy@stable
         env:
@@ -202,9 +148,7 @@ jobs:
           SLUG: bg-couriers
           ASSETS_DIR: .wordpress-org
 
-      # --- Did the directory pick it up yet ------------------------------------------------------------
-      # Never fails: the SVN commit is done by now. A ::warning:: alone leaves a green tick, so the answer
-      # goes to the job summary.
+      # Never fails (SVN is committed); the answer goes to the job summary.
       - name: Did the directory pick it up yet
         run: |
           for i in 1 2 3 4 5 6; do

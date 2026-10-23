@@ -185,7 +185,7 @@ has already been agreed and must outlast the terminal.
 `bin/preflight` is the list of everything that must be true first: one version in all three places, a
 changelog entry, a clean and pushed tree, translations complete and compiled, the test suites, nothing
 test-shaped tracked, and no dashes on the plugin page. **Every check stands in for something that has
-gone wrong here at least once**, and the comment above each says which.
+gone wrong here at least once**; the history is in git.
 
 ## Deploying to dev
 

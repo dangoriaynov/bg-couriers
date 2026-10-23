@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 # Dump every field the plugin's WooCommerce settings screens build, from the DEV site.
 #
-# The safety net for any refactor of BGCouriers_WC_Settings. A merchant's saved value lives under an
-# option id; a refactor that renames one silently loses that setting, and nothing on screen says so.
-# So the ids, types, defaults and autoload flags are captured BEFORE the change and compared after -
-# against real WordPress and real WooCommerce, not a mock of them.
+# Safety net for refactors of BGCouriers_WC_Settings: a renamed option id silently loses a merchant's setting.
 #
 #   bin/settings-snapshot > /tmp/before.json      # before the change
 #   ./bin/deploy.sh dev && bin/settings-snapshot > /tmp/after.json
@@ -18,8 +15,7 @@ cd "$(dirname "$0")/.."
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
 WP="${BGC_WP_BIN:-wp} --allow-root --path=${DEVROOT}"
 
-# The sections are asked for by name rather than read off the tab list, so a section that DISAPPEARS in
-# a refactor shows up as an empty list instead of quietly vanishing from the comparison.
+# Sections by name, not from the tab list, so a vanished section shows up as an empty list.
 PHP='
 $sections = ["", "speedy", "econt", "pigeon", "boxnow", "sameday", "expressone", "evropat", "about"];
 $page = new BGCouriers_WC_Settings();
@@ -27,8 +23,7 @@ $out = [];
 foreach ($sections as $s) {
     $rows = [];
     foreach ((array) $page->get_settings($s) as $f) {
-        // Only what a saved value depends on. Titles and descriptions are prose and change freely;
-        // an id, a type, a default or an autoload flag changing is what costs a merchant their setting.
+        // Only what a saved value depends on; titles and descriptions change freely.
         $rows[] = [
             "id"       => isset($f["id"]) ? (string) $f["id"] : "",
             "type"     => isset($f["type"]) ? (string) $f["type"] : "",

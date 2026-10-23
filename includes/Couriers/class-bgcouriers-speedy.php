@@ -327,7 +327,6 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
 
     /**
      * Did Speedy apply the COD? A dropped COD leaves codPremium at zero.
-     *
      * @return string[]
      */
     public static function check_applied(array $body, array $resp): array {
@@ -559,11 +558,10 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
         }
         return false;
     }
-    // ── Pickup request ───────────────────────────────────────────────────────
+    // Pickup request
 
     /**
      * Body for POST /pickup. pickupDateTime must carry the shop's zone offset or Speedy answers HTTP 400.
-     *
      * @param string[] $waybills
      */
     public static function build_pickup_body(array $waybills, array $opts): array {
@@ -610,7 +608,6 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
 
     /**
      * The cut-offs Speedy still accepts for a date; read-only.
-     *
      * @return string[]
      */
     public function pickup_terms(string $date): array {
