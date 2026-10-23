@@ -14,7 +14,7 @@
     if ($col.length) { $col.find('.edit_address').hide(); }
   })();
 
-  // --- small UI helpers: toast + custom confirm dialog ------------------------------------------
+  // small UI helpers: toast + custom confirm dialog
   var $toast;
   function toast(msg) {
     if (!$toast) { $toast = $('<div class="bgc-toast"></div>').appendTo('body'); }
@@ -109,7 +109,7 @@
     }
   }
 
-  // --- the editor itself ------------------------------------------------------------------------
+  // the editor itself
   var $panel = $('.bgc-ed');
   if (!$panel.length) { return; }
   var LOCKED = $panel.find('.bgc-ed-form').hasClass('bgc-ed-locked');
@@ -233,7 +233,7 @@
   fillMethods();
   loadOffices();
 
-  // ── Map picker (office/APS + address) - same UX as checkout, adapted to the editor fields ────────
+  // Map picker (office/APS + address) - same UX as checkout, adapted to the editor fields
   var mapIconsSet = false, edMap = null;
   function escM(s) { return $('<i>').text(s == null ? '' : s).html(); }
   function setMapIcons() {

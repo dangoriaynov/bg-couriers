@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-# Deploy the current commit to the live shop, and prove it landed.
-#
-# Order matters and is not negotiable: preflight, BACKUP, deploy, verify, purge, smoke. Everything after
-# the backup can be undone by restoring it, and nothing before the backup touches the site.
-#
-# It does not stop at the shop: once prod is on this build and has survived it, bin/release-wporg runs
-# from here, with the same --yes (or the same prompt): a release is the shop AND the directory, and a
-# script that ended with "Next: bin/release-wporg" left 0.4.13 on the shop alone for two days - the run
-# that was to follow it was killed with the terminal session that started it, and nothing said so.
+# Deploy the current commit to the live shop, prove it landed, then publish to WordPress.org.
+# Order is fixed: preflight, BACKUP, deploy, verify, purge, smoke; nothing before the backup touches the site.
 #
 # Usage: bin/release-prod            (asks once, then runs; asks again before the directory)
 #        bin/release-prod --yes      (no prompts - for when it is already agreed)
@@ -17,11 +10,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
 
-# A release takes longer than a terminal session is guaranteed to last: the integration suite, two SSH
-# hops, a backup, and up to ten minutes waiting for the directory. Started as a background job of a tool
-# that kills its jobs when the session ends, that is exactly how 0.4.13 was left half-done. setsid()
-# puts the run in a session and process group of its own, where neither a hang-up nor a kill of the
-# caller's group reaches it; python3 is what this machine has that can call it (macOS ships no setsid).
+# setsid() so a release outlives the terminal that started it; python3 because macOS ships no setsid.
 if [ "${1:-}" = "--detach" ]; then
   mkdir -p tmp; LOG="tmp/release-${VERSION}.log"
   nohup python3 -c 'import os,sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
@@ -34,31 +23,20 @@ fi
 : "${BGC_SSH_HOST:?set BGC_SSH_HOST in bin/deploy.conf}"
 : "${BGC_SSH_PORT:=22}"
 : "${BGC_PROD_PATH:?set BGC_PROD_PATH in bin/deploy.conf}"
-# Which shop this deploys to is the operator's, not the plugin's: the smoke URLs and the user the files
-# must belong to live in bin/deploy.conf (gitignored) and nowhere in this repository. No smoke list, no
-# release - a deploy nobody checked is the one that takes a shop down quietly.
+# Shop-specific values live only in bin/deploy.conf (gitignored); no smoke list, no release.
 : "${BGC_PROD_SMOKE_URLS:?set BGC_PROD_SMOKE_URLS in bin/deploy.conf (space-separated URLs that must answer 200)}"
 
 P="${BGC_PROD_PATH%/}"
 WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"   # .../wp-content/plugins/bg-couriers -> the WP root
-# The PHP binary is the host's business, not this script's - bin/deploy.sh and e2e/dev-option.sh have
-# read it from BGC_WP_BIN since the sites moved into containers, and this one did not. The old CWP box
-# hid its CLI php under /opt/alt and would not run the plain one; a container has wp on the PATH and no
-# /opt/alt at all, so the hardcoded pair exited 127 and `set -e` took the script down BEFORE it printed
-# anything. A release that stops without a word looks exactly like one that was never asked for.
+# The PHP/wp-cli pair is the host's: set BGC_WP_BIN (a container has plain `wp` on the PATH).
 WPCLI="${BGC_WP_BIN:-/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp}"
 WP="$WPCLI --allow-root --path=${WPROOT}"
-# The same wp-cli without a site bound to it: the pre-flight Plugin Check below runs against DEV, not
-# against the shop this script deploys to.
+# Unbound wp-cli: Plugin Check below runs against DEV.
 WP_ANY="$WPCLI --allow-root"
-# The host's login shell prints a manpath locale warning on every single connection. It is noise, and it
-# buries the lines that matter - but stderr and the exit code still have to survive, or a failing remote
-# command would read as a clean one.
+# Filters the host's manpath warning from stderr; stderr and the exit code otherwise survive.
 run() {
   local err rc; err="$(mktemp)"
-  # Prod moved into an LXC container that does not take our SSH key, so the way in is the host that
-  # holds it. Transport only - what is run, and the gates around it, are unchanged. A release that
-  # reached the wrong machine would report success about a shop nobody is looking at.
+  # Prod is an LXC container without our SSH key: go through its host with `lxc exec`.
   if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_PROD:-}" ]; then
     ssh -o ConnectTimeout=25 -p "${BGC_LXC_PORT:-22}" "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_PROD} -- bash -lc $(printf '%q' "$*")" 2>"$err"; rc=$?
   else
@@ -67,10 +45,7 @@ run() {
   grep -v 'manpath: ' "$err" >&2 || true
   rm -f "$err"; return $rc
 }
-# The DEV site, which since the move is a different MACHINE and not just a different --path: run() goes
-# to the prod container, so the Plugin Check below - which must run against dev, on the exact build
-# about to ship - was asking the prod container about a directory it does not have. It answered nothing,
-# which read as "dev is on " and refused the release with the one thing that was not wrong.
+# DEV is a different machine from prod, not just a different --path.
 run_dev() {
   if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_DEV:-}" ]; then
     ssh -o ConnectTimeout=25 -p "${BGC_LXC_DEV_PORT:-${BGC_LXC_PORT:-22}}" "${BGC_LXC_DEV_HOST:-$BGC_LXC_HOST}" "lxc exec ${BGC_LXC_DEV} -- bash -lc $(printf '%q' "$*")" 2>/dev/null
@@ -80,13 +55,7 @@ run_dev() {
 }
 bash bin/preflight
 
-# --- A published version is finished; the next change is the NEXT version -----------------------------
-# Owner's rule, and the reason it is a gate: once WordPress.org serves a version, that number means one
-# exact set of files to every install that took it. Changing what the shop runs under the same number
-# makes prod and the directory disagree for good, and no install that already updated ever sees the
-# difference. So the moment tags/<version> exists, this version is spent - bump instead.
-#
-# Restoring the shop to a version it already ran is the one honest exception, and it says so out loud.
+# A version published on WordPress.org is spent: bump instead (--republish re-deploys it unchanged).
 if svn ls --non-interactive "https://plugins.svn.wordpress.org/bg-couriers/tags/${VERSION}" >/dev/null 2>&1; then
   if [ "${2:-}" != "--republish" ] && [ "${1:-}" != "--republish" ]; then
     echo "REFUSING: ${VERSION} is already published on WordPress.org." >&2
@@ -97,12 +66,7 @@ if svn ls --non-interactive "https://plugins.svn.wordpress.org/bg-couriers/tags/
   echo "  ${VERSION} is published; re-deploying it unchanged (--republish)"
 fi
 
-# --- What the shop runs now, and whether the directory ever got it ----------------------------------
-# Read once, here, and reused for the backup's name below. Also the moment to say whether the LAST
-# release finished: a version on the shop with no tag on WordPress.org is a release that stopped
-# halfway, and this one supersedes it - the directory goes straight to ${VERSION}, the superseded
-# version's changelog entry riding along. Said out loud, because the alternative is finding out from a
-# shop that read about a fix and cannot find it in the update.
+# What the shop runs now (names the backup); a version with no WordPress.org tag is an unfinished release.
 WAS="$(run "$WP plugin get bg-couriers --field=version" 2>/dev/null | tr -d '\r' || echo unknown)"
 [ -n "$WAS" ] || WAS=unknown
 if [ "$WAS" != unknown ] && [ "$WAS" != "$VERSION" ] \
@@ -111,14 +75,7 @@ if [ "$WAS" != unknown ] && [ "$WAS" != "$VERSION" ] \
   echo "        This one supersedes it: the directory goes from what it serves now straight to ${VERSION}."
 fi
 
-# --- Plugin Check, BEFORE anything is touched -------------------------------------------------------
-# bin/release-wporg runs this too, and there it is too late: it runs AFTER this script has already put
-# the new version on the live shop, so a refusal there strands the release with prod moved and the
-# directory unpublished. It happened on 0.3.2 - an unsanitised $_POST in new code - and was only caught
-# because the check was run by hand first. It is read-only, so asking first costs nothing.
-#
-# Against DEV, which must therefore be on this build: checking a working copy that is not what gets
-# packaged has caught nothing twice before.
+# Plugin Check BEFORE prod is touched, against DEV (which must run this exact build).
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
 DEV_V="$(run_dev "$WP_ANY --path=${DEVROOT} plugin get bg-couriers --field=version" | tr -d '\r' || true)"
 if [ "$DEV_V" != "$VERSION" ]; then
@@ -129,17 +86,13 @@ CHECK="$(run_dev "$WP_ANY --path=${DEVROOT} plugin check bg-couriers 2>&1 | tail
 echo "$CHECK" | sed 's/^/  /'
 echo "$CHECK" | grep -q "No errors found" || { echo "REFUSING: Plugin Check reported errors - prod NOT touched" >&2; exit 1; }
 
-# The site the plugin is FOR. Ask unless told not to - deploying to prod is the one step here that a
-# customer can see go wrong.
 if [ "${1:-}" != "--yes" ]; then
   read -r -p "Deploy ${VERSION} to PROD (${BGC_SSH_HOST})? type yes: " c
   [ "$c" = yes ] || { echo "stopped"; exit 1; }
 fi
 
 echo "==> backup"
-# Named for the version being REPLACED and stamped, so a second run can never overwrite the archive that
-# is the way back. An earlier draft of this script named it after the version going ON, which meant
-# re-running it replaced a good rollback point with a copy of the code you were trying to roll back from.
+# Named for the version being REPLACED, timestamped, so a re-run never overwrites the rollback point.
 BACKUP="$(dirname "$WPROOT")/bg-couriers-backup-${WAS}-$(date +%Y%m%d-%H%M).tgz"
 echo "  replacing ${WAS} with ${VERSION}"
 run "cd \"\$(dirname '$P')\" && tar czf '$BACKUP' bg-couriers && du -h '$BACKUP'"
@@ -156,7 +109,7 @@ if [ "$LIVE" != "$VERSION" ]; then
   exit 1
 fi
 echo "  prod is running ${LIVE}"
-# Nothing that is not the plugin. Playwright's test-results reached prod once through rsync.
+# Nothing that is not the plugin.
 STRAY="$(run "ls -d '$P/test-results' '$P/e2e' '$P/tests' 2>/dev/null" || true)"
 [ -z "$STRAY" ] && echo "  no test leftovers on the server" || { echo "  STRAY ON PROD: $STRAY" >&2; exit 1; }
 
@@ -166,9 +119,6 @@ run "$WP eval 'if(function_exists(\"rocket_clean_domain\")){rocket_clean_domain(
 run "$WP cache flush" >/dev/null 2>&1 || true
 
 echo "==> smoke"
-# The list is the shop's own, from bin/deploy.conf: a shop may well serve its cart and checkout from
-# pages that are not the WooCommerce defaults, and then /cart/ and /checkout/ 404 without anything being
-# wrong. Put the URLs that actually matter for that shop in the config.
 fail=0
 for u in $BGC_PROD_SMOKE_URLS; do
   code="$(curl -s -o /dev/null -w '%{http_code}' -L "$u")"
@@ -176,8 +126,7 @@ for u in $BGC_PROD_SMOKE_URLS; do
   [ "$code" = 200 ] || fail=1
 done
 
-# Every courier must be exactly as configured as it was. A release that quietly disables one takes the
-# shop's deliveries with it.
+# Every courier must stay exactly as configured.
 echo "==> couriers"
 run "$WP eval '
 foreach (array_keys(BGCouriers_Couriers::all()) as \$c) {
@@ -189,14 +138,7 @@ echo
 [ "$fail" -eq 0 ] || { echo "SMOKE FAILED - a page did not return 200. Backup: $BACKUP" >&2; exit 1; }
 echo "PROD is on ${VERSION} ($(git rev-parse --short HEAD)). Backup: ${BACKUP}"
 
-# --- The directory, from here ------------------------------------------------------------------------
-# The same process, not a line telling somebody to run it. A re-deploy of a published version has
-# nothing left to publish and stops here. Preflight passed on this exact commit minutes ago; the second
-# script is told which commit and does not run the suites again.
-#
-# This is no longer the only road to the directory: bin/release-wporg gates on DEV now, so it also runs
-# on its own, and from CI, for a build the shop has not taken yet (owner, 2026-09-23). Running it from
-# here still makes sense - the shop is on the build, so there is nothing to wait for.
+# Then the directory, in the same process; preflight already passed on this commit.
 if svn ls --non-interactive "https://plugins.svn.wordpress.org/bg-couriers/tags/${VERSION}" >/dev/null 2>&1; then
   echo "tags/${VERSION} is already on WordPress.org - nothing left to publish"
   exit 0

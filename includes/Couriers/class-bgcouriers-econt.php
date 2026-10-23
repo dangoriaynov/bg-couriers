@@ -47,7 +47,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
 
     /**
      * Is the chosen pay-out agreement still on the profile?
-     *
      * @return array<int,array{msg:string,fix:string}>
      */
     public function payout_problems(): array {
@@ -114,7 +113,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     /**
      * A town's whole street list, cached for a day; getStreets takes no term. The key carries the
      * nomenclature generation so "Sync now" retires it.
-     *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
     private function streets_of(int $city_id): array {
@@ -160,11 +158,10 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return $out;
     }
 
-    // ── Quote (calculate mode) ──────────────────────────────────────────────
+    // Quote (calculate mode)
 
     /**
      * The sender profile, cached for a day; createLabel requires a sender.
-     *
      * @return array{client:array,address:array}
      */
     private function sender_profile(): array {
@@ -193,7 +190,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
 
     /**
      * Ship-from addresses as id => label for the settings dropdown; cached for a day, empty on failure.
-     *
      * @return array<string,string>
      */
     public function sender_addresses(): array {
@@ -326,7 +322,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
 
-    // ── Label creation ──────────────────────────────────────────────────────
+    // Label creation
 
     public static function build_label_body(\WC_Order $order, array $sender, string $office_code): array {
         $label = [
@@ -512,7 +508,6 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
 
     /**
      * What Econt actually applied vs what was asked: the COD is the service row of type 'CD', whose `count` is the amount.
-     *
      * @return string[]
      */
     public static function check_applied(array $body, array $resp): array {
@@ -553,7 +548,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return $this->fetch_pdf($url, [], 'Econt');
     }
 
-    // ── Tracking ────────────────────────────────────────────────────────────
+    // Tracking
 
     public static function parse_tracking(array $resp): BGCouriers_Tracking {
         $st     = $resp['shipmentStatuses'][0]['status'] ?? [];
@@ -590,11 +585,10 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return 'https://www.econt.com/en/services/track-shipment/' . rawurlencode($waybill);
     }
 
-    // ── Pickup request ───────────────────────────────────────────────────────
+    // Pickup request
 
     /**
      * Body for requestCourier: times are `Y-m-d H:i:s`, not ISO 8601, and attachShipments takes the waybills as strings.
-     *
      * @param string[] $waybills
      */
     public static function build_pickup_body(array $waybills, array $opts, array $sender): array {

@@ -43,7 +43,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
 
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote', 'pickup']; }
 
-    // ── The envelope ─────────────────────────────────────────────────────────
+    // The envelope
 
     /** The `data` of a successful answer; a refusal is HTTP 200 with `status` 0. */
     public static function unwrap(array $resp): array {
@@ -58,7 +58,6 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
 
     /**
      * The `message` of a refusal as words; it may be a nested object of field => messages.
-     *
      * @param mixed $m
      */
     public static function message_text($m): string {
@@ -75,7 +74,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
     /** The same as a plain list: some endpoints answer an object keyed "1","2",..., others an array. */
     public static function rows(array $resp): array { return array_values(self::unwrap($resp)); }
 
-    // ── Calling ──────────────────────────────────────────────────────────────
+    // Calling
 
     /** Transient key per account. */
     private function key(string $what): string {
@@ -157,7 +156,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         return $this->token(true) !== '';
     }
 
-    // ── Nomenclature ─────────────────────────────────────────────────────────
+    // Nomenclature
 
     public function fetch_cities(string $country = ''): array {
         return self::parse_cities($this->call('/1/list-city', ['country_id' => self::country_id($country)]));
@@ -165,7 +164,6 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
 
     /**
      * Towns, one row per town: the API answers town x postcode, so the lowest postcode stands for the town.
-     *
      * @return array<int,array{city_id:int,name:string,post_code:string,region:string}>
      */
     public static function parse_cities(array $resp): array {
@@ -200,7 +198,6 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
 
     /**
      * Points -> framework rows; LOCATION_TYPE 4 is a locker, 2 and 3 are offices. `ID` may be int or string.
-     *
      * @return array<int,array{office_id:int,code:string,city_id:int,type:string,name:string,address:string,lat:float,lng:float}>
      */
     public static function parse_offices(array $resp): array {
@@ -237,7 +234,6 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
 
     /**
      * Streets -> checkout rows; the type belongs in the label.
-     *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
     public static function parse_streets(array $resp): array {
@@ -259,7 +255,6 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
 
     /**
      * The id of a street the town knows by that name; the stored id wins, then the type, else the first of several.
-     *
      * @return array{id:int,label:string,ambiguous:bool}
      */
     public function street_match(int $city_id, string $name, string $type = '', int $street_id = 0): array {
@@ -290,7 +285,6 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
 
     /**
      * A town's whole street list, cached for a day; the key carries the nomenclature generation so "Sync now" retires it.
-     *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
     private function streets_of(int $city_id): array {
@@ -311,7 +305,6 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
 
     /**
      * The account's own addresses for the "send from" setting; cached for a day.
-     *
      * @return array<int,string> id => label.
      */
     public function sender_objects(): array {
@@ -339,7 +332,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s does not deliver to %2$s.', 'bg-couriers'), 'Express One', $c)));
     }
 
-    // ── Price ────────────────────────────────────────────────────────────────
+    // Price
 
     public function quote(array $shipment): BGCouriers_Quote {
         $data = self::unwrap($this->call('/1/calculate-bol', self::build_calculate_body($shipment)));
@@ -385,7 +378,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         return new BGCouriers_Quote(round($total - $vat, 2), round($vat, 2), $currency, 'live');
     }
 
-    // ── The waybill ──────────────────────────────────────────────────────────
+    // The waybill
 
     public function create_label(\WC_Order $order): BGCouriers_Label {
         $s = self::shipment_of($order);
@@ -504,7 +497,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         return self::assert_pdf((string) base64_decode((string) ($data['LABEL'] ?? ''), true), 'Express One');
     }
 
-    // ── Cancelling ───────────────────────────────────────────────────────────
+    // Cancelling
 
     public function cancel_label(string $waybill): bool {
         return self::parse_cancel(self::unwrap($this->call('/1/cancel-bol', ['bol_id' => $waybill, 'by_reference' => 0])));
@@ -524,7 +517,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         } catch (BGCouriers_Api_Exception $e) { return false; }
     }
 
-    // ── Tracking ─────────────────────────────────────────────────────────────
+    // Tracking
 
     public function track(string $waybill): BGCouriers_Tracking {
         return self::parse_tracking(self::unwrap($this->call('/1/track-bol', ['bol_id' => $waybill, 'by_reference' => 0])), $waybill);
@@ -566,7 +559,7 @@ class BGCouriers_Expressone extends BGCouriers_Abstract_Courier implements BGCou
         return self::TRACK_URL . rawurlencode($waybill);
     }
 
-    // ── Collection ───────────────────────────────────────────────────────────
+    // Collection
 
     /** Express One takes a count, a weight and a time, not the waybills, and answers no request number; ERROR 0 is success. */
     public function request_pickup(array $waybills, array $opts): string {

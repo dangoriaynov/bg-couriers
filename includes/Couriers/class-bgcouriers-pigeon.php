@@ -54,7 +54,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         return $p;
     }
 
-    // ── Transport ────────────────────────────────────────────────────────────
+    // Transport
 
     protected function http_post(string $url, array $body) {
         return wp_remote_post($url, [
@@ -100,7 +100,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         throw new BGCouriers_Api_Exception(esc_html(sprintf(__('%1$s could not be reached: %2$s', 'bg-couriers'), 'Pigeon', $last)));
     }
 
-    // ── Credential check ─────────────────────────────────────────────────────
+    // Credential check
 
     public function check_credentials(): bool {
         // Probe a single known city (759 = Sofia), like the official plugin; get_json throws on non-200.
@@ -108,7 +108,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         return true;
     }
 
-    // ── Nomenclature ─────────────────────────────────────────────────────────
+    // Nomenclature
 
     public function fetch_cities(): array {
         $out      = [];
@@ -196,7 +196,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         }));
     }
 
-    // ── Pure static parsers ───────────────────────────────────────────────────
+    // Pure static parsers
 
     public static function parse_cities(array $resp): array {
         $out = [];
@@ -253,7 +253,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         return $out;
     }
 
-    // ── Quote (calculate) ────────────────────────────────────────────────────
+    // Quote (calculate)
 
     /** Body for POST /v1/shipments/calculate; $box and $pickup are injected so this stays get_option-free. */
     public static function build_calculate_body(array $s, int $pickup_office_id, array $box = ['length' => 40, 'width' => 40, 'height' => 40], ?array $pickup = null): array {
@@ -318,7 +318,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
 
-    // ── Label creation ──────────────────────────────────────────────────────
+    // Label creation
 
     /** @return array{pickup_type:string, pickup_address?:array} Where Pigeon collects from; an incomplete address falls back to the office. */
     public static function default_pickup(): array {
@@ -399,7 +399,7 @@ class BGCouriers_Pigeon extends BGCouriers_Abstract_Courier {
         ));
     }
 
-    // ── Tracking ────────────────────────────────────────────────────────────
+    // Tracking
 
     /** History lives under `tracking` (not `events`); status_code is the machine value handed on as the phase. */
     public static function parse_tracking(array $resp): BGCouriers_Tracking {
