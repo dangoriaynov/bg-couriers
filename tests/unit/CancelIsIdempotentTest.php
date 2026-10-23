@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -19,17 +17,14 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.
  *
  * @group sameday
  */
-final class CancelIsIdempotentTest extends TestCase {
+final class CancelIsIdempotentTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('get_option')->alias(static function ($n, $d = false) { return $d; });
+        parent::setUp();        Functions\when('get_option')->alias(static function ($n, $d = false) { return $d; });
         Functions\when('is_wp_error')->justReturn(false);
         // auth_token() reads a cached token before it would ever reach the network.
         Functions\when('get_transient')->justReturn('test-token');
         Functions\when('set_transient')->justReturn(true);
-        Functions\when('esc_html')->returnArg(1);
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function sameday_answering(int $code): BGCouriers_Sameday {
         Functions\when('wp_remote_request')->justReturn(['response' => ['code' => $code]]);
@@ -85,7 +80,6 @@ final class CancelIsIdempotentTest extends TestCase {
      * as an exception now, and the false answer is kept for a courier that gives no reason at all.
      */
     public function test_a_real_refusal_is_still_a_failure_and_says_why(): void {
-        Functions\when('__')->returnArg(1);
         Functions\when('wp_remote_retrieve_body')->justReturn('{"error":{"code":400,"message":"AWB already picked up"}}');
         foreach ([500, 400] as $code) {
             try { $this->sameday_answering($code)->cancel_label('1ABC'); $this->fail('a refusal must throw'); }

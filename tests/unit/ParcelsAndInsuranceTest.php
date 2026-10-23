@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
@@ -20,9 +17,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-couri
  *
  * @group core
  */
-final class ParcelsAndInsuranceTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class ParcelsAndInsuranceTest extends BGCouriers_Unit_TestCase {
 
     /** The suite's shared WC_Order stand-in - one partial stub for every test, by design. */
     private function order(array $meta): WC_Order {
@@ -111,16 +106,19 @@ final class ParcelsAndInsuranceTest extends TestCase {
         BGCouriers_Couriers::reset();
     }
 
-    /** And the three real ones answer the way the measurements in their classes say they do. */
-    public function test_the_real_couriers_answer_as_measured(): void {
-        $src = static function (string $f): string {
-            return (string) file_get_contents(dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-' . $f . '.php');
-        };
-        foreach (['speedy', 'sameday', 'expressone'] as $id) {
-            $this->assertStringContainsString('public function multi_parcel(): bool { return true; }', $src($id), $id . ' has to say it carries several');
+    /** @return array<string,array{string,bool}> */
+    public static function couriers(): array {
+        $out = [];
+        foreach (['speedy' => true, 'sameday' => true, 'expressone' => true, 'econt' => false, 'pigeon' => false, 'boxnow' => false, 'evropat' => false] as $id => $many) {
+            $out[$id] = [$id, $many];
         }
-        foreach (['econt', 'pigeon', 'boxnow', 'evropat'] as $id) {
-            $this->assertStringNotContainsString('multi_parcel', $src($id), $id . ' must not claim it does');
-        }
+        return $out;
+    }
+
+    /** @dataProvider couriers */
+    public function test_the_real_couriers_say_whether_they_carry_several_parcels(string $id, bool $many): void {
+        $this->options([]);
+        $class = 'BGCouriers_' . ucfirst($id);
+        $this->assertSame($many, (new $class([]))->multi_parcel());
     }
 }

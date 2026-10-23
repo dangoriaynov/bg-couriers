@@ -1,5 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
@@ -11,13 +10,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-speedy.p
 /**
  * @group speedy
  */
-final class SpeedyNomenclatureTest extends TestCase {
-    protected function setUp(): void {
-        parent::setUp(); Brain\Monkey\setUp();
-        Brain\Monkey\Functions\when('__')->returnArg(1);
-        Brain\Monkey\Functions\when('esc_html')->returnArg(1);
-    }
-    protected function tearDown(): void { Brain\Monkey\tearDown(); parent::tearDown(); }
+final class SpeedyNomenclatureTest extends BGCouriers_Unit_TestCase {
 
     public function test_parse_sites_normalizes(): void {
         $resp = json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/speedy/find_site.json'), true);

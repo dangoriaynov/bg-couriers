@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
@@ -52,18 +50,15 @@ if (!class_exists('SlowQuoteCourier')) {
  *
  * @group core
  */
-final class SlowCourierRestsTest extends TestCase {
+final class SlowCourierRestsTest extends BGCouriers_Unit_TestCase {
     /** @var array<string,mixed> the transient store this test runs against */
     private array $store = [];
     /** @var array<string,int> how long each transient was asked to live */
     private array $ttl = [];
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        $this->store = [];
+        parent::setUp();        $this->store = [];
         $this->ttl   = [];
-        Functions\when('__')->returnArg(1);
-        Functions\when('esc_html')->returnArg(1);
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
         $store = &$this->store;
         Functions\when('get_transient')->alias(static function ($k) use (&$store) { return $store[$k] ?? false; });
@@ -88,7 +83,6 @@ final class SlowCourierRestsTest extends TestCase {
     }
     /** What counts as slow, for this test. */
     private const SLOW = 0.05;
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function shipment(): array {
         return ['method' => 'office', 'country' => 'BG', 'weight_kg' => 1.0, 'currency' => 'EUR'];

@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
 
@@ -15,13 +12,7 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.
  *
  * @group core
  */
-final class ReturnedStatusTest extends TestCase {
-    protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
-    }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class ReturnedStatusTest extends BGCouriers_Unit_TestCase {
 
     /** Speedy's two return wordings must land on different stages - that is what gates the status. */
     public function test_only_the_completed_return_is_the_terminal_stage(): void {

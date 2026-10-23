@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -19,21 +17,15 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  *
  * @group core
  */
-final class ShipInTotalTest extends TestCase {
+final class ShipInTotalTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        // BOX NOW's "always in the order total" is the adapter's own answer now
+        parent::setUp();        // BOX NOW's "always in the order total" is the adapter's own answer now
         // (recipient_can_pay_delivery()), so the real adapter is registered - nothing else is.
         BGCouriers_Couriers::reset();
         BGCouriers_Couriers::register('boxnow', 'BOX NOW', static function () { return new BGCouriers_Boxnow([]); });
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
-    private function options(array $map): void {
-        Functions\when('get_option')->alias(function ($name, $default = false) use ($map) {
-            return $map[$name] ?? $default;
-        });
-    }
 
     /**
      * service_payer() is protected, so reach it through a subclass rather than reflection:

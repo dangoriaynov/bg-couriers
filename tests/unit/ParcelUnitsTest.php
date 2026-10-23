@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
@@ -31,15 +29,13 @@ final class BGC_Item_Stub {
  *
  * @group core
  */
-final class ParcelUnitsTest extends TestCase {
+final class ParcelUnitsTest extends BGCouriers_Unit_TestCase {
     private const DEFAULT_BOX = ['length' => 10, 'width' => 10, 'height' => 2];
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('get_option')->alias(static fn($n, $d = false) => $d);
+        parent::setUp();        Functions\when('get_option')->alias(static fn($n, $d = false) => $d);
         Functions\when('wc_get_dimension')->alias(static fn($v, $to, $from) => $v);
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function order(array $items): WC_Order {
         $order = new WC_Order();

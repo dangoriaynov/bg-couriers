@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 /**
@@ -10,9 +8,7 @@ use Brain\Monkey\Functions;
  *
  * @group core
  */
-final class SamedayPayerBlockTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); Functions\when('__')->returnArg(1); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class SamedayPayerBlockTest extends BGCouriers_Unit_TestCase {
 
     /** @param array<string,string> $opts */
     private function opts(array $opts): void {

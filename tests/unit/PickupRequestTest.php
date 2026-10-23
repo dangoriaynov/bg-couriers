@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -15,24 +13,17 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow.php';
 
 /**
- * A waybill only says a parcel exists. The courier comes for it on a request that NAMES those waybills
- * for a day - Speedy's own schema puts EXPLICIT_SHIPMENT_ID_LIST first among its scopes and Econt
- * attaches the numbers the same way. These hold the two bodies, and hold the line that couriers without
- * the service refuse loudly rather than pretending.
+ * Courier pickup requests name the chosen waybills for a day; couriers without the service refuse loudly.
  *
  * @group core
  */
-final class PickupRequestTest extends TestCase {
+final class PickupRequestTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('esc_html__')->returnArg(1);
-        Functions\when('esc_html')->returnArg(1);
+        parent::setUp();        Functions\when('esc_html__')->returnArg(1);
         // Sameday's constructor reads its host from the options; the others do not care.
         Functions\when('get_option')->alias(static function ($n, $d = false) { return $d; });
         Functions\when('wp_timezone')->justReturn(new DateTimeZone('Europe/Sofia')); // the shop's zone
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function opts(): array {
         return ['date' => '2026-08-19', 'from' => '14:00', 'to' => '17:30',
@@ -46,27 +37,16 @@ final class PickupRequestTest extends TestCase {
         $this->assertSame(['63710932641', '63710932642'], $b['explicitShipmentIdList']);
     }
 
-    /**
-     * The moment carries the shop's zone. Speedy reads pickupDateTime as yyyy-MM-dd'T'HH:mm:ssZ and
-     * refuses one without the offset with an HTTP 400 before it has even looked at the credentials -
-     * measured 2026-09-12 against the live endpoint: "Cannot deserialize value of type java.util.Date
-     * from String "2026-09-13T14:00:00": expected format "yyyy-MM-dd'T'HH:mm:ssZ"". The courier comes
-     * to the shop, so the shop's zone is the one that is written.
-     */
+    /** pickupDateTime must carry the shop's offset; the merchant's day is never auto-adjusted. */
     public function test_speedy_sends_the_day_and_the_window(): void {
         $b = BGCouriers_Speedy::build_pickup_body(['63710932641'], $this->opts());
+        $this->assertFalse($b['autoAdjustPickupDate']);
         $this->assertSame('2026-08-19T14:00:00+0300', $b['pickupDateTime'], 'August in Sofia is +0300');
         $this->assertSame('17:30', $b['visitEndTime']);
         $this->assertSame('0888123456', $b['phoneNumber']['number']);
 
         $b = BGCouriers_Speedy::build_pickup_body(['63710932641'], ['date' => '2026-12-01', 'from' => '09:30'] + $this->opts());
         $this->assertSame('2026-12-01T09:30:00+0200', $b['pickupDateTime'], 'December in Sofia is +0200');
-    }
-
-    /** Moving the date is Speedy's to offer and not ours to accept: the merchant packs for the day they chose. */
-    public function test_speedy_never_lets_the_courier_move_the_date(): void {
-        $b = BGCouriers_Speedy::build_pickup_body(['63710932641'], $this->opts());
-        $this->assertFalse($b['autoAdjustPickupDate']);
     }
 
     public function test_speedy_reads_the_order_id_back(): void {
@@ -98,31 +78,27 @@ final class PickupRequestTest extends TestCase {
         $this->assertSame('CR-99', BGCouriers_Econt::parse_pickup_id(['courierRequestID' => 'CR-99']));
     }
 
-    /** BOX NOW, Pigeon and Sameday have no such API - they must refuse, not quietly do nothing. */
-    public function test_couriers_without_the_service_refuse(): void {
-        foreach ([new BGCouriers_Pigeon([]), new BGCouriers_Sameday([]), new BGCouriers_Boxnow([])] as $c) {
-            $this->assertNotContains('pickup', $c->capabilities(), get_class($c) . ' must not advertise pickup');
-            try {
-                $c->request_pickup(['X1'], $this->opts());
-                $this->fail(get_class($c) . ' should have refused');
-            } catch (BGCouriers_Api_Exception $e) {
-                $this->assertNotEmpty($e->getMessage());
-            }
+    /** @return array<string,array{string,bool}> */
+    public static function pickup_support(): array {
+        return ['speedy' => ['Speedy', true], 'econt' => ['Econt', true], 'pigeon' => ['Pigeon', false], 'sameday' => ['Sameday', false], 'boxnow' => ['Boxnow', false]];
+    }
+
+    /** @dataProvider pickup_support */
+    public function test_only_couriers_with_a_pickup_api_advertise_it_and_the_rest_refuse(string $courier, bool $supported): void {
+        $class = 'BGCouriers_' . $courier;
+        $c = new $class([]);
+        $this->assertSame($supported, in_array('pickup', $c->capabilities(), true));
+        if (!$supported) {
+            $this->expectException(BGCouriers_Api_Exception::class);
+            $this->expectExceptionMessageMatches('/\S/');
+            $c->request_pickup(['X1'], $this->opts());
         }
     }
 
-    /**
-     * startingDate is MILLISECONDS. The schema says only "integer", and seconds are rejected as a date
-     * before today - Speedy reads them as 1970. Verified against the live API on 2026-08-18.
-     */
+    /** startingDate is milliseconds; seconds read as 1970. */
     public function test_speedy_asks_for_terms_in_milliseconds(): void {
         $b = BGCouriers_Speedy::build_pickup_terms_body('2026-08-19');
         $this->assertSame(strtotime('2026-08-19 00:00:00') * 1000, $b['startingDate']);
         $this->assertSame(505, $b['serviceId'], 'without a service id Speedy refuses the question');
-    }
-
-    public function test_the_two_that_can_do_it_say_so(): void {
-        $this->assertContains('pickup', (new BGCouriers_Speedy([]))->capabilities());
-        $this->assertContains('pickup', (new BGCouriers_Econt([]))->capabilities());
     }
 }

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 
@@ -13,15 +11,10 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  * nothing gets a checkout that agrees with itself. A store that ships some other way as well unticks
  * them and WooCommerce's own fields come straight back.
  */
-final class CheckoutFieldSettingsTest extends TestCase {
+final class CheckoutFieldSettingsTest extends BGCouriers_Unit_TestCase {
 
-    protected function setUp(): void { Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); }
+    protected function setUp(): void { }
 
-    /** @param array<string,string> $stored options as the database has them */
-    private function options(array $stored): void {
-        Functions\when('get_option')->alias(static fn($key, $default = false) => $stored[$key] ?? $default);
-    }
 
     public function test_both_are_on_for_a_store_that_has_never_opened_the_settings(): void {
         $this->options([]);

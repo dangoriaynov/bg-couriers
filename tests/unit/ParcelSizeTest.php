@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 
@@ -11,21 +9,12 @@ require_once dirname(__DIR__) . '/stubs/wc-order.php';
  *
  * @group core
  */
-final class ParcelSizeTest extends TestCase {
+final class ParcelSizeTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('wc_get_weight')->alias(static fn($v, $u) => $v);
+        parent::setUp();        Functions\when('wc_get_weight')->alias(static fn($v, $u) => $v);
         Functions\when('wc_get_dimension')->alias(static fn($v, $to, $from) => $v);
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
-    /** @param array<string,mixed> $opts */
-    private function options(array $opts = []): void {
-        Functions\when('get_option')->alias(static function ($n, $d = false) use ($opts) {
-            return array_key_exists($n, $opts) ? $opts[$n] : $d;
-        });
-    }
 
     /** The shipped default is the flat box this shop actually posts. */
     public function test_default_parcel_is_ten_by_ten_by_two(): void {

@@ -1,7 +1,5 @@
 <?php
-use Brain\Monkey;
 use Brain\Monkey\Functions;
-use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-labels.php';
 
@@ -13,9 +11,7 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-labels.php'
  *
  * @group core
  */
-final class MarkPrintedTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class MarkPrintedTest extends BGCouriers_Unit_TestCase {
 
     public function test_every_printed_waybill_loses_its_flag_and_gains_a_timestamp(): void {
         $a = new WC_Order(); $a->meta = ['_bgcouriers_waybill' => 'A1', '_bgcouriers_label_needs_print' => '1'];

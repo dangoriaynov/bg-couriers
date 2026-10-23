@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 
@@ -14,20 +12,11 @@ require_once dirname(__DIR__) . '/stubs/wc-order.php';
  *
  * @group core
  */
-final class EcontPayerCodTest extends TestCase {
+final class EcontPayerCodTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('wc_get_weight')->alias(static fn($v, $u) => $v);
+        parent::setUp();        Functions\when('wc_get_weight')->alias(static fn($v, $u) => $v);
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
-    /** @param array<string,string> $opts */
-    private function options(array $opts): void {
-        Functions\when('get_option')->alias(static function ($n, $d = false) use ($opts) {
-            return array_key_exists($n, $opts) ? $opts[$n] : $d;
-        });
-    }
 
     /** Goods 24.00 + delivery 4.48 = 28.48 collected when the merchant charged shipping at checkout. */
     private function order(float $total, float $shipping): WC_Order {

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 /**
@@ -10,14 +8,10 @@ use Brain\Monkey\Functions;
  *
  * @group core
  */
-final class LabelPdfFetchTest extends TestCase {
+final class LabelPdfFetchTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
-        Functions\when('esc_html')->returnArg(1);   // exception messages are esc_html()'d (Plugin Check)
-        Functions\when('wp_parse_url')->alias(function ($u, $c = -1) { return parse_url($u); });
+        parent::setUp();        Functions\when('wp_parse_url')->alias(function ($u, $c = -1) { return parse_url($u); });
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function courier($response) {
         return new class($response) extends BGCouriers_Abstract_Courier {

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 
@@ -28,14 +26,11 @@ require_once dirname(__DIR__) . '/stubs/wc-order.php';
  *
  * @group core
  */
-final class OrderReferenceOnLabelTest extends TestCase {
+final class OrderReferenceOnLabelTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('wc_get_weight')->alias(static fn($v, $u) => $v);
+        parent::setUp();        Functions\when('wc_get_weight')->alias(static fn($v, $u) => $v);
         Functions\when('get_option')->alias(static fn($n, $d = false) => $d);
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     /** An order whose displayed number is deliberately NOT its post id, which is what tells the two apart. */
     private function order(): WC_Order {

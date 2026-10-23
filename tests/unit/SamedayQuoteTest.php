@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -21,13 +19,7 @@ require_once dirname(__DIR__) . '/stubs/wc-tax.php';
  *
  * @group sameday
  */
-final class SamedayQuoteTest extends TestCase {
-    protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
-        Functions\when('esc_html')->returnArg(1); // and esc_html()'d on the way into the exception
-    }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class SamedayQuoteTest extends BGCouriers_Unit_TestCase {
 
     private function fx(string $f): array {
         return json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/sameday/' . $f), true);

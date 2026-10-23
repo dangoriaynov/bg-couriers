@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 /**
@@ -96,15 +94,13 @@ final class SyncFakeCourier implements BGCouriers_Courier_Interface {
 /**
  * @group core
  */
-final class SyncNomenclatureTest extends TestCase {
+final class SyncNomenclatureTest extends BGCouriers_Unit_TestCase {
 
     /** @var BGCouriers_Fake_Wpdb */
     private $db;
 
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
-        Functions\when('__')->returnArg(1);
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
         Functions\when('delete_transient')->justReturn(true);
         Functions\when('update_option')->justReturn(true); // the sync writes its nomenclature generation
@@ -113,7 +109,6 @@ final class SyncNomenclatureTest extends TestCase {
         $GLOBALS['wpdb'] = $this->db = new BGCouriers_Fake_Wpdb();
     }
 
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     /** DELETEs issued against a table this run - i.e. what was pruned. */
     private function pruned(string $table): bool {

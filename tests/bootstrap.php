@@ -44,6 +44,7 @@ if (!$bgcouriers_is_integration) {
     if (!defined('BGCOURIERS_PATH')) { define('BGCOURIERS_PATH', dirname(__DIR__) . '/'); }
     require_once dirname(__DIR__) . '/includes/class-bgcouriers-autoloader.php';
     BGCouriers_Autoloader::register();
+    require_once __DIR__ . '/support/class-bgcouriers-unit-testcase.php';
 }
 
 // Integration suite only: boot the WordPress test framework.

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
@@ -28,11 +26,9 @@ require_once dirname(__DIR__) . '/stubs/wc-tax.php';
  *
  * @group core
  */
-final class RateCostTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
+final class RateCostTest extends BGCouriers_Unit_TestCase {
     protected function tearDown(): void {
         unset($GLOBALS['bgcouriers_test_shop_has_no_tax_rates']);
-        Monkey\tearDown();
         parent::tearDown();
     }
 

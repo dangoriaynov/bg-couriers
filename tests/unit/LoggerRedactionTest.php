@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-logger.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
@@ -18,15 +15,14 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-couri
  *
  * @group core
  */
-final class LoggerRedactionTest extends TestCase {
+final class LoggerRedactionTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         // Deliberately no get_option()/wp_json_encode() stub: this exercises the redaction alone, and
         // Brain Monkey's when() defines a real function that outlives the test - stubbing get_option
         // here made another file's test fail on an expectation it never set.
-        parent::setUp(); Monkey\setUp();
-        BGCouriers_Couriers::reset();
+        parent::setUp();        BGCouriers_Couriers::reset();
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
     /** What the logger would have written, without touching the real error log. */
     private function logged(array $ctx): string {

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-icons.php';
@@ -14,21 +12,17 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-colum
  *
  * @group core
  */
-final class ShipmentStatusLineTest extends TestCase {
+final class ShipmentStatusLineTest extends BGCouriers_Unit_TestCase {
     private const STAGES = ['registered', 'transit', 'ready', 'unclaimed', 'delivered', 'returning', 'returned', 'cancelled'];
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
-        foreach (['esc_html', 'esc_attr', 'esc_html__', 'esc_attr__', 'esc_url'] as $f) {
+        parent::setUp();        foreach (['esc_html', 'esc_attr', 'esc_html__', 'esc_attr__', 'esc_url'] as $f) {
             Functions\when($f)->alias(static fn($v) => (string) $v);
         }
         Functions\when('sanitize_html_class')->alias(static fn($v) => (string) $v);
         Functions\when('human_time_diff')->justReturn('5 minutes');
         Functions\when('get_option')->justReturn('');
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     /** @param array<string,mixed> $meta */
     private function order(array $meta): WC_Order {

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-blocks.php';
@@ -21,10 +19,9 @@ require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-blocks.p
  *
  * @group core
  */
-final class StoreApiDetectionTest extends TestCase {
+final class StoreApiDetectionTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
         Functions\when('wp_unslash')->returnArg(1);
         // The two sanitizers with their REAL difference: sanitize_text_field strips every %xx octet
         // (WP's _sanitize_text_fields), esc_url_raw keeps percent-encoding. is_store_api_request()
@@ -40,7 +37,6 @@ final class StoreApiDetectionTest extends TestCase {
     }
     protected function tearDown(): void {
         unset($_SERVER['REQUEST_URI']);
-        Monkey\tearDown();
         parent::tearDown();
     }
 

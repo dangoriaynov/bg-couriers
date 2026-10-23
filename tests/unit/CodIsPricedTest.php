@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -24,11 +22,9 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.
  *
  * @group core
  */
-final class CodIsPricedTest extends TestCase {
+final class CodIsPricedTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('get_woocommerce_currency')->justReturn('EUR');
+        parent::setUp();        Functions\when('get_woocommerce_currency')->justReturn('EUR');
         Functions\when('get_option')->alias(static function ($n, $d = false) {
             $map = [
                 'bgcouriers_econt_cod_enabled' => 'yes',
@@ -38,7 +34,6 @@ final class CodIsPricedTest extends TestCase {
             return $map[$n] ?? $d;
         });
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function shipment(float $cod): array {
         return ['method' => 'office', 'site_id' => 41, 'office_id' => 7, 'office_code' => 'SOF7',

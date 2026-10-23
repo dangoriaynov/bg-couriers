@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings-admin.php';
 
@@ -11,9 +8,7 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings-ad
  *
  * @group core
  */
-final class DropdownLimitSanitizeTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class DropdownLimitSanitizeTest extends BGCouriers_Unit_TestCase {
 
     private function sanitizer(): BGCouriers_Settings_Admin {
         // The constructor registers two dozen hooks; the sanitizer needs none of them.

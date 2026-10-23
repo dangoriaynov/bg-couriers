@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -23,25 +21,18 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  *
  * @group core
  */
-final class FreeShippingPayerMatrixTest extends TestCase {
+final class FreeShippingPayerMatrixTest extends BGCouriers_Unit_TestCase {
     private const COURIERS = ['speedy', 'econt', 'pigeon', 'sameday', 'boxnow'];
     private const METHODS  = ['office', 'address', 'automat'];
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp(); Functions\when('__')->returnArg(1);
-        // BOX NOW's "always in the order total" is the adapter's own answer now
+        parent::setUp();        // BOX NOW's "always in the order total" is the adapter's own answer now
         // (recipient_can_pay_delivery()), so the real adapter is registered - nothing else is.
         BGCouriers_Couriers::reset();
         BGCouriers_Couriers::register('boxnow', 'BOX NOW', static function () { return new BGCouriers_Boxnow([]); });
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
-    /** @param array<string,mixed> $opts */
-    private function options(array $opts): void {
-        Functions\when('get_option')->alias(static function ($n, $d = false) use ($opts) {
-            return array_key_exists($n, $opts) ? $opts[$n] : $d;
-        });
-    }
 
     private function order(string $method, float $goods): WC_Order {
         $o = new WC_Order();

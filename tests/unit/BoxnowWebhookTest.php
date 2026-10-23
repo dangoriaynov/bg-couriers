@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow-webhook.php';
 
 /**
@@ -10,9 +7,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow-w
  *
  * @group boxnow
  */
-final class BoxnowWebhookTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); Functions\when('__')->returnArg(1); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class BoxnowWebhookTest extends BGCouriers_Unit_TestCase {
 
     /** Build a WebhookMessage whose `data` substring is exactly what we sign. */
     private function body(array $data, string $secret, ?string $sig = null): string {
