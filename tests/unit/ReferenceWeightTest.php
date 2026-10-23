@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.php';
 
@@ -17,9 +14,7 @@ require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.
  *
  * @group core
  */
-final class ReferenceWeightTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class ReferenceWeightTest extends BGCouriers_Unit_TestCase {
 
     /** Half-kilo buckets, always rounded UP: a quote for less than the parcel weighs would understate. */
     public function test_weights_bucket_up_to_the_next_half_kilo(): void {

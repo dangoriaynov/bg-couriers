@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-logger.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
@@ -18,20 +15,21 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-couri
  *
  * @group core
  */
-final class LoggerRedactionTest extends TestCase {
+final class LoggerRedactionTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         // Deliberately no get_option()/wp_json_encode() stub: this exercises the redaction alone, and
         // Brain Monkey's when() defines a real function that outlives the test - stubbing get_option
         // here made another file's test fail on an expectation it never set.
-        parent::setUp(); Monkey\setUp();
-        BGCouriers_Couriers::reset();
+        parent::setUp();        BGCouriers_Couriers::reset();
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
     /** What the logger would have written, without touching the real error log. */
     private function logged(array $ctx): string {
         // Private on purpose: the redaction is not an API, it is what debug() does on the way out.
-        return (string) json_encode((new ReflectionMethod('BGCouriers_Logger', 'redact'))->invoke(null, $ctx, 0));
+        $redact = new ReflectionMethod('BGCouriers_Logger', 'redact');
+        $redact->setAccessible(true); // required before PHP 8.1
+        return (string) json_encode($redact->invoke(null, $ctx, 0));
     }
 
     public function test_every_courier_spelling_of_a_credential_is_taken_out(): void {

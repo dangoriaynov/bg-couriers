@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 if (!class_exists('WC_Settings_Page')) {
@@ -29,11 +27,10 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow-w
  *
  * @group core
  */
-final class CredentialAutofillTest extends TestCase {
+final class CredentialAutofillTest extends BGCouriers_Unit_TestCase {
 
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
         // The settings tabs are the courier REGISTRY's list now (one per registered courier, in its
         // order), so the couriers are registered here as BGCouriers_Plugin registers them - by id and
         // name; no adapter is ever built by these tests.
@@ -42,11 +39,9 @@ final class CredentialAutofillTest extends TestCase {
                   'sameday' => 'Sameday', 'expressone' => 'Express One', 'evropat' => 'Европът'] as $id => $label) {
             BGCouriers_Couriers::register($id, $label, static function () { return null; });
         }
-        Functions\when('__')->returnArg(1);
         Functions\when('apply_filters')->returnArg(2);
         Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
-        Functions\when('esc_html')->returnArg(1);
         Functions\when('esc_html__')->returnArg(1);
         Functions\when('esc_attr')->returnArg(1);
         Functions\when('esc_url')->returnArg(1);
@@ -54,7 +49,7 @@ final class CredentialAutofillTest extends TestCase {
         Functions\when('wc_get_weight')->returnArg(1);
     }
 
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
     /** @return array<int,array<string,mixed>> every credential field across every courier section */
     private function credential_fields(): array {

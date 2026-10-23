@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
@@ -12,12 +10,10 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.
 /**
  * @group sameday
  */
-final class SamedaySettingsTest extends TestCase {
+final class SamedaySettingsTest extends BGCouriers_Unit_TestCase {
 
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
-        Functions\when('__')->returnArg(1);
         // The adapter constructor reads options (sandbox host) - default-return unless a test overrides.
         Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
         Functions\when('get_woocommerce_currency')->justReturn('EUR');
@@ -29,7 +25,6 @@ final class SamedaySettingsTest extends TestCase {
 
     protected function tearDown(): void {
         BGCouriers_Couriers::reset();
-        Monkey\tearDown();
         parent::tearDown();
     }
 

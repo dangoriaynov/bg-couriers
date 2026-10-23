@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 
@@ -10,9 +8,7 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  *
  * @group core
  */
-final class EmergencyContactTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class EmergencyContactTest extends BGCouriers_Unit_TestCase {
 
     public function test_emergency_returns_configured_phone_and_message(): void {
         Functions\when('get_option')->alias(function ($option, $default = '') {

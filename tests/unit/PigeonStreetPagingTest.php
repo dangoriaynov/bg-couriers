@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-
 /**
  * /v1/cities/{id}/streets is paginated at 100 a page, like /v1/cities and /v1/offices, and it takes a
  * `name` filter. The street search used to read the first page unfiltered and match against that - so
@@ -11,9 +8,7 @@ use Brain\Monkey;
  *
  * @group pigeon
  */
-final class PigeonStreetPagingTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class PigeonStreetPagingTest extends BGCouriers_Unit_TestCase {
 
     /** Numbered streets that carry the term in brackets, the way Sofia's first pages look. */
     private static function rows(int $from, int $to, string $name = 'ВИТОША'): array {

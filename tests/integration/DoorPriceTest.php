@@ -16,6 +16,7 @@ final class DoorPriceTest extends WP_UnitTestCase {
 
     public function set_up() {
         parent::set_up();
+        if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
         BGCouriers_Couriers::register('doorprobe', 'Probe', static function () { return new BGCouriers_Door_Probe(); });
         update_option('bgcouriers_doorprobe_ship_in_total', 'no');   // клиентът плаща на куриера
         BGCouriers_Door_Probe::$price = 3.06;
@@ -55,7 +56,6 @@ final class DoorPriceTest extends WP_UnitTestCase {
     }
 
     public function test_the_waybill_writes_what_the_courier_will_collect(): void {
-        if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
         $o = $this->order();
         BGCouriers_Labels::refresh_door_price($o);
         $this->assertEqualsWithDelta(3.06, $this->info_price($o), 0.01);
@@ -63,7 +63,6 @@ final class DoorPriceTest extends WP_UnitTestCase {
 
     /** Нова цена при преиздаване: сумата се сменя, не се трупа втора. */
     public function test_re_issuing_replaces_the_figure(): void {
-        if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
         $o = $this->order(3.06);
         BGCouriers_Door_Probe::$price = 4.20;
         BGCouriers_Labels::refresh_door_price($o);
@@ -75,7 +74,6 @@ final class DoorPriceTest extends WP_UnitTestCase {
      * и магазин, който не може да каже - по-лошо от цена с един ден давност.
      */
     public function test_a_failed_quote_keeps_the_old_figure(): void {
-        if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
         $o = $this->order(3.06);
         BGCouriers_Door_Probe::$fail = true;
         BGCouriers_Labels::refresh_door_price($o);
@@ -84,7 +82,6 @@ final class DoorPriceTest extends WP_UnitTestCase {
 
     /** При „доставката е в сумата на поръчката" няма какво да се добавя - WooCommerce вече печата сумата. */
     public function test_nothing_is_written_when_delivery_is_charged_with_the_order(): void {
-        if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
         update_option('bgcouriers_doorprobe_ship_in_total', 'yes');
         $o = $this->order();
         BGCouriers_Labels::refresh_door_price($o);
@@ -93,7 +90,6 @@ final class DoorPriceTest extends WP_UnitTestCase {
 
     /** Редът, който вижда клиентът: сумата стои ПОД името на метода, а не в стойността на реда. */
     public function test_the_customer_row_says_the_amount(): void {
-        if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
         $o = $this->order(2.98);
         $totals = $o->get_order_item_totals();
         $this->assertArrayHasKey('shipping', $totals);
@@ -102,7 +98,6 @@ final class DoorPriceTest extends WP_UnitTestCase {
     }
 
     public function test_the_customer_row_is_untouched_when_delivery_is_in_the_total(): void {
-        if (!function_exists('wc_create_order')) { $this->markTestSkipped('WC not loaded'); }
         update_option('bgcouriers_doorprobe_ship_in_total', 'yes');
         $o = $this->order(2.98);
         $totals = $o->get_order_item_totals();

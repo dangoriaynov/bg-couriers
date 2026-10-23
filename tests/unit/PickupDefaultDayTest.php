@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-pickup.php';
 
@@ -14,18 +12,15 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-pickup.php'
  *
  * @group core
  */
-final class PickupDefaultDayTest extends TestCase {
+final class PickupDefaultDayTest extends BGCouriers_Unit_TestCase {
     private int $offset = 3; // Sofia in summer
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        if (!defined('HOUR_IN_SECONDS')) { define('HOUR_IN_SECONDS', 3600); }
+        parent::setUp();        if (!defined('HOUR_IN_SECONDS')) { define('HOUR_IN_SECONDS', 3600); }
         if (!defined('DAY_IN_SECONDS'))  { define('DAY_IN_SECONDS', 86400); }
-        Functions\when('__')->returnArg(1);
         Functions\when('add_action')->justReturn(null);
         Functions\when('get_option')->alias(function ($n, $d = false) { return $n === 'gmt_offset' ? $this->offset : $d; });
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private int $real = 0;
 

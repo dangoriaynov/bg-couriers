@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
@@ -13,19 +11,11 @@ require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-checkout
  *
  * @group core
  */
-final class AllMapButtonTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class AllMapButtonTest extends BGCouriers_Unit_TestCase {
 
-    /** @param array<string,string> $opts */
-    private function opts(array $opts): void {
-        Functions\when('get_option')->alias(static function ($name, $default = false) use ($opts) {
-            return array_key_exists($name, $opts) ? $opts[$name] : $default;
-        });
-    }
 
     public function test_shown_when_an_enabled_courier_delivers_to_an_office(): void {
-        $this->opts([
+        $this->options([
             'bgcouriers_speedy_enabled'         => 'yes',
             'bgcouriers_speedy_office_enabled'  => 'yes',
             'bgcouriers_speedy_address_enabled' => 'yes',
@@ -35,7 +25,7 @@ final class AllMapButtonTest extends TestCase {
     }
 
     public function test_shown_for_a_locker_only_courier(): void {
-        $this->opts([
+        $this->options([
             'bgcouriers_boxnow_enabled'         => 'yes',
             'bgcouriers_boxnow_office_enabled'  => 'no',
             'bgcouriers_boxnow_address_enabled' => 'no',
@@ -46,7 +36,7 @@ final class AllMapButtonTest extends TestCase {
 
     /** Door delivery only: there is nothing to put on a map. */
     public function test_hidden_when_everyone_delivers_only_to_the_door(): void {
-        $this->opts([
+        $this->options([
             'bgcouriers_speedy_enabled'         => 'yes',
             'bgcouriers_speedy_office_enabled'  => 'no',
             'bgcouriers_speedy_address_enabled' => 'yes',
@@ -57,7 +47,7 @@ final class AllMapButtonTest extends TestCase {
 
     /** A courier that is switched off does not get a say, whatever it can carry. */
     public function test_a_disabled_courier_does_not_count(): void {
-        $this->opts([
+        $this->options([
             'bgcouriers_speedy_enabled'         => 'no',
             'bgcouriers_speedy_office_enabled'  => 'yes',
             'bgcouriers_speedy_automat_enabled' => 'yes',
@@ -66,7 +56,7 @@ final class AllMapButtonTest extends TestCase {
     }
 
     public function test_no_couriers_at_all(): void {
-        $this->opts([]);
+        $this->options([]);
         $this->assertFalse(BGCouriers_Checkout::has_pickup_courier([]));
     }
 
@@ -77,7 +67,7 @@ final class AllMapButtonTest extends TestCase {
      * map away from every courier as a side effect.
      */
     public function test_the_merchant_switch_does_not_disable_the_capability(): void {
-        $this->opts([
+        $this->options([
             'bgcouriers_allmap'                => 'no',
             'bgcouriers_speedy_enabled'        => 'yes',
             'bgcouriers_speedy_office_enabled' => 'yes',

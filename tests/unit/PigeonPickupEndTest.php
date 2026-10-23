@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -18,9 +16,7 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-pigeon.p
  *
  * @group pigeon
  */
-final class PigeonPickupEndTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class PigeonPickupEndTest extends BGCouriers_Unit_TestCase {
 
     private function settings(array $map): void {
         Functions\when('get_option')->alias(static function ($n, $d = false) use ($map) { return $map[$n] ?? $d; });

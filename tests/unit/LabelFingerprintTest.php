@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -17,14 +15,12 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-labels.php'
  *
  * @group core
  */
-final class LabelFingerprintTest extends TestCase {
+final class LabelFingerprintTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('wc_format_decimal')->alias(static fn($v, $d = 2) => number_format((float) $v, (int) $d, '.', ''));
+        parent::setUp();        Functions\when('wc_format_decimal')->alias(static fn($v, $d = 2) => number_format((float) $v, (int) $d, '.', ''));
         Functions\when('wc_get_weight')->alias(static fn($w, $to, $from = null) => (float) $w / 1000);
         Functions\when('get_option')->justReturn('1');
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function order(): WC_Order {
         $o = new WC_Order();

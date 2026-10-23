@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 
 /**
  * Which street of that name, settled at label time from Speedy's own list.
@@ -13,13 +10,7 @@ use Brain\Monkey\Functions;
  *
  * @group speedy
  */
-final class SpeedyStreetResolveTest extends TestCase {
-    protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('esc_html')->returnArg(1);
-    }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class SpeedyStreetResolveTest extends BGCouriers_Unit_TestCase {
 
     /** A Speedy that answers the street lookup from a canned list and counts how often it was asked. */
     private function speedy(array $rows): BGCouriers_Speedy {

@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-
 require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-zones.php';
 
 /**
@@ -17,9 +14,7 @@ require_once dirname(__DIR__, 2) . '/includes/Cache/class-bgcouriers-zones.php';
  *
  * @group core
  */
-final class PriceZoneTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class PriceZoneTest extends BGCouriers_Unit_TestCase {
 
     /** Every spelling the real nomenclature holds, measured across all seven couriers on 2026-09-23. */
     public function test_the_capital_is_recognised_however_a_courier_spells_it(): void {

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.php';
@@ -16,9 +14,7 @@ require_once dirname(__DIR__) . '/stubs/wc-tax.php';
  *
  * @group core
  */
-final class OnePriceForOneParcelTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class OnePriceForOneParcelTest extends BGCouriers_Unit_TestCase {
 
     /** A gram-priced shop, and a cart whose shipping packages hold $weights (in grams). */
     private function shop(array $package_weights, string $tax_display = 'excl'): void {

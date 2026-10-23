@@ -1,7 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
-use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-icons.php';
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-checkout.php';
@@ -17,14 +14,11 @@ require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-checkout
  *
  * @group core
  */
-final class ShippingItemNameTest extends TestCase {
+final class ShippingItemNameTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
         // The catalogue is not loaded here; the English source string is what the label falls back to.
-        Functions\when('__')->returnArg(1);
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     public function test_the_type_is_appended_to_the_rate_name(): void {
         $this->assertSame('Speedy: To office',  BGCouriers_Checkout::shipping_item_name('Speedy', 'office'));

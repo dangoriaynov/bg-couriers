@@ -1,13 +1,11 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-bulk-labels.php';
 
 /**
  * @group speedy
  */
-final class BulkLabelsSummaryTest extends TestCase {
+final class BulkLabelsSummaryTest extends BGCouriers_Unit_TestCase {
     public function test_summary_tallies_statuses(): void {
         $c = BGCouriers_Bulk_Labels::summary(['generated', 'reused', 'generated', 'skipped', 'failed']);
         $this->assertSame(['generated' => 2, 'reused' => 1, 'skipped' => 1, 'failed' => 1], $c);
@@ -19,10 +17,7 @@ final class BulkLabelsSummaryTest extends TestCase {
      * two lists to the same set AND the same order (the group renders in actions() order).
      */
     public function test_actions_list_matches_everything_register_adds(): void {
-        Monkey\setUp();
-        Functions\when('__')->returnArg(1);
         $added = array_keys(array_diff_key((new BGCouriers_Bulk_Labels_Registrar())->registered(), ['keep' => 1]));
-        Monkey\tearDown();
         $this->assertSame(BGCouriers_Bulk_Labels::actions(), $added);
     }
 
@@ -33,7 +28,6 @@ final class BulkLabelsSummaryTest extends TestCase {
      * reads. And the attribute has to be on the kses allow-list, or it is stripped at output.
      */
     public function test_the_batch_print_links_name_their_orders(): void {
-        Monkey\setUp();
         foreach (['__', 'esc_html__', 'esc_attr__'] as $f) { Functions\when($f)->returnArg(1); }
         foreach (['esc_html', 'esc_attr', 'esc_url', 'wp_kses'] as $f) { Functions\when($f)->returnArg(1); }
         Functions\when('get_current_user_id')->justReturn(9);
@@ -44,7 +38,6 @@ final class BulkLabelsSummaryTest extends TestCase {
             ? ['kind' => 'generate', 'generated' => 2, 'print' => true]
             : ($k === 'bgcouriers_print_batch_9' ? [3, 4] : false));
         ob_start(); (new BGCouriers_Bulk_Labels_Registrar())->notice(); $h = ob_get_clean();
-        Monkey\tearDown();
 
         $this->assertSame(2, substr_count($h, 'data-ids="3,4"'), 'both the A4 and the A6 link');
         require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-kses.php';

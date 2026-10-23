@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.php';
 
@@ -10,12 +8,10 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  *
  * @group core
  */
-final class HiddenFieldSelectorsTest extends TestCase {
+final class HiddenFieldSelectorsTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('wp_strip_all_tags')->alias(static function ($s) { return strip_tags((string) $s); });
+        parent::setUp();        Functions\when('wp_strip_all_tags')->alias(static function ($s) { return strip_tags((string) $s); });
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     private function out(string $stored): string {
         Functions\when('get_option')->alias(static function ($n, $d = false) use ($stored) {

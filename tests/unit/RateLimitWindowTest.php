@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-ajax.php';
@@ -19,15 +17,14 @@ require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-ajax.php
  *
  * @group core
  */
-final class RateLimitWindowTest extends TestCase {
+final class RateLimitWindowTest extends BGCouriers_Unit_TestCase {
     /** @var array<string,mixed> */
     private array $store = [];
     /** @var int[] every TTL the limiter has asked for, in order */
     private array $ttls = [];
 
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        $this->store = [];
+        parent::setUp();        $this->store = [];
         $this->ttls  = [];
         $store = &$this->store;
         $ttls  = &$this->ttls;
@@ -39,7 +36,7 @@ final class RateLimitWindowTest extends TestCase {
         Functions\when('wp_unslash')->returnArg(1);
         $_SERVER['REMOTE_ADDR'] = '203.0.113.7';
     }
-    protected function tearDown(): void { unset($_SERVER['REMOTE_ADDR']); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { unset($_SERVER['REMOTE_ADDR']); parent::tearDown(); }
 
     /** The limiter is private, and private is right - it is nobody else's business but this class's. */
     private function ask(int $max = 5, int $window = 60): bool {
