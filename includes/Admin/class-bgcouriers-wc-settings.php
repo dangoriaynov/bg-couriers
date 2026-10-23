@@ -394,7 +394,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'css' => 'width:6em;', 'autoload' => false];
         }
         return [
-            // --- Checkout experience ---
+            // Checkout experience
             ['type' => 'title', 'id' => 'bgcouriers_checkout', 'title' => __('Checkout', 'bg-couriers'),
                 'desc' => __('How the checkout delivery picker behaves. Reorder couriers by dragging their tabs above; prices show in the store currency.', 'bg-couriers')],
             ['type' => 'select', 'id' => 'bgcouriers_default_courier', 'title' => __('Default courier', 'bg-couriers'),
@@ -436,7 +436,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'css' => 'min-width:400px;height:90px;', 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgcouriers_checkout'],
 
-            // --- Prices & display ---
+            // Prices & display
             ['type' => 'title', 'id' => 'bgcouriers_pricing', 'title' => __('Prices & display', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgcouriers_cart_estimate_enabled', 'title' => __('Shipping estimate on the cart', 'bg-couriers'),
                 'desc' => __('On the cart page, show a rough cached shipping price per courier/option (the exact price is calculated at checkout). Off by default.', 'bg-couriers'), 'default' => 'no'],
@@ -444,7 +444,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 'desc' => __('Text shown for the shipping price when a method is free (e.g. “Free shipping”).', 'bg-couriers'), 'default' => ''],
             ['type' => 'sectionend', 'id' => 'bgcouriers_pricing'],
 
-            // --- Orders list ---
+            // Orders list
             ['type' => 'title', 'id' => 'bgcouriers_orderslist', 'title' => __('Orders list', 'bg-couriers'),
                 'desc' => __('Colour each order row by its courier, so the mix of couriers in the list is readable at a glance. Pick a normal, saturated colour - the row is painted with a pale version of it, keeping the text readable. Clear a colour to leave that courier untinted.', 'bg-couriers')],
             ['type' => 'checkbox', 'id' => 'bgcouriers_row_tint', 'title' => __('Colour orders by courier', 'bg-couriers'),

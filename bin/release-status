@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
-# Where every copy of the plugin stands, side by side - this checkout, dev, prod, WordPress.org - and
-# whether they agree. Read-only and SSH-free: the sites are read over HTTPS through the plugin's own
-# readme.txt (every install serves it), the directory through its API and its SVN tags.
-#
-# Exists because a release CAN stop halfway and nothing said so. 0.4.13 went to the shop on 2026-09-16
-# and the bin/release-wporg run that was to follow was killed while it waited on an SSH hop. Prod ran
-# 0.4.13, the directory served 0.4.12, and for two days the only way to notice was to compare the two by
-# hand - which nobody did until a shop asked why the fix it had read about was not in the update. Now
-# bin/deploy.sh dev asks this after every sync and bin/release-prod before it starts, so the gap is
-# printed the next time anybody touches a site.
-#
-# Exit 1 when prod runs a version WordPress.org has no tag for - an unfinished release - so a script can
-# ask. Everything else is informational.
+# Versions of this checkout, dev, prod and WordPress.org side by side; read-only, over HTTPS (readme.txt,
+# the plugin API, SVN tags). Exit 1 only for an unfinished release: prod on a version with no tag.
 #
 # Usage: bin/release-status           the table, always
 #        bin/release-status --quiet   nothing unless something disagrees
@@ -23,17 +12,12 @@ QUIET=0; [ "${1:-}" = "--quiet" ] && QUIET=1
 SLUG=bg-couriers
 LOCAL="$(grep -m1 '^ \* Version:' bg-couriers.php | awk '{print $3}')"
 
-# The sites' public addresses. BGC_DEV_URL / BGC_PROD_URL when set; otherwise the addresses the other
-# scripts already know - the Playwright base URL for dev, the first smoke URL for prod.
+# BGC_DEV_URL / BGC_PROD_URL, else the Playwright base URL and the first smoke URL.
 origin() { printf '%s' "$1" | sed -E 's#^(https?://[^/]+).*#\1#'; }
 DEV_URL="${BGC_DEV_URL:-${BGC_E2E_BASE_URL:-}}"
 PROD_URL="${BGC_PROD_URL:-$(origin "${BGC_PROD_SMOKE_URLS:-}")}"
 
-# The version a site runs, from the readme it serves. 'unknown' when it cannot be read - a host may
-# refuse .txt files - and that is reported as unknown, never as a disagreement.
-# Fetched into a variable and parsed after, not piped: `grep -m1` closes the pipe as soon as it has
-# its line, curl dies of SIGPIPE, and under pipefail that turned a perfectly good "0.4.13" into
-# "0.4.13" followed by "unknown" on every other run.
+# 'unknown' (never a disagreement) when unreadable. Not piped: grep -m1 would SIGPIPE curl under pipefail.
 site_version() {
   [ -n "$1" ] || { echo unknown; return; }
   local body v
@@ -43,9 +27,7 @@ site_version() {
 }
 DEV="$(site_version "$DEV_URL")"
 PROD="$(site_version "$PROD_URL")"
-# What the directory SERVES (its API) and what it HOLDS (the tags) are two different facts: a tag lands
-# in seconds and the API follows minutes to an hour later. Both are read, so a fresh commit reads as
-# "in, not yet served" rather than as missing.
+# What the directory SERVES (API) lags what it HOLDS (tags) by up to an hour; both are read.
 API="$(curl -sS -m 20 "https://api.wordpress.org/plugins/info/1.0/${SLUG}.json" 2>/dev/null)"
 WPORG="$(printf '%s' "$API" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null)"
 [[ "$WPORG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || WPORG=unknown
@@ -65,6 +47,5 @@ if [ "$QUIET" -eq 0 ] || [ "${#problems[@]}" -gt 0 ]; then
                        'dev' "$DEV" 'prod' "$PROD" 'wp.org serves' "$WPORG" 'wp.org tags' "$LATEST_TAG"
 fi
 for p in "${problems[@]}"; do printf '  \033[31m!!\033[0m %s\n' "$p"; done
-# Only the unfinished release is a failure: it is the one state that is nobody's intention.
 case "${problems[0]:-}" in UNFINISHED*) exit 1;; esac
 exit 0

@@ -1,37 +1,20 @@
 #!/usr/bin/env bash
-# Publish the current commit to WordPress.org.
-#
-# The build must have been on DEV and passed Plugin Check there. It used to have to be on the SHOP
-# first, which tied every directory release to one particular server being reachable and to the owner
-# being ready to touch his own checkout - and the shop is not what the gate was ever really about: what
-# protects the directory is a build proven on a real WordPress with real WooCommerce, which is exactly
-# what dev is and what Plugin Check runs against (owner, 2026-09-23).
-#
-# The directory is still the one place a mistake reaches people who cannot be told to wait: a bad tag is
-# downloaded by every install with auto-updates on, and a tag that has shipped must never quietly become
-# different code under the same number - it gets a new number instead. Hence the gates below; only the
-# question of WHICH site has to be running the build has changed.
-#
+# Publish the current commit to WordPress.org. Gate: the build runs on DEV and passes Plugin Check there;
+# a published tag is never rewritten (bump instead).
 # Usage: bin/release-wporg [--yes]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 . bin/deploy.conf
 if [ -z "${BGC_LXC_HOST:-}" ]; then : "${BGC_SSH_HOST:?set BGC_SSH_HOST (or BGC_LXC_HOST) in bin/deploy.conf}"; fi
-# What must never reach the package is the operator's, so the list of it is too: an alternation of the
-# host names, phone numbers and anything else private, in bin/deploy.conf (gitignored). Unset means STOP,
-# not "nothing to check" - this grep is the last thing between a private string and a public zip.
+# Private strings that must never reach the package; unset means STOP, not "nothing to check".
 : "${BGC_LEAK_PATTERNS:?set BGC_LEAK_PATTERNS in bin/deploy.conf (a grep -E alternation of strings that must never be published)}"
 : "${BGC_SSH_PORT:=22}"
 
 SVN_WC="${BGC_SVN_WC:-$HOME/svn/bg-couriers}"
-# The host's login shell prints a manpath locale warning on every single connection. It is noise, and it
-# buries the lines that matter - but stderr and the exit code still have to survive, or a failing remote
-# command would read as a clean one.
+# Filters the host's manpath warning from stderr; stderr and the exit code otherwise survive.
 run() {
   local err rc; err="$(mktemp)"
-  # Prod moved into an LXC container that does not take our SSH key, so the way in is the host that
-  # holds it. Transport only - what is run, and the gates around it, are unchanged. A release that
-  # reached the wrong machine would report success about a shop nobody is looking at.
+  # Prod is an LXC container without our SSH key: go through its host with `lxc exec`.
   if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_PROD:-}" ]; then
     ssh -o ConnectTimeout=25 -p "${BGC_LXC_PORT:-22}" "$BGC_LXC_HOST" "lxc exec ${BGC_LXC_PROD} -- bash -lc $(printf '%q' "$*")" 2>"$err"; rc=$?
   else
@@ -40,10 +23,7 @@ run() {
   grep -v 'manpath: ' "$err" >&2 || true
   rm -f "$err"; return $rc
 }
-# The DEV site, which since the move is a different MACHINE and not just a different --path: run() goes
-# to the prod container, so the Plugin Check below - which must run against dev, on the exact build
-# about to ship - was asking the prod container about a directory it does not have. It answered nothing,
-# which read as "dev is on " and refused the release with the one thing that was not wrong.
+# DEV is a different machine from prod, not just a different --path.
 run_dev() {
   if [ -n "${BGC_LXC_HOST:-}" ] && [ -n "${BGC_LXC_DEV:-}" ]; then
     ssh -o ConnectTimeout=25 -p "${BGC_LXC_DEV_PORT:-${BGC_LXC_PORT:-22}}" "${BGC_LXC_DEV_HOST:-$BGC_LXC_HOST}" "lxc exec ${BGC_LXC_DEV} -- bash -lc $(printf '%q' "$*")" 2>/dev/null
@@ -56,10 +36,7 @@ P="${BGC_PROD_PATH%/}"
 WPROOT="$(dirname "$(dirname "$(dirname "$P")")")"
 WP="${BGC_WP_BIN:-/opt/alt/php-fpm83/usr/bin/php /usr/local/bin/wp} --allow-root"
 
-# bin/release-prod runs this script last and hands over the commit its own preflight passed on. The
-# same commit, and nothing changed since: then the suites ran on exactly this code minutes ago and are
-# not run again. Anything else - a different commit, a dirty tree, this script started on its own -
-# gets the whole preflight, as it always did.
+# Preflight is skipped only for the clean commit bin/release-prod just preflighted.
 if [ "${BGC_PREFLIGHT_OK:-}" = "$(git rev-parse HEAD)" ] && [ -z "$(git status --porcelain)" ]; then
   echo "Preflight passed on $(git rev-parse --short HEAD) in this same release run - not repeated"
 else
@@ -67,13 +44,7 @@ else
 fi
 
 echo "==> the dev site must already be running this build"
-# The rule this encodes: SVN last, DEV-verified builds only. Shipping to the directory something that
-# has not run on a real WordPress is asking strangers to find the problems first - and dev is that real
-# WordPress. The shop is no longer part of this gate (see the header).
-#
-# Read over HTTP, from the readme the site serves, the same way bin/release-status reads it: a version
-# check that needs no shell works from anywhere - the owner's laptop, a box with no key to that site,
-# or CI - and it asks the SITE what it is running rather than asking a machine what it was told to run.
+# Read over HTTP from the readme dev serves, so it works without SSH (laptop or CI).
 DEV_SITE="${BGC_DEV_URL:-${BGC_E2E_BASE_URL:-}}"
 : "${DEV_SITE:?set BGC_DEV_URL (or BGC_E2E_BASE_URL) in bin/deploy.conf - the dev site this build must be on}"
 DEV_README="$(curl -sS -m 20 -L -A 'bg-couriers release-wporg' "${DEV_SITE%/}/wp-content/plugins/bg-couriers/readme.txt" 2>/dev/null || true)"
@@ -85,8 +56,6 @@ fi
 echo "  dev is on ${VERSION}"
 
 echo "==> this version must not already be published"
-# Rewriting a published tag is the one irreversible mistake here: installs that already took it never
-# see the change, and the two disagree for good.
 if svn ls --non-interactive "https://plugins.svn.wordpress.org/bg-couriers/tags/${VERSION}" >/dev/null 2>&1; then
   echo "REFUSING: tags/${VERSION} already exists on WordPress.org. Bump the version instead." >&2
   exit 1
@@ -94,10 +63,7 @@ fi
 echo "  tags/${VERSION} is free"
 
 echo "==> Plugin Check, on the code that is about to ship"
-# Run against DEV: checking a working copy that is not what gets packaged has caught nothing. It also
-# reads the plugin NAME in the site's language, where the trademark rule shows.
-# The version is asked again here: the HTTP gate above and the install Plugin Check runs in can be
-# different machines.
+# Against DEV; the version is asked again because the HTTP site and this install can be different machines.
 DEVROOT="$(dirname "$(dirname "$(dirname "${BGC_DEV_PATH%/}")")")"
 DEV_V="$(run_dev "$WP --path=${DEVROOT} plugin get bg-couriers --field=version" | tr -d '\r' || true)"
 if [ "$DEV_V" != "$VERSION" ]; then
@@ -111,10 +77,6 @@ echo "$CHECK" | grep -q "No errors found" || { echo "REFUSING: Plugin Check repo
 
 echo "==> build"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
-# Built inside TMP and thrown away with it. The package is a step on the way to SVN, not something
-# anybody keeps: the GitHub releases it used to feed are not published any more, so a release no longer
-# leaves a zip in ~/Downloads (owner, 2026-08-17). `bin/build-zip` on its own still writes there, for the
-# one time somebody actually wants a file to hand to a tester.
 bash bin/build-zip "$TMP" >/dev/null
 ZIP="$TMP/bg-couriers-${VERSION}.zip"
 PKG="$TMP/pkg"
@@ -125,11 +87,7 @@ fail=0
 # Anything at the top level that is not the plugin means the excludes have drifted.
 UNEXPECTED="$(cd "$PKG/bg-couriers" && ls -A | grep -vE '^(includes|assets|languages|bg-couriers\.php|uninstall\.php|readme\.txt|LICENSE)$' || true)"
 [ -z "$UNEXPECTED" ] && echo "  only plugin files" || { echo "  UNEXPECTED IN PACKAGE: $UNEXPECTED"; fail=1; }
-# Hosts, personal numbers and dev scaffolding have each been found in a package at least once. The
-# private half of the list comes from the config; the tooling half is the same for everyone. Note that
-# the WordPress.org contributor name IS expected in readme.txt - it owns the plugin page - so do not put
-# it in BGC_LEAK_PATTERNS. Scoped to PKG, not TMP: the zip now lives in TMP too, and grep -I skipping it
-# is not something this check should be relying on to stay correct.
+# Private strings (config) plus tooling leftovers. The WordPress.org contributor name in readme.txt is expected.
 LEAK="$(grep -rIlE "${BGC_LEAK_PATTERNS}|BGC_SSH|last-run|probe_" "$PKG" || true)"
 [ -z "$LEAK" ] && echo "  no host, personal or tooling strings" || { echo "  LEAKED STRINGS IN: $LEAK"; fail=1; }
 ZIP_V="$(grep -m1 '^ \* Version:' "$PKG/bg-couriers/bg-couriers.php" | awk '{print $3}')"
@@ -145,8 +103,7 @@ if [ "${1:-}" != "--yes" ]; then
 fi
 
 echo "==> svn trunk"
-# --non-interactive is the safety as much as the convenience: with credentials cached it commits, and
-# without them it errors instead of sitting at a password prompt. No password is ever typed.
+# --non-interactive: commits with cached credentials, errors instead of prompting without them.
 svn up -q --non-interactive "$SVN_WC"
 rsync -a --delete --exclude '.svn' "$PKG/bg-couriers/" "$SVN_WC/trunk/"
 ( cd "$SVN_WC" && svn status | awk '$1=="?"{print $2}' | xargs -r svn add -q --non-interactive )
@@ -156,10 +113,7 @@ CHANGELOG="$(awk "/^= ${VERSION} =/{f=1;next} /^= /{f=0} f" readme.txt | grep '^
 ( cd "$SVN_WC" && svn ci --non-interactive -m "${VERSION} - ${CHANGELOG}" | tail -1 )
 
 echo "==> svn assets (banner, icon, screenshots)"
-# The plugin PAGE is served from assets/, not from trunk, and this step did not exist: 0.3.5 is a
-# release whose whole point was new screenshots, and publishing it would have left the old ones - taken
-# before the weight fix, advertising 39,44 EUR for a locker delivery - on the page for everyone.
-# generate-assets.py is the source the banner and icon were drawn with; it belongs in git, not here.
+# The plugin page is served from SVN assets/, not trunk; generate-assets.py stays in git only.
 rsync -a --delete --exclude '.svn' --exclude 'generate-assets.py' .wordpress-org/ "$SVN_WC/assets/"
 ( cd "$SVN_WC" && svn status assets | awk '$1=="?"{print $2}' | xargs -r svn add -q --non-interactive )
 ( cd "$SVN_WC" && svn status assets | awk '$1=="!"{print $2}' | xargs -r svn rm -q --non-interactive )
@@ -175,8 +129,7 @@ echo "==> svn tag"
 ( cd "$SVN_WC" && svn cp trunk "tags/${VERSION}" -q && svn ci --non-interactive -m "tagging version ${VERSION}" | tail -1 )
 
 echo "==> confirm the directory serves it"
-# The API takes a few minutes to reindex. Poll rather than declaring success from a successful commit:
-# a commit that lands and a version that is downloadable are two different facts.
+# A landed commit is not a downloadable version: poll the API while it reindexes.
 for _ in $(seq 1 20); do
   GOT="$(curl -s "https://api.wordpress.org/plugins/info/1.0/bg-couriers.json" \
     | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo '')"
@@ -192,9 +145,7 @@ if [ "$GOT" = "$VERSION" ]; then
   echo
   echo "PUBLISHED ${VERSION}: https://wordpress.org/plugins/bg-couriers"
 else
-  # Not "published": the directory serves what its indexer has got to, and that has taken over forty
-  # minutes (0.4.12). The commits are in and nothing is left for this script to do - but the word for
-  # that is "committed", and the way to see it served is to ask again later.
+  # Reindexing can take 40+ minutes: report "committed", not "published".
   echo
   echo "COMMITTED ${VERSION} to SVN (trunk + tags/${VERSION}); the directory still serves ${GOT:-?}"
   echo "It re-indexes on its own time. Check later with: bin/release-status"

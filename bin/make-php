@@ -1,21 +1,11 @@
 #!/usr/bin/env php
 <?php
 /**
- * Build languages/bg-couriers-bg_BG.l10n.php from the compiled .mo - and check it is in step.
- *
- * Why this file exists. Since WordPress 6.5 the loader asks for the PHP form of a catalogue FIRST
- * (`$preferred_format = apply_filters('translation_file_format', 'php', $domain)` in l10n.php) and only
- * falls back to the .mo. A plugin that ships just a .mo is therefore one file behind: any stale
- * `.l10n.php` left somewhere with higher precedence - Loco Translate's folder, a host's "translation
- * cleanup" - answers before ours does. That is how a Bulgarian shop ended up reading the checkout in
- * English with a complete catalogue sitting inside the plugin (two shops, 2026-09-28..30). Shipping the
- * PHP form also saves WordPress parsing a 130 KB binary on every request.
+ * Build languages/bg-couriers-bg_BG.l10n.php from the compiled .mo, or check it is in step.
+ * WordPress 6.5+ reads the PHP catalogue BEFORE the .mo, so a missing or stale one wins over ours.
  *
  *   bin/make-php            rebuild the PHP catalogue from the .mo
  *   bin/make-php --check    touch nothing; fail if the shipped file is not what the .mo says
- *
- * No wp-cli, no gettext: the .mo is a documented binary and the PHP form is an array literal, so the
- * release does not gain a tool it has to install. Run it after msgfmt, or through bin/make-pot.
  */
 
 $root  = dirname(__DIR__);
@@ -28,13 +18,7 @@ if (!is_file($mo)) {
     exit(1);
 }
 
-/**
- * Read a .mo into [headers, messages].
- *
- * Plural entries keep the shape the format gives them: the key is "singular\0plural" and the value is
- * the forms joined by "\0". WordPress reads them back exactly so - see WP_Translation_File_MO - and a
- * converter that "tidied" them would quietly drop every plural.
- */
+/** Read a .mo into [headers, messages]; plurals keep the "singular\0plural" => "forms\0joined" shape WordPress reads. */
 function bgc_read_mo(string $file): array {
     $raw = (string) file_get_contents($file);
     if (strlen($raw) < 24) { fwrite(STDERR, "$file is too short to be a .mo\n"); exit(1); }

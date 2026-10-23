@@ -12,27 +12,16 @@ BGC_LEAK_PATTERNS="dev\.example\.com|0888123456"  # grep -E alternation: strings
 BGC_PROD_DB="wordpress"                           # production database name, read-only queries via bin/prod-read
 BGC_DB_PREFIX="wp_"                               # WordPress table prefix on that database
 
-# --- Sites inside LXC containers (optional) ------------------------------------------------------
-# Set these when the shop does not live on a machine you can SSH into directly, but in a container on
-# one that you can. Every script that talks to a site then goes through `lxc exec` on that host instead
-# of connecting to the site itself. Leave them unset and everything behaves exactly as before.
-#
-# A half-set route is refused rather than falling back: BGC_LXC_HOST without the container name for the
-# target you asked for is an error, because the quiet fallback is how a deploy lands on the machine
-# nobody is looking at.
+# Sites inside LXC containers (optional): every script then goes through `lxc exec` on that host.
+# A half-set route (host without the target's container) is refused, never a fallback to plain SSH.
 #BGC_LXC_HOST="user@10.0.0.1"     # the host that holds the containers
 #BGC_LXC_DEV="mysite-dev"          # container serving the dev site
 #BGC_LXC_PROD="mysite-web"         # container serving production
 #BGC_DEV_OWNER="www-data:www-data" # who the files must belong to; unset = leave ownership alone
 #BGC_WP_BIN="wp"                   # the wp-cli invocation on that machine (a CWP box hides php under /opt/alt)
 
-# The SSH port of the machine that HOLDS the containers. Unset means 22.
-#
-# It is a separate setting from BGC_SSH_PORT because the two are not always the same machine. Two boxes
-# can run containers with the SAME NAMES on the SAME 10.48.230.x addresses - `lxc exec dobavki-web`
-# then succeeds on both and hands back a perfectly good WordPress either way, so a deploy aimed at the
-# wrong one reports success and changes nothing anybody can see. Name the port, and the target is a
-# decision rather than a default.
+# SSH port of the container host (default 22); separate from BGC_SSH_PORT because two hosts can run
+# same-named containers, and a deploy to the wrong one still "succeeds".
 #BGC_LXC_PORT=22
 # When dev lives on a different machine from prod, give it its own way in (defaults to the two above):
 #BGC_LXC_DEV_HOST="user@10.0.0.2"

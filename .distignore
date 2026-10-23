@@ -11,6 +11,7 @@
 .DS_Store
 README.md
 CONTRIBUTING.md
+CLAUDE.md
 composer.json
 composer.lock
 phpunit.xml.dist
@@ -19,16 +20,8 @@ docs
 e2e
 tests
 vendor
-# The COMPILED catalogue ships; only the sources stay behind.
-#
-# Round 2 asked for the opposite - translations come from translate.wordpress.org - and the consequence
-# was written down at the time: a wordpress.org install has no Bulgarian until the directory has it.
-# The directory never got it (api.wordpress.org/translations/plugins/1.0/?slug=bg-couriers answers
-# "translations":[]), so from 0.4.26 every wordpress.org shop read the plugin - checkout included - in
-# English, while the same code deployed by rsync to our own sites was Bulgarian (shop owner, 2026-10-02).
-#
-# This is a floor, not a conflict: load_plugin_textdomain() reads wp-content/languages BEFORE the plugin
-# folder, so the official pack takes over by itself the day it exists.
+# The COMPILED catalogue (.mo, .l10n.php) ships: translate.wordpress.org has no Bulgarian pack, and an
+# official one would still win (wp-content/languages is read first). Only the sources stay behind.
 languages/*.po
 languages/*.pot
 test-results

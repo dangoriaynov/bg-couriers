@@ -462,7 +462,7 @@
   }
   function closeMap() { $('#bgc-map-overlay').remove(); if (bgcMap) { bgcMap.remove(); bgcMap = null; } }
 
-  // ── Office / APS map ─────────────────────────────────────────────────────────
+  // Office / APS map
   $(document).on('click', '.bgc-map-btn:not(.bgc-addr-map-btn)', function (e) {
     e.preventDefault();
     var $wrap = $(this).closest('.bgc-fields');
@@ -473,7 +473,7 @@
   $(document).on('click', '#bgc-map-overlay', function (e) { if (e.target === this) { closeMap(); } });
   $(document).on('keydown', function (e) { if ((e.key === 'Escape' || e.keyCode === 27) && $('#bgc-map-overlay').length) { closeMap(); } });
 
-  // ── Address map picker: drop/drag a pin -> reverse-geocode -> fill the (still editable) address fields.
+  // Address map picker: drop/drag a pin -> reverse-geocode -> fill the (still editable) address fields.
   var geoT;
   function reverseGeocode(lat, lng, cb) {
     clearTimeout(geoT);
@@ -718,7 +718,7 @@
     clearTimeout(spanTimer); spanTimer = setTimeout(spanShippingRow, 150);
   });
 
-  // ── The field a refusal is about, painted red where it stands ─────────────────────────────────
+  // The field a refusal is about, painted red where it stands
   // kept as ids: the fields live in the order-review table, which update_checkout replaces
   var invalidIds = [];
   function filled($f) {
@@ -826,7 +826,7 @@
     }
   })();
 
-  // ── The one thing the combined map dialog (bgc-allmap.js) can see ─────────────
+  // The one thing the combined map dialog (bgc-allmap.js) can see
   // module-level so a new applyPick can retire a listener an earlier one left behind
   var pendingOfficeApply = null;
 
