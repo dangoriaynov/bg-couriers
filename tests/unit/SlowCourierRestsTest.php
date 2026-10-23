@@ -13,7 +13,9 @@ if (!class_exists('SlowQuoteCourier')) {
     final class SlowQuoteCourier implements BGCouriers_Courier_Interface {
         public int $asked = 0;
         /** @param float $delay seconds to burn before refusing; 0 with $fail=false means answer normally. */
-        public function __construct(public bool $fail = true, public float $delay = 0.0) {}
+        public bool $fail;
+        public float $delay;
+        public function __construct(bool $fail = true, float $delay = 0.0) { $this->fail = $fail; $this->delay = $delay; }
         public function quote(array $s): BGCouriers_Quote {
             $this->asked++;
             if ($this->delay > 0) { usleep((int) ($this->delay * 1000000)); }

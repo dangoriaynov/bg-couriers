@@ -5,7 +5,10 @@ require_once dirname(__DIR__, 2) . '/includes/Checkout/class-bgcouriers-ajax.php
 
 /** Stands in for the die() at the end of every wp_send_json_*, so the handler stops where it really would. */
 final class BusySent extends \RuntimeException {
-    public function __construct(public string $fn, public $body, public int $status) { parent::__construct($fn); }
+    public string $fn;
+    public $body;
+    public int $status;
+    public function __construct(string $fn, $body, int $status) { $this->fn = $fn; $this->body = $body; $this->status = $status; parent::__construct($fn); }
 }
 
 /**
