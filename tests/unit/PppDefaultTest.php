@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -23,20 +21,16 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
  *
  * @group core
  */
-final class PppDefaultTest extends TestCase {
+final class PppDefaultTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        BGCouriers_Couriers::reset();
+        parent::setUp();        BGCouriers_Couriers::reset();
         BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return new BGCouriers_Speedy([]); });
         BGCouriers_Couriers::register('econt', 'Econt', static function () { return new BGCouriers_Econt([]); });
         BGCouriers_Couriers::register('pigeon', 'Pigeon Express', static function () { return new BGCouriers_Pigeon([]); });
         BGCouriers_Couriers::register('boxnow', 'BOX NOW', static function () { return new BGCouriers_Boxnow([]); });
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
-    private function options(array $map): void {
-        Functions\when('get_option')->alias(static function ($name, $default = false) use ($map) { return $map[$name] ?? $default; });
-    }
 
     public function test_speedy_and_econt_pay_out_by_postal_order_unless_told_otherwise(): void {
         $this->options([]);

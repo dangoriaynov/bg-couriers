@@ -1,5 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
@@ -10,20 +9,14 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow.p
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-boxnow-webhook.php';   // the state wordings
 
 /**
- * BOX NOW was the one courier whose parsers had no fixture test, while its fixtures sat in the tree
- * unread. The shapes below are the ones the account actually returns - the ids in particular, which
- * the fixture used to spell "apm-1001" from the specification. They are numeric strings ("5365"), and
- * that matters: parse_destinations() casts the id to int for the offices table, and a non-numeric id
- * would silently land every locker under office_id 0.
+ * BOX NOW parsers against the shapes the live account returns (locker ids are numeric strings).
  *
  * @group boxnow
  */
-final class BoxnowParsersTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); \Brain\Monkey\setUp(); \Brain\Monkey\Functions\when('__')->returnArg(1); }
-    protected function tearDown(): void { \Brain\Monkey\tearDown(); parent::tearDown(); }
+final class BoxnowParsersTest extends BGCouriers_Unit_TestCase {
 
     private function fx(string $f): array {
-        return json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/boxnow/' . $f), true);
+        return $this->fixture('boxnow', $f);
     }
 
     public function test_parse_destinations_normalises_lockers(): void {
@@ -41,14 +34,13 @@ final class BoxnowParsersTest extends TestCase {
         $this->assertSame(BGCouriers_Boxnow::town_id('София'), $rows[0]['city_id'], 'the locker carries its town id');
         $this->assertSame($rows[0]['city_id'], $rows[2]['city_id'], 'two Sofia lockers, one Sofia');
         $this->assertNotSame($rows[0]['city_id'], $rows[1]['city_id'], 'Varna is another town');
+        foreach ($rows as $row) {
+            $this->assertGreaterThan(0, $row['office_id'], 'numeric string ids survive the int cast');
+            $this->assertSame((string) $row['office_id'], $row['code']);
+        }
     }
 
-    /**
-     * BOX NOW has no town list; the checkout block, the carry-over between couriers and the combined
-     * map all need one, so it is read off the lockers. One town per name, its id a hash of the name
-     * (a resync gives the same town the same id, whatever lockers came or went), and the LOWEST postal
-     * code of its lockers - the round one the other couriers list the town under.
-     */
+    /** Towns are derived from lockers: one per name, id hashed from the name, the lowest real postcode. */
     public function test_towns_are_read_off_the_lockers(): void {
         $towns = BGCouriers_Boxnow::towns_of(BGCouriers_Boxnow::parse_destinations($this->fx('destinations.json')));
         $this->assertCount(2, $towns, 'Sofia three times and Varna once make two towns; the wildcard origin makes none');
@@ -78,19 +70,8 @@ final class BoxnowParsersTest extends TestCase {
         $this->assertSame([], $co->fetch_offices(BGCouriers_Boxnow::town_id('Ямбол')), 'a town with no locker: none, not all');
     }
 
-    /** A numeric id survives the int cast the offices table needs. Regression guard for that cast. */
-    public function test_every_locker_keeps_a_usable_office_id(): void {
-        foreach (BGCouriers_Boxnow::parse_destinations($this->fx('destinations.json')) as $row) {
-            $this->assertGreaterThan(0, $row['office_id']);
-            $this->assertSame((string) $row['office_id'], $row['code']);
-        }
-    }
-
-    public function test_parse_parcel_id_reads_the_waybill_off_a_created_delivery(): void {
+    public function test_parse_parcel_id_reads_the_waybill_or_nothing(): void {
         $this->assertSame('415-02914-308', BGCouriers_Boxnow::parse_parcel_id($this->fx('delivery-request.json')));
-    }
-
-    public function test_parse_parcel_id_is_empty_when_no_parcel_came_back(): void {
         $this->assertSame('', BGCouriers_Boxnow::parse_parcel_id(['referenceNumber' => 'BN-REF-123']));
     }
 
@@ -98,9 +79,6 @@ final class BoxnowParsersTest extends TestCase {
         $parcel = $this->fx('parcel.json')['data'][0];
         $t = BGCouriers_Boxnow::parse_tracking($parcel, '415-02914-308');
         $this->assertSame('415-02914-308', $t->waybill);
-        // The state travels as the PHASE - a machine value the stage is read from outright - and the
-        // status is the merchant's wording of it. It used to be the bare state in the status, which the
-        // orders list then printed as "in-final-destination".
         $this->assertSame('boxnow_new', $t->phase, 'prefixed, like the other couriers own codes');
         $this->assertSame('registered', $t->stage());
         $this->assertSame('registered', $t->human(), 'the wording, not the code');
@@ -109,27 +87,24 @@ final class BoxnowParsersTest extends TestCase {
         $this->assertSame('2026-06-07T12:33:18Z', $t->events[0]['time']);
     }
 
-    /**
-     * BOX NOW's Webhook Guide v5 says "rely on the event property", and its event vocabulary is not
-     * the parcelState enum: final-destination beside in-final-destination, expired beside
-     * expired-return, and in-depot / accepted-to-locker / accepted-for-return with no counterpart.
-     * Unlisted, each fell to "transit" - a parcel waiting in the locker read as still on its way.
-     */
-    public function test_the_webhook_guides_event_spellings_resolve_to_stages(): void {
-        $expect = ['final-destination' => 'ready', 'expired' => 'returned', 'in-depot' => 'transit',
-                   'accepted-to-locker' => 'transit', 'accepted-for-return' => 'returning', 'cancelled' => 'cancelled'];
-        foreach ($expect as $event => $stage) {
-            $t = BGCouriers_Boxnow::parse_tracking(['state' => $event], 'P');
-            $this->assertSame($stage, $t->stage(), "event '{$event}'");
-            $this->assertNotSame($event, $t->human(), "event '{$event}' has a wording, not the code");
+    /** @return array<string,array{string,string}> Webhook Guide v5 event => stage */
+    public static function webhook_events(): array {
+        $out = [];
+        foreach (['final-destination' => 'ready', 'expired' => 'returned', 'in-depot' => 'transit',
+                  'accepted-to-locker' => 'transit', 'accepted-for-return' => 'returning', 'cancelled' => 'cancelled'] as $e => $st) {
+            $out[$e] = [$e, $st];
         }
+        return $out;
     }
 
-    /** A parcel BOX NOW knows nothing about must still answer, rather than fatal on a missing key. */
-    /**
-     * The live account answered a cash-on-delivery request with {"code":"P411","status":400} on 2026-09-13
-     * - no message, no field - and the order screen showed exactly that JSON. The manual names the codes.
-     */
+    /** @dataProvider webhook_events */
+    public function test_the_webhook_guides_event_spellings_resolve_to_stages(string $event, string $stage): void {
+        $t = BGCouriers_Boxnow::parse_tracking(['state' => $event], 'P');
+        $this->assertSame($stage, $t->stage());
+        $this->assertNotSame($event, $t->human(), 'a wording, not the code');
+    }
+
+    /** BOX NOW refuses with a bare code; the manual's wording is shown instead of the JSON. */
     public function test_a_documented_refusal_is_said_in_words(): void {
         $t = BGCouriers_Boxnow::refusal_text('{"code":"P411","status":400}');
         $this->assertStringContainsString('not allowed to collect cash on delivery', $t);
@@ -138,13 +113,18 @@ final class BoxnowParsersTest extends TestCase {
         $this->assertStringContainsString('already been used', BGCouriers_Boxnow::refusal_text('{"code":"p410","status":400}'), 'case does not matter');
     }
 
-    public function test_an_undocumented_refusal_is_shown_as_it_came(): void {
-        $this->assertSame('{"code":"P999","status":400}', BGCouriers_Boxnow::refusal_text('{"code":"P999","status":400}'));
-        $this->assertSame('not json at all', BGCouriers_Boxnow::refusal_text('not json at all'));
+    /** @return array<string,array{string,string}> */
+    public static function refusals_left_as_they_are(): array {
+        return [
+            'undocumented code' => ['{"code":"P999","status":400}', '{"code":"P999","status":400}'],
+            'not json'          => ['not json at all', 'not json at all'],
+            'own words win'     => ['{"code":"P411","message":"token expired"}', 'token expired'],
+        ];
     }
 
-    public function test_a_refusal_with_words_keeps_its_own_words(): void {
-        $this->assertSame('token expired', BGCouriers_Boxnow::refusal_text('{"code":"P411","message":"token expired"}'), 'what BOX NOW says beats what the manual says');
+    /** @dataProvider refusals_left_as_they_are */
+    public function test_a_refusal_without_a_documented_code_keeps_what_came(string $body, string $text): void {
+        $this->assertSame($text, BGCouriers_Boxnow::refusal_text($body));
     }
 
     public function test_parse_tracking_survives_an_empty_parcel(): void {
@@ -154,12 +134,6 @@ final class BoxnowParsersTest extends TestCase {
         $this->assertSame([], $t->events);
     }
 
-    /**
-     * The link the customer is given must be a page that exists. It was tracker.boxnow.bg/<id> - a
-     * host that does not resolve (NXDOMAIN, measured 2026-09-13) - so every BOX NOW order's "track
-     * this parcel" led nowhere. boxnow.bg/track?track=<id> is BOX NOW's tracking page with the number
-     * filled in.
-     */
     public function test_the_customer_is_given_a_link_to_a_page_that_exists(): void {
         $this->assertSame('https://boxnow.bg/track?track=0960382208', (new BGCouriers_Boxnow([]))->tracking_url('0960382208'));
     }

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -54,21 +52,9 @@ if (!class_exists('BGCouriers_Fake_Gateway')) {
  *
  * @group core
  */
-final class BlockerPriorityTest extends TestCase {
+final class BlockerPriorityTest extends BGCouriers_Unit_TestCase {
 
-    protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('esc_html')->returnArg(1);
-    }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
-    /** @param array<string,string> $opts */
-    private function options(array $opts): void {
-        Functions\when('get_option')->alias(static function ($n, $d = false) use ($opts) {
-            return array_key_exists($n, $opts) ? $opts[$n] : $d;
-        });
-    }
 
     /**
      * PPP mode, the courier does not do PPP, and the shop has no prepaid gateway: it will not appear at

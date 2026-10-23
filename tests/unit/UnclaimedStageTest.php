@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__) . '/stubs/wc-order.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-tracking.php';
@@ -18,21 +16,13 @@ require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-icons.php
  *
  * @group core
  */
-final class UnclaimedStageTest extends TestCase {
+final class UnclaimedStageTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
-        Functions\when('esc_attr')->returnArg(1);
+        parent::setUp();        Functions\when('esc_attr')->returnArg(1);
         Functions\when('sanitize_html_class')->returnArg(1);
         if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
-    /** Days setting + nothing else: derive_unclaimed() reads only these two options. */
-    private function opts(array $o): void {
-        Functions\when('get_option')->alias(static function ($n, $d = false) use ($o) { return $o[$n] ?? $d; });
-    }
 
     /** The codes the two couriers that SAY it publish for it. */
     public function test_the_couriers_own_words_for_it_land_on_the_stage(): void {
@@ -55,7 +45,7 @@ final class UnclaimedStageTest extends TestCase {
 
     /** A parcel that has stood there longer than the merchant's patience. */
     public function test_the_clock_turns_a_long_wait_into_not_collected(): void {
-        $this->opts(['bgcouriers_unclaimed_days' => '7']);
+        $this->options(['bgcouriers_unclaimed_days' => '7']);
         $o = new WC_Order();
         $o->meta['_bgcouriers_track_times'] = ['ready' => time() - 8 * 86400];
         $this->assertSame('unclaimed', BGCouriers_Tracking_Poller::derive_unclaimed($o, 'ready'));
@@ -63,7 +53,7 @@ final class UnclaimedStageTest extends TestCase {
 
     /** A parcel that arrived yesterday is exactly what "Ready for collection" is for. */
     public function test_a_fresh_arrival_is_left_alone(): void {
-        $this->opts(['bgcouriers_unclaimed_days' => '7']);
+        $this->options(['bgcouriers_unclaimed_days' => '7']);
         $o = new WC_Order();
         $o->meta['_bgcouriers_track_times'] = ['ready' => time() - 86400];
         $this->assertSame('ready', BGCouriers_Tracking_Poller::derive_unclaimed($o, 'ready'));
@@ -71,7 +61,7 @@ final class UnclaimedStageTest extends TestCase {
 
     /** 0 days switches the derived rule off; the couriers' own codes keep working. */
     public function test_zero_days_switches_the_clock_off(): void {
-        $this->opts(['bgcouriers_unclaimed_days' => '0']);
+        $this->options(['bgcouriers_unclaimed_days' => '0']);
         $o = new WC_Order();
         $o->meta['_bgcouriers_track_times'] = ['ready' => time() - 60 * 86400];
         $this->assertSame('ready', BGCouriers_Tracking_Poller::derive_unclaimed($o, 'ready'));
@@ -80,7 +70,7 @@ final class UnclaimedStageTest extends TestCase {
 
     /** The deadline can never outlive the 45 days after which a shipment stops being polled. */
     public function test_the_deadline_is_capped_at_the_polling_window(): void {
-        $this->opts(['bgcouriers_unclaimed_days' => '900']);
+        $this->options(['bgcouriers_unclaimed_days' => '900']);
         $this->assertSame(45, BGCouriers_Tracking_Poller::unclaimed_days());
     }
 
@@ -90,7 +80,7 @@ final class UnclaimedStageTest extends TestCase {
      * 'transit' without anything being wrong.
      */
     public function test_only_a_waiting_parcel_is_ever_promoted(): void {
-        $this->opts(['bgcouriers_unclaimed_days' => '1']);
+        $this->options(['bgcouriers_unclaimed_days' => '1']);
         $o = new WC_Order();
         $o->meta['_bgcouriers_track_times'] = ['transit' => time() - 30 * 86400,
             'delivered' => time() - 30 * 86400, 'returning' => time() - 30 * 86400];
@@ -106,7 +96,7 @@ final class UnclaimedStageTest extends TestCase {
      * same moment for a parcel that has not moved since it arrived.
      */
     public function test_an_order_from_before_the_stamps_falls_back_on_the_last_change(): void {
-        $this->opts(['bgcouriers_unclaimed_days' => '7']);
+        $this->options(['bgcouriers_unclaimed_days' => '7']);
         $o = new WC_Order();
         $o->meta['_bgcouriers_track_updated'] = time() - 10 * 86400;
         $this->assertSame('unclaimed', BGCouriers_Tracking_Poller::derive_unclaimed($o, 'ready'));

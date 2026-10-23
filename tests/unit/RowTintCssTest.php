@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
 require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-columns.php';
@@ -12,17 +10,16 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-order-colum
  *
  * @group core
  */
-final class RowTintCssTest extends TestCase {
+final class RowTintCssTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('sanitize_html_class')->alias(static function ($c) { return preg_replace('/[^A-Za-z0-9_-]/', '', (string) $c); });
+        parent::setUp();        Functions\when('sanitize_html_class')->alias(static function ($c) { return preg_replace('/[^A-Za-z0-9_-]/', '', (string) $c); });
         // Two real registry entries are enough; the factories are never called (all() only reads labels).
         BGCouriers_Couriers::reset();
         BGCouriers_Couriers::register('speedy', 'Speedy', static function () { return null; });
         BGCouriers_Couriers::register('econt', 'Econt', static function () { return null; });
     }
     /** Leave the registry empty rather than half-populated - CouriersRegistryTest resets it itself. */
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
     /** @param array<string,string> $opts */
     private function css(array $opts, string $enabled = 'yes'): string {

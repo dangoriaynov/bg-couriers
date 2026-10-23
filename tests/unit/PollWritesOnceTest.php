@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
@@ -50,15 +48,12 @@ if (!class_exists('PollFakeCourier')) {
  *
  * @group core
  */
-final class PollWritesOnceTest extends TestCase {
+final class PollWritesOnceTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        Functions\when('_x')->returnArg(1);   // the short stage labels carry a context
-        Functions\when('get_option')->justReturn('');   // every auto-status feature off
+        parent::setUp();        Functions\when('get_option')->justReturn('');   // every auto-status feature off
         BGCouriers_Couriers::reset();
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
     /** An order already carrying a waybill, as the poller finds one, answered by this tracking. */
     private function poll(?BGCouriers_Tracking $t, array $meta = []): WC_Order {

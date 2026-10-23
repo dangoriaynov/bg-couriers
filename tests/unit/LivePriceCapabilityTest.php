@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers.php';
 
@@ -11,15 +9,13 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-couriers
  *
  * @group core
  */
-final class LivePriceCapabilityTest extends TestCase {
+final class LivePriceCapabilityTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);
-        BGCouriers_Couriers::reset();
+        parent::setUp();        BGCouriers_Couriers::reset();
         BGCouriers_Couriers::register('quoting', 'Quoting', static fn() => new BGCouriers_Quoting_Stub());
         BGCouriers_Couriers::register('flat', 'Flat', static fn() => new BGCouriers_Flat_Stub());
     }
-    protected function tearDown(): void { BGCouriers_Couriers::reset(); Monkey\tearDown(); parent::tearDown(); }
+    protected function tearDown(): void { BGCouriers_Couriers::reset(); parent::tearDown(); }
 
     private function stored(string $mode): void {
         Functions\when('get_option')->alias(static fn($n, $d = false) => strpos((string) $n, '_price_mode') !== false ? $mode : $d);

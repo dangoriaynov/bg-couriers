@@ -1,6 +1,5 @@
 <?php
 // tests/unit/EcontQuoteTest.php
-use PHPUnit\Framework\TestCase;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-label.php';
@@ -13,14 +12,12 @@ require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.
 require_once dirname(__DIR__) . '/stubs/wc-tax.php';
 
 /** @group econt */
-final class EcontQuoteTest extends TestCase {
+final class EcontQuoteTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         parent::setUp();
-        \Brain\Monkey\setUp();
         // build_calculate_body reads options (shipment description) - default-return.
         \Brain\Monkey\Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
     }
-    protected function tearDown(): void { \Brain\Monkey\tearDown(); parent::tearDown(); }
 
     private function fx(string $f): array {
         return json_decode(file_get_contents(dirname(__DIR__) . '/fixtures/econt/' . $f), true);

@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.php';
 
@@ -17,9 +15,7 @@ require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-packer.p
  *
  * @group core
  */
-final class StoreWeightUnitTest extends TestCase {
-    protected function setUp(): void { parent::setUp(); Monkey\setUp(); }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+final class StoreWeightUnitTest extends BGCouriers_Unit_TestCase {
 
     /** Stand in for WooCommerce's own converter, for a shop whose unit is $unit. */
     private function shop_in(string $unit): void {

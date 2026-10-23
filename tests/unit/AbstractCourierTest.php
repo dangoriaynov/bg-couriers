@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
 require_once dirname(__DIR__, 2) . '/includes/Couriers/interface-bgcouriers-courier.php';
@@ -9,113 +7,58 @@ require_once dirname(__DIR__, 2) . '/includes/Couriers/abstract-bgcouriers-couri
 /**
  * @group core
  */
-final class AbstractCourierTest extends TestCase {
+final class AbstractCourierTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
-        parent::setUp(); Monkey\setUp();
-        Functions\when('__')->returnArg(1);       // messages the merchant reads are translated now
-        Functions\when('esc_html')->returnArg(1); // exception messages are esc_html()'d (Plugin Check)
+        parent::setUp();
+        Functions\when('is_wp_error')->justReturn(false);
+        Functions\when('wp_json_encode')->alias('json_encode');
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
+
+    private function answer(int $code, string $body): void {
+        Functions\when('wp_remote_retrieve_response_code')->justReturn($code);
+        Functions\when('wp_remote_retrieve_body')->justReturn($body);
+    }
 
     public function test_post_json_parses_200(): void {
-        Functions\when('wp_remote_post')->justReturn(['ok']);
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
-        Functions\when('wp_remote_retrieve_body')->justReturn('{"a":1}');
-        Functions\when('wp_json_encode')->alias('json_encode');
-        $c = new BGCouriers_Test_Courier();
-        $this->assertSame(['a' => 1], $c->call('https://x', ['k' => 'v']));
-    }
-
-    public function test_post_json_throws_on_500(): void {
+        $this->answer(200, '{"a":1}');
         Functions\when('wp_remote_post')->justReturn(['x']);
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_response_code')->justReturn(500);
-        Functions\when('wp_remote_retrieve_body')->justReturn('err');
-        Functions\when('wp_json_encode')->alias('json_encode');
-        $this->expectException(BGCouriers_Api_Exception::class);
-        (new BGCouriers_Test_Courier())->call('https://x', []);
+        $this->assertSame(['a' => 1], (new BGCouriers_Test_Courier())->call('https://x', ['k' => 'v']));
     }
 
-    /**
-     * A courier's refusal is a JSON body more often than not - Econt: HTTP 517 {"type":"ExInvalidParam",
-     * "message":"Невалидно потребителско име и/или парола."}; Pigeon: HTTP 401 {"success":false,
-     * "message":"..."} with the Cyrillic \u-escaped. The merchant was shown that body raw. The message
-     * in it is what they read now, after the status; a body that is not JSON is shown as it was.
-     */
-    public function test_post_json_reads_the_message_out_of_a_json_error_body(): void {
+    /** @return array<string,array{int,string,string}> HTTP code, body, message the merchant reads */
+    public static function refusals(): array {
+        return [
+            'json message'          => [517, '{"type":"ExInvalidParam","message":"Невалидно потребителско име и\\/или парола.","fields":[]}', 'HTTP 517: Невалидно потребителско име и/или парола.'],
+            'nested error message'  => [400, '{"error":{"code":12,"message":"Bad request"}}', 'HTTP 400: Bad request'],
+            'econt inner errors'    => [517, '{"type":"ExInvalidParam","message":"","fields":[],"innerErrors":[{"type":"ExInvalidAddress","message":"Информацията, която попълнихте за адрес, е недостатъчна.","fields":[],"innerErrors":[]}]}', 'HTTP 517: Информацията, която попълнихте за адрес, е недостатъчна.'],
+            'inner errors joined and followed down' => [517, '{"message":"","innerErrors":[{"message":"Първо."},{"message":"","innerErrors":[{"message":"Второ."}]}]}', 'HTTP 517: Първо.; Второ.'],
+            'empty shell as it was' => [517, '{"type":"ExInvalidParam","message":"","innerErrors":[]}', 'HTTP 517: {"type":"ExInvalidParam","message":"","innerErrors":[]}'],
+            'non-json as it was'    => [502, '<html>Bad Gateway</html>', 'HTTP 502: <html>Bad Gateway</html>'],
+        ];
+    }
+
+    /** @dataProvider refusals */
+    public function test_post_json_shows_the_couriers_own_message_for_a_refusal(int $code, string $body, string $message): void {
+        $this->answer($code, $body);
         Functions\when('wp_remote_post')->justReturn(['x']);
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_response_code')->justReturn(517);
-        Functions\when('wp_remote_retrieve_body')->justReturn('{"type":"ExInvalidParam","message":"Невалидно потребителско име и\/или парола.","fields":[]}');
-        Functions\when('wp_json_encode')->alias('json_encode');
-        try { (new BGCouriers_Test_Courier())->call('https://x', []); $this->fail('should have thrown'); }
-        catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 517: Невалидно потребителско име и/или парола.', $e->getMessage()); }
+        try {
+            (new BGCouriers_Test_Courier())->call('https://x', []);
+            $this->fail('expected a refusal');
+        } catch (BGCouriers_Api_Exception $e) {
+            $this->assertSame('The request failed: ' . $message, $e->getMessage());
+        }
     }
 
-    public function test_post_json_reads_a_nested_error_message_too(): void {
-        Functions\when('wp_remote_post')->justReturn(['x']);
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_response_code')->justReturn(400);
-        Functions\when('wp_remote_retrieve_body')->justReturn('{"error":{"code":12,"message":"Bad request"}}');
-        Functions\when('wp_json_encode')->alias('json_encode');
-        try { (new BGCouriers_Test_Courier())->call('https://x', []); $this->fail('should have thrown'); }
-        catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 400: Bad request', $e->getMessage()); }
-    }
-
-    /**
-     * Econt keeps the words one level down when it refuses an address: the outer message is empty and
-     * innerErrors[0].message says what is wrong (measured 2026-09-13, validateAddress for a street Sofia
-     * does not have). The merchant was shown the whole body - twelve lines of JSON - for that.
-     */
-    public function test_post_json_reads_econt_inner_errors_when_the_outer_message_is_empty(): void {
-        Functions\when('wp_remote_post')->justReturn(['x']);
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_response_code')->justReturn(517);
-        Functions\when('wp_remote_retrieve_body')->justReturn('{"type":"ExInvalidParam","message":"","fields":[],"innerErrors":[{"type":"ExInvalidAddress","message":"Информацията, която попълнихте за адрес, е недостатъчна.","fields":[],"innerErrors":[]}]}');
-        Functions\when('wp_json_encode')->alias('json_encode');
-        try { (new BGCouriers_Test_Courier())->call('https://x', []); $this->fail('should have thrown'); }
-        catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 517: Информацията, която попълнихте за адрес, е недостатъчна.', $e->getMessage()); }
-    }
-
-    /** Two inner errors are two sentences; one nested deeper is still found; a bare shell is shown as it was. */
-    public function test_inner_errors_are_joined_and_followed_down(): void {
-        Functions\when('wp_remote_post')->justReturn(['x']);
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_response_code')->justReturn(517);
-        Functions\when('wp_json_encode')->alias('json_encode');
-        Functions\when('wp_remote_retrieve_body')->justReturn('{"message":"","innerErrors":[{"message":"Първо."},{"message":"","innerErrors":[{"message":"Второ."}]}]}');
-        try { (new BGCouriers_Test_Courier())->call('https://x', []); $this->fail('should have thrown'); }
-        catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 517: Първо.; Второ.', $e->getMessage()); }
-        Functions\when('wp_remote_retrieve_body')->justReturn('{"type":"ExInvalidParam","message":"","innerErrors":[]}');
-        try { (new BGCouriers_Test_Courier())->call('https://x', []); $this->fail('should have thrown'); }
-        catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 517: {"type":"ExInvalidParam","message":"","innerErrors":[]}', $e->getMessage()); }
-    }
-
-    public function test_post_json_shows_a_body_that_is_not_json_as_it_was(): void {
-        Functions\when('wp_remote_post')->justReturn(['x']);
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_response_code')->justReturn(502);
-        Functions\when('wp_remote_retrieve_body')->justReturn('<html>Bad Gateway</html>');
-        Functions\when('wp_json_encode')->alias('json_encode');
-        try { (new BGCouriers_Test_Courier())->call('https://x', []); $this->fail('should have thrown'); }
-        catch (BGCouriers_Api_Exception $e) { $this->assertSame('The request failed: HTTP 502: <html>Bad Gateway</html>', $e->getMessage()); }
-    }
-
-    public function test_post_json_retries_twice_on_500(): void {
+    public function test_post_json_retries_once_on_500_then_throws(): void {
+        $this->answer(500, 'err');
         Functions\expect('wp_remote_post')->twice()->andReturn(['x']);
-        Functions\when('is_wp_error')->justReturn(false);
-        Functions\when('wp_remote_retrieve_response_code')->justReturn(500);
-        Functions\when('wp_remote_retrieve_body')->justReturn('err');
-        Functions\when('wp_json_encode')->alias('json_encode');
         $this->expectException(BGCouriers_Api_Exception::class);
         (new BGCouriers_Test_Courier())->call('https://x', []);
     }
 
-    public function test_post_json_retries_twice_on_transport_error(): void {
+    public function test_post_json_retries_once_on_transport_error_then_throws(): void {
         Functions\expect('wp_remote_post')->twice()->andReturn(['x']);
         Functions\when('is_wp_error')->justReturn(true);
-        Functions\when('wp_json_encode')->alias('json_encode');
         $this->expectException(BGCouriers_Api_Exception::class);
         (new BGCouriers_Test_Courier())->call('https://x', []);
     }

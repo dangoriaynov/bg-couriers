@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 
 /**
@@ -22,11 +20,10 @@ require_once dirname(__DIR__, 2) . '/includes/Admin/class-bgcouriers-settings.ph
 /**
  * @group econt
  */
-final class EcontSettingsTest extends TestCase {
+final class EcontSettingsTest extends BGCouriers_Unit_TestCase {
 
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
         // The settings tabs are the courier REGISTRY's list now (one per registered courier, in its
         // order), so the couriers are registered here as BGCouriers_Plugin registers them - by id and
         // name; no adapter is ever built by these tests.
@@ -36,7 +33,6 @@ final class EcontSettingsTest extends TestCase {
             BGCouriers_Couriers::register($id, $label, static function () { return null; });
         }
         // Stub WordPress translation and option functions used during construction.
-        Functions\when('__')->returnArg(1);
         Functions\when('apply_filters')->returnArg(2);
         // Field building reads options (creds_present gating, defaults) - default-return unless a test overrides.
         Functions\when('get_option')->alias(static function ($name, $default = false) { return $default; });
@@ -45,7 +41,6 @@ final class EcontSettingsTest extends TestCase {
 
     protected function tearDown(): void {
         BGCouriers_Couriers::reset();
-        Monkey\tearDown();
         parent::tearDown();
     }
 

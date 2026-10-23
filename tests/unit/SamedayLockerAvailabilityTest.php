@@ -1,6 +1,4 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Brain\Monkey;
 use Brain\Monkey\Functions;
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-api-exception.php';
 require_once dirname(__DIR__, 2) . '/includes/Support/class-bgcouriers-quote.php';
@@ -13,62 +11,43 @@ require_once dirname(__DIR__, 2) . '/includes/Shipping/class-bgcouriers-pricing.
 require_once dirname(__DIR__, 2) . '/includes/Couriers/class-bgcouriers-sameday.php';
 
 /**
- * Sameday easyBox availability: which locker has a free compartment the shop's parcel fits into.
- *
- * box_size_for() maps the shop's parcel to the smallest easyBox size (using Sameday's own published
- * easyBox cell sizes - see box_dims_table()). locker_fits() answers "is a compartment of that size, or
- * any larger, free right now?" - because a parcel that needs S fits an S, M or L box, but one that
- * needs L fits only an L. The map and the office list grey out a locker where the answer is no.
+ * Sameday easyBox availability: the smallest box a parcel needs, and whether a locker has one (or larger) free.
  *
  * @group sameday
  */
-final class SamedayLockerAvailabilityTest extends TestCase {
+final class SamedayLockerAvailabilityTest extends BGCouriers_Unit_TestCase {
     protected function setUp(): void {
         parent::setUp();
-        Monkey\setUp();
-        Functions\when('__')->returnArg(1);
         // box_dims_table() reads the bgcouriers_sameday_box_dims filter; unstubbed it returns the default table.
         Functions\when('apply_filters')->returnArg(2);
     }
-    protected function tearDown(): void { Monkey\tearDown(); parent::tearDown(); }
 
     // ── box_size_for(): parcel -> required easyBox size ──────────────────────
 
-    public function test_the_default_small_parcel_needs_the_smallest_box(): void {
-        // The shop default (10 x 10 x 2 cm) is tiny - it needs only an S compartment.
-        $this->assertSame('S', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 2]));
+    /** @return array<string,array{array,string}> parcel cm => easyBox size (cells 44.5 x 47 cm, heights S 10 / M 20 / L 39) */
+    public static function box_sizes(): array {
+        $p = static fn($l, $w, $h) => ['length' => $l, 'width' => $w, 'height' => $h];
+        return [
+            'shop default'       => [$p(10, 10, 2), 'S'],
+            'taller'             => [$p(40, 30, 12), 'M'],
+            'tall'               => [$p(40, 30, 30), 'L'],
+            'exactly S cell'     => [$p(47, 44.5, 10), 'S'],
+            'just over S'        => [$p(10, 10, 10.5), 'M'],
+            'exactly M'          => [$p(10, 10, 20), 'M'],
+            'just over M'        => [$p(10, 10, 20.5), 'L'],
+            'exactly L'          => [$p(10, 10, 39), 'L'],
+            'deeper than cell'   => [$p(47.5, 10, 2), 'L'],
+            'wider than cell'    => [$p(10, 44.6, 2), 'L'],
+            'oversized, never nothing' => [$p(200, 200, 200), 'L'],
+        ];
     }
 
-    public function test_a_taller_parcel_needs_a_medium_box(): void {
-        $this->assertSame('M', BGCouriers_Sameday::box_size_for(['length' => 40, 'width' => 30, 'height' => 12]));
-    }
-
-    public function test_a_tall_parcel_needs_a_large_box(): void {
-        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 40, 'width' => 30, 'height' => 30]));
-    }
-
-    public function test_an_oversized_parcel_maps_to_the_largest_never_to_nothing(): void {
-        // Bigger than any compartment -> L (largest), leaving a true misfit for Sameday to reject, as the
-        // BOX NOW mapping does. It must never return '' or the locker would read as "fits nothing" wrongly.
-        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 200, 'width' => 200, 'height' => 200]));
-    }
-
-    public function test_the_default_table_matches_sameday_published_cell_sizes(): void {
-        // Sameday's easyBox terms (sameday.bg): cells are 445 x {100,200,390} x 470 mm (W x H x D), so the
-        // opening is 44.5 x 47 cm and the heights S 10 / M 20 / L 39 cm separate the sizes. Pin the boundaries.
-        $this->assertSame('S', BGCouriers_Sameday::box_size_for(['length' => 47, 'width' => 44.5, 'height' => 10]));   // exactly the S cell
-        $this->assertSame('M', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 10.5]));   // just over S height -> M
-        $this->assertSame('M', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 20]));     // exactly the M cell
-        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 20.5]));   // just over M height -> L
-        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 10, 'height' => 39]));     // exactly the L cell
-        // Wider or deeper than the opening -> largest (a real misfit for Sameday to reject), never "nothing".
-        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 47.5, 'width' => 10, 'height' => 2]));    // deeper than 47 cm
-        $this->assertSame('L', BGCouriers_Sameday::box_size_for(['length' => 10, 'width' => 44.6, 'height' => 2]));    // wider than 44.5 cm
+    /** @dataProvider box_sizes */
+    public function test_a_parcel_needs_the_smallest_box_it_fits_and_never_nothing(array $parcel, string $size): void {
+        $this->assertSame($size, BGCouriers_Sameday::box_size_for($parcel));
     }
 
     public function test_the_box_dimensions_are_correctable_through_the_filter(): void {
-        // Sameday publishes no compartment sizes, so the table is a documented default; a shop whose
-        // easyBox network measures differently corrects it through the filter, no code change.
         Functions\when('apply_filters')->alias(static function ($tag, $value) {
             return $tag === 'bgcouriers_sameday_box_dims'
                 ? ['max_length' => 60.0, 'max_width' => 45.0, 'heights' => ['S' => 5.0, 'M' => 10.0, 'L' => 20.0]]
@@ -92,29 +71,23 @@ final class SamedayLockerAvailabilityTest extends TestCase {
 
     // ── locker_fits(): required size vs the locker's free boxes ───────────────
 
-    public function test_a_free_box_of_the_required_size_fits(): void {
-        $this->assertTrue(BGCouriers_Sameday::locker_fits(['S' => 3, 'M' => 0, 'L' => 0], 'S'));
+    /** @return array<string,array{array,string,bool}> free boxes, needed size => fits? */
+    public static function fits(): array {
+        return [
+            'same size free'      => [['S' => 3, 'M' => 0, 'L' => 0], 'S', true],
+            'only larger free'    => [['S' => 0, 'M' => 0, 'L' => 2], 'S', true],
+            'only smaller free'   => [['S' => 9, 'M' => 0, 'L' => 0], 'L', false],
+            'full locker'         => [['S' => 0, 'M' => 0, 'L' => 0], 'S', false],
+            'no boxes at all'     => [[], 'S', false],
+            'M into M'            => [['M' => 1], 'M', true],
+            'M into L'            => [['L' => 1], 'M', true],
+            'M into S'            => [['S' => 5], 'M', false],
+        ];
     }
 
-    public function test_a_smaller_parcel_fits_a_larger_free_box(): void {
-        // Need S, only L free -> the small parcel fits the large compartment.
-        $this->assertTrue(BGCouriers_Sameday::locker_fits(['S' => 0, 'M' => 0, 'L' => 2], 'S'));
-    }
-
-    public function test_a_larger_parcel_does_NOT_fit_a_smaller_free_box(): void {
-        // Need L, only S free -> the large parcel cannot go into the small compartment.
-        $this->assertFalse(BGCouriers_Sameday::locker_fits(['S' => 9, 'M' => 0, 'L' => 0], 'L'));
-    }
-
-    public function test_a_full_locker_fits_nothing(): void {
-        $this->assertFalse(BGCouriers_Sameday::locker_fits(['S' => 0, 'M' => 0, 'L' => 0], 'S'));
-        $this->assertFalse(BGCouriers_Sameday::locker_fits([], 'S'));
-    }
-
-    public function test_need_medium_fits_medium_or_large_only(): void {
-        $this->assertTrue(BGCouriers_Sameday::locker_fits(['M' => 1], 'M'));
-        $this->assertTrue(BGCouriers_Sameday::locker_fits(['L' => 1], 'M'));
-        $this->assertFalse(BGCouriers_Sameday::locker_fits(['S' => 5], 'M'));
+    /** @dataProvider fits */
+    public function test_a_locker_fits_when_a_box_of_the_needed_size_or_larger_is_free(array $free, string $need, bool $fits): void {
+        $this->assertSame($fits, BGCouriers_Sameday::locker_fits($free, $need));
     }
 
     // ── fetch_locker_availability() parses availableBoxes off the live shape ──
@@ -140,11 +113,7 @@ final class SamedayLockerAvailabilityTest extends TestCase {
         $this->assertArrayNotHasKey(0, $avail);
     }
 
-    /**
-     * The lockers listing also returns staffed "SAMEDAY point" counters with no compartments at all
-     * (measured live: all three box lists empty). A person takes the parcel there, so they are NOT part
-     * of the free-compartment question - they must be left out, not reported as "full".
-     */
+    /** Staffed "SAMEDAY point" counters have no compartments: left out, not reported as full. */
     public function test_a_staffed_point_with_no_compartments_is_left_out(): void {
         $sameday = new class extends BGCouriers_Sameday {
             public array $pages = [];
