@@ -101,7 +101,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return $p;
     }
 
-    // ── Auth ─────────────────────────────────────────────────────────────────
+    // Auth
 
     /** Cache key scoped to account + host, so switching credentials or Live mode misses the cache. */
     private function cache_key(string $suffix): string {
@@ -143,7 +143,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return $tok;
     }
 
-    // ── HTTP helpers ─────────────────────────────────────────────────────────
+    // HTTP helpers
 
     protected function get_json(string $path): array {
         return $this->decode($this->http_get($this->base . $path, ['X-AUTH-TOKEN' => $this->auth_token()], 30));
@@ -194,13 +194,13 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return is_array($data) ? $data : [];
     }
 
-    // ── Credentials ──────────────────────────────────────────────────────────
+    // Credentials
 
     public function check_credentials(): bool {
         return $this->auth_token() !== '';
     }
 
-    // ── Nomenclature ─────────────────────────────────────────────────────────
+    // Nomenclature
 
     protected function get_paged(string $path): array {
         $sep = strpos($path, '?') === false ? '?' : '&';
@@ -266,7 +266,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return $out;
     }
 
-    // ── easyBox availability ─────────────────────────────────────────────────
+    // easyBox availability
 
     /** easyBox sizes, smallest first; a parcel fits its size or any larger. */
     public const BOX_SIZES = ['S', 'M', 'L'];
@@ -334,7 +334,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return false;
     }
 
-    // ── Quote (live, weight-based) ───────────────────────────────────────────
+    // Quote (live, weight-based)
 
     public function quote(array $shipment): BGCouriers_Quote {
         $shipment['service_id']   = $this->service_id((string) ($shipment['method'] ?? 'address'));
@@ -393,7 +393,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return new BGCouriers_Quote($net, BGCouriers_Pricing::courier_tax($net), $store, 'live');
     }
 
-    // ── Label ────────────────────────────────────────────────────────────────
+    // Label
 
     /** Set once Sameday has refused a recipient-paid shipment, so the settings screen can warn. */
     const NO_RECIPIENT_PAY = 'bgcouriers_sameday_no_recipient_pay';
@@ -502,7 +502,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return $t->stage() === 'cancelled' || BGCouriers_Tracking::reads_cancelled($t->human());
     }
 
-    // ── Tracking ─────────────────────────────────────────────────────────────
+    // Tracking
 
     public function track(string $waybill): BGCouriers_Tracking {
         return self::parse_tracking($this->get_json('/api/client/awb/' . rawurlencode($waybill) . '/status'), $waybill);

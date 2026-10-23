@@ -51,7 +51,7 @@ def draw_pin(draw, cx, cy, r):
     draw.polygon([(cx-r*0.7, cy+r*0.35), (cx+r*0.7, cy+r*0.35), (cx, cy+r*1.9)], fill=RED)
     draw.ellipse((cx-r*0.42, cy-r*0.42, cx+r*0.42, cy+r*0.42), fill=WHITE)
 
-# ---------- ICON ----------
+# Icon
 def make_icon(size):
     base = vgrad(size*SS, size*SS, TEAL, GREEN).convert('RGBA')
     ov = Image.new('RGBA', (size*SS, size*SS), (0,0,0,0))
@@ -71,7 +71,7 @@ def make_icon(size):
 make_icon(256).save(f'{OUT}/icon-256x256.png')
 make_icon(128).save(f'{OUT}/icon-128x128.png')
 
-# ---------- BANNER ----------
+# Banner
 def make_banner(w, h):
     base = vgrad(w, h, GREEN, TEAL).convert('RGBA')
     # subtle diagonal sheen

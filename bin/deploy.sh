@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# Push the plugin to a site. The server it goes to is NOT in this file.
-#
-# This repository is public. A host name, an SSH port and a login are not secrets in the cryptographic
-# sense, but publishing them hands a stranger the first three answers of a break-in attempt for free -
-# and they were in here in plain sight, root login included. They now come from bin/deploy.conf, which
-# is gitignored, or from the environment.
-#
+# Push the plugin to a site. The repo is public: hosts, ports and logins come only from bin/deploy.conf
+# (gitignored) or the environment.
 #   cp bin/deploy.conf.example bin/deploy.conf   # then fill in your own
 #   ./bin/deploy.sh dev|prod
 set -euo pipefail
@@ -27,17 +22,13 @@ case "$TARGET" in
         read -p "Deploy to PROD (${LXC:-$BGC_SSH_HOST})? type yes: " c; [ "$c" = yes ] || exit 1;;
   *) echo "usage: deploy.sh dev|prod"; exit 1;;
 esac
-# A container route that is half-configured must not quietly fall back to the SSH one: that is how a
-# deploy lands on the machine nobody is looking at, which is exactly what happened when dev moved.
+# A half-configured container route must not fall back to plain SSH (wrong machine).
 if [ -n "$LXC_HOST" ] && [ -z "$LXC" ]; then
   echo "BGC_LXC_HOST is set but no container is named for '$TARGET' - set BGC_LXC_DEV / BGC_LXC_PROD" >&2
   exit 1
 fi
 
-# Untranslated strings are caught HERE, not at release time. bin/preflight blocks a release on them,
-# but that is the last gate - and the owner sees dev long before then. He found "Return waybill" sitting
-# in English on a Bulgarian settings screen; it had been added and the catalogue never regenerated.
-# A warning rather than a refusal: dev is where work in progress belongs.
+# Untranslated strings warn here (preflight refuses them at release).
 if command -v msgattrib >/dev/null 2>&1 && [ -f languages/bg-couriers-bg_BG.po ]; then
   N="$(msgattrib --untranslated languages/bg-couriers-bg_BG.po | grep -c '^msgid "' || true)"
   # 1 header entry + 1 deliberately untranslated plugin name.
@@ -58,37 +49,18 @@ EXCLUDES=(
   --exclude 'vendor' --exclude 'docs' --exclude 'bin' --exclude 'e2e'
   --exclude '.wp-env.json' --exclude 'composer.*' --exclude 'phpunit.xml.dist'
   --exclude '.wordpress-org' --exclude '.distignore' --exclude '.github'
-  --exclude 'README.md' --exclude 'CONTRIBUTING.md'
-  # tmp/ is the gitignored scratch dir. It is not in git, so build-zip never sees it, but rsync did:
-  # a readme-preview copy of WordPress.org's parser went to dev with 0.4.13 and Plugin Check refused
-  # the release over a PHP file that was never part of the plugin.
+  --exclude 'README.md' --exclude 'CONTRIBUTING.md' --exclude 'CLAUDE.md'
+  # Untracked local files that Plugin Check on dev would refuse; build-zip never sees them, rsync/tar does.
   --exclude 'tmp'
-  # Finder's droppings. Gitignored, so build-zip never sees them either - but the tar below took every
-  # .DS_Store on the laptop to dev, and Plugin Check (which runs against DEV, on purpose) refused
-  # 0.4.14 over six hidden files that were never part of the plugin. `._*` is the AppleDouble file
-  # macOS tar writes beside anything that has extended attributes; COPYFILE_DISABLE below stops those
-  # being made at all, and the exclude is for a tree that already has them.
   --exclude '.DS_Store' --exclude '._*'
 )
-# See the .DS_Store note above: without this, bsdtar on macOS packs a `._name` AppleDouble entry for
-# every file carrying an xattr, and GNU tar on the other side unpacks them as files.
+# Stops macOS bsdtar from packing `._name` AppleDouble entries.
 export COPYFILE_DISABLE=1
 
 if [ -n "$LXC_HOST" ]; then
-  # The sites live in LXC containers that do not take our SSH key, so the way in is the host that holds
-  # them. rsync cannot speak `lxc exec`, so the tree goes over as a tar and is unpacked into a sibling
-  # directory first - then one rsync INSIDE the container swaps it in with --delete. The plugin is never
-  # half-written while that happens, which a straight `tar -x` over the live directory could not promise.
-  #
-  # OWNERSHIP IS CONFIGURED, NEVER GUESSED. A tar from a laptop carries the laptop's numeric uid, so the
-  # files land owned by a user the container has never heard of unless something sets them right. It was
-  # guessed once, as www-data, on sites whose files and php-fpm are both `dobavki`; that only kept
-  # working because the files are world-readable, and on production it would have handed the plugin to a
-  # user that cannot write to it. Unset means leave ownership exactly as it was found.
-  #
-  # The remote script is kept free of apostrophes and comments on purpose: it travels inside a
-  # single-quoted `bash -c`, and one apostrophe in a comment silently ended the string mid-deploy -
-  # which left a live site owned by a laptop uid.
+  # Via the LXC host: tar into a sibling dir, then one rsync --delete inside the container swaps it in.
+  # Ownership is configured (BGC_*_OWNER), never guessed; unset leaves it as found.
+  # REMOTE travels inside a single-quoted `bash -c`: no apostrophes or comments in it.
   REMOTE="set -e
 T=${DEST%/}.deploy.\$\$
 rm -rf \"\$T\"; mkdir -p \"\$T\"
@@ -108,10 +80,7 @@ else
   echo "Synced to ${TARGET}. Activate via wp-admin."
 fi
 
-# Every dev sync is a moment somebody is looking, so it is the moment to say whether the last release
-# actually finished: prod on a version the directory never got is a state nobody chose, and 0.4.13 sat
-# in it for two days with nothing on this side to say so. A read-only look, and a warning, not a
-# refusal - dev is where work in progress belongs.
+# Warn (read-only) when the last release never reached WordPress.org.
 if [ "$TARGET" = dev ]; then
   bash bin/release-status --quiet || true
 fi

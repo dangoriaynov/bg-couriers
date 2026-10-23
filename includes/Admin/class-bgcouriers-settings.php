@@ -8,7 +8,7 @@ class BGCouriers_Settings {
     private const CONTAINER_TYPES = ['bundle', 'grouped', 'woosb', 'yith_bundle', 'composite'];
 
     const METHODS = ['office', 'address', 'automat'];
-    // ---- data accessors ----
+    // data accessors
 
     public static function get(string $group, string $key, $default = '') {
         $name = $group === 'global' ? 'bgcouriers_' . $key : 'bgcouriers_' . $group . '_' . $key;

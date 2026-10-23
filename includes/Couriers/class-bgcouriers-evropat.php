@@ -49,7 +49,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         ];
     }
 
-    // ── The envelope ─────────────────────────────────────────────────────────
+    // The envelope
 
     /** The `response` of a successful answer; a refusal is HTTP 200 with an `error` code. */
     public static function unwrap(array $resp): array {
@@ -67,7 +67,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $resp['response'] ?? null;
     }
 
-    // ── Calling ──────────────────────────────────────────────────────────────
+    // Calling
 
     /** Transient key per account. */
     private function ckey(string $what): string {
@@ -88,7 +88,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return self::payload($this->post_json(self::BASE . '/testclientkey', ['clientKey' => $this->key])) === true;
     }
 
-    // ── Nomenclature ─────────────────────────────────────────────────────────
+    // Nomenclature
 
     /** `limit: -1` turns their default 20-row cap off; there is no paging. */
     public function fetch_cities(string $country = ''): array {
@@ -98,7 +98,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     /**
      * Towns -> framework rows; office_id is the office serving the town, for towns with no counter.
-     *
      * @return array<int,array{city_id:int,name:string,post_code:string,region:string,office_id:int}>
      */
     public static function parse_cities(array $rows): array {
@@ -131,7 +130,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     /**
      * Offices -> framework rows; no lockers here, so nothing is ever an 'automat'.
-     *
      * @return array<int,array{office_id:int,code:string,city_id:int,type:string,name:string,address:string,lat:float,lng:float}>
      */
     public static function parse_offices(array $rows): array {
@@ -164,7 +162,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     /**
      * A town's whole street list, cached for a day.
-     *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
     private function streets_of(int $city_id): array {
@@ -178,7 +175,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     /**
      * Streets -> the checkout's rows; `addressFull` carries the type prefix, `address` is the bare name.
-     *
      * @return array<int,array{id:int,name:string,type:string,label:string}>
      */
     public static function parse_streets(array $rows): array {
@@ -254,11 +250,10 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         }
     }
 
-    // ── The sender ───────────────────────────────────────────────────────────
+    // The sender
 
     /**
      * The account's sending addresses for the "send parcels from" setting; cached for a day.
-     *
      * @return array<int,string> fileID => label.
      */
     public function sender_files(): array {
@@ -324,7 +319,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return self::DELIVERY_TYPE[self::sender_end()][$to];
     }
 
-    // ── Price ────────────────────────────────────────────────────────────────
+    // Price
 
     public function quote(array $shipment): BGCouriers_Quote {
         $data = $this->call('/calculateprice', $this->build_calculate_body($shipment));
@@ -403,7 +398,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $c === 'EURO' ? 'EUR' : $c;
     }
 
-    // ── The waybill ──────────────────────────────────────────────────────────
+    // The waybill
 
     public function create_label(\WC_Order $order): BGCouriers_Label {
         $s        = $this->shipment_of($order);
@@ -519,7 +514,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     /**
      * The created shipment: an object with `extendedResponse`, a plain array of barcodes without.
-     *
      * @param string[] $problems
      */
     public static function parse_created(array $data, array $problems = []): BGCouriers_Label {
@@ -552,7 +546,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return $this->fetch_pdf($url, [], 'Европът');
     }
 
-    // ── Cancelling ───────────────────────────────────────────────────────────
+    // Cancelling
 
     /** Their answer is a bare true; a second cancel is refused with INVALID_SHIPMENT_STATE, see is_cancelled(). */
     public function cancel_label(string $waybill): bool {
@@ -572,7 +566,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
         return false;
     }
 
-    // ── Tracking ─────────────────────────────────────────────────────────────
+    // Tracking
 
     public function track(string $waybill): BGCouriers_Tracking {
         return self::verdict($this->history($waybill), $waybill);
@@ -580,7 +574,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     /**
      * The parcel's history, status names resolved to ids.
-     *
      * @return array<int,array{code:int,name:string,date:string}>
      */
     private function history(string $waybill): array {
@@ -610,7 +603,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     /**
      * Folded status name => id, cached for a day; both name and description are indexed.
-     *
      * @return array<string,int>
      */
     private function status_ids(): array {
@@ -633,7 +625,6 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
 
     /**
      * A terminal parcel event (19 delivered, 10 returned) anywhere in the history outranks the newest event.
-     *
      * @param array<int,array{code:int,name:string,date:string}> $events
      */
     public static function verdict(array $events, string $waybill): BGCouriers_Tracking {
@@ -652,7 +643,7 @@ class BGCouriers_Evropat extends BGCouriers_Abstract_Courier implements BGCourie
     /** Their public tracking page cannot be deep-linked, so the waybill is not in the URL. */
     public function tracking_url(string $waybill): string { return self::TRACK_URL; }
 
-    // ── Collection ───────────────────────────────────────────────────────────
+    // Collection
 
     /** The first waybill names the collection and the rest ride with it. */
     public function request_pickup(array $waybills, array $opts): string {
