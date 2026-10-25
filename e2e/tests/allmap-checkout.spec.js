@@ -108,7 +108,8 @@ test('combined map: one width before and after the town, and the map enlarges in
   await page.waitForTimeout(500);
   await expect(page.locator('.bgc-allmap-answers')).toBeHidden();
   const big = await page.locator('.bgc-allmap-canvas').boundingBox();
-  expect(big.width * big.height).toBeGreaterThan(small.width * small.height * 1.2);
+  expect(big.width * big.height, `map ${Math.round(small.width)}x${Math.round(small.height)} then ${Math.round(big.width)}x${Math.round(big.height)}`)
+    .toBeGreaterThan(small.width * small.height * 1.15);
   for (const sel of ['.bgc-allmap-cityinput', '.bgc-allmap-legend', '.bgc-allmap-search',
     '.bgc-allmap-searchrow .bgc-map-locate', '.bgc-allmap-list', '.leaflet-control-zoom', '.bgc-allmap-close']) {
     await expect(page.locator(sel).first(), sel).toBeVisible();

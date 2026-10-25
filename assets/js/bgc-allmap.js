@@ -272,7 +272,6 @@
       + '</div>'
       + '<ul class="bgc-allmap-list"></ul></div>'
       + '<div class="bgc-allmap-canvas" id="bgc-allmap-canvas"></div>'
-      + '<button type="button" class="bgc-allmap-max"></button>'
       + '<div class="bgc-allmap-switch" role="group">'
       + '<button type="button" data-v="map" class="on" aria-pressed="true">' + esc(I.allmap_map || '') + '</button>'
       + '<button type="button" data-v="list" aria-pressed="false">' + esc(I.allmap_list || '')
@@ -424,14 +423,7 @@
     });
     $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
     $dlg.on('click', '.bgc-allmap-switch button', function () { setMode($(this).attr('data-v')); });
-    syncMaxBtn();
-    $dlg.on('click', '.bgc-allmap-max', function () {
-      var on = !$dlg.hasClass('bgc-max');
-      $dlg.toggleClass('bgc-max', on);
-      try { window.localStorage.setItem(MAX_STORE, on ? '1' : '0'); } catch (e) {}
-      syncMaxBtn();
-      if (map) { map.invalidateSize(); }
-    });
+
     $dlg.on('click', '.bgc-allmap-pick', function () {
       var p = points[+$(this).data('i')];
       if (!p || !window.BGCouriersCheckout) { return; }
@@ -584,6 +576,15 @@
         + '</button>';
     }
     $box.html(html).attr('hidden', null);
+  }
+
+  function toggleMax() {
+    if (!$dlg) { return; }
+    var on = !$dlg.hasClass('bgc-max');
+    $dlg.toggleClass('bgc-max', on);
+    try { window.localStorage.setItem(MAX_STORE, on ? '1' : '0'); } catch (e) {}
+    syncMaxBtn();
+    if (map) { map.invalidateSize(); }
   }
 
   function syncMaxBtn() {
@@ -930,6 +931,17 @@
         { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
       layer = L.layerGroup().addTo(map);
       map.on('zoomend', function () { recluster(); });
+      map.addControl(new (L.Control.extend({
+        options: { position: 'topright' },
+        onAdd: function () {
+          var b = L.DomUtil.create('button', 'bgc-allmap-max');
+          b.type = 'button';
+          L.DomEvent.disableClickPropagation(b);
+          L.DomEvent.on(b, 'click', toggleMax);
+          return b;
+        }
+      }))());
+      syncMaxBtn();
       var bubbleClosedAt = 0;
       map.on('popupclose', function () { bubbleClosedAt = Date.now(); });
       map.on('click', function (e) {
