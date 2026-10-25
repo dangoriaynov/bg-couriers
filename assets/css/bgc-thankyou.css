@@ -7,7 +7,9 @@
 .bgc-ty-row:last-child{border-bottom:0;}
 .bgc-ty-row.bgc-ty-total{border-top:1px solid #e5e7eb;border-bottom:0;margin-top:4px;padding-top:8px;font-weight:700;}
 .bgc-ty-qty{color:#6b7280;font-size:.92em;}
-.bgc-ty-amount{white-space:nowrap;}
+.bgc-ty-amount{white-space:nowrap;text-align:right;min-width:0;}
+/* The door-price sentence shares the amount cell; nowrap pushed it off a phone screen. */
+.bgc-ty-amount .bgc-door-price{display:block;white-space:normal;color:#6b7280;}
 .bgc-ty-note{color:#6b7280;font-size:.9em;margin-top:6px;}
 .bgc-ty-courier{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
 .bgc-ty-logo{width:20px;height:20px;object-fit:contain;}
