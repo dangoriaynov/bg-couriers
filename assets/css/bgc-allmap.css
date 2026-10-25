@@ -14,7 +14,8 @@
 
 .bgc-allmap-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 2147483647;
   display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; }
-.bgc-allmap-box { position: relative; background: #fff; border-radius: 12px; width: min(560px, 94vw);
+/* min-width: the one-line chip row must not widen the box */
+.bgc-allmap-box { position: relative; min-width: 0; background: #fff; border-radius: 12px; width: min(560px, 94vw);
   max-height: 94vh; display: flex; flex-direction: column; overflow: visible;
   margin-top: max(16px, calc(50vh - 110px));
   transition: margin-top .35s cubic-bezier(.22,.61,.36,1), width .35s cubic-bezier(.22,.61,.36,1); }
