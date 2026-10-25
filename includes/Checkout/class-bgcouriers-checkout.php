@@ -818,6 +818,7 @@ class BGCouriers_Checkout {
                 'allmap_directions' => __('Directions', 'bg-couriers'),
                 'clear' => __('Clear', 'bg-couriers'),
                 'near_title' => __('Closest to you', 'bg-couriers'),
+                'near_title_centre' => __('Closest to the town centre', 'bg-couriers'),
                 'near_to_address' => __('to your address', 'bg-couriers'),
                 'near_save' => __('you save', 'bg-couriers'),
                 'near_straight' => __('as the crow flies', 'bg-couriers'),
