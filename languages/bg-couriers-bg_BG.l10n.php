@@ -711,6 +711,7 @@ return array (
     'unchanged for %s' => 'без промяна от %s',
     'unknown' => 'неизвестно',
     'username + password (+ pickup point and per-type service IDs)' => 'потребителско име + парола (+ точка за приемане и ID-та на услугите по тип)',
+    'you save' => 'спестявате',
     '~%s paid to the courier on delivery' => '~%s се плащат на куриера при получаване',
     'Европът' => 'Европът',
     'Европът API documentation:' => 'Документация за API на Европът:',

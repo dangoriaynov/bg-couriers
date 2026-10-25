@@ -285,10 +285,10 @@ html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
 .bgc-allmap-ans:focus-visible { outline: 2px solid #2271b1; outline-offset: 1px; }
 .bgc-allmap-ans.bgc-ans-both { grid-column: 1 / -1; }
 .bgc-ans-k { font-size: 11.5px; line-height: 1.3; color: #50575e; }
-.bgc-ans-c { display: flex; align-items: center; gap: 5px; max-width: 100%; font-size: 13px;
+.bgc-ans-c { display: flex; align-items: flex-start; gap: 5px; max-width: 100%; font-size: 13px;
   font-weight: 600; line-height: 1.35; }
-.bgc-ans-c img { width: 15px; height: 15px; object-fit: contain; flex: 0 0 auto; }
-.bgc-ans-c .bgc-near-c { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bgc-ans-c img { width: 15px; height: 15px; object-fit: contain; flex: 0 0 auto; margin-top: 1px; }
+.bgc-ans-c .bgc-near-c { min-width: 0; overflow-wrap: anywhere; }
 .bgc-ans-c .bgc-allmap-kind { margin-right: 0; flex: 0 0 auto; }
 .bgc-ans-m { display: flex; align-items: baseline; gap: 8px; font-size: 13px; line-height: 1.35;
   white-space: nowrap; }
@@ -296,6 +296,8 @@ html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
 .bgc-near-p { font-weight: 700; }
 .bgc-allmap-cheap .bgc-near-p { color: #14663a; }
 .bgc-ans-addr { grid-column: 1 / -1; font-size: 12px; color: #50575e; }
+.bgc-near-save { margin-left: 4px; padding: 0 6px; border-radius: 999px; background: #e6f4ea; color: #14663a;
+  font-weight: 600; white-space: nowrap; }
 
 .bgc-chip-d { color: #50575e; font-weight: 600; }
 .bgc-chip-d::before { content: "·"; margin-right: 5px; color: #a7aaad; font-weight: 400; }
@@ -323,3 +325,4 @@ html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
   .bgc-ans-addr { display: none; }
 }
 .bgc-allmap-canvas .leaflet-tooltip { white-space: normal; width: max-content; max-width: 200px; text-align: center; }
+.bgc-tip-done .bgc-me-tip { display: none; }
