@@ -203,6 +203,58 @@ test.describe('checkout guidance @guidance', () => {
     await page.locator('.bgc-allmap-close').click();
   });
 
+  test('a courier\'s Map button: as tall as the office field, opens wide, shows every courier', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await dismissStoreBanner(page);
+    await selectShippingMethod(page, 'speedy');
+    const fields = page.locator('.bgc-fields[data-courier="speedy"]');
+    await expect(fields).toBeVisible({ timeout: 15000 });
+    await selectSpeedyTab(page, fields, 'office');
+    await selectCity(page, fields, 'Варна');
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(1500);
+    // the longest name wraps the field to several lines: the button has to follow it
+    await fields.locator('.bgc-office-row .select2-selection').click();
+    const opts = page.locator('.select2-results__option[role="option"]');
+    await expect(opts.first()).toBeVisible({ timeout: 20000 });
+    const texts = await opts.allInnerTexts();
+    const longest = texts.reduce((best, t, i) => (t.length > texts[best].length ? i : best), 0);
+    await opts.nth(longest).click();
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(2500);
+    const h = await fields.locator('.bgc-office-pick').evaluate((w) => ({
+      field: w.querySelector('.select2-selection').getBoundingClientRect().height,
+      button: w.querySelector('.bgc-map-btn').getBoundingClientRect().height }));
+    expect(h.field).toBeGreaterThan(40);
+    expect(Math.abs(h.button - h.field), `button ${h.button} vs field ${h.field}`).toBeLessThan(1);
+
+    // the town is known, so the dialog is wide from its first frame rather than growing into it
+    await fields.locator('.bgc-office-pick .bgc-map-btn').click();
+    const first = await page.locator('.bgc-allmap-box').evaluate((b) => b.getBoundingClientRect().width);
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 30000 });
+    await page.waitForTimeout(1500);
+    const last = await page.locator('.bgc-allmap-box').evaluate((b) => b.getBoundingClientRect().width);
+    expect(Math.abs(last - first), `${first} then ${last}`).toBeLessThan(1);
+
+    // one courier's button does not switch the others off: their prices are the comparison asked for
+    const chips = page.locator('.bgc-allmap-chip');
+    expect(await chips.count()).toBeGreaterThan(1);
+    expect(await page.locator('.bgc-allmap-chip.on').count()).toBe(await chips.count());
+    await page.locator('.bgc-allmap-close').click();
+    const general = page.locator('.bgc-allmap-btn');
+    if (await general.isVisible()) {
+      await general.click();
+      await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 30000 });
+      await page.waitForTimeout(1500);
+      const couriers = await page.locator('.bgc-allmap-item:visible').evaluateAll((rows) =>
+        new Set(rows.map((r) => r.style.borderLeftColor)).size);
+      expect(couriers, 'the general map still shows every courier').toBe(await page.locator('.bgc-allmap-chip').count());
+      await page.locator('.bgc-allmap-close').click();
+    }
+  });
+
   test('the address picker opens on the named town when the browser gives no position', async ({ page, context }) => {
     await context.clearPermissions(); // no geolocation: the map has only the town to go on
     await page.setViewportSize({ width: 1280, height: 900 });

@@ -86,7 +86,7 @@ async function selectSpeedyTab(page, fields, methodName) {
 // Open the city selectWoo, type a term, pick the first result.
 async function selectCity(page, fields, term) {
   await fields.locator('.bgc-city-field .select2-selection').click();
-  const search = page.locator('.select2-search__field');
+  const search = page.locator('input.select2-search__field');
   await expect(search).toBeVisible({ timeout: 10000 });
   await search.fill(term);
   const first = page.locator('.select2-results__option[role="option"]').first();
@@ -106,7 +106,7 @@ async function pickFirstOffice(page, fields) {
 // Open the street autocomplete (selectWoo), type a term, pick the first suggestion.
 async function fillStreet(page, fields, term) {
   await fields.locator('.bgc-street-field .select2-selection').click();
-  const search = page.locator('.select2-search__field');
+  const search = page.locator('input.select2-search__field');
   await expect(search).toBeVisible({ timeout: 10000 });
   await search.fill(term);
   const opt = page.locator('.select2-results__option[role="option"]').first();
