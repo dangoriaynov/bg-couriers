@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 14:51+0000\n"
+"POT-Creation-Date: 2026-10-25 15:30+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -491,7 +491,7 @@ msgstr ""
 #: includes/Admin/class-bgcouriers-settings-admin.php:57
 #: includes/Admin/class-bgcouriers-wc-settings.php:15
 #: includes/Checkout/class-bgcouriers-checkout.php:782
-#: includes/Checkout/class-bgcouriers-thankyou.php:78
+#: includes/Checkout/class-bgcouriers-thankyou.php:81
 #: includes/Support/class-bgcouriers-icons.php:54
 msgid "To office"
 msgstr ""
@@ -501,7 +501,7 @@ msgstr ""
 #: includes/Admin/class-bgcouriers-settings-admin.php:58
 #: includes/Admin/class-bgcouriers-wc-settings.php:16
 #: includes/Checkout/class-bgcouriers-checkout.php:782
-#: includes/Checkout/class-bgcouriers-thankyou.php:78
+#: includes/Checkout/class-bgcouriers-thankyou.php:81
 #: includes/Support/class-bgcouriers-icons.php:52
 msgid "To address"
 msgstr ""
@@ -511,7 +511,7 @@ msgstr ""
 #: includes/Admin/class-bgcouriers-settings-admin.php:59
 #: includes/Admin/class-bgcouriers-wc-settings.php:17
 #: includes/Checkout/class-bgcouriers-checkout.php:782
-#: includes/Checkout/class-bgcouriers-thankyou.php:78
+#: includes/Checkout/class-bgcouriers-thankyou.php:81
 #: includes/Support/class-bgcouriers-icons.php:53
 msgid "To APS"
 msgstr ""
@@ -2741,11 +2741,11 @@ msgstr ""
 msgid "Your order"
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-thankyou.php:69
+#: includes/Checkout/class-bgcouriers-thankyou.php:72
 msgid "The delivery fee is paid to the courier on delivery."
 msgstr ""
 
-#: includes/Checkout/class-bgcouriers-thankyou.php:85
+#: includes/Checkout/class-bgcouriers-thankyou.php:88
 msgid "Delivery"
 msgstr ""
 
