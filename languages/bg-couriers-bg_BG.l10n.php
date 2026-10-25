@@ -188,7 +188,6 @@ return array (
     'Client secret' => 'Client secret',
     'Close' => 'Затвори',
     'Closest' => 'Най-близо',
-    'Closest and cheapest' => 'Най-близо и най-евтино',
     'Collection address' => 'Адрес за вземане',
     'Collection town' => 'Населено място за вземане',
     'Colour each order row by its courier, so the mix of couriers in the list is readable at a glance. Pick a normal, saturated colour - the row is painted with a pale version of it, keeping the text readable. Clear a colour to leave that courier untinted.' => 'Оцветява всеки ред с поръчка според неговия куриер, за да се вижда с един поглед какво съотношение куриери има в списъка. Изберете нормален, наситен цвят - редът се оцветява с бледа негова версия, така че текстът остава четим. Изчистете цвят, за да оставите този куриер неоцветен.',
