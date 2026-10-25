@@ -740,9 +740,15 @@ test.describe('nearest office', () => {
     // boolean. It was, and it did.
     expect(await page.evaluate(() => window.BGCOURIERS && BGCOURIERS.allmapNearest)).toBe('yes');
 
-    // Nothing claimed before we know where the customer is - a distance from nowhere is a lie.
-    expect(await page.locator('.bgc-allmap-near').count()).toBe(0);
+    // Before the customer shares a position the line is measured from the town centre and says so:
+    // the price against the address is there at once, but no distance - one from the centre is not theirs.
+    const before = page.locator('.bgc-allmap-near');
+    await expect(before).toBeVisible();
+    const beforeText = (await before.textContent()).replace(/\s+/g, ' ');
+    expect(beforeText).toContain('центъра');
+    expect(metres(beforeText), `no distance from the centre: ${beforeText}`).toBeNull();
     expect(await page.locator('.bgc-allmap-dist').count()).toBe(0);
+    expect(await page.locator('.bgc-chip-d').count()).toBe(0);
 
     await page.locator('.bgc-allmap-side .bgc-map-locate').click();
     await page.waitForTimeout(4000);
@@ -935,7 +941,7 @@ test.describe('nearest office', () => {
 
     // Nothing about the customer's position may survive the page, in storage or anywhere else.
     const stored = await page.evaluate(() => localStorage.getItem('bgcouriers_map_pick'));
-    expect(stored, 'the town is still remembered').toContain('СОФИЯ');
+    expect(String(stored).toUpperCase(), 'the town is still remembered').toContain('СОФИЯ');
     expect(stored, `no position in storage: ${stored}`).not.toMatch(/origin|lat|lng/i);
 
     await page.reload();
@@ -946,7 +952,9 @@ test.describe('nearest office', () => {
     await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 25000 });
     await page.waitForTimeout(2500);
     await expect(page.locator('.bgc-allmap-me')).toHaveCount(0);
-    await expect(page.locator('.bgc-allmap-near')).toHaveCount(0);
+    // back to the town centre: the line stays, without a distance
+    await expect(page.locator('.bgc-allmap-near')).toContainText('центъра');
+    expect(await page.locator('.bgc-allmap-near .bgc-near-d').count()).toBe(0);
     expect(await page.locator('.bgc-allmap-dist').count()).toBe(0);
     expect(await page.locator('.bgc-chip-d').count()).toBe(0);
 
