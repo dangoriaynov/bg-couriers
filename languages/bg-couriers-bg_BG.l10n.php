@@ -169,6 +169,7 @@ return array (
     'Choose a city' => 'Изберете град',
     'Choose a courier.' => 'Изберете куриер.',
     'Choose a “CD pay-out agreement” below, or turn off cash on delivery.' => 'Изберете „Договор за изплащане на наложен платеж“ по-долу или изключете наложения платеж.',
+    'Choose delivery to the address with this courier' => 'Изберете доставка до адрес с този куриер',
     'Choose on map' => 'Изберете от карта',
     'Choose the address on the map' => 'Изберете адреса от картата',
     'Choose this location' => 'Изберете тази локация',
