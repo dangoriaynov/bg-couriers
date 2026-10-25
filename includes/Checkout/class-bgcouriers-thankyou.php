@@ -57,15 +57,18 @@ class BGCouriers_Thankyou {
                 . '<span class="bgc-ty-amount">' . wp_kses_post($order->get_formatted_line_subtotal($item)) . '</span>'
                 . '</div>';
         }
+        $priced = false;
         foreach ($order->get_order_item_totals() as $key => $total) {
             $cls = $key === 'order_total' ? ' bgc-ty-total' : '';
+            $priced = $priced || strpos((string) $total['value'], 'bgc-door-price') !== false;
             $html .= '<div class="bgc-ty-row' . $cls . '">'
                 . '<span class="bgc-ty-name">' . esc_html(wp_strip_all_tags((string) $total['label'])) . '</span>'
                 . '<span class="bgc-ty-amount">' . wp_kses_post((string) $total['value']) . '</span>'
                 . '</div>';
         }
+        // The shipping row already says it with the price (BGCouriers_Checkout::order_shipping_row).
         $courier = (string) $order->get_meta('_bgcouriers_courier');
-        if ($courier !== '' && !BGCouriers_Settings::ship_in_total($courier)) {
+        if (!$priced && $courier !== '' && !BGCouriers_Settings::ship_in_total($courier)) {
             $html .= '<div class="bgc-ty-note">' . esc_html__('The delivery fee is paid to the courier on delivery.', 'bg-couriers') . '</div>';
         }
         return $html . '</div>';

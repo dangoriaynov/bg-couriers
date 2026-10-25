@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.33
+Stable tag: 0.4.34
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,9 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.34 =
+* Fixed: **the thank-you summary says "paid to the courier" once.** When the delivery row already shows the price the courier collects, the separate note under the totals is no longer added. Without a price on that row the note stays.
 
 = 0.4.33 =
 * Fixed: **an order edited in the WooCommerce mobile app gets a new waybill.** The app saves orders through the REST API, and the automatic re-issue only listened to the order screen in wp-admin. A product added from a phone left the old waybill on the order, with the old cash on delivery amount. Such an edit is now checked the same way: if it changed what the courier needs, the old waybill is voided and a new one issued; if the courier already has the parcel, the order gets a warning note instead.

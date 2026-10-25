@@ -4,6 +4,10 @@ The plugin's own `readme.txt` carries only the most recent entries: WordPress.or
 section at 5000 characters, and a changelog the directory cuts in half is worse than a short one
 that points here. Nothing is lost - this file is the full history.
 
+## 0.4.34
+* Fixed: **the `[bgcouriers_order_summary]` items block no longer repeats the door-price sentence.** Seen on the live shop's custom thank-you page (2026-10-25): with "Delivery in the order total" off, the shipping row from `order_shipping_row()` already ends in "~3,00 € paid to the courier on delivery", and `items_block()` added "The delivery fee is paid to the courier on delivery." under the totals as well. The note is now added only when no total row carries `bgc-door-price` (an order without a stored info price, where the row has no amount). The native WooCommerce order-received page is unchanged.
+* Tests: ThankyouDoorNoteTest renders the items block with and without the priced shipping row: 885 unit tests pass. No new strings.
+
 ## 0.4.33
 * Fixed: **an order edited in the WooCommerce mobile app re-issues its waybill.** Found on a live order (#6322, 2026-10-20): the owner added a product from the phone, the total went from 14,40 to 21,40 EUR, and the Speedy waybill stayed the one issued for 14,40 until it was re-issued by hand the next day. The app talks to the REST API (`PUT /wc/v3/orders/<id>` through Jetpack), which fires neither `woocommerce_process_shop_order_meta` nor `woocommerce_saved_order_items`, the two hooks `maybe_regenerate_on_change()` listened to. It now also runs on `woocommerce_rest_insert_shop_order_object` for updates (`maybe_regenerate_after_rest()`; creates are skipped), with the same fingerprint check, the same "courier already has it" warning and the same `bgcouriers_autoregen_on_change` switch.
 * Tests: RestEditReissuesWaybillTest sends real REST requests through `rest_do_request()`: an added item re-issues, a status change does not, a collected parcel is only noted, a create is left alone. 222 integration and 799 unit tests pass. No new strings.
