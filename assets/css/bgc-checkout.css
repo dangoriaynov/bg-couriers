@@ -97,8 +97,9 @@ label.bgc-rate-inactive, label.bgc-rate-inactive .amount, label.bgc-rate-inactiv
 .bgc-map-btn:hover { opacity: 1; background: rgba(128,128,128,.10); }
 .bgc-map-btn:focus-visible { opacity: 1; outline: 2px solid currentColor; outline-offset: 1px; }
 .bgc-map-btn:disabled { opacity: .3; cursor: default; background: transparent; }
-/* a long office name wraps the field to three lines: the button follows its height */
+/* a long office name wraps the field to three lines: the button follows its height (themes pull the field up with a negative margin) */
 .bgc-office-pick .bgc-map-btn { height: auto; }
+.bgc-office-pick .select2-container .select2-selection { margin-bottom: 0; }
 .bgc-map-btn .bgc-map-ico { flex: 0 0 auto; display: block; }
 .bgc-map-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .bgc-map-box { background: #fff; border-radius: 10px; width: min(860px, 96vw); max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.3); }
