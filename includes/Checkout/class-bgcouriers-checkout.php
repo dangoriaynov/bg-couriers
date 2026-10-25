@@ -826,7 +826,6 @@ class BGCouriers_Checkout {
                 'clear' => __('Clear', 'bg-couriers'),
                 'ans_near' => __('Closest', 'bg-couriers'),
                 'ans_cheap' => __('Cheapest', 'bg-couriers'),
-                'ans_both' => __('Closest and cheapest', 'bg-couriers'),
                 'ans_addr_pick' => __('Choose delivery to the address with this courier', 'bg-couriers'),
                 'near_straight' => __('as the crow flies', 'bg-couriers'),
                 'near_find' => __('Find the closest office', 'bg-couriers'),

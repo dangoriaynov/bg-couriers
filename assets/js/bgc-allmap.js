@@ -563,13 +563,9 @@
     if (!hintOn('address')) { addr = null; }
     if (!near && !cheap && !addr) { $box.attr('hidden', true).empty(); return; }
     var html = '', which = ' title="' + esc(I.near_which || '') + '"';
-    if (near && cheap && near.i === cheap.i) {
-      html = answerRow('bgc-allmap-near bgc-allmap-cheap bgc-ans-both', ' data-i="' + near.i + '"' + which,
-        I.ans_both, near.d, priceLabel(near.p), near.p);
-    } else {
-      if (near) { html += answerRow('bgc-allmap-near', ' data-i="' + near.i + '"' + which, I.ans_near, near.d, priceLabel(near.p), near.p); }
-      if (cheap) { html += answerRow('bgc-allmap-cheap', ' data-i="' + cheap.i + '"' + which, I.ans_cheap, cheap.d, priceLabel(cheap.p), cheap.p); }
-    }
+    // the same point can be both: two rows still, so every row keeps one height and one shape
+    if (near) { html += answerRow('bgc-allmap-near', ' data-i="' + near.i + '"' + which, I.ans_near, near.d, priceLabel(near.p), near.p); }
+    if (cheap) { html += answerRow('bgc-allmap-cheap', ' data-i="' + cheap.i + '"' + which, I.ans_cheap, cheap.d, priceLabel(cheap.p), cheap.p); }
     if (addr) {
       html += answerRow('bgc-ans-addr', ' data-c="' + esc(addr.p.courier) + '" data-city="' + esc(addr.p.cityId) + '"'
         + ' title="' + esc(I.ans_addr_pick || '') + '"', I.address, null, addr.text, addr.p);
