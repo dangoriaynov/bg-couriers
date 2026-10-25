@@ -834,6 +834,33 @@ test.describe('nearest office', () => {
    * behaviour that came with the fix: the position is not forgotten just because the customer looked at
    * a different town, so the distances come back on their own.
    */
+  test('combined map: the address price chooses delivery to the address @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+
+    const btn = page.locator('.bgc-ans-addr');
+    await expect(btn).toBeVisible();
+    const courier = await btn.getAttribute('data-c');
+    const cityId = await btn.getAttribute('data-city');
+    await btn.click();
+    await expect(page.locator('.bgc-allmap-overlay')).toHaveCount(0);
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(5000);
+
+    // That courier's rate, its address tab and the town: only the street is left to type.
+    expect(await page.locator('input[name^="shipping_method"]:checked').inputValue()).toContain('bgcouriers_' + courier);
+    const fields = page.locator(`.bgc-fields[data-courier="${courier}"]`);
+    expect(await fields.getAttribute('data-method')).toBe('address');
+    expect(String(await fields.locator('.bgc-city').inputValue())).toBe(String(cityId));
+    await expect(fields.locator('.bgc-address-rows')).toBeVisible();
+    await expect(fields.locator('.bgc-office-row')).toBeHidden();
+  });
+
   test('combined map: the location pin survives changing the town @allmap', async ({ page }) => {
     await addAnyProductToCart(page);
     await gotoCheckout(page);
