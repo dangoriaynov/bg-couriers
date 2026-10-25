@@ -5,6 +5,9 @@
 
   var I = (window.BGCOURIERS && BGCOURIERS.i18n) || {};
   var STORE = 'bgcouriers_map_pick';
+  // a view preference only, nothing about the customer
+  var MAX_STORE = 'bgcouriers_map_max';
+  function maxPref() { try { return window.localStorage.getItem(MAX_STORE) === '1'; } catch (e) { return false; } }
   // a place by name, not an id: city ids belong to the courier that issued them
   var state = { cityName: '', cityCode: '', cityLabel: '', citySeed: '' };
   // where distances are measured from; worked out in the browser and never sent anywhere
@@ -235,7 +238,8 @@
     // a known town opens at full width: growing from the search-only box once the points land reads as a glitch
     var wide = !!state.cityLabel;
     // bgc-mode-map in the markup: a phone with neither mode class would draw both panes
-    $dlg = $('<div class="bgc-allmap-overlay bgc-mode-map' + (wide ? ' bgc-has-map' : '') + '"><div class="bgc-allmap-box">'
+    $dlg = $('<div class="bgc-allmap-overlay bgc-mode-map' + (wide ? ' bgc-has-map' : '') + (maxPref() ? ' bgc-max' : '')
+      + '"><div class="bgc-allmap-box">'
       + '<div class="bgc-allmap-head"><strong>' + esc(I.allmap_title || '') + '</strong>'
       + '<button type="button" class="bgc-allmap-close" aria-label="' + esc(I.close || '') + '">&times;</button></div>'
       + '<div class="bgc-allmap-form">'
@@ -268,6 +272,7 @@
       + '</div>'
       + '<ul class="bgc-allmap-list"></ul></div>'
       + '<div class="bgc-allmap-canvas" id="bgc-allmap-canvas"></div>'
+      + '<button type="button" class="bgc-allmap-max"></button>'
       + '<div class="bgc-allmap-switch" role="group">'
       + '<button type="button" data-v="map" class="on" aria-pressed="true">' + esc(I.allmap_map || '') + '</button>'
       + '<button type="button" data-v="list" aria-pressed="false">' + esc(I.allmap_list || '')
@@ -419,6 +424,14 @@
     });
     $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
     $dlg.on('click', '.bgc-allmap-switch button', function () { setMode($(this).attr('data-v')); });
+    syncMaxBtn();
+    $dlg.on('click', '.bgc-allmap-max', function () {
+      var on = !$dlg.hasClass('bgc-max');
+      $dlg.toggleClass('bgc-max', on);
+      try { window.localStorage.setItem(MAX_STORE, on ? '1' : '0'); } catch (e) {}
+      syncMaxBtn();
+      if (map) { map.invalidateSize(); }
+    });
     $dlg.on('click', '.bgc-allmap-pick', function () {
       var p = points[+$(this).data('i')];
       if (!p || !window.BGCouriersCheckout) { return; }
@@ -571,6 +584,12 @@
         + '</button>';
     }
     $box.html(html).attr('hidden', null);
+  }
+
+  function syncMaxBtn() {
+    if (!$dlg) { return; }
+    var on = $dlg.hasClass('bgc-max'), label = (on ? I.allmap_unmax : I.allmap_max) || '';
+    $dlg.find('.bgc-allmap-max').attr({ title: label, 'aria-label': label, 'aria-pressed': on ? 'true' : 'false' });
   }
 
   // one line of chips that scrolls sideways; the fade says there is more only while there is

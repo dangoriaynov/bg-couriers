@@ -15,11 +15,12 @@
 .bgc-allmap-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 2147483647;
   display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; }
 /* min-width: the one-line chip row must not widen the box */
-.bgc-allmap-box { position: relative; min-width: 0; background: #fff; border-radius: 12px; width: min(560px, 94vw);
+/* one width from the first frame: only the height grows once a town is chosen */
+.bgc-allmap-box { position: relative; min-width: 0; background: #fff; border-radius: 12px; width: min(1240px, 96vw);
   max-height: 94vh; display: flex; flex-direction: column; overflow: visible;
   margin-top: max(16px, calc(50vh - 110px));
-  transition: margin-top .35s cubic-bezier(.22,.61,.36,1), width .35s cubic-bezier(.22,.61,.36,1); }
-.bgc-has-map .bgc-allmap-box { margin-top: 16px; width: min(1240px, 96vw); }
+  transition: margin-top .35s cubic-bezier(.22,.61,.36,1); }
+.bgc-has-map .bgc-allmap-box { margin-top: 16px; }
 .bgc-allmap-head { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center;
   padding: 12px 16px; border-bottom: 1px solid #e6e9ec; }
 .bgc-allmap-head strong { grid-column: 2; text-align: center; }
@@ -27,8 +28,6 @@
 .bgc-allmap-close { border: 0; background: none; font-size: 24px; line-height: 1; cursor: pointer; color: #50575e; }
 .bgc-allmap-form { padding: 10px 14px; display: flex; align-items: center; gap: 20px; }
 .bgc-allmap-form .bgc-allmap-cityrow { flex: 0 0 auto; width: 318px; }
-.bgc-allmap-overlay:not(.bgc-has-map) .bgc-allmap-form { padding: 14px; }
-.bgc-allmap-overlay:not(.bgc-has-map) .bgc-allmap-form .bgc-allmap-cityrow { flex: 1 1 auto; width: auto; }
 
 .bgc-allmap-wait { display: flex; align-items: center; justify-content: center; gap: 9px;
   padding: 0 14px 16px; color: #50575e; font-size: 13px; }
@@ -336,3 +335,22 @@ html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
 }
 .bgc-allmap-canvas .leaflet-tooltip { white-space: normal; width: max-content; max-width: 200px; text-align: center; }
 .bgc-tip-done .bgc-me-tip { display: none; }
+
+/* Enlarged map: the answers go, the dialog takes the screen; every other control stays */
+.bgc-allmap-max { display: none; position: absolute; z-index: 1000; top: 10px; right: 10px; width: 34px; height: 34px;
+  padding: 0; border: 2px solid rgba(0,0,0,.2); border-radius: 4px; background: #fff no-repeat center / 16px 16px;
+  background-clip: padding-box; cursor: pointer; color: #1d2327;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d2327' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'/%3E%3C/svg%3E"); }
+.bgc-has-map .bgc-allmap-max { display: block; }
+.bgc-allmap-max:hover { background-color: #f4f4f4; }
+.bgc-allmap-max:focus-visible { outline: 2px solid #2271b1; outline-offset: 1px; }
+.bgc-max .bgc-allmap-max {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d2327' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7'/%3E%3C/svg%3E"); }
+.bgc-max .bgc-allmap-answers { display: none; }
+.bgc-max.bgc-has-map .bgc-allmap-box { width: calc(100vw - 32px); max-height: none; }
+.bgc-max.bgc-has-map .bgc-allmap-body { max-height: none; height: calc(100vh - 175px); height: calc(100dvh - 175px); }
+@media (max-width: 720px), (max-height: 520px) {
+  .bgc-max.bgc-has-map .bgc-allmap-box { width: 100%; }
+  .bgc-max.bgc-has-map .bgc-allmap-body { height: auto; }
+  .bgc-mode-list .bgc-allmap-max { display: none; }
+}

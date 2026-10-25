@@ -137,7 +137,8 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 * Changed: **the map shows every courier, whichever Map button opened it.** A courier's own button used to switch the others off.
 * Changed: **a tidier list.** Name and price on the first line, address and distance under them; house numbers no longer wrap onto a line of their own. The courier chips stay on one line and scroll sideways.
 * Fixed: **the Map button next to the office field is as tall as the field** when a long office name wraps it.
-* Fixed: **the map opens at its full width when the town is already chosen**, instead of starting narrow and widening.
+* New: **a button on the map enlarges it** to nearly the whole screen and hides the closest, cheapest and address answers; every other control stays, and the choice is remembered in the browser.
+* Fixed: **the map dialog has one width from the first frame**, with or without a town chosen; only its height grows when the map appears.
 
 = 0.4.34 =
 * Fixed: **the thank-you summary says "paid to the courier" once.** When the delivery row already shows the price the courier collects, the separate note under the totals is no longer added. Without a price on that row the note stays.
