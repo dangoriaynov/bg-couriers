@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.34
+Stable tag: 0.4.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.35 =
+* Changed: **the map shows every courier's points and prices, whichever Map button opened it.** A courier's own button used to switch the others off in the legend, so the price of another courier's office or locker was not on screen. The chosen office is still centred and marked.
+* Changed: **the "closest" line with the price against delivery to the address shows as soon as the town is known.** Until the customer shares a location it is measured from the town centre and says so; the location button still switches it to the customer's own position.
+* Fixed: **the Map button next to the office field is as tall as the field** when a long office name wraps it to two or three lines.
+* Fixed: **the map opens at its full width when the town is already chosen**, instead of starting narrow and widening once the points arrive.
 
 = 0.4.34 =
 * Fixed: **the thank-you summary says "paid to the courier" once.** When the delivery row already shows the price the courier collects, the separate note under the totals is no longer added. Without a price on that row the note stays.
