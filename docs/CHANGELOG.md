@@ -6,6 +6,7 @@ that points here. Nothing is lost - this file is the full history.
 
 ## 0.4.34
 * Fixed: **the `[bgcouriers_order_summary]` items block no longer repeats the door-price sentence.** Seen on the live shop's custom thank-you page (2026-10-25): with "Delivery in the order total" off, the shipping row from `order_shipping_row()` already ends in "~3,00 € paid to the courier on delivery", and `items_block()` added "The delivery fee is paid to the courier on delivery." under the totals as well. The note is now added only when no total row carries `bgc-door-price` (an order without a stored info price, where the row has no amount). The native WooCommerce order-received page is unchanged.
+* Fixed: **the door-price sentence in the summary wraps on a phone.** `.bgc-ty-amount` is `nowrap` so amounts stay on one line, and the `bgc-door-price` sentence inside it inherited that: on a 320 px screen it ended 170 px past the card and off the screen. The sentence is now its own wrapping block inside the right-aligned amount cell. Checked on dev at 320 and 1366 px.
 * Tests: ThankyouDoorNoteTest renders the items block with and without the priced shipping row: 885 unit tests pass. No new strings.
 
 ## 0.4.33
