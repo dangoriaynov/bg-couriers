@@ -58,11 +58,16 @@
     var m = String(text || '').replace(/[\s\u00a0]/g, '').match(/\d+(?:[.,]\d+)?/);
     return m ? parseFloat(m[0].replace(',', '.')) : null;
   }
-  // a number or a one-letter entrance left alone on the next line reads as a stray
+  // a house number left alone on the last line reads as a stray: bind it to its marker and the word before
   function addrText(s) {
     return String(s || '')
-      .replace(/(^|\s)(No|№|бл\.|вх\.|ет\.|ап\.)\s+(?=\S)/g, function (m, pre, w) { return pre + w + '\u00a0'; })
-      .replace(/\s+(\S{1,3})$/, '\u00a0$1');
+      .replace(/(^|[ \t])(No|№|бл\.|вх\.|ет\.|ап\.)[ \t]+(?=\S)/g, function (m, pre, w) { return pre + w + '\u00a0'; })
+      .replace(/[ \t]+([^ \t]{1,9})$/, '\u00a0$1');
+  }
+  function money(v, like) {
+    var m = String(like || '').match(/\d+(?:([.,])\d+)?/);
+    if (!m) { return ''; }
+    return String(like).replace(m[0], v.toFixed(2).replace('.', m[1] || ','));
   }
 
   function homeIndexCountry() {
@@ -547,7 +552,10 @@
       if (cheap) { html += answerTile('bgc-allmap-cheap', I.ans_cheap, cheap); }
     }
     if (addr) {
-      html += '<div class="bgc-ans-addr">' + esc(String(I.ans_addr || '%s').replace('%s', addr.text)) + '</div>';
+      var save = cheap && addr.v > cheap.v ? money(addr.v - cheap.v, addr.text) : '';
+      html += '<div class="bgc-ans-addr">' + esc(String(I.ans_addr || '%s').replace('%s', addr.text))
+        + (save ? ' <span class="bgc-near-save">' + esc((I.near_save || '') + ' ' + save) + '</span>' : '')
+        + '</div>';
     }
     $box.html(html).attr('hidden', null);
   }
@@ -1035,11 +1043,17 @@
     if (meMarker && meMarker.openTooltip) { meMarker.openTooltip(); }
   }
 
+  // the hint has done its job once the customer moved the pin; unbindTooltip() would leave Leaflet 1.9 a dangling focus listener
+  function quietTip() {
+    if ($dlg) { $dlg.addClass('bgc-tip-done'); }
+    if (meMarker && meMarker.closeTooltip) { meMarker.closeTooltip(); }
+  }
+
   function setOrigin(ll) {
     origin = { lat: ll.lat, lng: ll.lng };
     originAuto = false;
     placeMe([ll.lat, ll.lng]);
-    if (meMarker && meMarker.unbindTooltip) { meMarker.unbindTooltip(); }
+    quietTip();
     refreshNear();
   }
 
@@ -1058,12 +1072,12 @@
         iconSize: [24, 34], iconAnchor: [12, 34]
       })
     }).addTo(map);
-    meMarker.bindTooltip(I.near_drag || I.map_locate || '', { direction: 'top', offset: [0, -34] });
+    meMarker.bindTooltip(I.near_drag || I.map_locate || '', { direction: 'top', offset: [0, -34], className: 'bgc-me-tip' });
     meMarker.on('dragend', function () {
       var ll = meMarker.getLatLng();
       origin = { lat: ll.lat, lng: ll.lng };
       originAuto = false;
-      meMarker.unbindTooltip();
+      quietTip();
       save();
       refreshNear();
     });

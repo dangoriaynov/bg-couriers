@@ -132,7 +132,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.35 =
-* Changed: **the map compares the couriers for you.** Two answers sit above the list: the closest point and the cheapest one, each with its courier, distance and price, plus the lowest price of delivery to the address. Every courier's chip shows its nearest point's distance and price.
+* Changed: **the map compares the couriers for you.** Two answers sit above the list: the closest point and the cheapest one, each with its courier, distance and price, plus the lowest price of delivery to the address and what the cheapest point saves against it. Every courier's chip shows its nearest point's distance and price.
 * Changed: **distances are measured from a pin you can move.** It starts on the office already chosen (or the town centre), and dragging it or clicking the map moves it; the location button puts it where you are, as before.
 * Changed: **the map shows every courier, whichever Map button opened it.** A courier's own button used to switch the others off.
 * Changed: **a tidier list.** Name and price on the first line, address and distance under them; house numbers no longer wrap onto a line of their own. The courier chips stay on one line and scroll sideways.
