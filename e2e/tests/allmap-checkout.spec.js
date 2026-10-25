@@ -639,10 +639,24 @@ test.describe('the combined map on a phone', () => {
     await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
     await page.waitForTimeout(1500);
 
-    // The pin nearest the top-left corner - the one whose popup lands on the zoom control.
+    // The pin nearest the top-left corner - the one whose popup lands on the zoom control. A single
+    // painted pin inside the canvas: a bubble zooms in instead of opening a popup, so zoom in until
+    // one stands alone.
+    const painted = () => page.evaluate(() => {
+      const c = document.querySelector('.bgc-allmap-canvas').getBoundingClientRect();
+      return Array.from(document.querySelectorAll('.leaflet-marker-icon.bgc-allmap-pin')).filter(el => {
+        const r = el.getBoundingClientRect();
+        return el.style.display !== 'none' && r.width > 0 && r.top >= c.top && r.left >= c.left; }).length;
+    });
+    for (let i = 0; i < 8 && !(await painted()); i++) {
+      await page.locator('.leaflet-control-zoom-in').click();
+      await page.waitForTimeout(500);
+    }
     await page.evaluate(() => {
       const c = document.querySelector('.bgc-allmap-canvas').getBoundingClientRect();
-      Array.from(document.querySelectorAll('.leaflet-marker-icon'))
+      Array.from(document.querySelectorAll('.leaflet-marker-icon.bgc-allmap-pin'))
+        .filter(el => { const r = el.getBoundingClientRect();
+                        return el.style.display !== 'none' && r.width > 0 && r.top >= c.top && r.left >= c.left; })
         .map(el => { const r = el.getBoundingClientRect();
                      return { el, d: (r.left - c.left) ** 2 + (r.top - c.top) ** 2 }; })
         .sort((a, b) => a.d - b.d)[0].el.click();
