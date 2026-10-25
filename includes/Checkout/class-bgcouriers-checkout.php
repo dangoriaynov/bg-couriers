@@ -814,6 +814,8 @@ class BGCouriers_Checkout {
                 'allmap_city_ph' => __('Choose a city', 'bg-couriers'),
                 'allmap_map' => __('Map', 'bg-couriers'),
                 'allmap_list' => __('List', 'bg-couriers'),
+                'allmap_max' => __('Enlarge the map', 'bg-couriers'),
+                'allmap_unmax' => __('Back to the normal view', 'bg-couriers'),
                 'allmap_loading' => __('Loading the pickup points…', 'bg-couriers'),
                 'allmap_directions' => __('Directions', 'bg-couriers'),
                 'clear' => __('Clear', 'bg-couriers'),
