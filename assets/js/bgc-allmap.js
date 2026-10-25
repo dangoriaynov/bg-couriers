@@ -33,6 +33,11 @@
 
   // 'no' rather than a falsy test: wp_localize_script() hands PHP false over as ''
   function nearOn() { return !window.BGCOURIERS || BGCOURIERS.allmapNearest !== 'no'; }
+  // the merchant can switch each answer above the list off on its own
+  function hintOn(k) {
+    var h = window.BGCOURIERS && BGCOURIERS.allmapHints;
+    return !h || h[k] !== 'no';
+  }
 
   function nextFrame(fn) {
     if (window.requestAnimationFrame) { window.requestAnimationFrame(fn); } else { setTimeout(fn, 16); }
@@ -412,7 +417,7 @@
     // guarded: choosing a point nulls $dlg while this click is still bubbling
     $dlg.on('click', function (e) { if ($dlg && e.target === $dlg[0]) { close(); } });
     $dlg.on('input', '.bgc-allmap-search', scheduleFilter);
-    $dlg.on('click', '.bgc-allmap-ans', function () { focusPoint(+$(this).attr('data-i')); });
+    $dlg.on('click', '.bgc-allmap-ans:not(.bgc-ans-addr)', function () { focusPoint(+$(this).attr('data-i')); });
     $dlg.on('click', '.bgc-ans-addr', function () {
       if (!window.BGCouriersCheckout) { return; }
       var ok = window.BGCouriersCheckout.applyPick({
@@ -476,7 +481,7 @@
 
   // the instant half: cached distances and flags only, so it can run on a legend click
   function pickNear() {
-    if (!$dlg || !nearOn()) { return; }
+    if (!$dlg) { return; }
     var best = {}, near = null, cheap = null, addr = null, term = searchTerm();
     // nearer first; with no distance (or the same one) the cheaper
     function better(a, b) {
@@ -540,40 +545,34 @@
     }
   }
 
-  function answerTile(cls, label, x) {
-    var p = x.p;
-    return '<button type="button" class="bgc-allmap-ans ' + cls + '" data-i="' + x.i + '"'
-      + ' title="' + esc(I.near_which || '') + '">'
+  // one row per answer, the same columns in each: what, how far, how much, which courier
+  function answerRow(cls, attrs, label, d, price, p) {
+    return '<button type="button" class="bgc-allmap-ans ' + cls + '"' + attrs + '>'
       + '<span class="bgc-ans-k">' + esc(label || '') + '</span>'
-      + '<span class="bgc-ans-c">'
-      + (p.logo ? '<img src="' + esc(p.logo) + '" alt="">' : '')
-      + '<span class="bgc-near-c">' + esc(p.courierLabel) + '</span>' + typeGlyph(p.type) + '</span>'
-      + '<span class="bgc-ans-m">'
-      + (x.d != null ? '<span class="bgc-near-d" title="' + esc(I.near_straight || '') + '">' + esc(fmtDist(x.d)) + '</span>' : '')
-      + (p.price ? '<span class="bgc-near-p">' + esc(priceLabel(p)) + '</span>' : '')
-      + '</span></button>';
+      + '<span class="bgc-near-d"' + (d != null ? ' title="' + esc(I.near_straight || '') + '">' + esc(fmtDist(d)) : '>') + '</span>'
+      + '<span class="bgc-near-p">' + esc(price || '') + '</span>'
+      + '<span class="bgc-ans-c">' + (p.logo ? '<img src="' + esc(p.logo) + '" alt="">' : '')
+      + '<span class="bgc-near-c">' + esc(p.courierLabel) + '</span></span>'
+      + '</button>';
   }
 
   function renderAnswers(near, cheap, addr) {
     var $box = $dlg.find('.bgc-allmap-answers');
-    if (!near && !cheap) { $box.attr('hidden', true).empty(); return; }
-    var html = '';
+    if (!hintOn('near')) { near = null; }
+    if (!hintOn('cheap')) { cheap = null; }
+    if (!hintOn('address')) { addr = null; }
+    if (!near && !cheap && !addr) { $box.attr('hidden', true).empty(); return; }
+    var html = '', which = ' title="' + esc(I.near_which || '') + '"';
     if (near && cheap && near.i === cheap.i) {
-      html = answerTile('bgc-allmap-near bgc-allmap-cheap bgc-ans-both', I.ans_both, near);
+      html = answerRow('bgc-allmap-near bgc-allmap-cheap bgc-ans-both', ' data-i="' + near.i + '"' + which,
+        I.ans_both, near.d, priceLabel(near.p), near.p);
     } else {
-      if (near) { html += answerTile('bgc-allmap-near', I.ans_near, near); }
-      if (cheap) { html += answerTile('bgc-allmap-cheap', I.ans_cheap, cheap); }
+      if (near) { html += answerRow('bgc-allmap-near', ' data-i="' + near.i + '"' + which, I.ans_near, near.d, priceLabel(near.p), near.p); }
+      if (cheap) { html += answerRow('bgc-allmap-cheap', ' data-i="' + cheap.i + '"' + which, I.ans_cheap, cheap.d, priceLabel(cheap.p), cheap.p); }
     }
     if (addr) {
-      var save = cheap && addr.v > cheap.v ? money(addr.v - cheap.v, addr.text) : '';
-      var ap = addr.p;
-      html += '<button type="button" class="bgc-ans-addr" data-c="' + esc(ap.courier) + '" data-city="' + esc(ap.cityId) + '"'
-        + ' title="' + esc(I.ans_addr_pick || '') + '">'
-        + '<span class="bgc-ans-addr-t">' + esc(String(I.ans_addr || '%s').replace('%s', addr.text)) + '</span>'
-        + '<span class="bgc-ans-addr-c">' + (ap.logo ? '<img src="' + esc(ap.logo) + '" alt="">' : '')
-        + esc(ap.courierLabel) + '</span>'
-        + (save ? '<span class="bgc-near-save">' + esc((I.near_save || '') + ' ' + save) + '</span>' : '')
-        + '</button>';
+      html += answerRow('bgc-ans-addr', ' data-c="' + esc(addr.p.courier) + '" data-city="' + esc(addr.p.cityId) + '"'
+        + ' title="' + esc(I.ans_addr_pick || '') + '"', I.address, null, addr.text, addr.p);
     }
     $box.html(html).attr('hidden', null);
   }

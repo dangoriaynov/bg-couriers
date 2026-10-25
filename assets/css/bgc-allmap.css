@@ -27,7 +27,7 @@
 .bgc-allmap-head .bgc-allmap-close { grid-column: 3; justify-self: end; }
 .bgc-allmap-close { border: 0; background: none; font-size: 24px; line-height: 1; cursor: pointer; color: #50575e; }
 .bgc-allmap-form { padding: 10px 14px; display: flex; align-items: center; gap: 20px; }
-.bgc-allmap-form .bgc-allmap-cityrow { flex: 0 0 auto; width: 318px; }
+.bgc-allmap-form .bgc-allmap-cityrow { flex: 0 0 auto; width: 338px; }
 
 .bgc-allmap-wait { display: flex; align-items: center; justify-content: center; gap: 9px;
   padding: 0 14px 16px; color: #50575e; font-size: 13px; }
@@ -76,7 +76,7 @@
 @media (prefers-reduced-motion: reduce) {
   .bgc-allmap-box, .bgc-allmap-body { transition: none; }
 }
-.bgc-allmap-side { width: 340px; flex: 0 0 auto; overflow-y: auto; border-right: 1px solid #e6e9ec;
+.bgc-allmap-side { width: 360px; flex: 0 0 auto; overflow-y: auto; border-right: 1px solid #e6e9ec;
   display: flex; flex-direction: column; }
 .bgc-allmap-sidetop { position: sticky; top: 0; z-index: 2; flex: 0 0 auto; background: #fff;
   border-bottom: 1px solid #e6e9ec; }
@@ -274,39 +274,23 @@
 
 html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
 
-/* Closest and cheapest, side by side above the list */
-.bgc-allmap-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
-  padding: 0 8px 10px 14px; }
+/* Closest, cheapest and to the address: one row each, the same columns, so the prices line up */
+.bgc-allmap-answers { display: flex; flex-direction: column; gap: 6px; padding: 0 8px 10px 14px; }
 .bgc-allmap-answers[hidden] { display: none; }
-.bgc-allmap-ans { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0;
-  margin: 0; padding: 7px 10px; border: 1px solid #dde3ea; border-radius: 10px; background: #f6f9fc;
-  font: inherit; color: #1d2327; text-align: left; cursor: pointer; }
+.bgc-allmap-ans { display: grid; grid-template-columns: 6.4em 3.5em 3.9em minmax(0, 1fr); align-items: center;
+  column-gap: 6px; width: 100%; box-sizing: border-box; margin: 0; padding: 7px 10px; border: 1px solid #dde3ea;
+  border-radius: 9px; background: #f6f9fc; font: inherit; font-size: 12.5px; line-height: 1.3; color: #1d2327;
+  text-align: left; cursor: pointer; }
 .bgc-allmap-ans:hover { background: #eef4fa; border-color: #c3d3e3; }
 .bgc-allmap-ans:focus-visible { outline: 2px solid #2271b1; outline-offset: 1px; }
-.bgc-allmap-ans.bgc-ans-both { grid-column: 1 / -1; }
-.bgc-ans-k { font-size: 11.5px; line-height: 1.3; color: #50575e; }
-.bgc-ans-c { display: flex; align-items: flex-start; gap: 5px; max-width: 100%; font-size: 13px;
-  font-weight: 600; line-height: 1.35; }
-.bgc-ans-c img { width: 15px; height: 15px; object-fit: contain; flex: 0 0 auto; margin-top: 1px; }
-.bgc-ans-c .bgc-near-c { min-width: 0; overflow-wrap: anywhere; }
-.bgc-ans-c .bgc-allmap-kind { margin-right: 0; flex: 0 0 auto; }
-.bgc-ans-m { display: flex; align-items: baseline; gap: 8px; font-size: 13px; line-height: 1.35;
-  white-space: nowrap; }
-.bgc-near-d { color: #50575e; cursor: help; }
-.bgc-near-p { font-weight: 700; }
+.bgc-ans-k { color: #50575e; }
+.bgc-near-d { color: #50575e; white-space: nowrap; cursor: help; }
+.bgc-near-p { font-weight: 700; white-space: nowrap; }
 .bgc-allmap-cheap .bgc-near-p { color: #14663a; }
-.bgc-ans-addr { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
-  margin: 0; padding: 6px 28px 6px 10px; position: relative; border: 1px solid #dde3ea; border-radius: 10px;
-  background: #fff; font: inherit; font-size: 12.5px; line-height: 1.35; color: #1d2327; text-align: left;
-  cursor: pointer; }
-.bgc-ans-addr::after { content: ""; position: absolute; right: 12px; top: 50%; width: 6px; height: 6px;
-  margin-top: -4px; border: solid #8c8f94; border-width: 2px 2px 0 0; transform: rotate(45deg); }
-.bgc-ans-addr:hover { background: #eef4fa; border-color: #c3d3e3; }
-.bgc-ans-addr:focus-visible { outline: 2px solid #2271b1; outline-offset: 1px; }
-.bgc-ans-addr-c { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
-.bgc-ans-addr-c img { width: 14px; height: 14px; object-fit: contain; }
-.bgc-near-save { padding: 0 6px; border-radius: 999px; background: #e6f4ea; color: #14663a;
-  font-weight: 600; white-space: nowrap; }
+.bgc-ans-c { display: flex; align-items: center; gap: 5px; min-width: 0; font-weight: 600; }
+.bgc-ans-c img { width: 15px; height: 15px; object-fit: contain; flex: 0 0 auto; }
+.bgc-ans-c .bgc-near-c { min-width: 0; overflow-wrap: anywhere; }
+.bgc-ans-addr { background: #fff; }
 
 .bgc-chip-d { color: #50575e; font-weight: 600; }
 .bgc-chip-d::before { content: "·"; margin-right: 5px; color: #a7aaad; font-weight: 400; }
@@ -328,10 +312,11 @@ html.bgc-allmap-lock, body.bgc-allmap-lock { overflow: hidden; }
 
 @media (max-width: 720px) {
   .bgc-allmap-answers { padding: 0 12px 10px; }
+  .bgc-allmap-ans { min-height: 44px; font-size: 13.5px; }
 }
 @media (max-height: 520px) {
-  .bgc-allmap-answers { padding-bottom: 6px; }
-  .bgc-ans-addr { display: none; }
+  .bgc-allmap-answers { padding-bottom: 6px; gap: 4px; }
+  .bgc-allmap-ans { padding: 4px 10px; }
 }
 .bgc-allmap-canvas .leaflet-tooltip { white-space: normal; width: max-content; max-width: 200px; text-align: center; }
 .bgc-tip-done .bgc-me-tip { display: none; }
