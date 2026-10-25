@@ -832,9 +832,11 @@
 
   window.BGCouriersCheckout = {
     textMatch: bgcTextMatch,
+    // a pick without an office is delivery to the address: the town is set, the street is the customer's
     applyPick: function (pick) {
       var $wrap = $('.bgc-fields[data-courier="' + pick.courier + '"]');
       if (!$wrap.length) { return false; }
+      var toAddress = !pick.officeId;
       // rate values may carry an instance id ("bgcouriers_speedy:5"): match the courier segment
       var want = 'bgcouriers_' + pick.courier;
       var $radio = $('input[name^="shipping_method"]').filter(function () {
@@ -850,9 +852,10 @@
       if (newTown) { resetStreet($wrap); }
       $wrap.attr('data-method', pick.method);
       syncMethodUI($wrap); syncOffice($wrap); syncMapBtn($wrap);
-      var $office = $wrap.find('.bgc-office');
       resetOffice($wrap);
-      $office.append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change.select2');
+      if (!toAddress) {
+        $wrap.find('.bgc-office').append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change.select2');
+      }
       showLoader($wrap);
       if (pendingOfficeApply) { $(document.body).off('updated_checkout', pendingOfficeApply); pendingOfficeApply = null; }
       var restore = function () {
@@ -864,7 +867,9 @@
         $w.find('.bgc-postcode').val(pick.postCode || '');
         if (method($w) !== pick.method) { $w.attr('data-method', pick.method); syncMethodUI($w); }
         syncOffice($w); syncMapBtn($w);
-        $w.find('.bgc-office').append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change.select2');
+        if (!toAddress) {
+          $w.find('.bgc-office').append(new Option(pick.officeLabel, pick.officeId, true, true)).val(String(pick.officeId)).trigger('change.select2');
+        }
         return $w;
       };
       saveSelection($wrap).always(function () {
@@ -873,7 +878,8 @@
           $(document.body).off('updated_checkout', check);
           pendingOfficeApply = null;
           var $w = $('.bgc-fields[data-courier="' + pick.courier + '"]');
-          if (!$w.length || String($w.find('.bgc-office').val() || '') === String(pick.officeId)) { return; }
+          if (!$w.length) { return; }
+          if (toAddress ? method($w) === 'address' : String($w.find('.bgc-office').val() || '') === String(pick.officeId)) { return; }
           var checkedVal = String($('input[name^="shipping_method"]:checked').val() || '');
           if (checkedVal !== want && checkedVal.indexOf(want + ':') !== 0) { return; }
           $w = restore();

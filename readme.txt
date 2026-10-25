@@ -132,10 +132,12 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 == Changelog ==
 
 = 0.4.35 =
-* Changed: **the map shows every courier's points and prices, whichever Map button opened it.** A courier's own button used to switch the others off in the legend, so the price of another courier's office or locker was not on screen. The chosen office is still centred and marked.
-* Changed: **the "closest" line with the price against delivery to the address shows as soon as the town is known.** Until the customer shares a location it is measured from the town centre and says so; the location button still switches it to the customer's own position.
-* Fixed: **the Map button next to the office field is as tall as the field** when a long office name wraps it to two or three lines.
-* Fixed: **the map opens at its full width when the town is already chosen**, instead of starting narrow and widening once the points arrive.
+* Changed: **the map compares the couriers for you.** Two answers sit above the list: the closest point and the cheapest one, each with its courier, distance and price, plus the lowest price of delivery to the address and what the cheapest point saves against it. Pressing the address line chooses that courier's delivery to the address at the checkout. Every courier's chip shows its nearest point's distance and price.
+* Changed: **distances are measured from a pin you can move.** It starts on the office already chosen (or the town centre), and dragging it or clicking the map moves it; the location button puts it where you are, as before.
+* Changed: **the map shows every courier, whichever Map button opened it.** A courier's own button used to switch the others off.
+* Changed: **a tidier list.** Name and price on the first line, address and distance under them; house numbers no longer wrap onto a line of their own. The courier chips stay on one line and scroll sideways.
+* Fixed: **the Map button next to the office field is as tall as the field** when a long office name wraps it.
+* Fixed: **the map opens at its full width when the town is already chosen**, instead of starting narrow and widening.
 
 = 0.4.34 =
 * Fixed: **the thank-you summary says "paid to the courier" once.** When the delivery row already shows the price the courier collects, the separate note under the totals is no longer added. Without a price on that row the note stays.
