@@ -305,7 +305,7 @@ test('combined map: choosing a point sets the courier, the delivery type and the
     const pts = window.BGCouriersAllMap.points();
     const i = pts.findIndex(p => p.available && p.courier !== bare(cur));
     if (i < 0) { return null; }
-    document.querySelectorAll('.bgc-allmap-item')[i].click();   // focus it, opening its popup
+    document.querySelector('.bgc-allmap-item[data-i="' + i + '"]').click();   // focus it, opening its popup
     return { i, courier: pts[i].courier, officeId: pts[i].office.office_id, type: pts[i].type,
              cityId: pts[i].cityId };
   }, before);
@@ -378,7 +378,7 @@ test('combined map: choosing a locker lands on the locker tab, not the address f
     const pts = window.BGCouriersAllMap.points();
     const i = pts.findIndex(p => p.available && p.type === 'automat');
     if (i < 0) { return null; }
-    document.querySelectorAll('.bgc-allmap-item')[i].click();
+    document.querySelector('.bgc-allmap-item[data-i="' + i + '"]').click();
     return { courier: pts[i].courier, officeId: pts[i].office.office_id, cityId: pts[i].cityId };
   });
   expect(pick, 'the map must offer at least one locker').not.toBeNull();
