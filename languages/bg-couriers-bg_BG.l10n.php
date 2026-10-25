@@ -181,6 +181,7 @@ return array (
     'Client ID' => 'Client ID',
     'Client secret' => 'Client secret',
     'Close' => 'Затвори',
+    'Closest to the town centre' => 'Най-близо до центъра',
     'Closest to you' => 'Най-близо до вас',
     'Collection address' => 'Адрес за вземане',
     'Collection town' => 'Населено място за вземане',
