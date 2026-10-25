@@ -133,6 +133,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 = 0.4.34 =
 * Fixed: **the thank-you summary says "paid to the courier" once.** When the delivery row already shows the price the courier collects, the separate note under the totals is no longer added. Without a price on that row the note stays.
+* Fixed: **on a phone the "paid to the courier" line under the delivery row wraps** instead of running past the edge of the screen.
 
 = 0.4.33 =
 * Fixed: **an order edited in the WooCommerce mobile app gets a new waybill.** The app saves orders through the REST API, and the automatic re-issue only listened to the order screen in wp-admin. A product added from a phone left the old waybill on the order, with the old cash on delivery amount. Such an edit is now checked the same way: if it changed what the courier needs, the old waybill is voided and a new one issued; if the courier already has the parcel, the order gets a warning note instead.
