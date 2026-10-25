@@ -902,6 +902,41 @@ test.describe('nearest office', () => {
     await expect(fields.locator('.bgc-office-row')).toBeHidden();
   });
 
+  test('combined map: the merchant switches each answer off on its own @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    expect(await page.evaluate(() => BGCOURIERS.allmapHints)).toEqual({ near: 'yes', cheap: 'yes', address: 'yes' });
+
+    // The same switches the settings send, flipped in the page: closest off.
+    await page.evaluate(() => { BGCOURIERS.allmapHints = { near: 'no', cheap: 'yes', address: 'yes' }; });
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.bgc-allmap-near')).toHaveCount(0);
+    await expect(page.locator('.bgc-allmap-cheap')).toBeVisible();
+    await expect(page.locator('.bgc-ans-addr')).toBeVisible();
+
+    // Only the address one.
+    await page.locator('.bgc-allmap-close').click();
+    await page.evaluate(() => { BGCOURIERS.allmapHints = { near: 'no', cheap: 'no', address: 'yes' }; });
+    await page.locator('.bgc-allmap-btn').click();
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.bgc-allmap-ans')).toHaveCount(1);
+    await expect(page.locator('.bgc-ans-addr')).toBeVisible();
+
+    // None: no block at all, the map and the list carry on.
+    await page.locator('.bgc-allmap-close').click();
+    await page.evaluate(() => { BGCOURIERS.allmapHints = { near: 'no', cheap: 'no', address: 'no' }; });
+    await page.locator('.bgc-allmap-btn').click();
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.bgc-allmap-answers')).toBeHidden();
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(1);
+  });
+
   test('combined map: the location pin survives changing the town @allmap', async ({ page }) => {
     await addAnyProductToCart(page);
     await gotoCheckout(page);
