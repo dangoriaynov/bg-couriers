@@ -9,8 +9,8 @@
   var state = { cityName: '', cityCode: '', cityLabel: '', citySeed: '' };
   // where distances are measured from; worked out in the browser and never sent anywhere
   var origin = null;
-  // the town's centre, a stand-in for origin until the customer shares a position: the price line shows at once
-  var centre = null;
+  // placed by the dialog (the chosen office, else the town's centre) until the customer moves it: it follows the town
+  var originAuto = false;
   // the current render's pins, wiped as one on the next render (a stale pin's popup would index the new points array)
   var $dlg = null, map = null, layer = null, markers = [], points = [], cache = {};
   var availT = null, availSeq = 0;
@@ -45,15 +45,24 @@
   }
   function fmtDist(m) {
     if (m == null) { return ''; }
-    if (m < 950) { return Math.round(m / 10) * 10 + ' ' + (I.near_m || 'm'); }
-    return (Math.round(m / 100) / 10).toString().replace('.', ',') + ' ' + (I.near_km || 'km');
+    if (m < 950) { return Math.round(m / 10) * 10 + '\u00a0' + (I.near_m || 'm'); }
+    return (Math.round(m / 100) / 10).toString().replace('.', ',') + '\u00a0' + (I.near_km || 'km');
   }
-  function distOf(p, from) {
-    from = from || origin;
-    if (!from) { return null; }
+  function distOf(p) {
+    if (!origin) { return null; }
     var lat = Number(p.office.lat), lng = Number(p.office.lng);
     if (!lat && !lng) { return null; }
-    return distanceM(from, { lat: lat, lng: lng });
+    return distanceM(origin, { lat: lat, lng: lng });
+  }
+  function amount(text) {
+    var m = String(text || '').replace(/[\s\u00a0]/g, '').match(/\d+(?:[.,]\d+)?/);
+    return m ? parseFloat(m[0].replace(',', '.')) : null;
+  }
+  // a number or a one-letter entrance left alone on the next line reads as a stray
+  function addrText(s) {
+    return String(s || '')
+      .replace(/(^|\s)(No|№|бл\.|вх\.|ет\.|ап\.)\s+(?=\S)/g, function (m, pre, w) { return pre + w + '\u00a0'; })
+      .replace(/\s+(\S{1,3})$/, '\u00a0$1');
   }
 
   function homeIndexCountry() {
@@ -177,9 +186,10 @@
     if (availT) { clearInterval(availT); availT = null; }
     if (map) { map.remove(); map = null; }
     meMarker = null;
+    if (originAuto) { origin = null; originAuto = false; }
     layer = null;
     clusters = null; clustered = [];
-    markers = []; points = []; rowEls = []; dists = []; centre = null;
+    markers = []; points = []; rowEls = []; dists = [];
     mode = 'map';
     $(window).off('.bgcallmap');
     $('html, body').removeClass('bgc-allmap-lock');
@@ -241,12 +251,15 @@
       + '</div>'
       + '<div class="bgc-allmap-body"' + (wide ? '' : ' style="display:none;"') + '>'
       + '<div class="bgc-allmap-side">'
+      + '<div class="bgc-allmap-sidetop">'
       + '<div class="bgc-allmap-searchrow">'
       + '<input type="text" class="bgc-allmap-search" autocomplete="off" placeholder="' + esc(I.office_ph || '') + '">'
       + (nearOn()
           ? '<button type="button" class="bgc-map-locate" data-tip="' + esc(I.map_locate || '')
             + '" aria-label="' + esc(I.map_locate || '') + '"></button>'
           : '')
+      + '</div>'
+      + '<div class="bgc-allmap-answers" hidden></div>'
       + '</div>'
       + '<ul class="bgc-allmap-list"></ul></div>'
       + '<div class="bgc-allmap-canvas" id="bgc-allmap-canvas"></div>'
@@ -260,6 +273,7 @@
     $('html, body').addClass('bgc-allmap-lock');
     $(window).on('resize.bgcallmap orientationchange.bgcallmap', function () {
       if (map) { map.invalidateSize(); }
+      syncLegend();
     });
 
     // own suggest list, not select2: its dropdown positioning breaks inside a position:fixed overlay
@@ -284,11 +298,12 @@
       hideRes(); syncClear(); busyCity(false);
       // meMarker must go with its map, or the next locate moves a marker on a destroyed map
       if (map) { map.remove(); map = null; layer = null; meMarker = null; }
-      markers = []; points = []; rowEls = []; dists = []; centre = null;
+      markers = []; points = []; rowEls = []; dists = [];
+      if (originAuto) { origin = null; originAuto = false; }
       $dlg.removeClass('bgc-has-map');
       $dlg.find('.bgc-allmap-body').hide().find('.bgc-allmap-list').empty();
       $dlg.find('.bgc-allmap-legend').attr('hidden', true).empty();
-      $dlg.find('.bgc-allmap-near').remove();
+      $dlg.find('.bgc-allmap-answers').attr('hidden', true).empty();
       $dlg.find('.bgc-allmap-canvas').empty();
     }
     $dlg.on('click', '.bgc-allmap-cityclear', function (e) { e.preventDefault(); clearCity(); });
@@ -388,7 +403,7 @@
     // guarded: choosing a point nulls $dlg while this click is still bubbling
     $dlg.on('click', function (e) { if ($dlg && e.target === $dlg[0]) { close(); } });
     $dlg.on('input', '.bgc-allmap-search', scheduleFilter);
-    $dlg.on('click', '.bgc-allmap-near', function () { focusPoint(+$(this).attr('data-i')); });
+    $dlg.on('click', '.bgc-allmap-ans', function () { focusPoint(+$(this).attr('data-i')); });
     $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
     $dlg.on('click', '.bgc-allmap-switch button', function () { setMode($(this).attr('data-v')); });
     $dlg.on('click', '.bgc-allmap-pick', function () {
@@ -416,21 +431,16 @@
     dists = [];
     if (!on) {
       $list.find('.bgc-allmap-dist').remove();
-      $dlg.find('.bgc-allmap-chip .bgc-chip-d').remove();
-      if (centre && nearOn()) {
-        points.forEach(function (p, i) { dists[i] = distOf(p, centre); });
-      } else {
-        $dlg.find('.bgc-allmap-near').remove();
-      }
       return;
     }
 
     points.forEach(function (p, i) {
       var d = distOf(p);
       dists[i] = d;
-      var $a = rowEls[i] ? $(rowEls[i]).find('.a') : $();
-      $a.find('.bgc-allmap-dist').remove();
-      if (d != null) { $a.append('<span class="bgc-allmap-dist">' + esc(fmtDist(d)) + '</span>'); }
+      if (!rowEls[i]) { return; }
+      var $row = $(rowEls[i]);
+      $row.children('.bgc-allmap-dist').remove();
+      if (d != null) { $row.append('<span class="bgc-allmap-dist">' + esc(fmtDist(d)) + '</span>'); }
     });
 
     var order = [];
@@ -448,22 +458,39 @@
 
   // the instant half: cached distances and flags only, so it can run on a legend click
   function pickNear() {
-    if (!$dlg || !(origin || centre) || !nearOn()) { return; }
-    var best = {}, overall = null, term = searchTerm();
+    if (!$dlg || !nearOn()) { return; }
+    var best = {}, near = null, cheap = null, addr = null, term = searchTerm();
+    // nearer first; with no distance (or the same one) the cheaper
+    function better(a, b) {
+      if (!b) { return true; }
+      if (a.d != null && b.d != null && a.d !== b.d) { return a.d < b.d; }
+      if ((a.d == null) !== (b.d == null)) { return a.d != null; }
+      return a.v != null && (b.v == null || a.v < b.v);
+    }
     points.forEach(function (p, i) {
-      var d = dists[i];
-      if (d == null || !usable(p) || !shown(p, term)) { return; }
-      if (!best[p.courier] || d < best[p.courier].d) { best[p.courier] = { d: d, i: i }; }
-      if (!overall || d < overall.d) { overall = { d: d, i: i, p: p }; }
+      if (!usable(p) || !shown(p, term)) { return; }
+      var x = { i: i, p: p, d: dists[i] == null ? null : dists[i], v: amount(p.price) };
+      // measured from the chosen office itself, "closest" means the closest alternative to it
+      var self = originAuto && isCurrent(p);
+      if (!self && better(x, best[p.courier])) { best[p.courier] = x; }
+      if (!self && x.d != null && (!near || x.d < near.d)) { near = x; }
+      if (x.v != null && (!cheap || x.v < cheap.v || (x.v === cheap.v && better(x, cheap)))) { cheap = x; }
+      var a = amount(p.addressPrice);
+      if (a != null && (!addr || a < addr.v)) { addr = { v: a, text: p.addressPrice }; }
     });
 
     $dlg.find('.bgc-allmap-chip').each(function () {
-      var cid = $(this).attr('data-c');
+      var b = best[$(this).attr('data-c')];
       $(this).find('.bgc-chip-d').remove();
-      if (origin && best[cid]) { $(this).append('<span class="bgc-chip-d">' + esc(fmtDist(best[cid].d)) + '</span>'); }
+      if (!b) { return; }
+      var bits = [];
+      if (b.d != null) { bits.push(fmtDist(b.d)); }
+      if (b.p.price) { bits.push(priceLabel(b.p)); }
+      if (bits.length) { $(this).append('<span class="bgc-chip-d">' + esc(bits.join(' · ')) + '</span>'); }
     });
+    syncLegend();
 
-    renderNearLine(overall);
+    renderAnswers(near, cheap, addr);
   }
 
   function focusPoint(i) {
@@ -495,28 +522,41 @@
     }
   }
 
-  function renderNearLine(overall) {
-    $dlg.find('.bgc-allmap-near').remove();
-    if (!overall) { return; }
-    var p = overall.p;
-    var addr = (p.addressPrice || '');
-    var html = '<button type="button" class="bgc-allmap-near" data-i="' + overall.i + '"'
+  function answerTile(cls, label, x) {
+    var p = x.p;
+    return '<button type="button" class="bgc-allmap-ans ' + cls + '" data-i="' + x.i + '"'
       + ' title="' + esc(I.near_which || '') + '">'
-      + '<span class="bgc-near-lead">' + esc((origin ? I.near_title : I.near_title_centre) || '') + '</span>'
-      + (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
-      + '<span class="bgc-near-c">' + esc(p.courierLabel) + '</span>'
-      + typeGlyph(p.type)
-      + (origin ? '<span class="bgc-near-d" title="' + esc(I.near_straight || '') + '">' + esc(fmtDist(overall.d)) + '</span>' : '')
-      + (p.price ? '<span class="bgc-near-p">' + esc(priceLabel(p)) + '</span>' : '');
-    if (addr) {
-      html += '<span class="bgc-near-vs">' + esc(I.near_to_address || '') + ' <b>' + esc(addr) + '</b>'
-        + (p.savesVsAddress
-            ? ' <span class="bgc-near-save">' + esc(I.near_save || '') + ' ' + esc(p.savesVsAddress) + '</span>'
-            : '')
-        + '</span>';
+      + '<span class="bgc-ans-k">' + esc(label || '') + '</span>'
+      + '<span class="bgc-ans-c">'
+      + (p.logo ? '<img src="' + esc(p.logo) + '" alt="">' : '')
+      + '<span class="bgc-near-c">' + esc(p.courierLabel) + '</span>' + typeGlyph(p.type) + '</span>'
+      + '<span class="bgc-ans-m">'
+      + (x.d != null ? '<span class="bgc-near-d" title="' + esc(I.near_straight || '') + '">' + esc(fmtDist(x.d)) + '</span>' : '')
+      + (p.price ? '<span class="bgc-near-p">' + esc(priceLabel(p)) + '</span>' : '')
+      + '</span></button>';
+  }
+
+  function renderAnswers(near, cheap, addr) {
+    var $box = $dlg.find('.bgc-allmap-answers');
+    if (!near && !cheap) { $box.attr('hidden', true).empty(); return; }
+    var html = '';
+    if (near && cheap && near.i === cheap.i) {
+      html = answerTile('bgc-allmap-near bgc-allmap-cheap bgc-ans-both', I.ans_both, near);
+    } else {
+      if (near) { html += answerTile('bgc-allmap-near', I.ans_near, near); }
+      if (cheap) { html += answerTile('bgc-allmap-cheap', I.ans_cheap, cheap); }
     }
-    html += '</button>';
-    $dlg.find('.bgc-allmap-legendcol').append(html);
+    if (addr) {
+      html += '<div class="bgc-ans-addr">' + esc(String(I.ans_addr || '%s').replace('%s', addr.text)) + '</div>';
+    }
+    $box.html(html).attr('hidden', null);
+  }
+
+  // one line of chips that scrolls sideways; the fade says there is more only while there is
+  function syncLegend() {
+    var el = $dlg && $dlg.find('.bgc-allmap-legend')[0];
+    if (!el) { return; }
+    $(el).toggleClass('bgc-more', el.scrollWidth - el.clientWidth - el.scrollLeft > 2);
   }
 
   function searchTerm() {
@@ -746,11 +786,10 @@
 
   function rowInner(p) {
     return (p.logo ? '<img src="' + esc(p.logo) + '" alt="' + esc(p.courierLabel) + '">' : '')
-      + '<span><span class="n">' + typeGlyph(p.type) + esc(p.office.name || '') + '</span>'
-      + '<span class="a">' + esc(p.office.address || '') + '</span>'
-      + (usable(p) ? '' : '<span class="bgc-allmap-na-note">' + esc(naText(p)) + '</span>')
-      + '</span>'
-      + (usable(p) && p.price ? '<span class="p">' + esc(priceLabel(p)) + '</span>' : '');
+      + '<span class="n">' + typeGlyph(p.type) + esc(p.office.name || '') + '</span>'
+      + (usable(p) && p.price ? '<span class="p">' + esc(priceLabel(p)) + '</span>' : '')
+      + '<span class="a">' + esc(addrText(p.office.address)) + '</span>'
+      + (usable(p) ? '' : '<span class="bgc-allmap-na-note">' + esc(naText(p)) + '</span>');
   }
 
   function popupHtml(p, i) {
@@ -765,7 +804,7 @@
       + (usable(p) && p.price ? '<span class="bgc-allmap-pop-price">' + esc(priceLabel(p)) + '</span>' : '')
       + '</div>'
       + '<div class="bgc-allmap-pop-n">' + esc(p.office.name || '') + '</div>'
-      + '<div class="bgc-allmap-pop-a"><span class="bgc-pop-addr">' + esc(p.office.address || '') + '</span>'
+      + '<div class="bgc-allmap-pop-a"><span class="bgc-pop-addr">' + esc(addrText(p.office.address)) + '</span>'
       + '<span class="bgc-pop-meta">'
       + (d != null
           ? '<span class="bgc-allmap-pop-d" title="' + esc(I.near_straight || '') + '">'
@@ -814,7 +853,6 @@
     setMode('map');
     if (layer) { layer.clearLayers(); }
     var live = couriersOnPage();
-    centre = medianOf(data);
     points = []; markers = [];
     Object.keys(data).forEach(function (cid) {
       var c = live[cid] || { available: false, price: '', method: '', logo: '', label: cid };
@@ -846,6 +884,12 @@
         { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
       layer = L.layerGroup().addTo(map);
       map.on('zoomend', function () { recluster(); });
+      var bubbleClosedAt = 0;
+      map.on('popupclose', function () { bubbleClosedAt = Date.now(); });
+      map.on('click', function (e) {
+        if (!nearOn() || Date.now() - bubbleClosedAt < 400) { return; }
+        setOrigin(e.latlng);
+      });
     }
     var bounds = [], chosenAt = null, rowHtml = [];
     points.forEach(function (p, i) {
@@ -868,6 +912,13 @@
     });
     $list.html(rowHtml.join(''));
     rowEls = $list.children('.bgc-allmap-item').get();
+    var placed = false;
+    if (nearOn() && (!origin || originAuto)) {
+      var at = chosenAt ? { lat: chosenAt[0], lng: chosenAt[1] } : medianOf(data);
+      origin = at ? { lat: at.lat, lng: at.lng } : null;
+      originAuto = !!origin;
+      placed = originAuto;
+    }
     // frame now and again after the width transition: Leaflet caches the container size
     function frame() {
       if (!map) { return; }
@@ -899,6 +950,12 @@
         + esc(label) + '</button>');
     });
     $legend.attr('hidden', !seen.length);
+    $legend.off('scroll.bgc wheel.bgc').on('scroll.bgc', syncLegend).on('wheel.bgc', function (e) {
+      var el = this, ev = e.originalEvent || {};
+      if (el.scrollWidth <= el.clientWidth || Math.abs(ev.deltaY || 0) <= Math.abs(ev.deltaX || 0)) { return; }
+      el.scrollLeft += ev.deltaY;
+      e.preventDefault();
+    });
     $legend.off('click').on('click', '.bgc-allmap-chip', function () {
       var cid = $(this).attr('data-c');
       hidden[cid] = !hidden[cid];
@@ -936,7 +993,10 @@
         });
     });
 
-    if (origin && nearOn()) { placeMe([origin.lat, origin.lng]); }
+    if (origin && nearOn()) {
+      placeMe([origin.lat, origin.lng]);
+      if (placed && meMarker && meMarker.openTooltip) { meMarker.openTooltip(); }
+    }
     refreshNear();
 
     $list.off('click').on('click', '.bgc-allmap-item:not(.bgc-na)', function () {
@@ -967,11 +1027,20 @@
     if (!map) { return; }
     var c = map.getCenter();
     origin = { lat: c.lat, lng: c.lng };
+    originAuto = false;
     save();
     if (meMarker) { meMarker.setLatLng(c); }
     else { placeMe([c.lat, c.lng]); }
     refreshNear();
     if (meMarker && meMarker.openTooltip) { meMarker.openTooltip(); }
+  }
+
+  function setOrigin(ll) {
+    origin = { lat: ll.lat, lng: ll.lng };
+    originAuto = false;
+    placeMe([ll.lat, ll.lng]);
+    if (meMarker && meMarker.unbindTooltip) { meMarker.unbindTooltip(); }
+    refreshNear();
   }
 
   function placeMe(here) {
@@ -993,6 +1062,8 @@
     meMarker.on('dragend', function () {
       var ll = meMarker.getLatLng();
       origin = { lat: ll.lat, lng: ll.lng };
+      originAuto = false;
+      meMarker.unbindTooltip();
       save();
       refreshNear();
     });
@@ -1011,6 +1082,7 @@
     navigator.geolocation.getCurrentPosition(function (pos) {
       var here = [pos.coords.latitude, pos.coords.longitude];
       origin = { lat: here[0], lng: here[1] };
+      originAuto = false;
       save();
       if (!state.cityName || !map) { cityFromPosition(here); return; }
       placeMe(here);
@@ -1058,5 +1130,6 @@
   }
 
   $(document).on('click', '.bgc-allmap-btn', function (e) { e.preventDefault(); open(); });
-  window.BGCouriersAllMap = { open: open, close: close, points: function () { return points; }, centreOf: centreOf };
+  window.BGCouriersAllMap = { open: open, close: close, points: function () { return points; }, centreOf: centreOf,
+    origin: function () { return origin ? { lat: origin.lat, lng: origin.lng, auto: originAuto } : null; } };
 })(jQuery);

@@ -44,6 +44,16 @@ async function mapTally(page) {
  * the dialog hit in one click. The suggest is now the plugin's own, so there is nothing left to work
  * around: anything a customer must click, these click.
  */
+// a chip's courier name, without the distance and price after it
+async function chipNames(page) {
+  return page.locator('.bgc-allmap-chip').evaluateAll((els) => els.map((e) => {
+    const c = e.cloneNode(true);
+    const d = c.querySelector('.bgc-chip-d');
+    if (d) { d.remove(); }
+    return c.textContent.trim();
+  }));
+}
+
 async function chooseCity(page, term, label) {
   await page.locator('.bgc-allmap-cityinput').fill(term);
   const option = page.locator('.bgc-allmap-cityopt', { hasText: label }).first();
@@ -425,13 +435,11 @@ test.describe('the combined map on a phone', () => {
     const box = await near.boundingBox();
     expect(box.height, `the strip is ${Math.round(box.height)}px tall`).toBeGreaterThanOrEqual(44);
 
-    // In the header, above the map - not floating over it, and not in a band of its own below it.
-    const form = await page.locator('.bgc-allmap-form').boundingBox();
-    const legend = await page.locator('.bgc-allmap-legend').boundingBox();
-    const body = await page.locator('.bgc-allmap-body').boundingBox();
-    expect(box.y, 'under the courier chips').toBeGreaterThanOrEqual(legend.y + legend.height - 1);
-    expect(box.y + box.height, 'inside the form').toBeLessThanOrEqual(form.y + form.height + 1);
-    expect(box.y + box.height, 'above the map').toBeLessThanOrEqual(body.y + 1);
+    // Under the search, above the map - not floating over it.
+    const search = await page.locator('.bgc-allmap-searchrow').boundingBox();
+    const canvas = await page.locator('.bgc-allmap-canvas').boundingBox();
+    expect(box.y, 'under the search').toBeGreaterThanOrEqual(search.y + search.height - 1);
+    expect(box.y + box.height, 'above the map').toBeLessThanOrEqual(canvas.y + 1);
 
     // And pressing it does the same thing it does on a desktop: the map, on that point, open.
     const closest = (await page.locator('.bgc-allmap-item').first().locator('.n').textContent()).trim();
@@ -754,18 +762,35 @@ test.describe('nearest office', () => {
     // boolean. It was, and it did.
     expect(await page.evaluate(() => window.BGCOURIERS && BGCOURIERS.allmapNearest)).toBe('yes');
 
-    // Before the customer shares a position the line is measured from the town centre and says so:
-    // the price against the address is there at once, but no distance - one from the centre is not theirs.
-    const before = page.locator('.bgc-allmap-near');
-    await expect(before).toBeVisible();
-    const beforeText = (await before.textContent()).replace(/\s+/g, ' ');
-    expect(beforeText).toContain('центъра');
-    expect(metres(beforeText), `no distance from the centre: ${beforeText}`).toBeNull();
-    expect(await page.locator('.bgc-allmap-dist').count()).toBe(0);
-    expect(await page.locator('.bgc-chip-d').count()).toBe(0);
+    // Before the customer shares a position the dialog places the pin itself (the chosen office, else the
+    // town's centre), so the answer, every row's distance and every chip's price are there at once.
+    expect((await page.evaluate(() => BGCouriersAllMap.origin())).auto).toBe(true);
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(1);
+    await expect(page.locator('.bgc-allmap-near')).toBeVisible();
+    await expect(page.locator('.bgc-allmap-cheap')).toBeVisible();
+    expect(await page.locator('.bgc-allmap-dist').count()).toBeGreaterThan(50);
+
+    // The cheapest answer is no dearer than any point on the list.
+    const euro = (t) => parseFloat(String(t).replace(/[^\d,]/g, '').replace(',', '.'));
+    const cheapest = euro(await page.locator('.bgc-allmap-cheap .bgc-near-p').textContent());
+    const prices = (await page.locator('.bgc-allmap-item:not(.bgc-na) .p').allTextContents()).map(euro);
+    expect(prices.length).toBeGreaterThan(50);
+    expect(cheapest).toBeLessThanOrEqual(Math.min(...prices) + 0.001);
+
+    // A click on the map puts the pin there, as dragging it does.
+    const auto = await page.evaluate(() => BGCouriersAllMap.origin());
+    const cv = await page.locator('.bgc-allmap-canvas').boundingBox();
+    await page.mouse.click(cv.x + cv.width * 0.3, cv.y + cv.height * 0.7);
+    await page.waitForTimeout(800);
+    const moved = await page.evaluate(() => BGCouriersAllMap.origin());
+    expect(moved.auto, 'the customer placed it').toBe(false);
+    expect(moved.lat !== auto.lat || moved.lng !== auto.lng, 'the pin moved to the click').toBe(true);
 
     await page.locator('.bgc-allmap-side .bgc-map-locate').click();
     await page.waitForTimeout(4000);
+    const here = await page.evaluate(() => BGCouriersAllMap.origin());
+    expect(here.auto).toBe(false);
+    expect(Math.abs(here.lat - 42.6795)).toBeLessThan(1e-4);
 
     const near = page.locator('.bgc-allmap-near');
     await expect(near).toBeVisible();
@@ -782,14 +807,14 @@ test.describe('nearest office', () => {
       expect(nums[i], `row ${i} is closer than the one before it`).toBeGreaterThanOrEqual(nums[i - 1] - 1);
     }
 
-    // Every courier's own nearest, on its chip - that is what makes the couriers comparable.
+    // Every courier's own nearest, with its distance and its price, on its chip - that is what makes
+    // the couriers comparable.
     const chips = await page.locator('.bgc-allmap-chip').allTextContents();
-    expect(chips.filter(c => metres(c) !== null).length).toBe(chips.length);
+    expect(chips.filter(c => metres(c) !== null && /€/.test(c)).length).toBe(chips.length);
 
     // The recommendation must follow what is actually orderable.
     const first = (await near.textContent()).replace(/\s+/g, ' ');
-    const winner = chips.map(c => c.replace(/[\d,]+\s*(м|км)$/, '').trim())
-      .find(name => name && first.includes(name));
+    const winner = (await chipNames(page)).find(name => name && first.includes(name));
     expect(winner, 'the answer names one of the couriers on the map').toBeTruthy();
     await page.locator('.bgc-allmap-chip', { hasText: winner }).first().click();
     await page.waitForTimeout(1200);
@@ -879,7 +904,10 @@ test.describe('nearest office', () => {
       // the sentence alone, and would prove nothing about whether it followed.
       const chips = Array.from(document.querySelectorAll('.bgc-allmap-chip.on'));
       const chip = chips.find(c => {
-        const name = c.textContent.replace(/[\d,]+\s*(м|км)$/, '').trim();
+        const k = c.cloneNode(true);
+        const d = k.querySelector('.bgc-chip-d');
+        if (d) { d.remove(); }
+        const name = k.textContent.trim();
         return name && was.includes(name);
       }) || chips[0];
       const t0 = performance.now();
@@ -965,12 +993,12 @@ test.describe('nearest office', () => {
     // old behaviour showed the pin.
     await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 25000 });
     await page.waitForTimeout(2500);
-    await expect(page.locator('.bgc-allmap-me')).toHaveCount(0);
-    // back to the town centre: the line stays, without a distance
-    await expect(page.locator('.bgc-allmap-near')).toContainText('центъра');
-    expect(await page.locator('.bgc-allmap-near .bgc-near-d').count()).toBe(0);
-    expect(await page.locator('.bgc-allmap-dist').count()).toBe(0);
-    expect(await page.locator('.bgc-chip-d').count()).toBe(0);
+    // The pin is the dialog's own again (the town's centre), not the position from before the reload.
+    const o = await page.evaluate(() => BGCouriersAllMap.origin());
+    expect(o.auto).toBe(true);
+    expect(Math.abs(o.lat - 42.6795) > 1e-4 || Math.abs(o.lng - 23.3242) > 1e-4,
+      `the old position is gone: ${JSON.stringify(o)}`).toBe(true);
+    await expect(page.locator('.bgc-allmap-near')).toBeVisible();
 
     // ...and it still works when asked.
     await page.locator('.bgc-allmap-side .bgc-map-locate').click();
@@ -1031,11 +1059,11 @@ test.describe('nearest office', () => {
     await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
     await page.waitForTimeout(1500);
 
-    // Before the customer says where they are, a bubble must not claim a distance from nowhere.
+    // The pin is on the map from the start, so a bubble says how far it is from it at once.
     await page.locator('.bgc-allmap-item:not(.bgc-na)').first().click();
     await page.waitForTimeout(1200);
     await expect(page.locator('.leaflet-popup .bgc-allmap-pop-n')).toBeVisible();
-    expect(await page.locator('.leaflet-popup .bgc-allmap-pop-d').count()).toBe(0);
+    await expect(page.locator('.leaflet-popup .bgc-allmap-pop-d')).toBeVisible();
 
     await page.locator('.bgc-allmap-side .bgc-map-locate').click();
     await page.waitForTimeout(4000);
