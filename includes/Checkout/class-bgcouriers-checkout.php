@@ -823,6 +823,7 @@ class BGCouriers_Checkout {
                 /* translators: %s: the lowest price of delivery to the customer's address, e.g. "2,93 €" */
                 'ans_addr' => __('To your address: from %s', 'bg-couriers'),
                 'near_save' => __('you save', 'bg-couriers'),
+                'ans_addr_pick' => __('Choose delivery to the address with this courier', 'bg-couriers'),
                 'near_straight' => __('as the crow flies', 'bg-couriers'),
                 'near_find' => __('Find the closest office', 'bg-couriers'),
                 'near_drag' => __('Drag the pin or click the map', 'bg-couriers'),

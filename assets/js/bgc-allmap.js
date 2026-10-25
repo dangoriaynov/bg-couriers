@@ -409,6 +409,14 @@
     $dlg.on('click', function (e) { if ($dlg && e.target === $dlg[0]) { close(); } });
     $dlg.on('input', '.bgc-allmap-search', scheduleFilter);
     $dlg.on('click', '.bgc-allmap-ans', function () { focusPoint(+$(this).attr('data-i')); });
+    $dlg.on('click', '.bgc-ans-addr', function () {
+      if (!window.BGCouriersCheckout) { return; }
+      var ok = window.BGCouriersCheckout.applyPick({
+        courier: String($(this).attr('data-c')), method: 'address',
+        cityId: $(this).attr('data-city'), cityLabel: state.cityLabel, postCode: state.cityCode
+      });
+      if (ok) { close(); }
+    });
     $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
     $dlg.on('click', '.bgc-allmap-switch button', function () { setMode($(this).attr('data-v')); });
     $dlg.on('click', '.bgc-allmap-pick', function () {
@@ -481,7 +489,7 @@
       if (!self && x.d != null && (!near || x.d < near.d)) { near = x; }
       if (x.v != null && (!cheap || x.v < cheap.v || (x.v === cheap.v && better(x, cheap)))) { cheap = x; }
       var a = amount(p.addressPrice);
-      if (a != null && (!addr || a < addr.v)) { addr = { v: a, text: p.addressPrice }; }
+      if (a != null && (!addr || a < addr.v) && toAddressOk(p.courier)) { addr = { v: a, text: p.addressPrice, p: p }; }
     });
 
     $dlg.find('.bgc-allmap-chip').each(function () {
@@ -553,9 +561,14 @@
     }
     if (addr) {
       var save = cheap && addr.v > cheap.v ? money(addr.v - cheap.v, addr.text) : '';
-      html += '<div class="bgc-ans-addr">' + esc(String(I.ans_addr || '%s').replace('%s', addr.text))
-        + (save ? ' <span class="bgc-near-save">' + esc((I.near_save || '') + ' ' + save) + '</span>' : '')
-        + '</div>';
+      var ap = addr.p;
+      html += '<button type="button" class="bgc-ans-addr" data-c="' + esc(ap.courier) + '" data-city="' + esc(ap.cityId) + '"'
+        + ' title="' + esc(I.ans_addr_pick || '') + '">'
+        + '<span class="bgc-ans-addr-t">' + esc(String(I.ans_addr || '%s').replace('%s', addr.text)) + '</span>'
+        + '<span class="bgc-ans-addr-c">' + (ap.logo ? '<img src="' + esc(ap.logo) + '" alt="">' : '')
+        + esc(ap.courierLabel) + '</span>'
+        + (save ? '<span class="bgc-near-save">' + esc((I.near_save || '') + ' ' + save) + '</span>' : '')
+        + '</button>';
     }
     $box.html(html).attr('hidden', null);
   }
@@ -565,6 +578,12 @@
     var el = $dlg && $dlg.find('.bgc-allmap-legend')[0];
     if (!el) { return; }
     $(el).toggleClass('bgc-more', el.scrollWidth - el.clientWidth - el.scrollLeft > 2);
+  }
+
+  // the courier's block offers delivery to the address (a block without the list offers every type)
+  function toAddressOk(cid) {
+    var $w = $('.bgc-fields[data-courier="' + cid + '"]');
+    return !!$w.length && ($w.attr('data-methods') || 'address').split(',').indexOf('address') !== -1;
   }
 
   function searchTerm() {
