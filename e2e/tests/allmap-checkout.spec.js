@@ -84,6 +84,47 @@ test('combined map: nothing is plotted until a place is chosen @allmap', async (
   await expect(page.locator('.bgc-allmap-item').first()).toBeVisible({ timeout: 20000 });
 });
 
+test('combined map: one width before and after the town, and the map enlarges in one click @allmap', async ({ page }) => {
+  await addAnyProductToCart(page);
+  await gotoCheckout(page);
+  await page.waitForTimeout(2500);
+  await page.evaluate(() => localStorage.removeItem('bgcouriers_map_max'));
+  await page.locator('.bgc-allmap-btn').click();
+  const box = page.locator('.bgc-allmap-box');
+  const city = page.locator('.bgc-allmap-cityinput');
+  await expect(box).toBeVisible();
+  const before = { box: (await box.boundingBox()).width, city: (await city.boundingBox()).width };
+  await chooseCity(page, 'София', 'СОФИЯ (1000)');
+  await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+  await page.waitForTimeout(1500);
+  const after = { box: (await box.boundingBox()).width, city: (await city.boundingBox()).width };
+  expect(Math.abs(after.box - before.box), `box ${before.box} then ${after.box}`).toBeLessThan(1);
+  expect(Math.abs(after.city - before.city), `town field ${before.city} then ${after.city}`).toBeLessThan(1);
+
+  // One click: the answers go, the map grows, every other control stays.
+  await expect(page.locator('.bgc-allmap-answers')).toBeVisible();
+  const small = await page.locator('.bgc-allmap-canvas').boundingBox();
+  await page.locator('.bgc-allmap-max').click();
+  await page.waitForTimeout(500);
+  await expect(page.locator('.bgc-allmap-answers')).toBeHidden();
+  const big = await page.locator('.bgc-allmap-canvas').boundingBox();
+  expect(big.width * big.height, `map ${Math.round(small.width)}x${Math.round(small.height)} then ${Math.round(big.width)}x${Math.round(big.height)}`)
+    .toBeGreaterThan(small.width * small.height * 1.15);
+  for (const sel of ['.bgc-allmap-cityinput', '.bgc-allmap-legend', '.bgc-allmap-search',
+    '.bgc-allmap-searchrow .bgc-map-locate', '.bgc-allmap-list', '.leaflet-control-zoom', '.bgc-allmap-close']) {
+    await expect(page.locator(sel).first(), sel).toBeVisible();
+  }
+
+  // Remembered for the next opening, and the same button brings the answers back.
+  await page.locator('.bgc-allmap-close').click();
+  await page.locator('.bgc-allmap-btn').click();
+  await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+  await expect(page.locator('.bgc-allmap-overlay')).toHaveClass(/bgc-max/);
+  await page.locator('.bgc-allmap-max').click();
+  await expect(page.locator('.bgc-allmap-answers')).toBeVisible();
+  await page.evaluate(() => localStorage.removeItem('bgcouriers_map_max'));
+});
+
 /**
  * The city box must not wait on the server.
  *
@@ -859,6 +900,41 @@ test.describe('nearest office', () => {
     expect(String(await fields.locator('.bgc-city').inputValue())).toBe(String(cityId));
     await expect(fields.locator('.bgc-address-rows')).toBeVisible();
     await expect(fields.locator('.bgc-office-row')).toBeHidden();
+  });
+
+  test('combined map: the merchant switches each answer off on its own @allmap', async ({ page }) => {
+    await addAnyProductToCart(page);
+    await gotoCheckout(page);
+    await page.waitForTimeout(2500);
+    expect(await page.evaluate(() => BGCOURIERS.allmapHints)).toEqual({ near: 'yes', cheap: 'yes', address: 'yes' });
+
+    // The same switches the settings send, flipped in the page: closest off.
+    await page.evaluate(() => { BGCOURIERS.allmapHints = { near: 'no', cheap: 'yes', address: 'yes' }; });
+    await page.locator('.bgc-allmap-btn').click();
+    await chooseCity(page, 'София', 'СОФИЯ (1000)');
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.bgc-allmap-near')).toHaveCount(0);
+    await expect(page.locator('.bgc-allmap-cheap')).toBeVisible();
+    await expect(page.locator('.bgc-ans-addr')).toBeVisible();
+
+    // Only the address one.
+    await page.locator('.bgc-allmap-close').click();
+    await page.evaluate(() => { BGCOURIERS.allmapHints = { near: 'no', cheap: 'no', address: 'yes' }; });
+    await page.locator('.bgc-allmap-btn').click();
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.bgc-allmap-ans')).toHaveCount(1);
+    await expect(page.locator('.bgc-ans-addr')).toBeVisible();
+
+    // None: no block at all, the map and the list carry on.
+    await page.locator('.bgc-allmap-close').click();
+    await page.evaluate(() => { BGCOURIERS.allmapHints = { near: 'no', cheap: 'no', address: 'no' }; });
+    await page.locator('.bgc-allmap-btn').click();
+    await expect(page.locator('.bgc-allmap-item').first()).toBeAttached({ timeout: 20000 });
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.bgc-allmap-answers')).toBeHidden();
+    await expect(page.locator('.bgc-allmap-me')).toHaveCount(1);
   });
 
   test('combined map: the location pin survives changing the town @allmap', async ({ page }) => {

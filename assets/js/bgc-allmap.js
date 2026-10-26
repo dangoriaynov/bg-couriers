@@ -5,6 +5,9 @@
 
   var I = (window.BGCOURIERS && BGCOURIERS.i18n) || {};
   var STORE = 'bgcouriers_map_pick';
+  // a view preference only, nothing about the customer
+  var MAX_STORE = 'bgcouriers_map_max';
+  function maxPref() { try { return window.localStorage.getItem(MAX_STORE) === '1'; } catch (e) { return false; } }
   // a place by name, not an id: city ids belong to the courier that issued them
   var state = { cityName: '', cityCode: '', cityLabel: '', citySeed: '' };
   // where distances are measured from; worked out in the browser and never sent anywhere
@@ -30,6 +33,11 @@
 
   // 'no' rather than a falsy test: wp_localize_script() hands PHP false over as ''
   function nearOn() { return !window.BGCOURIERS || BGCOURIERS.allmapNearest !== 'no'; }
+  // the merchant can switch each answer above the list off on its own
+  function hintOn(k) {
+    var h = window.BGCOURIERS && BGCOURIERS.allmapHints;
+    return !h || h[k] !== 'no';
+  }
 
   function nextFrame(fn) {
     if (window.requestAnimationFrame) { window.requestAnimationFrame(fn); } else { setTimeout(fn, 16); }
@@ -235,7 +243,8 @@
     // a known town opens at full width: growing from the search-only box once the points land reads as a glitch
     var wide = !!state.cityLabel;
     // bgc-mode-map in the markup: a phone with neither mode class would draw both panes
-    $dlg = $('<div class="bgc-allmap-overlay bgc-mode-map' + (wide ? ' bgc-has-map' : '') + '"><div class="bgc-allmap-box">'
+    $dlg = $('<div class="bgc-allmap-overlay bgc-mode-map' + (wide ? ' bgc-has-map' : '') + (maxPref() ? ' bgc-max' : '')
+      + '"><div class="bgc-allmap-box">'
       + '<div class="bgc-allmap-head"><strong>' + esc(I.allmap_title || '') + '</strong>'
       + '<button type="button" class="bgc-allmap-close" aria-label="' + esc(I.close || '') + '">&times;</button></div>'
       + '<div class="bgc-allmap-form">'
@@ -408,7 +417,7 @@
     // guarded: choosing a point nulls $dlg while this click is still bubbling
     $dlg.on('click', function (e) { if ($dlg && e.target === $dlg[0]) { close(); } });
     $dlg.on('input', '.bgc-allmap-search', scheduleFilter);
-    $dlg.on('click', '.bgc-allmap-ans', function () { focusPoint(+$(this).attr('data-i')); });
+    $dlg.on('click', '.bgc-allmap-ans:not(.bgc-ans-addr)', function () { focusPoint(+$(this).attr('data-i')); });
     $dlg.on('click', '.bgc-ans-addr', function () {
       if (!window.BGCouriersCheckout) { return; }
       var ok = window.BGCouriersCheckout.applyPick({
@@ -419,6 +428,7 @@
     });
     $dlg.on('click', '.bgc-map-locate', function (e) { e.preventDefault(); showMe(); });
     $dlg.on('click', '.bgc-allmap-switch button', function () { setMode($(this).attr('data-v')); });
+
     $dlg.on('click', '.bgc-allmap-pick', function () {
       var p = points[+$(this).data('i')];
       if (!p || !window.BGCouriersCheckout) { return; }
@@ -471,7 +481,7 @@
 
   // the instant half: cached distances and flags only, so it can run on a legend click
   function pickNear() {
-    if (!$dlg || !nearOn()) { return; }
+    if (!$dlg) { return; }
     var best = {}, near = null, cheap = null, addr = null, term = searchTerm();
     // nearer first; with no distance (or the same one) the cheaper
     function better(a, b) {
@@ -535,42 +545,47 @@
     }
   }
 
-  function answerTile(cls, label, x) {
-    var p = x.p;
-    return '<button type="button" class="bgc-allmap-ans ' + cls + '" data-i="' + x.i + '"'
-      + ' title="' + esc(I.near_which || '') + '">'
+  // one row per answer, the same columns in each: what, how far, how much, which courier
+  function answerRow(cls, attrs, label, d, price, p) {
+    return '<button type="button" class="bgc-allmap-ans ' + cls + '"' + attrs + '>'
       + '<span class="bgc-ans-k">' + esc(label || '') + '</span>'
-      + '<span class="bgc-ans-c">'
-      + (p.logo ? '<img src="' + esc(p.logo) + '" alt="">' : '')
-      + '<span class="bgc-near-c">' + esc(p.courierLabel) + '</span>' + typeGlyph(p.type) + '</span>'
-      + '<span class="bgc-ans-m">'
-      + (x.d != null ? '<span class="bgc-near-d" title="' + esc(I.near_straight || '') + '">' + esc(fmtDist(x.d)) + '</span>' : '')
-      + (p.price ? '<span class="bgc-near-p">' + esc(priceLabel(p)) + '</span>' : '')
-      + '</span></button>';
+      + '<span class="bgc-near-d"' + (d != null ? ' title="' + esc(I.near_straight || '') + '">' + esc(fmtDist(d)) : '>') + '</span>'
+      + '<span class="bgc-near-p">' + esc(price || '') + '</span>'
+      + '<span class="bgc-ans-c">' + (p.logo ? '<img src="' + esc(p.logo) + '" alt="">' : '')
+      + '<span class="bgc-near-c">' + esc(p.courierLabel) + '</span></span>'
+      + '</button>';
   }
 
   function renderAnswers(near, cheap, addr) {
     var $box = $dlg.find('.bgc-allmap-answers');
-    if (!near && !cheap) { $box.attr('hidden', true).empty(); return; }
-    var html = '';
-    if (near && cheap && near.i === cheap.i) {
-      html = answerTile('bgc-allmap-near bgc-allmap-cheap bgc-ans-both', I.ans_both, near);
-    } else {
-      if (near) { html += answerTile('bgc-allmap-near', I.ans_near, near); }
-      if (cheap) { html += answerTile('bgc-allmap-cheap', I.ans_cheap, cheap); }
-    }
+    if (!hintOn('near')) { near = null; }
+    if (!hintOn('cheap')) { cheap = null; }
+    if (!hintOn('address')) { addr = null; }
+    if (!near && !cheap && !addr) { $box.attr('hidden', true).empty(); return; }
+    var html = '', which = ' title="' + esc(I.near_which || '') + '"';
+    // the same point can be both: two rows still, so every row keeps one height and one shape
+    if (near) { html += answerRow('bgc-allmap-near', ' data-i="' + near.i + '"' + which, I.ans_near, near.d, priceLabel(near.p), near.p); }
+    if (cheap) { html += answerRow('bgc-allmap-cheap', ' data-i="' + cheap.i + '"' + which, I.ans_cheap, cheap.d, priceLabel(cheap.p), cheap.p); }
     if (addr) {
-      var save = cheap && addr.v > cheap.v ? money(addr.v - cheap.v, addr.text) : '';
-      var ap = addr.p;
-      html += '<button type="button" class="bgc-ans-addr" data-c="' + esc(ap.courier) + '" data-city="' + esc(ap.cityId) + '"'
-        + ' title="' + esc(I.ans_addr_pick || '') + '">'
-        + '<span class="bgc-ans-addr-t">' + esc(String(I.ans_addr || '%s').replace('%s', addr.text)) + '</span>'
-        + '<span class="bgc-ans-addr-c">' + (ap.logo ? '<img src="' + esc(ap.logo) + '" alt="">' : '')
-        + esc(ap.courierLabel) + '</span>'
-        + (save ? '<span class="bgc-near-save">' + esc((I.near_save || '') + ' ' + save) + '</span>' : '')
-        + '</button>';
+      html += answerRow('bgc-ans-addr', ' data-c="' + esc(addr.p.courier) + '" data-city="' + esc(addr.p.cityId) + '"'
+        + ' title="' + esc(I.ans_addr_pick || '') + '"', I.address, null, addr.text, addr.p);
     }
     $box.html(html).attr('hidden', null);
+  }
+
+  function toggleMax() {
+    if (!$dlg) { return; }
+    var on = !$dlg.hasClass('bgc-max');
+    $dlg.toggleClass('bgc-max', on);
+    try { window.localStorage.setItem(MAX_STORE, on ? '1' : '0'); } catch (e) {}
+    syncMaxBtn();
+    if (map) { map.invalidateSize(); }
+  }
+
+  function syncMaxBtn() {
+    if (!$dlg) { return; }
+    var on = $dlg.hasClass('bgc-max'), label = (on ? I.allmap_unmax : I.allmap_max) || '';
+    $dlg.find('.bgc-allmap-max').attr({ title: label, 'aria-label': label, 'aria-pressed': on ? 'true' : 'false' });
   }
 
   // one line of chips that scrolls sideways; the fade says there is more only while there is
@@ -911,6 +926,17 @@
         { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
       layer = L.layerGroup().addTo(map);
       map.on('zoomend', function () { recluster(); });
+      map.addControl(new (L.Control.extend({
+        options: { position: 'topright' },
+        onAdd: function () {
+          var b = L.DomUtil.create('button', 'bgc-allmap-max');
+          b.type = 'button';
+          L.DomEvent.disableClickPropagation(b);
+          L.DomEvent.on(b, 'click', toggleMax);
+          return b;
+        }
+      }))());
+      syncMaxBtn();
       var bubbleClosedAt = 0;
       map.on('popupclose', function () { bubbleClosedAt = Date.now(); });
       map.on('click', function (e) {
