@@ -768,6 +768,11 @@ class BGCouriers_Checkout {
             'cityIndexCountry' => BGCouriers_Pricing::destination_country(),
             // 'yes'/'no', not a boolean: wp_localize_script() casts false to '', indistinguishable from a missing key.
             'allmapNearest' => get_option('bgcouriers_allmap_nearest', 'yes') === 'yes' ? 'yes' : 'no',
+            'allmapHints' => [
+                'near' => get_option('bgcouriers_allmap_hint_near', 'yes') === 'yes' ? 'yes' : 'no',
+                'cheap' => get_option('bgcouriers_allmap_hint_cheap', 'yes') === 'yes' ? 'yes' : 'no',
+                'address' => get_option('bgcouriers_allmap_hint_address', 'yes') === 'yes' ? 'yes' : 'no',
+            ],
             'cityIndex' => $city_index,
             'streetListOnly' => self::street_list_only_couriers(),
             // The server removes the COD gateway, but WooCommerce's payment fragment is not always replaced on the page.
@@ -814,15 +819,13 @@ class BGCouriers_Checkout {
                 'allmap_city_ph' => __('Choose a city', 'bg-couriers'),
                 'allmap_map' => __('Map', 'bg-couriers'),
                 'allmap_list' => __('List', 'bg-couriers'),
+                'allmap_max' => __('Enlarge the map', 'bg-couriers'),
+                'allmap_unmax' => __('Back to the normal view', 'bg-couriers'),
                 'allmap_loading' => __('Loading the pickup points…', 'bg-couriers'),
                 'allmap_directions' => __('Directions', 'bg-couriers'),
                 'clear' => __('Clear', 'bg-couriers'),
                 'ans_near' => __('Closest', 'bg-couriers'),
                 'ans_cheap' => __('Cheapest', 'bg-couriers'),
-                'ans_both' => __('Closest and cheapest', 'bg-couriers'),
-                /* translators: %s: the lowest price of delivery to the customer's address, e.g. "2,93 €" */
-                'ans_addr' => __('To your address: from %s', 'bg-couriers'),
-                'near_save' => __('you save', 'bg-couriers'),
                 'ans_addr_pick' => __('Choose delivery to the address with this courier', 'bg-couriers'),
                 'near_straight' => __('as the crow flies', 'bg-couriers'),
                 'near_find' => __('Find the closest office', 'bg-couriers'),
