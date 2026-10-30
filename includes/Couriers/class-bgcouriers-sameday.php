@@ -473,7 +473,8 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     public function get_label_pdf(string $waybill, string $format = ''): string {
         $url = $this->base . '/api/awb/download/' . rawurlencode($waybill);
-        if (in_array($format, ['A6', 'A4'], true)) { $url = add_query_arg('type', $format, $url); }
+        // The size is a path segment: a ?type= query is ignored and the answer is always A4.
+        if (in_array($format, ['A6', 'A4'], true)) { $url .= '/' . $format; }
         return $this->fetch_pdf($url, ['X-AUTH-TOKEN' => $this->auth_token()], 'Sameday');
     }
 

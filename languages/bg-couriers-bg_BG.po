@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 23:43+0000\n"
+"POT-Creation-Date: 2026-10-30 11:58+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -51,59 +51,63 @@ msgid "BG Couriers bulk label failed: %s"
 msgstr "Групово генериране на етикети (BG Couriers) е неуспешно: %s"
 
 #: includes/Admin/class-bgcouriers-bulk-labels.php:83
-#: includes/Admin/class-bgcouriers-labels.php:333
-#: includes/Admin/class-bgcouriers-labels.php:575
-#: includes/Admin/class-bgcouriers-labels.php:589
-#: includes/Admin/class-bgcouriers-labels.php:603
-#: includes/Admin/class-bgcouriers-labels.php:619
-#: includes/Admin/class-bgcouriers-labels.php:665
-#: includes/Admin/class-bgcouriers-labels.php:675
-#: includes/Admin/class-bgcouriers-labels.php:697
+#: includes/Admin/class-bgcouriers-labels.php:370
+#: includes/Admin/class-bgcouriers-labels.php:612
+#: includes/Admin/class-bgcouriers-labels.php:626
+#: includes/Admin/class-bgcouriers-labels.php:640
+#: includes/Admin/class-bgcouriers-labels.php:656
+#: includes/Admin/class-bgcouriers-labels.php:702
+#: includes/Admin/class-bgcouriers-labels.php:712
+#: includes/Admin/class-bgcouriers-labels.php:734
 #: includes/Admin/class-bgcouriers-settings-admin.php:365
 #: includes/Admin/class-bgcouriers-settings-admin.php:445
 #: includes/Admin/class-bgcouriers-settings-admin.php:479
 msgid "You are not allowed to do that."
 msgstr "Нямате право да извършите това действие."
 
+#: includes/Admin/class-bgcouriers-bulk-labels.php:88
+#: includes/Admin/class-bgcouriers-labels.php:754
+msgid "The generated file is not a valid PDF."
+msgstr "Генерираният файл не е валиден PDF."
+
+#: includes/Admin/class-bgcouriers-bulk-labels.php:107
+msgid "This order is not shipped with a BG Couriers courier."
+msgstr "Тази поръчка не се изпраща с куриер на BG Couriers."
+
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-bulk-labels.php:92
+#: includes/Admin/class-bgcouriers-bulk-labels.php:115
 #, php-format
 msgid "BG Couriers bulk print - generate failed: %s"
 msgstr "BG Couriers групов печат - неуспешно генериране: %s"
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:99
+#: includes/Admin/class-bgcouriers-bulk-labels.php:126
 msgid "No labels to print (none could be generated)."
 msgstr "Няма етикети за печат (нито един не можа да се генерира)."
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:101
-#: includes/Admin/class-bgcouriers-labels.php:717
-msgid "The generated file is not a valid PDF."
-msgstr "Генерираният файл не е валиден PDF."
-
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-bulk-labels.php:126
+#: includes/Admin/class-bgcouriers-bulk-labels.php:153
 #, php-format
 msgid "BG Couriers bulk re-issue failed: %s"
 msgstr "Групово преиздаване на BG Couriers се провали: %s"
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-bulk-labels.php:143
+#: includes/Admin/class-bgcouriers-bulk-labels.php:170
 #, php-format
 msgid "BG Couriers bulk cancel failed: %s"
 msgstr "Груповото анулиране на BG Couriers беше неуспешно: %s"
 
 #. translators: %d: number of labels
-#: includes/Admin/class-bgcouriers-bulk-labels.php:160
+#: includes/Admin/class-bgcouriers-bulk-labels.php:187
 #, php-format
 msgid "Print %d on A4 (packed)"
 msgstr "Печат на %d върху A4 (подредени)"
 
-#: includes/Admin/class-bgcouriers-bulk-labels.php:161
+#: includes/Admin/class-bgcouriers-bulk-labels.php:188
 msgid "A6 stickers"
 msgstr "A6 стикери"
 
 #. translators: 1: re-issued (had a waybill) 2: newly generated (had none) 3: skipped 4: failed
-#: includes/Admin/class-bgcouriers-bulk-labels.php:173
+#: includes/Admin/class-bgcouriers-bulk-labels.php:200
 #, php-format
 msgid ""
 "Shipping labels: %1$d re-issued, %2$d newly generated, %3$d skipped, %4$d "
@@ -113,13 +117,13 @@ msgstr ""
 "неуспешни."
 
 #. translators: 1: cancelled 2: skipped 3: failed
-#: includes/Admin/class-bgcouriers-bulk-labels.php:180
+#: includes/Admin/class-bgcouriers-bulk-labels.php:207
 #, php-format
 msgid "Shipping labels: %1$d cancelled, %2$d skipped, %3$d failed."
 msgstr "Товарителници: %1$d анулирани, %2$d пропуснати, %3$d неуспешни."
 
 #. translators: 1: generated 2: reused 3: skipped 4: failed
-#: includes/Admin/class-bgcouriers-bulk-labels.php:186
+#: includes/Admin/class-bgcouriers-bulk-labels.php:213
 #, php-format
 msgid ""
 "Shipping labels: %1$d generated, %2$d reused, %3$d skipped, %4$d failed."
@@ -151,9 +155,9 @@ msgstr ""
 "мин."
 
 #: includes/Admin/class-bgcouriers-labels.php:167
-#: includes/Admin/class-bgcouriers-labels.php:336
-#: includes/Admin/class-bgcouriers-labels.php:468
-#: includes/Admin/class-bgcouriers-labels.php:623
+#: includes/Admin/class-bgcouriers-labels.php:373
+#: includes/Admin/class-bgcouriers-labels.php:505
+#: includes/Admin/class-bgcouriers-labels.php:660
 msgid "Order not found."
 msgstr "Поръчката не е намерена."
 
@@ -161,14 +165,22 @@ msgstr "Поръчката не е намерена."
 msgid "A waybill for this order is being issued right now. Give it a moment."
 msgstr "В момента се издава товарителница за тази поръчка. Изчакайте малко."
 
-#: includes/Admin/class-bgcouriers-labels.php:205
-#: includes/Admin/class-bgcouriers-labels.php:472
-#: includes/Admin/class-bgcouriers-labels.php:682
+#: includes/Admin/class-bgcouriers-labels.php:198
+msgid ""
+"Another request was issuing this waybill and ended without one. The order "
+"notes say why."
+msgstr ""
+"Друга заявка издаваше тази товарителница и приключи без нея. Причината е в "
+"бележките към поръчката."
+
+#: includes/Admin/class-bgcouriers-labels.php:242
+#: includes/Admin/class-bgcouriers-labels.php:509
+#: includes/Admin/class-bgcouriers-labels.php:719
 msgid "Unknown courier for this order."
 msgstr "Неизвестен куриер за тази поръчка."
 
 #. translators: 1: courier name, 2: the delivery option, e.g. "To APS"
-#: includes/Admin/class-bgcouriers-labels.php:212
+#: includes/Admin/class-bgcouriers-labels.php:249
 #, php-format
 msgid ""
 "%1$s does not collect cash on delivery for this delivery option (%2$s). "
@@ -178,12 +190,12 @@ msgstr ""
 "доставката или отбележете поръчката като платена, преди да издадете "
 "товарителница."
 
-#: includes/Admin/class-bgcouriers-labels.php:218
+#: includes/Admin/class-bgcouriers-labels.php:255
 msgid "The courier returned no waybill number."
 msgstr "Куриерът не върна номер на товарителница."
 
 #. translators: 1: courier name, 2: what the courier did not apply
-#: includes/Admin/class-bgcouriers-labels.php:234
+#: includes/Admin/class-bgcouriers-labels.php:271
 #, php-format
 msgid ""
 "⚠ %1$s: the waybill was created but NOT everything was applied. %2$s Check "
@@ -193,7 +205,7 @@ msgstr ""
 "Проверете пратката преди предаване."
 
 #. translators: 1: courier name, 2: waybill number, 3: error message
-#: includes/Admin/class-bgcouriers-labels.php:258
+#: includes/Admin/class-bgcouriers-labels.php:295
 #, php-format
 msgid ""
 "%1$s issued waybill %2$s, but the label PDF could not be fetched yet: %3$s. "
@@ -203,33 +215,33 @@ msgstr ""
 "изтеглен: %3$s. При печат ще бъде изтеглен отново."
 
 #. translators: 1: courier name, 2: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:274
+#: includes/Admin/class-bgcouriers-labels.php:311
 #, php-format
 msgid "%1$s label generated: %2$s"
 msgstr "Генериран етикет за %1$s: %2$s"
 
 #. translators: %s: the error the download reported.
-#: includes/Admin/class-bgcouriers-labels.php:303
+#: includes/Admin/class-bgcouriers-labels.php:340
 #, php-format
 msgid "Downloading the label PDF failed: %s"
 msgstr "Изтеглянето на PDF файла с товарителницата е неуспешно: %s"
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:340
-#: includes/Admin/class-bgcouriers-labels.php:343
+#: includes/Admin/class-bgcouriers-labels.php:377
+#: includes/Admin/class-bgcouriers-labels.php:380
 #, php-format
 msgid "Label generation failed: %s"
 msgstr "Генерирането на етикет е неуспешно: %s"
 
-#: includes/Admin/class-bgcouriers-labels.php:396
+#: includes/Admin/class-bgcouriers-labels.php:433
 msgid "Print label (not printed yet)"
 msgstr "Отпечатай етикет (още не е отпечатан)"
 
-#: includes/Admin/class-bgcouriers-labels.php:396
+#: includes/Admin/class-bgcouriers-labels.php:433
 msgid "Print label"
 msgstr "Отпечатай етикет"
 
-#: includes/Admin/class-bgcouriers-labels.php:403
+#: includes/Admin/class-bgcouriers-labels.php:440
 msgid ""
 "The order changed after this waybill was issued, and the courier already "
 "holds the parcel - arrange the change with the courier."
@@ -237,7 +249,7 @@ msgstr ""
 "Поръчката е променена след издаването на тази товарителница, а куриерът вече "
 "е взел пратката - уговорете промяната с куриера."
 
-#: includes/Admin/class-bgcouriers-labels.php:404
+#: includes/Admin/class-bgcouriers-labels.php:441
 msgid ""
 "The order changed after this waybill was issued - re-issue the waybill so it "
 "matches."
@@ -245,11 +257,11 @@ msgstr ""
 "Поръчката е променена след издаването на тази товарителница - преиздайте "
 "товарителницата, за да съвпада."
 
-#: includes/Admin/class-bgcouriers-labels.php:406
+#: includes/Admin/class-bgcouriers-labels.php:443
 msgid "This waybill has not been printed yet."
 msgstr "Тази товарителница още не е отпечатана."
 
-#: includes/Admin/class-bgcouriers-labels.php:430
+#: includes/Admin/class-bgcouriers-labels.php:467
 msgid ""
 "⚠ The order changed, but the waybill was NOT re-issued: the courier already "
 "collected this shipment. Arrange the change with the courier."
@@ -258,7 +270,7 @@ msgstr ""
 "е взел пратката. Уговорете промяната с куриера."
 
 #. translators: %s: the previous waybill number
-#: includes/Admin/class-bgcouriers-labels.php:458
+#: includes/Admin/class-bgcouriers-labels.php:495
 #, php-format
 msgid ""
 "The order changed, so waybill %s was voided and a new one issued "
@@ -268,23 +280,23 @@ msgstr ""
 "беше издадена нова."
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:461
+#: includes/Admin/class-bgcouriers-labels.php:498
 #, php-format
 msgid "Automatic re-issue after an order change failed: %s"
 msgstr "Автоматичното преиздаване след промяна в поръчката се провали: %s"
 
 #. translators: %s: what the courier answered
-#: includes/Admin/class-bgcouriers-labels.php:483
+#: includes/Admin/class-bgcouriers-labels.php:520
 #, php-format
 msgid "The courier did not cancel the waybill: %s"
 msgstr "Куриерът не отказа товарителницата: %s"
 
-#: includes/Admin/class-bgcouriers-labels.php:484
+#: includes/Admin/class-bgcouriers-labels.php:521
 msgid "The courier did not cancel the waybill."
 msgstr "Куриерът не отказа товарителницата."
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:503
+#: includes/Admin/class-bgcouriers-labels.php:540
 #, php-format
 msgid ""
 "Shipment label %s was already cancelled at the courier; removed from the "
@@ -293,20 +305,20 @@ msgstr ""
 "Товарителница %s вече беше анулирана при куриера; премахната от поръчката."
 
 #. translators: %s: waybill number
-#: includes/Admin/class-bgcouriers-labels.php:505
+#: includes/Admin/class-bgcouriers-labels.php:542
 #, php-format
 msgid "Shipment label %s cancelled."
 msgstr "Етикетът за пратка %s е отказан."
 
 #. translators: %s: error message from the courier
-#: includes/Admin/class-bgcouriers-labels.php:517
+#: includes/Admin/class-bgcouriers-labels.php:554
 #, php-format
 msgid "Auto-cancel of the waybill after a full refund failed: %s"
 msgstr ""
 "Автоматичното анулиране на товарителницата след пълно възстановяване беше "
 "неуспешно: %s"
 
-#: includes/Admin/class-bgcouriers-labels.php:548
+#: includes/Admin/class-bgcouriers-labels.php:585
 msgid ""
 "BG Couriers: the order was put back in hand, so the waybill can be "
 "cancelled, re-issued and edited again - even though the courier has the "
@@ -316,7 +328,7 @@ msgstr ""
 "може да бъде анулирана, преиздадена и редактирана - въпреки че пратката е у "
 "куриера. Уговорете промяната и с куриера."
 
-#: includes/Admin/class-bgcouriers-labels.php:566
+#: includes/Admin/class-bgcouriers-labels.php:603
 msgid ""
 "The courier has already collected this shipment - the waybill can no longer "
 "be cancelled, re-issued or edited. To work on this order again, set it back "
@@ -326,74 +338,74 @@ msgstr ""
 "анулира, преиздава или редактира. За да работите отново по поръчката, "
 "върнете я в статус „Обработка“ или „Очаква плащане“."
 
-#: includes/Admin/class-bgcouriers-labels.php:579
+#: includes/Admin/class-bgcouriers-labels.php:616
 msgid "Label cancellation refused"
 msgstr "Анулирането на товарителницата е отказано"
 
-#: includes/Admin/class-bgcouriers-labels.php:582
-#: includes/Admin/class-bgcouriers-labels.php:609
+#: includes/Admin/class-bgcouriers-labels.php:619
+#: includes/Admin/class-bgcouriers-labels.php:646
 msgid "Label cancellation failed"
 msgstr "Отказът на етикета е неуспешен"
 
-#: includes/Admin/class-bgcouriers-labels.php:593
+#: includes/Admin/class-bgcouriers-labels.php:630
 msgid "Re-issue refused"
 msgstr "Преиздаването е отказано"
 
-#: includes/Admin/class-bgcouriers-labels.php:596
+#: includes/Admin/class-bgcouriers-labels.php:633
 msgid "Label re-generation failed"
 msgstr "Повторното генериране на етикета е неуспешно"
 
-#: includes/Admin/class-bgcouriers-labels.php:612
+#: includes/Admin/class-bgcouriers-labels.php:649
 msgid "Cancelled from the BG Couriers panel."
 msgstr "Отказано от панела на BG Couriers."
 
-#: includes/Admin/class-bgcouriers-labels.php:626
+#: includes/Admin/class-bgcouriers-labels.php:663
 msgid "Choose a courier."
 msgstr "Изберете куриер."
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:633
+#: includes/Admin/class-bgcouriers-labels.php:670
 #, php-format
 msgid "Could not cancel the current waybill: %s"
 msgstr "Текущата товарителница не можа да се анулира: %s"
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:657
+#: includes/Admin/class-bgcouriers-labels.php:694
 #, php-format
 msgid "Saved, but issuing the new waybill failed: %s"
 msgstr "Запазено, но издаването на новата товарителница беше неуспешно: %s"
 
-#: includes/Admin/class-bgcouriers-labels.php:660
+#: includes/Admin/class-bgcouriers-labels.php:697
 msgid "Delivery updated and a new waybill issued."
 msgstr "Доставката е обновена и е издадена нова товарителница."
 
-#: includes/Admin/class-bgcouriers-labels.php:660
+#: includes/Admin/class-bgcouriers-labels.php:697
 msgid "Delivery details saved."
 msgstr "Данните за доставка са запазени."
 
-#: includes/Admin/class-bgcouriers-labels.php:671
+#: includes/Admin/class-bgcouriers-labels.php:708
 msgid "Waybill cancelled."
 msgstr "Товарителницата е анулирана."
 
-#: includes/Admin/class-bgcouriers-labels.php:680
+#: includes/Admin/class-bgcouriers-labels.php:717
 msgid "No waybill found."
 msgstr "Няма намерена товарителница."
 
 #. translators: 1: courier name, 2: the waybill number
-#: includes/Admin/class-bgcouriers-labels.php:688
+#: includes/Admin/class-bgcouriers-labels.php:725
 #, php-format
 msgid "%1$s has no public tracking page. The waybill number is %2$s."
 msgstr ""
 "%1$s няма публична страница за проследяване. Номерът на товарителницата е "
 "%2$s."
 
-#: includes/Admin/class-bgcouriers-labels.php:703
-#: includes/Admin/class-bgcouriers-labels.php:715
+#: includes/Admin/class-bgcouriers-labels.php:740
+#: includes/Admin/class-bgcouriers-labels.php:752
 msgid "No labels to print."
 msgstr "Няма етикети за отпечатване."
 
 #. translators: %s: error message
-#: includes/Admin/class-bgcouriers-labels.php:714
+#: includes/Admin/class-bgcouriers-labels.php:751
 #, php-format
 msgid "Print failed: %s"
 msgstr "Отпечатването е неуспешно: %s"
@@ -3194,8 +3206,8 @@ msgstr "Отговорът от %s не е валиден JSON."
 #. translators: %s: the transport error.
 #. translators: %s: the courier's own error text, or the HTTP status.
 #: includes/Couriers/abstract-bgcouriers-courier.php:27
-#: includes/Couriers/class-bgcouriers-sameday.php:486
-#: includes/Couriers/class-bgcouriers-sameday.php:493
+#: includes/Couriers/class-bgcouriers-sameday.php:487
+#: includes/Couriers/class-bgcouriers-sameday.php:494
 #: includes/Couriers/class-bgcouriers-speedy.php:179
 #: includes/Couriers/class-bgcouriers-speedy.php:184
 #, php-format
