@@ -172,6 +172,7 @@ class BGCouriers_Labels {
             throw new BGCouriers_Claimed_Exception(esc_html__('A waybill for this order is being issued right now. Give it a moment.', 'bg-couriers'));
         }
         try {
+            self::forget_cached_order($order_id);
             $order    = wc_get_order($order_id);   // fresh: the previous holder may have written one
             $existing = (string) $order->get_meta('_bgcouriers_waybill');
             if ($existing !== '') { return new BGCouriers_Label($existing, (string) $order->get_meta('_bgcouriers_label_url')); }
@@ -212,7 +213,9 @@ class BGCouriers_Labels {
 
     /** This request's object cache still holds the order as it was before the other request saved its waybill. */
     private static function forget_cached_order(int $order_id): void {
-        clean_post_cache($order_id);
+        if (function_exists('clean_post_cache')) { clean_post_cache($order_id); }
+        // Posts storage: WC_Data keeps the order's meta in its own group, which clean_post_cache() leaves alone.
+        if (class_exists('WC_Cache_Helper')) { WC_Cache_Helper::invalidate_cache_group('object_' . $order_id); }
         if (function_exists('wc_get_container') && class_exists('\Automattic\WooCommerce\Caches\OrderCache')) {
             wc_get_container()->get('\Automattic\WooCommerce\Caches\OrderCache')->remove($order_id);
         }

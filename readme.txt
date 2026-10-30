@@ -133,7 +133,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 = 0.4.36 =
 * Fixed: **bulk print no longer gives up on an order whose waybill is being issued at that moment.** Pressing Apply twice, or printing while another request was issuing the waybill, ended in "No labels to print (none could be generated)" although the waybill was created a second later. Print and generate now wait for the other request and use its waybill; a second shipment is never booked. A second press of Apply for a bulk print is ignored while the first is still running.
-* Fixed: **when nothing could be printed, the page says why** for each order: the courier's answer, or that the order is not shipped with a BG Couriers courier.
+* Fixed: **when nothing could be printed, the page says why** for each order: the courier's answer, or that the order is not shipped with a BG Couriers courier. A label the courier would not hand over is also noted on the order.
 * Fixed: **Sameday A6 labels are A6.** The size was sent in a form Sameday ignores, so every Sameday label came back on A4.
 
 = 0.4.35 =
