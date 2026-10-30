@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.35
+Stable tag: 0.4.36
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,11 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.36 =
+* Fixed: **bulk print no longer gives up on an order whose waybill is being issued at that moment.** Pressing Apply twice, or printing while another request was issuing the waybill, ended in "No labels to print (none could be generated)" although the waybill was created a second later. Print and generate now wait for the other request and use its waybill; a second shipment is never booked. A second press of Apply for a bulk print is ignored while the first is still running.
+* Fixed: **when nothing could be printed, the page says why** for each order: the courier's answer, or that the order is not shipped with a BG Couriers courier.
+* Fixed: **Sameday A6 labels are A6.** The size was sent in a form Sameday ignores, so every Sameday label came back on A4.
 
 = 0.4.35 =
 * Changed: **the map compares the couriers for you.** Above the list, one row each with the same columns: the closest point, the cheapest one and the lowest price of delivery to the address, with distance, price and courier, so the prices line up. Pressing the address row chooses that courier's delivery to the address at the checkout. Each of the three can be switched off in the settings. Every courier's chip shows its nearest point's distance and price.
