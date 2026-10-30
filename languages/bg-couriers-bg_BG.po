@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BG Couriers for WooCommerce 0.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-30 12:28+0000\n"
+"POT-Creation-Date: 2026-10-30 12:50+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Bulgarian <bg@li.org>\n"
@@ -84,7 +84,8 @@ msgstr "BG Couriers групов печат - неуспешно генерир�
 #: includes/Admin/class-bgcouriers-bulk-labels.php:130
 #, php-format
 msgid "BG Couriers bulk print - the label PDF did not come back: %s"
-msgstr "BG Couriers групов печат - PDF файлът на товарителницата не беше получен: %s"
+msgstr ""
+"BG Couriers групов печат - PDF файлът на товарителницата не беше получен: %s"
 
 #: includes/Admin/class-bgcouriers-bulk-labels.php:136
 msgid "No labels to print (none could be generated)."
@@ -505,11 +506,15 @@ msgstr ""
 msgid "Yes, re-issue it"
 msgstr "Да, преиздай я"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:190
+#: includes/Admin/class-bgcouriers-order-columns.php:185
+msgid "The labels are still being printed. Wait for the PDF."
+msgstr "Етикетите още се отпечатват. Изчакайте PDF файла."
+
+#: includes/Admin/class-bgcouriers-order-columns.php:193
 msgid "Cancel the selected waybills?"
 msgstr "Да анулирам ли избраните товарителници?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:191
+#: includes/Admin/class-bgcouriers-order-columns.php:194
 msgid ""
 "This voids the shipment label with the courier for every selected order. "
 "This cannot be undone."
@@ -517,20 +522,20 @@ msgstr ""
 "Това анулира етикета за доставка при куриера за всяка избрана поръчка. "
 "Действието е необратимо."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:192
+#: includes/Admin/class-bgcouriers-order-columns.php:195
 msgid "Yes, cancel them"
 msgstr "Да, анулирай ги"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:193
-#: includes/Admin/class-bgcouriers-order-columns.php:199
+#: includes/Admin/class-bgcouriers-order-columns.php:196
+#: includes/Admin/class-bgcouriers-order-columns.php:202
 msgid "Keep them"
 msgstr "Запази ги"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:196
+#: includes/Admin/class-bgcouriers-order-columns.php:199
 msgid "Re-issue the selected waybills?"
 msgstr "Да се преиздадат ли избраните товарителници?"
 
-#: includes/Admin/class-bgcouriers-order-columns.php:197
+#: includes/Admin/class-bgcouriers-order-columns.php:200
 msgid ""
 "Every selected order ends up with a fresh waybill, issued from that order's "
 "current delivery details, products and settings. Where a waybill already "
@@ -541,7 +546,7 @@ msgstr ""
 "товарителница, тя първо се анулира при куриера. Това не може да бъде "
 "отменено."
 
-#: includes/Admin/class-bgcouriers-order-columns.php:198
+#: includes/Admin/class-bgcouriers-order-columns.php:201
 msgid "Yes, re-issue them"
 msgstr "Да, преиздай ги"
 

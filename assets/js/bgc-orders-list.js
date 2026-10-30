@@ -107,8 +107,8 @@
 
   // Bulk actions listed in confirmBulk submit only after the merchant confirms.
   (function () {
-    var MAP = C.confirmBulk || {}, going = false, printing = false;
-    window.addEventListener('pageshow', function () { printing = false; });
+    var MAP = C.confirmBulk || {}, going = false, printing = false, hold;
+    window.addEventListener('pageshow', function () { printing = false; clearTimeout(hold); });
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('#doaction, #doaction2');
       if (!btn || going) { return; }
@@ -116,8 +116,9 @@
       // Bulk print streams into this tab; on Back the cached list must already show the tiles plain.
       if (sel && (C.printActions || []).indexOf(sel.value) !== -1) {
         // A second submit while the first is still issuing waybills only replaces the tab's answer.
-        if (printing) { e.preventDefault(); e.stopPropagation(); return; }
+        if (printing) { e.preventDefault(); e.stopPropagation(); toast(M.printing); return; }
         printing = true;
+        hold = setTimeout(function () { printing = false; }, C.printHoldMs || 60000);
         document.querySelectorAll('tbody .check-column input:checked').forEach(function (cb) {
           var row = cb.closest('tr');
           if (row) { printed(row.querySelector('.bgc-primary.bgc-unprinted')); }

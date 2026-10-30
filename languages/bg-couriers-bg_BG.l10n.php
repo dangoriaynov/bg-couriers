@@ -563,6 +563,7 @@ return array (
     'The flat delivery price is not set.' => 'Не е зададена фиксирана цена за доставка.',
     'The generated file is not a valid PDF.' => 'Генерираният файл не е валиден PDF.',
     'The key you generate yourself in Settings at online.evropat.com. Европът issues no API username - this key is the whole credential.' => 'Ключът, който генерирате сами в „Настройки“ на online.evropat.com. Европът не издава API потребителско име - този ключ е целите данни за достъп.',
+    'The labels are still being printed. Wait for the PDF.' => 'Етикетите още се отпечатват. Изчакайте PDF файла.',
     'The order changed after this waybill was issued - re-issue the waybill so it matches.' => 'Поръчката е променена след издаването на тази товарителница - преиздайте товарителницата, за да съвпада.',
     'The order changed after this waybill was issued, and the courier already holds the parcel - arrange the change with the courier.' => 'Поръчката е променена след издаването на тази товарителница, а куриерът вече е взел пратката - уговорете промяната с куриера.',
     'The order changed, so waybill %s was voided and a new one issued automatically.' => 'Поръчката е променена, затова товарителница %s беше анулирана и автоматично беше издадена нова.',
