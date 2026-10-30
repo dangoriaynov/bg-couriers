@@ -53,7 +53,7 @@ class BGCouriers_Bulk_Labels {
             if (!$order || !BGCouriers_Labels::order_courier($order)) { $results[] = 'skipped'; continue; }
             // An order with a waybill is reused, never re-issued: this action can never void a live shipment.
             if ((string) $order->get_meta('_bgcouriers_waybill') !== '') { $results[] = 'reused'; $print_ids[] = $oid; continue; }
-            try { BGCouriers_Labels::generate($oid); $results[] = 'generated'; $print_ids[] = $oid; }
+            try { BGCouriers_Labels::generate_or_wait($oid); $results[] = 'generated'; $print_ids[] = $oid; }
             catch (\Exception $e) {
                 $results[] = 'failed';
                 /* translators: %s: error message */
@@ -81,22 +81,10 @@ class BGCouriers_Bulk_Labels {
     /** Bulk print: generate missing labels, pack onto A4/A6 and stream the PDF (WC runs this before output). */
     private function handle_print(string $paper, $ids): void {
         if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
-        $ok = [];
-        foreach (array_map('intval', (array) $ids) as $oid) {
-            $order = wc_get_order($oid);
-            if (!$order || !BGCouriers_Labels::order_courier($order)) { continue; }
-            if ((string) $order->get_meta('_bgcouriers_waybill') === '') {
-                try { BGCouriers_Labels::generate($oid); }
-                catch (\Exception $e) {
-                    /* translators: %s: error message */
-                    $order->add_order_note(sprintf(__('BG Couriers bulk print - generate failed: %s', 'bg-couriers'), $e->getMessage()));
-                    continue;
-                }
-            }
-            $ok[] = $oid;
-        }
+        [$ok, $errors] = self::printable((array) $ids);
         $out = BGCouriers_Labels::batch_pdf($ok, $paper);
-        if ($out === '') { wp_die(esc_html__('No labels to print (none could be generated).', 'bg-couriers')); }
+        self::note_print_errors(BGCouriers_Labels::print_errors());
+        if ($out === '') { wp_die(wp_kses_post(self::nothing_printed($errors + BGCouriers_Labels::print_errors()))); }
         // Refuse anything that is not a PDF: that makes the raw echo below safe by construction.
         if (strncmp($out, '%PDF', 4) !== 0) { wp_die(esc_html__('The generated file is not a valid PDF.', 'bg-couriers')); }
         BGCouriers_Labels::mark_printed($ok);
@@ -105,6 +93,55 @@ class BGCouriers_Bulk_Labels {
         header('Content-Disposition: inline; filename="labels-' . strtolower($paper) . '.pdf"');
         echo $out; // phpcs:ignore WordPress.Security.EscapeOutput -- raw PDF bytes, verified above to start with %PDF; escaping would corrupt the file
         exit;
+    }
+
+    /**
+     * Orders that have a waybill or just got one; the rest with the reason, by order id.
+     * @return array{0:int[],1:array<int,string>}
+     */
+    public static function printable(array $ids): array {
+        $ok = []; $errors = [];
+        foreach (array_map('intval', $ids) as $oid) {
+            $order = wc_get_order($oid);
+            if (!$order) { continue; }
+            if (!BGCouriers_Labels::order_courier($order)) {
+                $errors[$oid] = __('This order is not shipped with a BG Couriers courier.', 'bg-couriers');
+                continue;
+            }
+            if ((string) $order->get_meta('_bgcouriers_waybill') === '') {
+                try { BGCouriers_Labels::generate_or_wait($oid); }
+                catch (\Exception $e) {
+                    $errors[$oid] = $e->getMessage();
+                    /* translators: %s: error message */
+                    $order->add_order_note(sprintf(__('BG Couriers bulk print - generate failed: %s', 'bg-couriers'), $e->getMessage()));
+                    continue;
+                }
+            }
+            $ok[] = $oid;
+        }
+        return [$ok, $errors];
+    }
+
+    /** @param array<int,string> $errors order id => why its label PDF did not come back */
+    public static function note_print_errors(array $errors): void {
+        foreach ($errors as $oid => $why) {
+            $order = wc_get_order((int) $oid);
+            /* translators: %s: error message */
+            if ($order) { $order->add_order_note(sprintf(__('BG Couriers bulk print - the label PDF did not come back: %s', 'bg-couriers'), $why)); }
+        }
+    }
+
+    /** @param array<int,string> $errors order id => reason */
+    public static function nothing_printed(array $errors): string {
+        $html = '<p>' . esc_html__('No labels to print (none could be generated).', 'bg-couriers') . '</p>';
+        if (!$errors) { return $html; }
+        $html .= '<ul>';
+        foreach ($errors as $oid => $why) {
+            $order = wc_get_order((int) $oid);
+            $num   = $order ? (string) $order->get_order_number() : (string) $oid;
+            $html .= '<li>#' . esc_html($num) . ': ' . esc_html($why) . '</li>';
+        }
+        return $html . '</ul>';
     }
 
     /** Bulk re-issue: every selected order ends up with a fresh waybill; orders without a BG Couriers courier are skipped. */

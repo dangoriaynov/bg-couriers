@@ -172,12 +172,52 @@ class BGCouriers_Labels {
             throw new BGCouriers_Claimed_Exception(esc_html__('A waybill for this order is being issued right now. Give it a moment.', 'bg-couriers'));
         }
         try {
+            self::forget_cached_order($order_id);
             $order    = wc_get_order($order_id);   // fresh: the previous holder may have written one
             $existing = (string) $order->get_meta('_bgcouriers_waybill');
             if ($existing !== '') { return new BGCouriers_Label($existing, (string) $order->get_meta('_bgcouriers_label_url')); }
             return self::issue($order);
         } finally {
             self::release($order_id);
+        }
+    }
+
+    /** Seconds a merchant action waits for another request that is issuing the same order's waybill. */
+    const CLAIM_WAIT = 30;
+
+    /** generate() for a merchant action: a claim held by another request is waited out, and its waybill is the answer. */
+    public static function generate_or_wait(int $order_id, int $seconds = self::CLAIM_WAIT): BGCouriers_Label {
+        try { return self::generate($order_id); }
+        catch (BGCouriers_Claimed_Exception $e) {
+            if (isset(self::$issuing[$order_id]) || !self::wait_for_claim($order_id, $seconds)) { throw $e; }
+        }
+        // Never generate() again here: a stale read would book a second shipment, a stale "none" only reports.
+        self::forget_cached_order($order_id);
+        $order = wc_get_order($order_id);
+        $wb    = $order ? (string) $order->get_meta('_bgcouriers_waybill') : '';
+        if ($wb === '') {
+            throw new BGCouriers_Api_Exception(esc_html__('Another request was issuing this waybill and ended without one. The order notes say why.', 'bg-couriers'));
+        }
+        return new BGCouriers_Label($wb, (string) $order->get_meta('_bgcouriers_label_url'));
+    }
+
+    private static function wait_for_claim(int $order_id, int $seconds): bool {
+        global $wpdb;
+        $name = 'bgcouriers_label_' . $order_id;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a named lock, not data
+        if ((string) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, %d)', $name, max(1, $seconds))) !== '1') { return false; }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a named lock, not data
+        $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $name));
+        return true;
+    }
+
+    /** This request's object cache still holds the order as it was before the other request saved its waybill. */
+    private static function forget_cached_order(int $order_id): void {
+        if (function_exists('clean_post_cache')) { clean_post_cache($order_id); }
+        // Posts storage: WC_Data keeps the order's meta in its own group, which clean_post_cache() leaves alone.
+        if (class_exists('WC_Cache_Helper')) { WC_Cache_Helper::invalidate_cache_group('object_' . $order_id); }
+        if (function_exists('wc_get_container') && class_exists('\Automattic\WooCommerce\Caches\OrderCache')) {
+            wc_get_container()->get('\Automattic\WooCommerce\Caches\OrderCache')->remove($order_id);
         }
     }
 
@@ -334,7 +374,7 @@ class BGCouriers_Labels {
         $id = absint(wp_unslash($_GET['order_id'] ?? 0));
         check_admin_referer('bgcouriers_generate_label_' . $id);
         if (!wc_get_order($id)) { wp_die(esc_html__('Order not found.', 'bg-couriers')); }
-        try { self::generate($id); }
+        try { self::generate_or_wait($id); }
         catch (\Exception $e) {
             /* translators: %s: error message from the courier */
             set_transient('bgcouriers_admin_error_' . $id, sprintf(__('Label generation failed: %s', 'bg-couriers'), $e->getMessage()), 60);
@@ -725,7 +765,14 @@ class BGCouriers_Labels {
         exit;
     }
 
+    /** @var array<int,string> Why an order's label did not come back from the last batch_pdf(), by order id. */
+    private static array $print_errors = [];
+
+    /** @return array<int,string> */
+    public static function print_errors(): array { return self::$print_errors; }
+
     public static function batch_pdf(array $order_ids, string $format = ''): string {
+        self::$print_errors = [];
         $groups = []; // courier_id => [ order_id => waybill ]
         foreach ($order_ids as $oid) {
             $o = wc_get_order((int) $oid);
@@ -747,7 +794,7 @@ class BGCouriers_Labels {
                     catch (\Exception $e) { /* fall through to the courier's own batch */ }
                 }
                 try { $b = $courier->batch_label_pdf(array_values($map), $format); if ($b !== '') { $sheets[] = $b; } }
-                catch (\Exception $e) { /* skip this courier */ }
+                catch (\Exception $e) { foreach (array_keys($map) as $oid) { self::$print_errors[$oid] = $e->getMessage(); } }
             } else {
                 // Stored files (Pigeon cannot re-fetch); on A4 placed on real A4 pages at native size, on A6 passed through.
                 $per = self::collect_label_pdfs(array_keys($map), $format);
@@ -776,7 +823,7 @@ class BGCouriers_Labels {
             $o = wc_get_order((int) $oid);
             if (!$o) { continue; }
             $bytes = self::label_pdf_for_print($o, $format);
-            if ($bytes !== '') { $pdfs[] = $bytes; }
+            if ($bytes !== '') { $pdfs[] = $bytes; unset(self::$print_errors[(int) $oid]); }
         }
         return $pdfs;
     }
@@ -793,7 +840,8 @@ class BGCouriers_Labels {
             $b = self::read_stored_url($o, (string) $o->get_meta('_bgcouriers_label_url'));
             if ($b !== '') { return $b; }
             if ($courier && $wb !== '') {
-                try { return $courier->get_label_pdf($wb, $primary); } catch (\Exception $e) { return ''; }
+                try { return $courier->get_label_pdf($wb, $primary); }
+                catch (\Exception $e) { self::$print_errors[$o->get_id()] = $e->getMessage(); return ''; }
             }
             return '';
         }
@@ -810,7 +858,7 @@ class BGCouriers_Labels {
                     $o->save();
                     return $pdf;
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) { self::$print_errors[$o->get_id()] = $e->getMessage(); }
         }
         return self::read_stored_url($o, (string) $o->get_meta('_bgcouriers_label_url'));
     }

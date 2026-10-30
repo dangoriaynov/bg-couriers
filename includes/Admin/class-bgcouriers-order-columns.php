@@ -182,9 +182,12 @@ class BGCouriers_Order_Columns {
                 'regenTitle'   => __('Re-issue this waybill?', 'bg-couriers'),
                 'regenBody'    => __('The current waybill is voided with the courier and a new one is issued from this order\'s current delivery details, products and settings. This cannot be undone.', 'bg-couriers'),
                 'regenYes'     => __('Yes, re-issue it', 'bg-couriers'),
+                'printing'     => __('The labels are still being printed. Wait for the PDF.', 'bg-couriers'),
             ],
             'group' => ['label' => 'BG Couriers', 'actions' => BGCouriers_Bulk_Labels::actions()],
             'printActions' => BGCouriers_Bulk_Labels::print_actions(),
+            // A downloaded PDF leaves the list on screen with no pageshow: the hold must also run out on its own.
+            'printHoldMs'  => (BGCouriers_Labels::CLAIM_WAIT + 30) * 1000,
             'confirmBulk' => [
                 BGCouriers_Bulk_Labels::CANCEL => [
                     'title' => __('Cancel the selected waybills?', 'bg-couriers'),
