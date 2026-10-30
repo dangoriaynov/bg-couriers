@@ -122,6 +122,7 @@ return array (
     'BG Couriers bulk cancel failed: %s' => 'Груповото анулиране на BG Couriers беше неуспешно: %s',
     'BG Couriers bulk label failed: %s' => 'Групово генериране на етикети (BG Couriers) е неуспешно: %s',
     'BG Couriers bulk print - generate failed: %s' => 'BG Couriers групов печат - неуспешно генериране: %s',
+    'BG Couriers bulk print - the label PDF did not come back: %s' => 'BG Couriers групов печат - PDF файлът на товарителницата не беше получен: %s',
     'BG Couriers bulk re-issue failed: %s' => 'Групово преиздаване на BG Couriers се провали: %s',
     'BG Couriers is free and open source. Questions and problems: %1$s. If it saves you work you can %2$s - entirely voluntary, and it changes nothing about the support you get.' => 'BG Couriers е безплатен и с отворен код. Въпроси и проблеми: %1$s. Ако Ви спестява работа, можете да %2$s - напълно доброволно и не променя нищо в поддръжката, която получавате.',
     'BG Couriers: nobody has collected the parcel (auto status).' => 'BG Couriers: никой не е потърсил пратката (автоматичен статус).',

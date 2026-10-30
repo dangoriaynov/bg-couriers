@@ -83,6 +83,7 @@ class BGCouriers_Bulk_Labels {
         if (!current_user_can('manage_woocommerce')) { wp_die(esc_html__('You are not allowed to do that.', 'bg-couriers')); }
         [$ok, $errors] = self::printable((array) $ids);
         $out = BGCouriers_Labels::batch_pdf($ok, $paper);
+        self::note_print_errors(BGCouriers_Labels::print_errors());
         if ($out === '') { wp_die(wp_kses_post(self::nothing_printed($errors + BGCouriers_Labels::print_errors()))); }
         // Refuse anything that is not a PDF: that makes the raw echo below safe by construction.
         if (strncmp($out, '%PDF', 4) !== 0) { wp_die(esc_html__('The generated file is not a valid PDF.', 'bg-couriers')); }
@@ -119,6 +120,15 @@ class BGCouriers_Bulk_Labels {
             $ok[] = $oid;
         }
         return [$ok, $errors];
+    }
+
+    /** @param array<int,string> $errors order id => why its label PDF did not come back */
+    public static function note_print_errors(array $errors): void {
+        foreach ($errors as $oid => $why) {
+            $order = wc_get_order((int) $oid);
+            /* translators: %s: error message */
+            if ($order) { $order->add_order_note(sprintf(__('BG Couriers bulk print - the label PDF did not come back: %s', 'bg-couriers'), $why)); }
+        }
     }
 
     /** @param array<int,string> $errors order id => reason */

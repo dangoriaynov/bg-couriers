@@ -115,6 +115,12 @@ final class PrintWaitsForTheIssuerTest extends BGCouriers_Unit_TestCase {
 
         $this->assertSame('', BGCouriers_Labels::batch_pdf([7], 'A6'));
         $this->assertSame([7 => 'Probe: the label did not come back as a PDF.'], BGCouriers_Labels::print_errors());
+
+        BGCouriers_Bulk_Labels::note_print_errors(BGCouriers_Labels::print_errors());
+        $this->assertSame(['BG Couriers bulk print - the label PDF did not come back: Probe: the label did not come back as a PDF.'],
+            $this->cached->notes, 'the order says it too');
+        $this->assertStringContainsString('#1007: Probe: the label did not come back as a PDF.',
+            BGCouriers_Bulk_Labels::nothing_printed(BGCouriers_Labels::print_errors()));
     }
 }
 
