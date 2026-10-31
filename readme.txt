@@ -133,6 +133,7 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 
 = 0.4.37 =
 * Added: **Econt "Send parcels from": the office you hand parcels in at.** Econt used to price and book every parcel as collected from your address. Choose your office and the checkout price, the waybill and Econt's own bill all start there.
+* Added: **Sameday "I hand parcels in myself".** Waybills and quotes carry Sameday's "Personal drop off in fixed point", for shops that take their parcels to an easybox or Sameday point.
 * Changed: **"Request a courier" leaves out a courier set to an office** (Econt, and Speedy with "Send parcels from") and says so, instead of calling a courier to an address the parcels never leave from.
 
 = 0.4.36 =

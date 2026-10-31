@@ -381,9 +381,30 @@ id); `BGCouriers_Econt::dropoff_office_code()` resolves it to the code for every
 **The other couriers.** Speedy, Pigeon, Европът and BOX NOW already had their own way to start at an
 office or locker. Express One: `SEND_OFFICE_ID` is one of the account's addresses (`/1/list-object`,
 with pickup hours beside it); the API documents nothing for handing a parcel in at an office or EXOBOX.
-Sameday: the PHP SDK's AWB request carries undocumented `lockerFirstMile` / `oohFirstMile`; the price
-estimate does not, and an AWB summons the courier on creation, so it stays unbuilt until Sameday
-documents it.
+Sameday: see below.
+
+## Sameday: the shop hands parcels in itself (PDO) - *BUILT 0.4.37, estimate measured 2026-10-31*
+
+`/api/client/services` lists, on every service of the dev account (24, LN, PP and the rest), an optional
+tax **"Personal drop off in fixed point"**, `taxCode` **`PDO`**, `costType` Fix, `tax` 0, one per
+`packageType`. Sameday's own WooCommerce plugin (github.com/sameday-courier/woocommerce-plugin) shows a
+checkbox "Personal delivery at locker" ("if you want to apply for Personal delivery of the package at an
+easyBox terminal") only for a service that lists PDO, and sends it as `serviceTaxes: ["PDO"]` - the code,
+not the tax id. It keeps `pickupPoint` on the AWB and never fills `lockerFirstMile` (it passes null).
+
+`lockerFirstMile` / `oohFirstMile` exist in the PHP SDK's AWB request (changelog: "Replace obsolete
+lockerId param. with lockerLastMile param. and add lockerFirstMile param."), with no description; by
+name, the locker or point the parcel starts at. Nothing Sameday publishes uses it, and the estimate
+answers the same with or without it, so the plugin does not send it.
+
+Measured read-only (`/api/awb/estimate-cost`, 1 kg to Plovdiv): `serviceTaxes: ["PDO"]` accepted, an
+unknown code refused with HTTP 400 "serviceTaxes: The selected choice is invalid"; the price is the same
+with and without (2.93 to an address, 1.32 to a locker), as the tax is 0 on this contract.
+
+**Not measured: whether a PDO waybill keeps the courier away.** An AWB on the live account is a real
+shipment, and without PDO it enters the pickup point's collection list (see "Sameday summons itself").
+Until one PDO waybill has been watched through a collection day, `books_pickup_on_create()` stays true and
+automatic labels stay off by default for Sameday.
 
 ## Courier pickup requests - BUILT, and it is part of the flow, not an extra
 
