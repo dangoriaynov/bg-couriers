@@ -362,6 +362,29 @@ offices (type `office` only). `BGCouriers_Speedy::dropoff_office()` puts it on e
 shipment; the daily pre-town reference price is re-quoted when it changes. Not measured abroad
 (service 202) - see `docs/international-shipping.md`.
 
+## Where an Econt parcel starts: the drop-off office - *BUILT 0.4.37, measured 2026-10-31*
+
+`ShippingLabel` has **`senderOfficeCode`** (a string: the office CODE, not its id), next to `senderAddress`
+and `senderDeliveryType`. The plugin sent only the profile's client and address, so Econt priced and
+booked a courier pickup from that address. Measured on the live account, read-only:
+
+- calculate mode, 1 kg, to Plovdiv office 4002: **5.41 EUR** from the profile address, **4.10** with
+  `senderOfficeCode` 1009 (Sofia), the same 4.10 with or without `senderAddress` beside it;
+- createLabel in **`validate`** mode (it checks and prices, issues no number): accepted with the office,
+  5.52 against 4.21;
+- the answer echoes no `senderOfficeCode`, so nothing in it confirms the office was applied except the price.
+
+Econt lists no per-office drop-off flag, so any synced office of type `office` is accepted; Econtomats are
+not offered. Setting: Econt → "Send parcels from" (`bgcouriers_econt_dropoff_office`, the synced office
+id); `BGCouriers_Econt::dropoff_office_code()` resolves it to the code for every quote and waybill.
+
+**The other couriers.** Speedy, Pigeon, Европът and BOX NOW already had their own way to start at an
+office or locker. Express One: `SEND_OFFICE_ID` is one of the account's addresses (`/1/list-object`,
+with pickup hours beside it); the API documents nothing for handing a parcel in at an office or EXOBOX.
+Sameday: the PHP SDK's AWB request carries undocumented `lockerFirstMile` / `oohFirstMile`; the price
+estimate does not, and an AWB summons the courier on creation, so it stays unbuilt until Sameday
+documents it.
+
 ## Courier pickup requests - BUILT, and it is part of the flow, not an extra
 
 A waybill only says a parcel exists. The courier comes for it **on a request that names the specific
