@@ -57,12 +57,10 @@ final class EcontDropoffTest extends BGCouriers_Unit_TestCase {
         $this->assertSame('4002', $from['receiverOfficeCode']);
     }
 
-    public function test_hands_in_at_office_follows_the_setting(): void {
-        $c = new BGCouriers_Econt([]);
+    public function test_the_setting_reads_as_an_office_id(): void {
         $this->options([]);
-        $this->assertFalse($c->hands_in_at_office());
+        $this->assertSame(0, BGCouriers_Econt::dropoff_office());
         $this->options(['bgcouriers_econt_dropoff_office' => '163']);
-        $this->assertTrue($c->hands_in_at_office());
         $this->assertSame(163, BGCouriers_Econt::dropoff_office());
     }
 }

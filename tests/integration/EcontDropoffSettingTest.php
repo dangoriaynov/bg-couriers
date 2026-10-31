@@ -39,6 +39,15 @@ final class EcontDropoffSettingTest extends WP_UnitTestCase {
         $this->assertSame('1009', BGCouriers_Econt::dropoff_office_code());
     }
 
+    public function test_hands_in_at_office_only_while_the_office_is_in_the_synced_list(): void {
+        $c = new BGCouriers_Econt([]);
+        $this->assertFalse($c->hands_in_at_office());
+        update_option('bgcouriers_econt_dropoff_office', '163');
+        $this->assertTrue($c->hands_in_at_office());
+        update_option('bgcouriers_econt_dropoff_office', '424242');
+        $this->assertFalse($c->hands_in_at_office(), 'gone from the list: shipped from the address, so the courier is still called');
+    }
+
     public function test_a_blank_means_the_courier_collects(): void {
         update_option('bgcouriers_econt_dropoff_office', '163');
         $this->assertSame('', $this->save(''));

@@ -47,7 +47,8 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return $row ? (string) ($row['code'] ?? '') : '';
     }
 
-    public function hands_in_at_office(): bool { return self::dropoff_office() > 0; }
+    /** Follows what the waybill carries: an office gone from the synced list is shipped from the address, so a courier is needed. */
+    public function hands_in_at_office(): bool { return self::dropoff_office_code() !== ''; }
 
     public function enable_problems(): array {
         $p = parent::enable_problems();
