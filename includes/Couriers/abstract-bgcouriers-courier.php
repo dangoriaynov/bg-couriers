@@ -94,6 +94,9 @@ abstract class BGCouriers_Abstract_Courier implements BGCouriers_Courier_Interfa
     /** True when creating a waybill alone summons the courier, so labels must not be issued automatically. */
     public function books_pickup_on_create(): bool { return false; }
 
+    /** True when the shop is set to hand its parcels in at an office: there is no courier to call. */
+    public function hands_in_at_office(): bool { return false; }
+
     /** True when the API takes and applies a parcel count and declared value. */
     public function multi_parcel(): bool { return false; }
 

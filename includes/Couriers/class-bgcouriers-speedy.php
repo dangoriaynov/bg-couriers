@@ -38,6 +38,8 @@ class BGCouriers_Speedy extends BGCouriers_Abstract_Courier {
     }
 
     /** true/false from /location/office/{id}, null when Speedy could not be asked; the cached list lacks the flag. */
+    public function hands_in_at_office(): bool { return self::dropoff_office() > 0; }
+
     public function office_takes_dropoff(int $office_id): ?bool {
         if ($office_id <= 0) { return false; }
         try {

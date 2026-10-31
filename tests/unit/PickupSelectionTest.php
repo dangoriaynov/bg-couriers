@@ -61,6 +61,7 @@ final class PickupSelectionTest extends BGCouriers_Unit_TestCase {
 
         $counted = count($g['no_waybill']) + count($g['unresolved'])
                  + array_sum(array_map('count', $g['unsupported']))
+                 + array_sum(array_map('count', $g['handed_in']))
                  + array_sum(array_map('count', $g['groups']));
         $this->assertSame(count($ids), $counted, 'every selected order must be accounted for somewhere');
     }
@@ -88,5 +89,13 @@ final class PickupSelectionTest extends BGCouriers_Unit_TestCase {
         $this->assertSame(1.2, $g['groups']['speedy'][0]['weight_kg']);
         $this->assertSame([3], $g['no_waybill']);
         $this->assertSame(['sameday' => [4]], $g['unsupported']);
+    }
+
+    /** A courier the shop hands parcels in to is not called: those orders are named, not grouped. */
+    public function test_a_courier_set_to_an_office_is_left_out_by_name(): void {
+        Functions\when('get_option')->alias(static function ($n, $d = false) { return $n === 'bgcouriers_speedy_dropoff_office' ? '307' : $d; });
+        $g = BGCouriers_Pickup::group([$this->order(1, '63710932641', 'speedy')]);
+        $this->assertSame([], $g['groups']);
+        $this->assertSame(['speedy' => [1]], $g['handed_in']);
     }
 }
