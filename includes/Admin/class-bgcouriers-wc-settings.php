@@ -671,7 +671,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     'default' => 'BOX'],
                 ['type' => 'select', 'id' => 'bgcouriers_speedy_dropoff_office', 'title' => __('Send parcels from', 'bg-couriers'),
                     'desc' => __('The Speedy office you hand parcels in at. Speedy then prices and books every shipment as handed in there and sends no courier for it; whether that is cheaper depends on your contract. Leave empty when a courier collects from your address.', 'bg-couriers'),
-                    'options' => self::speedy_dropoff_options(), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
+                    'options' => self::dropoff_options('speedy'), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
                     'default' => ''],
             ], $intl),
             'pricing' => [
@@ -713,6 +713,10 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 ['type' => 'select', 'id' => 'bgcouriers_econt_sender_address', 'title' => __('Ship-from address', 'bg-couriers'),
                     'desc' => __('The ship-from address on the waybill (from your Econt profile). Automatic = the first profile address.', 'bg-couriers'),
                     'options' => $sender_opts, 'default' => ''],
+                ['type' => 'select', 'id' => 'bgcouriers_econt_dropoff_office', 'title' => __('Send parcels from', 'bg-couriers'),
+                    'desc' => __('The Econt office you hand parcels in at. Econt then prices and books every shipment as handed in there, and "Request a courier" leaves Econt orders out. Leave empty when a courier collects from your address.', 'bg-couriers'),
+                    'options' => self::dropoff_options('econt'), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
+                    'default' => ''],
                 ['type' => 'select', 'id' => 'bgcouriers_econt_label_paper_size', 'title' => __('Label format', 'bg-couriers'),
                     'desc' => __('Econt labels are A4-landscape only (fixed by its API). The bulk “Print A4” packs several per sheet without scaling.', 'bg-couriers'),
                     'options' => ['A4' => __('A4-landscape (fixed by Econt)', 'bg-couriers')],
@@ -810,11 +814,11 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     /** @return array<string,string> */
-    private static function speedy_dropoff_options(): array {
+    private static function dropoff_options(string $courier): array {
         $out  = ['' => __('- my address: a courier collects -', 'bg-couriers')];
-        $rows = class_exists('BGCouriers_Nomenclature') ? BGCouriers_Nomenclature::all_offices('speedy', 'office') : [];
+        $rows = class_exists('BGCouriers_Nomenclature') ? BGCouriers_Nomenclature::all_offices($courier, 'office') : [];
         if (!$rows) {
-            $chosen = (int) get_option('bgcouriers_speedy_dropoff_office', 0);
+            $chosen = (int) get_option('bgcouriers_' . $courier . '_dropoff_office', 0);
             if ($chosen > 0) { $out[(string) $chosen] = sprintf('#%d', $chosen); }
             $out[''] = __('- my address: a courier collects - (sync the towns and offices, and the offices list here)', 'bg-couriers');
             return $out;
