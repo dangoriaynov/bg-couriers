@@ -113,9 +113,9 @@ class BGCouriers_Plugin {
         add_action(BGCouriers_Tracking_Poller::HOOK, ['BGCouriers_Tracking_Poller', 'run']);
         add_action('update_option_bgcouriers_tracking_poll', ['BGCouriers_Tracking_Poller', 'schedule']);
         // add_option_ as well: the first save of a never-existing option fires that, not update_.
-        foreach (['speedy', 'econt'] as $cid) {
+        foreach (['speedy' => 'dropoff_office', 'econt' => 'dropoff_office', 'sameday' => 'dropoff'] as $cid => $opt) {
             foreach (['update_option', 'add_option'] as $when) {
-                add_action("{$when}_bgcouriers_{$cid}_dropoff_office", static function () use ($cid) {
+                add_action("{$when}_bgcouriers_{$cid}_{$opt}", static function () use ($cid) {
                     $c = BGCouriers_Couriers::get($cid);
                     if ($c) { BGCouriers_Sync::seed_rates($c); }
                 });
