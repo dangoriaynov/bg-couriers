@@ -29,6 +29,7 @@ class BGCouriers_Settings_Admin {
         }
         add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_dropdown_limit', [$this, 'sanitize_dropdown_limit'], 10, 3);
         add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_speedy_dropoff_office', [$this, 'sanitize_speedy_dropoff'], 10, 3);
+        add_filter('woocommerce_admin_settings_sanitize_option_bgcouriers_econt_dropoff_office', [$this, 'sanitize_econt_dropoff'], 10, 3);
         add_action('wp_ajax_bgcouriers_validate_creds', [$this, 'ajax_validate']);
         add_action('wp_ajax_bgcouriers_sync_now', [$this, 'ajax_sync']);
         add_action('wp_ajax_bgcouriers_reset_creds', [$this, 'ajax_reset_creds']);
@@ -331,6 +332,20 @@ jQuery(function($){
         if ($takes === false) {
             /* translators: %s: the office's name as Speedy lists it */
             self::refuse(sprintf(__('Speedy says %s does not take parcels handed in - choose another office. The drop-off office was not changed.', 'bg-couriers'), (string) $office['name']));
+            return $was;
+        }
+        return (string) $id;
+    }
+
+    /** Econt publishes no per-office drop-off flag: any office in the synced list is taken, an automat is not. */
+    public function sanitize_econt_dropoff($value, $option, $raw_value) {
+        $id  = max(0, (int) $raw_value);
+        $was = (string) get_option('bgcouriers_econt_dropoff_office', '');
+        if ($id === 0) { return ''; }
+        if ((string) $id === $was) { return $was; }
+        $office = class_exists('BGCouriers_Nomenclature') ? BGCouriers_Nomenclature::office_by_id('econt', $id) : null;
+        if (!$office || (string) ($office['type'] ?? '') !== 'office' || (string) ($office['code'] ?? '') === '') {
+            self::refuse(__('That is not an Econt office in the synced list - the drop-off office was not changed.', 'bg-couriers'));
             return $was;
         }
         return (string) $id;

@@ -671,7 +671,7 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                     'default' => 'BOX'],
                 ['type' => 'select', 'id' => 'bgcouriers_speedy_dropoff_office', 'title' => __('Send parcels from', 'bg-couriers'),
                     'desc' => __('The Speedy office you hand parcels in at. Speedy then prices and books every shipment as handed in there and sends no courier for it; whether that is cheaper depends on your contract. Leave empty when a courier collects from your address.', 'bg-couriers'),
-                    'options' => self::speedy_dropoff_options(), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
+                    'options' => self::dropoff_options('speedy'), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
                     'default' => ''],
             ], $intl),
             'pricing' => [
@@ -713,6 +713,10 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 ['type' => 'select', 'id' => 'bgcouriers_econt_sender_address', 'title' => __('Ship-from address', 'bg-couriers'),
                     'desc' => __('The ship-from address on the waybill (from your Econt profile). Automatic = the first profile address.', 'bg-couriers'),
                     'options' => $sender_opts, 'default' => ''],
+                ['type' => 'select', 'id' => 'bgcouriers_econt_dropoff_office', 'title' => __('Send parcels from', 'bg-couriers'),
+                    'desc' => __('The Econt office you hand parcels in at. Econt then prices and books every shipment as handed in there, and "Request a courier" leaves Econt orders out. Leave empty when a courier collects from your address.', 'bg-couriers'),
+                    'options' => self::dropoff_options('econt'), 'class' => 'wc-enhanced-select', 'css' => 'min-width:300px;',
+                    'default' => ''],
                 ['type' => 'select', 'id' => 'bgcouriers_econt_label_paper_size', 'title' => __('Label format', 'bg-couriers'),
                     'desc' => __('Econt labels are A4-landscape only (fixed by its API). The bulk “Print A4” packs several per sheet without scaling.', 'bg-couriers'),
                     'options' => ['A4' => __('A4-landscape (fixed by Econt)', 'bg-couriers')],
@@ -785,6 +789,9 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
                 ['type' => 'number', 'id' => 'bgcouriers_sameday_pickup_point', 'title' => __('Pickup point ID (optional)', 'bg-couriers'),
                     'desc' => __('Leave empty to ship from your Sameday account\'s default pickup point; enter an ID only to use a different one. Delivery services (24H / locker / PUDO) are discovered from your account automatically.', 'bg-couriers'),
                     'default' => '', 'custom_attributes' => ['min' => '0', 'step' => '1'], 'autoload' => false],
+                ['type' => 'checkbox', 'id' => 'bgcouriers_sameday_dropoff', 'title' => __('I hand parcels in myself', 'bg-couriers'),
+                    'desc' => __('You take the parcels to any easybox or Sameday point yourself. Every quote and waybill carries Sameday\'s “Personal drop off in fixed point”, on the services your contract offers it for. Off = a courier collects from your pickup point.', 'bg-couriers'),
+                    'default' => 'no'],
                 self::paper_size_row('sameday', 'A6'),
             ],
             'ppp' => ['default' => 'no',
@@ -810,11 +817,11 @@ class BGCouriers_WC_Settings extends WC_Settings_Page {
     }
 
     /** @return array<string,string> */
-    private static function speedy_dropoff_options(): array {
+    private static function dropoff_options(string $courier): array {
         $out  = ['' => __('- my address: a courier collects -', 'bg-couriers')];
-        $rows = class_exists('BGCouriers_Nomenclature') ? BGCouriers_Nomenclature::all_offices('speedy', 'office') : [];
+        $rows = class_exists('BGCouriers_Nomenclature') ? BGCouriers_Nomenclature::all_offices($courier, 'office') : [];
         if (!$rows) {
-            $chosen = (int) get_option('bgcouriers_speedy_dropoff_office', 0);
+            $chosen = (int) get_option('bgcouriers_' . $courier . '_dropoff_office', 0);
             if ($chosen > 0) { $out[(string) $chosen] = sprintf('#%d', $chosen); }
             $out[''] = __('- my address: a courier collects - (sync the towns and offices, and the offices list here)', 'bg-couriers');
             return $out;

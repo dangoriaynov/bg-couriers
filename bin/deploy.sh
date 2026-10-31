@@ -49,7 +49,7 @@ EXCLUDES=(
   --exclude 'vendor' --exclude 'docs' --exclude 'bin' --exclude 'e2e'
   --exclude '.wp-env.json' --exclude 'composer.*' --exclude 'phpunit.xml.dist'
   --exclude '.wordpress-org' --exclude '.distignore' --exclude '.github'
-  --exclude 'README.md' --exclude 'CONTRIBUTING.md' --exclude 'CLAUDE.md'
+  --exclude 'README.md' --exclude 'CONTRIBUTING.md' --exclude 'CLAUDE.md' --exclude 'Makefile'
   # Untracked local files that Plugin Check on dev would refuse; build-zip never sees them, rsync/tar does.
   --exclude 'tmp'
   --exclude '.DS_Store' --exclude '._*'

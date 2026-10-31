@@ -34,9 +34,9 @@ class BGCouriers_Pickup {
         ], admin_url('admin.php'));
     }
 
-    /** @return array{groups:array<string,array>, no_waybill:int[], unsupported:array<string,int[]>, unresolved:int[]} every id lands in exactly one bucket */
+    /** @return array{groups:array<string,array>, no_waybill:int[], unsupported:array<string,int[]>, handed_in:array<string,int[]>, unresolved:int[]} every id lands in exactly one bucket */
     public static function group(array $order_ids): array {
-        $groups = []; $no_waybill = []; $unsupported = []; $unresolved = [];
+        $groups = []; $no_waybill = []; $unsupported = []; $handed_in = []; $unresolved = [];
         foreach (array_map('intval', $order_ids) as $oid) {
             $order = wc_get_order($oid);
             if (!$order) { $unresolved[] = $oid; continue; }
@@ -46,11 +46,12 @@ class BGCouriers_Pickup {
             $c   = $cid !== '' ? BGCouriers_Couriers::get($cid) : null;
             if (!$c) { $unresolved[] = $oid; continue; }
             if (!in_array('pickup', $c->capabilities(), true)) { $unsupported[$cid][] = $oid; continue; }
+            if ($c->hands_in_at_office()) { $handed_in[$cid][] = $oid; continue; }
             $groups[$cid][] = ['order_id' => $oid, 'waybill' => $waybill,
                                'weight_kg' => BGCouriers_Abstract_Courier::order_weight_kg($order)];
         }
         return ['groups' => $groups, 'no_waybill' => $no_waybill,
-                'unsupported' => $unsupported, 'unresolved' => $unresolved];
+                'unsupported' => $unsupported, 'handed_in' => $handed_in, 'unresolved' => $unresolved];
     }
 
     /** Cut-offs still ahead, soonest first, compared as real moments (current_time('timestamp') is offset-shifted). */
@@ -175,6 +176,13 @@ class BGCouriers_Pickup {
             echo '<p class="description" style="opacity:.7">' . esc_html(sprintf(
                 /* translators: 1: courier name, 2: how many orders */
                 __('%1$s does not offer a pickup request - %2$d order(s) left out. Its parcels are collected under your contract with them.', 'bg-couriers'),
+                $c ? $c->label() : $cid, count($oids))) . '</p>';
+        }
+        foreach ($g['handed_in'] as $cid => $oids) {
+            $c = BGCouriers_Couriers::get($cid);
+            echo '<p class="description" style="opacity:.7">' . esc_html(sprintf(
+                /* translators: 1: courier name, 2: how many orders */
+                __('%1$s is set to "Send parcels from" an office - %2$d order(s) left out. Hand those parcels in at the office; no courier comes for them.', 'bg-couriers'),
                 $c ? $c->label() : $cid, count($oids))) . '</p>';
         }
         if ($g['no_waybill']) {

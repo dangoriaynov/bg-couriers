@@ -5,7 +5,7 @@ Tags: speedy, econt, boxnow, sameday, shipping
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.36
+Stable tag: 0.4.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,11 @@ Yes, and all are GPL-compatible and shipped with their source: **FPDF** (permiss
 8. Orders list: the shipment's current state, and when it was last checked, on hover.
 
 == Changelog ==
+
+= 0.4.37 =
+* Added: **Econt "Send parcels from": the office you hand parcels in at.** Econt used to price and book every parcel as collected from your address. Choose your office and the checkout price, the waybill and Econt's own bill all start there.
+* Added: **Sameday "I hand parcels in myself".** Waybills and quotes carry Sameday's "Personal drop off in fixed point", for shops that take their parcels to an easybox or Sameday point.
+* Changed: **"Request a courier" leaves out a courier set to an office** (Econt, and Speedy with "Send parcels from") and says so, instead of calling a courier to an address the parcels never leave from.
 
 = 0.4.36 =
 * Fixed: **bulk print no longer gives up on an order whose waybill is being issued at that moment.** Pressing Apply twice, or printing while another request was issuing the waybill, ended in "No labels to print (none could be generated)" although the waybill was created a second later. Print and generate now wait for the other request and use its waybill; a second shipment is never booked. A second press of Apply for a bulk print is ignored, with a note saying so, while the first is still running.

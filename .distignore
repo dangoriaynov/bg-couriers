@@ -12,6 +12,7 @@
 README.md
 CONTRIBUTING.md
 CLAUDE.md
+Makefile
 composer.json
 composer.lock
 phpunit.xml.dist

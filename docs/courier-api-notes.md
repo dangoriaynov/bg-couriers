@@ -362,6 +362,50 @@ offices (type `office` only). `BGCouriers_Speedy::dropoff_office()` puts it on e
 shipment; the daily pre-town reference price is re-quoted when it changes. Not measured abroad
 (service 202) - see `docs/international-shipping.md`.
 
+## Where an Econt parcel starts: the drop-off office - *BUILT 0.4.37, measured 2026-10-31*
+
+`ShippingLabel` has **`senderOfficeCode`** (a string: the office CODE, not its id), next to `senderAddress`
+and `senderDeliveryType`. The plugin sent only the profile's client and address, so Econt priced and
+booked a courier pickup from that address. Measured on the live account, read-only:
+
+- calculate mode, 1 kg, to Plovdiv office 4002: **5.41 EUR** from the profile address, **4.10** with
+  `senderOfficeCode` 1009 (Sofia), the same 4.10 with or without `senderAddress` beside it;
+- createLabel in **`validate`** mode (it checks and prices, issues no number): accepted with the office,
+  5.52 against 4.21;
+- the answer echoes no `senderOfficeCode`, so nothing in it confirms the office was applied except the price.
+
+Econt lists no per-office drop-off flag, so any synced office of type `office` is accepted; Econtomats are
+not offered. Setting: Econt → "Send parcels from" (`bgcouriers_econt_dropoff_office`, the synced office
+id); `BGCouriers_Econt::dropoff_office_code()` resolves it to the code for every quote and waybill.
+
+**The other couriers.** Speedy, Pigeon, Европът and BOX NOW already had their own way to start at an
+office or locker. Express One: `SEND_OFFICE_ID` is one of the account's addresses (`/1/list-object`,
+with pickup hours beside it); the API documents nothing for handing a parcel in at an office or EXOBOX.
+Sameday: see below.
+
+## Sameday: the shop hands parcels in itself (PDO) - *BUILT 0.4.37, estimate measured 2026-10-31*
+
+`/api/client/services` lists, on every service of the dev account (24, LN, PP and the rest), an optional
+tax **"Personal drop off in fixed point"**, `taxCode` **`PDO`**, `costType` Fix, `tax` 0, one per
+`packageType`. Sameday's own WooCommerce plugin (github.com/sameday-courier/woocommerce-plugin) shows a
+checkbox "Personal delivery at locker" ("if you want to apply for Personal delivery of the package at an
+easyBox terminal") only for a service that lists PDO, and sends it as `serviceTaxes: ["PDO"]` - the code,
+not the tax id. It keeps `pickupPoint` on the AWB and never fills `lockerFirstMile` (it passes null).
+
+`lockerFirstMile` / `oohFirstMile` exist in the PHP SDK's AWB request (changelog: "Replace obsolete
+lockerId param. with lockerLastMile param. and add lockerFirstMile param."), with no description; by
+name, the locker or point the parcel starts at. Nothing Sameday publishes uses it, and the estimate
+answers the same with or without it, so the plugin does not send it.
+
+Measured read-only (`/api/awb/estimate-cost`, 1 kg to Plovdiv): `serviceTaxes: ["PDO"]` accepted, an
+unknown code refused with HTTP 400 "serviceTaxes: The selected choice is invalid"; the price is the same
+with and without (2.93 to an address, 1.32 to a locker), as the tax is 0 on this contract.
+
+**Not measured: whether a PDO waybill keeps the courier away.** An AWB on the live account is a real
+shipment, and without PDO it enters the pickup point's collection list (see "Sameday summons itself").
+Until one PDO waybill has been watched through a collection day, `books_pickup_on_create()` stays true and
+automatic labels stay off by default for Sameday.
+
 ## Courier pickup requests - BUILT, and it is part of the flow, not an extra
 
 A waybill only says a parcel exists. The courier comes for it **on a request that names the specific

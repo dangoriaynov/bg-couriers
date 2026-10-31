@@ -40,18 +40,40 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
 
     const SERVICE_CODES = ['address' => '24', 'automat' => 'LN', 'office' => 'PP'];
 
-    public function service_id(string $type): int {
-        $ckey = $this->cache_key('services');
-        $map  = get_transient($ckey);
-        if (!is_array($map) || !$map) {
-            $map = [];
-            foreach ($this->get_paged('/api/client/services') as $s) {
-                $map[(string) ($s['serviceCode'] ?? '')] = (int) ($s['id'] ?? 0);
+    /** Sameday's optional tax for a parcel the shop hands in at an easybox or Sameday point itself. */
+    const DROPOFF_TAX = 'PDO';
+
+    /** @return array{ids:array<string,int>,dropoff:int[]} service code => id, and the ids that offer DROPOFF_TAX */
+    private function services(): array {
+        $ckey = $this->cache_key('services2');
+        $c    = get_transient($ckey);
+        if (is_array($c) && !empty($c['ids'])) { return $c; }
+        $c = ['ids' => [], 'dropoff' => []];
+        foreach ($this->get_paged('/api/client/services') as $s) {
+            $id = (int) ($s['id'] ?? 0);
+            $c['ids'][(string) ($s['serviceCode'] ?? '')] = $id;
+            foreach ((array) ($s['serviceOptionalTaxes'] ?? []) as $t) {
+                if (($t['taxCode'] ?? '') === self::DROPOFF_TAX) { $c['dropoff'][] = $id; break; }
             }
-            if ($map) { set_transient($ckey, $map, DAY_IN_SECONDS); }
         }
-        return (int) ($map[self::SERVICE_CODES[$type] ?? ''] ?? 0);
+        if ($c['ids']) { set_transient($ckey, $c, DAY_IN_SECONDS); }
+        return $c;
     }
+
+    public function service_id(string $type): int {
+        return (int) ($this->services()['ids'][self::SERVICE_CODES[$type] ?? ''] ?? 0);
+    }
+
+    public static function dropoff(): bool {
+        return function_exists('get_option') && get_option('bgcouriers_sameday_dropoff', 'no') === 'yes';
+    }
+
+    /** Whether the shop hands parcels in itself AND the service takes that on this contract. */
+    public function dropoff_for(int $service_id): bool {
+        return self::dropoff() && in_array($service_id, $this->services()['dropoff'], true);
+    }
+
+    public function hands_in_at_office(): bool { return self::dropoff(); }
 
     public function pickup_point_id(): int {
         $opt = (int) get_option('bgcouriers_sameday_pickup_point', 0);
@@ -90,6 +112,13 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
                 ];
             }
             foreach (BGCouriers_Settings::enabled_methods('sameday') as $m) {
+                if (isset($labels[$m]) && self::dropoff() && $this->service_id($m) > 0 && !$this->dropoff_for($this->service_id($m))) {
+                    $p[] = [
+                        /* translators: %s: delivery type, e.g. "to office" */
+                        'msg' => sprintf(__('Your Sameday contract has no “Personal drop off” for the “%s” delivery type, so those parcels are still collected from your pickup point.', 'bg-couriers'), $labels[$m]),
+                        'fix' => __('Ask Sameday to add “Personal drop off in fixed point” to that service, or turn off “I hand parcels in myself”.', 'bg-couriers'),
+                    ];
+                }
                 if (!isset($labels[$m]) || $this->service_id($m) > 0) { continue; }
                 $p[] = [
                     /* translators: %s: delivery type, e.g. "to office" */
@@ -339,6 +368,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
     public function quote(array $shipment): BGCouriers_Quote {
         $shipment['service_id']   = $this->service_id((string) ($shipment['method'] ?? 'address'));
         $shipment['pickup_point'] = $this->pickup_point_id();
+        $shipment['dropoff']      = $this->dropoff_for((int) $shipment['service_id']);
         $resp = $this->post_json('/api/awb/estimate-cost', self::build_estimate_body($shipment));
         return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
@@ -372,6 +402,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         ];
         if ($type === 'automat')      { $body['lockerLastMile'] = (int) ($s['office_id'] ?? 0); }
         elseif ($type === 'office')   { $body['oohLastMile']    = (int) ($s['office_id'] ?? 0); }
+        if (!empty($s['dropoff']))    { $body['serviceTaxes']   = [self::DROPOFF_TAX]; }
         return $body;
     }
 
@@ -402,7 +433,8 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $method = (string) $order->get_meta('_bgcouriers_method');
         $recipient_pays = self::service_payer('sameday', $order) === 'recipient';
         try {
-            $resp = $this->post_json('/api/awb', self::build_awb_body($order, $this->service_id($method), $this->pickup_point_id()));
+            $sid  = $this->service_id($method);
+            $resp = $this->post_json('/api/awb', self::build_awb_body($order, $sid, $this->pickup_point_id(), $this->dropoff_for($sid)));
         } catch (BGCouriers_Api_Exception $e) {
             // A contract without recipient payment rejects awbPayment and creates no waybill; remember it for the settings screen.
             if (strpos($e->getMessage(), 'awbPayment') !== false) {
@@ -418,7 +450,7 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         return new BGCouriers_Label(self::parse_awb_id($resp));
     }
 
-    public static function build_awb_body(\WC_Order $order, int $service_id = 0, int $pickup_point = 0): array {
+    public static function build_awb_body(\WC_Order $order, int $service_id = 0, int $pickup_point = 0, bool $dropoff = false): array {
         $parcel_n = BGCouriers_Order::parcels($order);
         $insured  = BGCouriers_Order::insurance($order);
         $method = (string) $order->get_meta('_bgcouriers_method');
@@ -460,6 +492,8 @@ class BGCouriers_Sameday extends BGCouriers_Abstract_Courier implements BGCourie
         $office = (int) $order->get_meta('_bgcouriers_office_id');
         if ($method === 'automat')    { $body['lockerLastMile'] = $office; }
         elseif ($method === 'office') { $body['oohLastMile']    = $office; }
+        // Sameday's taxCode, not the tax id: an unknown code is refused ("serviceTaxes: The selected choice is invalid").
+        if ($dropoff)                 { $body['serviceTaxes']   = [self::DROPOFF_TAX]; }
         return $body;
     }
 

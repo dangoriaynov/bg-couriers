@@ -34,6 +34,22 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
     }
     public function capabilities(): array { return ['address', 'office', 'automat', 'live_quote', 'pickup']; }
 
+    /** The office the shop hands parcels in at (a synced office id); 0 = a courier collects from the address. */
+    public static function dropoff_office(): int {
+        return function_exists('get_option') ? max(0, (int) get_option('bgcouriers_econt_dropoff_office', 0)) : 0;
+    }
+
+    /** Econt wants the office CODE as senderOfficeCode; '' when none is chosen or it left the synced list. */
+    public static function dropoff_office_code(): string {
+        $id = self::dropoff_office();
+        if ($id <= 0 || !class_exists('BGCouriers_Nomenclature')) { return ''; }
+        $row = BGCouriers_Nomenclature::office_by_id('econt', $id);
+        return $row ? (string) ($row['code'] ?? '') : '';
+    }
+
+    /** Follows what the waybill carries: an office gone from the synced list is shipped from the address, so a courier is needed. */
+    public function hands_in_at_office(): bool { return self::dropoff_office_code() !== ''; }
+
     public function enable_problems(): array {
         $p = parent::enable_problems();
         if (get_option('bgcouriers_econt_cod_enabled') === 'yes') {
@@ -243,7 +259,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         return '';
     }
 
-    public static function build_calculate_body(array $s, array $sender): array {
+    public static function build_calculate_body(array $s, array $sender, string $from_office = ''): array {
         $label = [
             'senderClient'  => [
                 'name'   => (string) ($sender['client']['name'] ?? ''),
@@ -288,6 +304,8 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         } else {
             $label['receiverOfficeCode'] = (string) ($s['office_code'] ?? '');
         }
+        // The address stays: the office alone prices the same, and the address is the client's on the waybill.
+        if ($from_office !== '') { $label['senderOfficeCode'] = $from_office; }
 
         return ['mode' => 'calculate', 'label' => $label];
     }
@@ -317,14 +335,14 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
         }
         $resp = $this->post_json(
             $this->base . '/Shipments/LabelService.createLabel.json',
-            self::build_calculate_body($shipment, $this->sender_profile())
+            self::build_calculate_body($shipment, $this->sender_profile(), self::dropoff_office_code())
         );
         return self::parse_price($resp, (string) ($shipment['currency'] ?? get_woocommerce_currency()));
     }
 
     // Label creation
 
-    public static function build_label_body(\WC_Order $order, array $sender, string $office_code): array {
+    public static function build_label_body(\WC_Order $order, array $sender, string $office_code, string $from_office = ''): array {
         $label = [
             'senderClient'  => [
                 'name'   => (string) ($sender['client']['name'] ?? ''),
@@ -349,6 +367,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             // The shop's order number, so a parcel in Econt's panel can be matched to the order.
             'orderNumber'         => (string) $order->get_order_number(),
         ];
+        if ($from_office !== '') { $label['senderOfficeCode'] = $from_office; }
 
         // Econt prices on volumetric weight and sizeUnder60cm; blank dimensions make it assume.
         $dims = BGCouriers_Settings::box_dims($order);
@@ -496,7 +515,7 @@ class BGCouriers_Econt extends BGCouriers_Abstract_Courier {
             (int) $order->get_meta('_bgcouriers_site_id'),
             (int) $order->get_meta('_bgcouriers_office_id')
         );
-        $body = self::build_label_body($order, $sender, $office_code);
+        $body = self::build_label_body($order, $sender, $office_code, self::dropoff_office_code());
         $resp = $this->post_json($this->base . '/Shipments/LabelService.createLabel.json', $body);
         // The create response already carries the PDF URL, so no second call.
         return new BGCouriers_Label(
